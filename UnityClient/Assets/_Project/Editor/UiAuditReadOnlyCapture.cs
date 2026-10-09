@@ -1,10 +1,14 @@
-// Temporary audit helper only. Install in an isolated validation project's Editor folder.
-// Never saves scenes/assets and never enters PlayMode or invokes gameplay callbacks.
+// Read-only UI capture used for audits and for the UI refactor's before/after baselines.
+// Never saves scenes/assets and never enters PlayMode; battle states are arranged on the
+// disposable preview session only.
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
+using System.Text;
+using ShatteredSail.Core.Gameplay;
 using ShatteredSail.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -116,6 +120,75 @@ namespace ShatteredSail.Editor
             if (report.frames.Any(f => !string.IsNullOrEmpty(f.error))) throw new InvalidOperationException("Fresh UI capture failed; inspect report.");
         }
 
+        /// <summary>
+        /// UI refactor baseline: main menu states, every gameplay preview screen and the
+        /// battle/forecast states at 1080p, 720p and 3440x1440, plus an index.html contact sheet.
+        /// </summary>
+        public static void CaptureRefactorBaselineFromCommandLine()
+        {
+            RequireEditor();
+            string output = Output();
+            if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any()) throw new IOException("Output must be new/empty: " + output);
+            Directory.CreateDirectory(output);
+            var states = new List<string> { "Home", "Settings", "Achievements" };
+            states.AddRange(Enum.GetNames(typeof(CoreGameplayPreviewScreen)));
+            states.AddRange(new[] { "ForecastOpen", "NavalFar", "NavalClose", "Boarding" });
+            Vector2Int[] sizes = { new Vector2Int(1920,1080), new Vector2Int(1280,720), new Vector2Int(3440,1440) };
+            var report = new MenuReport { capturedAtUtc = DateTime.UtcNow.ToString("O") };
+            foreach (string state in states)
+                foreach (Vector2Int size in sizes)
+                {
+                    var frame = new MenuFrame { state = state, width = size.x, height = size.y, file = state + "_" + size.x + "x" + size.y + ".png" };
+                    report.frames.Add(frame);
+                    try { CaptureMenu(output, frame); }
+                    catch (Exception e) { frame.error = e.ToString(); Debug.LogWarning(frame.file + ": " + e.Message); }
+                }
+            File.WriteAllText(Path.Combine(output, "report.json"), JsonUtility.ToJson(report, true));
+            File.WriteAllText(Path.Combine(output, "index.html"), ContactSheet(report, states, sizes), new UTF8Encoding(false));
+            int failed = report.frames.Count(f => !string.IsNullOrEmpty(f.error));
+            if (failed > 0) throw new InvalidOperationException(failed + " baseline frames failed; inspect report.json.");
+            Debug.Log("UI_REFACTOR_BASELINE_OK: " + report.frames.Count + " frames at " + output);
+        }
+
+        // Body text below 18 reference units is the readability threshold from GameReadability.
+        private const int SmallTextThreshold = 18;
+
+        private static string ContactSheet(MenuReport report, List<string> states, Vector2Int[] sizes)
+        {
+            var html = new StringBuilder();
+            html.Append("<!doctype html><meta charset=utf-8><title>UI Baseline</title><style>")
+                .Append("body{background:#16120e;color:#eadcc3;font:14px system-ui,sans-serif;margin:24px}")
+                .Append("section{margin:0 0 40px}h2{font-size:18px;margin:0 0 8px}.row{display:flex;gap:12px;flex-wrap:wrap}")
+                .Append("figure{margin:0;width:31%;min-width:320px}img{width:100%;border:1px solid #4a3b2a}")
+                .Append("figcaption{font-size:12px;color:#b9a888;margin-top:4px}.err{color:#ff8a7a;white-space:pre-wrap}</style>")
+                .Append("<h1>UI refactor baseline</h1><p>Captured ").Append(report.capturedAtUtc)
+                .Append(" · text sizes in 1080p reference units · small = below ").Append(SmallTextThreshold).Append("</p>");
+            foreach (string state in states)
+            {
+                html.Append("<section id=\"").Append(state).Append("\"><h2>").Append(state).Append("</h2><div class=row>");
+                foreach (Vector2Int size in sizes)
+                {
+                    MenuFrame frame = report.frames.First(f => f.state == state && f.width == size.x && f.height == size.y);
+                    html.Append("<figure>");
+                    if (string.IsNullOrEmpty(frame.error))
+                    {
+                        List<TextGeometry> visible = frame.text.Where(t => t.meshAvailable).ToList();
+                        int smallest = visible.Count == 0 ? 0 : visible.Min(t => t.fontSize);
+                        html.Append("<a href=\"").Append(frame.file).Append("\"><img loading=lazy src=\"").Append(frame.file).Append("\"></a>")
+                            .Append("<figcaption>").Append(size.x).Append('×').Append(size.y)
+                            .Append(" · labels ").Append(visible.Count)
+                            .Append(" · smallest ").Append(smallest)
+                            .Append(" · small ").Append(visible.Count(t => t.fontSize < SmallTextThreshold))
+                            .Append(" · offscreen ").Append(visible.Count(t => t.meshOutsideTarget)).Append("</figcaption>");
+                    }
+                    else html.Append("<p class=err>").Append(size.x).Append('×').Append(size.y).Append(" failed\n").Append(WebUtility.HtmlEncode(frame.error)).Append("</p>");
+                    html.Append("</figure>");
+                }
+                html.Append("</div></section>");
+            }
+            return html.ToString();
+        }
+
         private static void CaptureMenu(string output, MenuFrame frame)
         {
             Scene scene = default;
@@ -128,10 +201,25 @@ namespace ShatteredSail.Editor
                 GameObject host = new GameObject("Disposable UI Audit Main Menu");
                 host.SetActive(false);
                 SceneManager.MoveGameObjectToScene(host, scene);
-                bool shop = Enum.TryParse(frame.state, out CoreGameplayPreviewScreen screen);
+                bool battleState = frame.state == "NavalFar" || frame.state == "NavalClose" || frame.state == "Boarding";
+                string mapped = frame.state == "ForecastOpen" ? "Navigation" : battleState ? "Battle" : frame.state;
+                bool shop = Enum.TryParse(mapped, out CoreGameplayPreviewScreen screen);
                 if (shop) host.AddComponent<CoreGameplayDemoController>().ConfigureEditorPreview(screen, CoreGameplayPreviewPort.GrayGull, 0);
                 else host.AddComponent<MainMenuController>();
                 host.SetActive(true);
+                if (battleState)
+                {
+                    var controller = host.GetComponent<CoreGameplayDemoController>();
+                    var battle = controller.Session.Battle;
+                    battle.Stage = NavalBattleStage.Naval;
+                    battle.DistanceMeters = frame.state == "NavalFar" ? 600 : 0;
+                    battle.Alignment = NavalBattleAlignment.Parallel;
+                    if (frame.state == "Boarding" && !controller.Session.TryBoard()) throw new InvalidOperationException("Boarding preview failed");
+                    battle.PlayerBlock = 8; battle.EnemyBlock = 6;
+                    typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
+                }
+                if (frame.state == "ForecastOpen")
+                    host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Forecast Details").onClick.Invoke();
                 if (!shop && frame.state == "Achievements")
                     host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Achievements").onClick.Invoke();
                 string canvasName = shop ? CoreGameplayDemoController.EditorPreviewCanvasName : MainMenuController.EditorPreviewCanvasName;
