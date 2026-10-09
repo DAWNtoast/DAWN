@@ -164,7 +164,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller.CurrentGuidedTutorialStep.ToString(), Is.EqualTo("FirstDeparture"));
             Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
-            Assert.That(ActiveButton("Tutorial Primary"), Is.Null, "New saves use the normal departure screen.");
+            Assert.That(ActiveGuidedButton("Tutorial Primary"), Is.Null, "New saves use the normal departure screen.");
             AssertGuidedFocusTarget("Start Voyage");
             NavalBattleVisualCapture.Capture(controller, "70_Guide_Red_Focus_Departure.png",
                 "正常出航入口以红框与箭头引导，不再置暗其它控件", "Start Voyage");
@@ -192,8 +192,8 @@ namespace ShatteredSail.Presentation.Tests
                 locked.onClick.Invoke();
             }
             Assert.That(controller.Session.Heading, Is.EqualTo(SailingDirection.East));
-            Assert.That(GameObject.Find("Distance Slider").GetComponent<Slider>().IsInteractable(), Is.False);
-            Assert.That(GameObject.Find("Map Course Input").GetComponent<Image>().raycastTarget, Is.False);
+            Assert.That(FindGuidedUi("Distance Slider").GetComponent<Slider>().IsInteractable(), Is.False);
+            Assert.That(FindGuidedUi("Map Course Input").GetComponent<Image>().raycastTarget, Is.False);
             float beforeDistance = controller.Session.TotalDistanceNm;
             RequireGuidedButton("Execute Sail").onClick.Invoke();
             Assert.That(controller.Session.TotalDistanceNm, Is.EqualTo(beforeDistance),
@@ -203,7 +203,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(controller.CurrentGuidedTutorialNavigationInputStep,
                 Is.EqualTo(GuidedTutorialNavigationInputStep.Distance));
-            Slider distanceSlider = GameObject.Find("Distance Slider").GetComponent<Slider>();
+            Slider distanceSlider = FindGuidedUi("Distance Slider").GetComponent<Slider>();
             Assert.That(distanceSlider.IsInteractable(), Is.True);
             AssertGuidedFocusTarget("Distance Slider");
             Assert.That(RequireGuidedButton("Execute Sail").IsInteractable(), Is.False);
@@ -211,7 +211,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.CurrentGuidedTutorialNavigationInputStep,
                 Is.EqualTo(GuidedTutorialNavigationInputStep.Distance),
                 "Dragging must not replace the slider or advance the lesson before pointer release.");
-            Assert.That(GameObject.Find("Distance Slider").GetComponent<Slider>(), Is.SameAs(distanceSlider));
+            Assert.That(FindGuidedUi("Distance Slider").GetComponent<Slider>(), Is.SameAs(distanceSlider));
             ExecuteEvents.Execute(distanceSlider.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerUpHandler);
             yield return null;
             Assert.That(controller.CurrentGuidedTutorialNavigationInputStep,
@@ -232,7 +232,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitForGuidedNavigationPresentation();
             Assert.That(controller.Session.ActiveEncounter.Id, Is.EqualTo("tutorial_first_event"));
             Assert.That(controller.Session.ActiveEncounter.Mandatory, Is.True);
-            Assert.That(ActiveButton("Skip Encounter"), Is.Null);
+            Assert.That(ActiveGuidedButton("Skip Encounter"), Is.Null);
             AssertGuidedFocusTarget("Encounter Choice 0");
             NavalBattleVisualCapture.Capture(controller, "74_Guide_Red_Focus_Encounter.png",
                 "后续事件同样用红框和箭头指向真实可点击选项", "Encounter Choice 0");
@@ -375,7 +375,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GuidedTutorialComponentRewardKey, 0), Is.Zero);
             Assert.That(controller.WarehouseCollection.Owns(CoreWarehouseCollection.TutorialTreasureId), Is.False);
-            Assert.That(ActiveButton("Draw Sea Chart"), Is.Null, "A lost ship cannot yield the final tutorial chart.");
+            Assert.That(ActiveGuidedButton("Draw Sea Chart"), Is.Null, "A lost ship cannot yield the final tutorial chart.");
             ClickGuidedButton("Return To Port");
             yield return null;
 
@@ -409,7 +409,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             ClickGuidedButton("Port Hotspot Warehouse");
             yield return null;
-            Assert.That(ActiveButton("Warehouse Tab Basics"), Is.Null);
+            Assert.That(ActiveGuidedButton("Warehouse Tab Basics"), Is.Null);
             ClickGuidedButton("Warehouse Tab Storage");
             yield return null;
             int wood = controller.Session.Cargo.Wood;
@@ -420,8 +420,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             ClickGuidedButton("Warehouse Sell Cargo");
             yield return null;
-            yield return DragWarehouseSlider(GameObject.Find("Warehouse Ship Sale Slider").GetComponent<Slider>(), soldWood);
-            Assert.That(GameObject.Find("Warehouse Stored Sale Slider").GetComponent<Slider>().value, Is.Zero);
+            yield return DragWarehouseSlider(FindGuidedUi("Warehouse Ship Sale Slider").GetComponent<Slider>(), soldWood);
+            Assert.That(FindGuidedUi("Warehouse Stored Sale Slider").GetComponent<Slider>().value, Is.Zero);
             ClickGuidedButton("Confirm Warehouse Cargo Sale");
             yield return null;
             Assert.That(controller.Session.Cargo.Wood, Is.EqualTo(wood - soldWood));
@@ -507,7 +507,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Cargo.Water, Is.Zero);
             Assert.That(controller.Session.IsChoiceAvailable(0), Is.False);
             Assert.That(RequireGuidedButton("Encounter Choice 0").IsInteractable(), Is.False);
-            Assert.That(ActiveButton("Skip Encounter"), Is.Null);
+            Assert.That(ActiveGuidedButton("Skip Encounter"), Is.Null);
             RequireGuidedButton("Encounter Choice 0").onClick.Invoke();
             yield return null;
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Encounter));
@@ -564,7 +564,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Cargo.Water, Is.Zero);
             Assert.That(controller.Session.CanRetreatBattle, Is.False);
             Assert.That(controller.Session.LastBattleRetreated, Is.False);
-            Button ordinaryRetreat = ActiveButton("Retreat Battle");
+            Button ordinaryRetreat = ActiveGuidedButton("Retreat Battle");
             if (ordinaryRetreat != null) Assert.That(ordinaryRetreat.IsInteractable(), Is.False);
             Assert.That(RequireGuidedButton("Emergency Battle Return").IsInteractable(), Is.True,
                 "A real boss battle with insufficient retreat supplies must still offer normal emergency towing.");
@@ -613,7 +613,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GuidedTutorialCheckpointKey), Is.EqualTo(2));
                 Assert.That(controller.Session.HasNavigator, Is.True);
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(earnedGold), "Migrating must not charge recruitment again.");
-                Assert.That(ActiveButton("Guide Confirm Deck"), Is.Null);
+                Assert.That(ActiveGuidedButton("Guide Confirm Deck"), Is.Null);
                 Assert.That(RequireGuidedButton("Port Hotspot CardWorkshop").IsInteractable(), Is.False);
                 AssertGuidedFocusTarget("Port Hotspot Voyage");
                 foreach (var saved in savedDecks)
@@ -744,7 +744,7 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator ReturnToGuidedResourceRecovery(CoreGameplayDemoController controller,
             int checkpoint, string step)
         {
-            Assert.That(ActiveButton("Draw Sea Chart"), Is.Null);
+            Assert.That(ActiveGuidedButton("Draw Sea Chart"), Is.Null);
             ClickGuidedButton("Return To Port");
             yield return null;
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
@@ -756,7 +756,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey, 0), Is.Zero);
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.DrawnSeaChartKey, string.Empty), Is.Empty);
             // The initial checkpoint reopens the normal departure facility.
-            if (ActiveButton("Return To Port Hub") != null)
+            if (ActiveGuidedButton("Return To Port Hub") != null)
             {
                 ClickGuidedButton("Return To Port Hub");
                 yield return null;
@@ -829,9 +829,9 @@ namespace ShatteredSail.Presentation.Tests
                 AssertGuidedInstructionsRemainVisible(controller);
                 Assert.That(step, Is.Not.EqualTo("Workshop").And.Not.EqualTo("BuildDeck"),
                     "The guide no longer requires a card-workshop visit or manual deck construction.");
-                Assert.That(ActiveButton("Guide Confirm Deck"), Is.Null);
-                Assert.That(ActiveButton("Tutorial Primary"), Is.Null);
-                Assert.That(ActiveButton("Tutorial Fire Cannons"), Is.Null);
+                Assert.That(ActiveGuidedButton("Guide Confirm Deck"), Is.Null);
+                Assert.That(ActiveGuidedButton("Tutorial Primary"), Is.Null);
+                Assert.That(ActiveGuidedButton("Tutorial Fire Cannons"), Is.Null);
                 // The objective can name the next encounter before the normal
                 // navigation step has physically reached it.
                 if (controller.Session.Phase == CoreDemoPhase.Sailing && step != "FirstReturn" && step != "ThirdReturn")
@@ -880,7 +880,7 @@ namespace ShatteredSail.Presentation.Tests
                     case "FirstMandatory":
                         Assert.That(controller.Session.ActiveEncounter.Id, Is.EqualTo("tutorial_first_event"));
                         Assert.That(controller.Session.ActiveEncounter.Mandatory, Is.True);
-                        Assert.That(ActiveButton("Skip Encounter"), Is.Null);
+                        Assert.That(ActiveGuidedButton("Skip Encounter"), Is.Null);
                         ClickGuidedButton("Encounter Choice 0");
                         break;
                     case "FirstOptional":
@@ -891,7 +891,7 @@ namespace ShatteredSail.Presentation.Tests
                     case "FirstCrewEvent":
                         Assert.That(controller.Session.HasNavigator, Is.False);
                         Assert.That(RequireGuidedButton("Encounter Choice 0").IsInteractable(), Is.False);
-                        if (ActiveButton("Skip Encounter") != null && ActiveButton("Skip Encounter").IsInteractable())
+                        if (ActiveGuidedButton("Skip Encounter") != null && ActiveGuidedButton("Skip Encounter").IsInteractable())
                             ClickGuidedButton("Skip Encounter");
                         else ClickGuidedButton("Encounter Choice 1");
                         break;
@@ -953,7 +953,7 @@ namespace ShatteredSail.Presentation.Tests
                         ClickGuidedButton("Port Hotspot Tavern");
                         break;
                     case "RecruitNavigator":
-                        if (ActiveButton("Recruit Tavern Crew 0") != null)
+                        if (ActiveGuidedButton("Recruit Tavern Crew 0") != null)
                         {
                             if (capture && captured.Add("recruit"))
                                 NavalBattleVisualCapture.Capture(controller, "51_Guided_Normal_Recruitment.png",
@@ -963,7 +963,7 @@ namespace ShatteredSail.Presentation.Tests
                         else ClickGuidedButton("Tavern Crew 0");
                         break;
                     case "SecondPier":
-                        if (ActiveButton("Port Hotspot Voyage") != null) ClickGuidedButton("Port Hotspot Voyage");
+                        if (ActiveGuidedButton("Port Hotspot Voyage") != null) ClickGuidedButton("Port Hotspot Voyage");
                         else ClickGuidedButton("Return To Port Hub");
                         break;
                     case "SecondRoute":
@@ -1001,7 +1001,7 @@ namespace ShatteredSail.Presentation.Tests
                         AssertGuidedRewardVisible();
                         if (capture && captured.Add("settlement"))
                         {
-                            Button skipReveal = ActiveButton("Skip Settlement Reveal");
+                            Button skipReveal = ActiveGuidedButton("Skip Settlement Reveal");
                             if (skipReveal != null && skipReveal.IsInteractable())
                             {
                                 ClickGuidedButton("Skip Settlement Reveal");
@@ -1010,7 +1010,7 @@ namespace ShatteredSail.Presentation.Tests
                             NavalBattleVisualCapture.Capture(controller, "55_Guided_Normal_Chart_Settlement.png",
                                 "正常结算中绘制海图，确认返港后提交白色部件与首胜藏品，再进入仓库陈列教学", "Return To Port");
                         }
-                        Button draw = ActiveButton("Draw Sea Chart");
+                        Button draw = ActiveGuidedButton("Draw Sea Chart");
                         if (draw != null && draw.IsInteractable()) ClickGuidedButton("Draw Sea Chart");
                         else ClickGuidedButton("Return To Port");
                         break;
@@ -1021,7 +1021,7 @@ namespace ShatteredSail.Presentation.Tests
                         ClickGuidedButton("Port Hotspot Warehouse");
                         break;
                     case "SelectTreasure":
-                        Assert.That(ActiveButton("Warehouse Tab Basics"), Is.Null);
+                        Assert.That(ActiveGuidedButton("Warehouse Tab Basics"), Is.Null);
                         Assert.That(RequireGuidedButton("Warehouse Tab Storage").IsInteractable(), Is.False);
                         ClickGuidedButton("Warehouse Treasure " + CoreWarehouseCollection.TutorialTreasureId);
                         break;
@@ -1039,8 +1039,8 @@ namespace ShatteredSail.Presentation.Tests
                         Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey), Is.EqualTo(1));
                         Assert.That(controller.WarehouseCollection.IsDisplayed(CoreWarehouseCollection.TutorialTreasureId), Is.True);
                         string shipButton = "Shipyard Ship " + controller.Session.SelectedShipIndex;
-                        string target = ActiveButton(shipButton) != null ? shipButton :
-                            ActiveButton("Port Hotspot Shipyard") != null ? "Port Hotspot Shipyard" : "Return To Port Hub";
+                        string target = ActiveGuidedButton(shipButton) != null ? shipButton :
+                            ActiveGuidedButton("Port Hotspot Shipyard") != null ? "Port Hotspot Shipyard" : "Return To Port Hub";
                         AssertGuidedFocusTarget(target);
                         ClickGuidedButton(target);
                         break;
@@ -1136,9 +1136,21 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
         }
 
+        private static Transform FindGuidedUi(string id)
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            if (controller != null) return UiId.FindOrLegacyName(controller.transform, id);
+            // The shared pointer-acceptance helper also starts New Game before
+            // the gameplay controller exists. Keep that lookup scoped to its menu.
+            MainMenuController menu = Object.FindFirstObjectByType<MainMenuController>();
+            return menu == null ? null : UiId.FindOrLegacyName(menu.transform, id);
+        }
+
+        private static Button ActiveGuidedButton(string id) => FindGuidedUi(id)?.GetComponent<Button>();
+
         private static Button RequireGuidedButton(string name)
         {
-            Button button = ActiveButton(name);
+            Button button = ActiveGuidedButton(name);
             Assert.That(button, Is.Not.Null, "Missing normal UI button: " + name);
             return button;
         }
@@ -1148,10 +1160,10 @@ namespace ShatteredSail.Presentation.Tests
             // Sailing commits the encounter before its map-marker animation
             // finishes. Wait for the presented tutorial step to catch up.
             float navigationDeadline = Time.realtimeSinceStartup + 5f;
-            bool waitedForNavigation = GameObject.Find("Navigation Motion Overlay") != null;
-            while (GameObject.Find("Navigation Motion Overlay") != null && Time.realtimeSinceStartup < navigationDeadline)
+            bool waitedForNavigation = FindGuidedUi("Navigation Motion Overlay") != null;
+            while (FindGuidedUi("Navigation Motion Overlay") != null && Time.realtimeSinceStartup < navigationDeadline)
                 yield return null;
-            Assert.That(GameObject.Find("Navigation Motion Overlay"), Is.Null, "The sailing presentation must complete.");
+            Assert.That(FindGuidedUi("Navigation Motion Overlay"), Is.Null, "The sailing presentation must complete.");
             if (waitedForNavigation) yield return null; // The new encounter canvas needs its first render pass.
         }
 
@@ -1167,7 +1179,7 @@ namespace ShatteredSail.Presentation.Tests
             if (controller.CurrentGuidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Distance)
             {
                 AssertGuidedFocusTarget("Distance Slider");
-                Slider slider = GameObject.Find("Distance Slider").GetComponent<Slider>();
+                Slider slider = FindGuidedUi("Distance Slider").GetComponent<Slider>();
                 Assert.That(slider.IsInteractable(), Is.True);
                 slider.value = CoreGuidedTutorialContent.PlannedDistanceNm;
                 // The user can select the already displayed default distance;
@@ -1189,7 +1201,7 @@ namespace ShatteredSail.Presentation.Tests
             Image image = guard.GetComponent<Image>();
             Assert.That(image, Is.Not.Null);
             Assert.That(image.color.a, Is.Zero, "The input guard must not visually darken the control.");
-            if (control.name.StartsWith("Heading ", StringComparison.Ordinal))
+            if (UiId.GetOrLegacyName(control).StartsWith("Heading ", StringComparison.Ordinal))
             {
                 Assert.That(control.transition, Is.EqualTo(Selectable.Transition.None),
                     "Tutorial-only heading locks keep their normal face rather than applying a disabled tint.");
@@ -1257,9 +1269,11 @@ namespace ShatteredSail.Presentation.Tests
         private static void AssertGuidedFocusTarget(string controlName)
         {
             Canvas.ForceUpdateCanvases();
-            GuidedTutorialFocusGraphic[] graphics = Object.FindObjectsByType<GuidedTutorialFocusGraphic>(
-                FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-            GuidedTutorialFocusGraphic focus = graphics.FirstOrDefault(graphic => graphic.Target != null && graphic.Target.name == controlName);
+            Transform expectedTarget = FindGuidedUi(controlName);
+            Assert.That(expectedTarget, Is.Not.Null, "Missing active guided control: " + controlName);
+            CoreGameplayDemoController controller = expectedTarget.GetComponentInParent<CoreGameplayDemoController>();
+            GuidedTutorialFocusGraphic[] graphics = controller.GetComponentsInChildren<GuidedTutorialFocusGraphic>();
+            GuidedTutorialFocusGraphic focus = graphics.FirstOrDefault(graphic => graphic.Target == expectedTarget);
             Assert.That(focus, Is.Not.Null, "Missing red outline and arrow for " + controlName);
             Assert.That(focus.HasVisibleTarget, Is.True);
             foreach (GuidedTutorialFocusGraphic graphic in graphics)

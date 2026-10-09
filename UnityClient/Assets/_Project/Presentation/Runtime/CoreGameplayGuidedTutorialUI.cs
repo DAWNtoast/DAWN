@@ -68,11 +68,12 @@ namespace ShatteredSail.Presentation
                     BossStep = GuidedBossPresentationStep
                 };
                 guidedControlSnapshots.Add(snapshot);
-                bool permitted = GuidedTutorialAllowsControl(control.name);
+                string controlId = UiId.GetOrLegacyName(control);
+                bool permitted = GuidedTutorialAllowsControl(controlId);
                 // Only the two explicit failed-attempt lessons accept a click
                 // on an unplayable card; Core observes the real failure without
                 // playing it or consuming resources. All other rules stay intact.
-                if (permitted && IsGuidedBossBlockedCardControl(control.name)) control.interactable = true;
+                if (permitted && IsGuidedBossBlockedCardControl(controlId)) control.interactable = true;
                 if (!permitted)
                 {
                     // Teaching locks leave the original scene and button brightness intact.
@@ -166,7 +167,7 @@ namespace ShatteredSail.Presentation
             // Reject callbacks cached from a previous teaching screen, including
             // direct UnityEvent.Invoke calls which bypass Button.interactable.
             return !tutorialActive || guidedTutorialStep == GuidedTutorialStep.Complete ||
-                (renderedStep == guidedTutorialStep && GuidedTutorialAllowsControl(snapshot.Control.name));
+                (renderedStep == guidedTutorialStep && GuidedTutorialAllowsControl(UiId.GetOrLegacyName(snapshot.Control)));
         }
 
         private void AddGuidedInputGuard(Selectable control)

@@ -61,13 +61,8 @@ namespace ShatteredSail.Presentation
             Outline outline = track.gameObject.AddComponent<Outline>();
             outline.effectColor = new Color(color.r, color.g, color.b, 0.8f);
             outline.effectDistance = new Vector2(2f, -2f);
-            Image fill = CreateImage(name, track, size, Vector2.zero, color);
-            fill.sprite = BattleDefenseHud.FillSprite;
-            fill.type = Image.Type.Filled;
-            fill.fillMethod = Image.FillMethod.Horizontal;
-            fill.fillOrigin = 0;
-            fill.fillAmount = Mathf.Clamp01(current / (float)Mathf.Max(1, maximum));
-            fill.raycastTarget = false;
+            Image fill = UiKit.CreateProgressFill(name, track, size, Vector2.zero, color,
+                BattleDefenseHud.FillSprite, current / (float)Mathf.Max(1, maximum));
             BattleHealthSegmentsGraphic.Attach(fill, maximum);
             return fill;
         }
@@ -318,8 +313,7 @@ namespace ShatteredSail.Presentation
                     // reapply the current red-frame guidance after ordinary UI state.
                     RestoreGuidedTutorialControls(false);
                     UpdateGuidedTutorialProgress();
-                    if (!TryRefreshRetainedBattleView()) Render();
-                    else
+                    if (RequestUiViewRefresh(UiRefreshRegion.Battle))
                     {
                         BuildGuidedTutorialActions();
                         BuildGuidedTutorialOverlay();

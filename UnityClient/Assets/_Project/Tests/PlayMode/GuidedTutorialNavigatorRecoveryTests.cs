@@ -45,8 +45,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
             Assert.That(controller.Session.Settlement.ProtectionRatio, Is.EqualTo(.35f));
             Assert.That(controller.Session.GuidedTutorialCompletedEncounters, Is.Zero);
-            Assert.That(Object.FindObjectsByType<Text>(FindObjectsSortMode.None)
-                .Any(label => label.name == "Guided Tutorial Instruction" && label.text.Contains("暗标尚未解读")), Is.True);
+            Transform instruction = FindGuidedUi("Guided Tutorial Instruction");
+            Assert.That(instruction, Is.Not.Null);
+            Assert.That(instruction.GetComponent<Text>().text, Does.Contain("暗标尚未解读"));
             yield return ReturnToGuidedResourceRecovery(controller, 2, "SecondPier");
             Assert.That(controller.Session.CurrentPort, Is.EqualTo(departure));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GuidedTutorialNavigatorEventKey, 0), Is.Zero);

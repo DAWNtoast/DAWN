@@ -28,6 +28,9 @@ namespace ShatteredSail.Presentation.Tests
                 RenderResponsiveBattle(controller);
                 yield return null;
                 Button card = RequiredResponsive<Button>("Battle Card 0");
+                card.name = "Readability fixture healing card";
+                Assert.That(RequiredResponsive<Button>("Battle Card 0"), Is.SameAs(card),
+                    "Runtime test selectors must use the action ID after a hierarchy rename.");
                 CoreBattleState battle = session.Battle;
                 CoreBattleCard data = session.GetBattleCard(battle.Hand[0]);
                 CoreBattleCardEffects effects = session.GetBattleCardEffects(data, NavalBattleStage.Boarding);

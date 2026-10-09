@@ -31,16 +31,16 @@ namespace ShatteredSail.Presentation
         public const string DispatchDurationKey = DispatchDurationHoursKey;
         public const string CargoKeyPrefix = "ShatteredSail.Cargo.v1.";
 
-        private static readonly Color Ink = Html("#E8E1C7");
-        private static readonly Color MutedInk = Html("#9DB0AE");
-        private static readonly Color DeepSea = Html("#071820");
-        private static readonly Color Panel = Html("#0F2932");
-        private static readonly Color PanelRaised = Html("#173A43");
-        private static readonly Color Teal = Html("#287E79");
-        private static readonly Color Gold = Html("#D8A541");
-        private static readonly Color Coral = Html("#CE6750");
-        private static readonly Color Green = Html("#5EAE78");
-        private static readonly Color Fog = Html("#061218");
+        private static readonly Color Ink = UiTheme.Gameplay.Ink;
+        private static readonly Color MutedInk = UiTheme.Gameplay.MutedInk;
+        private static readonly Color DeepSea = UiTheme.Gameplay.DeepSea;
+        private static readonly Color Panel = UiTheme.Gameplay.Panel;
+        private static readonly Color PanelRaised = UiTheme.Gameplay.PanelRaised;
+        private static readonly Color Teal = UiTheme.Gameplay.Teal;
+        private static readonly Color Gold = UiTheme.Gameplay.Gold;
+        private static readonly Color Coral = UiTheme.Gameplay.Coral;
+        private static readonly Color Green = UiTheme.Gameplay.Green;
+        private static readonly Color Fog = UiTheme.Gameplay.Fog;
         private CoreVoyageSession session;
         private TutorialVoyageSession tutorial;
         private LegacyDemoArtCatalog art;
@@ -182,6 +182,7 @@ namespace ShatteredSail.Presentation
                 RemoveLegacyBattleScaffolding();
             else
                 EnsureLegacyCanvasScaffolding();
+            InvalidateCurrentUiView();
             ClearChildren(contentRoot);
             bool navigation = session.Phase == CoreDemoPhase.Sailing || session.Phase == CoreDemoPhase.Encounter;
             contentRoot.anchorMin = navigation ? Vector2.zero : Vector2.one * 0.5f;
@@ -201,25 +202,7 @@ namespace ShatteredSail.Presentation
                 headerStatus.enabled = true;
                 headerStatus.text = BuildHeaderStatus();
             }
-            switch (session.Phase)
-            {
-                case CoreDemoPhase.Port:
-                    BuildPort();
-                    break;
-                case CoreDemoPhase.Sailing:
-                    BuildSailing();
-                    break;
-                case CoreDemoPhase.Encounter:
-                    BuildSailing();
-                    BuildEncounterOverlay();
-                    break;
-                case CoreDemoPhase.Battle:
-                    BuildBattleOverlay();
-                    break;
-                case CoreDemoPhase.Settlement:
-                    BuildSettlement();
-                    break;
-            }
+            BuildCurrentUiView();
             BuildGuidedTutorialActions();
             BuildGuidedTutorialOverlay();
             if (navigation) NavigationDashboardLayout.Attach(contentRoot);
@@ -1280,7 +1263,7 @@ namespace ShatteredSail.Presentation
             enemyUv = new Rect(enemyUv.xMax, enemyUv.y, -enemyUv.width, enemyUv.height);
             BuildStagedBattleScene(card, battle, combatShipSheet, enemyUv);
 
-            Text badge = CreateText("Battle Badge", card, new Vector2(520f, 34f), new Vector2(0f, 410f), 18, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
+            Text badge = UiKit.CreateBadge("Battle Badge", card, new Vector2(520f, 34f), new Vector2(0f, 410f), string.Empty, 18, Ink);
             UiLabelBacking.Apply(badge);
             CoreBossKind bossKind = battle.Profile == null ? (battle.IsBoss ? CoreBossKind.Route : CoreBossKind.None) : battle.Profile.BossKind;
             badge.text = (bossKind == CoreBossKind.Legendary ? "传奇战舰挑战" : bossKind == CoreBossKind.Treasure ? "藏宝图首领战" : battle.IsBoss ? "区域首领战" : "航路遭遇战") + " · " + BattleEnvironmentArtCatalog.LabelFor(session.BattleTerrain) + " · 回合 " + (session.IsGuidedBossBattle ? battle.PhaseTurn : battle.Turn);
@@ -1619,49 +1602,22 @@ namespace ShatteredSail.Presentation
 
         private RectTransform CreateStretchPanel(string name, Transform parent, Color color)
         {
-            GameObject panel = new GameObject(name, typeof(RectTransform), typeof(Image));
-            panel.transform.SetParent(parent, false);
-            RectTransform rect = panel.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            panel.GetComponent<Image>().color = color;
-            if (name == "Fill") NauticalSurfaceSkin.ApplyControlPart(panel.GetComponent<Image>());
-            else NauticalSurfaceSkin.ApplyPanel(panel.GetComponent<Image>(), color);
-            return rect;
+            return UiKit.CreateStretchPanel(name, parent, color);
         }
 
         private RectTransform CreateFixedPanel(string name, Transform parent, Vector2 size, Vector2 position, Color color)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
-            NauticalSurfaceSkin.ApplyPanel(image, color);
-            return rect;
+            return UiKit.CreatePanel(name, parent, size, position, color);
         }
 
         private static RectTransform CreateRect(string name, Transform parent, Vector2 size, Vector2 position)
         {
-            GameObject item = new GameObject(name, typeof(RectTransform));
-            item.transform.SetParent(parent, false);
-            RectTransform rect = item.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = position;
-            return rect;
+            return UiKit.CreateRect(name, parent, size, position);
         }
 
         private Image CreateImage(string name, Transform parent, Vector2 size, Vector2 position, Color color, Sprite sprite = null)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
-            image.sprite = sprite;
-            NauticalSurfaceSkin.ApplyControlPart(image);
-            return image;
+            return UiKit.CreateImage(name, parent, size, position, color, sprite);
         }
 
         private RawImage CreateRawImage(string name, Transform parent, Vector2 size, Vector2 position, Texture texture, Rect uvRect)
@@ -1676,56 +1632,18 @@ namespace ShatteredSail.Presentation
 
         private Text CreateText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, FontStyle style, TextAnchor alignment, Color color)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Text text = rect.gameObject.AddComponent<Text>();
-            GameTypography.Apply(text, fontSize, style);
-            text.alignment = alignment;
-            text.color = NauticalSurfaceSkin.ReadableTextColor(parent, color);
-            text.raycastTarget = false;
-            text.supportRichText = true;
-            return text;
+            return UiKit.CreateText(name, parent, size, position, fontSize, style, alignment, color);
         }
 
         private Button CreateButton(string name, Transform parent, Vector2 size, Vector2 position, Color normalColor, Color textColor, int fontSize)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = normalColor;
-            Button button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            if (rect.GetComponent<NauticalButtonMotion>() == null)
-                rect.gameObject.AddComponent<NauticalButtonMotion>();
-            ColorBlock colors = button.colors;
-            colors.normalColor = normalColor;
-            colors.highlightedColor = Color.Lerp(normalColor, Color.white, 0.16f);
-            colors.pressedColor = Color.Lerp(normalColor, Color.black, 0.18f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.disabledColor = new Color(0.2f, 0.26f, 0.27f, 0.75f);
-            button.colors = colors;
-            Text label = CreateText("Label", rect, size - new Vector2(24f, 10f), Vector2.zero, fontSize, FontStyle.Bold, TextAnchor.MiddleCenter, textColor);
-            label.text = name;
-            if (!WoodButtonSkin.Apply(button, normalColor))
-                NauticalSurfaceSkin.ApplySpecialButton(button, normalColor);
-            return button;
+            return UiKit.CreateButton(name, parent, size, position, normalColor, textColor, fontSize, animate: true, specialSkinFallback: true);
         }
 
         private InputField CreateInputField(string name, Transform parent, Vector2 size, Vector2 position, string value)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image background = rect.gameObject.AddComponent<Image>();
-            background.color = Html("#071C24");
-            NauticalSurfaceSkin.ApplyPanel(background, background.color);
-            InputField input = rect.gameObject.AddComponent<InputField>();
-            input.targetGraphic = background;
-            Text valueText = CreateText("Text", rect, size - new Vector2(32f, 8f), Vector2.zero, 19, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
-            valueText.raycastTarget = true;
-            Text placeholder = CreateText("Placeholder", rect, size - new Vector2(32f, 8f), Vector2.zero, 18, FontStyle.Italic, TextAnchor.MiddleLeft, MutedInk);
-            placeholder.text = "输入任意种子";
-            input.textComponent = valueText;
-            input.placeholder = placeholder;
-            input.text = value;
-            input.lineType = InputField.LineType.SingleLine;
-            return input;
+            return UiKit.CreateInputField(name, parent, size, position, value,
+                "输入任意种子", Html("#071C24"), Ink, MutedInk);
         }
 
         private Dropdown CreateSeedDropdown(string name, Transform parent, Vector2 size, Vector2 position,
@@ -1735,29 +1653,8 @@ namespace ShatteredSail.Presentation
         }
         private Slider CreateSlider(string name, Transform parent, Vector2 size, Vector2 position, float minimum, float maximum, float value)
         {
-            RectTransform root = CreateRect(name, parent, size, position);
-            Slider slider = root.gameObject.AddComponent<Slider>();
-            slider.minValue = minimum;
-            slider.maxValue = maximum;
-            RectTransform background = CreateRect("Background", root, new Vector2(size.x, 8f), Vector2.zero);
-            background.gameObject.AddComponent<Image>().color = Html("#071C24");
-            NauticalSurfaceSkin.ApplyControlPart(background.GetComponent<Image>());
-            RectTransform fillArea = CreateRect("Fill Area", root, new Vector2(size.x - 18f, 8f), new Vector2(-9f, 0f));
-            RectTransform fill = CreateRect("Fill", fillArea, Vector2.zero, Vector2.zero);
-            fill.anchorMin = Vector2.zero;
-            fill.anchorMax = Vector2.one;
-            fill.offsetMin = Vector2.zero;
-            fill.offsetMax = Vector2.zero;
-            fill.gameObject.AddComponent<Image>().color = Gold;
-            NauticalSurfaceSkin.ApplyControlPart(fill.GetComponent<Image>());
-            RectTransform handleArea = CreateRect("Handle Slide Area", root, new Vector2(size.x - 24f, size.y), Vector2.zero);
-            Image handle = CreateImage("Handle", handleArea, new Vector2(28f, 0f), Vector2.zero, Gold, circleSprite);
-            slider.fillRect = fill;
-            slider.handleRect = handle.rectTransform;
-            slider.targetGraphic = handle;
-            slider.direction = Slider.Direction.LeftToRight;
-            slider.value = value;
-            return slider;
+            return UiKit.CreateSlider(name, parent, size, position, minimum, maximum, value,
+                Html("#071C24"), Gold, handleSprite: circleSprite);
         }
 
         private Image CreateLine(Transform parent, Vector2 from, Vector2 to, Color color, float thickness)

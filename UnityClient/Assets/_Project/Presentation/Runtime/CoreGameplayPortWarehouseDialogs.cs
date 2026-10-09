@@ -191,32 +191,13 @@ namespace ShatteredSail.Presentation
         private Slider WarehouseQuantitySlider(string name, Transform parent, Vector2 position,
             int minimum, int maximum, int initial)
         {
-            Slider slider = CreateSlider(name, parent, new Vector2(650f, 44f), position,
-                minimum, maximum, initial);
-            slider.wholeNumbers = true;
-            slider.SetValueWithoutNotify(initial);
-            slider.interactable = maximum > minimum;
-            // The shared slider's zero-height handle is suitable for decorative
-            // previews; a cargo quantity control needs an actual pointer target.
-            // Slider.UpdateVisuals resets the handle's vertical anchors to stretch.
-            // A zero-height travel track keeps its visible height at 36 pixels.
-            RectTransform handleTrack = (RectTransform)slider.handleRect.parent;
-            handleTrack.sizeDelta = new Vector2(handleTrack.sizeDelta.x, 0f);
-            slider.handleRect.sizeDelta = new Vector2(28f, 36f);
-            Image trackTarget = slider.gameObject.AddComponent<Image>();
-            trackTarget.color = Color.clear;
-            trackTarget.raycastTarget = true;
-            return slider;
+            return UiKit.CreateQuantitySlider(name, parent, new Vector2(650f, 44f), position,
+                minimum, maximum, initial, Html("#071C24"), Gold, circleSprite);
         }
 
         private static int WarehouseSliderQuantity(Slider slider, int minimum, int maximum)
         {
-            // Unity Slider stores float. Map endpoints before rounding, so an
-            // int.MaxValue stock is still selectable without float overflow.
-            if (slider.value <= slider.minValue) return minimum;
-            if (slider.value >= slider.maxValue) return maximum;
-            double rounded = Math.Round((double)slider.value, MidpointRounding.AwayFromZero);
-            return (int)Math.Max((double)minimum, Math.Min((double)maximum, rounded));
+            return UiKit.ReadQuantity(slider, minimum, maximum);
         }
 
         private bool WarehouseQuoteIdentityMatches(WarehouseCargoQuote quote, object identity)

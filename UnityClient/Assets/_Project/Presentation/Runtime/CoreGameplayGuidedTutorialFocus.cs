@@ -19,7 +19,7 @@ namespace ShatteredSail.Presentation
             guidedDecorations.Add(layer.gameObject);
             foreach (Selectable target in targets)
             {
-                RectTransform marker = CreateRect("Guide Focus " + target.name, layer, Vector2.zero, Vector2.zero);
+                RectTransform marker = CreateRect("Guide Focus " + UiId.GetOrLegacyName(target), layer, Vector2.zero, Vector2.zero);
                 StretchGuidedFocus(marker);
                 marker.gameObject.AddComponent<GuidedTutorialFocusGraphic>().Configure(target);
             }
@@ -40,10 +40,12 @@ namespace ShatteredSail.Presentation
 
         private bool FocusGuidedControl(List<Selectable> targets, string name)
         {
+            Transform target = UiId.FindOrLegacyName(contentRoot, name);
+            if (target == null) return false;
             foreach (GuidedControlSnapshot snapshot in guidedControlSnapshots)
             {
                 Selectable control = snapshot.Control;
-                if (control == null || !control.gameObject.activeInHierarchy || control.name != name ||
+                if (control == null || !control.gameObject.activeInHierarchy || control.transform != target ||
                     !control.IsInteractable() || !GuidedTutorialAllowsControl(name)) continue;
                 if (!targets.Contains(control)) targets.Add(control);
                 return true;
@@ -54,8 +56,8 @@ namespace ShatteredSail.Presentation
         private bool FocusFirstGuidedPrefix(List<Selectable> targets, string prefix)
         {
             foreach (GuidedControlSnapshot snapshot in guidedControlSnapshots)
-                if (snapshot.Control != null && snapshot.Control.name.StartsWith(prefix, StringComparison.Ordinal) &&
-                    FocusGuidedControl(targets, snapshot.Control.name)) return true;
+                if (snapshot.Control != null && UiId.GetOrLegacyName(snapshot.Control).StartsWith(prefix, StringComparison.Ordinal) &&
+                    FocusGuidedControl(targets, UiId.GetOrLegacyName(snapshot.Control))) return true;
             return false;
         }
 
@@ -78,8 +80,8 @@ namespace ShatteredSail.Presentation
             if (session.Phase == CoreDemoPhase.Encounter)
             {
                 foreach (GuidedControlSnapshot snapshot in guidedControlSnapshots)
-                    if (snapshot.Control != null && (snapshot.Control.name.StartsWith("Encounter Choice ", StringComparison.Ordinal) ||
-                        snapshot.Control.name == "Skip Encounter")) FocusGuidedControl(targets, snapshot.Control.name);
+                    if (snapshot.Control != null && (UiId.GetOrLegacyName(snapshot.Control).StartsWith("Encounter Choice ", StringComparison.Ordinal) ||
+                        UiId.GetOrLegacyName(snapshot.Control) == "Skip Encounter")) FocusGuidedControl(targets, UiId.GetOrLegacyName(snapshot.Control));
                 return;
             }
             if (GuidedTutorialRecoveryActive && session.Phase == CoreDemoPhase.Port && activePortFacility == 7)

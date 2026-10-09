@@ -113,6 +113,7 @@ namespace ShatteredSail.Presentation
             Button inspect = vessel.gameObject.AddComponent<Button>();
             inspect.targetGraphic = shipArt;
             inspect.gameObject.name = "Shipyard Ship " + index;
+            UiId.Bind(inspect.gameObject, inspect.gameObject.name);
             CreateShipyardWater("Shipyard Water Contact", panel, waterline, true);
 
             // The ship can be inspected regardless of price or ownership. The

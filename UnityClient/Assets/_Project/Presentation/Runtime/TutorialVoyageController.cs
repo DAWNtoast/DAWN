@@ -13,15 +13,15 @@ namespace ShatteredSail.Presentation
     [DisallowMultipleComponent]
     public sealed class TutorialVoyageController : MonoBehaviour
     {
-        private static readonly Color Ink = Html("#E8E1C7");
-        private static readonly Color MutedInk = Html("#A9B3B0");
-        private static readonly Color DeepSea = Html("#081A24");
-        private static readonly Color Panel = Html("#102B34");
-        private static readonly Color PanelRaised = Html("#173943");
-        private static readonly Color Teal = Html("#2A7C78");
-        private static readonly Color Gold = Html("#D9A441");
-        private static readonly Color Coral = Html("#CF694F");
-        private static readonly Color Green = Html("#5FAE78");
+        private static readonly Color Ink = UiTheme.Tutorial.Ink;
+        private static readonly Color MutedInk = UiTheme.Tutorial.MutedInk;
+        private static readonly Color DeepSea = UiTheme.Tutorial.DeepSea;
+        private static readonly Color Panel = UiTheme.Tutorial.Panel;
+        private static readonly Color PanelRaised = UiTheme.Tutorial.PanelRaised;
+        private static readonly Color Teal = UiTheme.Tutorial.Teal;
+        private static readonly Color Gold = UiTheme.Tutorial.Gold;
+        private static readonly Color Coral = UiTheme.Tutorial.Coral;
+        private static readonly Color Green = UiTheme.Tutorial.Green;
 
         private readonly List<Image> nodeMarkers = new List<Image>();
         private readonly List<Text> nodeLabels = new List<Text>();
@@ -573,82 +573,32 @@ namespace ShatteredSail.Presentation
 
         private RectTransform CreateStretchPanel(string name, Transform parent, Color color)
         {
-            GameObject panel = new GameObject(name, typeof(RectTransform), typeof(Image));
-            panel.transform.SetParent(parent, false);
-            RectTransform rect = panel.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            panel.GetComponent<Image>().color = color;
-            if (name == "Fill") NauticalSurfaceSkin.ApplyControlPart(panel.GetComponent<Image>());
-            else NauticalSurfaceSkin.ApplyPanel(panel.GetComponent<Image>(), color);
-            return rect;
+            return UiKit.CreateStretchPanel(name, parent, color);
         }
 
         private RectTransform CreateFixedPanel(string name, Transform parent, Vector2 size, Vector2 position, Color color)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
-            NauticalSurfaceSkin.ApplyPanel(image, color);
-            return rect;
+            return UiKit.CreatePanel(name, parent, size, position, color);
         }
 
         private static RectTransform CreateRect(string name, Transform parent, Vector2 size, Vector2 position)
         {
-            GameObject item = new GameObject(name, typeof(RectTransform));
-            item.transform.SetParent(parent, false);
-            RectTransform rect = item.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = position;
-            return rect;
+            return UiKit.CreateRect(name, parent, size, position);
         }
 
         private Image CreateImage(string name, Transform parent, Vector2 size, Vector2 position, Color color, Sprite sprite = null)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
-            image.sprite = sprite;
-            NauticalSurfaceSkin.ApplyControlPart(image);
-            return image;
+            return UiKit.CreateImage(name, parent, size, position, color, sprite);
         }
 
         private Text CreateText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, FontStyle style, TextAnchor alignment, Color color)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Text text = rect.gameObject.AddComponent<Text>();
-            GameTypography.Apply(text, fontSize, style);
-            text.alignment = alignment;
-            text.color = NauticalSurfaceSkin.ReadableTextColor(parent, color);
-            text.raycastTarget = false;
-            text.supportRichText = true;
-            return text;
+            return UiKit.CreateText(name, parent, size, position, fontSize, style, alignment, color);
         }
 
         private Button CreateButton(string name, Transform parent, Vector2 size, Vector2 position, Color normalColor, Color textColor, int fontSize)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = normalColor;
-            Button button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            ColorBlock colors = button.colors;
-            colors.normalColor = normalColor;
-            colors.highlightedColor = Color.Lerp(normalColor, Color.white, 0.16f);
-            colors.pressedColor = Color.Lerp(normalColor, Color.black, 0.18f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.disabledColor = new Color(0.2f, 0.26f, 0.27f, 0.75f);
-            colors.colorMultiplier = 1f;
-            button.colors = colors;
-            Text label = CreateText("Label", rect, size - new Vector2(24f, 10f), Vector2.zero, fontSize, FontStyle.Bold, TextAnchor.MiddleCenter, textColor);
-            label.text = name;
-            WoodButtonSkin.Apply(button, normalColor);
-            return button;
+            return UiKit.CreateButton(name, parent, size, position, normalColor, textColor, fontSize);
         }
 
         private Image CreateLine(Transform parent, Vector2 from, Vector2 to, Color color, float thickness)

@@ -43,7 +43,7 @@ namespace ShatteredSail.Presentation
                 !source.gameObject.activeInHierarchy || !source.IsInteractable() ||
                 retainedBattleRoot == null || !source.transform.IsChildOf(retainedBattleRoot) ||
                 handIndex < 0 || handIndex >= session.Battle.Hand.Count || battleCard == null ||
-                battleCard.Id != session.GuidedBossExpectedCardId || source.name != GuidedBossTargetControl ||
+                battleCard.Id != session.GuidedBossExpectedCardId || UiId.GetOrLegacyName(source) != GuidedBossTargetControl ||
                 session.GetBattleCard(session.Battle.Hand[handIndex]).Id != battleCard.Id)
                 return true;
             if (session.TryObserveGuidedBossBlockedCard(handIndex, out _)) Render();

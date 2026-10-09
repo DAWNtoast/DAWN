@@ -269,7 +269,7 @@ namespace ShatteredSail.Presentation
 
         private void Update()
         {
-            UpdatePortHeaderReadouts();
+            UpdateUiViewHeader();
             if (!Application.isPlaying)
             {
                 UpdateEditorPreviewIfNeeded();

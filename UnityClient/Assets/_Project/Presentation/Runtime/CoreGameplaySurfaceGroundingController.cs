@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
@@ -26,27 +24,19 @@ namespace ShatteredSail.Presentation
             if (art != null) button.targetGraphic = art;
             Color originalLabel = label == null ? Color.white : label.color;
             glow.color = Color.clear;
-            EventTrigger trigger = button.gameObject.GetComponent<EventTrigger>();
-            if (trigger == null) trigger = button.gameObject.AddComponent<EventTrigger>();
-            trigger.triggers = new List<EventTrigger.Entry>();
-            EventTrigger.Entry enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-            enter.callback.AddListener(_ =>
+            UiHoverHint.Bind(button, () =>
             {
                 if (!button.interactable) return;
                 // Keep the physical art and its contact shadow stable. The old
                 // pointer treatment painted a coloured floor ring and brightened
                 // the illustration, which read as a detached glow on the room.
-                glow.color = Color.clear;
+                if (glow != null) glow.color = Color.clear;
                 if (label != null) label.color = new Color(1f, 0.91f, 0.64f);
-            });
-            trigger.triggers.Add(enter);
-            EventTrigger.Entry leave = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-            leave.callback.AddListener(_ =>
+            }, () =>
             {
-                glow.color = Color.clear;
+                if (glow != null) glow.color = Color.clear;
                 if (label != null) label.color = originalLabel;
             });
-            trigger.triggers.Add(leave);
         }
     }
 }

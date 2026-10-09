@@ -57,9 +57,15 @@ namespace ShatteredSail.Presentation.Tests
         public void EditableBattlePreview_SerializesCanvasAndKeepsInspectorLayoutAfterReopen()
         {
             Assert.That(File.Exists(Path.Combine(Application.dataPath, "_Project/Scenes/UIPreviewsForMe/UI_Battle.unity")), Is.True);
-            Scene scene = EditorSceneManager.OpenScene(BattlePath, OpenSceneMode.Additive);
+            // Save/reopen only a disposable copy: the authored scene can contain the
+            // developer's unsaved-to-Git layout edits, including when assertions fail.
+            string isolatedPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/__UIRefactorBattlePersistence_" + System.Guid.NewGuid().ToString("N") + ".unity");
+            Scene scene = default;
             try
             {
+                Assert.That(AssetDatabase.CopyAsset(BattlePath, isolatedPath), Is.True);
+                scene = EditorSceneManager.OpenScene(isolatedPath, OpenSceneMode.Additive);
                 CoreGameplayDemoController controller = scene.GetRootGameObjects()
                     .Select(root => root.GetComponent<CoreGameplayDemoController>())
                     .FirstOrDefault(item => item != null);
@@ -78,20 +84,26 @@ namespace ShatteredSail.Presentation.Tests
                 EditorSceneManager.MarkSceneDirty(scene);
                 Assert.That(EditorSceneManager.SaveScene(scene), Is.True);
                 EditorSceneManager.CloseScene(scene, true);
-                scene = EditorSceneManager.OpenScene(BattlePath, OpenSceneMode.Additive);
+                scene = EditorSceneManager.OpenScene(isolatedPath, OpenSceneMode.Additive);
                 CoreGameplayDemoController reopened = scene.GetRootGameObjects()
                     .Select(root => root.GetComponent<CoreGameplayDemoController>())
                     .FirstOrDefault(item => item != null);
                 RectTransform reopenedArt = reopened.GetComponentInChildren<Canvas>(true)
                     .GetComponentsInChildren<RectTransform>(true).First(item => item.name == "Battle Scene Art");
                 Assert.That(reopenedArt.anchoredPosition, Is.EqualTo(edited));
-                reopenedArt.anchoredPosition = original;
-                EditorSceneManager.MarkSceneDirty(scene);
-                Assert.That(EditorSceneManager.SaveScene(scene), Is.True);
             }
             finally
             {
-                if (scene.IsValid() && scene.isLoaded) EditorSceneManager.CloseScene(scene, true);
+                try
+                {
+                    if (scene.IsValid() && scene.isLoaded) EditorSceneManager.CloseScene(scene, true);
+                }
+                finally
+                {
+                    if (File.Exists(isolatedPath))
+                        Assert.That(AssetDatabase.DeleteAsset(isolatedPath), Is.True,
+                            "Remove only the disposable persistence-test scene.");
+                }
             }
         }
         [Test]

@@ -218,6 +218,7 @@ namespace ShatteredSail.Presentation
             {
                 ropes[i] = CreateLine(stage, Vector2.zero, Vector2.one, new Color(0.83f, 0.69f, 0.40f), 3f);
                 ropes[i].name = "Boarding Approach Rope " + i;
+                UiId.Bind(ropes[i].gameObject, ropes[i].name);
                 ropes[i].raycastTarget = false;
             }
             for (float elapsed = 0f; elapsed < 0.85f; elapsed += Time.unscaledDeltaTime)

@@ -26,17 +26,17 @@ namespace ShatteredSail.Presentation
         public const string EffectsVolumeKey = "ShatteredSail.EffectsVolume.v1";
         public const string FullScreenKey = "ShatteredSail.FullScreen.v1";
 
-        private static readonly Color Ink = Html("#F1E7CC");
-        private static readonly Color MutedInk = Html("#A9B8B5");
-        private static readonly Color DeepSea = Html("#06151C");
-        private static readonly Color Panel = Html("#0B222B");
-        private static readonly Color PanelRaised = Html("#123640");
-        private static readonly Color Gold = Html("#D9A83E");
-        private static readonly Color Teal = Html("#2B8880");
-        private static readonly Color Coral = Html("#D16B52");
-        private static readonly Color PaperInk = Html("#2B1B11");
-        private static readonly Color PaperMutedInk = Html("#46321F");
-        private static readonly Color PaperAccent = Html("#203D2D");
+        private static readonly Color Ink = UiTheme.Menu.Ink;
+        private static readonly Color MutedInk = UiTheme.Menu.MutedInk;
+        private static readonly Color DeepSea = UiTheme.Menu.DeepSea;
+        private static readonly Color Panel = UiTheme.Menu.Panel;
+        private static readonly Color PanelRaised = UiTheme.Menu.PanelRaised;
+        private static readonly Color Gold = UiTheme.Menu.Gold;
+        private static readonly Color Teal = UiTheme.Menu.Teal;
+        private static readonly Color Coral = UiTheme.Menu.Coral;
+        private static readonly Color PaperInk = UiTheme.PaperInk;
+        private static readonly Color PaperMutedInk = UiTheme.PaperMutedInk;
+        private static readonly Color PaperAccent = UiTheme.PaperAccent;
 
         private Font interfaceFont;
         private Button continueButton;
@@ -638,11 +638,14 @@ namespace ShatteredSail.Presentation
             Button cancel = CreateButton("Cancel New Game", card, new Vector2(390f, 80f), new Vector2(-225f, -202f), PanelRaised, Ink, 22);
             GameReadability.Body(cancel.GetComponentInChildren<Text>(), 22);
             cancel.GetComponentInChildren<Text>().text = "保留存档";
-            cancel.onClick.AddListener(() => confirmationPanel.gameObject.SetActive(false));
             Button confirm = CreateButton("Confirm New Game", card, new Vector2(390f, 80f), new Vector2(225f, -202f), Coral, Ink, 22);
             GameReadability.Body(confirm.GetComponentInChildren<Text>(), 22);
             confirm.GetComponentInChildren<Text>().text = "确认重新开始";
-            confirm.onClick.AddListener(StartNewGame);
+            RectTransform owner = confirmationPanel;
+            UiConfirmationActions.Bind(owner.gameObject, confirm, cancel,
+                () => owner == confirmationPanel && (saveNoticePanel == null || !saveNoticePanel.gameObject.activeInHierarchy),
+                () => { StartNewGame(); return saveNoticePanel == null || !saveNoticePanel.gameObject.activeInHierarchy; },
+                () => owner.gameObject.SetActive(false));
             confirmationPanel.gameObject.SetActive(false);
         }
 
@@ -922,8 +925,7 @@ namespace ShatteredSail.Presentation
         private AchievementRowView CreateAchievementRow(RectTransform parent, Vector2 position)
         {
             float scale = GameReadability.Scale;
-            RectTransform row = CreateRect("Achievement Row", parent, new Vector2(1040f, 64f * scale), position);
-            row.gameObject.AddComponent<Image>();
+            RectTransform row = UiKit.CreateListRow("Achievement Row", parent, new Vector2(1040f, 64f * scale), position, Color.white);
             Image rowFace = row.GetComponent<Image>();
             RawImage icon = CreateRect("Achievement Icon", row,
                 new Vector2(48f, 48f), new Vector2(-477f, 0f)).gameObject.AddComponent<RawImage>();
@@ -945,9 +947,11 @@ namespace ShatteredSail.Presentation
         {
             bool unlocked = progress.Unlocked;
             row.Root.name = "Achievement Row " + achievement.Id;
+            UiId.Bind(row.Root.gameObject, row.Root.name);
             row.Face.color = new Color(PaperMutedInk.r, PaperMutedInk.g, PaperMutedInk.b, unlocked ? 0.12f : 0.05f);
             ItemIconArt art = AchievementIconCatalog.ForId(achievement.Id);
             row.Icon.name = "Achievement Icon " + achievement.Id;
+            UiId.Bind(row.Icon.gameObject, row.Icon.name);
             row.Icon.texture = art.Texture;
             row.Icon.uvRect = art.Uv;
             row.Icon.enabled = art.IsAvailable;
@@ -963,9 +967,7 @@ namespace ShatteredSail.Presentation
 
         private RectTransform CreateModalBackdrop(string name, RectTransform canvasRect)
         {
-            RectTransform backdrop = CreateStretchPanel(name, canvasRect, new Color(0.005f, 0.018f, 0.024f, 0.92f));
-            backdrop.GetComponent<Image>().raycastTarget = true;
-            return backdrop;
+            return UiKit.CreateModalBackdrop(name, canvasRect, new Color(0.005f, 0.018f, 0.024f, 0.92f));
         }
 
         private Button CreateMenuButton(string name, Transform parent, Vector2 size, Vector2 position, string title, string detail, Color normalColor, Color textColor)
@@ -995,30 +997,8 @@ namespace ShatteredSail.Presentation
 
         private Slider CreateSlider(string name, Transform parent, Vector2 size, Vector2 position, float value)
         {
-            RectTransform root = CreateRect(name, parent, size, position);
-            Slider slider = root.gameObject.AddComponent<Slider>();
-            slider.minValue = 0f;
-            slider.maxValue = 1f;
-            RectTransform background = CreateRect("Background", root, new Vector2(size.x, 8f), Vector2.zero);
-            background.gameObject.AddComponent<Image>().color = DeepSea;
-            NauticalSurfaceSkin.ApplyControlPart(background.GetComponent<Image>());
-            RectTransform fillArea = CreateRect("Fill Area", root, new Vector2(size.x - 20f, 8f), new Vector2(-10f, 0f));
-            RectTransform fill = CreateRect("Fill", fillArea, Vector2.zero, Vector2.zero);
-            fill.anchorMin = Vector2.zero;
-            fill.anchorMax = Vector2.one;
-            fill.offsetMin = Vector2.zero;
-            fill.offsetMax = Vector2.zero;
-            fill.gameObject.AddComponent<Image>().color = Gold;
-            NauticalSurfaceSkin.ApplyControlPart(fill.GetComponent<Image>());
-            RectTransform handleArea = CreateRect("Handle Slide Area", root, new Vector2(size.x - 24f, size.y), Vector2.zero);
-            // Slider stretches the handle over its track area's height.
-            Image handle = CreateImage("Handle", handleArea, new Vector2(26f, 0f), Vector2.zero, Gold);
-            slider.fillRect = fill;
-            slider.handleRect = handle.rectTransform;
-            slider.targetGraphic = handle;
-            slider.direction = Slider.Direction.LeftToRight;
-            slider.value = value;
-            return slider;
+            return UiKit.CreateSlider(name, parent, size, position, 0f, 1f, value,
+                DeepSea, Gold, fillInset: 20f, handleWidth: 26f);
         }
 
         private Toggle CreateToggle(string name, Transform parent, Vector2 size, Vector2 position, string labelValue)
@@ -1037,80 +1017,32 @@ namespace ShatteredSail.Presentation
 
         private Button CreateButton(string name, Transform parent, Vector2 size, Vector2 position, Color normalColor, Color textColor, int fontSize)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = normalColor;
-            Button button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            ColorBlock colors = button.colors;
-            colors.normalColor = normalColor;
-            colors.highlightedColor = Color.Lerp(normalColor, Color.white, 0.16f);
-            colors.pressedColor = Color.Lerp(normalColor, Color.black, 0.18f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.disabledColor = new Color(0.2f, 0.26f, 0.27f, 0.75f);
-            button.colors = colors;
-            Text label = CreateText("Label", rect, size - new Vector2(24f, 10f), Vector2.zero, fontSize, FontStyle.Bold, TextAnchor.MiddleCenter, textColor);
-            label.text = name;
-            WoodButtonSkin.Apply(button, normalColor);
-            return button;
+            return UiKit.CreateButton(name, parent, size, position, normalColor, textColor, fontSize);
         }
 
         private Text CreateText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, FontStyle style, TextAnchor alignment, Color color)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Text text = rect.gameObject.AddComponent<Text>();
-            GameTypography.Apply(text, fontSize, style);
-            text.alignment = alignment;
-            text.color = NauticalSurfaceSkin.ReadableTextColor(parent, color);
-            text.raycastTarget = false;
-            text.supportRichText = true;
-            return text;
+            return UiKit.CreateText(name, parent, size, position, fontSize, style, alignment, color);
         }
 
         private static RectTransform CreateRect(string name, Transform parent, Vector2 size, Vector2 position)
         {
-            GameObject item = new GameObject(name, typeof(RectTransform));
-            item.transform.SetParent(parent, false);
-            RectTransform rect = item.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = position;
-            return rect;
+            return UiKit.CreateRect(name, parent, size, position);
         }
 
         private static RectTransform CreateStretchPanel(string name, Transform parent, Color color)
         {
-            GameObject panel = new GameObject(name, typeof(RectTransform), typeof(Image));
-            panel.transform.SetParent(parent, false);
-            RectTransform rect = panel.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            panel.GetComponent<Image>().color = color;
-            if (name == "Fill") NauticalSurfaceSkin.ApplyControlPart(panel.GetComponent<Image>());
-            else NauticalSurfaceSkin.ApplyPanel(panel.GetComponent<Image>(), color);
-            return rect;
+            return UiKit.CreateStretchPanel(name, parent, color);
         }
 
         private static RectTransform CreateFixedPanel(string name, Transform parent, Vector2 size, Vector2 position, Color color)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
-            NauticalSurfaceSkin.ApplyPanel(image, color);
-            return rect;
+            return UiKit.CreatePanel(name, parent, size, position, color);
         }
 
         private static Image CreateImage(string name, Transform parent, Vector2 size, Vector2 position, Color color)
         {
-            RectTransform rect = CreateRect(name, parent, size, position);
-            Image image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
-            NauticalSurfaceSkin.ApplyControlPart(image);
-            return image;
+            return UiKit.CreateImage(name, parent, size, position, color);
         }
 
         private static Font CreateInterfaceFont()

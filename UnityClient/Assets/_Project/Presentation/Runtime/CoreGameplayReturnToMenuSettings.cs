@@ -68,14 +68,9 @@ namespace ShatteredSail.Presentation
                 new Vector2(-225f, -170f), "取消 · 继续游戏", Html("#705136"));
             returnMenuConfirmButton = CreatePortSettingsButton("Confirm Return To Main Menu", card,
                 new Vector2(225f, -170f), "保存并返回", Html("#98682D"));
-            returnMenuCancelButton.onClick.AddListener(() =>
-            {
-                if (owner != null && owner == returnMenuConfirmation) CloseReturnToMenuConfirmation();
-            });
-            returnMenuConfirmButton.onClick.AddListener(() =>
-            {
-                if (owner != null && owner == returnMenuConfirmation) ConfirmReturnToMainMenu();
-            });
+            UiConfirmationActions.Bind(owner.gameObject, returnMenuConfirmButton, returnMenuCancelButton,
+                () => owner != null && owner == returnMenuConfirmation,
+                () => { ConfirmReturnToMainMenu(); return returnMenuSaving; }, CloseReturnToMenuConfirmation);
             foreach (Button control in new[] { returnMenuCancelButton, returnMenuConfirmButton })
             {
                 Button other = control == returnMenuCancelButton ? returnMenuConfirmButton : returnMenuCancelButton;

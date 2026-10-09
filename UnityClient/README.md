@@ -45,6 +45,36 @@ EditMode tests (the Unity Test Runner exits automatically, so do not add `-quit`
   -logFile 'D:\Game\UnityClient\Logs\editmode-tests.log'
 ```
 
+## Shared UI infrastructure
+
+`UiTheme` owns palette and interaction tokens; `UiKit` creates shared controls
+without changing their existing wood/paper skins. `UiLayout` provides anchored
+full-screen, two/three-column and sidebar/detail templates, including safe-area
+and optional ultrawide content limits. New page layouts should compose these
+helpers instead of copying the old factories.
+
+`UiId` identifies runtime controls independently of their names and hierarchy.
+Lookups must supply the smallest owning view; duplicate live IDs fail closed.
+Use `Bind` again when a pooled control changes its action or item. The explicit
+legacy-name fallback supports saved previews that do not yet contain IDs;
+authored scene-structure tests can continue checking their serialized names.
+
+`UiView` registers phase builders and permits only declared refresh regions.
+Port headers and the existing battle view retain their objects. Explicit refresh
+requests with changed models, phases, layouts, or missing controls use the full
+build path. Background header polling only updates readouts and never rebuilds
+the screen or dismisses an open dialog. Per-page
+retention beyond those regions is deliberately deferred to the sequential page
+refactor. Shared confirmation, hover and toast lifetimes reject stale/disabled
+owners while the calling controller keeps business validation and persistence.
+
+Run `../tools/UIRefactor/Validate.ps1` with an explicit `-ProjectPath` and a new
+absolute `-OutputPath`. It runs graphical EditMode/PlayMode tests and the 87-frame
+capture without replacing old evidence, and checks the authored battle scene
+hash. `CompareTests.ps1` distinguishes new failures from historical failures,
+skips and tests that did not run. The persistence test saves only a disposable
+scene copy, never the developer's original preview.
+
 ## Legacy tutorial voyage scene (developer test only)
 
 The original vertical slice is retained for developer testing. Its older lesson

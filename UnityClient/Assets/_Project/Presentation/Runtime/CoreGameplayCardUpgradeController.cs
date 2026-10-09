@@ -58,9 +58,9 @@ namespace ShatteredSail.Presentation
             for (int i = 0; i < WorkshopBattleStages.Length; i++)
             {
                 NavalBattleStage stage = WorkshopBattleStages[i];
-                Button tab = CreateButton("Upgrade Stage " + stage, panel, new Vector2(228f, 42f), new Vector2(-654f + i * 248f, 195f), Gold, Ink, 18);
-                tab.GetComponentInChildren<Text>().text = WorkshopStageName(stage);
-                WoodButtonSkin.SetSelected(tab, stage == selectedBattleDeckStage);
+                Button tab = UiKit.CreateTab("Upgrade Stage " + stage, panel, new Vector2(228f, 42f),
+                    new Vector2(-654f + i * 248f, 195f), WorkshopStageName(stage), Gold, Ink, 18,
+                    stage == selectedBattleDeckStage);
                 tab.onClick.AddListener(() => { selectedBattleDeckStage = stage; battleCardUpgradePage = 0; selectedBattleCardUpgrade = -1; Render(); });
             }
 

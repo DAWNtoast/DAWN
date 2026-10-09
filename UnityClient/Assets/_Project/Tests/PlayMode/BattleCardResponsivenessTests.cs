@@ -95,7 +95,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.PlayerBlock, Is.EqualTo(turn.Block + 3));
             Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(secondGuardId));
             AssertResponsiveHandMatchesCore(session);
-            Assert.That(GameObject.Find("Battle Card").GetComponentsInChildren<BattleFxGraphic>(), Is.Empty);
+            Assert.That(FindResponsiveUi("Battle Card").GetComponentsInChildren<BattleFxGraphic>(), Is.Empty);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -165,8 +165,8 @@ namespace ShatteredSail.Presentation.Tests
             float deadline = started + 12f;
             while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
             {
-                Text shield = GameObject.Find("Player Shield Float")?.GetComponent<Text>();
-                Text repair = GameObject.Find("Player Repair Float")?.GetComponent<Text>();
+                Text shield = FindResponsiveUi("Player Shield Float")?.GetComponent<Text>();
+                Text repair = FindResponsiveUi("Player Repair Float")?.GetComponent<Text>();
                 if (shield != null && repair != null)
                 {
                     Assert.That(Mathf.Abs(shield.rectTransform.anchoredPosition.y - repair.rectTransform.anchoredPosition.y),
@@ -217,7 +217,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
             Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetInstanceID(), Is.Not.EqualTo(preparationId));
             Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.True);
-            Assert.That(GameObject.Find("Battle Board"), Is.Not.Null);
+            Assert.That(FindResponsiveUi("Battle Board"), Is.Not.Null);
             AssertResponsiveHandMatchesCore(session);
 
             session.Battle.DistanceMeters = 50f;
@@ -234,7 +234,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
             Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetInstanceID(), Is.Not.EqualTo(navalId));
             BoardingCinematicAssertions.AssertScene(session);
-            Assert.That(GameObject.Find("Battle Board"), Is.Null);
+            Assert.That(FindResponsiveUi("Battle Board"), Is.Null);
             Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.True);
             AssertResponsiveHandMatchesCore(session);
             LogAssert.NoUnexpectedReceived();
@@ -258,8 +258,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitResponsiveBattle(controller);
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(session.Battle, Is.Null);
-            Assert.That(GameObject.Find("Battle Card"), Is.Null);
-            Assert.That(GameObject.Find("Battle Resolution Banner"), Is.Null);
+            Assert.That(FindResponsiveUi("Battle Card"), Is.Null);
+            Assert.That(FindResponsiveUi("Battle Resolution Banner"), Is.Null);
             stale.Invoke();
             yield return null;
             Assert.That(controller.IsBattleAnimationPlaying, Is.False);
@@ -325,9 +325,15 @@ namespace ShatteredSail.Presentation.Tests
         private static int ResponsiveCardIndex(string id) => Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
             .First(index => CoreVoyageSession.CardLibrary[index].Id == id);
 
+        private static Transform FindResponsiveUi(string id)
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            return controller == null ? null : UiId.FindOrLegacyName(controller.transform, id);
+        }
+
         private static T RequiredResponsive<T>(string name) where T : Component
         {
-            GameObject obj = GameObject.Find(name);
+            Transform obj = FindResponsiveUi(name);
             Assert.That(obj, Is.Not.Null, "Expected active object: " + name);
             T component = obj.GetComponent<T>();
             Assert.That(component, Is.Not.Null, name + " must contain " + typeof(T).Name);

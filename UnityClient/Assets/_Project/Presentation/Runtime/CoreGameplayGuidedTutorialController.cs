@@ -399,14 +399,9 @@ namespace ShatteredSail.Presentation
 
         private Transform FindActiveGuidedContent(string name)
         {
-            // ClearChildren deactivates old screens before Unity's deferred Destroy.
-            // Transform.Find alone can still return the retired view in this frame.
-            for (int i = contentRoot.childCount - 1; i >= 0; i--)
-            {
-                Transform child = contentRoot.GetChild(i);
-                if (child.name == name && child.gameObject.activeSelf) return child;
-            }
-            return null;
+            // Semantic IDs survive layout regrouping; the explicit fallback
+            // supports authored previews created before IDs were introduced.
+            return UiId.FindOrLegacyName(contentRoot, name);
         }
 
         private void RetreatCurrentBattle()

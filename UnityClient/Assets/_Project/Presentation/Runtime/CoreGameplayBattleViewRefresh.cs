@@ -200,6 +200,7 @@ namespace ShatteredSail.Presentation
             {
                 bool emergency = session.CanRequestEmergencyTow();
                 retainedBattleRetreat.name = emergency ? "Emergency Battle Return" : "Retreat Battle";
+                UiId.Bind(retainedBattleRetreat.gameObject, retainedBattleRetreat.name);
                 retainedBattleRetreat.interactable = emergency || session.CanRetreatBattle;
                 retainedBattleRetreat.GetComponentInChildren<Text>().text = emergency ? "应急撤离 · 保留 35%" : session.CanRetreatBattle ? "脱离战斗 · 撤回港口" : session.IsGuidedBossBattle ? "完成首领战斗教学" : "接舷中无法撤退";
             }
@@ -254,10 +255,14 @@ namespace ShatteredSail.Presentation
                 string oldSuffix = " " + view.Index;
                 foreach (Transform child in view.IndexedChildren)
                     if (child != null && child.name.EndsWith(oldSuffix))
+                    {
                         child.name = child.name.Substring(0, child.name.Length - oldSuffix.Length) + " " + index;
+                        UiId.Bind(child.gameObject, child.name);
+                    }
             }
             view.Index = index;
             view.Button.name = "Battle Card " + index;
+            UiId.Bind(view.Button.gameObject, view.Button.name);
             CoreBattleCard data = session.GetBattleCard(view.CardId);
             bool available = session.CanPlayCard(index);
             BattleCardPalette palette = BattleCardStylePalette.ForType(data.Type);
