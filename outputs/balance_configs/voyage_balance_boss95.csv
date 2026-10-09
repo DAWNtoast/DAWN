@@ -1,0 +1,10 @@
+﻿route_id,route_name,strategy,runs,success_rate,average_days,average_fixed_encounters,ambient_event_rate,battle_win_rate,average_net_value,end_cargo_ratio,hull_remaining,water_margin_days_ratio,food_margin_days_ratio,warnings
+route_shattered_sail_reef,碎帆礁海,谨慎,5000,70,24.7,10.5,26.8,63.1,9.7,38.8,80.9,31.1,24.7,通过
+route_shattered_sail_reef,碎帆礁海,均衡,5000,74.3,25.1,14,27.6,64,27.7,37.7,77.2,23.6,18.1,通过
+route_shattered_sail_reef,碎帆礁海,冒险,5000,58,25.5,17.5,26.4,66.5,60.8,37.1,77.2,15.7,11.2,通过
+route_golden_tide_trade,黄金潮汐商路,谨慎,5000,69.3,22.5,10.5,18.3,66.8,-48.5,31.3,82.8,33.5,26.3,通过
+route_golden_tide_trade,黄金潮汐商路,均衡,5000,74.2,22.8,14,18.7,72,0.7,28,83.1,22.8,18.1,通过
+route_golden_tide_trade,黄金潮汐商路,冒险,5000,56.2,23,17.5,17.6,75.8,50.9,25.9,83.7,13.1,10.2,通过
+route_moon_tide_ruins,月潮遗迹海,谨慎,5000,69.9,26,10.5,27.5,69,112.8,30.3,78.2,21.7,19.8,通过
+route_moon_tide_ruins,月潮遗迹海,均衡,5000,73.4,26.3,14,27.6,73.1,222.4,29.4,71.1,15.2,11.3,通过
+route_moon_tide_ruins,月潮遗迹海,冒险,5000,48.5,26.7,17.5,26.1,78.9,338.7,29.4,67.2,8.6,2.9,成功率偏低

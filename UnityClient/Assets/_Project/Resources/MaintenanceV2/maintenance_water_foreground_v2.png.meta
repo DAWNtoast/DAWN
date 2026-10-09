@@ -1,0 +1,403 @@
+fileFormatVersion: 2
+guid: 76fb8db4904f63a4e992084c1574058f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 156500846911767287
+    second: maintenance_water_foreground_v2_0
+  - first:
+      213: -606753239263326486
+    second: maintenance_water_foreground_v2_1
+  - first:
+      213: 20925198651661748
+    second: maintenance_water_foreground_v2_2
+  - first:
+      213: -7485867787631677051
+    second: maintenance_water_foreground_v2_3
+  - first:
+      213: 2362265416771969486
+    second: maintenance_water_foreground_v2_4
+  - first:
+      213: -6647278360277514039
+    second: maintenance_water_foreground_v2_5
+  - first:
+      213: -5017563844434416077
+    second: maintenance_water_foreground_v2_6
+  - first:
+      213: 4497034887885679793
+    second: maintenance_water_foreground_v2_7
+  - first:
+      213: 6901667625595773929
+    second: maintenance_water_foreground_v2_8
+  - first:
+      213: 1190582404955249606
+    second: maintenance_water_foreground_v2_9
+  - first:
+      213: 7314317492167142710
+    second: maintenance_water_foreground_v2_10
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_0
+      rect:
+        serializedVersion: 2
+        x: 225
+        y: 664
+        width: 39
+        height: 66
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7f2493be0b00c2200800000000000000
+      internalID: 156500846911767287
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_1
+      rect:
+        serializedVersion: 2
+        x: 590
+        y: 653
+        width: 69
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aee4463c4216497f0800000000000000
+      internalID: -606753239263326486
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_2
+      rect:
+        serializedVersion: 2
+        x: 656
+        y: 649
+        width: 84
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4bd9c787b575a4000800000000000000
+      internalID: 20925198651661748
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_3
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 27
+        width: 2103
+        height: 632
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 581bca2b8eadc1890800000000000000
+      internalID: -7485867787631677051
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_4
+      rect:
+        serializedVersion: 2
+        x: 1220
+        y: 609
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ec122e771e378c020800000000000000
+      internalID: 2362265416771969486
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_5
+      rect:
+        serializedVersion: 2
+        x: 1613
+        y: 618
+        width: 7
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9c88484dc8f10c3a0800000000000000
+      internalID: -6647278360277514039
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_6
+      rect:
+        serializedVersion: 2
+        x: 1958
+        y: 608
+        width: 10
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 33ea4a684480e5ab0800000000000000
+      internalID: -5017563844434416077
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_7
+      rect:
+        serializedVersion: 2
+        x: 1067
+        y: 586
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1bce6fa776da86e30800000000000000
+      internalID: 4497034887885679793
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_8
+      rect:
+        serializedVersion: 2
+        x: 1019
+        y: 569
+        width: 8
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9e3237d8326a7cf50800000000000000
+      internalID: 6901667625595773929
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_9
+      rect:
+        serializedVersion: 2
+        x: 1671
+        y: 542
+        width: 14
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6cb103ba36cc58010800000000000000
+      internalID: 1190582404955249606
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: maintenance_water_foreground_v2_10
+      rect:
+        serializedVersion: 2
+        x: 1116
+        y: 521
+        width: 11
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63d6c07910da18560800000000000000
+      internalID: 7314317492167142710
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      maintenance_water_foreground_v2_0: 156500846911767287
+      maintenance_water_foreground_v2_1: -606753239263326486
+      maintenance_water_foreground_v2_10: 7314317492167142710
+      maintenance_water_foreground_v2_2: 20925198651661748
+      maintenance_water_foreground_v2_3: -7485867787631677051
+      maintenance_water_foreground_v2_4: 2362265416771969486
+      maintenance_water_foreground_v2_5: -6647278360277514039
+      maintenance_water_foreground_v2_6: -5017563844434416077
+      maintenance_water_foreground_v2_7: 4497034887885679793
+      maintenance_water_foreground_v2_8: 6901667625595773929
+      maintenance_water_foreground_v2_9: 1190582404955249606
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

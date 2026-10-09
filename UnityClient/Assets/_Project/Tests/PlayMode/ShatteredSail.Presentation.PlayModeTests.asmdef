@@ -1,0 +1,26 @@
+{
+  "name": "ShatteredSail.Presentation.PlayModeTests",
+  "rootNamespace": "ShatteredSail.Presentation.Tests",
+  "references": [
+    "ShatteredSail.Core",
+    "ShatteredSail.Content",
+    "ShatteredSail.Presentation",
+    "ShatteredSail.Persistence",
+    "Unity.UGUI",
+    "Unity.InputSystem"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

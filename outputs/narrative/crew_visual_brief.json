@@ -1,0 +1,326 @@
+[
+  {
+    "id": "crew_broken_anchor_navigator_lorne",
+    "port": "断锚港",
+    "index": 0,
+    "name": "测潮师 洛恩",
+    "appearance": "五十岁深褐肤色；长窄脸与鹰钩鼻；灰白绳辫；左眼浑浊；瘦高驼背；锈红测潮尺",
+    "biography": "洛恩是断锚之夜最后见过无名船的人。他把失踪守夜人的潮汐记录缝进袖口，这几个月只走退潮航线，等着那艘船再度出现。",
+    "storyId": "seventh_berth_01"
+  },
+  {
+    "id": "crew_broken_anchor_carpenter_kia",
+    "port": "断锚港",
+    "index": 1,
+    "name": "铆骨匠 琪娅",
+    "appearance": "二十七岁古铜肤色；方下颌；黑色寸发；鼻梁横疤；结实矮壮；铜铆钉围裙",
+    "biography": "琪娅能从一块腐木认出整艘沉船。她最先发现无名船的龙骨会自行愈合，并偷偷保留了一片仍有心跳般震动的刨花。",
+    "storyId": "seventh_berth_07"
+  },
+  {
+    "id": "crew_broken_anchor_doctor_hector",
+    "port": "断锚港",
+    "index": 2,
+    "name": "瘢痕医师 赫克托",
+    "appearance": "六十岁苍白肤色；凹陷长脸；秃顶白络腮胡；双颊缝合疤；清瘦；骨柄手术箱",
+    "biography": "赫克托收治的无名伤员醒来后叫出了他早夭兄长的名字。老人由此确信，伤员体内的黑沙能替深海保存记忆，也能把错误的记忆还给活人。",
+    "storyId": "seventh_berth_08"
+  },
+  {
+    "id": "crew_broken_anchor_gunner_mira",
+    "port": "断锚港",
+    "index": 3,
+    "name": "沉钟炮师 米拉",
+    "appearance": "三十五岁黑肤；圆脸高颧骨；短卷银发；右眉裂痕；宽肩；背负双筒短炮",
+    "biography": "米拉用沉船钟声测量水下距离。潮门巨链升起那晚，她听出每一环的回声都对应一座港钟，于是写下了最后一炮的六段装药表。",
+    "storyId": "seventh_berth_09"
+  },
+  {
+    "id": "crew_broken_anchor_cook_tam",
+    "port": "断锚港",
+    "index": 4,
+    "name": "烟熏厨娘 塔姆",
+    "appearance": "四十二岁麦色肤色；宽脸酒窝；栗色卷发包头巾；丰腴体型；烟熏铜锅与鱼叉勺",
+    "biography": "塔姆把断锚港每艘失踪船的最后一餐记在锅盖背面。盐冠配方传来后，她发现其中一种烟熏顺序正与无名船六枚港印的排列一致。",
+    "storyId": "seventh_berth_10"
+  },
+  {
+    "id": "crew_broken_anchor_diver_udo",
+    "port": "断锚港",
+    "index": 5,
+    "name": "锚墓潜手 乌铎",
+    "appearance": "三十岁黝黑肤色；菱形脸；剃光头；下唇铜环；精瘦；不对称锈铁潜盔",
+    "biography": "乌铎在港底锚墓长大，能闭气数百拍。他从巨链下带回守夜人的铜牌，却隐瞒了自己在潜水钟里看见另一个年老自己的事实。",
+    "storyId": "seventh_berth_11"
+  },
+  {
+    "id": "crew_white_shell_navigator_saina",
+    "port": "白贝港",
+    "index": 0,
+    "name": "珊潮领航员 赛娜",
+    "appearance": "二十四岁棕肤；心形脸与雀斑；蓬松黑卷发夹白贝；轻盈修长；青绿纱披肩",
+    "biography": "赛娜从银壳中逐字抄下求救信。她不相信幽灵，却能辨认声音背后的浪拍节奏，并据此找出通往铜钟港的隐藏坐标。",
+    "storyId": "seventh_berth_02"
+  },
+  {
+    "id": "crew_white_shell_carpenter_atang",
+    "port": "白贝港",
+    "index": 1,
+    "name": "贝骨船匠 阿棠",
+    "appearance": "三十一岁东方面孔；鹅蛋脸；乌黑高马尾；颊侧贝粉纹；纤细有力；象牙色贝骨锯",
+    "biography": "阿棠把龙骨刨花浸入珊瑚胶，木片竟长出指向第七码头的枝杈。她将新枝做成六枚护符，分别送往其余港口的船匠。",
+    "storyId": "seventh_berth_07"
+  },
+  {
+    "id": "crew_white_shell_doctor_mirei",
+    "port": "白贝港",
+    "index": 2,
+    "name": "香潮医师 米蕾",
+    "appearance": "五十岁深棕肤色；柔和圆脸；银灰爆炸卷；无疤；丰润体型；花草药囊",
+    "biography": "米蕾发现无名伤员只有听见银壳歌声才会呼吸。她把旋律拆成药浴节拍，救醒了第一位能完整说出“归潮舰队”的水手。",
+    "storyId": "seventh_berth_14"
+  },
+  {
+    "id": "crew_white_shell_gunner_gallo",
+    "port": "白贝港",
+    "index": 3,
+    "name": "珠炮手 加洛",
+    "appearance": "十九岁浅褐肤色；少年圆脸；金棕蓬发；门牙缺角；瘦小灵活；珍珠镶柄信号炮",
+    "biography": "加洛用采珠人的小炮试射银壳坐标，炮弹竟在海面跳了十三次。他把弹痕带到铜钟港，恰好补全了薄铜海图缺失的一条线。",
+    "storyId": "seventh_berth_03"
+  },
+  {
+    "id": "crew_white_shell_cook_flora",
+    "port": "白贝港",
+    "index": 4,
+    "name": "柑潮厨师 芙萝",
+    "appearance": "二十八岁金棕肤色；长脸翘鼻；橙红短卷发；酒窝；高挑；柑橘串与白釉汤锅",
+    "biography": "芙萝在盐冠配方里闻出了白贝青柑的气味。她调出的汤让一名旧舰队水手恢复味觉，也想起第七码头开放时海风本该吹向何方。",
+    "storyId": "seventh_berth_10"
+  },
+  {
+    "id": "crew_white_shell_diver_kela",
+    "port": "白贝港",
+    "index": 5,
+    "name": "采珠人 珂拉",
+    "appearance": "三十六岁深棕肤色；方脸；剃侧长辫；鼻梁白贝彩绘；健美；珍珠网袋与短蹼",
+    "biography": "珂拉捞起了那枚会说话的银壳。她始终没告诉别人，壳中的求救声与失踪多年的母亲完全相同，因此她接受任何通往第七码头的航程。",
+    "storyId": "seventh_berth_02"
+  },
+  {
+    "id": "crew_bronze_bell_navigator_vick",
+    "port": "铜钟港",
+    "index": 0,
+    "name": "黄铜测绘师 维克",
+    "appearance": "四十八岁白肤；瘦削矩形脸；油黑八字胡；单片机械目镜；笔挺身形；多臂黄铜六分仪",
+    "biography": "维克破解了薄铜海图，却故意留下最后一行不译。那行字是他父亲的笔迹：若钟响十三次，说明我们仍未能关上门。",
+    "storyId": "seventh_berth_12"
+  },
+  {
+    "id": "crew_bronze_bell_carpenter_osser",
+    "port": "铜钟港",
+    "index": 1,
+    "name": "齿轮船匠 奥瑟",
+    "appearance": "五十六岁灰肤；宽额方颌；钢灰平头；烧伤覆盖右颊；魁梧；齿轮义手",
+    "biography": "奥瑟把活龙骨锁进黄铜框架，框架却被木纹一夜撑裂。他终于承认，有些船不是机器，而是会记住每位乘客重量的活物。",
+    "storyId": "seventh_berth_07"
+  },
+  {
+    "id": "crew_bronze_bell_doctor_ada",
+    "port": "铜钟港",
+    "index": 2,
+    "name": "退役军医 艾达",
+    "appearance": "四十岁东方面孔；锐利长眼；齐耳黑发夹银丝；唇角旧伤；挺拔；黄铜扣军医大衣",
+    "biography": "艾达保存着归潮舰队最后一次检疫报告。新来的无名伤员指纹与报告完全吻合，她不得不接受一个军医最不愿接受的结论：时间也会感染。",
+    "storyId": "seventh_berth_08"
+  },
+  {
+    "id": "crew_bronze_bell_gunner_helen",
+    "port": "铜钟港",
+    "index": 3,
+    "name": "钟楼炮官 赫莲",
+    "appearance": "三十三岁苍白肤色；高颧窄脸；铜红色短发；左耳缺角；修长；黑金帝国炮官制服",
+    "biography": "赫莲拆出钟腹海图，也亲手点燃击断巨链的旧炮。她每次开火前仍会数到十三，因为第十二响之后，总能听见失踪舰队替她报出距离。",
+    "storyId": "seventh_berth_03"
+  },
+  {
+    "id": "crew_bronze_bell_cook_basin",
+    "port": "铜钟港",
+    "index": 4,
+    "name": "锅炉厨师 巴辛",
+    "appearance": "六十二岁黑肤；椭圆脸白眉；光头；蒸汽烫疤环绕双臂；壮硕；压力锅背架",
+    "biography": "巴辛曾给整支帝国舰队做饭。他认出盐锅王冠的第六道缺口不是配方，而是旧军灶的泄压记号——开启第七码头的人必须为回程保留一口蒸汽。",
+    "storyId": "seventh_berth_10"
+  },
+  {
+    "id": "crew_bronze_bell_diver_duke",
+    "port": "铜钟港",
+    "index": 5,
+    "name": "铜盔潜工 杜克",
+    "appearance": "四十四岁浅棕肤色；粗眉方脸；棕色络腮胡；鼻骨歪斜；极魁梧；球形铜盔与配重靴",
+    "biography": "杜克打开第一座呼吸的潜水钟，里面摆着尚温热的工具。他听见井壁另一端有人敲出铜钟港的工人暗号，回答者却自称来自二十年前。",
+    "storyId": "seventh_berth_11"
+  },
+  {
+    "id": "crew_salt_crown_navigator_ashir",
+    "port": "盐冠港",
+    "index": 0,
+    "name": "盐路航海士 阿希尔",
+    "appearance": "三十八岁棕肤；瘦长脸；剃光头留靛蓝长辫；白色眉毛；高瘦；盐晶罗盘披肩",
+    "biography": "阿希尔追上无旗盐船时，看见盐人用自己的脸回望。他把账册中的港名改写成航向，才发现六港并不是目的地，而是一把罗盘的六个刻度。",
+    "storyId": "seventh_berth_04"
+  },
+  {
+    "id": "crew_salt_crown_carpenter_saf",
+    "port": "盐冠港",
+    "index": 1,
+    "name": "晒骨匠 萨芙",
+    "appearance": "五十二岁深褐肤色；三角脸；白色短脏辫；额头晒斑；精瘦硬朗；兽骨支架与盐蜡锤",
+    "biography": "萨芙把活龙骨放在盐田曝晒，木纹显出归潮舰队每次返航的日期，唯独最后一行留白。她说那不是死亡日期，而是在等新的船长填上。",
+    "storyId": "seventh_berth_07"
+  },
+  {
+    "id": "crew_salt_crown_doctor_naji",
+    "port": "盐冠港",
+    "index": 2,
+    "name": "荒潮药师 娜吉",
+    "appearance": "二十九岁褐肤；杏眼圆脸；黑发盘成双环；眼下金色盐纹；娇小；彩釉药瓶腰带",
+    "biography": "娜吉用六种矿盐分离伤员体内的黑沙。最细的一层在盘中排成第七码头平面图，最粗的一层则拼出了一个仍在风暴眼里跳动的心脏。",
+    "storyId": "seventh_berth_08"
+  },
+  {
+    "id": "crew_salt_crown_gunner_rokan",
+    "port": "盐冠港",
+    "index": 3,
+    "name": "白焰炮手 罗坎",
+    "appearance": "四十一岁浅褐肤色；厚唇方脸；焦白莫西干发；双手灼伤；宽肩；白陶火药罐",
+    "biography": "罗坎为潮门旧炮配出了无烟白焰。巨链断裂时，他看见火光中站着已故的炮术老师，对方只来得及用手势比出下一次齐射的坐标。",
+    "storyId": "seventh_berth_09"
+  },
+  {
+    "id": "crew_salt_crown_cook_maz",
+    "port": "盐冠港",
+    "index": 4,
+    "name": "香路厨娘 玛兹",
+    "appearance": "三十七岁橄榄肤色；菱形脸绿眼；黑色波浪长发；鼻侧痣；丰满；六格香料盘与银锅",
+    "biography": "玛兹继承的锅底一直有六道缺口。她把六港菜谱依次煮过一遍，锅中升起的盐冠投影终于给出了开门次序，也唤醒了藏在厨房里的旧舰队厨子。",
+    "storyId": "seventh_berth_10"
+  },
+  {
+    "id": "crew_salt_crown_diver_isha",
+    "port": "盐冠港",
+    "index": 5,
+    "name": "盐井潜客 伊沙",
+    "appearance": "二十二岁深褐肤色；圆脸大眼；短白卷发；耳廓盐晶穿孔；柔韧矮小；皮革软盔与晶灯",
+    "biography": "伊沙在盐井底找到一座潜水钟，推门却走进暮潮港的井房。她沿途留下晶灯，后来才知道那些光点连起来正是被拆成六份的钥匙形状。",
+    "storyId": "seventh_berth_11"
+  },
+  {
+    "id": "crew_twilight_tide_navigator_selene",
+    "port": "暮潮港",
+    "index": 0,
+    "name": "月潮占星师 塞勒涅",
+    "appearance": "六十五岁深肤；细长脸银色瞳孔；及腰白直发；无眉；高挑清瘦；石质星盘与月纱",
+    "biography": "塞勒涅曾在海巨人背上生活七昼夜，把每一道旧伤都画成星图。巨人交给她石盘时，她认出中央缺口正适合嵌入断锚港的黑玻璃。",
+    "storyId": "seventh_berth_06"
+  },
+  {
+    "id": "crew_twilight_tide_carpenter_orlan",
+    "port": "暮潮港",
+    "index": 1,
+    "name": "骨舟匠 欧兰",
+    "appearance": "三十四岁苍白肤色；尖下巴；紫黑长发遮半脸；颈侧鳃状刺青；纤长；弯月骨锯",
+    "biography": "欧兰能听见骨头保存的声音。活龙骨向他反复低语“回家”，而当六港船匠拼合刨花时，他听见第七码头内所有船同时回答。",
+    "storyId": "seventh_berth_07"
+  },
+  {
+    "id": "crew_twilight_tide_doctor_viya",
+    "port": "暮潮港",
+    "index": 2,
+    "name": "梦疫医师 维娅",
+    "appearance": "四十六岁橄榄肤色；疲惫杏眼；深蓝短卷发；额心银点；瘦削；装满梦砂的玻璃面罩",
+    "biography": "维娅让无名伤员共享同一个梦：一座石港在晨曦里等待烧毁账簿。她醒来时手中多了一把不存在于现实的钥匙，而井底的潜水钟少了一座。",
+    "storyId": "seventh_berth_12"
+  },
+  {
+    "id": "crew_twilight_tide_gunner_yilan",
+    "port": "暮潮港",
+    "index": 3,
+    "name": "蓝火炮巫 伊岚",
+    "appearance": "二十六岁东方面孔；锐利凤眼；乌发夹钴蓝挑染；右颊符文；修长；蓝火符管长炮",
+    "biography": "伊岚曾用装着咒文的炮弹击败海妖弥赛拉，却没有取她性命。她说敌人的最后一句警告比胜利更值钱，因此一直在寻找能证明归潮舰队仍然存在的人。",
+    "storyId": "seventh_berth_05"
+  },
+  {
+    "id": "crew_twilight_tide_cook_lume",
+    "port": "暮潮港",
+    "index": 4,
+    "name": "夜宴厨师 露姆",
+    "appearance": "三十岁蓝黑肤色；娃娃脸；蓬松紫发；面颊荧光雀斑；圆润；发光菌篮与黑釉茶壶",
+    "biography": "露姆为获释的海妖做了一桌没有盐的夜宴。弥赛拉吃完后唱出归潮舰队的安魂曲，曲调恰好补上盐冠配方中被故意删去的休止符。",
+    "storyId": "seventh_berth_13"
+  },
+  {
+    "id": "crew_twilight_tide_diver_naive",
+    "port": "暮潮港",
+    "index": 5,
+    "name": "幽灯潜者 奈芙",
+    "appearance": "五十八岁苍白肤色；长方脸；剃顶留两侧银辫；一道贯穿鼻梁的蓝疤；高瘦；水母灯与骨质呼吸管",
+    "biography": "奈芙沿伊沙的晶灯穿过六座井，最终在第七码头下方找到钥匙槽。她没有插入钥匙，因为槽边新刻的字说：开门的人必须先听完海妖的赎价。",
+    "storyId": "seventh_berth_13"
+  },
+  {
+    "id": "crew_gray_gull_navigator_evelyn",
+    "port": "灰鸥港",
+    "index": 0,
+    "name": "星盘手 伊芙琳",
+    "appearance": "三十二岁橄榄肤色；长椭圆脸与灰绿色眼睛；黑色波浪发配青头巾；修长；金星盘",
+    "biography": "伊芙琳曾为商会绘制无人敢走的夜潮航线。读过塞勒涅从巨人背上带回的星图后，她第一次在星位旁写下“也许”，并决定找到第七码头真正的归航线。",
+    "storyId": "seventh_berth_06"
+  },
+  {
+    "id": "crew_gray_gull_carpenter_barlow",
+    "port": "灰鸥港",
+    "index": 1,
+    "name": "船匠 巴洛",
+    "appearance": "四十五岁晒红肤色；宽鼻方脸；红头巾下深棕短发；浓胡须；魁梧；木槌与绳圈",
+    "biography": "巴洛能仅凭木纹判断一艘船经历过什么。面对会愈合的龙骨，他却听见木材说出自己的童年乳名，于是发誓让无名船完整回一次家。",
+    "storyId": "seventh_berth_07"
+  },
+  {
+    "id": "crew_gray_gull_doctor_moer",
+    "port": "灰鸥港",
+    "index": 2,
+    "name": "船医 莫尔",
+    "appearance": "三十九岁浅棕肤色；窄脸与圆眼镜；黑色中分卷发；下巴短须；清瘦；青玻璃药瓶",
+    "biography": "莫尔在旧考察船的病历里见过黑沙症状，只是日期比他出生还早。他用自己的血唤醒无名伤员，也因此开始梦见一座从未到过的石港。",
+    "storyId": "seventh_berth_08"
+  },
+  {
+    "id": "crew_gray_gull_gunner_leisa",
+    "port": "灰鸥港",
+    "index": 3,
+    "name": "炮术官 雷萨",
+    "appearance": "三十岁深棕肤色；棱角脸；赤褐长发束高马尾；右眉缺口；健壮；长引火杖",
+    "biography": "雷萨曾在帝国炮舰担任校射官。赫莲送来六段装药表后，她认出那是旧教官禁止使用的潮门射法，并自愿接下第二门炮的位置。",
+    "storyId": "seventh_berth_09"
+  },
+  {
+    "id": "crew_gray_gull_cook_pepe",
+    "port": "灰鸥港",
+    "index": 4,
+    "name": "厨师 佩佩",
+    "appearance": "五十四岁棕肤；饱满圆脸；深灰卷发藏于白头巾；笑纹明显；丰腴；刻痕盐锅",
+    "biography": "佩佩熟悉每位船员的胃口，还保存着一张拓自玛兹祖传盐锅的残谱。她一直以为刻痕只是旧日记账，直到六港厨师围在原锅旁，让失传配方浮出一顶完整王冠。",
+    "storyId": "seventh_berth_10"
+  },
+  {
+    "id": "crew_gray_gull_diver_noya",
+    "port": "灰鸥港",
+    "index": 5,
+    "name": "潜水员 诺雅",
+    "appearance": "二十五岁浅褐肤色；心形脸；乌黑双辫；鼻梁细疤；娇小敏捷；青铜潜水镜",
+    "biography": "诺雅会把最危险的下潜说成散步。她拼好守夜人铜牌时发现背后还有一行小字：若我没回来，就把碎帆旗交给第一个愿意联合六港的人。",
+    "storyId": "seventh_berth_15"
+  }
+]

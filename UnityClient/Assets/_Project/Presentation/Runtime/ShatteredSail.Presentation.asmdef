@@ -1,0 +1,20 @@
+{
+  "name": "ShatteredSail.Presentation",
+  "rootNamespace": "ShatteredSail.Presentation",
+  "references": [
+    "ShatteredSail.Core",
+    "ShatteredSail.Content",
+    "ShatteredSail.Persistence",
+    "Unity.InputSystem",
+    "Unity.UGUI"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

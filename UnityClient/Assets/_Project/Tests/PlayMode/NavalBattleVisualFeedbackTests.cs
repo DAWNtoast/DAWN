@@ -1,0 +1,660 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using NUnit.Framework;
+using ShatteredSail.Core.Gameplay;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
+
+namespace ShatteredSail.Presentation.Tests
+{
+    public sealed class NavalBattleVisualFeedbackTests
+    {
+        private bool hadTutorialCompleted;
+        private int savedTutorialCompleted;
+        private string savedCardUpgrades;
+        private string savedSpecialCardExperience;
+        private string savedAcquiredSpecialCards;
+        private string savedComponentInventory;
+        private readonly Dictionary<string, int?> savedShipOwnership = new Dictionary<string, int?>();
+        private readonly Dictionary<NavalBattleStage, string> savedDecks = new Dictionary<NavalBattleStage, string>();
+
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            savedComponentInventory = PlayerPrefs.HasKey(CoreGameplayDemoController.ComponentInventoryKey)
+                ? PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey) : null;
+            savedShipOwnership.Clear();
+            for (int ship = 0; ship < CoreVoyageSession.Ships.Count; ship++)
+            {
+                string key = CoreGameplayDemoController.ShipOwnedKey(ship);
+                savedShipOwnership[key] = PlayerPrefs.HasKey(key) ? PlayerPrefs.GetInt(key) : (int?)null;
+            }
+            hadTutorialCompleted = PlayerPrefs.HasKey(CoreGameplayDemoController.TutorialCompletedKey);
+            savedTutorialCompleted = PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey, 0);
+            savedCardUpgrades = PlayerPrefs.HasKey(CoreGameplayDemoController.BattleCardUpgradeKey) ? PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey) : null;
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleCardUpgradeKey);
+            savedSpecialCardExperience = PlayerPrefs.HasKey(CoreGameplayDemoController.SpecialCardExperienceKey) ? PlayerPrefs.GetString(CoreGameplayDemoController.SpecialCardExperienceKey) : null;
+            savedAcquiredSpecialCards = PlayerPrefs.HasKey(CoreGameplayDemoController.AcquiredSpecialCardsKey) ? PlayerPrefs.GetString(CoreGameplayDemoController.AcquiredSpecialCardsKey) : null;
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.SpecialCardExperienceKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.AcquiredSpecialCardsKey);
+            savedDecks.Clear();
+            foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
+            {
+                string key = CoreGameplayDemoController.StageBattleDeckKey(stage);
+                if (PlayerPrefs.HasKey(key)) savedDecks[stage] = PlayerPrefs.GetString(key);
+            }
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            foreach (CoreGameplayDemoController controller in Object.FindObjectsByType<CoreGameplayDemoController>(FindObjectsSortMode.None))
+                Object.Destroy(controller.gameObject);
+            yield return null;
+            if (savedComponentInventory == null) PlayerPrefs.DeleteKey(CoreGameplayDemoController.ComponentInventoryKey);
+            else PlayerPrefs.SetString(CoreGameplayDemoController.ComponentInventoryKey, savedComponentInventory);
+            foreach (KeyValuePair<string, int?> ownership in savedShipOwnership)
+                if (ownership.Value.HasValue) PlayerPrefs.SetInt(ownership.Key, ownership.Value.Value);
+                else PlayerPrefs.DeleteKey(ownership.Key);
+            if (savedCardUpgrades == null) PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleCardUpgradeKey);
+            else PlayerPrefs.SetString(CoreGameplayDemoController.BattleCardUpgradeKey, savedCardUpgrades);
+            if (savedSpecialCardExperience == null) PlayerPrefs.DeleteKey(CoreGameplayDemoController.SpecialCardExperienceKey);
+            else PlayerPrefs.SetString(CoreGameplayDemoController.SpecialCardExperienceKey, savedSpecialCardExperience);
+            if (savedAcquiredSpecialCards == null) PlayerPrefs.DeleteKey(CoreGameplayDemoController.AcquiredSpecialCardsKey);
+            else PlayerPrefs.SetString(CoreGameplayDemoController.AcquiredSpecialCardsKey, savedAcquiredSpecialCards);
+            if (hadTutorialCompleted) PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, savedTutorialCompleted);
+            else PlayerPrefs.DeleteKey(CoreGameplayDemoController.TutorialCompletedKey);
+            foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
+            {
+                string key = CoreGameplayDemoController.StageBattleDeckKey(stage);
+                if (savedDecks.TryGetValue(stage, out string value)) PlayerPrefs.SetString(key, value);
+                else PlayerPrefs.DeleteKey(key);
+            }
+            // Restore keys flushed by scene initialization, including absent keys.
+            PlayerPrefs.Save();
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator CannonVolley_ShowsMuzzleImpactAndWhiteGuard_ConsumesOneCardAndAnimatesRealHealth()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreVoyageSession session = UseFreshNavalBattle(controller, 250f);
+            session.Battle.EnemyBlock = 6;
+            session.Battle.PlayerFireRounds = 1;
+            SetSingleCard(session, "card_chain_shot");
+            foreach (string id in new[] { "card_full_sail_turn", "card_evasive_maneuver", "card_emergency_repair", "card_brace" })
+                session.Battle.Hand.Add(Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).First(index => CoreVoyageSession.CardLibrary[index].Id == id));
+            int[] expectedRemainingHand = session.Battle.Hand.Skip(1).ToArray();
+            Render(controller);
+            yield return null;
+            Transform runtimeCanvas = controller.transform.Find("Core Gameplay Canvas");
+            Assert.That(runtimeCanvas, Is.Not.Null);
+            Assert.That(runtimeCanvas.Find("Header"), Is.Null,
+                "Battle runtime should remove the obsolete generic Header.");
+            Assert.That(runtimeCanvas.Find("Ocean Backdrop"), Is.Null,
+                "Battle runtime should remove the obsolete Ocean Backdrop.");            CoreBattleCard card = CoreVoyageSession.CardLibrary[session.Battle.Hand[0]];
+            BattleDefenseHud enemyHud = Find<BattleDefenseHud>("Enemy Battle Hull Bar Track");
+            BattleDefenseHud playerHud = Find<BattleDefenseHud>("Player Battle Hull Bar Track");
+            Assert.That(enemyHud.DisplayedGuard, Is.EqualTo(6f));
+            Assert.That(Find<Text>("Enemy Armor Numeric").text, Does.Contain("6"));
+            Image whiteGuard = Find<Image>("Enemy Armor Bar");
+            Assert.That(enemyHud.HullBar.sprite, Is.Not.Null, "UGUI ignores fillAmount when a Filled Image has no sprite.");
+            Assert.That(enemyHud.ChipBar.sprite, Is.Not.Null);
+            Assert.That(whiteGuard.sprite, Is.Not.Null);
+            Assert.That(whiteGuard.fillAmount, Is.EqualTo(1f));
+            Assert.That(whiteGuard.color.r, Is.GreaterThan(0.85f));
+            Assert.That(whiteGuard.color.g, Is.GreaterThan(0.85f));
+            Assert.That(whiteGuard.color.b, Is.GreaterThan(0.85f));
+            Assert.That(Find<RectTransform>("Enemy Armor Frame 0").anchoredPosition.y,
+                Is.GreaterThan(enemyHud.HullBar.rectTransform.rect.height * 0.5f), "White armor surrounds rather than replaces the health fill.");
+            Assert.That(Find<RectTransform>("Enemy Armor Frame 1").anchoredPosition.y,
+                Is.LessThan(-enemyHud.HullBar.rectTransform.rect.height * 0.5f));
+            int permanentArmor = session.Armor;
+            Assert.That(playerHud.PermanentArmor, Is.EqualTo(permanentArmor));
+            int hullBefore = session.Battle.EnemyHull;
+            int maxHull = session.Battle.EnemyMaxHull;
+            int ammoBefore = session.Cargo.Cannonballs;
+            int energyBefore = session.Battle.Energy;
+            int expectedDamage = Mathf.Max(0, card.Damage + Mathf.Max(0, (session.Firepower - 8) / 2) - 6);
+            Assert.That(expectedDamage, Is.GreaterThan(0), "Fixture must break guard and visibly damage the hull.");
+            NavalBattleVisualCapture.Capture(controller, "07_Cannon_GuardBefore.png", "炮击前：白色外围护甲条、格挡数值与船体生命");
+
+            Button source = Find<Button>("Battle Card 0");
+            source.onClick.Invoke();
+            source.onClick.Invoke(); // Also exercise direct duplicate UI invocation, not merely disabled pointer input.
+            Assert.That(controller.IsBattleAnimationPlaying, Is.True);
+            Assert.That(Find<Button>("End Battle Turn").interactable, Is.False);
+            Assert.That(source.interactable, Is.False);
+            HashSet<BattleFxKind> observed = new HashSet<BattleFxKind>();
+            bool capturedCard = false, capturedMuzzle = false, capturedImpact = false, capturedHealth = false;
+            bool capturedCardTypeStamp = false;
+            int maximumMuzzleFlashCount = 0;
+            bool sawDamageChip = false, sawIntermediateHull = false, sawIntermediateGuard = false;
+            int cardBoundsChecks = 0;
+            float deadline = Time.realtimeSinceStartup + 12f;
+            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                GameObject root = GameObject.Find("Battle Card");
+                BattleFxGraphic[] effects = root == null ? Array.Empty<BattleFxGraphic>() : root.GetComponentsInChildren<BattleFxGraphic>();
+                maximumMuzzleFlashCount = Mathf.Max(maximumMuzzleFlashCount, effects.Count(effect => effect.Kind == BattleFxKind.MuzzleFlash));
+                foreach (BattleFxGraphic effect in effects)
+                {
+                    observed.Add(effect.Kind);
+                    Assert.That(effect.raycastTarget, Is.False, "Particles cannot swallow ship/card pointer input.");
+                }
+                if (source != null && source.gameObject.activeInHierarchy && effects.Any(effect => effect.Kind == BattleFxKind.CardShine))
+                {
+                    AssertCardInsideStage(source.GetComponent<RectTransform>(), root.GetComponent<RectTransform>());
+                    cardBoundsChecks++;
+                }
+                if (!capturedCard && effects.Any(effect => effect.Kind == BattleFxKind.CardShine && effect.Progress > 0.1f))
+                {
+                    NavalBattleVisualCapture.Capture(controller, "08_Card_Release.png", "出牌蓄势：卡面扫光与释放反馈");
+                    capturedCard = true;
+                }
+                if (!capturedMuzzle && effects.Any(effect => effect.Kind == BattleFxKind.MuzzleFlash && effect.Progress > 0.1f))
+                {
+                    NavalBattleVisualCapture.Capture(controller, "09_Cannon_Muzzle.png", "开炮瞬间：炮口焰、烟雾与炮弹轨迹");
+                    capturedMuzzle = true;
+                }
+                if (!capturedCardTypeStamp && GameObject.Find("Battle Card Cast Stamp") != null)
+                    capturedCardTypeStamp = true;
+
+                if (!capturedImpact && effects.Any(effect => effect.Kind == BattleFxKind.Impact && effect.Progress > 0.08f))
+                {
+                    NavalBattleVisualCapture.Capture(controller, "10_Cannon_Impact.png", "命中瞬间：敌舰受击与白色护甲破裂反馈");
+                    capturedImpact = true;
+                }
+                if (enemyHud != null)
+                {
+                    sawIntermediateGuard |= enemyHud.DisplayedGuard > 0.01f && enemyHud.DisplayedGuard < 5.99f;
+                    sawIntermediateHull |= enemyHud.DisplayedHull < hullBefore - 0.001f && enemyHud.DisplayedHull > hullBefore - expectedDamage + 0.001f;
+                    sawDamageChip |= enemyHud.ChipBar.fillAmount > enemyHud.HullBar.fillAmount + 0.001f;
+                    if (!capturedHealth && enemyHud.ChipBar.fillAmount > enemyHud.HullBar.fillAmount + 0.001f)
+                    {
+                        NavalBattleVisualCapture.Capture(controller, "11_Hull_DamageTrail.png", "血条下降：数值同步递减并保留短暂伤害残条");
+                        capturedHealth = true;
+                    }
+                }
+                yield return null;
+            }
+            Assert.That(controller.IsBattleAnimationPlaying, Is.False, "A single card must complete its feedback and unlock the next input.");
+            yield return null;
+            Assert.That(observed, Does.Contain(BattleFxKind.MuzzleFlash));
+            Assert.That(capturedCardTypeStamp, Is.True, "A played card should briefly label its category while the action resolves.");
+            Assert.That(maximumMuzzleFlashCount, Is.GreaterThanOrEqualTo(3), "Loaded fire rounds should read as a staggered three-shot salvo.");
+            Assert.That(observed, Does.Contain(BattleFxKind.Smoke));
+            Assert.That(observed, Does.Contain(BattleFxKind.Trail));
+            Assert.That(observed, Does.Contain(BattleFxKind.Impact));
+            Assert.That(observed, Does.Contain(BattleFxKind.ArmorBreak));
+            Assert.That(cardBoundsChecks, Is.GreaterThan(0), "The card must remain inside the battle frame while its real release animation runs.");
+            Assert.That(sawIntermediateGuard, Is.True, "Guard should visually deplete through intermediate values.");
+            Assert.That(sawIntermediateHull, Is.True, "Health should decline through intermediate values, not snap on UI rebuild.");
+            Assert.That(sawDamageChip, Is.True, "A delayed damage trail must make the amount of lost hull legible.");
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hullBefore - expectedDamage));
+            Assert.That(session.Battle.EnemyBlock, Is.Zero);
+            Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
+            Assert.That(session.Battle.Energy, Is.EqualTo(energyBefore - card.Energy));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(ammoBefore - card.CannonballCost));
+            CollectionAssert.AreEqual(expectedRemainingHand, session.Battle.Hand,
+                "Only the selected cannon card is consumed; the other four cards remain in their original order.");
+            BattleDefenseHud updated = Find<BattleDefenseHud>("Enemy Battle Hull Bar Track");
+            Assert.That(updated.DisplayedGuard, Is.Zero);
+            Assert.That(updated.DisplayedHull, Is.EqualTo(hullBefore - expectedDamage));
+            Assert.That(updated.HullBar.fillAmount, Is.EqualTo((hullBefore - expectedDamage) / (float)maxHull).Within(0.001f));
+            Assert.That(updated.ChipBar.fillAmount, Is.EqualTo(updated.HullBar.fillAmount).Within(0.001f));
+            AssertFilledMeshWidth(updated.HullBar);
+            AssertFilledMeshWidth(updated.ChipBar);
+            AssertFilledMeshWidth(Find<Image>("Enemy Armor Bar"));
+            Assert.That(Find<Text>("Enemy Hull Numeric").text, Does.StartWith((hullBefore - expectedDamage).ToString()));
+            Assert.That(session.Armor, Is.EqualTo(permanentArmor), "Visual guard depletion must not consume permanent ship armor.");
+            Assert.That(Find<BattleDefenseHud>("Player Battle Hull Bar Track").PermanentArmor, Is.EqualTo(permanentArmor));
+            Assert.That(Find<Button>("End Battle Turn").interactable, Is.True);
+            Assert.That(GameObject.Find("Battle Card").GetComponentsInChildren<BattleFxGraphic>(), Is.Empty,
+                "The completed action must remove its transient effect objects.");
+            NavalBattleVisualCapture.Capture(controller, "12_Cannon_Resolved.png", "命中结算完成：仅扣除一次弹药、能量与敌舰生命，操作解锁");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator ApproachAndRetreat_ContinuouslyZoomOceanAndShips_ReturningToFullChartAtLongRange()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreVoyageSession session = UseFreshNavalBattle(controller, 600f);
+            SetSingleCard(session, "card_approach");
+            Render(controller);
+            yield return null;
+            RawImage initialBackground = Find<RawImage>("Battle Scene Art");
+            Rect initialUv = initialBackground.uvRect;
+            Rect expectedLongRangeUv = BattleViewLayout.BackdropUv(session.Battle.DistanceMeters, initialBackground.rectTransform.rect.size);
+            Assert.That(initialUv.x, Is.EqualTo(expectedLongRangeUv.x).Within(0.0001f), "Long range must preserve the cover crop on the ocean art.");
+            Assert.That(initialUv.y, Is.EqualTo(expectedLongRangeUv.y).Within(0.0001f));
+            Assert.That(initialUv.width, Is.EqualTo(expectedLongRangeUv.width).Within(0.0001f));
+            Assert.That(initialUv.height, Is.EqualTo(expectedLongRangeUv.height).Within(0.0001f));
+            float initialWidth = EffectiveShipWidth(Find<RectTransform>("Player Ship Art"));
+            NavalBattleVisualCapture.Capture(controller, "01_LongRange_600m.png", "600 米远景：完整海面与小比例舰船");
+
+            Button approach = Find<Button>("Battle Card 0");
+            approach.onClick.Invoke();
+            Assert.That(controller.IsBattleAnimationPlaying, Is.True);
+            List<float> approachWidths = new List<float>();
+            bool capturedApproach = false;
+            float deadline = Time.realtimeSinceStartup + 12f;
+            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                if (initialBackground != null)
+                {
+                    approachWidths.Add(initialBackground.uvRect.width);
+                    if (!capturedApproach && initialBackground.uvRect.width < initialUv.width - 0.015f)
+                    {
+                        NavalBattleVisualCapture.Capture(controller, "02_Approach_MidMotion.png", "推进途中：海面与舰船连续放大");
+                        capturedApproach = true;
+                    }
+                }
+                yield return null;
+            }
+            Assert.That(controller.IsBattleAnimationPlaying, Is.False);
+            yield return null;
+            float closeUvWidth = Find<RawImage>("Battle Scene Art").uvRect.width;
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(450f));
+            Assert.That(closeUvWidth, Is.LessThan(initialUv.width - 0.02f));
+            Assert.That(approachWidths.Any(width => width < initialUv.width - 0.003f && width > closeUvWidth + 0.003f), Is.True,
+                "At least one real intermediate zoom must be rendered; replacing the UI at the end alone is not an animation.");
+            Assert.That(EffectiveShipWidth(Find<RectTransform>("Player Ship Art")), Is.GreaterThan(initialWidth + 5f));
+
+            // Arrange a near-boundary range so one real retreat goes past the full-view threshold.
+            session.Battle.DistanceMeters = 550f;
+            SetSingleCard(session, "card_retreat");
+            Render(controller);
+            yield return null;
+            RawImage retreatBackground = Find<RawImage>("Battle Scene Art");
+            float retreatStartWidth = retreatBackground.uvRect.width;
+            Find<Button>("Battle Card 0").onClick.Invoke();
+            List<float> retreatWidths = new List<float>();
+            bool capturedRetreat = false;
+            deadline = Time.realtimeSinceStartup + 12f;
+            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                if (retreatBackground != null)
+                {
+                    retreatWidths.Add(retreatBackground.uvRect.width);
+                    if (!capturedRetreat && retreatBackground.uvRect.width > retreatStartWidth + 0.008f)
+                    {
+                        NavalBattleVisualCapture.Capture(controller, "03_Retreat_MidMotion.png", "撤离途中：连续拉远镜头");
+                        capturedRetreat = true;
+                    }
+                }
+                yield return null;
+            }
+            Assert.That(controller.IsBattleAnimationPlaying, Is.False);
+            yield return null;
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(680f));
+            RawImage retreatResultBackground = Find<RawImage>("Battle Scene Art");
+            Rect expectedRetreatUv = BattleViewLayout.BackdropUv(session.Battle.DistanceMeters, retreatResultBackground.rectTransform.rect.size);
+            Assert.That(retreatResultBackground.uvRect.x, Is.EqualTo(expectedRetreatUv.x).Within(0.0001f));
+            Assert.That(retreatResultBackground.uvRect.y, Is.EqualTo(expectedRetreatUv.y).Within(0.0001f));
+            Assert.That(retreatResultBackground.uvRect.width, Is.EqualTo(expectedRetreatUv.width).Within(0.0001f));
+            Assert.That(retreatResultBackground.uvRect.height, Is.EqualTo(expectedRetreatUv.height).Within(0.0001f));
+            Assert.That(retreatWidths.Any(width => width > retreatStartWidth + 0.002f && width < 0.998f), Is.True,
+                "Retreat must zoom out through intermediate frames, not snap directly to the full backdrop.");
+            Assert.That(Find<Button>("End Battle Turn").interactable, Is.True);
+            NavalBattleVisualCapture.Capture(controller, "04_Retreat_FullView.png", "680 米撤离完成：恢复完整远景");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator CirclingEnemy_ChangesEnemyFacingThroughIntermediateYawPoses()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreVoyageSession session = UseFreshNavalBattle(controller, 350f);
+            session.Battle.Alignment = NavalBattleAlignment.HeadOn;
+            SetSingleCard(session, "card_circle_enemy");
+            Render(controller);
+            yield return null;
+            RectTransform enemy = Find<RectTransform>("Enemy Ship Art");
+            float startYaw = enemy.localEulerAngles.y;
+            List<float> displayedYaw = new List<float>();
+            Find<Button>("Battle Card 0").onClick.Invoke();
+            float deadline = Time.realtimeSinceStartup + 12f;
+            bool capturedTurn = false;
+            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                if (enemy != null)
+                {
+                    displayedYaw.Add(enemy.localEulerAngles.y);
+                    if (!capturedTurn && Mathf.Abs(Mathf.DeltaAngle(startYaw, enemy.localEulerAngles.y)) > 8f)
+                    {
+                        NavalBattleVisualCapture.Capture(controller, "05_Enemy_Turning.png", "绕行途中：敌舰模型随相对朝向转动");
+                        capturedTurn = true;
+                    }
+                }
+                yield return null;
+            }
+            Assert.That(controller.IsBattleAnimationPlaying, Is.False);
+            yield return null;
+            float finalYaw = Find<RectTransform>("Enemy Ship Art").localEulerAngles.y;
+            Assert.That(session.Battle.Alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside));
+            Assert.That(Mathf.Abs(Mathf.DeltaAngle(startYaw, finalYaw)), Is.GreaterThan(10f));
+            Assert.That(displayedYaw.Any(yaw => Mathf.Abs(Mathf.DeltaAngle(startYaw, yaw)) > 3f &&
+                Mathf.Abs(Mathf.DeltaAngle(finalYaw, yaw)) > 3f), Is.True,
+                "The ship model must actually turn, not just swap texture UV orientation at the end.");
+            NavalBattleVisualCapture.Capture(controller, "06_Enemy_Broadside.png", "绕行完成：敌舰侧舷朝向与阵位保持一致");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator BoardingApproach_PreservesItsRulesAndEntersTheFullBodyDeckScene()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            foreach (NavalBoardingApproach expected in new[] { NavalBoardingApproach.Alongside, NavalBoardingApproach.Quarter })
+            {
+                CoreVoyageSession session = UseFreshNavalBattle(controller, 110f);
+                session.Battle.Alignment = expected == NavalBoardingApproach.Quarter
+                    ? NavalBattleAlignment.EnemyBroadside : NavalBattleAlignment.HeadOn;
+                SetSingleCard(session, "card_parallel_course");
+                Render(controller);
+                yield return null;
+                Find<Button>("Battle Card 0").onClick.Invoke();
+                yield return WaitForAnimation(controller);
+                Assert.That(session.Battle.DistanceMeters, Is.EqualTo(50f));
+                Assert.That(session.Battle.Alignment, Is.EqualTo(NavalBattleAlignment.Parallel));
+                Assert.That(session.Battle.PlannedBoardingApproach, Is.EqualTo(expected));
+                Assert.That(Find<Button>("Battle Board").interactable, Is.True);
+                Find<Button>("Battle Board").onClick.Invoke();
+                Assert.That(controller.IsBattleAnimationPlaying, Is.True);
+                yield return WaitForAnimation(controller);
+                Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+                Assert.That(session.Battle.BoardingApproach, Is.EqualTo(expected));
+                BoardingCinematicAssertions.AssertScene(session);
+                Assert.That(Find<Button>("End Battle Turn").interactable, Is.True);
+                NavalBattleVisualCapture.Capture(controller,
+                    expected == NavalBoardingApproach.Quarter ? "14_Boarding_Quarter.png" : "13_Boarding_Alongside.png",
+                    expected == NavalBoardingApproach.Quarter ? "斜后接舷规则保留，进入完整甲板与双方全身立绘" : "并舷登船规则保留，进入完整甲板与双方全身立绘");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator AllTwelveFlagships_RenderTheirHullAndWaterAtCloseNavalRange()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            ResetAuditComponentInventory(controller);
+            PortArtCatalog catalog = new PortArtCatalog();
+            for (int shipIndex = 0; shipIndex < CoreVoyageSession.Ships.Count; shipIndex++)
+            {
+                CoreVoyageSession session = UseFreshNavalBattle(controller, 60f, shipIndex, true);
+                session.Battle.Alignment = NavalBattleAlignment.HeadOn;
+                SetSingleCard(session, "card_approach");
+                Render(controller);
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+                RectTransform player = Find<RectTransform>("Player Ship Art");
+                RawImage hull = player.GetComponentInChildren<RawImage>();
+                Assert.That(hull, Is.Not.Null);
+                Assert.That(hull.texture, Is.EqualTo(shipIndex == 0
+                    ? Resources.Load<Texture2D>("ModularShip/light_sloop_base") : catalog.ShipTexture(shipIndex)),
+                    "The active flagship must carry its own hull into battle: " + session.SelectedShip.Name);
+                Assert.That(Find<BattleShipWaterGraphic>("Player Ship Water Contact").raycastTarget, Is.False);
+                AssertInstalledBattleLayers(controller, shipIndex);
+                AssertMeasuredKeelContact(shipIndex, 0.6f);
+                NavalBattleVisualCapture.Capture(controller, "ShipAudit_Naval_" + shipIndex.ToString("00") + ".png",
+                    session.SelectedShip.Name + "：60米近景，检查船底与水线接触、部件及敌舰朝向");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator RegionalFreighter_KeepsMeasuredKeelOnWaterThroughEveryNavalMotion()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            ResetAuditComponentInventory(controller);
+            foreach (string action in new[] { "card_approach", "card_retreat", "card_circle_enemy", "card_chain_shot", "enemy_fire", "ram" })
+            {
+                CoreVoyageSession session = UseFreshNavalBattle(controller, action == "ram" ? 60f : 250f, 8, true);
+                session.Battle.Alignment = NavalBattleAlignment.HeadOn;
+                session.Battle.PlayerMovingTowardEnemy = true;
+                if (action.StartsWith("card_")) SetSingleCard(session, action);
+                Render(controller);
+                yield return null;
+                AssertInstalledBattleLayers(controller, 8);
+                AssertMeasuredKeelContact(8, 0.6f);
+                RectTransform player = Find<RectTransform>("Player Ship Art");
+                RectTransform enemy = Find<RectTransform>("Enemy Ship Art");
+                Vector2 playerStart = player.anchoredPosition;
+                Quaternion enemyStart = enemy.localRotation;
+                int hullBefore = session.Hull;
+                int enemyHullBefore = session.Battle.EnemyHull;
+                Button command = Find<Button>(action == "ram" ? "Battle Ram" : action == "enemy_fire" ? "End Battle Turn" : "Battle Card 0");
+                Assert.That(command.interactable, Is.True, action);
+                command.onClick.Invoke();
+                Assert.That(controller.IsBattleAnimationPlaying, Is.True, action);
+                bool sawMotion = false, capturedMotion = false, sawRamComic = false;
+                int checkedFrames = 0;
+                float deadline = Time.realtimeSinceStartup + 12f;
+                while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+                {
+                    GameObject comic = action == "ram" ? GameObject.Find("Battle Ram Comic Page") : null;
+                    if (comic != null)
+                    {
+                        Assert.That(comic.GetComponent<RawImage>().texture,
+                            Is.SameAs(Resources.Load<Texture2D>("BattleComics/ram_player_head_on_v1")));
+                        sawRamComic = true;
+                    }
+                    if (player != null && enemy != null && GameObject.Find("Player Ship Water Contact") != null)
+                    {
+                        AssertMeasuredKeelContact(8, action == "ram" ? 10f : 2f);
+                        checkedFrames++;
+                        sawMotion |= Vector2.Distance(player.anchoredPosition, playerStart) > 0.5f ||
+                            Quaternion.Angle(enemy.localRotation, enemyStart) > 1f;
+                        if (sawMotion && !capturedMotion)
+                        {
+                            NavalBattleVisualCapture.Capture(controller, "ShipAudit_SaltFreighter_" + action + ".png",
+                                "盐山真实动作中途：" + action + "；用原图龙骨坐标验证水平水线");
+                            capturedMotion = true;
+                        }
+                    }
+                    yield return null;
+                }
+                Assert.That(controller.IsBattleAnimationPlaying, Is.False, action);
+                Assert.That(checkedFrames, Is.GreaterThan(1), action + " must render intermediate frames.");
+                if (action == "ram" && Resources.Load<Texture2D>("BattleComics/ram_player_head_on_v1") != null)
+                    Assert.That(sawRamComic, Is.True, "With installed art, ram feedback must display its authored comic.");
+                else Assert.That(sawMotion, Is.True, action + " must move an actual ship transform, including missing-art ram fallback.");
+                if (action == "enemy_fire") Assert.That(session.Hull, Is.LessThan(hullBefore));
+                if (action == "card_chain_shot" || action == "ram") Assert.That(session.Battle.EnemyHull, Is.LessThan(enemyHullBefore));
+                yield return null;
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator RegionalBoarding_UsesTheSameFullBodyDeckCompositionForBothFlagships()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            ResetAuditComponentInventory(controller);
+            foreach (int shipIndex in new[] { 5, 8 })
+            {
+                CoreVoyageSession session = UseFreshNavalBattle(controller, 50f, shipIndex, true);
+                session.Battle.PlannedBoardingApproach = shipIndex == 5 ? NavalBoardingApproach.Alongside : NavalBoardingApproach.Quarter;
+                Render(controller);
+                yield return null;
+                Button board = Find<Button>("Battle Board");
+                Assert.That(board.interactable, Is.True);
+                board.onClick.Invoke();
+                yield return WaitForAnimation(controller);
+                Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+                Canvas.ForceUpdateCanvases();
+                BoardingCinematicAssertions.AssertScene(session);
+                NavalBattleVisualCapture.Capture(controller, "ShipAudit_Boarding_" + shipIndex.ToString("00") + ".png",
+                    session.SelectedShip.Name + "：真实接舷后显示完整甲板、正常比例双方立绘与分格血条");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void ResetAuditComponentInventory(CoreGameplayDemoController controller)
+        {
+            typeof(CoreGameplayDemoController).GetField("componentInventory", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(controller, new OwnedShipComponentInventory(new ComponentArtCatalog()));
+        }
+
+        private static void AssertInstalledBattleLayers(CoreGameplayDemoController controller, int shipIndex)
+        {
+            RawImage[] layers = Find<RectTransform>("Player Ship Art").GetComponentsInChildren<RawImage>();
+            Assert.That(layers.Count(image => image.name.StartsWith("Player Ship Art Layer ")),
+                Is.EqualTo(shipIndex == 0 ? ComponentArtCatalog.SlotCount : 0),
+                "Only the starting sloop uses equipment overlays; all other ships retain their authored hull appearance.");
+            for (int slot = 0; slot < ComponentArtCatalog.SlotCount; slot++)
+            {
+                ComponentArtEntry installed = controller.ShipComponent(shipIndex, (ComponentSlot)slot);
+                Assert.That(installed, Is.Not.Null, "Missing installed slot " + slot + " on ship " + shipIndex);
+                Assert.That(controller.InstalledShipComponent(shipIndex, (ComponentSlot)slot), Is.Not.Null,
+                    "Equipment remains installed even when its visual layer is omitted.");
+                RawImage layer = layers.SingleOrDefault(image => image.name == "Player Ship Art Layer " + installed.Id);
+                if (shipIndex != 0)
+                {
+                    Assert.That(layer, Is.Null);
+                    continue;
+                }
+                Assert.That(layer, Is.Not.Null, "Installed equipment must remain attached in battle.");
+                Assert.That(layer.texture, Is.SameAs(installed.ShipLayer));
+                Assert.That(layer.raycastTarget, Is.False);
+            }
+        }
+
+        private static void AssertMeasuredKeelContact(int shipIndex, float verticalTolerance)
+        {
+            // Independent source-PNG measurements at the middle of the lower
+            // timber, not the padding bounds or the production layout helper.
+            float[] keelHeights = { 0.08f, 0.17f, 0.21f, 0.23f, 0.095f, 0.085f,
+                0.095f, 0.22f, 0.225f, 0.10f, 0.255f, 0.095f };
+            PortArtCatalog art = new PortArtCatalog();
+            foreach (string side in new[] { "Player", "Enemy" })
+            {
+                RawImage hull = Find<RectTransform>(side + " Ship Art").GetComponentInChildren<RawImage>();
+                Rect sourceCell = side == "Enemy" ? art.ShipUv(1) : shipIndex == 0 ? new Rect(0f, 0f, 1f, 1f) : art.ShipUv(shipIndex);
+                float measuredY = side == "Enemy" ? 0.17f : keelHeights[shipIndex];
+                Vector2 sourcePoint = new Vector2(sourceCell.center.x, sourceCell.y + sourceCell.height * measuredY);
+                Rect visible = hull.uvRect;
+                Vector2 point = new Vector2((sourcePoint.x - visible.x) / visible.width, (sourcePoint.y - visible.y) / visible.height);
+                Rect hullRect = hull.rectTransform.rect;
+                Vector3 keelWorld = hull.rectTransform.TransformPoint(new Vector3(hullRect.xMin + hullRect.width * point.x,
+                    hullRect.yMin + hullRect.height * point.y, 0f));
+                RectTransform water = Find<RectTransform>(side + " Ship Water Contact");
+                RectTransform stage = water.parent as RectTransform;
+                Vector2 keel = stage.InverseTransformPoint(keelWorld);
+                Vector2 waterPoint = stage.InverseTransformPoint(water.position);
+                Assert.That(Mathf.Abs(keel.x - waterPoint.x), Is.LessThan(0.75f), side + " water must follow horizontal hull travel.");
+                Assert.That(Mathf.Abs(keel.y - waterPoint.y), Is.LessThan(verticalTolerance), side + " measured keel must meet the water.");
+                Assert.That(Quaternion.Angle(water.localRotation, Quaternion.identity), Is.LessThan(0.01f),
+                    "The sea contact must remain horizontal even while the ship turns or pitches.");
+            }
+        }
+
+        private static IEnumerator WaitForAnimation(CoreGameplayDemoController controller)
+        {
+            float deadline = Time.realtimeSinceStartup + 12f;
+            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(controller.IsBattleAnimationPlaying, Is.False, "The battle action should complete and restore input.");
+            yield return null;
+        }
+
+        private static CoreVoyageSession UseFreshNavalBattle(CoreGameplayDemoController controller, float distance, int shipIndex = 0, bool fitOwnedComponents = false)
+        {
+            Assert.That(controller, Is.Not.Null);
+            CoreVoyageSession session = new CoreVoyageSession();
+            Assert.That(session.SelectShip(shipIndex), Is.True);
+            session.ConfigureCrewCapabilities(false, false, false, false, false, false);
+            session.SetSeed("NAVAL-VISUAL-FEEDBACK");
+            typeof(CoreGameplayDemoController).GetField("session", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(controller, session);
+            if (fitOwnedComponents)
+            {
+                PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(shipIndex), 1);
+                controller.EnsureShipComponentLoadout(shipIndex);
+            }
+            session.StartVoyage();
+            CoreEncounter encounter = new CoreEncounter("naval_visual_feedback", "视觉验收敌舰", "海战", "动态画面回归。", true, false, 2, 180);
+            CoreMapNode node = new CoreMapNode
+            {
+                Id = 991,
+                Position = session.Position,
+                Encounter = encounter,
+                TerrainConstraint = EventTerrainConstraint.OpenSea,
+            };
+            typeof(CoreVoyageSession).GetField("activeNode", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(session, node);
+            typeof(CoreVoyageSession).GetMethod("StartBattle", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(session, new object[] { encounter, false });
+            Assert.That(session.EndBattleTurn(), Is.True);
+            session.Battle.DistanceMeters = distance;
+            session.Battle.Alignment = NavalBattleAlignment.Parallel;
+            session.Battle.PlayerLoadedShot = 0;
+            session.Battle.PlayerFireRounds = 0;
+            return session;
+        }
+
+        private static void SetSingleCard(CoreVoyageSession session, string cardId)
+        {
+            int index = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).First(card => CoreVoyageSession.CardLibrary[card].Id == cardId);
+            session.Battle.Hand.Clear();
+            session.Battle.Hand.Add(index);
+            session.Battle.Energy = session.Battle.MaxEnergy;
+            session.Battle.CardsPlayedThisTurn = 0;
+            Assert.That(session.CanPlayCard(0), Is.True, session.CardUnavailableReason(0));
+        }
+
+        private static float EffectiveShipWidth(RectTransform ship) => ship.rect.width * Mathf.Abs(ship.localScale.x);
+
+        private static void AssertCardInsideStage(RectTransform card, RectTransform stage)
+        {
+            Canvas.ForceUpdateCanvases();
+            Vector3[] corners = new Vector3[4];
+            card.GetWorldCorners(corners);
+            Vector2[] local = corners.Select(corner => (Vector2)stage.InverseTransformPoint(corner)).ToArray();
+            Rect bounds = stage.rect;
+            const float tolerance = 2f;
+            Assert.That(local.Min(corner => corner.x), Is.GreaterThanOrEqualTo(bounds.xMin - tolerance),
+                "Raised/cast cards must not jump left of the battle frame after leaving the hand layout.");
+            Assert.That(local.Max(corner => corner.x), Is.LessThanOrEqualTo(bounds.xMax + tolerance));
+            Assert.That(local.Min(corner => corner.y), Is.GreaterThanOrEqualTo(bounds.yMin - tolerance));
+            Assert.That(local.Max(corner => corner.y), Is.LessThanOrEqualTo(bounds.yMax + tolerance),
+                "Reparented hand cards need centered anchors; an upper-left layout anchor otherwise launches them off-screen.");
+        }
+
+        private static void AssertFilledMeshWidth(Image image)
+        {
+            Assert.That(image.sprite, Is.Not.Null, image.name + " needs a sprite for UGUI Filled geometry.");
+            image.SetAllDirty();
+            Canvas.ForceUpdateCanvases();
+            // Unity 6 returns the renderer-owned mesh; do not allocate a destination
+            // mesh or destroy the live Canvas geometry after inspecting it.
+            Mesh mesh = image.canvasRenderer.GetMesh();
+            Vector3[] vertices = mesh == null ? Array.Empty<Vector3>() : mesh.vertices;
+            float renderedWidth = vertices.Length == 0 ? 0f : vertices.Max(vertex => vertex.x) - vertices.Min(vertex => vertex.x);
+            Assert.That(renderedWidth, Is.EqualTo(image.rectTransform.rect.width * image.fillAmount).Within(1f),
+                image.name + " must change its rendered geometry, not only expose a changed fillAmount property.");
+        }
+
+        private static T Find<T>(string name) where T : Component
+        {
+            GameObject item = GameObject.Find(name);
+            Assert.That(item, Is.Not.Null, "Missing battle UI: " + name);
+            T component = item.GetComponent<T>();
+            Assert.That(component, Is.Not.Null, name + " needs " + typeof(T).Name);
+            return component;
+        }
+
+        private static void Render(CoreGameplayDemoController controller)
+        {
+            typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
+        }
+    }
+}

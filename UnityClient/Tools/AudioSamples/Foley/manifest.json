@@ -1,0 +1,239 @@
+{
+  "schema": 1,
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "purpose": "Only non-music Foley assets; no melody or musical phrase downloads.",
+  "provenance_note": "Kenney: creator's bundled license. Thimras and RandomMind: creator's original CC0 publication pages. River recording is not a claimed ocean field recording; naval effects are authored sound design.",
+  "sources": [
+    {
+      "file": "kenney_impact-sounds.zip",
+      "author": "Kenney",
+      "page": "https://kenney.nl/assets/impact-sounds",
+      "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "sha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8",
+      "license": "CC0-1.0",
+      "license_source": "https://kenney.nl/assets/impact-sounds",
+      "bytes": 800850
+    },
+    {
+      "file": "cannon_fire_1.ogg",
+      "author": "Thimras",
+      "page": "https://opengameart.org/content/battle-at-sea",
+      "url": "https://opengameart.org/sites/default/files/cannon_fire_1.ogg",
+      "sha256": "2b21ffa41e5c3be4eecdfbd3490544f5aa8b6d1581787265863e13de1a8e599d",
+      "license": "CC0-1.0",
+      "license_source": "https://opengameart.org/content/battle-at-sea",
+      "bytes": 179939
+    },
+    {
+      "file": "cannon_hit_ship_short.ogg",
+      "author": "Thimras",
+      "page": "https://opengameart.org/content/battle-at-sea",
+      "url": "https://opengameart.org/sites/default/files/cannon_hit_ship_short.ogg",
+      "sha256": "24bdd9841ad964491b52e536cf191de15b59543076b60f1accbe0e44edd68ffe",
+      "license": "CC0-1.0",
+      "license_source": "https://opengameart.org/content/battle-at-sea",
+      "bytes": 240795
+    },
+    {
+      "file": "cannon_miss_1.ogg",
+      "author": "Thimras",
+      "page": "https://opengameart.org/content/battle-at-sea",
+      "url": "https://opengameart.org/sites/default/files/cannon_miss_1.ogg",
+      "sha256": "d91a1effc2964673033fa9f8d22093029fa0b500aea0bafb86724738c0e89fe3",
+      "license": "CC0-1.0",
+      "license_source": "https://opengameart.org/content/battle-at-sea",
+      "bytes": 81058
+    },
+    {
+      "file": "ship_ram_ship_shortened.ogg",
+      "author": "Thimras",
+      "page": "https://opengameart.org/content/battle-at-sea",
+      "url": "https://opengameart.org/sites/default/files/ship_ram_ship_shortened.ogg",
+      "sha256": "ae611c487c538752ed69b387b97464c9d3864313592b445cc8aac864d0db1fe8",
+      "license": "CC0-1.0",
+      "license_source": "https://opengameart.org/content/battle-at-sea",
+      "bytes": 355467
+    },
+    {
+      "file": "VistulaShort_0.mp3",
+      "author": "RandomMind",
+      "page": "https://opengameart.org/content/sea-and-river-wave-sounds",
+      "url": "https://opengameart.org/sites/default/files/VistulaShort_0.mp3",
+      "sha256": "8c24607e41edd6f018ec3582a07e5a8dbc57347276339cb68440951a0fb4cfb1",
+      "license": "CC0-1.0",
+      "license_source": "https://opengameart.org/content/sea-and-river-wave-sounds",
+      "bytes": 12004407
+    }
+  ],
+  "kenney_license_sha256": "b49aa9c56b04528b95913de13e506a0f7c5e807b9925db9bfef86af1f91120db",
+  "extracted_files": [
+    {
+      "file": "Kenney/footstep_carpet_000.ogg",
+      "archive_member": "Audio/footstep_carpet_000.ogg",
+      "sha256": "b9524658b52a99a20590f8feefc103088637fd13ea8ec35811aee785e1f2f330",
+      "bytes": 6353,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/footstep_wood_000.ogg",
+      "archive_member": "Audio/footstep_wood_000.ogg",
+      "sha256": "5f1c252942a220d658121bd9417448cd19649ded9fff2ff15f6e50899373ce8e",
+      "bytes": 5949,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/footstep_wood_003.ogg",
+      "archive_member": "Audio/footstep_wood_003.ogg",
+      "sha256": "2a68a083daa9eda08fed0ea5da5280dfbe0de226196c576be02f95259dd139d9",
+      "bytes": 6207,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactBell_heavy_000.ogg",
+      "archive_member": "Audio/impactBell_heavy_000.ogg",
+      "sha256": "94b8bb5f2d43ab65e4bcc32b28562416e9bc2c51d9fd4be1e333660ee52f977f",
+      "bytes": 13915,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactGlass_light_000.ogg",
+      "archive_member": "Audio/impactGlass_light_000.ogg",
+      "sha256": "d750cf88097d0c3e69920e6e14496e1444e1a9da01aa4cca8f5ec8cb44c57b4f",
+      "bytes": 6526,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactGlass_light_002.ogg",
+      "archive_member": "Audio/impactGlass_light_002.ogg",
+      "sha256": "710db7451bb7857b9140dfe6afe4621ea2188ad65eda3919c569d1bb285b933d",
+      "bytes": 6562,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactMetal_light_000.ogg",
+      "archive_member": "Audio/impactMetal_light_000.ogg",
+      "sha256": "33b5e6e37c6e9d54e07bf5a89b12c76e879f40c1ea83cdd82714df1d6f9fec6d",
+      "bytes": 7651,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactMetal_light_003.ogg",
+      "archive_member": "Audio/impactMetal_light_003.ogg",
+      "sha256": "92d5db6bfc672d9dc1b4f390b2900504f013187fa36335472554fafefa9050b1",
+      "bytes": 9023,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactMetal_medium_000.ogg",
+      "archive_member": "Audio/impactMetal_medium_000.ogg",
+      "sha256": "a96f879fec0864a8938e0c745b6996a6c5679c16a234ce31a01cc995e8401003",
+      "bytes": 7117,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactPlank_medium_000.ogg",
+      "archive_member": "Audio/impactPlank_medium_000.ogg",
+      "sha256": "8403cd7a043f0391574c88c55dd205743725b5363d2407f6de145f201690b68f",
+      "bytes": 12016,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactPlate_light_000.ogg",
+      "archive_member": "Audio/impactPlate_light_000.ogg",
+      "sha256": "6e797cf8a5bfc52d7ed5eb47c227974c1cf2a674954fec5b539cea7d62c7282c",
+      "bytes": 10474,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactPunch_medium_000.ogg",
+      "archive_member": "Audio/impactPunch_medium_000.ogg",
+      "sha256": "486988aa2d6440ffc4c62a0e8ccf3c23673ba84424bd4723378d451b7255eb5c",
+      "bytes": 8800,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactSoft_heavy_000.ogg",
+      "archive_member": "Audio/impactSoft_heavy_000.ogg",
+      "sha256": "49e7ca88743fca974bb8676ea138b751cfd8f9033b5e7af8736c2a215d6edbc1",
+      "bytes": 6570,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactSoft_medium_000.ogg",
+      "archive_member": "Audio/impactSoft_medium_000.ogg",
+      "sha256": "7d3ba0bb5e60a11b5d3e558c141303dcf494256675fbf753c0d252d2cf0481e3",
+      "bytes": 5351,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactTin_medium_000.ogg",
+      "archive_member": "Audio/impactTin_medium_000.ogg",
+      "sha256": "f4bbee66ca191ec744b84fc07ac9ed2a6fda955d51cfed8360f12b62815d3cbd",
+      "bytes": 6509,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactWood_heavy_000.ogg",
+      "archive_member": "Audio/impactWood_heavy_000.ogg",
+      "sha256": "15ff82332f342c30e469215539e1cc57e11b221aa2cf7e11e811d313a9927f3d",
+      "bytes": 6233,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactWood_light_000.ogg",
+      "archive_member": "Audio/impactWood_light_000.ogg",
+      "sha256": "eb45e35b4bed784d3f120de4afec4b0d6ac09d9e143cce8cfcb7d739e1b1f3c3",
+      "bytes": 6343,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactWood_light_003.ogg",
+      "archive_member": "Audio/impactWood_light_003.ogg",
+      "sha256": "cdfbe8af2fe7ff9ee28f337a0a989deee0f327620da456c8413644880e9d0004",
+      "bytes": 6381,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactWood_medium_000.ogg",
+      "archive_member": "Audio/impactWood_medium_000.ogg",
+      "sha256": "1723a9fd25103ed41af06054814e84e65f4a772bac86ab2dc927da93d9592ff5",
+      "bytes": 6575,
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "Kenney/impactWood_medium_002.ogg",
+      "archive_member": "Audio/impactWood_medium_002.ogg",
+      "sha256": "3f3f1917428b828f733a963167833c707bf88296ff158e1559c57c5cb813d799",
+      "bytes": 6607,
+      "license": "CC0-1.0"
+    }
+  ],
+  "recipe_aliases": {
+    "wood": "Kenney/impactWood_light_000.ogg",
+    "wood2": "Kenney/impactWood_light_003.ogg",
+    "knock": "Kenney/impactWood_medium_000.ogg",
+    "knock2": "Kenney/impactWood_medium_002.ogg",
+    "heavywood": "Kenney/impactWood_heavy_000.ogg",
+    "plank": "Kenney/impactPlank_medium_000.ogg",
+    "metal": "Kenney/impactMetal_light_000.ogg",
+    "metal2": "Kenney/impactMetal_light_003.ogg",
+    "iron": "Kenney/impactMetal_medium_000.ogg",
+    "bell": "Kenney/impactBell_heavy_000.ogg",
+    "glass": "Kenney/impactGlass_light_000.ogg",
+    "glass2": "Kenney/impactGlass_light_002.ogg",
+    "plate": "Kenney/impactPlate_light_000.ogg",
+    "tin": "Kenney/impactTin_medium_000.ogg",
+    "soft": "Kenney/impactSoft_medium_000.ogg",
+    "cloth": "Kenney/impactSoft_heavy_000.ogg",
+    "punch": "Kenney/impactPunch_medium_000.ogg",
+    "step": "Kenney/footstep_wood_000.ogg",
+    "step2": "Kenney/footstep_wood_003.ogg",
+    "carpet": "Kenney/footstep_carpet_000.ogg",
+    "cannon": "cannon_fire_1.ogg",
+    "hit": "cannon_hit_ship_short.ogg",
+    "splash": "cannon_miss_1.ogg",
+    "ram": "ship_ram_ship_shortened.ogg",
+    "water": "VistulaShort_0.mp3"
+  }
+}

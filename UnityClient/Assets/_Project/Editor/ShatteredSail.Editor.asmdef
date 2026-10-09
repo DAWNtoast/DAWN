@@ -1,0 +1,20 @@
+{
+  "name": "ShatteredSail.Editor",
+  "rootNamespace": "ShatteredSail.Editor",
+  "references": [
+    "ShatteredSail.Core",
+    "ShatteredSail.Content",
+    "ShatteredSail.Presentation"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

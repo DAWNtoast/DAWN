@@ -1,0 +1,262 @@
+[
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_C2_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_C2_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 1807522,
+    "sha256": "086c0b5fcc3e41bee173e53620d38f21a7dee4f59dfd75d8c8bbdf409ecbc5ee"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_C3_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_C3_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 1382798,
+    "sha256": "bfc5a2cae93793ac46bfe50c1b71d1e64e29eba34e71164c47c29e67488abd96"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_C4_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_C4_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 775134,
+    "sha256": "79774644727f61bd535e4b49f7eae0c31b0cac4d2714d33d8f6cd84e5db081d3"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_C5_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_C5_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 366550,
+    "sha256": "75ce02fddc09d6c8c258a5c1ff79a901c5c60e434eaadc98b9dc67a741105c55"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_E2_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_E2_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 1371190,
+    "sha256": "b5ec62efd11ef2d3c1dab1bc54f24ad57dc0c61e0113a7d5cff639c6a90728b5"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_E3_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_E3_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 1177490,
+    "sha256": "ed514f90376b971b75d7ff605e6b97a1767599d312ef60bf18e91f2d6c9b43c3"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_E4_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_E4_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 723350,
+    "sha256": "42cddd3ab551907e72893de8493b9a5aab1617dc43c3210bfed9335a5b1992e5"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_E5_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_E5_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 284994,
+    "sha256": "1d9c5aa6b2f15c14b2582591c3d7384f9352686a1fed44ab70ba655a31b702ce"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_G#2_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_G%232_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 1327638,
+    "sha256": "46efdad2a05dcfa4226ad8d8b5438979f6778d20d14647e732faf369eb6d17e3"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_G#3_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_G%233_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 718130,
+    "sha256": "48b5d5e32c5504ed0c47d0645c01e6722773d0af6360bcdfd94f3d9250d690ef"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_G#4_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_G%234_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 348666,
+    "sha256": "bd48c4e67fc45ca92f3a29b7ac8727f8e2f53bf079dac553c6fce0768e19ce11"
+  },
+  {
+    "family": "harp",
+    "file": "harp/EWHarp_Normal_G#5_v2_RR1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Composite%20Chordophones/Folk%20Harp/EWHarp_Normal_G%235_v2_RR1.wav",
+    "repository": "VCSL",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "license": "CC0-1.0",
+    "bytes": 222890,
+    "sha256": "b5ef446bef963ccf197162fcf40a940dfb84619005845061d6eefc91c0c5833e"
+  },
+  {
+    "family": "cello",
+    "file": "cello/susvib_A2_v1_1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_A2_v1_1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 2336738,
+    "sha256": "c97a003184fdcb153d6b6c0bae8d82a90592a1b04b06bd7caaeda8b9776d5284"
+  },
+  {
+    "family": "cello",
+    "file": "cello/susvib_B3_v1_1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_B3_v1_1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 1690082,
+    "sha256": "bd25d66c1c4e73f5827bf3b931244e51ec8388594d8004529a762be81258097f"
+  },
+  {
+    "family": "cello",
+    "file": "cello/susvib_C1_v1_1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_C1_v1_1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 2347376,
+    "sha256": "abdcea431f384e135c469b0f3e4ac2a437f282f521dc5bcbe22abc221536e8de"
+  },
+  {
+    "family": "cello",
+    "file": "cello/susvib_D2_v1_1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_D2_v1_1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 2550956,
+    "sha256": "e8640dec9febc6e39fcf06b19d2c95a85d5ff8c38f13c9879e69f551eaf38ab8"
+  },
+  {
+    "family": "cello",
+    "file": "cello/susvib_E3_v1_1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_E3_v1_1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 2456672,
+    "sha256": "d2f961e30bf64021cf4acbd88e0e7a1fd1840943ae78c62a711bcce3d109216e"
+  },
+  {
+    "family": "cello",
+    "file": "cello/susvib_G1_v1_1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_G1_v1_1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 2161700,
+    "sha256": "9e5d24e8e28d6c7f650f9bb2b33d43c13e341a8bd33124c64e23881378b181ba"
+  },
+  {
+    "family": "bass",
+    "file": "bass/BKCtbss_Pizz_C#2_v1_rr1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_C%232_v1_rr1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 513824,
+    "sha256": "41804fc70cf82bd1c475611e315b14b1adf5effbd3369028302a681b54064b3f"
+  },
+  {
+    "family": "bass",
+    "file": "bass/BKCtbss_Pizz_C1_v1_rr1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_C1_v1_rr1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 270720,
+    "sha256": "5591160a867b21ba193d601390c9e1f35ec8d5deb0de686a410d25a98a103b06"
+  },
+  {
+    "family": "bass",
+    "file": "bass/BKCtbss_Pizz_F#1_v1_rr1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_F%231_v1_rr1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 868632,
+    "sha256": "6f91a2747ce3cea061c670f7bf5dc8611eef1c3af8d6e2dca75b6dac5a65bfc6"
+  },
+  {
+    "family": "bass",
+    "file": "bass/BKCtbss_Pizz_G#2_v1_rr1.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_G%232_v1_rr1.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 376048,
+    "sha256": "f5d495c2184e6dacec7783719fbe3f6c1254995abb95ccf307026ef3dd7d5439"
+  },
+  {
+    "family": "clarinet",
+    "file": "clarinet/DCClar_susLong_A#3_v1_rr1_sum.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Woodwinds/Clarinet/susLong/DCClar_susLong_A%233_v1_rr1_sum.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 1599888,
+    "sha256": "c314aa26ec148ffa30afe988d7f4f178941a38ca401f487ea2633ce635e78d3f"
+  },
+  {
+    "family": "clarinet",
+    "file": "clarinet/DCClar_susLong_D3_v1_rr1_sum.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Woodwinds/Clarinet/susLong/DCClar_susLong_D3_v1_rr1_sum.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 2230948,
+    "sha256": "74ba0ec6cb0698f314b07cee2f63cd309d5fd30db262d10d1f69e6aec9cd5896"
+  },
+  {
+    "family": "clarinet",
+    "file": "clarinet/DCClar_susLong_D5_v1_rr1_sum.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Woodwinds/Clarinet/susLong/DCClar_susLong_D5_v1_rr1_sum.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 1692352,
+    "sha256": "0ed79db13dc312c9f5adaf11492f6fd871a5619a9e452434043c33d7a1608697"
+  },
+  {
+    "family": "clarinet",
+    "file": "clarinet/DCClar_susLong_F4_v1_rr1_sum.wav",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Woodwinds/Clarinet/susLong/DCClar_susLong_F4_v1_rr1_sum.wav",
+    "repository": "VSCO-2-CE",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "license": "CC0-1.0",
+    "bytes": 2034208,
+    "sha256": "e7b54b1ac626a6c54db3fa320a38acd3f099c33c936fca0d82259f9f9641e4f3"
+  }
+]

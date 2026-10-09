@@ -1,0 +1,240 @@
+{
+  "schema": 1,
+  "source": "Tools/generate_background_music.py before acoustic renderer",
+  "baseline_archive": "Pre-change source-before.zip captured 2026-10-07; original PCM verified 21/21",
+  "source_sha256": "9d0bc40c598265587102186d6177c76dc433a906375f54c3019e7524f13b1bfa",
+  "fingerprint_scope": "name, bpm, root, scale, bars, original rate/frames/nominal duration, ordered note and drum type/lane/onset/gate/MIDI; excludes amplitude, instrument and vibrato",
+  "tracks": [
+    {
+      "name": "port_broken_anchor",
+      "bpm": 82,
+      "nominal_seconds": 46.829268292682926,
+      "original_frames": 1032585,
+      "original_file_seconds": 46.829251700680274,
+      "notes": 204,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "5b2fdfe8515f2a09f6535a30d3f0cda8f47ee0304701dd713dd3b0762b0d5a20"
+    },
+    {
+      "name": "port_white_shell",
+      "bpm": 96,
+      "nominal_seconds": 40.0,
+      "original_frames": 882000,
+      "original_file_seconds": 40.0,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "56c7788c33ef0c062a30a59d6a137ed8c5b953b258cff745b5365fa9650c3f9c"
+    },
+    {
+      "name": "port_bronze_bell",
+      "bpm": 88,
+      "nominal_seconds": 43.63636363636363,
+      "original_frames": 962181,
+      "original_file_seconds": 43.636326530612244,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "fad9d0a35575c69a8cd7cc6de0ce83c5370d0dde413a19e57bd9f27cd9e34d87"
+    },
+    {
+      "name": "port_salt_crown",
+      "bpm": 92,
+      "nominal_seconds": 41.73913043478261,
+      "original_frames": 920347,
+      "original_file_seconds": 41.73909297052154,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "5ae921c876b9427e3a6350a935904b32f77811414a5963b9506df6cb550cc103"
+    },
+    {
+      "name": "port_twilight_tide",
+      "bpm": 78,
+      "nominal_seconds": 49.23076923076923,
+      "original_frames": 1085538,
+      "original_file_seconds": 49.23074829931973,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "96bddbbdf47e5c7b4f56458c8e008eb98e2685cb24d58342e4ad8edd100958fa"
+    },
+    {
+      "name": "port_gray_gull",
+      "bpm": 104,
+      "nominal_seconds": 36.92307692307692,
+      "original_frames": 814153,
+      "original_file_seconds": 36.923038548752835,
+      "notes": 204,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "7cb7d01849e7e6a0f9d6703c1121d7b8ec20e075e5d737263371c9b5e1067123"
+    },
+    {
+      "name": "route_shattered_sail_reef",
+      "bpm": 112,
+      "nominal_seconds": 34.285714285714285,
+      "original_frames": 756000,
+      "original_file_seconds": 34.285714285714285,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "f7b5c002edcfa427bf148831597d9faa94b8e18ee5eb6eac95d914f998fb521a"
+    },
+    {
+      "name": "route_golden_tide_trade",
+      "bpm": 124,
+      "nominal_seconds": 30.967741935483872,
+      "original_frames": 682838,
+      "original_file_seconds": 30.967709750566893,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "02508b8d381e7e9c586f03a63fda41f2014c0ffaa9221812a4d39c6fa58e8df3"
+    },
+    {
+      "name": "route_moon_tide_ruins",
+      "bpm": 88,
+      "nominal_seconds": 43.63636363636363,
+      "original_frames": 962181,
+      "original_file_seconds": 43.636326530612244,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "1cd9244363f07e60d9f9c6d05423f59cec27b60ad83455b8119838943e6eed67"
+    },
+    {
+      "name": "treasure_weathered",
+      "bpm": 82,
+      "nominal_seconds": 46.829268292682926,
+      "original_frames": 1032585,
+      "original_file_seconds": 46.829251700680274,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "be3316504dbb5be91a680d73f2caa08927ed7e2aabfcc381b700901386d95db2"
+    },
+    {
+      "name": "treasure_gilded",
+      "bpm": 104,
+      "nominal_seconds": 36.92307692307692,
+      "original_frames": 814153,
+      "original_file_seconds": 36.923038548752835,
+      "notes": 204,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "4dc8ac72be8e8a0cf2bcae42d3df97c7ada5f6eb066d4b1f171fae6a72e812ab"
+    },
+    {
+      "name": "treasure_moonlit",
+      "bpm": 72,
+      "nominal_seconds": 53.333333333333336,
+      "original_frames": 1176000,
+      "original_file_seconds": 53.333333333333336,
+      "notes": 205,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "2c4aadf2400e356ee78a8a4cfe551ca8e2dd9381b0051c5795fc71160dd10f7e"
+    },
+    {
+      "name": "boss_route_shattered_sail_reef",
+      "bpm": 126,
+      "nominal_seconds": 30.476190476190474,
+      "original_frames": 672000,
+      "original_file_seconds": 30.476190476190474,
+      "notes": 237,
+      "drums": 96,
+      "inaudible_scheduled_events": 2,
+      "score_sha256": "d4ce3d51e348e4306e00c814f4b7ee45b96df16aae448871a57e0fc6b9129680"
+    },
+    {
+      "name": "boss_route_golden_tide_trade",
+      "bpm": 138,
+      "nominal_seconds": 27.82608695652174,
+      "original_frames": 613565,
+      "original_file_seconds": 27.826077097505667,
+      "notes": 237,
+      "drums": 96,
+      "inaudible_scheduled_events": 2,
+      "score_sha256": "2353a56ae7a9f39fb11f28ed5814bd49ae437d17a549a2d3bb3ebbb88b6ec57a"
+    },
+    {
+      "name": "boss_route_moon_tide_ruins",
+      "bpm": 118,
+      "nominal_seconds": 32.54237288135593,
+      "original_frames": 717559,
+      "original_file_seconds": 32.54235827664399,
+      "notes": 237,
+      "drums": 96,
+      "inaudible_scheduled_events": 2,
+      "score_sha256": "96e89815994cd5328eae1a05cef566cda6c47e1d9e5d5111a035257c5e8cf13b"
+    },
+    {
+      "name": "battle_nonboss",
+      "bpm": 130,
+      "nominal_seconds": 29.53846153846154,
+      "original_frames": 651323,
+      "original_file_seconds": 29.53845804988662,
+      "notes": 204,
+      "drums": 96,
+      "inaudible_scheduled_events": 0,
+      "score_sha256": "78c03f1e452525ce175094b71447f18043548546f208b672f3f45ad4d540e0c3"
+    },
+    {
+      "name": "battle_legendary_iron_oath",
+      "bpm": 112,
+      "nominal_seconds": 34.285714285714285,
+      "original_frames": 756000,
+      "original_file_seconds": 34.285714285714285,
+      "notes": 237,
+      "drums": 96,
+      "inaudible_scheduled_events": 2,
+      "score_sha256": "a66e62c98f5d9f785a81e405e6351be75763a1630da805d7f0d3a73abeddaefc"
+    },
+    {
+      "name": "battle_legendary_thunder_crown",
+      "bpm": 144,
+      "nominal_seconds": 26.666666666666668,
+      "original_frames": 588000,
+      "original_file_seconds": 26.666666666666668,
+      "notes": 237,
+      "drums": 96,
+      "inaudible_scheduled_events": 2,
+      "score_sha256": "00deeec7805c6329cb5c53238e571cd7674c83c1310fdbe3258bf0e707bce42c"
+    },
+    {
+      "name": "battle_legendary_red_widow",
+      "bpm": 132,
+      "nominal_seconds": 29.09090909090909,
+      "original_frames": 641454,
+      "original_file_seconds": 29.090884353741497,
+      "notes": 237,
+      "drums": 96,
+      "inaudible_scheduled_events": 2,
+      "score_sha256": "28a30af883416c8da19f3094c34fe160455a9902eee016be54f19510f21a6d72"
+    },
+    {
+      "name": "battle_legendary_ember_ark",
+      "bpm": 124,
+      "nominal_seconds": 30.967741935483872,
+      "original_frames": 682838,
+      "original_file_seconds": 30.967709750566893,
+      "notes": 237,
+      "drums": 96,
+      "inaudible_scheduled_events": 2,
+      "score_sha256": "4d0da2515c950709a194feab98236f3abf8b9bd8d6e60fabd1890be35340b343"
+    },
+    {
+      "name": "battle_legendary_tide_requiem",
+      "bpm": 108,
+      "nominal_seconds": 35.55555555555556,
+      "original_frames": 784000,
+      "original_file_seconds": 35.55555555555556,
+      "notes": 236,
+      "drums": 96,
+      "inaudible_scheduled_events": 2,
+      "score_sha256": "8ac5e0b13d7f7f5b3f58635a1e95a8cf5a164df2dcd76d721cc3bd3bbd9bd174"
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "mode": "built-in imagegen",
+  "backgroundCount": 18,
+  "portraitAtlasCount": 6,
+  "portraitCount": 36,
+  "images": [
+    {
+      "file": "tavern_broken_anchor_v1.png",
+      "port": "broken_anchor",
+      "category": "Tavern",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-a1945385-3364-440d-890f-4c320b44547e.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Tavern/tavern_broken_anchor_v1.png"
+    },
+    {
+      "file": "tavern_white_shell_v1.png",
+      "port": "white_shell",
+      "category": "Tavern",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-6f284183-a4b9-42fa-ae43-99afb10b6b43.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Tavern/tavern_white_shell_v1.png"
+    },
+    {
+      "file": "tavern_bronze_bell_v1.png",
+      "port": "bronze_bell",
+      "category": "Tavern",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-4930927c-13bd-48f0-960e-99666523f3f9.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Tavern/tavern_bronze_bell_v1.png"
+    },
+    {
+      "file": "tavern_salt_crown_v1.png",
+      "port": "salt_crown",
+      "category": "Tavern",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-c6f1db5c-a3c1-489f-ba71-18f68191e033.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Tavern/tavern_salt_crown_v1.png"
+    },
+    {
+      "file": "tavern_twilight_tide_v1.png",
+      "port": "twilight_tide",
+      "category": "Tavern",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-d4885dd8-6781-40ea-9071-6689a5cbd988.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Tavern/tavern_twilight_tide_v1.png"
+    },
+    {
+      "file": "tavern_gray_gull_v1.png",
+      "port": "gray_gull",
+      "category": "Tavern",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-df829279-14b4-4573-9c30-9e1f9e8744cd.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Tavern/tavern_gray_gull_v1.png"
+    },
+    {
+      "file": "component_shop_broken_anchor_v1.png",
+      "port": "broken_anchor",
+      "category": "ComponentShop",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-0436c707-543c-4fb1-bf26-ab9e7bdc1e9a.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/ComponentShop/component_shop_broken_anchor_v1.png"
+    },
+    {
+      "file": "component_shop_white_shell_v1.png",
+      "port": "white_shell",
+      "category": "ComponentShop",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-1744f44b-f26a-40ad-8172-f7f9257bb34f.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/ComponentShop/component_shop_white_shell_v1.png"
+    },
+    {
+      "file": "component_shop_bronze_bell_v1.png",
+      "port": "bronze_bell",
+      "category": "ComponentShop",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-68295b79-fc59-47d9-b166-97a071ae17a1.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/ComponentShop/component_shop_bronze_bell_v1.png"
+    },
+    {
+      "file": "component_shop_salt_crown_v1.png",
+      "port": "salt_crown",
+      "category": "ComponentShop",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-bea63652-46cb-4ec3-b6a4-41baeaaa4490.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/ComponentShop/component_shop_salt_crown_v1.png"
+    },
+    {
+      "file": "component_shop_twilight_tide_v1.png",
+      "port": "twilight_tide",
+      "category": "ComponentShop",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-ada538d2-43dc-4cb8-abf9-e69ab1e5dcad.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/ComponentShop/component_shop_twilight_tide_v1.png"
+    },
+    {
+      "file": "component_shop_gray_gull_v1.png",
+      "port": "gray_gull",
+      "category": "ComponentShop",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-cf882e3f-41c8-4801-aacf-000aab3f35df.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/ComponentShop/component_shop_gray_gull_v1.png"
+    },
+    {
+      "file": "maintenance_broken_anchor_v1.png",
+      "port": "broken_anchor",
+      "category": "Maintenance",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-6383c27c-392e-47e2-8a7c-bbd18ae949ae.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Maintenance/maintenance_broken_anchor_v1.png"
+    },
+    {
+      "file": "maintenance_white_shell_v1.png",
+      "port": "white_shell",
+      "category": "Maintenance",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-995e23f6-0ff9-415e-bb26-9cff6003e62c.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Maintenance/maintenance_white_shell_v1.png"
+    },
+    {
+      "file": "maintenance_bronze_bell_v1.png",
+      "port": "bronze_bell",
+      "category": "Maintenance",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-7835b171-0d26-4e01-acb2-2dfcf0e62238.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Maintenance/maintenance_bronze_bell_v1.png"
+    },
+    {
+      "file": "maintenance_salt_crown_v1.png",
+      "port": "salt_crown",
+      "category": "Maintenance",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-993650a4-347a-461c-9b12-86af5d9143f3.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Maintenance/maintenance_salt_crown_v1.png"
+    },
+    {
+      "file": "maintenance_twilight_tide_v1.png",
+      "port": "twilight_tide",
+      "category": "Maintenance",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-828d9265-e971-4bf0-a425-4302246850bc.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Maintenance/maintenance_twilight_tide_v1.png"
+    },
+    {
+      "file": "maintenance_gray_gull_v1.png",
+      "port": "gray_gull",
+      "category": "Maintenance",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-36a5da3f-82f2-4fc1-83df-52eae77a2669.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortFacilities/Regional/Maintenance/maintenance_gray_gull_v1.png"
+    },
+    {
+      "file": "crew_broken_anchor_portraits_v2.png",
+      "port": "broken_anchor",
+      "category": "CrewRegional",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-604d47a4-f097-4f64-b4ef-c1326494e2bf.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_broken_anchor_portraits_v2.png"
+    },
+    {
+      "file": "crew_white_shell_portraits_v2.png",
+      "port": "white_shell",
+      "category": "CrewRegional",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-7864f09c-b51b-4aa6-973b-48a0cea59125.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_white_shell_portraits_v2.png"
+    },
+    {
+      "file": "crew_bronze_bell_portraits_v2.png",
+      "port": "bronze_bell",
+      "category": "CrewRegional",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-c687ca88-300b-46a6-b86d-7a7ffb1a1c00.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_bronze_bell_portraits_v2.png"
+    },
+    {
+      "file": "crew_salt_crown_portraits_v2.png",
+      "port": "salt_crown",
+      "category": "CrewRegional",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-b33f7acf-d1f0-47ce-933d-8f83050484a4.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_salt_crown_portraits_v2.png"
+    },
+    {
+      "file": "crew_twilight_tide_portraits_v2.png",
+      "port": "twilight_tide",
+      "category": "CrewRegional",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-899b7035-5e77-4fa1-879f-7b29de810d48.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_twilight_tide_portraits_v2.png"
+    },
+    {
+      "file": "crew_gray_gull_portraits_v2.png",
+      "port": "gray_gull",
+      "category": "CrewRegional",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a050de-d083-7010-bcc7-de18e62c64ab\\exec-997b669d-55cd-4b3e-a1b2-8429170b9c17.png",
+      "target": "UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_gray_gull_portraits_v2.png"
+    }
+  ]
+}

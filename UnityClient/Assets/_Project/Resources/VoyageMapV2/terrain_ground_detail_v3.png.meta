@@ -1,0 +1,36 @@
+fileFormatVersion: 2
+guid: 9c8c043984324a39a75d674b7c9de428
+TextureImporter:
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    enableMipMap: 1
+    sRGBTexture: 1
+  isReadable: 0
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 2
+    mipBias: 0
+    wrapU: 0
+    wrapV: 0
+    wrapW: 0
+  nPOTScale: 0
+  textureType: 0
+  textureShape: 1
+  alphaUsage: 0
+  alphaIsTransparency: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 100
+    crunchedCompression: 0
+    overridden: 0
+  userData: Built-in ImageGen; seamless land detail for continuous coastline shader.
+  assetBundleName:
+  assetBundleVariant:

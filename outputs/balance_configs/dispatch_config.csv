@@ -1,0 +1,6 @@
+﻿duration_options,recall_rate,task_id,name,port,recommended_power,preferred,cost_per_8h,reward_per_8h,requires_chart,ordinary_power,rare_drop_base_chance,rare_drop_slots,minimum_chart_grade
+8|12|24|48|168,0.65,harbor_salvage,近岸残骸回收,断锚港,60,repair,gold:8,gold:18|wood:1,no,1.8,0.16,bow|plating,D
+8|12|24|48|168,0.65,island_supply,岛链补给交换,白贝港,70,navigation,gold:10,gold:24|water:20|food:12,no,1.6,0.14,sail|instrument,D
+8|12|24|48|168,0.65,coastal_supply,近海补给护送,铜钟港,80,trade,gold:12,gold:28|wood:1,no,1.7,0.18,plating|cannon,D
+8|12|24|48|168,0.65,charted_salvage,海图定向打捞,暮潮港,120,exploration,gold:20,gold:35|ancientMaterial:1,yes,2,0.24,instrument|bow,D
+8|12|24|48|168,0.65,trade_run,商路短程运输,盐冠港,105,trade,gold:18,gold:40|cloth:1,no,1.7,0.16,bow|sail,D

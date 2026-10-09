@@ -1,0 +1,741 @@
+fileFormatVersion: 2
+guid: 77940435cf0403d43aa3c27cfc378b63
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4618800831098020347
+    second: deck_chest_standard_v1_0
+  - first:
+      213: -7140408509677382294
+    second: deck_chest_standard_v1_1
+  - first:
+      213: -5466987630620335705
+    second: deck_chest_standard_v1_2
+  - first:
+      213: 5344971221832769083
+    second: deck_chest_standard_v1_3
+  - first:
+      213: -7430221565642351565
+    second: deck_chest_standard_v1_4
+  - first:
+      213: 6036956357145187370
+    second: deck_chest_standard_v1_5
+  - first:
+      213: -968180084883221709
+    second: deck_chest_standard_v1_6
+  - first:
+      213: 5733072040344810948
+    second: deck_chest_standard_v1_7
+  - first:
+      213: 613271518415626776
+    second: deck_chest_standard_v1_8
+  - first:
+      213: 6951113822326930390
+    second: deck_chest_standard_v1_9
+  - first:
+      213: 2710731289763801563
+    second: deck_chest_standard_v1_10
+  - first:
+      213: 6084481612426592140
+    second: deck_chest_standard_v1_11
+  - first:
+      213: -6978935380566935430
+    second: deck_chest_standard_v1_12
+  - first:
+      213: -5298640885410918814
+    second: deck_chest_standard_v1_13
+  - first:
+      213: -4577797856198221810
+    second: deck_chest_standard_v1_14
+  - first:
+      213: 3742920465222233355
+    second: deck_chest_standard_v1_15
+  - first:
+      213: 544915328266921160
+    second: deck_chest_standard_v1_16
+  - first:
+      213: 7833813691651568779
+    second: deck_chest_standard_v1_17
+  - first:
+      213: 6190068785499527507
+    second: deck_chest_standard_v1_18
+  - first:
+      213: -3888038547751296641
+    second: deck_chest_standard_v1_19
+  - first:
+      213: 3479594079502473817
+    second: deck_chest_standard_v1_20
+  - first:
+      213: -8913452299375057041
+    second: deck_chest_standard_v1_21
+  - first:
+      213: -5718980955247560417
+    second: deck_chest_standard_v1_22
+  - first:
+      213: -8058052610667010552
+    second: deck_chest_standard_v1_23
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 1
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1134
+        width: 10
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bf160e962e6491040800000000000000
+      internalID: 4618800831098020347
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 1374
+        height: 1136
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a65d08dba4c28ec90800000000000000
+      internalID: -7140408509677382294
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_2
+      rect:
+        serializedVersion: 2
+        x: 42
+        y: 969
+        width: 6
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7a1ab6d17bb5124b0800000000000000
+      internalID: -5466987630620335705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_3
+      rect:
+        serializedVersion: 2
+        x: 42
+        y: 952
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b3e1704e1072d2a40800000000000000
+      internalID: 5344971221832769083
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_4
+      rect:
+        serializedVersion: 2
+        x: 1329
+        y: 941
+        width: 22
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 33cd0716adc82e890800000000000000
+      internalID: -7430221565642351565
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_5
+      rect:
+        serializedVersion: 2
+        x: 39
+        y: 934
+        width: 9
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a24dc2852d397c350800000000000000
+      internalID: 6036956357145187370
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_6
+      rect:
+        serializedVersion: 2
+        x: 1342
+        y: 926
+        width: 11
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3339de9a7555092f0800000000000000
+      internalID: -968180084883221709
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_7
+      rect:
+        serializedVersion: 2
+        x: 1348
+        y: 926
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4c5f97445a6ff8f40800000000000000
+      internalID: 5733072040344810948
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_8
+      rect:
+        serializedVersion: 2
+        x: 1309
+        y: 856
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 812270e5237c28800800000000000000
+      internalID: 613271518415626776
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_9
+      rect:
+        serializedVersion: 2
+        x: 1309
+        y: 850
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6dbba1d5131577060800000000000000
+      internalID: 6951113822326930390
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_10
+      rect:
+        serializedVersion: 2
+        x: 1320
+        y: 827
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bd968e7feb37e9520800000000000000
+      internalID: 2710731289763801563
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_11
+      rect:
+        serializedVersion: 2
+        x: 1319
+        y: 772
+        width: 30
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c8f351f1acb607450800000000000000
+      internalID: 6084481612426592140
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_12
+      rect:
+        serializedVersion: 2
+        x: 1348
+        y: 773
+        width: 9
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a78f6e25f37d52f90800000000000000
+      internalID: -6978935380566935430
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_13
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 710
+        width: 6
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26e88b820327776b0800000000000000
+      internalID: -5298640885410918814
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_14
+      rect:
+        serializedVersion: 2
+        x: 8
+        y: 724
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e00a2cf9a156870c0800000000000000
+      internalID: -4577797856198221810
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_15
+      rect:
+        serializedVersion: 2
+        x: 1352
+        y: 725
+        width: 22
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b0d6c10155681f330800000000000000
+      internalID: 3742920465222233355
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_16
+      rect:
+        serializedVersion: 2
+        x: 1315
+        y: 698
+        width: 12
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8c4e30e9a9def8700800000000000000
+      internalID: 544915328266921160
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_17
+      rect:
+        serializedVersion: 2
+        x: 1317
+        y: 684
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b84bb771c0c47bc60800000000000000
+      internalID: 7833813691651568779
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_18
+      rect:
+        serializedVersion: 2
+        x: 1340
+        y: 658
+        width: 7
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 359dee693ca87e550800000000000000
+      internalID: 6190068785499527507
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_19
+      rect:
+        serializedVersion: 2
+        x: 1309
+        y: 602
+        width: 16
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f7122406a89ea0ac0800000000000000
+      internalID: -3888038547751296641
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_20
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 39
+        width: 12
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 95a1c4f21600a4030800000000000000
+      internalID: 3479594079502473817
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_21
+      rect:
+        serializedVersion: 2
+        x: 685
+        y: 25
+        width: 9
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f676c55fb5e0d4480800000000000000
+      internalID: -8913452299375057041
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_22
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 23
+        width: 19
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f19be352f1912a0b0800000000000000
+      internalID: -5718980955247560417
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: deck_chest_standard_v1_23
+      rect:
+        serializedVersion: 2
+        x: 778
+        y: 19
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 806a8cf08db0c2090800000000000000
+      internalID: -8058052610667010552
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      deck_chest_standard_v1_0: 4618800831098020347
+      deck_chest_standard_v1_1: -7140408509677382294
+      deck_chest_standard_v1_10: 2710731289763801563
+      deck_chest_standard_v1_11: 6084481612426592140
+      deck_chest_standard_v1_12: -6978935380566935430
+      deck_chest_standard_v1_13: -5298640885410918814
+      deck_chest_standard_v1_14: -4577797856198221810
+      deck_chest_standard_v1_15: 3742920465222233355
+      deck_chest_standard_v1_16: 544915328266921160
+      deck_chest_standard_v1_17: 7833813691651568779
+      deck_chest_standard_v1_18: 6190068785499527507
+      deck_chest_standard_v1_19: -3888038547751296641
+      deck_chest_standard_v1_2: -5466987630620335705
+      deck_chest_standard_v1_20: 3479594079502473817
+      deck_chest_standard_v1_21: -8913452299375057041
+      deck_chest_standard_v1_22: -5718980955247560417
+      deck_chest_standard_v1_23: -8058052610667010552
+      deck_chest_standard_v1_3: 5344971221832769083
+      deck_chest_standard_v1_4: -7430221565642351565
+      deck_chest_standard_v1_5: 6036956357145187370
+      deck_chest_standard_v1_6: -968180084883221709
+      deck_chest_standard_v1_7: 5733072040344810948
+      deck_chest_standard_v1_8: 613271518415626776
+      deck_chest_standard_v1_9: 6951113822326930390
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

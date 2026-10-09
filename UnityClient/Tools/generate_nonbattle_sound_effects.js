@@ -1,0 +1,437 @@
+// Active entry point: the deterministic CC0 Foley remaster. The legacy source
+// below is retained for history; it is never executed and cannot recreate the
+// old oscillator clips or rewrite Unity importers. A byte-for-byte original
+// also lives in AudioSamples/Foley/Legacy/.
+{
+  const remasterPath = require('path');
+  const remasterFs = require('fs');
+  const bundledPython = remasterPath.join(require('os').homedir(), '.cache', 'codex-runtimes', 'codex-primary-runtime', 'dependencies', 'python', 'python.exe');
+  const python = process.env.AUDIO_PYTHON || (remasterFs.existsSync(bundledPython) ? bundledPython : 'python');
+  const deps = remasterPath.resolve(__dirname, '../../Artifacts/AudioFix20261007/python-deps');
+  const env = { ...process.env };
+  if (remasterFs.existsSync(deps)) env.PYTHONPATH = [deps, env.PYTHONPATH].filter(Boolean).join(remasterPath.delimiter);
+  const result = require('child_process').spawnSync(python,
+    [remasterPath.join(__dirname, 'remaster_sound_effects.py'), '--group', 'nonbattle', ...process.argv.slice(2)],
+    { stdio: 'inherit', env });
+  if (result.error) throw result.error;
+  process.exit(result.status === null ? 1 : result.status);
+}
+
+// ARCHIVED SYNTHESIS IMPLEMENTATION (unreachable; preserved for review only).
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const sampleRate = 48000;
+const rootDirectory = path.resolve(__dirname, '..', 'Assets', '_Project', 'Resources', 'Audio');
+const outputDirectories = {
+  world: path.join(rootDirectory, 'WorldSfx'),
+  ui: path.join(rootDirectory, 'InterfaceSfx'),
+  ambience: path.join(rootDirectory, 'Ambience'),
+};
+const TAU = Math.PI * 2;
+
+function seededRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+function makeBuffer(seconds) {
+  return new Float32Array(Math.ceil(seconds * sampleRate));
+}
+
+function envelope(t, length, attack, release, power = 1) {
+  if (t < 0 || t >= length) return 0;
+  const a = attack <= 0 ? 1 : Math.min(1, t / attack);
+  const r = release <= 0 ? 1 : Math.min(1, (length - t) / release);
+  return Math.pow(Math.min(a, r), power);
+}
+
+function wave(phase, type) {
+  const cycle = phase - Math.floor(phase);
+  if (type === 'triangle') return 1 - 4 * Math.abs(Math.round(cycle) - cycle);
+  if (type === 'saw') return cycle * 2 - 1;
+  if (type === 'square') return cycle < 0.5 ? 1 : -1;
+  return Math.sin(phase * TAU);
+}
+
+function addTone(buffer, start, length, fromHz, toHz, amplitude, type = 'sine', attack = 0.005, release = 0.1) {
+  const startIndex = Math.floor(start * sampleRate);
+  const count = Math.floor(length * sampleRate);
+  let phase = 0;
+  for (let i = 0; i < count; i++) {
+    const index = startIndex + i;
+    if (index < 0 || index >= buffer.length) continue;
+    const t = i / sampleRate;
+    const progress = count <= 1 ? 1 : i / (count - 1);
+    const frequency = fromHz + (toHz - fromHz) * progress;
+    phase += frequency / sampleRate;
+    buffer[index] += wave(phase, type) * amplitude * envelope(t, length, attack, release, 0.8);
+  }
+}
+
+function addNoise(buffer, start, length, amplitude, attack = 0.002, release = 0.15, seed = 1, tilt = 0) {
+  const random = seededRandom(seed);
+  const startIndex = Math.floor(start * sampleRate);
+  const count = Math.floor(length * sampleRate);
+  let previous = 0;
+  for (let i = 0; i < count; i++) {
+    const index = startIndex + i;
+    if (index < 0 || index >= buffer.length) continue;
+    const raw = random() * 2 - 1;
+    previous = previous * tilt + raw * (1 - tilt);
+    buffer[index] += previous * amplitude * envelope(i / sampleRate, length, attack, release, 0.7);
+  }
+}
+
+function addBell(buffer, start, frequency, amplitude, length) {
+  addTone(buffer, start, length, frequency, frequency * 0.98, amplitude, 'sine', 0.002, length * 0.82);
+  addTone(buffer, start, length * 0.72, frequency * 2.01, frequency * 2.0, amplitude * 0.22, 'sine', 0.002, length * 0.66);
+}
+
+function addCoin(buffer, start, frequency, amplitude, length = 0.18) {
+  addTone(buffer, start, length, frequency, frequency * 1.03, amplitude, 'sine', 0.001, length * 0.8);
+  addTone(buffer, start + 0.012, length * 0.8, frequency * 2.01, frequency * 1.96, amplitude * 0.23, 'triangle', 0.001, length * 0.7);
+}
+
+// Build a quiet periodic texture whose first and last samples line up when Unity loops it.
+// Integer harmonics keep the loop deterministic while still providing a soft, organic bed.
+function addLoopTexture(buffer, duration, amplitude, baseHz, harmonics, seed = 1) {
+  const random = seededRandom(seed);
+  const phases = [];
+  for (let i = 0; i < harmonics; i++) phases.push(random() * TAU);
+  for (let i = 0; i < buffer.length; i++) {
+    const t = i / sampleRate;
+    let value = 0;
+    for (let h = 0; h < harmonics; h++) {
+      const harmonic = h + 1;
+      value += Math.sin(TAU * (baseHz * harmonic) * t + phases[h]) / harmonic;
+    }
+    buffer[i] += value * amplitude;
+  }
+}
+
+function addLoopTone(buffer, duration, frequency, amplitude, type = 'sine', phase = 0) {
+  for (let i = 0; i < buffer.length; i++) {
+    const t = i / sampleRate;
+    buffer[i] += wave(phase + frequency * t, type) * amplitude;
+  }
+}
+
+function addLoopPulse(buffer, duration, start, length, frequency, amplitude, type = 'sine') {
+  // Pulses are fully enveloped so they do not introduce a discontinuity at a loop seam.
+  addTone(buffer, start, length, frequency, frequency * 0.97, amplitude, type, 0.08, Math.min(0.4, length * 0.45));
+}
+
+function normalize(samples) {
+  let peak = 0;
+  for (const value of samples) peak = Math.max(peak, Math.abs(value));
+  const gain = peak > 0.98 ? 0.98 / peak : 0.86;
+  for (let i = 0; i < samples.length; i++) {
+    const value = samples[i] * gain;
+    samples[i] = Math.tanh(value * 1.18) / Math.tanh(1.18);
+  }
+}
+
+function writeWav(directory, name, samples) {
+  normalize(samples);
+  const dataSize = samples.length * 2;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataSize, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(dataSize, 40);
+  const data = Buffer.alloc(dataSize);
+  for (let i = 0; i < samples.length; i++) {
+    const value = Math.max(-1, Math.min(1, samples[i]));
+    data.writeInt16LE(Math.round(value * 32767), i * 2);
+  }
+  fs.writeFileSync(path.join(directory, `${name}.wav`), Buffer.concat([header, data]));
+}
+
+function ensureMeta(filePath, folder = false) {
+  const metaPath = `${filePath}.meta`;
+  if (fs.existsSync(metaPath)) return;
+  const guid = crypto.randomBytes(16).toString('hex');
+  const contents = folder
+    ? `fileFormatVersion: 2\nguid: ${guid}\nfolderAsset: yes\nDefaultImporter:\n  externalObjects: {}\n  userData: \n  assetBundleName: \n  assetBundleVariant: \n`
+    : `fileFormatVersion: 2\nguid: ${guid}\nAudioImporter:\n  serializedVersion: 7\n  audioClip:\n    serializedVersion: 2\n    loadType: 1\n    sampleRateSetting: 0\n    sampleRateOverride: 0\n    compressionFormat: 1\n    quality: 0.8\n    conversionMode: 0\n  forceToMono: 1\n  normalize: 1\n  preloadAudioData: 0\n  loadInBackground: 1\n  ambisonic: 0\n  3D: 0\n  loopable: 0\n`;
+  fs.writeFileSync(metaPath, contents);
+}
+
+function markLoopable(filePath) {
+  const metaPath = `${filePath}.meta`;
+  if (!fs.existsSync(metaPath)) return;
+  const contents = fs.readFileSync(metaPath, 'utf8');
+  if (contents.includes('loopable: 1')) return;
+  fs.writeFileSync(metaPath, contents.replace('loopable: 0', 'loopable: 1'));
+}
+
+const sounds = {
+  sail_depart: ['world', () => {
+    const b = makeBuffer(0.92);
+    addNoise(b, 0.02, 0.72, 0.22, 0.09, 0.22, 201, 0.8);
+    addTone(b, 0, 0.72, 92, 142, 0.3, 'sine', 0.08, 0.24);
+    addTone(b, 0.16, 0.5, 312, 472, 0.16, 'triangle', 0.04, 0.24);
+    addBell(b, 0.2, 540, 0.24, 0.55);
+    return b;
+  }],
+  sail_step: ['world', () => {
+    const b = makeBuffer(0.46);
+    addNoise(b, 0, 0.31, 0.3, 0.015, 0.18, 211, 0.75);
+    addTone(b, 0.01, 0.31, 180, 94, 0.2, 'sine', 0.01, 0.16);
+    addBell(b, 0.12, 690, 0.13, 0.24);
+    return b;
+  }],
+  harbor_arrive: ['world', () => {
+    const b = makeBuffer(1.05);
+    addTone(b, 0, 0.7, 102, 62, 0.42, 'sine', 0.03, 0.35);
+    addNoise(b, 0.02, 0.74, 0.24, 0.08, 0.36, 221, 0.82);
+    addBell(b, 0.2, 438, 0.34, 0.68);
+    addBell(b, 0.5, 552, 0.18, 0.48);
+    return b;
+  }],
+  encounter_enter: ['world', () => {
+    const b = makeBuffer(0.72);
+    addTone(b, 0, 0.48, 164, 236, 0.24, 'saw', 0.04, 0.2);
+    addBell(b, 0.12, 468, 0.3, 0.54);
+    addNoise(b, 0.22, 0.36, 0.1, 0.01, 0.22, 231, 0.65);
+    return b;
+  }],
+  settlement_reward: ['world', () => {
+    const b = makeBuffer(1.0);
+    addTone(b, 0, 0.62, 196, 196, 0.2, 'triangle', 0.02, 0.2);
+    addTone(b, 0.16, 0.68, 247, 247, 0.22, 'triangle', 0.02, 0.22);
+    addTone(b, 0.32, 0.74, 294, 294, 0.24, 'triangle', 0.02, 0.24);
+    addCoin(b, 0.09, 880, 0.2, 0.2);
+    addCoin(b, 0.3, 1110, 0.18, 0.22);
+    addBell(b, 0.42, 588, 0.17, 0.48);
+    return b;
+  }],
+  settlement_treasure: ['world', () => {
+    const b = makeBuffer(1.24);
+    addNoise(b, 0, 0.25, 0.22, 0.02, 0.18, 241, 0.72);
+    addTone(b, 0.04, 0.68, 220, 740, 0.2, 'sine', 0.02, 0.34);
+    addBell(b, 0.24, 660, 0.32, 0.72);
+    addBell(b, 0.42, 990, 0.22, 0.6);
+    addCoin(b, 0.52, 1320, 0.2, 0.3);
+    addCoin(b, 0.67, 1560, 0.15, 0.28);
+    return b;
+  }],
+  settlement_failure: ['world', () => {
+    const b = makeBuffer(0.84);
+    addTone(b, 0, 0.7, 196, 92, 0.33, 'saw', 0.03, 0.28);
+    addTone(b, 0.02, 0.55, 98, 54, 0.26, 'sine', 0.02, 0.28);
+    addNoise(b, 0.16, 0.5, 0.14, 0.01, 0.34, 251, 0.75);
+    return b;
+  }],
+  course_plot: ['ui', () => {
+    const b = makeBuffer(0.34);
+    addNoise(b, 0, 0.18, 0.29, 0.002, 0.12, 261, 0.25);
+    addTone(b, 0.02, 0.13, 420, 240, 0.24, 'triangle', 0.001, 0.1);
+    addBell(b, 0.12, 880, 0.12, 0.18);
+    return b;
+  }],
+  encounter_choice: ['ui', () => {
+    const b = makeBuffer(0.38);
+    addNoise(b, 0, 0.08, 0.24, 0.001, 0.06, 271, 0.3);
+    addTone(b, 0.02, 0.2, 420, 620, 0.22, 'triangle', 0.005, 0.15);
+    addBell(b, 0.1, 980, 0.1, 0.2);
+    return b;
+  }],
+  trade_confirm: ['ui', () => {
+    const b = makeBuffer(0.52);
+    addCoin(b, 0, 690, 0.28, 0.2);
+    addCoin(b, 0.13, 930, 0.22, 0.22);
+    addTone(b, 0.2, 0.23, 520, 700, 0.13, 'triangle', 0.003, 0.15);
+    return b;
+  }],
+  shipyard_equip: ['ui', () => {
+    const b = makeBuffer(0.56);
+    addTone(b, 0, 0.16, 1120, 540, 0.25, 'triangle', 0.001, 0.12);
+    addNoise(b, 0.02, 0.12, 0.23, 0.001, 0.09, 281, 0.35);
+    addTone(b, 0.18, 0.22, 160, 92, 0.25, 'sine', 0.001, 0.16);
+    addBell(b, 0.28, 780, 0.12, 0.22);
+    return b;
+  }],
+  tavern_recruit: ['ui', () => {
+    const b = makeBuffer(0.74);
+    addTone(b, 0, 0.34, 148, 196, 0.2, 'sine', 0.02, 0.18);
+    addBell(b, 0.15, 540, 0.22, 0.42);
+    addBell(b, 0.31, 680, 0.17, 0.36);
+    addNoise(b, 0.03, 0.17, 0.14, 0.001, 0.12, 291, 0.5);
+    return b;
+  }],
+  dispatch_start: ['ui', () => {
+    const b = makeBuffer(0.42);
+    addNoise(b, 0, 0.08, 0.18, 0.001, 0.06, 301, 0.35);
+    addTone(b, 0.02, 0.24, 300, 520, 0.22, 'triangle', 0.004, 0.16);
+    addBell(b, 0.16, 760, 0.12, 0.2);
+    return b;
+  }],
+  dispatch_complete: ['world', () => {
+    const b = makeBuffer(0.76);
+    addTone(b, 0, 0.5, 196, 247, 0.22, 'sine', 0.02, 0.2);
+    addBell(b, 0.14, 520, 0.24, 0.46);
+    addBell(b, 0.31, 690, 0.18, 0.4);
+    return b;
+  }],
+  dispatch_recall: ['ui', () => {
+    const b = makeBuffer(0.42);
+    addTone(b, 0, 0.3, 480, 230, 0.22, 'triangle', 0.01, 0.2);
+    addNoise(b, 0.03, 0.1, 0.16, 0.001, 0.07, 311, 0.45);
+    return b;
+  }],
+  investment_build: ['world', () => {
+    const b = makeBuffer(0.68);
+    addTone(b, 0, 0.12, 180, 110, 0.27, 'sine', 0.001, 0.1);
+    addNoise(b, 0.02, 0.09, 0.22, 0.001, 0.06, 321, 0.35);
+    addTone(b, 0.2, 0.12, 180, 110, 0.25, 'sine', 0.001, 0.1);
+    addNoise(b, 0.22, 0.09, 0.2, 0.001, 0.06, 322, 0.35);
+    addBell(b, 0.34, 550, 0.2, 0.34);
+    return b;
+  }],
+  treasure_craft: ['ui', () => {
+    const b = makeBuffer(0.74);
+    addNoise(b, 0, 0.22, 0.24, 0.002, 0.15, 331, 0.28);
+    addTone(b, 0.12, 0.44, 300, 620, 0.18, 'triangle', 0.01, 0.25);
+    addBell(b, 0.3, 780, 0.22, 0.38);
+    return b;
+  }],
+  treasure_equip: ['ui', () => {
+    const b = makeBuffer(0.48);
+    addTone(b, 0, 0.14, 930, 480, 0.24, 'triangle', 0.001, 0.1);
+    addNoise(b, 0.02, 0.09, 0.18, 0.001, 0.07, 341, 0.3);
+    addBell(b, 0.16, 720, 0.14, 0.25);
+    return b;
+  }],
+  chart_draw: ['ui', () => {
+    const b = makeBuffer(0.56);
+    addNoise(b, 0, 0.3, 0.25, 0.02, 0.18, 351, 0.74);
+    addTone(b, 0.08, 0.34, 370, 560, 0.16, 'sine', 0.02, 0.2);
+    addBell(b, 0.22, 820, 0.11, 0.24);
+    return b;
+  }],
+  shop_refresh: ['ui', () => {
+    const b = makeBuffer(0.52);
+    addNoise(b, 0, 0.2, 0.21, 0.002, 0.14, 361, 0.35);
+    addTone(b, 0.08, 0.24, 260, 420, 0.17, 'triangle', 0.01, 0.17);
+    addBell(b, 0.2, 680, 0.15, 0.28);
+    return b;
+  }],
+  curse_purify: ['world', () => {
+    const b = makeBuffer(1.04);
+    addTone(b, 0, 0.64, 82, 196, 0.24, 'sine', 0.08, 0.24);
+    addNoise(b, 0, 0.45, 0.18, 0.02, 0.3, 371, 0.86);
+    addBell(b, 0.25, 440, 0.2, 0.54);
+    addBell(b, 0.46, 660, 0.16, 0.42);
+    return b;
+  }],
+  milestone_unlock: ['world', () => {
+    const b = makeBuffer(1.0);
+    addTone(b, 0, 0.58, 196, 196, 0.19, 'triangle', 0.02, 0.2);
+    addTone(b, 0.16, 0.64, 247, 247, 0.22, 'triangle', 0.02, 0.22);
+    addTone(b, 0.32, 0.7, 330, 330, 0.24, 'triangle', 0.02, 0.24);
+    addBell(b, 0.38, 660, 0.24, 0.58);
+    addBell(b, 0.55, 990, 0.13, 0.42);
+    return b;
+  }],
+  harbor_ambience: ['ambience', () => {
+    const duration = 8;
+    const b = makeBuffer(duration);
+    addLoopTexture(b, duration, 0.055, 0.375, 14, 401);
+    addLoopTone(b, duration, 43, 0.09, 'sine', 0.5);
+    addLoopTone(b, duration, 71, 0.045, 'sine', 1.3);
+    addLoopPulse(b, duration, 1.2, 0.65, 450, 0.09, 'sine');
+    addLoopPulse(b, duration, 5.5, 0.55, 520, 0.07, 'sine');
+    addBell(b, 3.2, 610, 0.08, 0.36);
+    return b;
+  }],
+  sailing_ambience: ['ambience', () => {
+    const duration = 8;
+    const b = makeBuffer(duration);
+    addLoopTexture(b, duration, 0.065, 0.5, 18, 411);
+    addLoopTone(b, duration, 54, 0.075, 'sine', 1.1);
+    addLoopTone(b, duration, 96, 0.035, 'triangle', 0.2);
+    addLoopPulse(b, duration, 0.8, 1.2, 112, 0.06, 'sine');
+    addLoopPulse(b, duration, 4.3, 1.0, 132, 0.05, 'sine');
+    addNoise(b, 6.3, 0.46, 0.07, 0.06, 0.22, 412, 0.88);
+    return b;
+  }],
+  shipyard_ambience: ['ambience', () => {
+    const duration = 8;
+    const b = makeBuffer(duration);
+    addLoopTexture(b, duration, 0.04, 0.625, 10, 421);
+    addLoopTone(b, duration, 48, 0.085, 'sine', 0.7);
+    addLoopPulse(b, duration, 0.9, 0.13, 145, 0.19, 'sine');
+    addLoopPulse(b, duration, 1.03, 0.1, 720, 0.1, 'triangle');
+    addLoopPulse(b, duration, 3.8, 0.13, 138, 0.16, 'sine');
+    addLoopPulse(b, duration, 3.93, 0.1, 660, 0.08, 'triangle');
+    addLoopPulse(b, duration, 6.45, 0.13, 155, 0.18, 'sine');
+    addLoopPulse(b, duration, 6.58, 0.1, 760, 0.09, 'triangle');
+    return b;
+  }],
+  tavern_ambience: ['ambience', () => {
+    const duration = 8;
+    const b = makeBuffer(duration);
+    addLoopTexture(b, duration, 0.052, 0.375, 20, 431);
+    addLoopTone(b, duration, 92, 0.035, 'sine', 0.9);
+    addLoopTone(b, duration, 138, 0.022, 'triangle', 1.7);
+    addLoopPulse(b, duration, 1.1, 0.25, 260, 0.065, 'sine');
+    addLoopPulse(b, duration, 4.55, 0.25, 310, 0.06, 'sine');
+    addBell(b, 2.65, 540, 0.08, 0.25);
+    addBell(b, 6.2, 620, 0.07, 0.24);
+    return b;
+  }],
+  market_ambience: ['ambience', () => {
+    const duration = 8;
+    const b = makeBuffer(duration);
+    addLoopTexture(b, duration, 0.058, 0.5, 22, 441);
+    addLoopTone(b, duration, 68, 0.04, 'sine', 0.4);
+    addLoopTone(b, duration, 117, 0.02, 'triangle', 1.6);
+    addLoopPulse(b, duration, 0.7, 0.22, 470, 0.07, 'triangle');
+    addLoopPulse(b, duration, 2.75, 0.2, 540, 0.06, 'triangle');
+    addLoopPulse(b, duration, 5.35, 0.22, 430, 0.07, 'triangle');
+    addCoin(b, 7.1, 820, 0.06, 0.16);
+    return b;
+  }],
+  treasure_workbench_ambience: ['ambience', () => {
+    const duration = 8;
+    const b = makeBuffer(duration);
+    addLoopTexture(b, duration, 0.026, 0.375, 12, 451);
+    addLoopTone(b, duration, 76, 0.04, 'sine', 0.9);
+    addLoopTone(b, duration, 176, 0.018, 'triangle', 1.8);
+    addLoopPulse(b, duration, 0.8, 0.3, 225, 0.06, 'sine');
+    addLoopPulse(b, duration, 3.2, 0.18, 940, 0.09, 'triangle');
+    addLoopPulse(b, duration, 5.75, 0.24, 260, 0.055, 'sine');
+    addBell(b, 6.35, 890, 0.055, 0.3);
+    return b;
+  }],
+};
+
+for (const directory of Object.values(outputDirectories)) {
+  fs.mkdirSync(directory, { recursive: true });
+  ensureMeta(directory, true);
+}
+for (const [name, [group, factory]] of Object.entries(sounds)) {
+  writeWav(outputDirectories[group], name, factory());
+  ensureMeta(path.join(outputDirectories[group], `${name}.wav`));
+  if (group === 'ambience') markLoopable(path.join(outputDirectories[group], `${name}.wav`));
+}
+console.log(`Generated ${Object.keys(sounds).length} non-battle SFX clips`);
+for (const [group, directory] of Object.entries(outputDirectories)) {
+  const names = Object.entries(sounds).filter(([, [soundGroup]]) => soundGroup === group).map(([name]) => name);
+  console.log(`${group}: ${names.join(', ')} -> ${directory}`);
+}

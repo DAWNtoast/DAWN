@@ -1,0 +1,46 @@
+# Workspace root: track only source, design docs and content tools.
+# Builds, Artifacts, tmp/, isolated validation projects and loose logs stay local.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/游戏策划案.md
+!/UnityClient/
+!/outputs/
+!/work/
+!/tools/
+!/docs/
+
+# Unity project: keep the project definition, drop generated folders and run logs.
+/UnityClient/*
+!/UnityClient/Assets/
+!/UnityClient/Packages/
+!/UnityClient/ProjectSettings/
+!/UnityClient/Documentation/
+!/UnityClient/Tools/
+!/UnityClient/README.md
+!/UnityClient/COMPONENT_ART_GENERATION.md
+
+# Unity generated files that can appear inside tracked folders
+/UnityClient/Assets/AssetStoreTools*
+/UnityClient/Assets/**/*.pidb.meta
+/UnityClient/Assets/**/*.pdb.meta
+/UnityClient/Assets/**/*.mdb.meta
+*.csproj
+*.sln
+*.unityproj
+*.userprefs
+crashlytics-build.properties
+
+# Python / Node caches
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.vs/
+.idea/
+.vscode/

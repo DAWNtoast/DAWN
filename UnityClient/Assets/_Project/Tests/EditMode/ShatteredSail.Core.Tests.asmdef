@@ -1,0 +1,25 @@
+{
+  "name": "ShatteredSail.Core.Tests",
+  "rootNamespace": "ShatteredSail.Core.Tests",
+  "references": [
+    "ShatteredSail.Core",
+    "ShatteredSail.Content",
+    "ShatteredSail.Presentation",
+    "ShatteredSail.Persistence",
+    "Unity.UGUI"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

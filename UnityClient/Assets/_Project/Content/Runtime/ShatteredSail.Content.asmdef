@@ -1,0 +1,17 @@
+{
+  "name": "ShatteredSail.Content",
+  "rootNamespace": "ShatteredSail.Content",
+  "references": [
+    "ShatteredSail.Core"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}
+

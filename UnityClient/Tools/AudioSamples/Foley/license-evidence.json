@@ -1,0 +1,30 @@
+{
+  "retrieved_date": "2026-10-07",
+  "license": "CC0-1.0",
+  "files": [
+    {
+      "file": "LicenseEvidence/kenney-impact-sounds.html",
+      "url": "https://kenney.nl/assets/impact-sounds",
+      "sha256": "f864ab4b8d9d14441df748998470506d568567ca42d1be72d719d3c499079da4",
+      "bytes": 16954
+    },
+    {
+      "file": "LicenseEvidence/thimras-battle-at-sea.html",
+      "url": "https://opengameart.org/content/battle-at-sea",
+      "sha256": "12d37ae8e3c3eba88037527efb74bb5dfa43cac1cd68708a2ccec1ed630b3338",
+      "bytes": 31177
+    },
+    {
+      "file": "LicenseEvidence/randommind-wave-sounds.html",
+      "url": "https://opengameart.org/content/sea-and-river-wave-sounds",
+      "sha256": "a4f9a859984af3016e167fc8c7ab1a30d02f2325aad7a50622d8d1ae9d03bdf7",
+      "bytes": 35797
+    },
+    {
+      "file": "LicenseEvidence/cc0-1.0-legalcode.html",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/legalcode.en",
+      "sha256": "b43732f4c1463b087cf10d4daf8d8766514b2bf8f21bc5ef50905f95be227726",
+      "bytes": 32223
+    }
+  ]
+}

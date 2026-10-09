@@ -1,0 +1,29 @@
+# Text defaults
+* text=auto
+*.cs text diff=csharp
+*.md text
+*.json text
+*.csv text
+
+# Unity YAML: keep as text, never re-normalise line endings inside Unity files
+*.unity text eol=lf -merge
+*.prefab text eol=lf -merge
+*.asset text eol=lf -merge
+*.mat text eol=lf -merge
+*.meta text eol=lf -merge
+*.controller text eol=lf -merge
+*.anim text eol=lf -merge
+
+# Binary art, audio and fonts through Git LFS
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.wav filter=lfs diff=lfs merge=lfs -text
+*.mp3 filter=lfs diff=lfs merge=lfs -text
+*.ogg filter=lfs diff=lfs merge=lfs -text
+*.ttf filter=lfs diff=lfs merge=lfs -text
+*.otf filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.dll filter=lfs diff=lfs merge=lfs -text
