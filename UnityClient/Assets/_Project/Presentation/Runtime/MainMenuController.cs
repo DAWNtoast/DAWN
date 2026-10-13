@@ -12,12 +12,12 @@ using UnityEngine.UI;
 namespace ShatteredSail.Presentation
 {
     /// <summary>
-    /// Builds the player-facing title screen at runtime and supplies a transient
-    /// editor preview so the authored result stays visible outside Play Mode.
+    /// Binds the player-facing menu prefabs and supplies a transient editor preview.
+    /// Procedural builders remain available for the initial prefab migration.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
-    public sealed class MainMenuController : MonoBehaviour
+    public sealed partial class MainMenuController : MonoBehaviour
     {
         public const string MainSceneName = "CoreGameplayDemo";
         public const string EditorPreviewCanvasName = "Main Menu Canvas [Editor Preview]";
@@ -51,20 +51,9 @@ namespace ShatteredSail.Presentation
         private Text masterValue;
         private Text musicValue;
         private Text effectsValue;
-        private sealed class AchievementRowView
-        {
-            public RectTransform Root;
-            public Image Face;
-            public RawImage Icon;
-            public Text Title;
-            public Text Description;
-            public Text State;
-            public Text Progress;
-        }
-
         private RectTransform menuCanvas;
         private bool menuCanvasIsEditorPreview;
-        private readonly List<AchievementRowView> achievementRows = new List<AchievementRowView>(AchievementsPerPage);
+        private readonly List<MainMenuAchievementRowView> achievementRows = new List<MainMenuAchievementRowView>(AchievementsPerPage);
         private AchievementProgressView[] achievementProgress;
         private readonly int[] achievementFilteredIndices = new int[AchievementCatalog.TotalCount];
         private int achievementFilteredCount;
@@ -210,6 +199,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildCanvas(string canvasName, bool editorPreview, MenuSaveView saveView)
         {
+            if (TryBuildPrefabCanvas(canvasName, editorPreview, saveView)) return;
             GameObject canvasObject = new GameObject(canvasName, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasObject.transform.SetParent(transform, false);
             Canvas canvas = canvasObject.GetComponent<Canvas>();
@@ -350,6 +340,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildSettingsPanel(RectTransform canvasRect)
         {
+            if (TryBuildPrefabSettings(canvasRect)) return;
             settingsPanel = CreateModalBackdrop("Settings Panel", canvasRect);
             RectTransform card = CreatePaperCard("Settings Card", settingsPanel, new Vector2(1040f, 800f));
             BuildModalHeading(card, "游戏设置", "应用后保存在本机，下次启动自动沿用。", "SETTINGS");
@@ -428,6 +419,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildAchievementsPanel(RectTransform canvasRect)
         {
+            if (TryBuildPrefabAchievements(canvasRect)) return;
             achievementsPanel = CreateModalBackdrop("Achievements Panel", canvasRect);
             RectTransform card = CreatePaperCard("Achievements Card", achievementsPanel, new Vector2(1180f, 960f));
             achievementSummary = BuildModalHeading(card, "船长成就", string.Empty, "ACHIEVEMENTS");
@@ -467,7 +459,7 @@ namespace ShatteredSail.Presentation
             {
                 int filteredIndex = achievementPage * AchievementsPerPage + index;
                 bool visible = filteredIndex < achievementFilteredCount;
-                AchievementRowView row = achievementRows[index];
+                MainMenuAchievementRowView row = achievementRows[index];
                 if (visible)
                 {
                     int catalogIndex = achievementFilteredIndices[filteredIndex];
@@ -549,6 +541,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildNewGameConfirmation(RectTransform canvasRect)
         {
+            if (TryBuildPrefabConfirmation(canvasRect)) return;
             confirmationPanel = CreateModalBackdrop("New Game Confirmation", canvasRect);
             RectTransform card = CreatePaperCard("Confirmation Card", confirmationPanel, new Vector2(820f, 430f));
             Text eyebrow = CreateText("Confirmation Eyebrow", card, new Vector2(700f, 28f), new Vector2(0f, 150f), 18, FontStyle.Bold, TextAnchor.MiddleCenter, PaperAccent);
@@ -712,7 +705,16 @@ namespace ShatteredSail.Presentation
 
         private void ShowSaveNotice(string notice)
         {
-            if (saveNoticePanel != null) Destroy(saveNoticePanel.gameObject);
+            if (TryShowPrefabSaveNotice(notice)) return;
+            if (saveNoticePanel != null)
+            {
+                saveNoticePanel.Find("Voyage Save Notice Card/Voyage Save Notice Body").GetComponent<Text>().text = notice;
+                saveNoticePanel.SetAsLastSibling();
+                saveNoticePanel.gameObject.SetActive(true);
+                Button existingClose = saveNoticePanel.GetComponentInChildren<Button>(true);
+                if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(existingClose.gameObject);
+                return;
+            }
             RectTransform canvas = menuCanvas;
             if (canvas == null) return;
             saveNoticePanel = CreateModalBackdrop("Voyage Save Notice", canvas);
@@ -734,8 +736,6 @@ namespace ShatteredSail.Presentation
         {
             if (saveNoticePanel == null) return;
             saveNoticePanel.gameObject.SetActive(false);
-            Destroy(saveNoticePanel.gameObject);
-            saveNoticePanel = null;
             if (EventSystem.current != null && continueButton != null)
                 EventSystem.current.SetSelectedGameObject(continueButton.gameObject);
         }
@@ -831,7 +831,7 @@ namespace ShatteredSail.Presentation
             return slider;
         }
 
-        private AchievementRowView CreateAchievementRow(RectTransform parent, Vector2 position)
+        private MainMenuAchievementRowView CreateAchievementRow(RectTransform parent, Vector2 position)
         {
             RectTransform row = CreateRect("Achievement Row", parent, new Vector2(1040f, 64f), position);
             row.gameObject.AddComponent<Image>();
@@ -843,10 +843,10 @@ namespace ShatteredSail.Presentation
             Text detail = CreateText("Description", row, new Vector2(680f, 26f), new Vector2(-95f, -17f), 18, FontStyle.Normal, TextAnchor.MiddleLeft, PaperMutedInk);
             Text state = CreateText("State", row, new Vector2(220f, 26f), new Vector2(395f, 14f), 18, FontStyle.Bold, TextAnchor.MiddleRight, PaperMutedInk);
             Text progress = CreateText("Progress", row, new Vector2(220f, 26f), new Vector2(395f, -15f), 18, FontStyle.Normal, TextAnchor.MiddleRight, PaperMutedInk);
-            return new AchievementRowView { Root = row, Face = rowFace, Icon = icon, Title = title, Description = detail, State = state, Progress = progress };
+            return new MainMenuAchievementRowView { Root = row, Face = rowFace, Icon = icon, Title = title, Description = detail, State = state, Progress = progress };
         }
 
-        private static void BindAchievementRow(AchievementRowView row, CoreAchievementDefinition achievement, AchievementProgressView progress)
+        private static void BindAchievementRow(MainMenuAchievementRowView row, CoreAchievementDefinition achievement, AchievementProgressView progress)
         {
             bool unlocked = progress.Unlocked;
             row.Root.name = "Achievement Row " + achievement.Id;

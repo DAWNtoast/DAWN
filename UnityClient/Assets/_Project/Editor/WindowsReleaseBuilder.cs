@@ -45,7 +45,7 @@ namespace ShatteredSail.Editor
                 // The game title and release executable filename are 第七港口.
                 PlayerSettings.companyName = "ShatteredSail";
                 PlayerSettings.productName = "Shattered Sail";
-                PlayerSettings.bundleVersion = "0.3.20261014";
+                PlayerSettings.bundleVersion = "0.3.20261014.1";
                 PlayerSettings.resizableWindow = true;
                 PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);

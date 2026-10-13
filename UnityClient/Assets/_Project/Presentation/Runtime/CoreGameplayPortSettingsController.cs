@@ -8,6 +8,8 @@ namespace ShatteredSail.Presentation
     public sealed partial class CoreGameplayDemoController
     {
         private RectTransform portSettingsOverlay;
+        private PortSettingsView cachedPortSettingsView;
+        private int portSettingsBindingRevision;
         private Slider portSettingsMasterSlider;
         private Slider portSettingsMusicSlider;
         private Slider portSettingsEffectsSlider;
@@ -44,6 +46,113 @@ namespace ShatteredSail.Presentation
             portSettingsPageGroup.interactable = false;
             portSettingsPageGroup.blocksRaycasts = false;
 
+            PortSettingsView view = AcquirePortSettingsView();
+            BindPortSettingsView(view);
+            Button apply = view.Apply, close = view.Close, returnToMenu = view.ReturnToMenu;
+
+            Selectable[] controls = Array.FindAll(new Selectable[]
+                { portSettingsMasterSlider, portSettingsMusicSlider, portSettingsEffectsSlider, portSettingsFullScreenToggle, apply, close, returnToMenu },
+                control => control.interactable);
+            for (int index = 0; index < controls.Length; index += 1)
+            {
+                Navigation navigation = controls[index].navigation;
+                navigation.mode = Navigation.Mode.Explicit;
+                navigation.selectOnUp = controls[(index + controls.Length - 1) % controls.Length];
+                navigation.selectOnDown = controls[(index + 1) % controls.Length];
+                navigation.selectOnLeft = null;
+                navigation.selectOnRight = null;
+                controls[index].navigation = navigation;
+                PortSettingsCancelHandler cancel = controls[index].GetComponent<PortSettingsCancelHandler>();
+                if (cancel == null) cancel = controls[index].gameObject.AddComponent<PortSettingsCancelHandler>();
+                int revision = portSettingsBindingRevision;
+                cancel.OnCancelRequested = () => { if (revision == portSettingsBindingRevision) ClosePortSettings(); };
+            }
+            if (!Application.isPlaying) SetEditorPreviewFlags(portSettingsOverlay);
+            SelectPortSettingsDefaultControl();
+        }
+
+        private PortSettingsView AcquirePortSettingsView()
+        {
+            bool retain = Application.isPlaying && !editorPreviewBuilding;
+            PortSettingsView view = retain ? cachedPortSettingsView : null;
+            if (view == null)
+            {
+                PortSettingsView prefab = Resources.Load<PortSettingsView>("UI/PortSettings");
+                if (prefab != null && prefab.IsComplete)
+                {
+                    view = Instantiate(prefab, contentRoot.parent, false);
+                    view.name = "Port Settings Overlay";
+                    view.GetComponent<PrefabRuntimeSkinBindings>()?.Apply();
+                }
+                else
+                {
+                    // One-time editor export and deliberately resource-stripped fixtures.
+                    BuildPortSettingsLayout();
+                    view = portSettingsOverlay.gameObject.AddComponent<PortSettingsView>();
+                    view.CaptureBindings();
+                }
+                if (retain) cachedPortSettingsView = view;
+            }
+            return view;
+        }
+
+        private void BindPortSettingsView(PortSettingsView view)
+        {
+            portSettingsOverlay = (RectTransform)view.transform;
+            portSettingsOverlay.SetAsLastSibling();
+            portSettingsSheetGroup = view.Sheet;
+            portSettingsSheetGroup.interactable = true;
+            portSettingsSheetGroup.blocksRaycasts = true;
+            portSettingsMasterSlider = view.Master;
+            portSettingsMusicSlider = view.Music;
+            portSettingsEffectsSlider = view.Effects;
+            portSettingsFullScreenToggle = view.FullScreen;
+            portSettingsHint = view.Hint;
+            returnMenuButton = view.ReturnToMenu;
+            int revision = ++portSettingsBindingRevision;
+            BindPortSettingsSlider(view.Master, view.MasterValue, MainMenuController.MasterVolumeKey, .8f, revision);
+            BindPortSettingsSlider(view.Music, view.MusicValue, MainMenuController.MusicVolumeKey, .7f, revision);
+            BindPortSettingsSlider(view.Effects, view.EffectsValue, MainMenuController.EffectsVolumeKey, .8f, revision);
+            view.Master.interactable = true;
+            view.Music.interactable = true;
+            view.Effects.interactable = SoundEffectsEnabled;
+            view.FullScreen.SetIsOnWithoutNotify(PlayerPrefs.GetInt(MainMenuController.FullScreenKey, Screen.fullScreen ? 1 : 0) == 1);
+            view.Hint.text = Application.isPlaying ? "" : "编辑预览：不保存设置，不改变音量或全屏。";
+            view.Parchment.texture = cardWorkshopArt?.CollectionParchment ?? Resources.Load<Texture2D>("CardWorkshopV2/deck_builder_parchment_v2");
+            view.Parchment.enabled = view.Parchment.texture != null;
+            BindPortSettingsAction(view.Apply, ApplyPortSettings, revision);
+            BindPortSettingsAction(view.Close, ClosePortSettings, revision);
+            BindPortSettingsAction(view.ReturnToMenu, OpenReturnToMenuConfirmation, revision);
+            PortSettingsBackgroundFocusHandler focus = view.GetComponent<PortSettingsBackgroundFocusHandler>();
+            if (focus == null) focus = view.gameObject.AddComponent<PortSettingsBackgroundFocusHandler>();
+            focus.OnBackgroundPressed = FocusPortSettingsControl;
+            portSettingsOverlay.gameObject.SetActive(true);
+        }
+
+        private void BindPortSettingsAction(Button button, Action action, int revision)
+        {
+            button.onClick = new Button.ButtonClickedEvent();
+            button.onClick.AddListener(() =>
+            {
+                if (revision == portSettingsBindingRevision && portSettingsOverlay != null && portSettingsOverlay.gameObject.activeInHierarchy)
+                    action();
+            });
+        }
+
+        private void BindPortSettingsSlider(Slider slider, Text percent, string key, float fallback, int revision)
+        {
+            slider.onValueChanged = new Slider.SliderEvent();
+            slider.SetValueWithoutNotify(Mathf.Clamp01(PlayerPrefs.GetFloat(key, fallback)));
+            percent.text = Mathf.RoundToInt(slider.value * 100f) + "%";
+            slider.onValueChanged.AddListener(value =>
+            {
+                if (revision == portSettingsBindingRevision && portSettingsOverlay != null)
+                    percent.text = Mathf.RoundToInt(value * 100f) + "%";
+            });
+        }
+
+        private void BuildPortSettingsLayout()
+        {
             portSettingsOverlay = CreateStretchPanel("Port Settings Overlay", contentRoot.parent, new Color(0.075f, 0.04f, 0.015f, 0.76f));
             portSettingsOverlay.SetAsLastSibling();
             portSettingsOverlay.gameObject.AddComponent<PortSettingsBackgroundFocusHandler>().OnBackgroundPressed = FocusPortSettingsControl;
@@ -51,11 +160,9 @@ namespace ShatteredSail.Presentation
             portSettingsSheetGroup = sheet.gameObject.AddComponent<CanvasGroup>();
             Texture2D parchment = cardWorkshopArt == null ? null : cardWorkshopArt.CollectionParchment;
             if (parchment == null) parchment = Resources.Load<Texture2D>("CardWorkshopV2/deck_builder_parchment_v2");
-            if (parchment != null)
-            {
-                RawImage paper = CreateRawImage("Port Settings Parchment", sheet, new Vector2(1000f, 800f), Vector2.zero, parchment, new Rect(0f, 0f, 1f, 1f));
-                paper.raycastTarget = false;
-            }
+            RawImage paper = CreateRawImage("Port Settings Parchment", sheet, new Vector2(1000f, 800f), Vector2.zero, parchment, new Rect(0f, 0f, 1f, 1f));
+            paper.raycastTarget = false;
+            paper.enabled = parchment != null;
 
             Color ink = Html("#322215");
             Color mutedInk = Html("#665037");
@@ -87,22 +194,6 @@ namespace ShatteredSail.Presentation
             apply.onClick.AddListener(ApplyPortSettings);
             Button returnToMenu = BuildReturnToMenuSettingsButton(sheet);
 
-            Selectable[] controls = Array.FindAll(new Selectable[]
-                { portSettingsMasterSlider, portSettingsMusicSlider, portSettingsEffectsSlider, portSettingsFullScreenToggle, apply, close, returnToMenu },
-                control => control.interactable);
-            for (int index = 0; index < controls.Length; index += 1)
-            {
-                Navigation navigation = controls[index].navigation;
-                navigation.mode = Navigation.Mode.Explicit;
-                navigation.selectOnUp = controls[(index + controls.Length - 1) % controls.Length];
-                navigation.selectOnDown = controls[(index + 1) % controls.Length];
-                navigation.selectOnLeft = null;
-                navigation.selectOnRight = null;
-                controls[index].navigation = navigation;
-                controls[index].gameObject.AddComponent<PortSettingsCancelHandler>().OnCancelRequested = ClosePortSettings;
-            }
-            if (!Application.isPlaying) SetEditorPreviewFlags(portSettingsOverlay);
-            SelectPortSettingsDefaultControl();
         }
 
         private void FocusPortSettingsControl()
@@ -230,10 +321,17 @@ namespace ShatteredSail.Presentation
             {
                 GameObject overlay = portSettingsOverlay.gameObject;
                 overlay.SetActive(false);
+                // Keep only this small hierarchy; release the large borrowed paper.
+                PortSettingsView view = overlay.GetComponent<PortSettingsView>();
+                if (view != null && view.Parchment != null) view.Parchment.texture = null;
                 portSettingsOverlay = null;
-                if (Application.isPlaying) Destroy(overlay);
-                else DestroyImmediate(overlay);
+                if (cachedPortSettingsView == null || cachedPortSettingsView.gameObject != overlay)
+                {
+                    if (Application.isPlaying) Destroy(overlay); else DestroyImmediate(overlay);
+                }
+                QueueUnusedArtCollection(true);
             }
+            portSettingsBindingRevision++;
             portSettingsMasterSlider = null;
             portSettingsMusicSlider = null;
             portSettingsEffectsSlider = null;

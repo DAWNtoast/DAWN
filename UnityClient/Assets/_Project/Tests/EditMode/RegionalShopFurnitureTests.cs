@@ -1,11 +1,16 @@
 using System.Collections.Generic;
+using System.IO;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace ShatteredSail.Presentation.Tests
 {
     public sealed class RegionalShopFurnitureTests
     {
+        [TearDown]
+        public void ReleaseFurnitureMaterials() => RegionalShopFurniture.ReleaseGeneratedResources();
+
         [Test]
         public void SixPortsLoadDistinctCompleteNativeResolutionAtlases()
         {
@@ -19,7 +24,12 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(set.Atlas.height, Is.EqualTo(1024));
                 Assert.That(set.Pieces.Length, Is.EqualTo(6));
                 Assert.That(set.Material.shader.isSupported, Is.True);
-                Assert.That(set.Coverage.GetPixel(0, 0).r, Is.Zero);
+                Assert.That(set.Atlas.isReadable, Is.False, "The painted atlas needs no CPU pixel copy.");
+                Assert.That(set.Coverage.isReadable, Is.False, "Baked coverage needs no CPU pixel copy.");
+                Assert.That(set.Coverage.format, Is.EqualTo(TextureFormat.R8));
+                Assert.That(set.Coverage.width, Is.EqualTo(set.Atlas.width));
+                Assert.That(set.Coverage.height, Is.EqualTo(set.Atlas.height));
+                Assert.That(set.Material.GetTexture("_Coverage"), Is.SameAs(set.Coverage));
                 foreach (var piece in set.Pieces)
                 {
                     Assert.That(piece.Uv.xMin, Is.GreaterThanOrEqualTo(0));
@@ -28,6 +38,47 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(piece.Uv.yMax, Is.LessThanOrEqualTo(1));
                     Assert.That(piece.Size.x / piece.Size.y, Is.EqualTo(piece.Pixels.width / piece.Pixels.height).Within(0.001));
                 }
+            }
+        }
+
+        [TestCase("灰鸥港")]
+        [TestCase("白贝港")]
+        [TestCase("铜钟港")]
+        [TestCase("盐冠港")]
+        [TestCase("暮潮港")]
+        [TestCase("断锚港")]
+        public void BakedCoverageMatchesOriginalAlgorithmAtEverySourcePixel(string port)
+        {
+            string sourcePath = "Assets/_Project/Resources/" + RegionalShopFurniture.ResourcePath(port) + ".png";
+            string coveragePath = "Assets/_Project/Resources/" + RegionalShopFurniture.CoverageResourcePath(port) + ".png";
+            var source = new Texture2D(2, 2, TextureFormat.RGB24, false);
+            var baked = new Texture2D(2, 2, TextureFormat.RGB24, false, true);
+            Texture2D expected = null;
+            try
+            {
+                Assert.That(source.LoadImage(File.ReadAllBytes(sourcePath)), Is.True);
+                Assert.That(baked.LoadImage(File.ReadAllBytes(coveragePath)), Is.True);
+                expected = RegionalShopFurniture.BuildCoverage(source);
+                Assert.That(baked.width, Is.EqualTo(expected.width));
+                Assert.That(baked.height, Is.EqualTo(expected.height));
+                Color32[] expectedPixels = expected.GetPixels32(), bakedPixels = baked.GetPixels32();
+                int differences = 0;
+                for (int index = 0; index < expectedPixels.Length; index++)
+                    if (expectedPixels[index].r != bakedPixels[index].r) differences++;
+                Assert.That(differences, Is.Zero, "All 1,572,864 coverage samples must match the original flood-fill/edge contraction.");
+                Assert.That(bakedPixels[0].r, Is.Zero);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(coveragePath);
+                Assert.That(importer.sRGBTexture, Is.False, "Coverage is linear, including the original 180/255 boundary samples.");
+                Assert.That(importer.mipmapEnabled, Is.False);
+                Assert.That(importer.filterMode, Is.EqualTo(FilterMode.Bilinear));
+                Assert.That(importer.wrapMode, Is.EqualTo(TextureWrapMode.Clamp));
+                Assert.That(importer.GetPlatformTextureSettings("Standalone").format, Is.EqualTo(TextureImporterFormat.R8));
+            }
+            finally
+            {
+                if (expected != null) Object.DestroyImmediate(expected);
+                Object.DestroyImmediate(baked);
+                Object.DestroyImmediate(source);
             }
         }
 

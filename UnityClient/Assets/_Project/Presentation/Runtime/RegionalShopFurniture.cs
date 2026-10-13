@@ -5,7 +5,7 @@ using UnityEngine;
 namespace ShatteredSail.Presentation
 {
     /// <summary>Six separately painted furniture atlases, with measured local bearing points.
-    /// Source PNGs are immutable. The material masks the pale export matte and enclosed gaps.
+    /// Source PNGs are immutable. Offline coverage masks remove the pale export matte and enclosed gaps.
     /// No port is represented by tinting another port's furniture.</summary>
     public sealed class RegionalShopFurniture
     {
@@ -46,12 +46,10 @@ namespace ShatteredSail.Presentation
                 if (Application.isPlaying)
                 {
                     UnityEngine.Object.Destroy(value.Material);
-                    UnityEngine.Object.Destroy(value.Coverage);
                 }
                 else
                 {
                     UnityEngine.Object.DestroyImmediate(value.Material);
-                    UnityEngine.Object.DestroyImmediate(value.Coverage);
                 }
                 released.Add(pair.Key);
             }
@@ -70,6 +68,11 @@ namespace ShatteredSail.Presentation
             int index = Array.IndexOf(Ports, port);
             return index < 0 ? string.Empty : "ComponentShopRegional/furniture_" + Slugs[index] + "_v1";
         }
+        public static string CoverageResourcePath(string port)
+        {
+            string atlas = ResourcePath(port);
+            return string.IsNullOrEmpty(atlas) ? string.Empty : atlas + "_coverage";
+        }
         public static RegionalShopFurniture For(string port)
         {
             int index = Array.IndexOf(Ports, port);
@@ -77,10 +80,17 @@ namespace ShatteredSail.Presentation
             if (Cache.TryGetValue(port, out RegionalShopFurniture cached) && cached.Atlas != null) return cached;
             Texture2D atlas = Resources.Load<Texture2D>(ResourcePath(port));
             if (atlas == null) return null;
+            Texture2D coverage = Resources.Load<Texture2D>(CoverageResourcePath(port));
+            if (coverage == null)
+            {
+                Debug.LogError("Missing baked regional furniture coverage: " + CoverageResourcePath(port));
+                return null;
+            }
             atlas.filterMode = FilterMode.Bilinear;
             atlas.wrapMode = TextureWrapMode.Clamp;
-            var result = new RegionalShopFurniture { Atlas = atlas, Pieces = Describe(index) };
-            result.Coverage = BuildCoverage(atlas);
+            // Both textures are borrowed Resources assets. Keep no CPU pixel
+            // copy and never destroy them while a live Graphic may own them.
+            var result = new RegionalShopFurniture { Atlas = atlas, Coverage = coverage, Pieces = Describe(index) };
             result.Material = new Material(Resources.Load<Shader>("Shaders/RegionalFurniture"))
             { name = "Regional Furniture · " + port, hideFlags = HideFlags.HideAndDontSave };
             result.Material.SetTexture("_Coverage", result.Coverage);
@@ -156,6 +166,9 @@ namespace ShatteredSail.Presentation
             return pieces;
         }
 
+#if UNITY_EDITOR
+        // The unchanged coverage algorithm is used only by the offline baker
+        // and pixel-equivalence tests, never when opening a shop in a player.
         public static bool IsExportMatte(Color32 c) => c.r >= 192 && c.g >= 192 && c.b >= 192 &&
             Math.Max(c.r, Math.Max(c.g, c.b)) - Math.Min(c.r, Math.Min(c.g, c.b)) <= 16;
 
@@ -217,5 +230,6 @@ namespace ShatteredSail.Presentation
             texture.SetPixels32(mask); texture.Apply(false, false);
             return texture;
         }
+#endif
     }
 }

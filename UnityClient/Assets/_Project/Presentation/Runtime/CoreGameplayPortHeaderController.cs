@@ -37,23 +37,15 @@ namespace ShatteredSail.Presentation
         private RectTransform CreateVoyageHeader(string headerName, string frameName,
             string title, out PortHeaderTheme theme)
         {
-            if (headerTitle != null && headerTitle.transform.parent != null)
-            {
-                // Keep the legacy Header object active for editor preview compatibility,
-                // but remove its visuals so the regional carved frame is the only surface rendered.
-                Transform legacyHeader = headerTitle.transform.parent;
-                Image legacyImage = legacyHeader.GetComponent<Image>();
-                if (legacyImage != null) legacyImage.enabled = false;
-                headerTitle.enabled = false;
-                if (headerStatus != null) headerStatus.enabled = false;
-            }
+            HideLegacyVoyageHeaderVisuals();
 
             EnsurePortHeaderArt();
             string departurePort = session != null && session.Map != null &&
                 !string.IsNullOrEmpty(session.Map.DepartureName)
                 ? session.Map.DepartureName
                 : session == null ? string.Empty : session.CurrentPort;
-            theme = portHeaderArt.ForPort(departurePort);
+            bool navigation = session != null && (session.Phase == CoreDemoPhase.Sailing || session.Phase == CoreDemoPhase.Encounter);
+            theme = portHeaderArt.ForPort(departurePort, navigation ? NavigationHeaderSkin.HeaderFrame : null);
 
             float headerHeight = PhaseSurfaceLayout.GetHeaderHeight(tutorialActive);
             RectTransform header = CreateFixedPanel(headerName, contentRoot,
@@ -91,8 +83,23 @@ namespace ShatteredSail.Presentation
             return header;
         }
 
+        private void HideLegacyVoyageHeaderVisuals()
+        {
+            if (headerTitle != null && headerTitle.transform.parent != null)
+            {
+                // Keep the legacy Header object active for editor preview compatibility,
+                // but remove its visuals so the regional carved frame is the only surface rendered.
+                Transform legacyHeader = headerTitle.transform.parent;
+                Image legacyImage = legacyHeader.GetComponent<Image>();
+                if (legacyImage != null) legacyImage.enabled = false;
+                headerTitle.enabled = false;
+                if (headerStatus != null) headerStatus.enabled = false;
+            }
+        }
+
         private void BuildVoyageHeader(string title)
         {
+            if (TryBuildPrefabVoyageHeader(title)) return;
             RectTransform header = CreateVoyageHeader("Voyage Header", "Voyage Header Frame", title,
                 out PortHeaderTheme theme);
             if (session == null || (session.Phase != ShatteredSail.Core.Gameplay.CoreDemoPhase.Sailing &&

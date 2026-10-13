@@ -377,6 +377,71 @@ namespace ShatteredSail.Presentation.Tests
             finally { catalog.Dispose(); }
         }
 
+        [Test]
+        public void PortHeaders_SuppliedNavigationFrameKeepsRegionalAccentsWithoutLoadingRegionalTextures()
+        {
+            var requests = new List<string>();
+            var texture = new Texture2D(128, 128);
+            Sprite navigation = Sprite.Create(texture, new Rect(0, 0, 128, 128), Vector2.one * .5f);
+            var catalog = Create<PortHeaderArtCatalog>(path => { requests.Add(path); return texture; });
+            try
+            {
+                foreach (string port in RegionalShopFurniture.Ports)
+                {
+                    PortHeaderTheme supplied = catalog.ForPort(port, navigation);
+                    Assert.That(supplied.Frame, Is.SameAs(navigation));
+                    Assert.That(supplied.FrameHeight, Is.EqualTo(128));
+                }
+                Assert.That(requests, Is.Empty, "Navigation must not load regional textures it immediately replaces.");
+                foreach (string port in RegionalShopFurniture.Ports)
+                    Assert.That(catalog.ForPort(port, navigation).Accent, Is.EqualTo(catalog.ForPort(port).Accent));
+                Assert.That(requests.Count, Is.EqualTo(6), "A missing supplied frame retains the original regional loading path.");
+                catalog.Dispose();
+                Assert.That(navigation != null, Is.True, "The supplied frame belongs to its own skin, not this catalog.");
+            }
+            finally
+            {
+                catalog.Dispose();
+                UnityEngine.Object.DestroyImmediate(navigation);
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
+        public void PortHeaders_ReleaseUnusedThemesUnpinsBorrowedFramesAndKeepsTheCurrentPort()
+        {
+            var texture = new Texture2D(128, 128);
+            var catalog = Create<PortHeaderArtCatalog>(_ => texture);
+            Sprite oldFrame = null;
+            try
+            {
+                oldFrame = catalog.ForPort("断锚港").Frame;
+                PortHeaderTheme current = catalog.ForPort("白贝港");
+                catalog.ReleaseUnusedThemes("白贝港");
+                Assert.That(catalog.ForPort("白贝港"), Is.SameAs(current));
+                Assert.That(oldFrame != null, Is.True, "An Image may still own this frame; release must never destroy it.");
+                Assert.That(oldFrame.hideFlags & HideFlags.DontUnloadUnusedAsset, Is.EqualTo(HideFlags.None));
+                Assert.That(current.Frame.hideFlags & HideFlags.DontUnloadUnusedAsset, Is.EqualTo(HideFlags.DontUnloadUnusedAsset));
+                Assert.That(catalog.ForPort("断锚港").Frame, Is.Not.SameAs(oldFrame));
+            }
+            finally
+            {
+                catalog.Dispose();
+                if (oldFrame != null) UnityEngine.Object.DestroyImmediate(oldFrame);
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        [TestCase("UI/PortHubHeader", true)]
+        [TestCase("UI/PortFacilityHeader", false)]
+        public void PortHeaderPrefabs_DoNotPinAnyDefaultRegionalFrame(string path, bool hub)
+        {
+            PortHeaderView prefab = Resources.Load<PortHeaderView>(path);
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.IsComplete(hub), Is.True);
+            Assert.That(prefab.Frame.sprite, Is.Null, "The controller binds the current region before making the view visible.");
+        }
+
         private static T Create<T>(Func<string, Texture2D> loader) => (T)Create(typeof(T), loader);
 
         private static Texture2D RequestOneTexture(object catalog)

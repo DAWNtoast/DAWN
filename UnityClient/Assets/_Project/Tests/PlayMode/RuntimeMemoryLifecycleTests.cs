@@ -53,12 +53,16 @@ namespace ShatteredSail.Presentation.Tests
             var furniture = RegionalShopFurniture.For("断锚港");
             Texture coverage = furniture.Coverage;
             Material material = furniture.Material;
+            var borrowedCoverageHost = new GameObject("Borrowed Furniture Coverage", typeof(RectTransform), typeof(RawImage));
+            borrowedCoverageHost.GetComponent<RawImage>().texture = coverage;
             Assert.That(material, Is.Not.Null);
             Assert.That(coverage, Is.Not.Null);
             ActiveButton("Return To Port Hub").onClick.Invoke();
             yield return new WaitForSecondsRealtime(.8f);
             Assert.That(material == null, Is.True, "Generated material is destroyed once its shop is gone.");
-            Assert.That(coverage == null, Is.True);
+            Assert.That(coverage != null, Is.True, "Imported coverage must survive while another live Graphic borrows it.");
+            Assert.That(Resources.Load<Texture2D>(RegionalShopFurniture.CoverageResourcePath("断锚港")), Is.SameAs(coverage));
+            Object.Destroy(borrowedCoverageHost);
             ActiveButton("Port Hotspot ComponentShop").onClick.Invoke();
             yield return new WaitForSecondsRealtime(.8f);
             var reloaded = RegionalShopFurniture.For("断锚港");

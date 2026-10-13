@@ -52,6 +52,7 @@ namespace ShatteredSail.Presentation
                 return;
             }
             bool port = session != null && session.Phase == CoreDemoPhase.Port;
+            ParkUnusedVoyageHeader();
             ParkPortView(cachedFacilityHeader, !port || activePortFacility < 0);
             ParkPortView(cachedHubHeader, !port || activePortFacility >= 0);
             ParkPortView(cachedPortBackdrop, !port);
@@ -59,7 +60,7 @@ namespace ShatteredSail.Presentation
             for (int index = contentRoot.childCount - 1; index >= 0; index--)
             {
                 Transform child = contentRoot.GetChild(index);
-                if (IsRetainedPortChrome(child)) continue;
+                if (IsRetainedPortChrome(child) || IsRetainedVoyageHeader(child)) continue;
                 child.gameObject.SetActive(false);
                 Destroy(child.gameObject);
             }
@@ -73,8 +74,14 @@ namespace ShatteredSail.Presentation
 
         private void ParkPortView(Component view, bool park)
         {
-            if (view == null || !park || view.transform.parent != contentRoot) return;
+            if (view == null || !park) return;
             view.gameObject.SetActive(false);
+            // Keep the inexpensive hierarchy for reuse, but do not let an
+            // invisible header/background retain a previous port's large art.
+            // The binding methods restore these references before activation.
+            if (view is RawImage backdrop) backdrop.texture = null;
+            if (view is PortHeaderView header && header.Frame != null) header.Frame.sprite = null;
+            if (view.transform.parent != contentRoot) return;
             if (portViewCacheRoot == null)
             {
                 portViewCacheRoot = CreateRect("Port View Cache", transform, Vector2.zero, Vector2.zero);

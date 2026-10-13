@@ -15,6 +15,15 @@ namespace ShatteredSail.Presentation
         private static Sprite headerFace;
         private static Sprite compassFace;
 
+        public static Sprite HeaderFrame
+        {
+            get
+            {
+                if (headerFace == null) headerFace = LoadSprite(HeaderResourcePath, "Navigation Walnut Header", true);
+                return headerFace;
+            }
+        }
+
         static NavigationHeaderSkin()
         {
             Application.quitting += Release;
@@ -35,14 +44,14 @@ namespace ShatteredSail.Presentation
             }
 
             Image frame = Child(header, "Voyage Header Frame")?.GetComponent<Image>();
-            if (headerFace == null) headerFace = LoadSprite(HeaderResourcePath, "Navigation Walnut Header", true);
-            if (frame != null && headerFace != null)
+            Sprite face = HeaderFrame;
+            if (frame != null && face != null)
             {
-                frame.sprite = headerFace;
+                frame.sprite = face;
                 frame.type = Image.Type.Sliced;
                 frame.fillCenter = true;
                 frame.preserveAspect = false;
-                frame.pixelsPerUnitMultiplier = headerFace.border.x / 8f;
+                frame.pixelsPerUnitMultiplier = face.border.x / 8f;
                 frame.color = Color.white;
                 frame.raycastTarget = false;
             }

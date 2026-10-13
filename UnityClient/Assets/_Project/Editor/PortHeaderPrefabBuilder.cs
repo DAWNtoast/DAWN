@@ -60,6 +60,14 @@ namespace ShatteredSail.Editor
                 int index = 0;
                 foreach (Image image in copy.GetComponentsInChildren<Image>(true))
                 {
+                    // Regional frame art is always assigned by the controller
+                    // before activation. Serializing a default frame would pin
+                    // that port's large texture through the loaded prefab.
+                    if (image.name == (hub ? "Port Hub Frame" : "Port Facility Frame"))
+                    {
+                        image.sprite = null;
+                        continue;
+                    }
                     Sprite sprite = image.sprite;
                     if (sprite == null || EditorUtility.IsPersistent(sprite)) continue;
                     if (!sprites.TryGetValue(sprite, out Sprite persistent))

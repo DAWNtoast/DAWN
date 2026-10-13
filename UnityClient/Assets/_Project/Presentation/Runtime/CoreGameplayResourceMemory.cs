@@ -18,12 +18,15 @@ namespace ShatteredSail.Presentation
             runtimeArtScope = null;
         }
 
-        private void QueueUnusedArtCollection()
+        private void QueueUnusedArtCollection(bool force = false)
         {
             if (!Application.isPlaying || !isActiveAndEnabled || editorPreviewBuilding || session == null) return;
             string scope = session.Phase + ":" + (session.Phase == CoreDemoPhase.Port
                 ? session.CurrentPort + ":" + activePortFacility : string.Empty);
-            if (scope == runtimeArtScope) return;
+            // Closing a retained modal can release large art without changing
+            // the underlying page. Forced requests share the same revision and
+            // coroutine, so rapid close/reopen still produces one deferred scan.
+            if (scope == runtimeArtScope && !force) return;
             runtimeArtScope = scope;
             runtimeArtRevision++;
             if (runtimeArtCollection == null) runtimeArtCollection = StartCoroutine(CollectUnusedArt());
@@ -57,6 +60,7 @@ namespace ShatteredSail.Presentation
             CardSchoolArtCatalog.ReleaseLoadedTextures();
             DeckListArtCatalog.ReleaseLoadedTextures();
             portArt?.ReleaseLoadedTextures();
+            portHeaderArt?.ReleaseUnusedThemes(session.Phase == CoreDemoPhase.Port ? session.CurrentPort : null);
             portMapIcons?.ReleaseLoadedTextures();
             battleEnvironmentArt?.ReleaseLoadedTextures();
             componentArt?.ReleaseLoadedTextures();
@@ -85,8 +89,8 @@ namespace ShatteredSail.Presentation
             NavigationLookoutArtCatalog.ReleaseLoadedTextures();
             CardSchoolArtCatalog.ReleaseLoadedTextures();
             DeckListArtCatalog.ReleaseLoadedTextures();
-            // The previous gameplay scene is gone. Its generated furniture
-            // masks/materials can now be released without affecting a shop.
+            // The previous gameplay scene is gone. Release generated furniture
+            // materials and references to the imported atlas/coverage textures.
             RegionalShopFurniture.ReleaseGeneratedResources();
             ItemIconCatalog.ReleaseLoadedTextures();
             AchievementIconCatalog.ReleaseLoadedTextures();

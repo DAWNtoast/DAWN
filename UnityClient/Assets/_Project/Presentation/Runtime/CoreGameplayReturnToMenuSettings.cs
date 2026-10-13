@@ -15,6 +15,8 @@ namespace ShatteredSail.Presentation
         private Button returnMenuCancelButton;
         private Text returnMenuMessage;
         private bool returnMenuSaving;
+        private ReturnToMenuConfirmationView cachedReturnMenuView;
+        private int returnMenuBindingRevision;
 
         private Button BuildReturnToMenuSettingsButton(RectTransform sheet)
         {
@@ -47,6 +49,61 @@ namespace ShatteredSail.Presentation
 
             portSettingsSheetGroup.interactable = false;
             portSettingsSheetGroup.blocksRaycasts = false;
+            bool retain = Application.isPlaying && !editorPreviewBuilding;
+            ReturnToMenuConfirmationView view = retain ? cachedReturnMenuView : null;
+            if (view == null)
+            {
+                ReturnToMenuConfirmationView prefab = Resources.Load<ReturnToMenuConfirmationView>("UI/ReturnToMenuConfirmation");
+                if (prefab != null && prefab.IsComplete)
+                {
+                    view = Instantiate(prefab, portSettingsOverlay, false);
+                    view.name = "Return To Main Menu Confirmation";
+                    view.GetComponent<PrefabRuntimeSkinBindings>()?.Apply();
+                }
+                else
+                {
+                    BuildReturnToMenuConfirmationLayout();
+                    view = returnMenuConfirmation.gameObject.AddComponent<ReturnToMenuConfirmationView>();
+                    view.CaptureBindings();
+                }
+                if (retain) cachedReturnMenuView = view;
+            }
+            returnMenuConfirmation = (RectTransform)view.transform;
+            returnMenuConfirmation.SetAsLastSibling();
+            returnMenuMessage = view.Message;
+            returnMenuCancelButton = view.Cancel;
+            returnMenuConfirmButton = view.Confirm;
+            returnMenuMessage.text = session != null && session.Phase == CoreDemoPhase.Port
+                ? "保存港口进度，下次可继续。\n未应用的设置不保存。"
+                : "保存航程，下次可继续航行。\n未应用的设置不保存。";
+            int revision = ++returnMenuBindingRevision;
+            view.Cancel.onClick = new Button.ButtonClickedEvent();
+            view.Confirm.onClick = new Button.ButtonClickedEvent();
+            view.Cancel.onClick.AddListener(() => { if (revision == returnMenuBindingRevision) CloseReturnToMenuConfirmation(); });
+            view.Confirm.onClick.AddListener(() => { if (revision == returnMenuBindingRevision) ConfirmReturnToMainMenu(); });
+            foreach (Button control in new[] { view.Cancel, view.Confirm })
+            {
+                control.interactable = true;
+                Button other = control == view.Cancel ? view.Confirm : view.Cancel;
+                control.navigation = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnUp = other, selectOnDown = other, selectOnLeft = other, selectOnRight = other,
+                };
+                PortSettingsCancelHandler cancel = control.GetComponent<PortSettingsCancelHandler>();
+                if (cancel == null) cancel = control.gameObject.AddComponent<PortSettingsCancelHandler>();
+                cancel.OnCancelRequested = () => { if (revision == returnMenuBindingRevision) CloseReturnToMenuConfirmation(); };
+            }
+            PortSettingsBackgroundFocusHandler focus = view.GetComponent<PortSettingsBackgroundFocusHandler>();
+            if (focus == null) focus = view.gameObject.AddComponent<PortSettingsBackgroundFocusHandler>();
+            focus.OnBackgroundPressed = FocusReturnToMenuConfirmation;
+            returnMenuConfirmation.gameObject.SetActive(true);
+            if (!Application.isPlaying) SetEditorPreviewFlags(returnMenuConfirmation);
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(view.Cancel.gameObject);
+        }
+
+        private void BuildReturnToMenuConfirmationLayout()
+        {
             returnMenuConfirmation = CreateStretchPanel("Return To Main Menu Confirmation", portSettingsOverlay,
                 new Color(0.075f, 0.04f, 0.015f, 0.8f));
             RectTransform owner = returnMenuConfirmation;
@@ -68,29 +125,6 @@ namespace ShatteredSail.Presentation
                 new Vector2(-205f, -126f), "取消 · 继续游戏", Html("#705136"));
             returnMenuConfirmButton = CreatePortSettingsButton("Confirm Return To Main Menu", card,
                 new Vector2(205f, -126f), "保存并返回", Html("#98682D"));
-            returnMenuCancelButton.onClick.AddListener(() =>
-            {
-                if (owner != null && owner == returnMenuConfirmation) CloseReturnToMenuConfirmation();
-            });
-            returnMenuConfirmButton.onClick.AddListener(() =>
-            {
-                if (owner != null && owner == returnMenuConfirmation) ConfirmReturnToMainMenu();
-            });
-            foreach (Button control in new[] { returnMenuCancelButton, returnMenuConfirmButton })
-            {
-                Button other = control == returnMenuCancelButton ? returnMenuConfirmButton : returnMenuCancelButton;
-                control.navigation = new Navigation
-                {
-                    mode = Navigation.Mode.Explicit,
-                    selectOnUp = other, selectOnDown = other, selectOnLeft = other, selectOnRight = other,
-                };
-                control.gameObject.AddComponent<PortSettingsCancelHandler>().OnCancelRequested = () =>
-                {
-                    if (owner != null && owner == returnMenuConfirmation) CloseReturnToMenuConfirmation();
-                };
-            }
-            if (!Application.isPlaying) SetEditorPreviewFlags(owner);
-            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(returnMenuCancelButton.gameObject);
         }
 
         private void FocusReturnToMenuConfirmation()
@@ -107,7 +141,11 @@ namespace ShatteredSail.Presentation
             GameObject confirmation = returnMenuConfirmation.gameObject;
             confirmation.SetActive(false);
             returnMenuConfirmation = null;
-            if (Application.isPlaying) Destroy(confirmation); else DestroyImmediate(confirmation);
+            returnMenuBindingRevision++;
+            if (cachedReturnMenuView == null || cachedReturnMenuView.gameObject != confirmation)
+            {
+                if (Application.isPlaying) Destroy(confirmation); else DestroyImmediate(confirmation);
+            }
             returnMenuConfirmButton = null;
             returnMenuCancelButton = null;
             returnMenuMessage = null;
