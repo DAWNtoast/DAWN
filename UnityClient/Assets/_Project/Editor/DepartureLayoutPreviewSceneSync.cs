@@ -23,6 +23,7 @@ namespace ShatteredSail.Editor
         /// </summary>
         public static void SyncDepartureLayoutFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Departure layout synchronization requires stopped edit mode.");
             DepartureLayoutPatch[] patches = ChartSeedReferencePaths.Select(PrepareDepartureLayoutPatch).ToArray();
@@ -47,6 +48,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureDepartureLayoutFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncDepartureLayoutFromCommandLine();
             UIPreviewSceneAcceptance.CaptureDepartureLayoutFromCommandLine();
         }

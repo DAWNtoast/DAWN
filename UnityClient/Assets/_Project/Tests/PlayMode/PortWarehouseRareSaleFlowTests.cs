@@ -29,7 +29,7 @@ namespace ShatteredSail.Presentation.Tests
             float initialVolume = session.Cargo.UsedVolume;
             yield return OpenRareWarehouse();
             Assert.That(GameObject.Find("Warehouse Rare Hint").GetComponent<Text>().text,
-                Does.Contain("高阶捐献").And.Contain("海上事件").And.Contain("最多4盏"));
+                Is.EqualTo("点击物品查看详情、存取或出售"));
             foreach (string key in RareWarehouseTestKeys)
             {
                 ClickAcceptanceButton("Warehouse Rare Row " + key); yield return null;

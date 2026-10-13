@@ -318,7 +318,7 @@ namespace ShatteredSail.Presentation.Tests
         [UnityTest]
         public IEnumerator QueuedOutcome_WaitsForANaturalTailWithoutExceedingTheBudget()
         {
-            string[] regular = { "sail_step", "sail_depart", "encounter_enter", "dispatch_complete", "investment_build", "curse_purify" };
+            string[] regular = { "sail_step", "sail_depart", "encounter_enter", "investment_build", "curse_purify", "milestone_unlock" };
             foreach (string key in regular)
             {
                 CacheCue("worldSfxClipCache", key);
@@ -378,5 +378,36 @@ namespace ShatteredSail.Presentation.Tests
         private T Field<T>(string name) => (T)typeof(CoreGameplayDemoController).GetField(name, PrivateInstance).GetValue(controller);
         private void SetField(string name, object value) => typeof(CoreGameplayDemoController).GetField(name, PrivateInstance).SetValue(controller, value);
         private void Invoke(string name, params object[] args) => typeof(CoreGameplayDemoController).GetMethod(name, PrivateInstance).Invoke(controller, args);
+    }
+
+    public sealed class GameplayFacilityAmbienceTests
+    {
+        [TestCase(PortFacilityArtCatalog.TreasureFacilityIndex, "treasure_workbench_ambience")]
+        [TestCase(PortFacilityArtCatalog.MaintenanceFacilityIndex, "market_ambience")]
+        [TestCase(PortFacilityArtCatalog.VoyageFacilityIndex, "harbor_ambience")]
+        [TestCase(PortFacilityArtCatalog.MarketFacilityIndex, "market_ambience")]
+        public void PortFacility_ResolvesItsExpectedAmbienceWithoutInitializingAudio(int facilityIndex, string expectedKey)
+        {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var host = new GameObject("Inactive Facility Ambience Test Controller");
+            host.SetActive(false);
+            try
+            {
+                var controller = host.AddComponent<CoreGameplayDemoController>();
+                Assert.That(controller.Session, Is.Null);
+                typeof(CoreGameplayDemoController).GetField("session", flags).SetValue(controller, new CoreVoyageSession());
+                typeof(CoreGameplayDemoController).GetField("activePortFacility", flags).SetValue(controller, facilityIndex);
+
+                string ambience = (string)typeof(CoreGameplayDemoController)
+                    .GetMethod("ResolveDesiredAmbienceKey", flags).Invoke(controller, null);
+
+                Assert.That(ambience, Is.EqualTo(expectedKey));
+                Assert.That(host.GetComponentsInChildren<AudioSource>(true), Is.Empty);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
     }
 }

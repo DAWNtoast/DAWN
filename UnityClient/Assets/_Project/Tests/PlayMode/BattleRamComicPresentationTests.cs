@@ -17,20 +17,20 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
-        public IEnumerator RamComic_PlayerHeadOn_ShowsFourPanelsFullPageAndDiagonalTransitionBeforeBoarding() =>
-            ExerciseRamComic(false, NavalBattleAlignment.HeadOn, false);
+        public IEnumerator RamComic_PlayerHeadOn_ClicksFourFullscreenPanelsBeforeBoarding() =>
+            ExerciseRamComic(false, NavalBattleAlignment.HeadOn);
 
         [UnityTest]
-        public IEnumerator RamComic_PlayerBroadside_SkipKeepsOneCommittedRamAndPlayerInitiative() =>
-            ExerciseRamComic(false, NavalBattleAlignment.EnemyBroadside, true);
+        public IEnumerator RamComic_PlayerBroadside_ClicksKeepOneCommittedRamAndPlayerInitiative() =>
+            ExerciseRamComic(false, NavalBattleAlignment.EnemyBroadside);
 
         [UnityTest]
-        public IEnumerator RamComic_BossHeadOn_ShowsFourPanelsAndAppliesExactlyOneOpening() =>
-            ExerciseRamComic(true, NavalBattleAlignment.HeadOn, false);
+        public IEnumerator RamComic_BossHeadOn_ClicksFourPanelsAndAppliesExactlyOneOpening() =>
+            ExerciseRamComic(true, NavalBattleAlignment.HeadOn);
 
         [UnityTest]
-        public IEnumerator RamComic_BossBroadside_SkipKeepsOneOpeningAndEnemyInitiative() =>
-            ExerciseRamComic(true, NavalBattleAlignment.EnemyBroadside, true);
+        public IEnumerator RamComic_BossBroadside_ClicksKeepOneOpeningAndEnemyInitiative() =>
+            ExerciseRamComic(true, NavalBattleAlignment.EnemyBroadside);
 
         [Test]
         public void RamComic_BossParallel_SelectsTheBroadsideResource()
@@ -42,7 +42,7 @@ namespace ShatteredSail.Presentation.Tests
                 var controller = host.AddComponent<CoreGameplayDemoController>();
                 MethodInfo select = typeof(CoreGameplayDemoController).GetMethod("RamComicTexture", BindingFlags.Instance | BindingFlags.NonPublic);
                 Assert.That(select, Is.Not.Null);
-                var expected = Resources.Load<Texture2D>("BattleComics/ram_boss_broadside_v1");
+                var expected = Resources.Load<Texture2D>(RamComicCatalog.ImageResource(true, NavalBattleAlignment.EnemyBroadside, 0));
                 Assert.That(expected, Is.Not.Null, "The authored enemy broadside page is required.");
                 Assert.That(select.Invoke(controller, new object[] { true, NavalBattleAlignment.Parallel }), Is.SameAs(expected));
                 Assert.That(select.Invoke(controller, new object[] { true, NavalBattleAlignment.EnemyBroadside }), Is.SameAs(expected));
@@ -63,7 +63,7 @@ namespace ShatteredSail.Presentation.Tests
                 UnityEvent oldRam = RequiredResponsive<Button>("Battle Ram").onClick;
                 ClickAcceptanceButton("Battle Ram");
                 yield return WaitForRamComic(controller);
-                UnityEvent oldSkip = RequiredResponsive<Button>("Battle Ram Comic Skip").onClick;
+                UnityEvent oldAdvance = RequiredResponsive<Button>("Battle Ram Comic Advance").onClick;
                 string committed = RamComicCoreState(session);
 
                 controller.enabled = false;
@@ -74,7 +74,7 @@ namespace ShatteredSail.Presentation.Tests
                 controller.enabled = true;
                 yield return null;
                 yield return null;
-                oldSkip.Invoke();
+                oldAdvance.Invoke();
                 oldRam.Invoke();
                 yield return null;
 
@@ -107,22 +107,17 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(session.Phase, Is.EqualTo(enemy ? CoreDemoPhase.Settlement : CoreDemoPhase.Sailing));
                     if (enemy) Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
                     string committed = RamComicCoreState(session);
-                    string resultStep = enemy ? "4 / 4" : "撞击结算";
-                    var shown = new List<string>();
-                    float deadline = Time.realtimeSinceStartup + 12f;
-                    while (GameObject.Find("Battle Ram Comic Overlay") != null && Time.realtimeSinceStartup < deadline)
+                    int panelCount = enemy ? 4 : 2;
+                    for (int panel = 0; panel < panelCount; panel++)
                     {
-                        string step = RequiredResponsive<Text>("Battle Ram Comic Step").text;
-                        if (step == resultStep) break;
-                        if (shown.Count == 0 || shown[shown.Count - 1] != step) shown.Add(step);
-                        yield return null;
+                        Texture2D expected = Resources.Load<Texture2D>(RamComicCatalog.ImageResource(enemy, NavalBattleAlignment.HeadOn, panel));
+                        AssertRamComicPresentation(controller, expected, panel);
+                        yield return new WaitForSecondsRealtime(1f);
+                        AssertRamComicPresentation(controller, expected, panel);
+                        Assert.That(RamComicCoreState(session), Is.EqualTo(committed));
+                        ClickRamComicScreen(new Vector2(.5f, .5f));
+                        if (panel + 1 < panelCount) yield return WaitForRamComicPanel(controller, panel + 1);
                     }
-                    Assert.That(RequiredResponsive<Text>("Battle Ram Comic Step").text, Is.EqualTo(resultStep));
-                    if (!enemy) Assert.That(shown, Is.EqualTo(new[] { "1 / 4", "2 / 4" }),
-                        "Hull sinking must not display the later boarding panels or the complete boarding page.");
-                    Assert.That(RequiredResponsive<Text>("Battle Ram Comic Caption").text,
-                        Does.Contain(enemy ? "我方失去战斗力" : "敌舰沉没").And.Not.Contain("转入接舷近战"));
-                    ClickAcceptanceButton("Battle Ram Comic Skip");
                     yield return WaitResponsiveBattle(controller);
                     Assert.That(RamComicCoreState(session), Is.EqualTo(committed));
                     Assert.That(GameObject.Find("Battle Ram Comic Overlay"), Is.Null);
@@ -144,7 +139,9 @@ namespace ShatteredSail.Presentation.Tests
                     yield return LoadResponsiveBattleScene();
                     var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
                     CoreVoyageSession session = ArrangeRamComicBattle(controller, enemy, NavalBattleAlignment.HeadOn);
-                    int index = enemy ? 2 : 0;
+                    // Cover a missing first page and a missing later page: both
+                    // must reject the sequence before displaying any artwork.
+                    int index = RamComicCatalog.SequenceIndex(enemy, NavalBattleAlignment.HeadOn) * RamComicCatalog.PagesPerSequence + (enemy ? 2 : 0);
                     ((bool[])RamComicField("ramComicLoadAttempted").GetValue(controller))[index] = true;
                     ((Texture2D[])RamComicField("ramComicTextures").GetValue(controller))[index] = null;
                     RenderResponsiveBattle(controller);
@@ -172,7 +169,7 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
-        private static IEnumerator ExerciseRamComic(bool enemy, NavalBattleAlignment alignment, bool skip)
+        private static IEnumerator ExerciseRamComic(bool enemy, NavalBattleAlignment alignment)
         {
             using (var storage = new VoyageCargoStorageScope())
             {
@@ -192,15 +189,15 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.IsBattleAnimationPlaying, Is.True);
                 yield return WaitForRamComic(controller);
                 bool headOn = alignment == NavalBattleAlignment.HeadOn;
-                string path = "BattleComics/ram_" + (enemy ? "boss_" : "player_") + (headOn ? "head_on_v1" : "broadside_v1");
+                string path = RamComicCatalog.ImageResource(enemy, alignment, 0);
                 Texture2D expected = Resources.Load<Texture2D>(path);
                 Assert.That(expected, Is.Not.Null, path);
-                Assert.That(RequiredResponsive<RawImage>("Battle Ram Comic Page").texture, Is.SameAs(expected));
-                Assert.That(RequiredResponsive<Text>("Battle Ram Comic Title").text,
-                    Does.Contain(enemy ? "敌舰冲撞" : "主动冲撞").And.Contain(headOn ? "舰艏对舰艏" : "舰艏对侧舷"));
+                AssertRamComicPresentation(controller, expected, 0);
                 Assert.That(session.Hull, Is.LessThan(hull));
                 Assert.That(battle.EnemyHull, Is.LessThan(enemyHull));
-                Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(crew - opening));
+                int expectedBoardingHealth = (int)System.Math.Ceiling(crew *
+                    (1d - System.Math.Max(0, hull - session.Hull) / (2d * session.MaxHull)));
+                Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(expectedBoardingHealth - opening));
                 Assert.That(battle.Turn, Is.EqualTo(turn + (enemy ? 1 : 0)));
                 Assert.That(battle.BoardingInitiatedByEnemy, Is.EqualTo(enemy));
                 Assert.That(battle.BoardingConnection, Is.EqualTo(headOn ? NavalBoardingConnection.RamBowToBow : NavalBoardingConnection.RamBowToBroadside));
@@ -214,10 +211,58 @@ namespace ShatteredSail.Presentation.Tests
                 yield return null;
                 Assert.That(RamComicCoreState(session), Is.EqualTo(committed), "Already queued callbacks cannot submit a second Core action under the comic.");
                 AssertRamComicInputBlocked(underlyingTurn);
-                UnityEvent oldSkip = RequiredResponsive<Button>("Battle Ram Comic Skip").onClick;
-                if (skip) ClickAcceptanceButton("Battle Ram Comic Skip");
+                UnityEvent oldAdvance = RequiredResponsive<Button>("Battle Ram Comic Advance").onClick;
+                // Pages remain readable before the four-second timeout. Alternate
+                // real pointer clicks with short remaining intervals to cover both paths.
+                Vector2[] clickPositions = { new Vector2(.01f, .01f), new Vector2(.99f, .01f),
+                    new Vector2(.01f, .99f), new Vector2(.99f, .99f) };
+                for (int panel = 0; panel < 4; panel++)
+                {
+                    expected = Resources.Load<Texture2D>(RamComicCatalog.ImageResource(enemy, alignment, panel));
+                    AssertRamComicPresentation(controller, expected, panel);
+                    ComicAutoAdvance timer = RequiredResponsive<ComicAutoAdvance>("Battle Ram Comic Overlay");
+                    Assert.That(timer.RemainingSeconds, Is.InRange(2.5f, 4f));
+                    yield return new WaitForSecondsRealtime(.15f);
+                    AssertRamComicPresentation(controller, expected, panel);
+                    Assert.That(controller.IsBattleAnimationPlaying, Is.True, "The page remains open before its reading interval expires.");
+                    Assert.That(GameObject.Find("Boarding Scene Transition"), Is.Null);
+                    Assert.That(RamComicCoreState(session), Is.EqualTo(committed));
+                    if (!enemy && headOn && panel == 1)
+                    {
+                        typeof(CoreGameplayDemoController).GetMethod("ReleaseArtReferences", BindingFlags.Instance | BindingFlags.NonPublic)
+                            .Invoke(controller, null);
+                        Assert.That(((Texture2D[])RamComicField("ramComicTextures").GetValue(controller)).All(texture => texture == null), Is.True);
+                        // Subsequent pages must still display when routine memory
+                        // collection drops the borrowed resource cache mid-comic.
+                        AssertRamComicPresentation(controller, expected, panel);
+                    }
+                    if ((panel == 1 || panel == 3) && !enemy && headOn)
+                    {
+                        timer.RestoreRemainingSeconds(.06f);
+                        float autoDeadline = Time.realtimeSinceStartup + 2f;
+                        while (!(bool)RamComicField("ramComicAdvanceRequested").GetValue(controller) &&
+                            (int)RamComicField("ramComicPanelIndex").GetValue(controller) == panel &&
+                            Time.realtimeSinceStartup < autoDeadline) yield return null;
+                        Assert.That((bool)RamComicField("ramComicAdvanceRequested").GetValue(controller) ||
+                            (int)RamComicField("ramComicPanelIndex").GetValue(controller) != panel, Is.True,
+                            "A page, including the final panel, must finish without a click when its reading time expires.");
+                    }
+                    else
+                    {
+                        // A deadline and pointer event in the same frame must
+                        // produce one page advance, with a fresh four seconds.
+                        timer.RestoreRemainingSeconds(0f);
+                        ClickRamComicScreen(clickPositions[panel]);
+                    }
+                    if (panel + 1 < 4)
+                    {
+                        yield return WaitForRamComicPanel(controller, panel + 1);
+                        yield return null;
+                        AssertRamComicPresentation(controller,
+                            Resources.Load<Texture2D>(RamComicCatalog.ImageResource(enemy, alignment, panel + 1)), panel + 1);
+                    }
+                }
 
-                var observed = new List<string>();
                 bool sawTransition = false, sawCoveredFrame = false, sawRevealWithLockedInput = false;
                 float deadline = Time.realtimeSinceStartup + 12f;
                 while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
@@ -225,11 +270,10 @@ namespace ShatteredSail.Presentation.Tests
                     GameObject overlay = GameObject.Find("Battle Ram Comic Overlay");
                     if (overlay != null)
                     {
-                        string step = RequiredResponsive<Text>("Battle Ram Comic Step").text;
-                        if (observed.Count == 0 || observed[observed.Count - 1] != step) observed.Add(step);
                         RawImage page = RequiredResponsive<RawImage>("Battle Ram Comic Page");
                         Assert.That(page.texture, Is.SameAs(expected));
-                        AssertRamComicUv(step, page.uvRect);
+                        Assert.That((int)RamComicField("ramComicPanelIndex").GetValue(controller), Is.EqualTo(3),
+                            "Finishing the last page must not show an extra page.");
                         Assert.That(underlyingTurn.interactable, Is.False);
                     }
                     GameObject transition = GameObject.Find("Boarding Scene Transition");
@@ -248,17 +292,16 @@ namespace ShatteredSail.Presentation.Tests
                             // the brief reveal has finished.
                             RequiredResponsive<Button>("End Battle Turn").onClick.Invoke();
                             RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
-                            oldTurn.Invoke(); oldRam.Invoke(); oldCard.Invoke(); oldSkip.Invoke();
+                            oldTurn.Invoke(); oldRam.Invoke(); oldCard.Invoke(); oldAdvance.Invoke();
                         }
                     }
                     Assert.That(RamComicCoreState(session), Is.EqualTo(committed));
                     yield return null;
                 }
                 Assert.That(controller.IsBattleAnimationPlaying, Is.False, "The existing 12 second animation watchdog must remain sufficient.");
-                Assert.That(sawTransition, Is.True, "Natural playback and skip both enter the diagonal scene transition.");
+                Assert.That(sawTransition, Is.True, "Finishing the final page enters the diagonal scene transition.");
                 Assert.That(sawCoveredFrame, Is.True, "The scene swap must occur behind one fully covered frame.");
                 Assert.That(sawRevealWithLockedInput, Is.True, "The comic must retire while the actual boarding scene is still locked beneath the reveal.");
-                if (!skip) Assert.That(observed, Is.EqualTo(new[] { "1 / 4", "2 / 4", "3 / 4", "4 / 4", "完整漫画" }));
                 Assert.That(GameObject.Find("Battle Ram Comic Overlay"), Is.Null);
                 Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
                 Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
@@ -273,12 +316,12 @@ namespace ShatteredSail.Presentation.Tests
                     // A later non-comic animation may hold this same lock. The
                     // retired Unity object must still be rejected as fake-null.
                     playingField.SetValue(controller, true);
-                    Assert.DoesNotThrow(() => oldSkip.Invoke(),
-                        "A destroyed comic's stale Skip callback must stay harmless while another battle animation is active.");
+                    Assert.DoesNotThrow(() => oldAdvance.Invoke(),
+                        "A destroyed comic's stale advance callback must stay harmless while another battle animation is active.");
                 }
                 finally { playingField.SetValue(controller, previousPlaying); }
                 yield return null;
-                Assert.That(RamComicCoreState(session), Is.EqualTo(committed), "A stale skip may only retire presentation, never replay the collision.");
+                Assert.That(RamComicCoreState(session), Is.EqualTo(committed), "A stale advance cannot replay the collision.");
                 Assert.That(RequiredResponsive<Button>("End Battle Turn").IsInteractable(), Is.True);
                 AssertResponsiveHandMatchesCore(session);
                 LogAssert.NoUnexpectedReceived();
@@ -316,7 +359,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             Assert.That(underneath.interactable, Is.False);
             Assert.That(RequiredResponsive<Button>("Battle Card 0").interactable, Is.False);
-            Assert.That(RequiredResponsive<Button>("Battle Ram Comic Skip").IsInteractable(), Is.True);
+            Assert.That(RequiredResponsive<Button>("Battle Ram Comic Advance").IsInteractable(), Is.True);
         }
 
         private static void AssertBoardingTransitionInputBlocked(Transform transition)
@@ -398,22 +441,100 @@ namespace ShatteredSail.Presentation.Tests
             return string.Join("/", names);
         }
 
-        private static void AssertRamComicUv(string step, Rect actual)
+        private static IEnumerator WaitForRamComicPanel(CoreGameplayDemoController controller, int expectedPanel)
         {
-            Rect expected;
-            switch (step)
-            {
-                case "1 / 4": expected = new Rect(.01f, .51f, .48f, .48f); break;
-                case "2 / 4": expected = new Rect(.51f, .51f, .48f, .48f); break;
-                case "3 / 4": expected = new Rect(.01f, .01f, .48f, .48f); break;
-                case "4 / 4": expected = new Rect(.51f, .01f, .48f, .48f); break;
-                case "完整漫画": expected = new Rect(0, 0, 1, 1); break;
-                default: Assert.Fail("Unexpected comic step: " + step); return;
-            }
+            float deadline = Time.realtimeSinceStartup + 1f;
+            while ((int)RamComicField("ramComicPanelIndex").GetValue(controller) != expectedPanel &&
+                GameObject.Find("Battle Ram Comic Overlay") != null && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That((int)RamComicField("ramComicPanelIndex").GetValue(controller), Is.EqualTo(expectedPanel),
+                "One click must advance exactly one page.");
+        }
+
+        private static void AssertRamComicPresentation(CoreGameplayDemoController controller, Texture2D expectedTexture, int panel)
+        {
+            Assert.That(expectedTexture, Is.Not.Null, "Each collision panel must have its own installed full-resolution image.");
+            Canvas.ForceUpdateCanvases();
+            RectTransform overlay = RequiredResponsive<RectTransform>("Battle Ram Comic Overlay");
+            RawImage page = RequiredResponsive<RawImage>("Battle Ram Comic Page");
+            Button advance = RequiredResponsive<Button>("Battle Ram Comic Advance");
+            Assert.That(page.texture, Is.SameAs(expectedTexture));
+            Assert.That((int)RamComicField("ramComicPanelIndex").GetValue(controller), Is.EqualTo(panel));
+            Assert.That(overlay.GetComponentsInChildren<Text>(true), Is.Empty, "The comic must contain only artwork, without captions, title or page count.");
+            Assert.That(overlay.GetComponentsInChildren<Button>(true), Has.Length.EqualTo(1));
+            foreach (string retired in new[] { "Battle Ram Comic Title", "Battle Ram Comic Caption", "Battle Ram Comic Step", "Battle Ram Comic Skip" })
+                Assert.That(GameObject.Find(retired), Is.Null, retired + " must be removed.");
+            Assert.That(advance.IsInteractable(), Is.True);
+            AssertFullscreenComicRect(overlay);
+            AssertFullscreenComicRect(page.rectTransform);
+            AssertFullscreenComicRect((RectTransform)advance.transform);
+
+            Rect source = new Rect(0f, 0f, 1f, 1f);
+            float targetAspect = page.rectTransform.rect.width / page.rectTransform.rect.height;
+            float sourceAspect = expectedTexture.width * source.width / (expectedTexture.height * source.height);
+            Vector2 uvSize = source.size;
+            if (sourceAspect > targetAspect) uvSize.x *= targetAspect / sourceAspect;
+            else uvSize.y *= sourceAspect / targetAspect;
+            Rect expected = new Rect(source.center - uvSize * .5f, uvSize);
+            Rect actual = page.uvRect;
             Assert.That(actual.x, Is.EqualTo(expected.x).Within(.0001f));
             Assert.That(actual.y, Is.EqualTo(expected.y).Within(.0001f));
             Assert.That(actual.width, Is.EqualTo(expected.width).Within(.0001f));
             Assert.That(actual.height, Is.EqualTo(expected.height).Within(.0001f));
+            Assert.That(expectedTexture.width * actual.width / (expectedTexture.height * actual.height),
+                Is.EqualTo(targetAspect).Within(.0001f), "Cover cropping must fill the screen without stretching the artwork.");
+        }
+
+        private static void AssertFullscreenComicRect(RectTransform rect)
+        {
+            Canvas canvas = rect.GetComponentInParent<Canvas>().rootCanvas;
+            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            Vector2 minimum = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
+            Vector2 maximum = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
+            Assert.That(minimum.x, Is.EqualTo(0f).Within(1f), rect.name);
+            Assert.That(minimum.y, Is.EqualTo(0f).Within(1f), rect.name);
+            Assert.That(maximum.x, Is.EqualTo(Screen.width).Within(1f), rect.name);
+            Assert.That(maximum.y, Is.EqualTo(Screen.height).Within(1f), rect.name);
+        }
+
+        private static void ClickRamComicScreen(Vector2 normalizedPosition)
+        {
+            Button advance = RequiredResponsive<Button>("Battle Ram Comic Advance");
+            Assert.That(advance.IsInteractable(), Is.True);
+            Canvas.ForceUpdateCanvases();
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = new Vector2(Screen.width * normalizedPosition.x, Screen.height * normalizedPosition.y),
+            };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits, Is.Not.Empty, "Every point on the comic screen must accept a click.");
+            Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(advance),
+                "The full-screen advance target must intercept the pointer at " + normalizedPosition + "; first hit=" + hits[0].gameObject.name);
+            ExecuteEvents.Execute(advance.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+        }
+
+        // Ordinary route tests still need to supply the player's new page clicks
+        // while waiting for their battle action. The dedicated comic assertions
+        // above separately verify actual pointer raycasts at all screen corners.
+        internal static void AdvanceRamComicIfWaiting(CoreGameplayDemoController controller)
+        {
+            GameObject host = GameObject.Find("Battle Ram Comic Advance");
+            if (host == null || (bool)RamComicField("ramComicAdvanceRequested").GetValue(controller)) return;
+            Button advance = host.GetComponent<Button>();
+            if (advance != null && advance.IsInteractable()) advance.onClick.Invoke();
+        }
+
+        private static IEnumerator ClickThroughRamComic(CoreGameplayDemoController controller, int panelCount = 4)
+        {
+            for (int panel = 0; panel < panelCount; panel++)
+            {
+                Assert.That((int)RamComicField("ramComicPanelIndex").GetValue(controller), Is.EqualTo(panel));
+                ClickRamComicScreen(new Vector2(.5f, .5f));
+                if (panel + 1 < panelCount) yield return WaitForRamComicPanel(controller, panel + 1);
+            }
         }
 
         private static string RamComicCoreState(CoreVoyageSession session)

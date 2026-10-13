@@ -1,0 +1,706 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/staging' branch; Version is '6000.3.23f1 (09d2ecc7fb28) revision 643820'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Admin" at "2026-10-12T05:27:59.2479725Z"
+OS: 'Windows 11  (10.0.26200) CoreCountrySpecific' Language: 'zh' Physical Memory: 31904 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-10-12T05:27:59Z
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 32556, path: "D:/Unity/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+
+COMMAND LINE ARGUMENTS:
+D:\Unity\Hub\Editor\6000.3.23f1\Editor\Unity.exe
+-batchmode
+-projectPath
+D:\Game\tmp\card-frames-square-20261012
+-logFile
+D:\Game\outputs\imagegen\tavern-dossier\layout-review-v1\capture-retry.log
+-executeMethod
+ShatteredSail.Editor.LorneDossierLayoutCapture.CaptureFromCommandLine
+-lorneReviewOutput
+D:\Game\outputs\imagegen\tavern-dossier\layout-review-v1
+-lorneReviewBackground
+D:\Game\outputs\imagegen\tavern-dossier\lorne-dossier-parchment-v2.png
+-quit
+Successfully changed project path to: D:\Game\tmp\card-frames-square-20261012
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.3+d7ffd15
+  Session Id:              533d6ac0810f49729cfde3f28424c59b
+  Correlation Id:          b087b13caf5d4f2a0b2694b1e0c9e82b
+  External correlation Id: 3629790995601907389
+  Machine Id:              xlWh/iB47xjJmq8XO9S2Vlcb/3s=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-Admin" (connect: 0.00s, validation: 0.00s, handshake: 0.03s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Admin-notifications" at "2026-10-12T05:27:59.283588Z"
+[Licensing::Module] Error: Access token is unavailable; failed to update
+D:/Game/tmp/card-frames-square-20261012
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: ewogICJzdWJzR3JvdXAiIDogInVuaXR5IGVkaXRvciIsCiAgIm5hbWVzcGFjZSIgOiAidW5pdHlfZWRpdG9yIiwKICAidHlwZSIgOiAiRURJVE9SIiwKICAidGFnIiA6ICJVbml0eVBlcnNvbmFsXXXX
+  Product: Unity Personal Version
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.00
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 0.04s
+Player connection [4168]  Target information:
+
+Player connection [4168]  * "[IP] 198.18.0.139 [Port] 55505 [Flags] 2 [Guid] 3018261484 [EditorId] 3018261484 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-SYVRNQ9) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [4168]  * "[IP] 192.168.1.4 [Port] 55505 [Flags] 2 [Guid] 3018261484 [EditorId] 3018261484 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-SYVRNQ9) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [4168] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [4168] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-35436" after 0.2 seconds.
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.29 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.23f1 (09d2ecc7fb28)
+[Subsystems] Discovering subsystems at path D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path D:/Game/tmp/card-frames-square-20261012/Assets
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 5080 (ID=0x2c02)
+    Vendor:          NVIDIA
+    VRAM:            15977 MB
+    App VRAM Budget: 15209 MB
+    Driver:          32.0.15.9186
+Initialize mono
+Mono path[0] = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Managed'
+Mono path[1] = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56436
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/PlaybackEngines/MacStandaloneSupport/UnityEditor.OSXStandalone.Extensions.dll
+Register platform support module: D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.000918 seconds.
+- Loaded All Assemblies, in  0.244 seconds
+Native extension for WindowsStandalone target not found
+Native extension for OSXStandalone target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:False
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.249 seconds
+Domain Reload Profiling: 493ms
+	BeginReloadAssembly (86ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (17ms)
+	RebuildCommonClasses (21ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (25ms)
+	LoadAllAssembliesAndSetupDomain (102ms)
+		LoadAssemblies (69ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (100ms)
+			TypeCache.Refresh (99ms)
+				TypeCache.ScanAssembly (89ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (249ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (221ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (33ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (46ms)
+			ProcessInitializeOnLoadAttributes (80ms)
+			ProcessInitializeOnLoadMethodAttributes (59ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 65 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.2d.animation@13.0.6 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.animation@cd6c3841e39a)
+    com.unity.2d.aseprite@3.0.2 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.aseprite@20edb5643ab5)
+    com.unity.2d.psdimporter@12.0.2 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.psdimporter@f207d91d598d)
+    com.unity.2d.spriteshape@13.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.3 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.tilemap.extras@58739e072909)
+    com.unity.2d.tooling@1.0.4 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.collab-proxy@2.13.6 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.collab-proxy@4628d2ba6ea4)
+    com.unity.ide.rider@3.0.40 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.ide.rider@e4950c6d131b)
+    com.unity.ide.visualstudio@2.0.26 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.20.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.inputsystem@7a4e1a2a8194)
+    com.unity.timeline@1.8.13 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.timeline@3a22918286f5)
+    com.unity.visualscripting@1.9.12 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.visualscripting@4edfcc09512f)
+    com.unity.2d.common@12.0.4 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.mathematics@1.3.3 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.collections@2.6.8 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.collections@84e8eb3fc12e)
+    com.unity.searcher@4.9.5 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.searcher@a463122f2c00)
+    com.unity.burst@1.8.30 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.burst@2f3d916873ea)
+    com.unity.nuget.mono-cecil@1.11.6 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.test-framework.performance@3.5.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Built-in packages:
+    com.unity.2d.sprite@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.sprite@5b922524bd83)
+    com.unity.2d.tilemap@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.2d.tilemap@f666889fd587)
+    com.unity.multiplayer.center@1.0.1 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.render-pipelines.universal@7865b6b91f8a)
+    com.unity.test-framework@1.6.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.ugui@27635d171b1a)
+    com.unity.modules.accessibility@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.render-pipelines.core@0bb36005e9ba)
+    com.unity.shadergraph@17.3.0 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.shadergraph@b4b75cc00891)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: D:\Game\tmp\card-frames-square-20261012\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.01 seconds
+[ScriptCompilation] Requested script compilation because: Assetdatabase observed changes in script compilation related files
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: D:/Game/tmp/card-frames-square-20261012
+DisplayProgressbar: Compiling Scripts
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\netcorerun\netcorerun.exe "D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\ScriptCompilationBuildProgram.exe" "Library/Bee/1900b0aE.dag.json" "Library/Bee/1900b0aE-inputdata.json" "Library\Bee\buildprogram0.traceevents"
+WorkingDir: D:/Game/tmp/card-frames-square-20261012
+ExitCode: 4 Duration: 0s232ms
+Rebuilding DAG because FileSignature timestamp changed: Library/Bee/1900b0aE-inputdata.json
+*** Tundra requires additional run (0.21 seconds), 0 items updated, 0 evaluated
+ExitCode: 0 Duration: 0s488ms
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --dagfilejson="Library\Bee\1900b0aE.dag.json" --profile="Library/Bee/backend2.traceevents" ScriptAssemblies
+WorkingDir: D:/Game/tmp/card-frames-square-20261012
+ExitCode: 0 Duration: 3s218ms
+Finished compiling graph: 1098 nodes, 20358 flattened edges (17024 ToBuild, 180 ToUse), maximum node priority 1209
+[ 255/1094  0s] WriteResponseFile Library/Bee/artifacts/rsp/4747638433968585886.rsp
+[ 445/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.rsp
+[ 520/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.rsp
+[ 522/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.PlayModeTests.rsp
+[ 523/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Editor.rsp
+[ 529/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.Tests.rsp
+[ 834/1094  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+[ 940/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.dll (+2 others)
+[1067/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Content.dll (+2 others)
+[1068/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Persistence.dll (+2 others)
+[1069/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Core.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.dll, with 139 defines and 137 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1070/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.pdb
+[1071/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Persistence.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Persistence.dll, with 139 defines and 138 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1072/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Persistence.pdb
+[1073/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Persistence.dll
+[1074/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Content.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Content.dll, with 139 defines and 138 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1075/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Content.pdb
+[1076/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Content.dll
+[1077/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.dll
+[1078/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.dll (+2 others)
+[1079/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Presentation.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.dll, with 139 defines and 279 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1080/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.pdb
+[1081/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Editor.dll (+2 others)
+[1082/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.dll
+[1083/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.Tests.dll (+2 others)
+[1084/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Editor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Editor.dll, with 137 defines and 287 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1085/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Core.Tests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.Tests.dll, with 137 defines and 274 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1086/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Editor.pdb
+[1087/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.Tests.pdb
+[1088/1094  1s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.PlayModeTests.dll (+2 others)
+[1089/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.Tests.dll
+[1090/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Editor.dll
+[1091/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Presentation.PlayModeTests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.PlayModeTests.dll, with 139 defines and 266 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1092/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.PlayModeTests.pdb
+[1093/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.PlayModeTests.dll
+*** Tundra build success (3.20 seconds), 35 items updated, 1094 evaluated
+AssetDatabase: script compilation time: 4.303333s
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  5.426 seconds
+Start importing ProjectSettings/ProjectSettings.asset using Guid(00000000000000004000000000000000) (LibraryAssetImporter) -> (artifact id: '5b70c1761facf2417ff03ce2e3ed86b8') in 0.0147049 seconds
+Refreshing native plugins compatible for Editor in 46.08 ms, found 5 plugins.
+Native extension for WindowsStandalone target not found
+Native extension for OSXStandalone target not found
+Refreshing native plugins compatible for Editor in 1.17 ms, found 5 plugins.
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  3.158 seconds
+Domain Reload Profiling: 8584ms
+	BeginReloadAssembly (246ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (17ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (137ms)
+	RebuildCommonClasses (27ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (19ms)
+	LoadAllAssembliesAndSetupDomain (5123ms)
+		LoadAssemblies (4961ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (230ms)
+			TypeCache.Refresh (163ms)
+				TypeCache.ScanAssembly (154ms)
+			BuildScriptInfoCaches (55ms)
+			ResolveRequiredComponents (8ms)
+	FinalizeReload (3159ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (2831ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (14ms)
+			SetLoadedEditorAssemblies (2ms)
+			BeforeProcessingInitializeOnLoad (104ms)
+			ProcessInitializeOnLoadAttributes (2335ms)
+			ProcessInitializeOnLoadMethodAttributes (369ms)
+			AfterProcessingInitializeOnLoad (4ms)
+			EditorAssembliesLoaded (2ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (21ms)
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UI_TavernCrewDetail.unity using Guid(22e019d1f91a8b24db047925a428bec7) (DefaultImporter) -> (artifact id: '9f5875ab62eccea8a26ac83889533232') in 0.0044691 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UI_DeckBuilder.unity using Guid(435e0dba1dad9c24689f749fe091d748) (DefaultImporter) -> (artifact id: 'dbcc2c08bab909bcdf90dd931f962c55') in 0.0035655 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UI_Battle.unity using Guid(5cbae3bebc34a3149a9b1c8687168cfe) (DefaultImporter) -> (artifact id: 'dde9c6d74f088d04a9d95c5d1386b10f') in 0.0013017 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UICardWorkshop/UICardWorkshop_UpgradePreview.unity using Guid(40f5ddaa00214f2288e3f843dc606004) (DefaultImporter) -> (artifact id: '5cb690756206bf8b00894ba03d055c64') in 0.0009694 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UITavern/UITavern_ContractSigned.unity using Guid(024350289a684eaa93f8f8c2b195ef4e) (DefaultImporter) -> (artifact id: '2cbe4ce472f2be71a7efc9aa76981f75') in 0.0029687 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIDeckBuilder/UIDeckBuilder_DeckBuilding.unity using Guid(24624278291f407ab4cd1b168aa06ab7) (DefaultImporter) -> (artifact id: '42ec838437241c654091bb636b101395') in 0.0008696 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIDeckBuilder/UIDeckBuilder_DeckEmpty.unity using Guid(246f0f45fde04221bbedfb7c98366e17) (DefaultImporter) -> (artifact id: '9cffa10171629ff1e5ead625c393cdd4') in 0.0041342 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIBattle/UIBattle_BoardingRam.unity using Guid(2539bb0b905c4e21920055ae8c01bb90) (DefaultImporter) -> (artifact id: '9d914642a5ddb1a02b7b7649bf09f37d') in 0.0009327 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UITavernCrewDetail/UITavernCrewDetail_Skills.unity using Guid(85a594dab55e48e182e0d6f31a22581e) (DefaultImporter) -> (artifact id: 'b2b2dafd33c6c2628066d8f82262eacc') in 0.0009055 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIDeckBuilder/UIDeckBuilder_DeckReady.unity using Guid(95adcea03cdb49bb920881c638dbe5d5) (DefaultImporter) -> (artifact id: '51629db7c9748b5ffc47458cbd78b4a0') in 0.000886 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/TutorialVoyage/09_RecruitNavigator.unity using Guid(c574fdf0b4304064af7a07fac6fcddf7) (DefaultImporter) -> (artifact id: '73efc9b1a44ff67423c56429b31b99f0') in 0.0008845 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/TutorialVoyage/25_TutorialBoss.unity using Guid(f50c5cb887c94e02ad69bf5bb79c7f13) (DefaultImporter) -> (artifact id: 'f681ffb32f5f2dea5d784f1e85cbf635') in 0.0033758 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIBattle/UIBattle_BowToBow.unity using Guid(466a2692a5b3442d8de6f6f2665abc3d) (DefaultImporter) -> (artifact id: 'a378ce260b97c023e7661e8d240ea087') in 0.000881 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/TutorialVoyage/20_BuildDeck.unity using Guid(27dd6874e2c9490f86a47c33c8b994c9) (DefaultImporter) -> (artifact id: '5d00e70229af337135a13edda827b0ba') in 0.0009227 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIBattle/UIBattle_Parallel.unity using Guid(d821be92397b4c129c3b51185ab05bcd) (DefaultImporter) -> (artifact id: '9da6c4c01e496b92cbaa68df9acff796') in 0.000893 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UITavern/UITavern_RecruitmentOffer.unity using Guid(5920a83de8454e518d10d9bc9862cee0) (DefaultImporter) -> (artifact id: '722b0aa393a060994420d60380e6d3f8') in 0.0008406 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIBattle/UIBattle_BoardingHook.unity using Guid(0a6e12a4f2074d5ea553071de95c90a4) (DefaultImporter) -> (artifact id: '7c0a7da989ae59b049a9a57cf95ae5f7') in 0.0015015 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIBattle/UIBattle_BowToBroadside.unity using Guid(5a2566e0fff64a2589d2f81f11015892) (DefaultImporter) -> (artifact id: 'db5b36c32030573c6b0f6ef2698557a7') in 0.0008495 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UIBattle/UIBattle_BoardingLadder.unity using Guid(bb724eda271e47e7af89f59b2d407e51) (DefaultImporter) -> (artifact id: 'cedfec377c31d0d70976d693cd74172f') in 0.0008775 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UICardWorkshop/UICardWorkshop_UpgradeComplete.unity using Guid(0c159e9036264a0b88f3d0fb5c1ac0c3) (DefaultImporter) -> (artifact id: 'eb55bb909f7568fa4c86a9df18e1545a') in 0.0030705 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UITavernCrewDetail/UITavernCrewDetail_Lore.unity using Guid(dcef65d5814843b78fde0c4754ee42ac) (DefaultImporter) -> (artifact id: '861168712673a04cc35b6cab96a8069e') in 0.0010253 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UICardUpgrade/UICardUpgrade_UpgradePreview.unity using Guid(4fe2df2972f1481bb36b6d06ae511d1e) (DefaultImporter) -> (artifact id: '9c7acc32beabb766b9ea0a61685a0dde') in 0.0008302 seconds
+Start importing Assets/_Project/Scenes/UIPreviewsForMe/UITavernCrewDetail/UITavernCrewDetail_Biography.unity using Guid(dfff02c2bbca417e8c790c8b8bb45f4c) (DefaultImporter) -> (artifact id: '52a31a4f10c782b01a364c9ae8c307ae') in 0.0012335 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-ap-mana.png using Guid(000a9ff80157449d9d45a85d8f3329e6) (TextureImporter) -> (artifact id: '61249948d3a8a2dfdfdb8fd468ad74e4') in 0.0654149 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_l03.png using Guid(004dd098eab3480ca0c8bb0238aaf8c1) (TextureImporter) -> (artifact id: '4ca97e25709e7d5e81980fa012ac1f87') in 0.0493656 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b01.png using Guid(1050e2cf993c4ca08ca4f8b72363b489) (TextureImporter) -> (artifact id: 'f3b65ce2f83e5699661bbdfa76af4051') in 0.0487776 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_l02.png using Guid(301e276ff0d5415c826d0c71682a5d57) (TextureImporter) -> (artifact id: '91806cc7dfee7ad230e05911e95f4e82') in 0.0475356 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_e02.png using Guid(50f517b146664f1987dcd65fd1155e83) (TextureImporter) -> (artifact id: '6dfbb825ddf7c65877a00b481888b7d7') in 0.0544031 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_e05.png using Guid(60e12988b5f14095b5bb549cf0b9116e) (TextureImporter) -> (artifact id: 'ac4ae798d0acb2d7c2da1034c92db952') in 0.04941 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b03.png using Guid(6029f832954c4f2db61ca7a6dcc0e644) (TextureImporter) -> (artifact id: 'bde37f5eece4e5392262cb90cbc3700d') in 0.0521882 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-ap.png using Guid(c002be91eaa84ee7aaddcf3a9a41ca49) (TextureImporter) -> (artifact id: '8e053a1e9d13bbb55df61a449a4ed809') in 0.0454216 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_l04.png using Guid(117f14597cac4657b66aedd71b897222) (TextureImporter) -> (artifact id: 'a47ca3cbb9ce8c14147abed171b2e637') in 0.0520724 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_l01.png using Guid(214266860f5542be993cd742b70cc8d0) (TextureImporter) -> (artifact id: '0bd3b509bd4c8a333ac4a7fe187ba852') in 0.0559833 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-ap.png using Guid(21d35186eb50424487953184e5485927) (TextureImporter) -> (artifact id: 'b90310bc0cf5a31d2cd623a9495fb603') in 0.0482411 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_l01.png using Guid(3122503b9dab4321a9e2cd1f32189633) (TextureImporter) -> (artifact id: '324cec07f63fe31bdc21d8cef566e612') in 0.0562529 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_c02.png using Guid(31f4ebbb8214451b8f2ebce216e48236) (TextureImporter) -> (artifact id: '1f22b0ab891e63edac4ee1dc2abe9769') in 0.0517162 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_c01.png using Guid(4113e61a8b234237b792c4a933c19d41) (TextureImporter) -> (artifact id: 'f91f268cb3ba16a3aad84907e12f65b1') in 0.0466233 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_e03.png using Guid(41560d09f260439c80965f396fa2c779) (TextureImporter) -> (artifact id: '2673d3a91dbfcffc82e282c6ec44a755') in 0.0460004 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b02.png using Guid(815960754a304bca9684550151963561) (TextureImporter) -> (artifact id: '093ef7c6e655c67696a195f42a8ec8ce') in 0.0501356 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b08.png using Guid(915576a1191c4185b31806b6f8113a96) (TextureImporter) -> (artifact id: 'c0e4bf14774782a54e08bcd37fb92892') in 0.0457922 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b05.png using Guid(a1ab3d7186e54938856dd352cd51dd5d) (TextureImporter) -> (artifact id: '1ec59bb664320178246fd8ef6cd6ee4b') in 0.0492095 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_e04.png using Guid(b16249e538644c6c8297a960de358922) (TextureImporter) -> (artifact id: 'a21f02a4bf2e420a8fcdab0cd802cc0c') in 0.0436554 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_e03.png using Guid(c16a6e3f84974ad39b0c88de609ec9cf) (TextureImporter) -> (artifact id: '68b5a148365dd76f1dcc134f8fda69ea') in 0.045751 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b06.png using Guid(e1c403bf463142fc99d9773a1437ad8b) (TextureImporter) -> (artifact id: '840b026cedc74aa9de428255410ef911') in 0.0495609 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_c02.png using Guid(e1f790ebdebe4db3a24fadac7bdcf5ba) (TextureImporter) -> (artifact id: '53573ec993716a53bc8ac6dc37af14e2') in 0.0489434 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_e02.png using Guid(f197001da89b4052ae8c1c978b0d12a6) (TextureImporter) -> (artifact id: '684462cd0b73576fb066adb54a6ad9e8') in 0.0515721 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b05.png using Guid(f1ac1ac4d95f48b9b42fbe9d90a1a387) (TextureImporter) -> (artifact id: '7961a12f14799dd179c0c45b586979a4') in 0.0493602 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_e03.png using Guid(02cb3aad10fd41abb46739eae31e47a5) (TextureImporter) -> (artifact id: '510ff3e83e7efb294f016bce0b6cfe6d') in 0.0475946 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_e05.png using Guid(32b13d29c82d450c8e0fa1d6b3f53208) (TextureImporter) -> (artifact id: 'c3c14a19bda2af947e82279bbc0b9dae') in 0.0558759 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b06.png using Guid(32829902f7ba450681d401ef07cbf5ca) (TextureImporter) -> (artifact id: '5c9249ede5a4b635e9da25d3a98eeae0') in 0.0538121 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b02.png using Guid(32e39ef48a9b4309a9acc4363d1d592c) (TextureImporter) -> (artifact id: 'dc3088328bdf357d66f3a7f4774e7140') in 0.0479353 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_e01.png using Guid(3288e1701e5d4cef8f39368bfa501645) (TextureImporter) -> (artifact id: 'ec0cce98c8773fcfb12516951ad23c5d') in 0.0478406 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-thunder-both-chain.png using Guid(52af4cc3e8764355bb79f3766b5525b1) (TextureImporter) -> (artifact id: '4653c16840fc744a40418a5757e43d76') in 0.0437685 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-fire-both.png using Guid(82c48ff9aab94e12b0c62c8e80a9d0ee) (TextureImporter) -> (artifact id: '9c374bb1700d210ef77d6aefbb3497df') in 0.0392357 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b09.png using Guid(92058e81d30f4468ab484e87537785a7) (TextureImporter) -> (artifact id: '16bf473b235ec40825e128117af9b0c3') in 0.0452964 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b03.png using Guid(924541b8f8794fae87f3b5d54f05ed91) (TextureImporter) -> (artifact id: 'c0c516a620d29704551030683730dc67') in 0.0457441 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b09.png using Guid(b2cebee20fd5472c90f7318b64e2beb7) (TextureImporter) -> (artifact id: '531811774eaf0c8fb08dba3c2bff6a48') in 0.0476733 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_l04.png using Guid(c20d28651c03497fad7e63e0ea4872c3) (TextureImporter) -> (artifact id: '4e3bb613c1506701d8bdf38f992d2551') in 0.0486816 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_l02.png using Guid(d22530fe90a14ab8a6563f1ac1e12b51) (TextureImporter) -> (artifact id: '9f8af81f7990741e6bfd5ad851bca384') in 0.0464026 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b03.png using Guid(236232d9e44a4476b8871bbe8cc8cc3b) (TextureImporter) -> (artifact id: 'e320dc80a6ee9efa97ac5556ee9374ca') in 0.0542627 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_e03.png using Guid(23cadfbaaffe44d6b52a369452a4df7c) (TextureImporter) -> (artifact id: 'f5c156bd9a1fd8ff2d5884a6dacfa991') in 0.0461256 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_l05.png using Guid(232c4ae596214d35a3606262089b987c) (TextureImporter) -> (artifact id: '0b21de1538a0fa22deee68aa327f3f6c') in 0.0467247 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b04.png using Guid(4391157c6b2b40a3b8966d7bfe9cb27c) (TextureImporter) -> (artifact id: '1d983fc95bef952511b29b9c2fd9fe72') in 0.0468864 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-powder.png using Guid(537c638dff0a4376904a096a711d80f4) (TextureImporter) -> (artifact id: '8bcc2cf92860760cda1c7493cd17090b') in 0.0389757 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b01.png using Guid(73a5270f49e04fbea2ec9d679272a6d6) (TextureImporter) -> (artifact id: '9741ce7664e34ab1a528340f4b64ce3d') in 0.0472633 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/frame-thunder-v1.png using Guid(934e8db74bf643b1a3802f5cb21327e4) (TextureImporter) -> (artifact id: '19e9c939aff954b5eee5abafd2fc5fab') in 0.0365457 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b06.png using Guid(b3234c569d96403abc8ef3fc95773bae) (TextureImporter) -> (artifact id: '3eed81e5d36812964007cd6b7aeba56b') in 0.0475769 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_e03.png using Guid(d3e2f1dad1e143f9bb3b4c760cd1a994) (TextureImporter) -> (artifact id: '63091fb080a15c21a4c02d4f8c892f97') in 0.0493948 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b08.png using Guid(d3bd8b0444d245e781440297f1ab4dff) (TextureImporter) -> (artifact id: '8d0bcfc85e7aa4b35ac30f73b85a152f') in 0.0439474 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b09.png using Guid(e39b1788293a4a27b7dd853f38b168ba) (TextureImporter) -> (artifact id: '77f748bbe7862f0c304277e3d4ac39f2') in 0.047034 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b05.png using Guid(34cbcaf1a30e407ba928ed86cf8e7233) (TextureImporter) -> (artifact id: 'f3d49c7da2da75dfe6b5a90bb89de40f') in 0.0447081 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_l01.png using Guid(34fcfde8e71d4fcc894635de0a9e137d) (TextureImporter) -> (artifact id: '32aee16b8aede2ccea0762fb2c34bc21') in 0.0452023 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_e04.png using Guid(549a73e708b644f09a8c5fcf3354e03b) (TextureImporter) -> (artifact id: '11136cbbc150e53f1721fb353d550c06') in 0.0442542 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b10.png using Guid(84212728c7844f42a5e11a5626c26805) (TextureImporter) -> (artifact id: '5003bcb4d7c4c242efce87377deb3933') in 0.043253 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_e04.png using Guid(84512725bc97413998e0974b1be0b00c) (TextureImporter) -> (artifact id: '8ee23261dea4de44124520564d65e63b') in 0.0426054 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_e02.png using Guid(94c1c43312a444d49051acd894c959fa) (TextureImporter) -> (artifact id: 'e21b9678450c218baee217689c7f937a') in 0.0473732 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b08.png using Guid(94fb30e6ed9e402dae5e57a29da894c3) (TextureImporter) -> (artifact id: '666f7d014494b37c635d07e20b9bb1d7') in 0.0422703 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-thunder-cannonball.png using Guid(a4e8e98a448840c7af86ebc6689f2099) (TextureImporter) -> (artifact id: 'c91877cbd96028207af07ee9ec0731ec') in 0.0355498 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_l01.png using Guid(c4e6c76055554b8584049ba7b81d592b) (TextureImporter) -> (artifact id: '9644a2795afaead009760f6a4e5ba80f') in 0.0451041 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_l02.png using Guid(c46eee3478974713ab3956a1d42179d8) (TextureImporter) -> (artifact id: 'c5e4ffc3ea1414267c56b1032f02cf1a') in 0.0451445 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b07.png using Guid(d4a8c11493a44bceb7d81de745e59404) (TextureImporter) -> (artifact id: '15d4f72d38cc2fab28bcacb29a67369c') in 0.0436479 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-powder.png using Guid(e4aafff853a04b658da223aaffb509ee) (TextureImporter) -> (artifact id: '2b001db66492ce0c51ae5fb2b933dd62') in 0.0361252 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-cannonball.png using Guid(f40ca0f627664e2e8860d7277edb3d29) (TextureImporter) -> (artifact id: '5193964155fce2ac5d7482d2099aaa2f') in 0.0358724 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b01.png using Guid(0540fac803ae4a8395ef488971c679b7) (TextureImporter) -> (artifact id: '2b99757dd9eba1f0495607e128fcf98a') in 0.0434572 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b07.png using Guid(15f866d92ae044dfbaedfd9d38719139) (TextureImporter) -> (artifact id: '41464600c960c5d23b427368dd1f57a6') in 0.0462801 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-ap.png using Guid(3567cc9ed1da40baa4c1f8760b99412d) (TextureImporter) -> (artifact id: '545385112ad3bb8001e92881a5477f3c') in 0.0389982 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_e04.png using Guid(3509237823134d64b5c8dd4ff5c39b99) (TextureImporter) -> (artifact id: '8e322705eeeb813c75194ff9e48344af') in 0.0467312 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b03.png using Guid(45119c2ff7de41d7ae3a7ec111e818bb) (TextureImporter) -> (artifact id: '8612e398d908c4cf026d56e63fd48d37') in 0.0423503 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b09.png using Guid(559c66bc4b3345a8b1f1b3759b957b66) (TextureImporter) -> (artifact id: '967f6936ff332e9d3da266fab751520f') in 0.0418415 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b08.png using Guid(65cb1e4e03fe460185eb1cfdb8add353) (TextureImporter) -> (artifact id: '10166b284fa7c57127fccc3335847278') in 0.0437681 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b08.png using Guid(65fbbfc660b54509bef4733f6190a314) (TextureImporter) -> (artifact id: 'cefc0f2768a714331de99eb678cf1739') in 0.0481042 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_e04.png using Guid(659c3e39af4a4be0b80a62cfc6886285) (TextureImporter) -> (artifact id: '9d0b4ea9c85fa61043c59207900aff76') in 0.0467672 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b05.png using Guid(85f47ba81a014ae08c91baf79f42e7fb) (TextureImporter) -> (artifact id: '8473ca1043feab3c0238853e895671d1') in 0.0470475 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_c02.png using Guid(95f1cd89bba546a3871a4ed710c7c8b2) (TextureImporter) -> (artifact id: '10dfb9cd48227e11d8dc6809cf508325') in 0.0452403 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_e01.png using Guid(a58b707e907040268d051a29a491d0fb) (TextureImporter) -> (artifact id: '9a18d379540a88dfb68b9031d74ae022') in 0.0476848 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b02.png using Guid(b51d7dce767149b28d5c1171af1d0fc4) (TextureImporter) -> (artifact id: '6acd38e0cb203d8840b03e03e2c6a8d5') in 0.0474727 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/frame-fire-v1.png using Guid(d5be8f2464d64c55ad5bb55bdabfd8f5) (TextureImporter) -> (artifact id: '035841c202dbe040ee2b22e9d652608e') in 0.0376798 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_e02.png using Guid(e51447411e1b42c68dbc682d592536a4) (TextureImporter) -> (artifact id: '77a369d091387d6603d4a2d4233a246c') in 0.0434011 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/frame-blood-v1.png using Guid(f572e8365e524bf7884d07e175753994) (TextureImporter) -> (artifact id: '75d0be250f9921a3337b05fbe4e3d8e1') in 0.0345349 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b09.png using Guid(3621ceb3bb7f4416affcabe0290d9701) (TextureImporter) -> (artifact id: '6e53da22e717b6b5f1f41cebef81c7e5') in 0.0435788 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_neutral_crew_white_shell_cook_flora.png using Guid(46f04cf198374ecd90ff80a6d6684b73) (TextureImporter) -> (artifact id: 'da04504dead00a8589c8a942cea82f33') in 0.0446882 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/frame-tide-v1.png using Guid(461201820f6a4679b5f4a916423a6ade) (TextureImporter) -> (artifact id: '42fa5672dbeccb43ab4acd62b9647006') in 0.0384126 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-both.png using Guid(463851bcdc2d464c89e8c87fc384fbc8) (TextureImporter) -> (artifact id: 'bad5c02374def7b50c34ea486280916f') in 0.0361306 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-both.png using Guid(5606241a7680469fad4757489f57c824) (TextureImporter) -> (artifact id: '7daec060743e890be6e43176317d2233') in 0.0383917 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-both-curse.png using Guid(661aa45139874459ad5b9f02b3a892d6) (TextureImporter) -> (artifact id: '450083efb8f822486b7df59b8e9e9c42') in 0.0357684 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_l04.png using Guid(865437b11efd49c980e3e093eb90d454) (TextureImporter) -> (artifact id: 'cfa80b057374e259fad6aa82bcd69f8b') in 0.0445445 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-powder.png using Guid(8605da67ce00461ab0f740b29f2e7408) (TextureImporter) -> (artifact id: '168a256cfe164c9fcbb0ab19a8cc8f61') in 0.0349846 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-both-mana.png using Guid(960edf58dca740cf8bd2c87517452377) (TextureImporter) -> (artifact id: 'db6570a9f884db5b7ca1a47c1b31954b') in 0.0353189 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_l04.png using Guid(a68e19a4ef5e4cad9b22fe6f42bab8b2) (TextureImporter) -> (artifact id: 'fccda43396f0f5b2ba8d7f5eeb832e8d') in 0.0430368 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b04.png using Guid(c6959ba555eb400daaf1748541c7c3e1) (TextureImporter) -> (artifact id: 'f5d9603edfa097798736c4f1660f423d') in 0.0464705 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-fire-ap.png using Guid(c67933f7777f4efbb375c52c17e641d6) (TextureImporter) -> (artifact id: '9de58b6e33377afc5bd14bf8e7cecc46') in 0.0397547 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_c01.png using Guid(d656cb8ea7524ce78e92e45c26222c24) (TextureImporter) -> (artifact id: '5d2011c30f1ed993213fa9a097d23cc6') in 0.0439915 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_l03.png using Guid(e6ac23d1eab8416bb612461b92b397b6) (TextureImporter) -> (artifact id: '0af177aae97cce74696672de88117a42') in 0.0458002 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_e03.png using Guid(f6366731811c49a5b58914a6e582a342) (TextureImporter) -> (artifact id: '40bd70b8d5dcc8391484251a146f3053') in 0.0464055 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b07.png using Guid(273b1efb30964b14895f88ab63a8528c) (TextureImporter) -> (artifact id: '1e7ea5e1bf1f67f41cf592defe368b86') in 0.0438112 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b05.png using Guid(47f2ff85f5df4d35a9726c17bacf8912) (TextureImporter) -> (artifact id: 'aae550003ad53392e600379ba844c9ec') in 0.0442518 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_e04.png using Guid(47c468ada7fe444ba9cd847e2f0f13d9) (TextureImporter) -> (artifact id: '5899f161ce989ac113e4eac37634fcd4') in 0.0419255 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b02.png using Guid(578623b51513422c83b5edf85394f713) (TextureImporter) -> (artifact id: '170c2e8b1bb302b4ea373830aff820c9') in 0.0454429 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b07.png using Guid(975665c206a54528b6b5ffb9659463dc) (TextureImporter) -> (artifact id: 'b7a3ab43ec2077bd1565f9077de6ec87') in 0.0451994 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_l05.png using Guid(d7054dfa4564420f910661a926635c55) (TextureImporter) -> (artifact id: 'f70a609cb841cd1eb4db88ea79d64dc4') in 0.0434913 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_c02.png using Guid(f7664d599dbe4728b3ef1f0970a9e6e1) (TextureImporter) -> (artifact id: 'a4ab67f1e3d3e8d1e7f381136bdfe94d') in 0.0466796 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_l02.png using Guid(f7c703e0b0824ba4b0f743140ee6c74f) (TextureImporter) -> (artifact id: '806aef7d6f041a82f73c7822f88e4904') in 0.0443409 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_neutral_crew_bronze_bell_cook_basin.png using Guid(08d2e3e3767246738aa1196f192a9178) (TextureImporter) -> (artifact id: '612d0d3f213918299f734ce4cf397ac7') in 0.0451211 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-ap-health.png using Guid(082d3d40dff94284bfc4baaedc16fe12) (TextureImporter) -> (artifact id: '29a446ccb40ea6825a075d059422b1ff') in 0.0340342 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b10.png using Guid(18f11fab844c4d07b2ea4e27d2891270) (TextureImporter) -> (artifact id: '6158929c53d49945429cd88337de6dfc') in 0.0430011 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_l02.png using Guid(68cf13defd3743e2bf709d3d32d65ae9) (TextureImporter) -> (artifact id: 'e401f5cce53875a1200a721bb174665d') in 0.0460047 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_c01.png using Guid(78fb93053fff484daf3d4d3623b8b9ca) (TextureImporter) -> (artifact id: 'cca3a195652f572678bf60692316610c') in 0.042633 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_c01.png using Guid(88be38d1997a4c01825fdeaf361e019b) (TextureImporter) -> (artifact id: '615e1c8f4844d9bb2299e2f256ef40b6') in 0.0419163 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b04.png using Guid(a8b8961bbebf41d5990e3271cb656b96) (TextureImporter) -> (artifact id: '4c9d66ae9af4011dd20f40c9e7e457eb') in 0.0410276 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b04.png using Guid(d880c0aa973940dfb53291ec1ae64fb9) (TextureImporter) -> (artifact id: '6253f15037ecdaf1e9d596459f327dd3') in 0.0454694 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_l01.png using Guid(d8b0c6c4cc5b4084b6bc54cb4bf793b9) (TextureImporter) -> (artifact id: 'a89208477c0c6f2a76728cc5b8970910') in 0.0456541 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_e01.png using Guid(e81d93a0d4224e0b9187574e26a73cbb) (TextureImporter) -> (artifact id: '7acb9283e1682d14a2eee98e78f3f81f') in 0.0444043 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b07.png using Guid(19029669fda543c3819fa0746a5dce94) (TextureImporter) -> (artifact id: 'c4bb478785811d5f89dcaba5d9ea5962') in 0.0432733 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/frame-curse-v1.png using Guid(59547937d10f432a9ea0bdd840a38588) (TextureImporter) -> (artifact id: 'b567f6e48431ceb45ddd52df8c223385') in 0.0373561 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_e05.png using Guid(79d5a4cbcda9410f911ff1813a4780fb) (TextureImporter) -> (artifact id: 'd889b114bcbafcc5916bb67ef8d24506') in 0.0443748 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_e02.png using Guid(89826d88e7f74904ba8e0c75d019e22e) (TextureImporter) -> (artifact id: 'ff06e2b79649ebf63358f14f01b51493') in 0.0467595 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_e01.png using Guid(89e229304fff40f7a31e1fd2be932a03) (TextureImporter) -> (artifact id: '28bb8651e02934b992a4e3c9d49c5b8c') in 0.0485546 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b10.png using Guid(897361fa879d4a93a7d8316e1e7bc878) (TextureImporter) -> (artifact id: 'a49184031fddced962a377b9c3235ce6') in 0.044691 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-cannonball.png using Guid(b90756b56a53418b894d795a58e6c8f7) (TextureImporter) -> (artifact id: 'da4e3baedaad640969d3bfdbb975bd9b') in 0.0384754 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_l05.png using Guid(d9d8fa2737c74f6aa031cf475522f4a7) (TextureImporter) -> (artifact id: 'f0a22c8de77afec9a4fc7e86cc686153') in 0.0445839 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_l03.png using Guid(d98b8e298a2647d49232c03c7370f871) (TextureImporter) -> (artifact id: '465dcd803ec5a7137f00d984e032132d') in 0.0454289 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/frame-neutral-v1.png using Guid(1ae73c6eee704b47b44b003b0039f71f) (TextureImporter) -> (artifact id: '722d15b46f788f44fdbbbd0226d6a0f7') in 0.0341128 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b08.png using Guid(5a03669b7dee475b961c2eb23bde6279) (TextureImporter) -> (artifact id: '6d1487c78e9da65b12a123232ee2e763') in 0.0446698 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_c01.png using Guid(9af862aa339f4588b73b2578723e5cce) (TextureImporter) -> (artifact id: '13639c590f9c8a6409fe0ba3b6cbefcf') in 0.0455448 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_e02.png using Guid(caa4f41b7ad6484f90b9d1f188730084) (TextureImporter) -> (artifact id: '27d955bcbbc0de105cb490192726de11') in 0.042099 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_b01.png using Guid(ca879d1697df47888960be663d0ad769) (TextureImporter) -> (artifact id: '2875438dfa8e4755aa7cf2d60e866511') in 0.0441783 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_l04.png using Guid(ea82c46319c34264aac50b92034834a5) (TextureImporter) -> (artifact id: 'e3061dbd60b32e32dfdf83a24d96d0b4') in 0.0447502 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-powder.png using Guid(2bb4558eacd8436f9f5fe159aac76492) (TextureImporter) -> (artifact id: '7b2d36dafdccc30975ef1c45bf72b3f5') in 0.0353232 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-both.png using Guid(6b482f870e614569ad100989a89f6bc9) (TextureImporter) -> (artifact id: '9d696c0510384b2777a69b915d849a48') in 0.0361512 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b03.png using Guid(bb7f50e463014f8888e0449e144e5cca) (TextureImporter) -> (artifact id: '0f70641ccb035a34299090f1604fdab7') in 0.0477143 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-thunder-powder.png using Guid(dbf01d3d2bea49b9bfa3f0d52449c209) (TextureImporter) -> (artifact id: '2ae18fb8cbb5c0a997c9635faf0dd1d9') in 0.0409846 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-both-health.png using Guid(fbc5648d81f445e4bcb672522743a143) (TextureImporter) -> (artifact id: 'a6102ddf01bc32a223cf330a35bb3597') in 0.0354971 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-cannonball.png using Guid(fbe9eca07c7b47cf84990ee05c212d75) (TextureImporter) -> (artifact id: 'f79bf45906ca398312c468ef2892aa74') in 0.0381751 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_e05.png using Guid(0cd38fd2079c4c4eacf35990d96a9d7f) (TextureImporter) -> (artifact id: 'd86f795f78ddea22327c6d93dec0e2cc') in 0.0472754 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_l05.png using Guid(1cc6c622c572438a95a47e1db9b9d147) (TextureImporter) -> (artifact id: '0c9beceba01eac9fcea9d0d6e3c734e1') in 0.0456717 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-cannonball.png using Guid(2c04b878d70548f2bc7e9af98a94b06f) (TextureImporter) -> (artifact id: 'd0c20b413f0e7602b25862d4c7043f9c') in 0.0367225 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b03.png using Guid(4c379973acf04350b5d2f77e0a4c9f7b) (TextureImporter) -> (artifact id: '5aebf9c0ca3a5a41f45fec0760d14def') in 0.0448016 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b10.png using Guid(4c2d9b101c6542fbbb87f77724c74042) (TextureImporter) -> (artifact id: '9a7fb2a79629e38c1406ac3de013c857') in 0.0485261 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_l05.png using Guid(4c5d452d9e154913b52a5439c7f1dbc4) (TextureImporter) -> (artifact id: 'bc1819212c6e53d89bbda0b4835fe2d5') in 0.0441405 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-ap.png using Guid(6c5f3297393245cb9946f97aad82f084) (TextureImporter) -> (artifact id: '96f898a4324f1bf1a1cf059e33323b9c') in 0.037058 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_l04.png using Guid(7c256220ace6480686f251a909f8e78c) (TextureImporter) -> (artifact id: 'c855616418f492aa7f3a7248427d4408') in 0.0468214 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-both.png using Guid(7c9ea9924c9042be9b4f0ad053709933) (TextureImporter) -> (artifact id: '2278e3926d86f37552c925f0431b1bc8') in 0.0393128 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b01.png using Guid(8cb3bc0571804bccad8d165fcd99f4b4) (TextureImporter) -> (artifact id: '1a95d40bb846389e28f6d3fa34d678c9') in 0.0445409 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_l03.png using Guid(8c85149f3fd045e0ab9c36e8a1b25e3d) (TextureImporter) -> (artifact id: '06e1e9bc87fecd38dd63c9bc22489048') in 0.0438462 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b05.png using Guid(8ce945933c504896a7a601c77d566d5d) (TextureImporter) -> (artifact id: 'e79d33ce2b4ee1b4c6c6d1474f821af9') in 0.0433184 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-fire-powder.png using Guid(bc96cb9ee3f6477f993d40ef2dfc2d47) (TextureImporter) -> (artifact id: '58d9a710fa510ec8d610125e1f88b41b') in 0.0377759 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_blood_l01.png using Guid(bcac2fcbf86244feb58f8c1dd9befd63) (TextureImporter) -> (artifact id: '29d9f6cf47d941ef8ded94dfa0bedab6') in 0.0444839 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_neutral_crew_salt_crown_cook_maz.png using Guid(cc19b8c5b95e4ecbb938703b06d7d108) (TextureImporter) -> (artifact id: 'c4f6911b1612add8fcdd2efd0539414d') in 0.0428248 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-powder.png using Guid(dcc6f04dd4ad412a93726587ff192405) (TextureImporter) -> (artifact id: '602d86e00f52ddc6630d2db27ebe908f') in 0.0390102 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b10.png using Guid(ecac5383cb934715aefb6b5bab091623) (TextureImporter) -> (artifact id: 'f829c1203873fd5bf98d10104929f53d') in 0.0463394 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b04.png using Guid(1d3162de3a7b4b3cb0400831b071e3ee) (TextureImporter) -> (artifact id: '3dda465e94209e1ce12112b736f58dba') in 0.0437936 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b09.png using Guid(2d3caf4c83a644efa36b594b69d930ad) (TextureImporter) -> (artifact id: '80ba397f91f89d3953fe79218c4226f1') in 0.0441047 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_c02.png using Guid(3dee3d6037ea4308b2f44f9c5f4da309) (TextureImporter) -> (artifact id: '584cedf63fa1b8d55282d270480e9ea1') in 0.0441882 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b07.png using Guid(4dff5637d32743118a928601396b760a) (TextureImporter) -> (artifact id: '113517eae327525e2c86fe6fb7726457') in 0.0468183 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b01.png using Guid(7d4a723d3ba84926a27befbdc322b939) (TextureImporter) -> (artifact id: '67aca9dd0312b4ec83b016b9bd7e5cae') in 0.0476329 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_neutral_crew_twilight_tide_cook_lume.png using Guid(8da83c63247144b59ad9ad1a5f62002f) (TextureImporter) -> (artifact id: '1721c2c03a6e2622854d4b883dd29981') in 0.0438879 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_l05.png using Guid(9d180ab224fa491899d9ad439fafb4b8) (TextureImporter) -> (artifact id: '47b5bc4bb3a3279af3cf126d55b81c60') in 0.0462495 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_l03.png using Guid(bdf70ee71f054fd49a8870a9f8db18c0) (TextureImporter) -> (artifact id: 'a40faf1cade387af8c9cbca06b8391c0') in 0.0457614 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_b06.png using Guid(dd0070c46db64edcae5d171c1ab7727f) (TextureImporter) -> (artifact id: '81d4b4cf3678cc1a7fa102e445ca4c5f') in 0.0455781 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_fire_b10.png using Guid(dd6f6d7a286a4a47afc90c35e4f3208c) (TextureImporter) -> (artifact id: '45cabedebdb2088653fbabc8b42153a1') in 0.0467065 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_e05.png using Guid(ed4d414e92a74168a5907e02db3878e8) (TextureImporter) -> (artifact id: '5e4f2610580b7236067f940abed8ea49') in 0.0485203 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b02.png using Guid(fd95ebf92d484815a9a32926d5a48d96) (TextureImporter) -> (artifact id: 'a25e1bc6290bc9d86022766a62712b92') in 0.0444503 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-thunder-ap.png using Guid(2e20dfeab1b346b983c96673eb292ff4) (TextureImporter) -> (artifact id: 'e07a2175726e4c6b75ebd526eaeda6a0') in 0.0400865 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-ap-curse.png using Guid(3ebe248b613c40c9946110296ece10de) (TextureImporter) -> (artifact id: '0207389dc53508e59a3eecf04d941f50') in 0.0371217 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_tide_c01.png using Guid(4e21a7fc36c1464f92f602e21f3bf1c0) (TextureImporter) -> (artifact id: '0b36a0f8cc16a3b8b5fc333a5e5408e8') in 0.0435228 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/frame-arcane-v1.png using Guid(9e87af97ce604979a376c94cb1c80d35) (TextureImporter) -> (artifact id: 'a56833bd0d190eaf84545563e20581d7') in 0.0353675 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-both.png using Guid(bef5ee05ba8e436e9f18da41e9ef95ea) (TextureImporter) -> (artifact id: '52b226bcd314bef09b3a27ab32eb86fc') in 0.0356224 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-thunder-both.png using Guid(be9d45a874de4615b082251a00d3824a) (TextureImporter) -> (artifact id: 'e149ea8e789333cdeef3c4abae16fad6') in 0.0357077 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_e05.png using Guid(de29db7b85404ec582b508aa95a7fcbd) (TextureImporter) -> (artifact id: 'feaab893eaf91d57008e9dc2f556f166') in 0.0447331 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_b02.png using Guid(de992b5d044d4710baa492c3777f709f) (TextureImporter) -> (artifact id: '00496f5073c577f40f657a98976d2989') in 0.0446075 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_e01.png using Guid(eecc9a52fe3b45d891c264ddda56a14c) (TextureImporter) -> (artifact id: '48d128c125158d4b0bcc26555d2482f2') in 0.0481878 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_e01.png using Guid(fe123b50dbac48549ebd5446751f0c8a) (TextureImporter) -> (artifact id: '8392bbbd6559f20a272370f82fecc8cc') in 0.0466695 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_l03.png using Guid(0f6ee233773747c787f8a8a85725d7e7) (TextureImporter) -> (artifact id: '5beee2a02d52014473d0b75c9db352ae') in 0.0421078 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b04.png using Guid(1ff5dabaae8c4a37abe1c56ed89b66e9) (TextureImporter) -> (artifact id: '0841072e3d10c55f29999e16beeda9e0') in 0.0437367 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-fire-cannonball.png using Guid(8f38399d82a8493ea8338c84e5e63f1e) (TextureImporter) -> (artifact id: '8bd7f29587f40cbefb0ea6efcb0b50c5') in 0.0366868 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_b06.png using Guid(8fad41e0da7b4ec090847beb145e61ac) (TextureImporter) -> (artifact id: 'd939461e3f277fb381a65bfa8729c5f1') in 0.043685 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_curse_c02.png using Guid(9fc8cae09138408a8d4064a70720e1b2) (TextureImporter) -> (artifact id: 'c4805df28bcf0854ade823b40f7dcd0d') in 0.0474221 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_arcane_l02.png using Guid(9f2a3e0f963f456ab812e6dec66a6cd1) (TextureImporter) -> (artifact id: 'c07bc9876c5355e429b758fdd0c939ab') in 0.0447536 seconds
+Start importing Assets/_Project/Resources/CardSchools/Art/card_school_thunder_b06.png using Guid(9f8b28403499471b8ca5e5a549212111) (TextureImporter) -> (artifact id: 'fcd553076b2a1ffe8a112c21f0814727') in 0.0440425 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-cannonball.png using Guid(bf5e306a6b6a42809d695a47aba9f7bc) (TextureImporter) -> (artifact id: '5a24cd442b5745e55861729b4513798a') in 0.0339983 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-ap.png using Guid(efea4d374b8044328e735a08563800fa) (TextureImporter) -> (artifact id: '2d0ca007a8ce4cdea2c237b38ea33f0e') in 0.033898 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-thunder-ap-chain.png using Guid(ff8b97a572ac4369bf48039dec6ea3e9) (TextureImporter) -> (artifact id: '2820fffc5fde1894924a905e72ab5b68') in 0.0392165 seconds
+Start importing Assets/_Project/Presentation/EditablePreviewAssets/UI_TavernCrewDetail_Tavern_Portrait_Paper_Blend__Instance__material.mat using Guid(1d6957c8a34479b48954a60068fe23f0) (NativeFormatImporter) -> (artifact id: 'c74c8169e27258b6b9f572215d20e1a2') in 0.0025557 seconds
+Start importing Assets/_Project/Presentation/EditablePreviewAssets/UI_CardWorkshop_UISurfaces_aged_reading_parchment_v1_0_0_1536_1024.sprite.asset using Guid(70d6d4cf98d89d641b22eb77bbb4678b) (NativeFormatImporter) -> (artifact id: '41dad642cefe6ed7ee7eef01504c73bd') in 0.0014391 seconds
+Start importing Assets/_Project/Presentation/EditablePreviewAssets/UI_DeckBuilder_twilight_tide_Header_Frame_0_191_1832_497.sprite.asset using Guid(84f27b41de5fb1f4c96687cd8d3afca1) (NativeFormatImporter) -> (artifact id: 'a22c9b449f66d5767b0105b9856fcd98') in 0.0010765 seconds
+Start importing Assets/_Project/Presentation/EditablePreviewAssets/UI_Battle_twilight_tide_Header_Frame_0_191_1832_497.sprite.asset using Guid(b55df36e3eb51dc4db03e21afd181cb0) (NativeFormatImporter) -> (artifact id: '1ae918ea41c9d0746924235d088dd57d') in 0.0011431 seconds
+Start importing Assets/_Project/Presentation/EditablePreviewAssets/UI_TavernCrewDetail_gray_gull_Header_Frame_0_827_1296_389.sprite.asset using Guid(c69476a1a94d5004692bd6832ccbcae6) (NativeFormatImporter) -> (artifact id: '60a19349d14d07329c0eb5fe494a87e6') in 0.0010534 seconds
+Start importing Assets/_Project/Presentation/EditablePreviewAssets/UI_CardWorkshop_twilight_tide_Header_Frame_0_191_1832_497.sprite.asset using Guid(c917cbd48ca864644b5b210f68e73c12) (NativeFormatImporter) -> (artifact id: '86478f5eafc65aadbfd1bc22c720d35a') in 0.0010746 seconds
+Start importing Assets/_Project/Presentation/EditablePreviewAssets/UI_TavernCrewDetail_UISurfaces_journal_parchment_v1_0_0_1024_1024.sprite.asset using Guid(3bae9b00dd683e24894c1164adcc3a53) (NativeFormatImporter) -> (artifact id: '4e0d0f0ae0ea7967c928af609d8d2505') in 0.0010077 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-layouts.json using Guid(40b144b9a6024440933ed8b5b584e054) (TextScriptImporter) -> (artifact id: '3b77e5bc51379004710c28ba062e3585') in 0.001859 seconds
+Start importing Packages/com.unity.render-pipelines.core/Tests/Editor/UnifiedRayTracing/TraceRays.urtshader using Guid(1142bbad8b9e8c44c83a9775ff120d37) (ScriptedImporter)Launched and connected shader compiler UnityShaderCompiler.exe after 0.01 seconds
+
+Compiling Ray Tracing Shader "TraceRays.urtshader", keywords = <no keywords>
+    finished in 0.01 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '5553b18b7c8112bb9ccf89122cb67ade') in 0.0565351 seconds
+Start importing Packages/com.unity.render-pipelines.universal/Runtime/RendererFeatures/SurfaceCacheGI/SurfaceCacheCore/RisEstimation.urtshader using Guid(713f6141bd66a134383b787f2eaa7c11) (ScriptedImporter)
+Compiling Ray Tracing Shader "RisEstimation.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: 'f3e1c77ba19ceee35f0267b5d0e51b7e') in 0.0446184 seconds
+Start importing Packages/com.unity.render-pipelines.core/Editor/Lighting/ProbeVolume/RenderingLayerMask/TraceRenderingLayerMask.urtshader using Guid(94a070d33e408384bafc1dea4a565df9) (ScriptedImporter)
+Compiling Ray Tracing Shader "TraceRenderingLayerMask.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '00bbb221d1e27c0f9443856a5487c0b3') in 0.0379146 seconds
+Start importing Packages/com.unity.render-pipelines.universal/Runtime/RendererFeatures/SurfaceCacheGI/SurfaceCacheCore/UniformEstimation.urtshader using Guid(94a39d12848d8d64ca962a72b74e7c50) (ScriptedImporter)
+Compiling Ray Tracing Shader "UniformEstimation.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '196b48d16add00849a1cec00bdd2d24f') in 0.0180021 seconds
+Start importing Assets/_Project/Resources/Fonts/README.md using Guid(e45d57f1a5f846b0ae75bde58247e054) (TextScriptImporter) -> (artifact id: 'f5289f889f87ec7d7361996cb0b9de5d') in 0.0020333 seconds
+Start importing Packages/com.unity.render-pipelines.core/Tests/Editor/UnifiedRayTracing/TraceTransparentRays.urtshader using Guid(6513c3b892e933c4f8d00c19d5c47532) (ScriptedImporter)
+Compiling Ray Tracing Shader "TraceTransparentRays.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '54b3dc491ce57cafb618490eab295fc7') in 0.0079065 seconds
+Start importing Packages/com.unity.render-pipelines.core/Editor/Lighting/ProbeVolume/DynamicGI/DynamicGISkyOcclusion.urtshader using Guid(5a2a534753fbdb44e96c3c78b5a6999d) (ScriptedImporter)
+Compiling Ray Tracing Shader "DynamicGISkyOcclusion.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '85aff15bdeaa166b3ec75f6e9791ba7e') in 0.0095583 seconds
+Start importing Packages/com.unity.render-pipelines.core/Tests/Editor/UnifiedRayTracing/TraceRaysAndFetchAttributes.urtshader using Guid(fbc59f55df2416344b008dc23753cae2) (ScriptedImporter)
+Compiling Ray Tracing Shader "TraceRaysAndFetchAttributes.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: 'bb9357e14210f19acbd00034a5eda908') in 0.0087308 seconds
+Start importing Packages/com.unity.render-pipelines.universal/Runtime/RendererFeatures/SurfaceCacheGI/SurfaceCacheCore/RestirCandidateTemporal.urtshader using Guid(ad3a9f9982f8c4f4a839a78955e78458) (ScriptedImporter)
+Compiling Ray Tracing Shader "RestirCandidateTemporal.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '2a77cd8c49e7ad2366be5bb7e4a8b440') in 0.0177679 seconds
+Start importing Packages/com.unity.render-pipelines.core/Editor/Lighting/ProbeVolume/VirtualOffset/TraceVirtualOffset.urtshader using Guid(ff2cbab5da58bf04d82c5f34037ed123) (ScriptedImporter)
+Compiling Ray Tracing Shader "TraceVirtualOffset.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '1e33304e9d405c62e9503b03959361c1') in 0.0214079 seconds
+Refreshing native plugins compatible for Editor in 1.31 ms, found 5 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=718f64eac2816a04390df9a55ba9e5b2): Total: 24.306 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=221 (actual=221, local cache=0, cache server=0)
+		Asset DB Process Time: managed=59 ms, native=13865 ms
+		Asset DB Callback time: managed=211 ms, native=394 ms
+		Scripting: domain reloads=1, domain reload time=5426 ms, compile time=4304 ms, other=44 ms
+		Project Asset Count: scripts=1687, non-scripts=4282
+		Asset File Changes: new=17, changed=270, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.002ms
+	InvokePackagesCallback: 22.381ms
+	ApplyChangesToAssetFolders: 0.572ms
+	Scan: 410.136ms
+	OnSourceAssetsModified: 0.982ms
+	CategorizeAssetsWithTransientArtifact: 1187.147ms
+	ProcessAssetsWithTransientArtifactChanges: 63.929ms
+	CategorizeAssets: 215.725ms
+	ImportOutOfDateAssets: 11610.548ms (-1096.142ms without children)
+		ImportManagerImport: 8388.759ms (16.384ms without children)
+			ImportInProcess: 8371.269ms
+			UpdateCategorizedAssets: 1.105ms
+		CompileScripts: 4304.243ms
+		ReloadNativeAssets: 1.799ms
+		UnloadImportedAssets: 0.804ms
+		ReloadImportedAssets: 9.673ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.824ms
+		InitializingProgressBar: 0.007ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
+		OnDemandSchedulerStart: 0.582ms
+	PostProcessAllAssets: 620.815ms
+	Hotreload: 3.200ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.197ms
+	UnloadStreamsBegin: 2.348ms
+	PersistCurrentRevisions: 0.432ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 2.121ms
+	Untracked: 10167.628ms
+
+Application.AssetDatabase Initial Refresh End
+Scanning for USB devices : 13.296ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-LorneLayoutReview20261012
+Unloading 21 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 7988 unused Assets / (5.2 MB). Loaded Objects now: 8833.
+Memory consumption went from 245.3 MB to 240.1 MB.
+Total: 6.729700 ms (FindLiveObjects: 0.423700 ms CreateObjectMapping: 0.179700 ms MarkObjects: 4.651600 ms  DeleteObjects: 1.473800 ms)
+
+LORNE_LAYOUT_REVIEW_COMPLETE: D:\Game\outputs\imagegen\tavern-dossier\layout-review-v1
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+ShatteredSail.Editor.LorneDossierLayoutCapture:CaptureFromCommandLine () (at Assets/_Project/Editor/LorneDossierLayoutCapture.cs:55)
+
+(Filename: Assets/_Project/Editor/LorneDossierLayoutCapture.cs Line: 55)
+
+Batchmode quit successfully invoked - shutting down!
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-Admin-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-Admin channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+Exiting batchmode successfully now!
+Exiting without the bug reporter. Application will terminate with return code 0

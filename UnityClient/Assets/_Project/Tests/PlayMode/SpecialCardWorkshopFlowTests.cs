@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -14,12 +15,223 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
-        public IEnumerator WorkshopFourChests_SeparatePaidBaseCardsFromVoyageSpecialCollection()
+        public IEnumerator DeckBuilderSpecial_CrewConfigurationReturnsToSameStagePageAndUpdatesMembership()
+        {
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "灰鸥港");
+            CrewVariantDefinition navigator = CrewNarrativeCatalog.ForPortAndProfession("灰鸥港", 0);
+            CoreSpecialCardDefinition source = CoreSpecialCardCatalog.ForCrew(navigator.Id);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(navigator.Id), 1);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CrewRecruitmentKey(0), 1);
+            PlayerPrefs.SetString(CoreGameplayDemoController.ActiveCrewVariantKey(0), navigator.Id);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(navigator.Id), "灰鸥港");
+            PlayerPrefs.SetString(CoreGameplayDemoController.SpecialCardExperienceKey, source.Card.Id + "=120");
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null; yield return null;
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            yield return ClickShipyardControl("Port Hotspot Voyage");
+            yield return ClickShipyardControl("Configure Voyage Crew");
+            Assert.That(DepartureCrewChoiceState(0), Is.EqualTo("已登船"));
+            yield return ClickShipyardControl("Departure Special Crew Toggle 0");
+            yield return ClickShipyardControl("Confirm Departure Crew");
+            int route = controller.Session.SelectedRouteIndex;
+            string destination = controller.Session.SelectedDestinationPort;
+            Button departureBack = ActiveButton("Return To Port Hub");
+            int index = DeckBuilderIndex(source.Card.Id);
+            AcquireSpecialCardSecondPageFixture(controller, index, NavalBattleStage.Naval);
+            yield return ClickShipyardControl("Configure Voyage Battle Decks");
+            yield return ClickShipyardControl("Edit Stage Deck Naval");
+            yield return ClickShipyardControl("Open Special Card Collection");
+            yield return RevealWorkshopSpecialCard(index);
+            yield return ClickShipyardControl("Select Special Card " + index);
+            AssertSpecialCardMembership(index, false);
+            Assert.That(ActiveButton("Configure Special Card Source " + index).GetComponentInChildren<Text>().text, Is.EqualTo("配置船员"));
+            string page = GameObject.Find("Upgrade Collection Page").GetComponent<Text>().text;
+            Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.True, "The return must preserve a noninitial collection page.");
+            Dictionary<string, string> saved = SpecialSourceNavigationProgress();
+            Dictionary<NavalBattleStage, int[]> decks = SpecialSourceNavigationDecks(controller);
+            decimal gold = controller.Session.ProfileGold;
+            yield return new WaitForSecondsRealtime(.7f);
+            NavalBattleVisualCapture.Capture(controller, "DeckBuilderSpecial_Crew_01_Standby.png",
+                "炮击阶段已收藏的待命船员卡显示配置船员，且只展示本阶段卡牌", "Card Workshop Preview Panel");
+
+            yield return ClickShipyardControl("Configure Special Card Source " + index);
+            Assert.That(GameObject.Find("Departure Crew Configuration Title"), Is.Not.Null);
+            Assert.That(DepartureCrewChoiceState(0), Is.EqualTo("待命"), "Opening configuration does not board the crew automatically.");
+            Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval), Has.No.Member(index));
+            yield return ClickShipyardControl("Back To Voyage Setup");
+            AssertReturnedWorkshopSpecialCard(controller, index, NavalBattleStage.Naval, page, false);
+            yield return ClickShipyardControl("Configure Special Card Source " + index);
+            yield return ClickShipyardControl("Departure Special Crew Toggle 0");
+            Assert.That(DepartureCrewChoiceState(0), Is.EqualTo("已登船"));
+            yield return ClickShipyardControl("Confirm Departure Crew");
+            AssertReturnedWorkshopSpecialCard(controller, index, NavalBattleStage.Naval, page, true);
+            Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval), Has.Member(index));
+            AssertSpecialSourceNavigationProgress(controller, decks, saved, gold);
+            Assert.That(controller.Session.GetSpecialCardExperience(source.Card.Id), Is.EqualTo(120));
+            yield return new WaitForSecondsRealtime(.7f);
+            NavalBattleVisualCapture.Capture(controller, "DeckBuilderSpecial_Crew_02_Joined.png",
+                "船员登船后返回原阶段原页，卡牌下方由配置船员更新为已加入", "Card Workshop Preview Panel");
+            AssertDepartureReturnCaption(departureBack, "返回出航界面");
+            yield return ClickShipyardControl("Return To Port Hub");
+            AssertDepartureReturnSelection(controller, route, destination);
+            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Null);
+            Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval), Has.Member(index));
+            AssertSpecialSourceNavigationProgress(controller, decks, saved, gold);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator DeckBuilderSpecial_ComponentConfigurationReturnsToSameStagePageAndUpdatesMembership()
+        {
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null; yield return null;
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            ComponentArtEntry component = new ComponentArtCatalog().Entries.First(item => item.Slot == ComponentSlot.Bow &&
+                item.Rarity == ComponentRarity.Rare && CoreSpecialCardCatalog.ForComponent(item.Id).Card.IsAllowedInStage(NavalBattleStage.Naval));
+            OwnedShipComponent owned = controller.GrantOwnedComponent(component, 1f);
+            CoreSpecialCardDefinition source = CoreSpecialCardCatalog.ForComponent(component.Id);
+            int index = DeckBuilderIndex(source.Card.Id);
+            AcquireSpecialCardSecondPageFixture(controller, index, NavalBattleStage.Naval);
+            yield return ClickShipyardControl("Port Hotspot CardWorkshop");
+            yield return ClickShipyardControl("Edit Stage Deck Naval");
+            yield return ClickShipyardControl("Open Special Card Collection");
+            yield return RevealWorkshopSpecialCard(index);
+            yield return ClickShipyardControl("Select Special Card " + index);
+            AssertSpecialCardMembership(index, false);
+            Assert.That(ActiveButton("Configure Special Card Source " + index).GetComponentInChildren<Text>().text, Is.EqualTo("替换部件"));
+            string page = GameObject.Find("Upgrade Collection Page").GetComponent<Text>().text;
+            Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.True);
+            // Establish the same durable profile shape used by real equipment saves.
+            // This keeps strict value comparisons meaningful for initially absent legacy keys.
+            typeof(CoreGameplayDemoController).GetMethod("SaveProgress", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
+            Dictionary<string, string> saved = SpecialSourceNavigationProgress();
+            Dictionary<NavalBattleStage, int[]> decks = SpecialSourceNavigationDecks(controller);
+            decimal gold = controller.Session.ProfileGold;
+            int ship = controller.Session.SelectedShipIndex;
+            int inventoryCount = controller.OwnedComponents.Count;
+            yield return new WaitForSecondsRealtime(.7f);
+            NavalBattleVisualCapture.Capture(controller, "DeckBuilderSpecial_Component_01_Idle.png",
+                "未安装的已拥有部件对应卡显示替换部件入口", "Card Workshop Preview Panel");
+
+            yield return ClickShipyardControl("Configure Special Card Source " + index);
+            Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null);
+            Assert.That(owned.ShipIndex, Is.EqualTo(-1), "Opening configuration does not equip a part automatically.");
+            yield return ClickShipyardControl("Back To Workshop Special Cards");
+            AssertReturnedWorkshopSpecialCard(controller, index, NavalBattleStage.Naval, page, false);
+            yield return ClickShipyardControl("Configure Special Card Source " + index);
+            yield return ClickShipyardControl("Shipyard Equipment Owned " + owned.InstanceId);
+            yield return ClickShipyardControl("Shipyard Equip Component");
+            Assert.That(controller.InstalledShipComponent(ship, component.Slot).InstanceId, Is.EqualTo(owned.InstanceId));
+            yield return ClickShipyardControl("Back To Workshop Special Cards");
+            AssertReturnedWorkshopSpecialCard(controller, index, NavalBattleStage.Naval, page, true);
+            Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval), Has.Member(index));
+            Assert.That(controller.OwnedComponents.Count, Is.EqualTo(inventoryCount));
+            Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(ship));
+            AssertSpecialSourceNavigationProgress(controller, decks, saved, gold);
+            Assert.That(controller.Session.GetSpecialCardExperience(source.Card.Id), Is.Zero);
+            yield return new WaitForSecondsRealtime(.7f);
+            NavalBattleVisualCapture.Capture(controller, "DeckBuilderSpecial_Component_02_Joined.png",
+                "真实装备部件后返回原阶段原页，对应专属牌显示已加入", "Card Workshop Preview Panel");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void AcquireSpecialCardSecondPageFixture(CoreGameplayDemoController controller, int target, NavalBattleStage stage)
+        {
+            int[] earlier = CoreSpecialCardCatalog.All.Select(source => DeckBuilderIndex(source.Card.Id))
+                .Where(index => index < target && controller.Session.GetBattleCard(index).IsAllowedInStage(stage)).Take(8).ToArray();
+            Assert.That(earlier, Has.Length.EqualTo(8));
+            controller.Session.AcquireSpecialCards(earlier.Concat(new[] { target }).Select(index => controller.Session.GetBattleCard(index).Id).ToArray());
+        }
+
+        private static IEnumerator RevealWorkshopSpecialCard(int index)
+        {
+            while (ActiveButton("Select Special Card " + index) == null)
+            {
+                Assert.That(ActiveButton("Next Upgrade Cards").interactable, Is.True, "The acquired special card must be reachable.");
+                yield return ClickShipyardControl("Next Upgrade Cards");
+            }
+        }
+
+        private static Dictionary<NavalBattleStage, int[]> SpecialSourceNavigationDecks(CoreGameplayDemoController controller) =>
+            new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding }
+                .ToDictionary(stage => stage, stage => controller.Session.GetBattleDeck(stage).ToArray());
+
+        private static Dictionary<string, string> SpecialSourceNavigationProgress() => DeckBuilderSavedProgress()
+            .Where(pair => pair.Key != CoreGameplayDemoController.AcquiredSpecialCardsKey).ToDictionary(pair => pair.Key, pair => pair.Value);
+
+        private static void AssertSpecialSourceNavigationProgress(CoreGameplayDemoController controller,
+            Dictionary<NavalBattleStage, int[]> decks, Dictionary<string, string> saved, decimal gold)
+        {
+            foreach (var deck in decks) CollectionAssert.AreEqual(deck.Value, controller.Session.GetBattleDeck(deck.Key));
+            CollectionAssert.AreEquivalent(saved, SpecialSourceNavigationProgress(), "Source configuration preserves base decks, gold and training progress.");
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+        }
+
+        private static void AssertReturnedWorkshopSpecialCard(CoreGameplayDemoController controller, int index,
+            NavalBattleStage stage, string page, bool joined)
+        {
+            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null);
+            Assert.That(GameObject.Find("Upgrade Collection Page").GetComponent<Text>().text, Is.EqualTo(page));
+            Assert.That((NavalBattleStage)typeof(CoreGameplayDemoController).GetField("selectedBattleDeckStage", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(controller), Is.EqualTo(stage));
+            Assert.That((bool)typeof(CoreGameplayDemoController).GetField("cardWorkshopDeckBuilderOpen", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(controller), Is.True);
+            int[] visible = GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>()
+                .Where(button => button.name.StartsWith("Select Special Card "))
+                .Select(button => int.Parse(button.name.Substring("Select Special Card ".Length))).ToArray();
+            Assert.That(visible.All(card => controller.Session.GetBattleCard(card).IsAllowedInStage(stage)), Is.True);
+            AssertSpecialCollectionPage(controller, visible, index, page.Replace(" ", string.Empty));
+            AssertSpecialCardMembership(index, joined);
+        }
+
+        private static void AssertSpecialCardMembership(int index, bool joined)
+        {
+            Assert.That(GameObject.Find("Special Card Source " + index), Is.Null);
+            Assert.That(GameObject.Find("Special Card Progress " + index), Is.Null);
+            Assert.That(ActiveButton("Select Special Card " + index).GetComponent<DeckBuilderCardDrag>(), Is.Null);
+            GameObject status = GameObject.Find("Special Card Deck Status " + index);
+            Button configure = ActiveButton("Configure Special Card Source " + index);
+            if (joined)
+            {
+                Assert.That(status, Is.Not.Null);
+                Assert.That(status.GetComponent<Text>().text, Is.EqualTo("已加入"));
+                Assert.That(configure, Is.Null);
+            }
+            else
+            {
+                Assert.That(status, Is.Null);
+                Assert.That(configure, Is.Not.Null);
+                CoreSpecialCardDefinition source = CoreSpecialCardCatalog.FindByCardId(CoreVoyageSession.CardLibrary[index].Id);
+                Assert.That(configure.GetComponentInChildren<Text>().text,
+                    Is.EqualTo(source.SourceKind == CoreSpecialCardSourceKind.Crew ? "配置船员" : "替换部件"));
+            }
+        }
+
+        private static IEnumerator ReturnFromWorkshopForgeToSelectedDeck()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            NavalBattleStage stage = (NavalBattleStage)typeof(CoreGameplayDemoController)
+                .GetField("selectedBattleDeckStage", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            ActiveButton("Back From Card Upgrades").onClick.Invoke();
+            yield return null;
+            ActiveButton("Edit Stage Deck " + stage).onClick.Invoke();
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator WorkshopPreview_SeparatesPaidBaseCardsFromVoyageSpecialCollection()
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             CrewVariantDefinition navigator = CrewNarrativeCatalog.ForPortAndProfession("灰鸥港", 0);
             CrewVariantDefinition doctor = CrewNarrativeCatalog.ForPortAndProfession("灰鸥港", 2);
-            foreach (CrewVariantDefinition crew in new[] { navigator, doctor })
+            CrewVariantDefinition cook = CrewNarrativeCatalog.ForPortAndProfession("灰鸥港", 4);
+            CoreSpecialCardDefinition cookCard = CoreSpecialCardCatalog.ForCrew(cook.Id);
+            PlayerPrefs.SetString(CoreGameplayDemoController.SpecialCardExperienceKey, cookCard.Card.Id + "=839");
+            foreach (CrewVariantDefinition crew in new[] { navigator, doctor, cook })
             {
                 PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(crew.Id), 1);
                 PlayerPrefs.SetString(CoreGameplayDemoController.ActiveCrewVariantKey(crew.ProfessionIndex), crew.Id);
@@ -44,20 +256,31 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Boarding), Has.Member(doctorIndex));
             Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Preparation), Has.No.Member(doctorIndex));
             Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval), Has.No.Member(doctorIndex));
+            int cookIndex = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
+                .First(i => CoreVoyageSession.CardLibrary[i].Id == cookCard.Card.Id);
+            Assert.That(controller.Session.AcquiredSpecialCardIds, Has.Member(cookCard.Card.Id),
+                "Previously recruited Pepe receives his support card without another recruitment fee.");
+            foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
+                Assert.That(controller.Session.GetBonusBattleCards(stage), Has.Member(cookIndex));
+            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id), Is.EqualTo(2));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.AcquiredSpecialCardsKey), Does.Contain(cookCard.Card.Id));
             Assert.That(CoreSpecialCardCatalog.ForComponent(green.Id), Is.Null);
             Assert.That(controller.Session.AcquiredSpecialCardIds, Has.Member(crewCard.Card.Id));
             Assert.That(controller.Session.AcquiredSpecialCardIds, Has.Member(componentCard.Card.Id));
             decimal gold = controller.Session.ProfileGold;
             ActiveButton("Port Hotspot CardWorkshop").onClick.Invoke();
             yield return null;
-            NavalBattleVisualCapture.Capture(controller, "01_Four_Card_Chests.png", "三类基础卡强化与特殊卡收藏入口", "Card Workshop Chest Stage");
+            NavalBattleVisualCapture.Capture(controller, "01_Card_Workshop_Preview.png", "直接进入两行四列卡牌预览与三阶段编辑入口", "Card Workshop Preview Panel");
             NavalBattleStage[] stages = { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding };
             for (int chest = 0; chest < 3; chest++)
             {
-                ActiveButton("Open Deck Chest " + chest).onClick.Invoke();
+                ActiveButton("Workshop Preview Stage " + stages[chest]).onClick.Invoke();
+                yield return null;
+                Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null, "Filtering only changes the preview catalog.");
+                ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
                 yield return null;
                 Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Not.Null);
-                foreach (Button button in GameObject.Find("Battle Card Upgrade Panel").GetComponentsInChildren<Button>())
+                foreach (Button button in GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>())
                     if (button.name.StartsWith("Select Upgrade Card "))
                     {
                         int index = int.Parse(button.name.Substring("Select Upgrade Card ".Length));
@@ -69,24 +292,40 @@ namespace ShatteredSail.Presentation.Tests
                 ActiveButton("Back From Card Upgrades").onClick.Invoke();
                 yield return null;
             }
-            ActiveButton("Open Deck Chest 3").onClick.Invoke();
+            ActiveButton("Open Special Card Collection").onClick.Invoke();
             yield return null;
-            Assert.That(GameObject.Find("Special Card Collection Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Special Card Collection Panel"), Is.Null);
+            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
             Assert.That(GameObject.Find("Confirm Battle Card Upgrade"), Is.Null);
+            Assert.That(ActiveButton("Open Battle Card Upgrades").interactable, Is.False);
+            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
+            yield return null;
+            Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Null);
             int specialIndex = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).First(i => CoreVoyageSession.CardLibrary[i].Id == crewCard.Card.Id);
+            int componentIndex = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).First(i => CoreVoyageSession.CardLibrary[i].Id == componentCard.Card.Id);
             ActiveButton("Select Special Card " + specialIndex).onClick.Invoke();
             yield return null;
-            Assert.That(GameObject.Find("Special Card Detail Lore").GetComponent<Text>().text, Is.EqualTo(crewCard.Lore));
-            Assert.That(GameObject.Find("Special Card Detail Experience").GetComponent<Text>().text, Does.Contain("0 / 120"));
+            AssertSpecialCardMembership(specialIndex, true);
+            Assert.That(GameObject.Find("Special Card Source " + specialIndex), Is.Null);
+            Assert.That(GameObject.Find("Special Card Progress " + specialIndex), Is.Null);
             Assert.That(controller.Session.TryUpgradeBattleCard(specialIndex, out _), Is.False);
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
-            NavalBattleVisualCapture.Capture(controller, "02_Special_Card_Collection.png", "具体人物的专属战术、故事与航程经验", "Special Card Collection Panel");
+            NavalBattleVisualCapture.Capture(controller, "02_Special_Card_Collection.png", "工坊内查看特殊卡与已加入状态，强化入口覆盖禁用标记", "Card Workshop Preview Panel");
             ActiveButton("Select Special Card " + doctorIndex).onClick.Invoke();
             yield return null;
-            Assert.That(GameObject.Find("Special Card Detail Lore").GetComponent<Text>().text, Is.EqualTo(doctorCard.Lore));
-            NavalBattleVisualCapture.Capture(controller, "03_Doctor_Boarding_Card.png", "船医莫尔的接舷治疗专属牌", "Special Card Collection Panel");
-            RectTransform paper = GameObject.Find("Special Card Collection Parchment").GetComponent<RectTransform>();
-            foreach (Button button in GameObject.Find("Special Card Collection Panel").GetComponentsInChildren<Button>())
+            AssertSpecialCardMembership(doctorIndex, true);
+            NavalBattleVisualCapture.Capture(controller, "03_Doctor_Boarding_Card.png", "船医莫尔的接舷治疗专属牌在同一工坊内选中", "Card Workshop Preview Panel");
+            int[] firstPage = new[] { specialIndex, componentIndex, doctorIndex, cookIndex }.OrderBy(index => index).ToArray();
+            AssertSpecialCollectionPage(controller, firstPage, doctorIndex, "1/1");
+            ActiveButton("Select Special Card " + cookIndex).onClick.Invoke();
+            yield return null;
+            AssertSpecialCardMembership(cookIndex, true);
+            Assert.That(GameObject.Find("Special Card Progress " + cookIndex), Is.Null);
+            AssertSpecialCollectionPage(controller, firstPage, cookIndex, "1/1");
+            Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.False);
+            Assert.That(ActiveButton("Next Upgrade Cards").interactable, Is.False);
+            RectTransform paper = GameObject.Find("Workshop Preview Parchment").GetComponent<RectTransform>();
+            foreach (Button button in paper.GetComponentsInChildren<Button>())
             {
                 Vector3[] corners = new Vector3[4];
                 button.GetComponent<RectTransform>().GetWorldCorners(corners);
@@ -115,6 +354,8 @@ namespace ShatteredSail.Presentation.Tests
                 "The save helper must also guard future accidental calls at sea.");
             Assert.That(controller.Session.GetSpecialCardExperience(componentCard.Card.Id), Is.EqualTo(xp));
             Assert.That(controller.Session.GetSpecialCardExperience(doctorCard.Card.Id), Is.EqualTo(xp));
+            Assert.That(controller.Session.GetSpecialCardExperience(cookCard.Card.Id), Is.EqualTo(839 + xp));
+            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id), Is.EqualTo(3));
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
             yield return null;
@@ -124,6 +365,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Cargo.Water, Is.EqualTo(waterBeforeVoyage));
             Assert.That(controller.Session.Cargo.Food, Is.EqualTo(foodBeforeVoyage));
             Assert.That(controller.Session.AcquiredSpecialCardIds, Has.Member(componentCard.Card.Id));
+            Assert.That(controller.Session.GetSpecialCardExperience(cookCard.Card.Id), Is.EqualTo(839),
+                "Reloading an unsettled voyage restores Pepe's committed training too.");
 
             ActiveButton("Port Hotspot Voyage").onClick.Invoke();
             yield return null;
@@ -165,11 +408,31 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.GetSpecialCardExperience(crewCard.Card.Id), Is.EqualTo(earnedThisVoyage));
             Assert.That(controller.Session.GetSpecialCardExperience(componentCard.Card.Id), Is.EqualTo(earnedThisVoyage));
             Assert.That(controller.Session.GetSpecialCardExperience(doctorCard.Card.Id), Is.EqualTo(earnedThisVoyage));
+            Assert.That(controller.Session.GetSpecialCardExperience(cookCard.Card.Id), Is.EqualTo(839 + earnedThisVoyage));
+            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id), Is.EqualTo(3));
+            Assert.That(controller.Session.AcquiredSpecialCardIds, Has.Member(cookCard.Card.Id));
             Assert.That(controller.Session.Cargo.Water, Is.EqualTo(settledWater));
             Assert.That(controller.Session.Cargo.Food, Is.EqualTo(settledFood));
             typeof(CoreGameplayDemoController).GetMethod("RestoreSpecialCardProgress", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(controller, null);
             Assert.That(controller.Session.GetSpecialCardExperience(crewCard.Card.Id), Is.EqualTo(earnedThisVoyage), "Restoring the same committed snapshot is idempotent.");
+        }
+
+        private static void AssertSpecialCollectionPage(CoreGameplayDemoController controller, int[] visibleIndices, int selectedIndex, string page)
+        {
+            GameObject panel = GameObject.Find("Workshop Preview Collection");
+            Button[] choices = panel.GetComponentsInChildren<Button>()
+                .Where(button => button.name.StartsWith("Select Special Card ")).ToArray();
+            Assert.That(choices.Length, Is.LessThanOrEqualTo(8), "Each collection page fits two rows of four cards.");
+            CollectionAssert.AreEquivalent(visibleIndices.Select(index => "Select Special Card " + index).ToArray(),
+                choices.Select(button => button.name).ToArray());
+            Outline[] selection = panel.GetComponentsInChildren<CardSchoolFrameGraphic>()
+                .Select(frame => frame.GetComponent<Outline>()).Where(outline => outline != null).ToArray();
+            Assert.That(selection, Has.Length.EqualTo(1));
+            Assert.That(selection[0].GetComponentInParent<Button>().name, Is.EqualTo("Select Special Card " + selectedIndex));
+            Assert.That(GameObject.Find("Special Card Name " + selectedIndex).GetComponent<Text>().text,
+                Is.EqualTo(CardFaceLayout.DisplayName(controller.Session.GetBattleCard(selectedIndex))));
+            Assert.That(GameObject.Find("Upgrade Collection Page").GetComponent<Text>().text.Replace(" ", string.Empty), Does.Contain(page));
         }
 
         private static void PrepareShortExperienceVoyage(CoreVoyageSession session)

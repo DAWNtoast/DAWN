@@ -11,26 +11,43 @@ namespace ShatteredSail.Core.Gameplay
         public CoreBattleProfile(CoreBossKind bossKind, CoreBattleArchetype archetype,
             int enemyHull, int cannonDamage, int meleeDamage, int guard, int initialGuard,
             int ordinaryCrewCount, float bowQuality, float hullQuality,
-            double ramChance = 0d, float ramRangeMeters = 100f)
+            double ramChance = 0d, float ramRangeMeters = 100f, decimal? healthMultiplier = null,
+            decimal? boardingHealthMultiplier = null)
         {
             BossKind = bossKind;
             Archetype = archetype;
-            EnemyHull = Math.Max(1, enemyHull);
+            HealthMultiplier = Math.Max(0m, healthMultiplier ?? CoreBattleBalance.EnemyHealthMultiplier);
+            BoardingHealthMultiplier = Math.Max(0m, boardingHealthMultiplier ?? HealthMultiplier);
+            EnemyHull = Math.Max(1, CoreBattleBalance.ScaleBattleValue(enemyHull, HealthMultiplier));
             CannonDamage = Math.Max(0, cannonDamage);
             MeleeDamage = Math.Max(0, meleeDamage);
             Guard = Math.Max(0, guard);
             InitialGuard = Math.Max(0, initialGuard);
             OrdinaryCrewCount = Math.Max(0, ordinaryCrewCount);
-            BoardingHealth = CoreBattleBalance.BoardingHealthForOrdinaryCrew(OrdinaryCrewCount);
+            BoardingHealth = Math.Max(1, CoreBattleBalance.ScaleBattleValue(
+                CoreBattleBalance.BoardingHealthForOrdinaryCrew(OrdinaryCrewCount), BoardingHealthMultiplier));
             BowQuality = Math.Max(1f, bowQuality);
             HullQuality = Math.Max(1f, hullQuality);
             RamChance = double.IsNaN(ramChance) ? 0d : Math.Max(0d, Math.Min(1d, ramChance));
             RamRangeMeters = float.IsNaN(ramRangeMeters) ? 100f : Math.Max(60f, Math.Min(150f, ramRangeMeters));
         }
 
+        internal CoreBattleProfile(CoreTrainingTarget target)
+            : this(CoreBossKind.None, CoreBattleArchetype.Balanced, target.Hull,
+                target.CannonDamage, target.MeleeDamage, target.Guard, target.Guard,
+                Math.Max(0, (target.BoardingHealth - CoreBattleBalance.CaptainBoardingHealth) /
+                    CoreBattleBalance.BoardingHealthPerSailor), 2f, 2f, healthMultiplier: 1m,
+                boardingHealthMultiplier: 1m)
+        {
+            TrainingTarget = target;
+            BoardingHealth = target.BoardingHealth;
+        }
+
         public CoreBossKind BossKind { get; }
         public CoreBattleArchetype Archetype { get; }
         public int EnemyHull { get; }
+        public decimal HealthMultiplier { get; }
+        public decimal BoardingHealthMultiplier { get; }
         public int CannonDamage { get; }
         public int MeleeDamage { get; }
         public int Guard { get; }
@@ -42,6 +59,7 @@ namespace ShatteredSail.Core.Gameplay
         public double RamChance { get; }
         public float RamRangeMeters { get; }
         public bool IsBoss => BossKind != CoreBossKind.None;
+        public CoreTrainingTarget TrainingTarget { get; }
     }
 
     public static class CoreBattleBalance
@@ -53,13 +71,19 @@ namespace ShatteredSail.Core.Gameplay
         public const double BossTreasureFragmentDropChance = 0.5d;
         public const int CaptainBoardingHealth = 20;
         public const int BoardingHealthPerSailor = 4;
+        public const decimal EnemyHealthMultiplier = 1.5m;
+        public const decimal LateBossBoardingHealthMultiplier = 2m;
+        // Ramming is an equipment action, independent of authored card values.
+        public const int PlayerRamDamageMultiplier = 2;
+        internal static int ScaleBattleValue(int value, decimal multiplier) =>
+            (int)Math.Min(int.MaxValue, decimal.Round(Math.Max(0, value) * multiplier, 0, MidpointRounding.AwayFromZero));
         public static int BoardingHealthForOrdinaryCrew(int ordinaryCrew) =>
             (int)Math.Min(int.MaxValue, CaptainBoardingHealth + (long)Math.Max(0, ordinaryCrew) * BoardingHealthPerSailor);
         public static string BossVictoryBonusDescription => "另计基础海战奖励：金币 +" + BossVictoryGold + "、声望 +" + BossVictoryFame +
             "；另有 50% 概率掉落藏宝图碎片 ×1";
 
-        // These are the only boss stat tables. Calibration uses complete stage decks,
-        // not a damage multiplier hidden in the UI or bonus damage granted to test bots.
+        // Tables contain authored stats; profiles apply health scaling once so
+        // encounter previews, simulation and live battle share the same values.
         public static readonly CoreBattleProfile FirstRouteBoss = new CoreBattleProfile(
             CoreBossKind.Route, CoreBattleArchetype.Balanced, 75, 12, 11, 6, 0, 9, 1.8f, 1.6f, .12d);
         public static readonly CoreBattleProfile SecondRouteBoss = new CoreBattleProfile(
@@ -67,9 +91,11 @@ namespace ShatteredSail.Core.Gameplay
         // Finite-energy combat: naval durability/firepower and boarding crew/melee
         // pressure are calibrated independently. Ramming adds a telegraphed threat.
         public static readonly CoreBattleProfile ThirdRouteBoss = new CoreBattleProfile(
-            CoreBossKind.Route, CoreBattleArchetype.Balanced, 220, 25, 21, 14, 0, 25, 3.0f, 3.0f, .35d, 120f);
+            CoreBossKind.Route, CoreBattleArchetype.Balanced, 220, 25, 24, 14, 0, 25, 3.0f, 3.0f, .35d, 120f,
+            boardingHealthMultiplier: LateBossBoardingHealthMultiplier);
         public static readonly CoreBattleProfile ThirdTreasureBoss = new CoreBattleProfile(
-            CoreBossKind.Treasure, CoreBattleArchetype.Ironclad, 280, 29, 25, 18, 12, 31, 3.7f, 3.9f, .40d, 120f);
+            CoreBossKind.Treasure, CoreBattleArchetype.Ironclad, 280, 29, 29, 18, 12, 31, 3.7f, 3.9f, .40d, 120f,
+            boardingHealthMultiplier: LateBossBoardingHealthMultiplier);
 
         public static CoreBossKind Classify(string encounterId)
         {
@@ -80,10 +106,16 @@ namespace ShatteredSail.Core.Gameplay
             return CoreBossKind.None;
         }
 
-        public static CoreBattleProfile Resolve(CoreEncounter encounter, int routeIndex, bool isBoss = false)
+        public static CoreBattleProfile Resolve(CoreEncounter encounter, int routeIndex, bool isBoss = false, bool guidedTutorial = false)
         {
             string id = encounter == null ? string.Empty : encounter.Id;
-            if (id == CoreGuidedTutorialContent.BossEventId) return CoreGuidedTutorialContent.BossProfile;
+            if (id == CoreGuidedTutorialContent.BossEventId)
+            {
+                CoreBattleProfile lesson = CoreGuidedTutorialContent.BossProfile;
+                return guidedTutorial ? lesson : new CoreBattleProfile(lesson.BossKind, lesson.Archetype,
+                    lesson.EnemyHull, lesson.CannonDamage, lesson.MeleeDamage, lesson.Guard, lesson.InitialGuard,
+                    lesson.OrdinaryCrewCount, lesson.BowQuality, lesson.HullQuality, lesson.RamChance, lesson.RamRangeMeters);
+            }
             CoreLegendaryWarship legendary = CoreLegendaryWarships.Find(id);
             if (legendary != null) return legendary.Profile;
             if (id == TreasureBossId) return ThirdTreasureBoss;

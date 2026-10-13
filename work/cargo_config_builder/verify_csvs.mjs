@@ -7,7 +7,6 @@ const files = [
   "../../outputs/balance_configs/voyage_cargo_config.csv",
   "../../outputs/balance_configs/card_config.csv",
   "../../outputs/balance_configs/port_config.csv",
-  "../../outputs/balance_configs/dispatch_config.csv",
   "../../outputs/balance_configs/component_config.csv",
   "../../outputs/balance_configs/treasure_map_config.csv",
   "../../outputs/balance_configs/treasure_event_config.csv",
@@ -153,18 +152,17 @@ for (const file of files) {
         !String(record.standing_focus).trim()))) {
     throw new Error(file + ": expected 5 ports with complete chart offices, rewards and standing focus");
   }
-  if (file.endsWith("dispatch_config.csv") &&
-      (records.length !== 5 || records.some((record) => record.duration_options !== "8|12|24|48|168"))) {
-    throw new Error(file + ": expected 5 dispatch tasks and five duration options");
-  }
   if (file.endsWith("component_config.csv") &&
-      (records.length !== 125 || new Set(records.map((record) => record.slot)).size !== 5 ||
+      (headers.length !== 20 || headers.includes("volume") || headers.includes("install_hours") ||
+       records.length !== 125 || new Set(records.map((record) => record.component_id)).size !== 125 ||
+       new Set(records.map((record) => record.slot)).size !== 5 ||
        new Set(records.map((record) => record.rarity)).size !== 5 ||
-       records.some((record) => !record.effect || !record.specialization || !record.description || !record.art_source_id) ||
+       records.some((record) => !record.effect || !record.specialization || !record.description ||
+         !record.component_id || record.art_source_id !== record.component_id) ||
        ["bow", "sail", "cannon", "plating", "instrument"].some((slot) =>
          ["common", "uncommon", "rare", "epic", "legendary"].some((rarity) =>
            records.filter((record) => record.slot === slot && record.rarity === rarity).length !== 5)))) {
-    throw new Error(file + ": expected 125 authored components with five variants in every slot and rarity");
+    throw new Error(file + ": expected 20 current columns and 125 independently illustrated components with five variants in every slot and rarity");
   }
   if (file.endsWith("art_manifest.csv")) {
     const standardCounts = ["route_shattered_sail_reef", "route_golden_tide_trade", "route_moon_tide_ruins"]

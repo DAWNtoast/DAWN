@@ -65,12 +65,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(cards.Chest(i).mipmapCount, Is.GreaterThan(1));
                 Assert.That(cards.Chest(i).filterMode, Is.EqualTo(FilterMode.Trilinear));
             }
-            var dispatch = new DispatchArtCatalog();
             var legacy = new LegacyDemoArtCatalog();
             for (int i = 0; i < 3; i++)
             {
-                Assert.That(dispatch.MissionChart(i).mipmapCount, Is.GreaterThan(1));
-                Assert.That(dispatch.MissionChart(i).anisoLevel, Is.EqualTo(4));
                 Assert.That(legacy.RouteMap(i).mipmapCount, Is.GreaterThan(1));
                 Assert.That(legacy.RouteMap(i).filterMode, Is.EqualTo(FilterMode.Trilinear));
             }

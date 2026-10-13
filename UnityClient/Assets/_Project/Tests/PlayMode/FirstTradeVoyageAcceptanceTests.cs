@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -96,7 +96,11 @@ namespace ShatteredSail.Presentation.Tests
 
             // Read the actual market quota and hold. Keep tutorial food and the
             // original four beer; the White Shell specialty needs only 4.8 hold.
-            string quotaText = GameObject.Find("Market Quota " + audit.tradeItemKey).GetComponent<Text>().text;
+            yield return OpenMarketItem(audit.tradeItemKey);
+            yield return SetMarketInventoryExpanded(true);
+            Text quotaLabel = MarketInfoLabel("Market Quota " + audit.tradeItemKey);
+            Assert.That(quotaLabel.gameObject.activeInHierarchy, Is.True, "Read purchase allowance only after expanding the actual inventory control.");
+            string quotaText = quotaLabel.text;
             Match quota = Regex.Match(quotaText, @"可购\s+(\d+)");
             Assert.That(quota.Success, Is.True, "Read the visible purchase allowance: " + quotaText);
             int freeHoldUnits = (int)Math.Floor((session.CargoCapacityValue - session.Cargo.UsedVolume + .001f) / PortMarketCatalog.CargoVolume(tradeItem));
@@ -112,7 +116,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return audit.MarketQuantity(audit.tradeItemKey, tradeUnits);
             audit.Shot("Cargo_Purchase_Quote", "Market Panel");
             decimal purchaseGold = session.ProfileGold;
-            yield return audit.Click("Market Buy " + audit.tradeItemKey);
+            yield return audit.Click("Confirm Market Buy " + audit.tradeItemKey);
             audit.tradeQuantityPurchased = session.GetMarketCargoAmount(audit.tradeItemKey) - audit.tradeCargoBeforePurchase;
             audit.tradePurchaseCost = (double)(purchaseGold - session.ProfileGold);
             Assert.That(audit.tradeQuantityPurchased, Is.EqualTo(tradeUnits));
@@ -122,7 +126,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 yield return audit.MarketQuantity("cannonballs", ammunitionNeeded);
                 decimal ammunitionGold = session.ProfileGold;
-                yield return audit.Click("Market Buy cannonballs");
+                yield return audit.Click("Confirm Market Buy cannonballs");
                 Assert.That(session.Cargo.Cannonballs, Is.EqualTo(RealTradeAudit.CannonballTarget));
                 Assert.That(session.ProfileGold, Is.EqualTo(ammunitionGold - ammunitionQuote));
                 audit.ammunitionCost = (double)(ammunitionGold - session.ProfileGold);
@@ -140,18 +144,33 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.SelectedDestinationPort, Is.Not.EqualTo(session.CurrentPort));
             string tradeSeed = CoreVoyageSession.CreateChartSeed(1, audit.originPort, audit.destinationPort);
             yield return audit.SelectSeed(tradeSeed);
-            // Buy missing route provisions only when the actual joint quote fits
-            // money, hold and quota. A disabled quote is evidence, not permission
-            // to replace cargo or money; the player may still choose to sail.
+            // Inspect the purchase-only basket, then buy the missing route water
+            // and food only when their joint quote fits money, hold and quota.
             Button provisions = ActiveButton("Departure Buy Provisions");
             if (provisions != null && provisions.IsInteractable())
             {
-                decimal gold = session.ProfileGold;
                 yield return audit.Click("Departure Buy Provisions");
-                audit.provisionCost += (double)(gold - session.ProfileGold);
+                yield return audit.Click("Departure Basic Supplies Recommend");
+                foreach (PortMarketItem item in PortMarketCatalog.AllItems)
+                {
+                    if (item == PortMarketItem.Water || item == PortMarketItem.Food) continue;
+                    string key = PortMarketCatalog.Key(item);
+                    for (int count = 0; DepartureBasicSupplyQuantity(key) > 0 && count < 100; count++)
+                        yield return audit.Click("Departure Basic Supply Decrease " + key);
+                    Assert.That(DepartureBasicSupplyQuantity(key), Is.Zero, key);
+                }
+                decimal gold = session.ProfileGold;
+                if (ActiveButton("Departure Basic Supplies Purchase")?.IsInteractable() == true)
+                {
+                    yield return audit.Click("Departure Basic Supplies Purchase");
+                    audit.provisionCost += (double)(gold - session.ProfileGold);
+                }
+                else audit.Record("Departure provisions unavailable/already sufficient: " +
+                    GameObject.Find("Departure Basic Supplies Hint")?.GetComponent<Text>()?.text, null);
+                yield return audit.Click("Departure Basic Supplies Close");
             }
             else audit.Record("Departure provisions unavailable/already sufficient: " +
-                GameObject.Find("Departure Provision Quote")?.GetComponent<Text>()?.text, null);
+                provisions?.GetComponentInChildren<Text>()?.text, null);
             audit.Shot("Departure_Trade_Manifest", "Voyage Setup");
             audit.tradeCargoAtDeparture = session.GetMarketCargoAmount(audit.tradeItemKey);
             audit.goldBeforeDeparture = (double)(session.ProfileGold);
@@ -186,10 +205,10 @@ namespace ShatteredSail.Presentation.Tests
             while (remainingManifest > 0)
             {
                 int amount = Math.Min(10, remainingManifest);
-                yield return audit.MarketQuantity(audit.tradeItemKey, amount);
+                yield return audit.MarketQuantity(audit.tradeItemKey, amount, false);
                 decimal gold = session.ProfileGold;
                 int cargo = session.GetMarketCargoAmount(audit.tradeItemKey);
-                yield return audit.Click("Market Sell " + audit.tradeItemKey);
+                yield return audit.Click("Confirm Market Sell " + audit.tradeItemKey);
                 int sold = cargo - session.GetMarketCargoAmount(audit.tradeItemKey);
                 audit.tradeSaleRevenue += (double)(session.ProfileGold - gold);
                 audit.tradeQuantitySold += sold;
@@ -363,13 +382,16 @@ namespace ShatteredSail.Presentation.Tests
             }
             public IEnumerator Click(string name)
             {
-                yield return EnsureMarketControlVisible(name);
                 RealTradeState before = State();
                 Record("Attempt click: " + name, before);
                 ClickAcceptanceButton(name);
                 yield return null;
                 float deadline = Time.realtimeSinceStartup + 15;
-                while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline) yield return null;
+                while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+                {
+                    AdvanceRamComicIfWaiting(controller);
+                    yield return null;
+                }
                 Assert.That(controller.IsBattleAnimationPlaying, Is.False, name + " animation timeout");
                 // Sailing commits the encounter before its marker animation
                 // renders the corresponding controls. Follow the presented UI.
@@ -377,16 +399,10 @@ namespace ShatteredSail.Presentation.Tests
                 yield return null;
                 Record("Click: " + name, before);
             }
-            public IEnumerator MarketQuantity(string key, int target)
+            public IEnumerator MarketQuantity(string key, int target, bool purchase = true)
             {
-                yield return EnsureMarketItemVisible(key);
-                for (int n = 0; n < 100; n++)
-                {
-                    int current = int.Parse(GameObject.Find("Market Quantity " + key).GetComponent<Text>().text);
-                    if (current == target) yield break;
-                    yield return Click("Market " + (current < target ? "Increase " : "Decrease ") + key);
-                }
-                Assert.Fail("Market quantity did not reach " + target);
+                yield return EnterMarketQuantity(key, target.ToString(), purchase: purchase);
+                Assert.That(MarketQuantityField(key).value, Is.EqualTo(target));
             }
             public IEnumerator SelectSeed(string seed)
             {
@@ -401,7 +417,7 @@ namespace ShatteredSail.Presentation.Tests
                 // The small starter crew has weak boarding effects. Spend only
                 // earned money, then configure a legal ranged/repair deck via UI.
                 yield return Click("Port Hotspot CardWorkshop");
-                yield return Click("Open Deck Chest 1");
+                yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
                 yield return Click("Select Upgrade Card 0");
                 while (Session.GetBattleCard(0).UpgradeLevel < 2)
                 {
@@ -413,9 +429,9 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(Session.ProfileGold, Is.EqualTo(gold - price));
                     cardPreparationCost += price;
                 }
-                yield return Click("Edit Deck From Card Upgrades");
-                yield return ConfigureDeck(NavalBattleStage.Preparation, new[] { 8, 8, 8, 9, 9, 9, 7, 7 });
-                yield return ConfigureDeck(NavalBattleStage.Naval, new[] { 0, 0, 0, 11, 11, 11, 5, 5 });
+                yield return Click("Back From Card Upgrades"); yield return Click("Edit Stage Deck Naval");
+                yield return ConfigureDeck(NavalBattleStage.Preparation, new[] { 8, 8, 9, 9, 7, 7, 1, 1, 11, 11 });
+                yield return ConfigureDeck(NavalBattleStage.Naval, new[] { 0, 0, 11, 11, 5, 5, 6, 6, 9, 9 });
                 yield return Click("Back To Card Workshop Chests");
                 yield return Click("Return To Port Hub");
                 Assert.That(Session.ProfileGold, Is.GreaterThanOrEqualTo(60m), "Keep the ordinary departure cash reserve after preparation.");
@@ -430,9 +446,13 @@ namespace ShatteredSail.Presentation.Tests
                     int extra = current.Where(i => current.Count(v => v == i) > desired.Count(v => v == i)).DefaultIfEmpty(-1).First();
                     int missing = desired.Where(i => desired.Count(v => v == i) > current.Count(v => v == i)).DefaultIfEmpty(-1).First();
                     if (extra < 0 && missing < 0) break;
-                    if (extra >= 0 && current.Count > 8)
-                        yield return Click("Remove Deck Card " + extra);
-                    else if (missing >= 0 && current.Count < 10)
+                    if (extra >= 0 && current.Count > CoreVoyageSession.MinimumBaseBattleDeckSize)
+                    {
+                        Button copy = ActiveDeckCardCopyButton(extra);
+                        yield return RevealDeckCardCopy(copy);
+                        yield return Click(copy.name);
+                    }
+                    else if (missing >= 0 && current.Count < CoreVoyageSession.MaximumBaseBattleDeckSize)
                     {
                         for (int page = 0; ActiveButton("Add Deck Card " + missing) == null && page < 10; page++)
                             yield return Click(ActiveButton("Next Battle Card Collection Page")?.IsInteractable() == true
@@ -555,8 +575,7 @@ namespace ShatteredSail.Presentation.Tests
                 int block = Math.Min(defenseNeed, effects.Block + (effects.Block > 0 && !boarding ? battle.PlayerDeckBuff : 0));
                 double score = repair * (health < maxHealth * .55 ? 2.5 : .65) + block * (health <= incoming * 2 ? 2 : .9);
                 double divisor = Session.GetBattleCardEnergyCost(cardIndex) + .65;
-                int damage = effects.Damage + (card.Action == NavalBattleCardAction.Cannon
-                    ? Math.Max(0, (Session.EffectiveFirepower - 8) / 2) + battle.PlayerLoadedShot : 0);
+                int damage = Session.GetBattleCardDamage(card, battle.Stage);
                 if (damage >= enemyHealth + battle.EnemyBlock) return 10000 / divisor;
                 if (!preparing && !boarding && card.Action == NavalBattleCardAction.Cannon)
                 {

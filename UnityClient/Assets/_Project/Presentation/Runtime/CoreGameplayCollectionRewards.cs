@@ -59,9 +59,19 @@ namespace ShatteredSail.Presentation
             if (session.Phase == CoreDemoPhase.Port)
             {
                 session.RecordCollectionPortVisit(session.CurrentPort);
+                var recruitedCrewIds = new List<string>();
+                var crewCardLevels = new Dictionary<string, int>(StringComparer.Ordinal);
+                foreach (CrewVariantDefinition crew in CrewNarrativeCatalog.AllCrew)
+                {
+                    if (!IsCrewRecruited(crew)) continue;
+                    recruitedCrewIds.Add(crew.Id);
+                    CoreSpecialCardDefinition card = CoreSpecialCardCatalog.ForCrew(crew.Id);
+                    if (card != null) crewCardLevels[crew.Id] = session.GetCardUpgradeLevel(card.Card.Id);
+                }
                 var facts = new CoreCollectionFacts
                 {
-                    recruitedCrewIds = CrewNarrativeCatalog.AllCrew.Where(IsCrewRecruited).Select(crew => crew.Id).ToArray(),
+                    recruitedCrewIds = recruitedCrewIds.ToArray(),
+                    crewCardLevels = crewCardLevels,
                 };
                 CoreCollectionProgress progress = session.CaptureCollectionProgress();
                 HashSet<string> owned = GlobalWarehouseTreasureIds();

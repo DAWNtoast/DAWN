@@ -43,12 +43,12 @@ namespace ShatteredSail.Core.Gameplay
                 while (queue.Count > 0)
                 {
                     int cell = queue.Dequeue();
-                    int x = cell % CoreVoyageMap.GridColumns, y = cell / CoreVoyageMap.GridColumns;
+                    int x = cell % map.Columns, y = cell / map.Columns;
                     count++;
                     VoyagePoint point = map.CellCenter(x, y);
                     LookoutObservation sample = Observe(map, origin, heading, point, terrainRange, (LookoutSceneryKind)group);
                     if (sample != null && (nearest == null || sample.DistanceNm < nearest.DistanceNm)) nearest = sample;
-                    foreach (int neighbor in Neighbors(x, y))
+                    foreach (int neighbor in Neighbors(map, x, y))
                     {
                         if (seen[neighbor] || TerrainGroup(map.TerrainCells[neighbor]) != group) continue;
                         seen[neighbor] = true;
@@ -168,12 +168,12 @@ namespace ShatteredSail.Core.Gameplay
             return LookoutSceneryKind.Vessel;
         }
 
-        private static IEnumerable<int> Neighbors(int x, int y)
+        private static IEnumerable<int> Neighbors(CoreVoyageMap map, int x, int y)
         {
-            if (x > 0) yield return y * CoreVoyageMap.GridColumns + x - 1;
-            if (x + 1 < CoreVoyageMap.GridColumns) yield return y * CoreVoyageMap.GridColumns + x + 1;
-            if (y > 0) yield return (y - 1) * CoreVoyageMap.GridColumns + x;
-            if (y + 1 < CoreVoyageMap.GridRows) yield return (y + 1) * CoreVoyageMap.GridColumns + x;
+            if (x > 0) yield return y * map.Columns + x - 1;
+            if (x + 1 < map.Columns) yield return y * map.Columns + x + 1;
+            if (y > 0) yield return (y - 1) * map.Columns + x;
+            if (y + 1 < map.Rows) yield return (y + 1) * map.Columns + x;
         }
 
         private static float Distance(VoyagePoint a, VoyagePoint b) => (float)Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));

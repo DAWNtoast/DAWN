@@ -1,0 +1,5 @@
+Review-only Unity render. Production UI dimensions and positions unchanged. Integrated parchment substituted only in the temporary preview.
+人物背景: 01_Background.png
+航海异闻: 02_Story.png
+职业技能: 03_Skills.png
+专属卡牌: 04_SpecialCards.png

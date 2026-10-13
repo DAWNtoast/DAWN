@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
@@ -9,11 +10,43 @@ namespace ShatteredSail.Presentation
     public sealed partial class CoreGameplayDemoController
     {
         private RectTransform lookoutViewport;
+        private CoreVoyageMap navigationViewedMap;
+        private Vector2? navigationMapCenter;
+
+        private void ConfigureNavigationMapViewport(RectTransform map)
+        {
+            if (navigationViewedMap != session.Map)
+            {
+                navigationViewedMap = session.Map;
+                navigationMapCenter = null;
+            }
+            NavigationMapViewport viewport = map.gameObject.AddComponent<NavigationMapViewport>();
+            viewport.Initialize(session.Map.Columns, session.Map.Rows, navigationMapCenter,
+                center => navigationMapCenter = center);
+        }
+
+        private void InitializeNavigationControlColors()
+        {
+            if (!Application.isPlaying || contentRoot == null) return;
+            // These controls have just been built. Their role, skin and enabled
+            // state can start multiple ColorTint tweens during construction;
+            // finish those before the first frame, while keeping later pointer
+            // transitions at their normal duration.
+            GameObject selected = EventSystem.current == null ? null : EventSystem.current.currentSelectedGameObject;
+            foreach (Selectable control in contentRoot.GetComponentsInChildren<Selectable>())
+            {
+                if (control.transition != Selectable.Transition.ColorTint || control.targetGraphic == null) continue;
+                ColorBlock colors = control.colors;
+                Color tint = !control.IsInteractable() ? colors.disabledColor :
+                    selected == control.gameObject ? colors.selectedColor : colors.normalColor;
+                control.targetGraphic.CrossFadeColor(tint * colors.colorMultiplier, 0f, true, true);
+            }
+        }
 
         private RectTransform NavigationPanel(string name, Vector2 size, Vector2 position)
         {
             RectTransform panel = CreateFixedPanel(name, contentRoot, size, position, Html("#242A29"));
-            // The responsive layout joins the four outer rectangles after their
+            // The responsive layout joins the three outer rectangles after their
             // contents are built; it keeps each panel's content scale uniform.
             panel.GetComponent<Image>().raycastTarget = false;
             Image frame = CreateImage(name + " Timber Frame", panel, size, Vector2.zero, Color.white, WoodButtonSkin.Face);
@@ -32,29 +65,26 @@ namespace ShatteredSail.Presentation
             RectTransform mapPanel = NavigationPanel("Navigation Chart", new Vector2(860f, 560f), new Vector2(-500f, 195f));
             NavigationText("Map Title", mapPanel, new Vector2(810f, 30f), new Vector2(0f, 251f), 23, Gold).text =
                 session.IsTreasureVoyage ? session.ActiveTreasureMap.Name + " · 隐藏海域" :
-                session.Map.Route.Name + " · " + session.Map.DepartureName + " → " + session.Map.DestinationName;
-            NavigationText("Map Seed", mapPanel, new Vector2(810f, 23f), new Vector2(0f, 222f), 14, MutedInk).text =
-                session.IsTreasureVoyage ? "一次性藏宝图 · " + session.Map.Seed + " / " + session.Map.Hash.ToString("X8") : session.CanDrawSeaChart
-                    ? "种子 " + session.Map.Seed + " / " + session.Map.Hash.ToString("X8")
-                    : "海图尚未绘制 · 随船航海士可揭示种子";
+                session.Map.DepartureName + " → " + session.Map.DestinationName;
+            BuildNavigationSupplyEndurance(mapPanel);
             RectTransform chart = CreateRect("Procedural Sea Chart Frame", mapPanel, new Vector2(828f, 466f), new Vector2(0f, -21f));
-            // Keep the chart's established coordinate system, aspect, and click conversion intact.
-            RectTransform mapRoot = CreateRect("Map Layer", chart, new Vector2(1200f, 675f), Vector2.zero);
+            // Keep the chart's established logical coordinates and click conversion intact.
+            Vector2 mapSize = new Vector2(ChartGridWidth + 40f, ChartGridHeight + 45f);
+            RectTransform mapRoot = CreateRect("Map Layer", chart, mapSize, Vector2.zero);
             mapRoot.localScale = Vector3.one * 0.69f;
-            CreateImage("Procedural Sea Chart", mapRoot, new Vector2(1200f, 675f), Vector2.zero,
+            CreateImage("Procedural Sea Chart", mapRoot, mapSize, Vector2.zero,
                 ProceduralWaterColor(session.SelectedRouteIndex), seaSprite).raycastTarget = false;
             BuildMap(mapRoot);
-            NavigationText("Map Course Hint", mapPanel, new Vector2(810f, 22f), new Vector2(0f, -264f), 14, Gold).text =
-                session.IsTreasureVoyage ? TreasureNavigationReadout() :
-                "海图设航点 · 自动绕岛 / 可穿峡谷 · 浅色箭头为洋流";
+            if (session.IsTreasureVoyage)
+                NavigationText("Map Course Hint", mapPanel, new Vector2(810f, 22f), new Vector2(0f, -264f), 14, Gold).text =
+                    TreasureNavigationReadout();
 
             RectTransform controls = NavigationPanel("Navigation Controls", new Vector2(860f, 360f), new Vector2(-500f, -285f));
             BuildNavigationControls(controls);
             RectTransform view = NavigationPanel("Forward View Panel", new Vector2(980f, 650f), new Vector2(450f, 150f));
-            lookoutViewport = CreateRect("Forward Viewport", view, new Vector2(956f, 626f), Vector2.zero);
+            lookoutViewport = CreateRect("Forward Viewport", view, view.sizeDelta, Vector2.zero);
             lookoutViewport.gameObject.AddComponent<RectMask2D>();
             BuildForwardLookout();
-            BuildNavigationJournal(NavigationPanel("Navigation Journal", new Vector2(980f, 270f), new Vector2(450f, -330f)));
             NavigationDashboardLayout.Attach(contentRoot);
         }
 
@@ -77,8 +107,7 @@ namespace ShatteredSail.Presentation
                     if (!CanApplyGuidedNavigationInput(button, GuidedTutorialNavigationInputStep.Heading)) return;
                     if (tutorialActive && heading != SailingDirection.East) return;
                     session.SetHeading(heading);
-                    if (tutorialActive) guidedTutorialNavigationInputStep = GuidedTutorialNavigationInputStep.Distance;
-                    courseTargetNotice = "八方向航线 · " + session.DirectionLabel(heading);
+                    if (tutorialActive) guidedTutorialNavigationInputStep = GuidedTutorialNavigationInputStep.Sail;
                     Render();
                 });
             }
@@ -87,10 +116,8 @@ namespace ShatteredSail.Presentation
             Slider distance = CreateSlider("Distance Slider", panel, new Vector2(438f, 34f), new Vector2(169f, 97f),
                 CoreVoyageSession.MinimumDistanceNm, CoreVoyageSession.MaximumDistanceNm, session.PlannedDistanceNm);
             distance.wholeNumbers = true;
-            distance.interactable = session.Phase == CoreDemoPhase.Sailing && !navigationMotionPlaying;
-            if (tutorialActive)
-                distance.gameObject.AddComponent<GuidedTutorialDistanceInput>().Initialize(() => ConfirmGuidedNavigationDistance(distance));
-            Text forecastText = NavigationText("Forecast", panel, new Vector2(438f, 112f), new Vector2(169f, -3f), 19, Ink, TextAnchor.UpperLeft);
+            distance.interactable = !tutorialActive && session.Phase == CoreDemoPhase.Sailing && !navigationMotionPlaying;
+            Text forecastText = NavigationText("Forecast", panel, new Vector2(438f, 132f), new Vector2(169f, -3f), 20, Ink, TextAnchor.UpperLeft);
             Button detailsButton = CreateButton("Forecast Details", panel, new Vector2(116,32), new Vector2(330,120), PanelRaised, Ink, 16);
             Text detailsCaption = detailsButton.GetComponentInChildren<Text>();
             detailsCaption.text = "风流详情";
@@ -104,6 +131,7 @@ namespace ShatteredSail.Presentation
                 if (!detailsButton.isActiveAndEnabled || !detailsButton.IsInteractable()) return;
                 bool open = !detailsPanel.gameObject.activeSelf;
                 detailsPanel.gameObject.SetActive(open);
+                if (open) panel.SetAsLastSibling();
                 detailsPanel.SetAsLastSibling();
                 detailsCaption.text = open ? "收起详情" : "风流详情";
                 WoodButtonSkin.SetSelected(detailsButton, open);
@@ -111,11 +139,12 @@ namespace ShatteredSail.Presentation
             Action updateForecast = () =>
             {
                 SailingForecast forecast = session.GetForecast();
-                distanceLabel.text = session.HasDirectCourseTarget && forecast != null ? "航点　" + forecast.ActualDistanceNm.ToString("0") + " 海里" : "航程　" + session.PlannedDistanceNm + " 海里";
+                distanceLabel.text = session.HasDirectCourseTarget && forecast != null ? "精确航点　" + forecast.ActualDistanceNm.ToString("0") + " 海里" : "计划航程　" + session.PlannedDistanceNm + " 海里";
                 forecastText.text = forecast == null ? "无法计算航程" :
-                    "预计 " + forecast.Hours.ToString("0.0") + " 小时　·　航速 " + forecast.EffectiveSpeedKnots.ToString("0.0") + " 节\n" +
+                    "预计 " + forecast.Hours.ToString("0.0") + " 小时\n" +
+                    "航速 " + forecast.EffectiveSpeedKnots.ToString("0.0") + " 节" + (forecast.Rerouted ? " · 已绕岛" : "") + "\n" +
                     "淡水 −" + forecast.WaterCost + "　食物 −" + forecast.FoodCost +
-                    (forecast.Rerouted ? "　·　已绕岛" : "") + (forecast.Blocked ? "\n当前航点无可通行航线" : "") +
+                    (forecast.Blocked ? "\n当前航点无可通行航线" : "") +
                     (forecast.Clipped ? "\n边界航迹可能擦碰暗礁" : "");
                 detailsText.text = forecast == null ? "暂无风流资料" :
                     "洋流 " + session.DirectionLabel(forecast.CurrentDirection) + " " + forecast.CurrentStrength.ToString("0.0") + " 节　·　" +
@@ -132,7 +161,6 @@ namespace ShatteredSail.Presentation
                 if (CanvasUpdateRegistry.IsRebuildingLayout() || CanvasUpdateRegistry.IsRebuildingGraphics() ||
                     (requested == session.PlannedDistanceNm && !session.HasDirectCourseTarget)) return;
                 session.SetDistance(requested);
-                courseTargetNotice = "航程滑杆 · 八方向航线";
                 updateForecast();
                 RefreshDashboardCourse();
             });
@@ -168,6 +196,7 @@ namespace ShatteredSail.Presentation
             {
                 ClearChildren(course);
                 BuildMapCoursePreview((RectTransform)course);
+                NavigationDashboardLayout.ApplyMapMarkerScale(map as RectTransform);
             }
         }
 
@@ -216,7 +245,14 @@ namespace ShatteredSail.Presentation
                 float contactUv = key == "pirate" || vessel ? 0.055f : key == "fog" ? 0.30f : 0.18f;
                 Vector2 position = new Vector2(item.Horizontal * 440f, waterline + height * (0.5f - contactUv));
                 RawImage scenery = CreateRawImage("Lookout " + item.Key, lookoutViewport, new Vector2(width, height), position, texture, uv);
-                if (vessel) BattleShipCutout.Attach(scenery);
+                if (vessel)
+                {
+                    // Redrawn atlas cells have their own authored keel contact.
+                    // Use it rather than the old standalone pirate's padding.
+                    position.y = waterline - ShipWaterlineLayout.HullContactLocal(scenery).y;
+                    scenery.rectTransform.anchoredPosition = position;
+                    BattleShipCutout.Attach(scenery);
+                }
                 // Distant scenery loses contrast in the blue atmospheric haze, not a black matte.
                 scenery.color = Color.Lerp(new Color(0.66f, 0.78f, 0.83f, 1f), Color.white, item.Proximity) * environmentTint;
                 scenery.color = new Color(scenery.color.r, scenery.color.g, scenery.color.b, scenery.color.a * item.Visibility);
@@ -224,7 +260,7 @@ namespace ShatteredSail.Presentation
             }
             Image top = CreateFixedPanel("Lookout Heading Plaque", lookoutViewport, new Vector2(956f, 68f), new Vector2(0f, 279f), new Color(0.035f, 0.075f, 0.085f, 0.94f)).GetComponent<Image>();
             top.raycastTarget = false;
-            NavigationText("Lookout Heading", lookoutViewport, new Vector2(900f, 32f), new Vector2(0f, 281f), 22, Ink).text =
+            NavigationText("Lookout Heading", lookoutViewport, new Vector2(900f, 40f), new Vector2(0f, 281f), 28, Ink).text =
                 "前方视野 · " + session.DirectionLabel(session.Heading) + "向";
             Image strip = CreateFixedPanel("Lookout Report Plaque", lookoutViewport, new Vector2(956f, 98f), new Vector2(0f, -264f), new Color(0.035f, 0.075f, 0.085f, 0.94f)).GetComponent<Image>();
             strip.raycastTarget = false;
@@ -238,7 +274,7 @@ namespace ShatteredSail.Presentation
                 report.Append(" · ").Append(item.Label).Append("　").Append(item.DistanceNm.ToString("0")).Append(" 海里");
             }
             if (shown == 0) report.Append("海面开阔 · 暂无目标");
-            NavigationText("Lookout Report", lookoutViewport, new Vector2(894f, 76f), new Vector2(0f, -264f), 18, Ink).text = report.ToString();
+            NavigationText("Lookout Report", lookoutViewport, new Vector2(894f, 80f), new Vector2(0f, -264f), 22, Ink).text = report.ToString();
         }
 
         private void BuildVoyageHeaderTime(RectTransform header)
@@ -248,60 +284,29 @@ namespace ShatteredSail.Presentation
             // an Image on the same object: Unity allows only one Graphic component
             // per GameObject, and the old CreateFixedPanel helper already adds one.
             // Keep established object names for preview migration and diagnostics.
-            // Text keeps the selected reading size while the decorative track
-            // occupies its own narrow row between the date and time legend.
-            RectTransform ribbon = CreateRect("Lookout Time Ribbon", header, new Vector2(880f, 100f),
-                new Vector2(190f, 0f));
-            RectTransform track = CreateRect("Lookout Time Track", ribbon, new Vector2(4240f, 116f), new Vector2(0f, -1f));
-            track.localScale = Vector3.one * .20f;
+            // Only the graphical track is scaled; its date and legend remain
+            // readable, unscaled text inside the header's central tutorial-free band.
+            RectTransform ribbon = CreateRect("Lookout Time Ribbon", header, new Vector2(720f, 68f),
+                new Vector2(115f, 0f));
+            RectTransform track = CreateRect("Lookout Time Track", ribbon, new Vector2(1800f, 116f), new Vector2(0f, -3f));
+            track.localScale = Vector3.one * .4f;
             VoyageTimeRibbonGraphic timeline = track.gameObject.AddComponent<VoyageTimeRibbonGraphic>();
             timeline.SetVoyageHours(session.ElapsedGameHours);
             timeline.raycastTarget = false;
-            Text date = NavigationText("Lookout Time Readout", ribbon, new Vector2(860f, 38f), new Vector2(0f, 31f), 20, Ink,
-                TextAnchor.MiddleCenter);
-            date.text = "游戏 " + session.GameDateTime.ToString("yyyy-MM-dd HH:mm") + "　·　" +
+            NavigationText("Lookout Time Readout", ribbon, new Vector2(700f, 24f), new Vector2(0f, 22f), 20, Ink,
+                TextAnchor.MiddleCenter).text = "游戏 " + CoreVoyageSession.FormatGameDate(session.GameDateTime, true) + "　·　" +
                     NavigationTimeOfDayUtility.Label(NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours));
-            Text legend = NavigationText("Lookout Time Legend", ribbon, new Vector2(860f, 34f), new Vector2(0f, -33f), 18, Ink,
-                TextAnchor.MiddleCenter);
-            legend.text = "夜航　·　黎明　·　白昼　·　黄昏　·　夜航";
-            GameReadability.Body(date, 20);
-            GameReadability.Body(legend, 18);
+            NavigationText("Lookout Time Legend", ribbon, new Vector2(700f, 16f), new Vector2(0f, -26f), 12, Ink,
+                TextAnchor.MiddleCenter).text = "夜航　·　黎明　·　白昼　·　黄昏　·　夜航";
         }
 
-        private void BuildNavigationJournal(RectTransform panel)
+        private void BuildNavigationSupplyEndurance(RectTransform chart)
         {
-            NavigationText("Log Title", panel, new Vector2(285f, 32f), new Vector2(-315f, 103f), 24, Gold).text = "航海日志";
-            NavigationText("Cargo Status", panel, new Vector2(635f, 32f), new Vector2(148f, 103f), 17, Ink, TextAnchor.MiddleRight).text =
-                "金币 " + session.Cargo.Gold + " · 淡水 " + session.Cargo.Water + " · 食物 " + session.Cargo.Food + " · 木材 " + session.Cargo.Wood + " · 火药 " + session.Cargo.Powder;
-            NavigationText("Voyage Cargo Summary", panel, new Vector2(910f, 26f), new Vector2(0f, 67f), 16, MutedInk).text =
-                "货舱 " + session.Cargo.UsedVolume.ToString("0.0") + "/" + session.CargoCapacityValue + "　探索 " + session.ExplorationCoverage().ToString("0") + "%";
-            RectTransform viewport = CreateFixedPanel("Voyage Journal Scroll", panel, new Vector2(914f, 108f), new Vector2(0f, -8f), new Color(0, 0, 0, 0.12f));
-            viewport.gameObject.AddComponent<RectMask2D>();
-            Text log = NavigationText("Voyage Log", viewport, new Vector2(884f, 160f), Vector2.zero, 19, Ink, TextAnchor.UpperLeft);
-            log.text = BuildLog(session.LogEntries.Count);
-            log.resizeTextForBestFit = false;
-            float height = Mathf.Max(106f, log.preferredHeight + 18f);
-            log.rectTransform.anchorMin = log.rectTransform.anchorMax = new Vector2(0.5f, 1f);
-            log.rectTransform.pivot = new Vector2(0.5f, 1f);
-            log.rectTransform.sizeDelta = new Vector2(884f, height);
-            log.rectTransform.anchoredPosition = new Vector2(0, -5);
-            ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
-            scroll.viewport = viewport; scroll.content = log.rectTransform;
-            scroll.horizontal = false; scroll.vertical = true; scroll.scrollSensitivity = 30f;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            BuildNavigationSupplyEndurance(panel);
-        }
-
-        private void BuildNavigationSupplyEndurance(RectTransform journal)
-        {
-            RectTransform panel = CreateFixedPanel("Voyage Supply Endurance", journal,
-                new Vector2(914f, 50f), new Vector2(0f, -98f), new Color(0.35f, 0.24f, 0.10f, 0.10f));
-            panel.GetComponent<Image>().raycastTarget = false;
-            NavigationText("Water Food Endurance", panel, new Vector2(880f, 25f), new Vector2(0f, 10f), 18, Ink).text =
+            RectTransform panel = CreateRect("Voyage Supply Endurance", chart,
+                new Vector2(470f, 30f), new Vector2(170f, 251f));
+            NavigationText("Water Food Endurance", panel, new Vector2(470f, 24f), Vector2.zero, 17, Ink).text =
                 "淡水 " + FormatSupplyEnduranceDuration(session.WaterSupplyHours) +
                 "　·　食物 " + FormatSupplyEnduranceDuration(session.FoodSupplyHours);
-            NavigationText("Supply Endurance Summary", panel, new Vector2(880f, 18f), new Vector2(0f, -15f), 13, MutedInk).text =
-                "当前 " + session.EffectiveCrewCount + " 名船员　·　按当前消耗估算（含节粮）";
         }
 
         private static string FormatSupplyEnduranceDuration(double hours)
@@ -318,13 +323,12 @@ namespace ShatteredSail.Presentation
         private Text NavigationText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, Color color,
             TextAnchor alignment = TextAnchor.MiddleLeft)
         {
-            // These three panels use parchment. Their former light-on-dark
+            // Chart and controls use parchment. Their former light-on-dark
             // colors disappear on the current paper skin; lookout text remains
             // light because it is drawn over the sea and wooden caption plates.
             for (Transform surface = parent; surface != null; surface = surface.parent)
             {
-                if (surface.name != "Navigation Chart" && surface.name != "Navigation Controls" &&
-                    surface.name != "Navigation Journal") continue;
+                if (surface.name != "Navigation Chart" && surface.name != "Navigation Controls") continue;
                 color = color == Gold ? Html("#694014") : color == MutedInk ? Html("#4F4A3E") : Html("#2E281E");
                 break;
             }
@@ -333,7 +337,7 @@ namespace ShatteredSail.Presentation
             if (name == "Lookout Heading" || name == "Lookout Report") text.color = Ink;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
-            if (name == "Forecast" || name == "Voyage Log" || name == "Lookout Report") text.lineSpacing = name == "Lookout Report" ? 1.08f : 1.16f;
+            if (name == "Forecast" || name == "Lookout Report") text.lineSpacing = name == "Lookout Report" ? 1.08f : 1.16f;
             text.raycastTarget = false;
             return text;
         }

@@ -20,6 +20,7 @@ namespace ShatteredSail.Editor
 
         public static void RepairDrawChartFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stop Play Mode before repairing the drawing preview.");
             Scene alreadyOpen = SceneManager.GetSceneByPath(DrawChartPath);

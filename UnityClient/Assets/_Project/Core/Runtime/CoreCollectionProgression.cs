@@ -98,7 +98,7 @@ namespace ShatteredSail.Core.Gameplay
                 if (Settlement.Destination == Map.DestinationName &&
                     TryChartPorts(route, Map.DepartureName, Map.DestinationName, out int a, out int b, out int forward))
                 {
-                    string seed = activeSeaChart?.Seed ?? EncodeChartSeed(route, a, b, forward, 1, Map.Hash, 0);
+                    string seed = activeSeaChart?.Seed ?? EncodeChartSeed(route, a, b, forward, 1, Map.Hash, 0, Map.GeometryVersion);
                     changed |= collectionCharts.Add(seed);
                     changed |= collectionRoutes.Add(Map.Route.Id);
                     changed |= collectionPorts.Add(Map.DestinationName);

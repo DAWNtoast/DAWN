@@ -60,6 +60,9 @@ namespace ShatteredSail.Editor
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.02f, 0.07f, 0.09f, 1f);
             camera.orthographic = true;
+            // The title screen is overlay UI. HDR would retain full-screen
+            // camera color/depth attachments without affecting its artwork.
+            camera.allowHDR = false;
             cameraObject.tag = "MainCamera";
 
             GameObject controllerObject = new GameObject("Main Menu");

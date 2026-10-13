@@ -59,6 +59,7 @@ namespace ShatteredSail.Core.Gameplay
                 reason = "这张海图连接" + chart.PortA + "与" + chart.PortB + "，只能从其中一港出航。";
                 return false;
             }
+            if (!CanSelectRoute(chart.RouteIndex, out reason)) return false;
             selectedSeaChart = chart;
             SelectedSeed = chart.Seed;
             SelectedRouteIndex = chart.RouteIndex;
@@ -71,6 +72,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             reason = string.Empty;
             if (selectedSeaChart == null || GuidedTutorialLeg > 0 || SelectedTreasureMap != null) return true;
+            if (!CanSelectRoute(selectedSeaChart.RouteIndex, out reason)) return false;
             if (Phase != CoreDemoPhase.Port) reason = "只能在港口载入海图。";
             else if (!selectedSeaChart.ContainsPort(CurrentPort))
                 reason = "这张海图仅连接" + selectedSeaChart.PortA + "与" + selectedSeaChart.PortB + "。";
@@ -123,16 +125,18 @@ namespace ShatteredSail.Core.Gameplay
         }
 
         public bool TryImportLegacyChart(string rawSeed, int routeIndex, string departurePort, string destinationPort,
-            uint geographyHash, bool tutorialWaters, out string canonicalSeed)
+            uint geographyHash, bool tutorialWaters, out string canonicalSeed, int geometryVersion = 0)
         {
             canonicalSeed = string.Empty;
-            if ((Phase != CoreDemoPhase.Port && Phase != CoreDemoPhase.Settlement) || string.IsNullOrWhiteSpace(rawSeed) || rawSeed.Length > 512 ||
+            if ((geometryVersion != 0 && geometryVersion != 1) || tutorialWaters && geometryVersion != 0 ||
+                (Phase != CoreDemoPhase.Port && Phase != CoreDemoPhase.Settlement) || string.IsNullOrWhiteSpace(rawSeed) || rawSeed.Length > 512 ||
                 !TryChartPorts(routeIndex, departurePort, destinationPort, out int a, out int b, out int forward)) return false;
             string raw = rawSeed.Trim();
             if (TryParseChartSeed(raw, out CoreSeaChartDefinition parsed))
             {
                 if (parsed.GeographyHash != geographyHash || parsed.RouteIndex != routeIndex || !parsed.ContainsPort(departurePort) ||
-                    parsed.OtherPort(departurePort) != destinationPort || parsed.TutorialWaters != tutorialWaters) return false;
+                    parsed.OtherPort(departurePort) != destinationPort || parsed.TutorialWaters != tutorialWaters ||
+                    parsed.MapGeometryVersion != geometryVersion) return false;
                 canonicalSeed = parsed.Seed;
             }
             else
@@ -140,13 +144,13 @@ namespace ShatteredSail.Core.Gameplay
                 uint expected = SeedHash.Compute(tutorialWaters ? CoreGuidedTutorialContent.Seed + "::" + departurePort + "::" + destinationPort :
                     Routes[routeIndex].Id + "::" + raw + "::" + departurePort + "::" + destinationPort);
                 if (geographyHash != expected || tutorialWaters && routeIndex != 0) return false;
-                canonicalSeed = EncodeChartSeed(routeIndex, a, b, forward, tutorialWaters ? 2 : 1, geographyHash, 0);
+                canonicalSeed = EncodeChartSeed(routeIndex, a, b, forward, tutorialWaters ? 2 : 1, geographyHash, 0, geometryVersion);
             }
             TryParseChartSeed(canonicalSeed, out CoreSeaChartDefinition definition);
             CoreSeaChartState state = GetOrCreateSeaChartState(definition);
             if (raw != canonicalSeed && !seaChartAliases.Any(alias => alias.rawSeed == raw && alias.canonicalSeed == definition.Seed))
                 seaChartAliases.Add(new CoreSeaChartAlias { rawSeed = raw, canonicalSeed = definition.Seed });
-            if (Map != null && Map.Hash == geographyHash && Map.DepartureName == departurePort && Map.DestinationName == destinationPort)
+            if (Map != null && Map.GeometryVersion == geometryVersion && Map.Hash == geographyHash && Map.DepartureName == departurePort && Map.DestinationName == destinationPort)
             {
                 foreach (CoreMapNode node in Map.Nodes.Where(node => node.Visited && !node.Skipped))
                 {

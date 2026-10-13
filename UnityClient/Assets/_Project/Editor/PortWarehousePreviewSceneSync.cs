@@ -36,6 +36,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncWarehouseTabsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Warehouse tab previews require edit mode.");
             foreach (string reference in WarehouseTabsReferencePaths)
@@ -48,6 +49,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureWarehouseTabsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncWarehouseTabsFromCommandLine();
             UIPreviewSceneAcceptance.CaptureWarehouseTabsFromCommandLine();
         }
@@ -59,6 +61,7 @@ namespace ShatteredSail.Editor
         /// </summary>
         public static void SyncAndCapturePortWarehouseFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Port warehouse preview synchronization requires edit mode.");
             foreach (string reference in DepartureProvisionReferencePaths)

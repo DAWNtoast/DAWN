@@ -166,7 +166,7 @@ foreach ($card in $reviewCards) {
     [void]$reviewHtml.Append((New-ReviewFigure $reference $reviewReferenceLabel))
     [void]$reviewHtml.Append('</div></article>')
 }
-[void]$reviewHtml.Append('</section><h2>藏宝图切换验证</h2><p>首次进入之后再选择航线 1、2，最后返回 0；运行断言要求保留航线主题、推荐战力、首领与切换提示，并仅在航线 0 显示本次教学绘图。</p><div class="images route-images">')
+[void]$reviewHtml.Append('</section><h2>藏宝图切换验证</h2><p>首次进入之后再选择航线 1、2，最后返回 0；运行断言要求保留航线主题、首领与切换提示，并仅在航线 0 显示本次教学绘图。</p><div class="images route-images">')
 foreach ($pair in @(@('53_TreasureMap_SelectedRoute_1.png', '航线 1 · 不显示航线 0 的历史绘图'), @('54_TreasureMap_SelectedRoute_2.png', '航线 2 · 不显示航线 0 的历史绘图'), @('55_TreasureMap_SelectedRoute_0.png', '返回航线 0 · 显示所属教学绘图'))) {
     [void]$reviewHtml.Append((New-ReviewFigure ($reviewAfterFolder + '/' + $pair[0]) ($pair[1] + ' · ' + $reviewAfterLabel)))
 }

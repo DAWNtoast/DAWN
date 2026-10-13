@@ -18,9 +18,7 @@ namespace ShatteredSail.Presentation
         public static readonly Vector2 BackgroundPosition = new Vector2(0f, -HeaderHeight * .5f);
         public const float StagePositionY = -55f;
 
-        public static float GetHeaderHeight(bool tutorial) => tutorial
-            ? TutorialHeaderHeight + (GameReadability.Scale - 1f) * 128f
-            : HeaderHeight + (GameReadability.Scale - 1f) * 40f;
+        public static float GetHeaderHeight(bool tutorial) => tutorial ? TutorialHeaderHeight : HeaderHeight;
 
         public static Rect BackgroundUv(Texture texture)
         {

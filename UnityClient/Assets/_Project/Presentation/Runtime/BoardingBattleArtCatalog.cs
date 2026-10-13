@@ -19,6 +19,19 @@ namespace ShatteredSail.Presentation
         private static readonly string[] LegacyCrew = { "crew_navigator_evelyn_fullbody", "crew_carpenter_barlow_fullbody",
             "crew_doctor_moer_fullbody", "crew_gunner_leisa_fullbody", "crew_cook_pepe_fullbody", "crew_diver_noya_fullbody" };
 
+        /// <summary>Releases shared art references and attempted-load flags without destroying borrowed textures.</summary>
+        public static void ReleaseLoadedTextures()
+        {
+            System.Array.Clear(Backgrounds, 0, Backgrounds.Length);
+            System.Array.Clear(BackgroundLoaded, 0, BackgroundLoaded.Length);
+            System.Array.Clear(Parties, 0, Parties.Length);
+            System.Array.Clear(PartyLoaded, 0, PartyLoaded.Length);
+            Cast.Clear();
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetCache() => ReleaseLoadedTextures();
+
         public static string EnvironmentResourcePath(SeaTerrainType terrain, NavigationTimeOfDay time) =>
             "BoardingBattle/Backgrounds/boarding_" + Environments[EnvironmentIndex(terrain)] + "_" + Times[TimeIndex(time)] + "_v1";
 

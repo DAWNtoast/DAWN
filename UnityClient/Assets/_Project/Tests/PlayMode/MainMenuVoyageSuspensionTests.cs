@@ -69,8 +69,9 @@ namespace ShatteredSail.Presentation.Tests
             yield return null; yield return null;
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("MainMenu"));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Gold"), -991), Is.EqualTo(portGold), "Parking a voyage must not bank its cargo.");
-            Assert.That(GameObject.Find("Save State").GetComponent<Text>().text, Does.Contain("继续已保存的航程"));
+            Assert.That(ActiveButton("Continue Game").interactable, Is.True);
             var store = new ProtectedCheckpointStore(voyageTestDirectory);
+            Assert.That(store.TryLoad(out _, out string savedNotice), Is.True, savedNotice);
             File.WriteAllText(store.PrimaryPath, "interrupted or corrupted disk write");
             SceneManager.LoadScene("MainMenu");
             yield return null; yield return null;
@@ -99,7 +100,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator GuidedVoyage_SettingsAndResumeKeepCurrentInputStep()
+        public IEnumerator GuidedVoyage_SettingsAndResumeMigrateRetiredDistanceStep()
         {
             SceneManager.LoadScene(MainMenuController.MainSceneName);
             yield return null; yield return null;
@@ -120,7 +121,10 @@ namespace ShatteredSail.Presentation.Tests
             game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(game.IsTutorialActive, Is.True);
             Assert.That(game.Session.GuidedTutorialLeg, Is.EqualTo(1));
-            Assert.That(game.CurrentGuidedTutorialNavigationInputStep, Is.EqualTo(GuidedTutorialNavigationInputStep.Distance));
+            Assert.That(game.CurrentGuidedTutorialNavigationInputStep, Is.EqualTo(GuidedTutorialNavigationInputStep.Sail));
+            Assert.That(game.Session.PlannedDistanceNm, Is.EqualTo(CoreGuidedTutorialContent.PlannedDistanceNm));
+            Assert.That(GameObject.Find("Distance Slider").GetComponent<Slider>().IsInteractable(), Is.False);
+            Assert.That(ActiveButton("Execute Sail").IsInteractable(), Is.True);
             Assert.That(ActiveButton("Voyage Settings").interactable, Is.True);
             LogAssert.NoUnexpectedReceived();
         }

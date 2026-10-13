@@ -17,6 +17,7 @@ namespace ShatteredSail.Editor
         // -executeMethod ShatteredSail.Editor.CrewBiographyPreviewSceneSync.SyncFromCommandLine
         public static void SyncFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             GameplayPreviewSceneBuilder.SyncCrewBiographyFromCommandLine();
         }
 
@@ -24,6 +25,7 @@ namespace ShatteredSail.Editor
         // Graphics must remain enabled for the 36-crew acceptance captures.
         public static void SyncAndCaptureFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncFromCommandLine();
             CrewDossierAcceptance.CaptureFromCommandLine();
         }
@@ -59,6 +61,7 @@ namespace ShatteredSail.Editor
         /// </summary>
         public static void SyncCrewBiographyFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Crew biography synchronization requires stopped edit mode.");
             MethodInfo formatter = typeof(CoreGameplayDemoController).GetMethod("FormatCrewBiography",

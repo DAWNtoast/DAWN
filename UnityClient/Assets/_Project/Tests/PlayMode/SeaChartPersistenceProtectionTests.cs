@@ -248,9 +248,11 @@ namespace ShatteredSail.Presentation.Tests
         {
             string seed = CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
             Assert.That(CoreVoyageSession.TryParseChartSeed(seed, out CoreSeaChartDefinition definition), Is.True);
-            var explored = new bool[CoreVoyageMap.GridColumns * CoreVoyageMap.GridRows];
+            var geometry = new CoreVoyageMap(definition.MapGeometryVersion);
+            var explored = new bool[geometry.Columns * geometry.Rows];
             explored[0] = true;
             return new Chart { seed = seed, routeIndex = definition.RouteIndex, routeName = "test",
+                mapGeometryVersion = definition.MapGeometryVersion,
                 departurePort = definition.ForwardDeparturePort, destinationPort = definition.ForwardDestinationPort,
                 tutorialWaters = definition.TutorialWaters, exploredCells = explored, revealedLocationIds = new[] { 0, 2 } };
         }
@@ -276,6 +278,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             public string seed, routeName, departurePort, destinationPort;
             public int routeIndex;
+            public int mapGeometryVersion;
             public bool tutorialWaters;
             public bool[] exploredCells;
             public int[] revealedLocationIds;

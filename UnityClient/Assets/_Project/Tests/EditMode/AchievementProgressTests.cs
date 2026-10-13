@@ -26,8 +26,8 @@ namespace ShatteredSail.Presentation.Tests
                 CoreGameplayDemoController.GuidedTutorialComponentRewardKey, CoreGameplayDemoController.GuidedTutorialRecoveryKey,
                 CoreGameplayDemoController.GuidedTutorialNavigatorEventKey, CoreGameplayDemoController.ProfileGoldKey,
                 CoreGameplayDemoController.SelectedShipKey, CoreGameplayDemoController.ComponentPurchaseAchievementKey,
-                CoreGameplayDemoController.WarehouseDisplayRecordKey, CoreGameplayDemoController.DispatchMissionKey,
-                CoreGameplayDemoController.DispatchDurationKey, CoreGameplayDemoController.DispatchBalanceVersionKey,
+                CoreGameplayDemoController.WarehouseDisplayRecordKey,
+                CoreGameplayDemoController.BattleDeckEditedKey,
             }) Preserve(key, false);
             foreach (string key in new[]
             {
@@ -36,7 +36,6 @@ namespace ShatteredSail.Presentation.Tests
                 CoreGameplayDemoController.WarehouseOwnedKey, CoreGameplayDemoController.WarehouseDisplayKey,
                 CoreGameplayDemoController.DrawnSeaChartKey, CoreGameplayDemoController.BattleDeckKey,
                 CoreGameplayDemoController.BattleCardUpgradeKey, CoreGameplayDemoController.AcquiredSpecialCardsKey,
-                CoreGameplayDemoController.DispatchEndsAtKey,
             }) Preserve(key, true);
             foreach (string port in Ports)
             {
@@ -84,20 +83,20 @@ namespace ShatteredSail.Presentation.Tests
         [Test]
         public void ReadOnlyQueriesPreviewOldSaveWithoutWritingAchievementRecords()
         {
-            ProfileGoldPersistence.Save(2000m);
+            ProfileGoldPersistence.Save(10000m);
             PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "灰鸥港");
             Assert.That(Unlocked("gold_2000"), Is.True);
             Assert.That(AchievementCatalog.CountUnlocked(), Is.GreaterThanOrEqualTo(5));
             Assert.That(AchievementCatalog.PersistenceKeys.Any(PlayerPrefs.HasKey), Is.False);
-            Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(2000m));
+            Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(10000m));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey), Is.EqualTo("灰鸥港"));
         }
 
         [Test]
         public void CapturedMoneySuppliesAndFameRemainUnlockedAfterSpending()
         {
-            ProfileGoldPersistence.Save(2000m);
-            foreach (string resource in Resources) PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey(resource), 100);
+            ProfileGoldPersistence.Save(10000m);
+            foreach (string resource in Resources) PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey(resource), 500);
             AchievementCatalog.CaptureProgress();
             ProfileGoldPersistence.Save(0m);
             foreach (string resource in Resources) PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey(resource), 0);
@@ -269,36 +268,6 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.GuidedTutorialComponentRewardKey), Is.False);
         }
 
-        [TestCase(11, false)]
-        [TestCase(12, true)]
-        [TestCase(20, true)]
-        public void ReachableLongDispatchThresholdDoesNotImplyCompletion(int hours, bool isLong)
-        {
-            AchievementCatalog.RecordDispatchStarted(hours);
-            Assert.That(Unlocked("dispatch_prepare"), Is.True);
-            Assert.That(Unlocked("dispatch_long"), Is.EqualTo(isLong));
-            Assert.That(Unlocked("dispatch_resolved"), Is.False);
-        }
-
-        [Test]
-        public void PendingDispatchMigrationDoesNotTreatBalanceVersionAsASettlement()
-        {
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchMissionKey, 0);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchDurationKey, 12);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchBalanceVersionKey, 1);
-            AchievementCatalog.CaptureProgress();
-            AssertUnlocked("dispatch_prepare", "dispatch_long");
-            Assert.That(Unlocked("dispatch_resolved"), Is.False);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchMissionKey);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchDurationKey);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchBalanceVersionKey);
-            AchievementCatalog.CaptureProgress();
-            AssertUnlocked("dispatch_prepare", "dispatch_long");
-            Assert.That(Unlocked("dispatch_resolved"), Is.False, "Recall and cleanup must not grant settlement credit.");
-            AchievementCatalog.RecordDispatchCompleted();
-            Assert.That(Unlocked("dispatch_resolved"), Is.True);
-        }
-
         [Test]
         public void TutorialActionsCanBeCompletedAfterGraduationAndRemainPermanent()
         {
@@ -336,12 +305,11 @@ namespace ShatteredSail.Presentation.Tests
             AchievementCatalog.RecordDeckEdited();
             AchievementCatalog.RecordDamagedReturn();
             AchievementCatalog.RecordNavigatorVoyage();
-            AchievementCatalog.RecordDispatchStarted(12);
-            AchievementCatalog.RecordDispatchCompleted();
             ProfileGoldPersistence.Save(17m);
             PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, Ports[0]);
             AchievementCatalog.ClearProgress();
             Assert.That(AchievementCatalog.PersistenceKeys.Any(PlayerPrefs.HasKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.BattleDeckEditedKey), Is.False);
             Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(17m));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey), Is.EqualTo(Ports[0]));
             AchievementCatalog.CaptureProgress();
@@ -363,8 +331,8 @@ namespace ShatteredSail.Presentation.Tests
             for (int slot = 0; slot < CoreWarehouseCollection.DisplaySlotCount; slot++) Assert.That(collection.TryDisplay(collection.OwnedIds[slot], slot), Is.True);
             PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, collection.ExportOwned());
             PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseDisplayKey, collection.ExportDisplay());
-            ProfileGoldPersistence.Save(2000m);
-            foreach (string resource in Resources) PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey(resource), 100);
+            ProfileGoldPersistence.Save(10000m);
+            foreach (string resource in Resources) PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey(resource), 500);
             AchievementCatalog.CaptureProgress();
             ProfileGoldPersistence.Save(0m);
             foreach (string resource in Resources) PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey(resource), 0);
@@ -386,8 +354,6 @@ namespace ShatteredSail.Presentation.Tests
             foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot))) inventory.TryUnequip(0, slot);
             SaveInventory(inventory);
 
-            AchievementCatalog.RecordDispatchStarted(12);
-            AchievementCatalog.RecordDispatchCompleted();
             var session = new CoreVoyageSession();
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
                 PlayerPrefs.SetString(CoreGameplayDemoController.StageBattleDeckKey(stage), string.Join(",", session.GetBattleDeck(stage)));
@@ -401,6 +367,9 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetString(CoreGameplayDemoController.DrawnSeaChartKey, CoreVoyageSession.CreateChartSeed(0, Ports[0], Ports[1]));
             AchievementCatalog.CaptureProgress();
 
+            AchievementCatalog.RecordVoyageThreeEvents();
+            AchievementCatalog.RecordVoyageHalfChart();
+            AchievementCatalog.RecordVoyageEventArrival();
             Assert.That(AchievementCatalog.All.Where(item => !AchievementCatalog.IsUnlocked(item)).Select(item => item.Id), Is.Empty);
             Assert.That(AchievementCatalog.CountUnlocked(), Is.EqualTo(50));
             // Every gameplay condition can subsequently disappear; only this save's earned records remain.

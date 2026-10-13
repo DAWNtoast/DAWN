@@ -33,6 +33,8 @@ namespace ShatteredSail.Presentation
                 Mathf.Lerp(originColor.a * 0.78f, originColor.a, wave));
         }
 
+        public void SetBaseScale(Vector3 scale) => originScale = scale;
+
         private void OnDisable()
         {
             if (rect != null) rect.localScale = originScale;

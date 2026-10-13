@@ -51,7 +51,7 @@ namespace ShatteredSail.Editor
                 // Preserve the storage identity used by existing player saves.
                 // The game title and release app filename are 第七港口.
                 PlayerSettings.productName = "Shattered Sail";
-                PlayerSettings.bundleVersion = "0.3.20261009";
+                PlayerSettings.bundleVersion = "0.3.20261010";
                 PlayerSettings.resizableWindow = true;
                 PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);

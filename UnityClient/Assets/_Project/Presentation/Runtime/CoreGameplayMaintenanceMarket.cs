@@ -49,7 +49,7 @@ namespace ShatteredSail.Presentation
                 }
                 PortMarketItem item = MaintenanceMarketItem(type);
                 quote.HasItems |= amount > 0;
-                totalCost += PortMarketCatalog.CalculateBuyCost(session.CurrentPort, item, now, amount);
+                totalCost += PortMarketCatalog.CalculateBuyCost(session.CurrentPort, item, now, amount, session.Cargo.Fame);
                 projectedVolume += amount * (double)PortMarketCatalog.CargoVolume(item);
                 if (amount > MarketRemaining(session.CurrentPort, item, now, level))
                 {

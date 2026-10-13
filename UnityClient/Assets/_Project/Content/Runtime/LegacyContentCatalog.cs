@@ -19,7 +19,6 @@ namespace ShatteredSail.Content
             "outputs/balance_configs/crew_config.csv",
             "outputs/balance_configs/card_config.csv",
             "outputs/balance_configs/port_config.csv",
-            "outputs/balance_configs/dispatch_config.csv",
             "outputs/balance_configs/component_config.csv",
         });
 

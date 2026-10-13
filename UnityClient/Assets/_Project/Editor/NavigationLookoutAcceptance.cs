@@ -55,6 +55,7 @@ namespace ShatteredSail.Editor
                 var map = new CoreVoyageMap { Route = CoreVoyageSession.Routes[0], Seed = "LOOKOUT-ACCEPTANCE", Hash = 314159,
                     Departure = new VoyagePoint(45, 32), Destination = new VoyagePoint(80, 32), DepartureName = "灰鸥港", DestinationName = "盐冠港" };
                 for (int i = 0; i < map.CellCount; i++) map.ExploredCells[i] = true;
+                map.RestoreChartExploration(null);
                 for (int x = 28; x <= 30; x++) for (int y = 18; y <= 19; y++) map.TerrainCells[y * 48 + x] = SeaTerrainType.Island;
                 for (int x = 28; x <= 29; x++) map.TerrainCells[14 * 48 + x] = SeaTerrainType.Reef;
                 for (int x = 31; x <= 33; x++) map.TerrainCells[12 * 48 + x] = SeaTerrainType.StormFront;

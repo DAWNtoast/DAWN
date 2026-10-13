@@ -22,6 +22,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureComponentResaleFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Component resale previews require edit mode.");
             foreach (string reference in ComponentResaleReferencePaths)

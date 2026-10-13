@@ -88,6 +88,15 @@ namespace ShatteredSail.Presentation
             tutorialActive = record.tutorialActive;
             guidedTutorialCheckpoint = record.tutorialCheckpoint;
             guidedTutorialNavigationInputStep = (GuidedTutorialNavigationInputStep)record.navigationInputStep;
+            if (tutorialActive && guidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Distance)
+            {
+                // Older versions could suspend while the player dragged the
+                // distance slider. Resume at execution with the fixed lesson
+                // distance instead of reviving the removed manual-input step.
+                guidedTutorialNavigationInputStep = GuidedTutorialNavigationInputStep.Sail;
+            }
+            if (tutorialActive && session.Phase == CoreDemoPhase.Sailing)
+                session.SetDistance(CoreGuidedTutorialContent.PlannedDistanceNm);
             guidedNavigationInitialized = true;
             guidedNavigationMap = session.Map;
             guidedNavigationPreviousPhase = session.Phase;

@@ -25,12 +25,14 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureBossTreasureDropsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncBossTreasureDropsFromCommandLine();
             UIPreviewSceneAcceptance.CaptureBossTreasureDropsFromCommandLine();
         }
 
         public static void SyncBossTreasureDropsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Boss reward previews require edit mode.");
             foreach (string reference in BossTreasureDropReferencePaths) SyncBossTreasureDropScene(reference);

@@ -1,0 +1,200 @@
+[
+  {
+    "id": "crew_salt_crown_navigator_ashir",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-17295989-b90d-4ca4-9f44-1da707a7e0c2.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_navigator_ashir_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_salt_crown_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_salt_crown_carpenter_saf",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-5c0d6c69-fc45-4c64-9d39-b384808cfee2.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_carpenter_saf_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_salt_crown_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_salt_crown_doctor_naji",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-dd1572c7-07d6-4cd3-9de8-4cfce8a6ed1d.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_doctor_naji_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_salt_crown_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_salt_crown_gunner_rokan",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-620175c0-a9a1-4340-a017-5d5d432636e8.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_gunner_rokan_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_salt_crown_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_salt_crown_cook_maz",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-04c7fdab-1f3c-4e57-836c-1ff3dd2635c6.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_cook_maz_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_salt_crown_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_salt_crown_diver_isha",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-b7a9ccc5-36dd-493d-b5e6-f7b39e091192.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_diver_isha_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_salt_crown_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_twilight_tide_navigator_selene",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-c974b2c3-6f30-4f6a-895d-0882f7cf3612.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_navigator_selene_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_twilight_tide_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_twilight_tide_carpenter_orlan",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-327872c3-70e1-4e46-8016-069ecbdd2e37.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_carpenter_orlan_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_twilight_tide_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_twilight_tide_doctor_viya",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-a36d52f6-79f8-4437-b9e7-519adc5541e7.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_doctor_viya_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_twilight_tide_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_twilight_tide_gunner_yilan",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-18d40a26-7e6f-498d-8759-dcb2292859a8.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_gunner_yilan_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_twilight_tide_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_twilight_tide_cook_lume",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-0ce99ad4-f341-4b99-b389-8de7c39f62b6.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_cook_lume_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_twilight_tide_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_twilight_tide_diver_naive",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-275819e3-7927-4463-b2f2-f2455bc3e265.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_diver_naive_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_twilight_tide_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_gray_gull_navigator_evelyn",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-3d9ff0e2-2734-44e8-ac38-52a78aed6577.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_navigator_evelyn_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_gray_gull_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_gray_gull_carpenter_barlow",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-3cb30951-1743-44bd-b036-93ad78321560.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_carpenter_barlow_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_gray_gull_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_gray_gull_doctor_moer",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-43546c78-032c-4ab5-8738-fd4c3c751dbd.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_doctor_moer_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_gray_gull_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_gray_gull_gunner_leisa",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-3b4fb332-9945-45ba-9e12-979bc9c50ee6.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_gunner_leisa_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_gray_gull_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_gray_gull_cook_pepe",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-38ad8812-dcda-4f20-be1f-b02af5d196f4.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_cook_pepe_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_gray_gull_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  },
+  {
+    "id": "crew_gray_gull_diver_noya",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea7-3fae-7393-a207-993cebc74331\\exec-b1adc638-21d1-4144-9590-407d00583565.png",
+    "destination": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_diver_noya_dossier_v1.png",
+    "mode": "built-in imagegen",
+    "references": [
+      "D:/Game/outputs/imagegen/tavern-dossier/lorne-dossier-parchment-v2.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_gray_gull_portraits_v2.png"
+    ],
+    "visualQA": "Passed: correct atlas identity, portrait contained in left bay, parchment and blank right area match approved template."
+  }
+]

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -13,18 +14,18 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = Start(false, upgrades: new Dictionary<string, int> { { "card_full_sail_turn", 2 } });
             SetHand(session, 1, 1, 7);
-            Assert.That(session.GetBattleCardEnergyCost(1), Is.Zero);
-            Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.GetBattleCardEnergyCost(1), Is.EqualTo(1));
+            Assert.That(session.PlayCard(0), Is.True);
+            Assert.That(session.GetBattleCardEnergyCost(1), Is.EqualTo(2));
             Assert.That(session.GetBattleCardEnergyCost(7), Is.Zero);
             Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.Energy, Is.EqualTo(2));
-            Assert.That(session.GetBattleCardEnergyCost(1), Is.EqualTo(2));
+            Assert.That(session.Battle.Energy, Is.Zero);
+            Assert.That(session.GetBattleCardEnergyCost(1), Is.EqualTo(3));
             SetHand(session, 1);
             session.Battle.Energy = 1;
             int distance = (int)session.Battle.DistanceMeters;
             Assert.That(session.PlayCard(0), Is.False);
-            Assert.That(session.GetBattleCardEnergyCost(1), Is.EqualTo(2));
+            Assert.That(session.GetBattleCardEnergyCost(1), Is.EqualTo(3));
             Assert.That(session.Battle.Hand, Is.EqualTo(new[] { 1 }));
             Assert.That(session.Battle.Energy, Is.EqualTo(1));
             Assert.That(session.Battle.DistanceMeters, Is.EqualTo(distance));
@@ -75,13 +76,14 @@ namespace ShatteredSail.Core.Tests
             session.Battle.DistanceMeters = 40;
             session.Battle.Alignment = ram ? NavalBattleAlignment.HeadOn : NavalBattleAlignment.Parallel;
             session.Battle.PlayerMovingTowardEnemy = ram;
-            int health = session.Battle.PlayerBoardingHealth, turn = session.Battle.Turn;
+            int health = session.Battle.PlayerBoardingHealth, hull = session.Hull, turn = session.Battle.Turn;
             Assert.That(ram ? session.TryRam() : session.TryBoard(), Is.True);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
             Assert.That(session.Battle.Turn, Is.EqualTo(turn));
             Assert.That(session.GetBattleCardEnergyCost(23), Is.EqualTo(session.GetBattleCard(23).Energy));
             Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.False);
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health), "Player connection grants the first card action, with no hidden enemy strike.");
+            int expectedHealth = ram ? BoardingHealthAfterNavalDamage(health, session.MaxHull, hull - session.Hull) : health;
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(expectedHealth), "Player connection grants the first card action, with no hidden enemy strike.");
         }
 
         [TestCase(NavalBattleAlignment.HeadOn)]
@@ -93,7 +95,7 @@ namespace ShatteredSail.Core.Tests
             session.Battle.DistanceMeters = 90;
             session.Battle.Alignment = alignment;
             session.Battle.PlayerBlock = 999;
-            int health = session.Battle.PlayerBoardingHealth, turn = session.Battle.Turn;
+            int health = session.Battle.PlayerBoardingHealth, hull = session.Hull, turn = session.Battle.Turn;
             Assert.That(session.EnemyWillRam, Is.True);
             Assert.That(session.EnemyRamFirstStrikeDamage, Is.EqualTo(7));
             Assert.That(session.GetEnemyIntent(), Does.Contain("冲撞→接舷").And.Contain("敌方先手").And.Contain("7"));
@@ -101,7 +103,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
             Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.True);
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health - 7), "Ship guard cannot cancel the announced crew opening.");
+            int expectedInitialHealth = BoardingHealthAfterNavalDamage(health, session.MaxHull, hull - session.Hull);
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(expectedInitialHealth - 7), "Ship guard cannot cancel the announced crew opening.");
             Assert.That(session.Battle.Turn, Is.EqualTo(turn + 1));
             Assert.That(session.Battle.PhaseTurn, Is.EqualTo(1));
             Assert.That(session.Battle.Hand.Count, Is.EqualTo(5));
@@ -112,6 +115,41 @@ namespace ShatteredSail.Core.Tests
             int beforeNextTurn = session.Battle.PlayerBoardingHealth;
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(beforeNextTurn - 7), "Only a further explicit end turn permits another enemy action.");
+        }
+
+        [TestCase(0f)]
+        [TestCase(-10f)]
+        public void EnemyCannotForecastOrExecuteRamWithoutPositiveSeparation(float distance)
+        {
+            CoreVoyageSession session = Start(true);
+            session.Battle.Profile = RamProfile(1d);
+            session.Battle.DistanceMeters = distance;
+            session.Battle.PhaseTurn = 2;
+            int playerHull = session.Hull, enemyHull = session.Battle.EnemyHull;
+            int health = session.Battle.PlayerBoardingHealth;
+            Assert.That(session.EnemyWillRam, Is.False);
+            Assert.That(session.EnemyRamFirstStrikeDamage, Is.Zero);
+            Assert.That(session.GetEnemyIntent(), Does.Not.Contain("冲撞").And.Not.Contain("靠近"));
+            Assert.That(session.EndBattleTurn(), Is.True);
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(distance));
+            Assert.That(session.Hull, Is.EqualTo(playerHull));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHull));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health));
+        }
+
+        [TestCase(30f)]
+        [TestCase(120f)]
+        public void EnemyRamRemainsAvailableAtPositiveRangeBoundaries(float distance)
+        {
+            CoreVoyageSession session = Start(true);
+            session.Battle.Profile = RamProfile(1d);
+            session.Battle.DistanceMeters = distance;
+            Assert.That(session.EnemyWillRam, Is.True);
+            Assert.That(session.GetEnemyIntent(), Does.Contain("冲撞→接舷"));
+            Assert.That(session.EndBattleTurn(), Is.True);
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.True);
         }
 
         [Test]
@@ -224,7 +262,8 @@ namespace ShatteredSail.Core.Tests
                 Is.EqualTo(3 * CoreBattleBalance.BoardingHealthPerSailor));
             Assert.That(small.Battle.PlayerMaxBoardingHealth, Is.EqualTo(CoreBattleBalance.BoardingHealthForOrdinaryCrew(4)));
             Assert.That(small.Battle.EnemyMaxBoardingHealth,
-                Is.EqualTo(CoreBattleBalance.BoardingHealthForOrdinaryCrew(small.Battle.EnemyOrdinaryCrew)));
+                Is.EqualTo((int)Math.Round(CoreBattleBalance.BoardingHealthForOrdinaryCrew(small.Battle.EnemyOrdinaryCrew) *
+                    CoreBattleBalance.EnemyHealthMultiplier, MidpointRounding.AwayFromZero)));
         }
 
         private static CoreBattleProfile RamProfile(double chance, int melee = 7) =>
@@ -248,5 +287,10 @@ namespace ShatteredSail.Core.Tests
 
         private static void SetHand(CoreVoyageSession session, params int[] indexes)
         { session.Battle.Hand.Clear(); session.Battle.Hand.AddRange(indexes); }
+
+        private static int BoardingHealthAfterNavalDamage(int maxBoardingHealth, int maxHull, int damage)
+        {
+            return (int)System.Math.Ceiling(maxBoardingHealth * (1d - System.Math.Max(0, damage) / (2d * maxHull)));
+        }
     }
 }

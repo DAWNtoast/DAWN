@@ -13,15 +13,14 @@ namespace ShatteredSail.Presentation
             InvalidateWarehouseCargoDialog();
             portWarehouseInventoryView = ledger;
             string port = CurrentWarehousePort;
-            WarehouseLabel("Warehouse Rare Summary", ledger, new Vector2(614f, 66f),
-                new Vector2(0f, 258f), GameReadability.FontSize(18), port + " · 珍稀物品仓储\n随船货舱 " +
-                WarehouseVolume(session.Cargo.UsedVolume) + " / " + WarehouseVolume(session.CargoCapacityValue), WarehouseInk);
+            BuildWarehouseCargoSummary(ledger, "Warehouse Rare Summary", port + " · 珍稀物品仓储");
+            BuildWarehouseCargoGrid(ledger, true);
             string[] ids = { "Name", "Stored", "Carried", "Volume" };
             string[] headers = { "珍稀物品", "本港库存", "船舱数量", "船舱占用" };
-            float[] x = { -175f, -28f, 84f, 220f };
-            float[] widths = { 182f, 104f, 104f, 152f };
+            float[] x = WarehouseCargoColumnX;
+            float[] widths = WarehouseCargoColumnWidths;
             for (int column = 0; column < ids.Length; column++)
-                BuildWarehouseSortHeader("Warehouse Rare Header " + ids[column], ledger, new Vector2(widths[column], 60f),
+                BuildWarehouseSortHeader("Warehouse Rare Header " + ids[column], ledger, new Vector2(widths[column] - 2f, 40f),
                     new Vector2(x[column], 190f), headers[column], column);
             var snapshots = new WarehouseCargoQuote[CoreWarehouseItemCatalog.RareItems.Count];
             bool hasCarriedRare = false;
@@ -32,7 +31,6 @@ namespace ShatteredSail.Presentation
                 int amount = session.GetWarehouseCargoAmount(cargo.Key);
                 return warehouseCargoSortColumn == 2 ? amount : amount * cargo.UnitVolume;
             });
-            RectTransform rows = CreateWarehouseReadableRows(ledger, "Warehouse Rare", order.Length, true);
             for (int rowIndex = 0; rowIndex < order.Length; rowIndex++)
             {
                 int index = order[rowIndex];
@@ -42,28 +40,32 @@ namespace ShatteredSail.Presentation
                 hasCarriedRare |= carried > 0;
                 int stored = session.PortWarehouse.GetAmount(port, key);
                 snapshots[index] = CreateWarehouseCargoQuote(key, editorPreviewBuilding || !Application.isPlaying);
-                Button row = CreateButton("Warehouse Rare Row " + key, rows,
-                    new Vector2(614f, WarehouseReadableRowHeight), Vector2.zero,
-                    rowIndex % 2 == 0 ? new Color(.20f, .12f, .06f) : new Color(.26f, .16f, .08f), Ink, 17);
-                AnchorWarehouseReadableRow(row, rowIndex);
+                Button row = WarehouseButton("Warehouse Rare Row " + key, ledger,
+                    new Vector2(WarehouseLedgerWidth, 68f), new Vector2(0f, 135f - rowIndex * 72f),
+                    WarehouseRoomTheme.Lining, WarehouseRoomTheme.Ink, 20);
                 row.GetComponentInChildren<Text>().text = string.Empty;
-                CreateItemIcon("Warehouse Rare Icon " + key, row.transform, ItemIconCatalog.ForCargo(key),
-                    new Vector2(-286f, 0f), 32f);
+                StyleWarehouseInventoryButton(row);
+                WarehouseItemIcon("Warehouse Rare Icon " + key, row.transform, ItemIconCatalog.ForCargo(key),
+                    new Vector2(-265f, 0f), 56f);
                 string[] values = { item.Name, stored.ToString(CultureInfo.InvariantCulture),
                     carried.ToString(CultureInfo.InvariantCulture), WarehouseVolume(carried * item.UnitVolume) };
                 for (int column = 0; column < ids.Length; column++)
                 {
                     Text label = WarehouseLabel("Warehouse Rare " + ids[column] + " " + key, row.transform,
-                        new Vector2(widths[column], WarehouseReadableRowHeight - 8f), new Vector2(x[column], 0f), GameReadability.FontSize(22),
-                        values[column], column == 0 ? Gold : Ink);
+                        new Vector2(column == 0 ? 130f : widths[column] - 8f, 48f),
+                        new Vector2(column == 0 ? -169f : x[column], 0f), 20,
+                        values[column], column == 0 ? WarehouseRoomTheme.Brass : WarehouseRoomTheme.Ink);
                     label.raycastTarget = false;
+                    label.resizeTextForBestFit = true;
+                    label.resizeTextMinSize = 13;
+                    label.resizeTextMaxSize = 20;
                 }
                 row.interactable = Application.isPlaying && !editorPreviewBuilding && WarehouseCargoActionsAllowed;
                 AddWarehouseAction(row, () => OpenWarehouseRareActions(key, carried, stored));
             }
             bool consumed = false;
-            Button all = WarehouseAction("Warehouse Store All Rare", ledger, new Vector2(600f, 60f),
-                new Vector2(0f, -224f), "珍稀物品全部存入本港", () =>
+            Button all = WarehouseAction("Warehouse Store All Rare", ledger, new Vector2(WarehouseLedgerWidth, 54f),
+                new Vector2(0f, -330f), "珍稀物品全部存入本港", () =>
                 {
                     if (consumed || !CanUseWarehouseRareInventory() || activeWarehouseCargoQuote != null) return;
                     foreach (WarehouseCargoQuote quote in snapshots)
@@ -90,11 +92,12 @@ namespace ShatteredSail.Presentation
             if (!hasCarriedRare) all.GetComponentInChildren<Text>().text = "没有随船珍稀物品";
             all.interactable = hasCarriedRare && Application.isPlaying && !editorPreviewBuilding && WarehouseCargoActionsAllowed &&
                 session.CanDepositAllRarePortCargo();
-            Text hint = WarehouseLabel("Warehouse Rare Hint", ledger, new Vector2(614f, 82f),
-                new Vector2(0f, -308f), 17, (string.IsNullOrEmpty(portWarehouseNotice)
-                    ? "选择物品存取或出售；各港回收价相同。\n高阶捐献和海上事件也需珍稀物品，请酌情保留。"
-                    : portWarehouseNotice) + "\n航海灯随船增加藏宝侦测，最多4盏生效。", WarehouseInk);
-            ReadableParagraph(hint, ledger, new Vector2(614f, 92f), new Vector2(0f, -313f), 18, true);
+            Text hint = WarehouseLabel("Warehouse Rare Hint", ledger, new Vector2(WarehouseLedgerWidth, 38f),
+                new Vector2(0f, -281f), 17, string.IsNullOrEmpty(portWarehouseNotice)
+                    ? "点击物品查看详情、存取或出售" : portWarehouseNotice, WarehouseRoomTheme.Muted);
+            hint.resizeTextForBestFit = true;
+            hint.resizeTextMinSize = 14;
+            hint.resizeTextMaxSize = 17;
         }
 
         private bool CanUseWarehouseRareInventory() => Application.isPlaying && !editorPreviewBuilding &&

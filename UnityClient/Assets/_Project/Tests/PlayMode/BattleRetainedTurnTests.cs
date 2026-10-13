@@ -61,7 +61,9 @@ namespace ShatteredSail.Presentation.Tests
                 RequiredResponsive<BattleDefenseHud>("Enemy Battle Hull Bar Track").GetInstanceID()
             }, "The same-stage enemy turn must not reconstruct the ocean, ships or defense HUDs.");
             Assert.That(RequiredResponsive<Text>("Battle Badge").text, Does.EndWith("回合 " + battle.Turn));
-            Assert.That(RequiredResponsive<Text>("Battle Status").text, Is.EqualTo(battle.LastAction));
+            Assert.That(GameObject.Find("Battle Status"), Is.Null, "Retained turns keep the removed hint absent.");
+            Assert.That(GameObject.Find("Battle Card Cost Rule Panel"), Is.Null);
+            Assert.That(GameObject.Find("Battle Collision Quality"), Is.Null, "Retained turns keep collision quality text removed.");
             Assert.That(RequiredResponsive<Text>("Battle Range").text, Is.EqualTo(battle.DistanceMeters.ToString("0") + " 米"));
             Assert.That(RequiredResponsive<Text>("Enemy Intent Text").text, Is.EqualTo("敌方意图\n" + session.GetEnemyIntent()));
             Assert.That(RequiredResponsive<Text>("Player Resource Title").text, Is.EqualTo("旗舰资源 · 格挡 " + battle.PlayerBlock));
@@ -69,10 +71,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(RequiredResponsive<Text>("Resource 回 Value").text, Is.EqualTo(battle.Turn.ToString()));
             Assert.That(RequiredResponsive<Text>("Resource 药 Value").text, Is.EqualTo(session.Cargo.Powder.ToString()));
             Assert.That(RequiredResponsive<Text>("Resource 盾 Value").text, Is.EqualTo(battle.EnemyBlock.ToString()));
-            Assert.That(RequiredResponsive<Text>("Player Ammunition").text, Is.EqualTo("炮弹 " + session.Cargo.Cannonballs + " · 装填 +" + battle.PlayerLoadedShot));
+            Assert.That(RequiredResponsive<Text>("Player Ammunition").text, Is.EqualTo("炮弹 " + session.Cargo.Cannonballs + " · 木板 " + session.Cargo.Wood));
+            Assert.That(RequiredResponsive<Text>("Battle Active Buffs").text, Does.Contain("装填加伤 +" + session.PlayerLoadedShotDamageBonus));
             Assert.That(RequiredResponsive<Text>("Enemy Burning").text, Is.EqualTo("燃烧 " + battle.EnemyBurnTurns + " 回合"));
             Assert.That(RequiredResponsive<Text>("Battle Active Buffs").text, Does.Contain("甲板强化 +" + battle.PlayerDeckBuff)
-                .And.Contain("装填加伤 +" + battle.PlayerLoadedShot)
+                .And.Contain("装填加伤 +" + session.PlayerLoadedShotDamageBonus)
                 .And.Contain("牌堆 " + battle.DrawPile.Count + " · 弃牌 " + battle.DiscardPile.Count));
             Assert.That(originalPlayerHud.DisplayedHull, Is.EqualTo(session.Hull));
             Assert.That(originalPlayerHud.DisplayedGuard, Is.EqualTo(battle.PlayerBlock));

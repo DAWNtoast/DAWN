@@ -62,17 +62,25 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
                 Assert.That(controller.Session.Cargo.Water, Is.Zero);
                 Assert.That(controller.Session.Cargo.Food, Is.Zero);
-                Button current = ActiveButton("Departure Buy Provisions");
+                Assert.That(GameObject.Find("Departure Basic Supplies"), Is.Null,
+                    "A replaced entry callback cannot reopen a stale departure purchase panel.");
+                yield return SetRecommendedDepartureWaterFood();
+                Button current = ActiveButton("Departure Basic Supplies Purchase");
                 Button.ButtonClickedEvent currentClick = current.onClick;
                 GameObject panel = GameObject.Find("Voyage Setup");
                 now = now.AddMonths(1);
                 current.onClick.Invoke();
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold), "A new month must display the new quote before charging.");
-                Assert.That(ActiveButton("Departure Buy Provisions"), Is.SameAs(current));
+                Assert.That(ActiveButton("Departure Basic Supplies Purchase"), Is.SameAs(current));
                 Assert.That(GameObject.Find("Voyage Setup"), Is.SameAs(panel));
-                Assert.That(GameObject.Find("Departure Provision Quote").GetComponent<Text>().text, Does.Contain("新月报价已刷新"));
+                int provisionDays = CoreVoyageSession.Routes[controller.Session.SelectedRouteIndex].RecommendedVoyageDays + 2;
+                int required = ExpectedProvisionQuantity(controller, provisionDays);
+                Assert.That(current.GetComponentInChildren<Text>().text,
+                    Does.Contain(PortMarketCatalog.FormatPrice(ProvisionCost(controller, now, required, required)) + " 金"),
+                    "The retained purchase action must show the refreshed monthly price.");
+                Assert.That(GameObject.Find("Departure Provision Quote"), Is.Null);
                 yield return null;
-                Assert.That(ActiveButton("Departure Buy Provisions"), Is.SameAs(current), "The month observer must not immediately rebuild a quote already refreshed.");
+                Assert.That(ActiveButton("Departure Basic Supplies Purchase"), Is.SameAs(current), "The month observer must not immediately rebuild a quote already refreshed.");
                 current.onClick.Invoke(); yield return null;
                 decimal paidGold = controller.Session.ProfileGold;
                 Assert.That(paidGold, Is.LessThan(gold));
@@ -92,16 +100,18 @@ namespace ShatteredSail.Presentation.Tests
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             controller.Session.RestoreProfile(0, controller.Session.CurrentPort);
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
-            Button buy = ActiveButton("Departure Buy Provisions");
+            yield return SetRecommendedDepartureWaterFood();
+            Button buy = ActiveButton("Departure Basic Supplies Purchase");
             GameObject setup = GameObject.Find("Voyage Setup");
             Assert.That(buy.interactable, Is.False);
             for (int count = 0; count < 3; count++) buy.onClick.Invoke();
-            Assert.That(ActiveButton("Departure Buy Provisions"), Is.SameAs(buy));
+            Assert.That(ActiveButton("Departure Basic Supplies Purchase"), Is.SameAs(buy));
             Assert.That(GameObject.Find("Voyage Setup"), Is.SameAs(setup));
             Assert.That(controller.Session.ProfileGold, Is.Zero);
             Assert.That(controller.Session.Cargo.Water, Is.Zero);
             Assert.That(controller.Session.Cargo.Food, Is.Zero);
-            Assert.That(GameObject.Find("Departure Provision Quote").GetComponent<Text>().text, Does.Contain("金币不足"));
+            Assert.That(buy.interactable, Is.False, "The retained purchase action stays disabled when funds are insufficient.");
+            Assert.That(GameObject.Find("Departure Provision Quote"), Is.Null);
             LogAssert.NoUnexpectedReceived();
         }
 

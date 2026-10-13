@@ -15,12 +15,13 @@ namespace ShatteredSail.Editor
     {
         private static readonly string[] DashboardPanelNames =
         {
-            "Navigation Chart", "Navigation Controls", "Forward View Panel", "Navigation Journal",
+            "Navigation Chart", "Navigation Controls", "Forward View Panel",
         };
 
         /// <summary>Patch the existing authored navigation hierarchy; never rebuild sample gameplay state.</summary>
         public static void SyncNavigationDashboardFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Navigation dashboard synchronization requires edit mode.");
 

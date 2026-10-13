@@ -53,10 +53,8 @@ namespace ShatteredSail.Core.Tests
         {
             ComponentArtCatalog catalog = new ComponentArtCatalog();
 
-            foreach (ComponentArtEntry entry in catalog.Entries)
+            foreach (ComponentArtEntry entry in catalog.ExpandedEntries)
             {
-                Assert.That(entry.Volume, Is.GreaterThan(0), entry.Id);
-                Assert.That(entry.InstallHours, Is.GreaterThan(0), entry.Id);
                 Assert.That(entry.InstallWood, Is.GreaterThan(0), entry.Id);
                 Assert.That(entry.Price, Is.GreaterThan(0), entry.Id);
                 Assert.That(entry.Effect, Is.Not.Empty, entry.Id);
@@ -72,15 +70,22 @@ namespace ShatteredSail.Core.Tests
             }
             Assert.That(catalog.Entries.Select(entry => entry.StoryId).Distinct().Count(), Is.EqualTo(15));
 
-            Assert.That(catalog.Entries.Select(entry => entry.ArtSourceId).Distinct().Count(), Is.EqualTo(25),
-                "The expanded data should intentionally reuse the 25 compatible slot/rarity art archetypes.");
+            Assert.That(catalog.Entries.Select(entry => entry.ArtSourceId).Distinct().Count(), Is.EqualTo(125));
+            Assert.That(catalog.ExpandedEntries.Select(entry => entry.ArtSourceId).Distinct().Count(), Is.EqualTo(150),
+                "Each equipment item must keep its independent visual identity, including expanded rewards.");
+            foreach (ComponentArtEntry entry in catalog.ExpandedEntries)
+            {
+                Assert.That(entry.ArtSourceId, Is.EqualTo(entry.Id), entry.Id);
+                Assert.That(entry.Texture, Is.Not.Null, entry.Id + " inventory icon");
+                Assert.That(entry.ShipLayer, Is.Not.Null, entry.Id + " detail image");
+            }
         }
 
         [Test]
         public void Catalog_AdvertisedEffectsExactlyMatchAppliedNumericStats()
         {
             ComponentArtCatalog catalog = new ComponentArtCatalog();
-            foreach (ComponentArtEntry entry in catalog.Entries)
+            foreach (ComponentArtEntry entry in catalog.ExpandedEntries)
             {
                 string[] names = { "船体", "装甲", "火力", "航速", "视野" };
                 float[] values = { entry.HullBonus, entry.ArmorBonus, entry.FirepowerBonus, entry.SpeedBonus, entry.VisionBonus };
@@ -92,6 +97,45 @@ namespace ShatteredSail.Core.Tests
                         values[index].ToString("0.##", CultureInfo.InvariantCulture));
                 }
                 Assert.That(entry.Effect, Is.EqualTo(string.Join("　", actual)), entry.Id);
+            }
+        }
+
+        [Test]
+        public void Catalog_RemovedDemoAttributesDoNotShiftRetainedRuntimeColumns()
+        {
+            ComponentArtCatalog catalog = new ComponentArtCatalog();
+            Assert.That(typeof(ComponentArtEntry).GetProperty("Volume"), Is.Null);
+            Assert.That(typeof(ComponentArtEntry).GetProperty("InstallHours"), Is.Null);
+            string[] lines = Resources.Load<TextAsset>(ComponentArtCatalog.CatalogResourcePath).text
+                .Replace("\r\n", "\n").Trim().Split('\n');
+            string[] header = lines[0].Split(',');
+            Assert.That(header, Does.Not.Contain("volume"));
+            Assert.That(header, Does.Not.Contain("install_hours"));
+            Assert.That(header.Length, Is.EqualTo(20));
+            Assert.That(lines.Length - 1, Is.EqualTo(125));
+
+            foreach (string line in lines.Skip(1))
+            {
+                string[] cells = line.Split(',');
+                Assert.That(cells.Length, Is.EqualTo(header.Length));
+                Dictionary<string, string> row = header.Select((name, index) => new { name, value = cells[index].Trim() })
+                    .ToDictionary(cell => cell.name, cell => cell.value);
+                ComponentArtEntry entry = catalog.GetById(row["component_id"]);
+                Assert.That(entry, Is.Not.Null, row["component_id"]);
+                Assert.That(entry.Name, Is.EqualTo(row["name"]), entry.Id);
+                Assert.That(entry.Slot.ToString().ToLowerInvariant(), Is.EqualTo(row["slot"]), entry.Id);
+                Assert.That(entry.Rarity.ToString().ToLowerInvariant(), Is.EqualTo(row["rarity"]), entry.Id);
+                Assert.That(entry.InstallWood, Is.EqualTo(int.Parse(row["install_wood"], CultureInfo.InvariantCulture)), entry.Id);
+                Assert.That(entry.Price, Is.EqualTo(int.Parse(row["shop_rarity_price"], CultureInfo.InvariantCulture)), entry.Id);
+                Assert.That(entry.HullBonus, Is.EqualTo(int.Parse(row["max_hull"], CultureInfo.InvariantCulture)), entry.Id);
+                Assert.That(entry.ArmorBonus, Is.EqualTo(int.Parse(row["armor"], CultureInfo.InvariantCulture)), entry.Id);
+                Assert.That(entry.FirepowerBonus, Is.EqualTo(int.Parse(row["firepower"], CultureInfo.InvariantCulture)), entry.Id);
+                Assert.That(entry.SpeedBonus, Is.EqualTo(float.Parse(row["speed"], CultureInfo.InvariantCulture)).Within(0.0001f), entry.Id);
+                Assert.That(entry.VisionBonus, Is.EqualTo(float.Parse(row["vision"], CultureInfo.InvariantCulture)).Within(0.0001f), entry.Id);
+                Assert.That(entry.Effect, Is.EqualTo(row["effect"]), entry.Id);
+                Assert.That(entry.Specialization, Is.EqualTo(row["specialization"]), entry.Id);
+                Assert.That(entry.ArtSourceId, Is.EqualTo(row["art_source_id"]), entry.Id);
+                Assert.That(entry.StoryId, Is.EqualTo(row["story_id"]), entry.Id);
             }
         }
 
@@ -328,9 +372,10 @@ namespace ShatteredSail.Core.Tests
                 PlayerPrefs.SetString(keys[(int)ComponentSlot.Bow], "removed_or_corrupt_component");
                 PlayerPrefs.SetString(keys[(int)ComponentSlot.Sail], "cannon_bronze_longgun");
                 restore.Invoke(controller, null);
-                Assert.That(controller.EquippedComponent(ComponentSlot.Bow).Id, Is.EqualTo("bow_oak_ram"));
-                Assert.That(controller.EquippedComponent(ComponentSlot.Sail).Id, Is.EqualTo("sail_patched_lateen"),
-                    "A valid component ID saved to the wrong slot must fall back safely.");
+                Assert.That(controller.EquippedComponent(ComponentSlot.Bow), Is.Null,
+                    "A clean profile with only corrupt legacy fitting keys must remain a bare hull.");
+                Assert.That(controller.EquippedComponent(ComponentSlot.Sail), Is.Null,
+                    "A valid component ID saved to the wrong slot must not create a free fitting.");
             }
             finally
             {

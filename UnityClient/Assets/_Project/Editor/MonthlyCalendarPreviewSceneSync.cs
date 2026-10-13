@@ -28,24 +28,6 @@ namespace ShatteredSail.Editor
             "UIComponentDetail/UIComponentDetail_OwnedEquipped.unity",
         };
 
-        private static readonly string[] MonthlyDispatchReferences =
-        {
-            "UI_Dispatch.unity", "UI_DispatchDeployment.unity",
-            "UI_DispatchDeployment_Escort.unity", "UI_DispatchDeployment_Survey.unity",
-            "UIDispatch/UIDispatch_MapSelection.unity",
-            "UIDispatch/UIDispatch_DispatchReady.unity",
-            "UIDispatch/UIDispatch_CrewAssignment.unity",
-            "UIDispatchDeployment/UIDispatchDeployment_MissionBriefing.unity",
-            "UIDispatchDeployment/UIDispatchDeployment_CrewSelection.unity",
-            "UIDispatchDeployment/UIDispatchDeployment_ReadyToLaunch.unity",
-            "UIDispatchDeploymentEscort/UIDispatchDeploymentEscort_Briefing.unity",
-            "UIDispatchDeploymentEscort/UIDispatchDeploymentEscort_CrewSelected.unity",
-            "UIDispatchDeploymentEscort/UIDispatchDeploymentEscort_ReadyToLaunch.unity",
-            "UIDispatchDeploymentSurvey/UIDispatchDeploymentSurvey_Briefing.unity",
-            "UIDispatchDeploymentSurvey/UIDispatchDeploymentSurvey_CrewSelected.unity",
-            "UIDispatchDeploymentSurvey/UIDispatchDeploymentSurvey_ReadyToLaunch.unity",
-        };
-
         private static readonly string[] MonthlyHeaderReferences =
         {
             "UI_PortHub.unity", "UIPortHub/UIPortHub_Overview.unity",
@@ -54,19 +36,19 @@ namespace ShatteredSail.Editor
 
         public static string[] MonthlyCalendarReferencePaths => DepartureProvisionReferencePaths
             .Concat(MonthlyComponentReferences).Concat(NavigationEnduranceReferencePaths)
-            .Concat(MonthlyDispatchReferences).Concat(MonthlyHeaderReferences).Distinct().ToArray();
+            .Concat(MonthlyHeaderReferences).Distinct().ToArray();
 
         public static string[] MonthlyCalendarCaptureReferencePaths => DepartureProvisionReferencePaths
             .Concat(ComponentResaleReferencePaths).Concat(new[]
             {
                 "UI_ComponentDetail.unity", "UI_Navigation.unity",
                 "UINavigation/UINavigation_TreasureExploration.unity",
-                "UI_Dispatch.unity", "UI_DispatchDeployment.unity",
-                "UI_DispatchDeployment_Escort.unity", "UI_DispatchDeployment_Survey.unity", "UI_PortHub.unity",
+                "UI_PortHub.unity",
             }).Distinct().ToArray();
 
         public static void SyncMonthlyCalendarFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Monthly calendar synchronization requires stopped edit mode.");
             foreach (string reference in DepartureProvisionReferencePaths)
@@ -83,12 +65,14 @@ namespace ShatteredSail.Editor
         // -navalVisualCapturePath <new empty directory>. Graphics must remain enabled.
         public static void SyncAndCaptureMonthlyCalendarFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncMonthlyCalendarFromCommandLine();
             CaptureMonthlyCalendarFromCommandLine();
         }
 
         public static void CaptureMonthlyCalendarFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             string[] args = Environment.GetCommandLineArgs();
             int argument = Array.IndexOf(args, "-navalVisualCapturePath");
             if (argument < 0) argument = Array.IndexOf(args, "-uiPreviewCapturePath");
@@ -119,7 +103,7 @@ namespace ShatteredSail.Editor
             // Backdrops and painted chart samples are never replaced by this sync.
             Dictionary<RawImage, string> retainedArt = destination.GetComponentsInChildren<RawImage>(true)
                 .Where(image => image.name.EndsWith("Background", StringComparison.Ordinal) ||
-                    image.name == "Lookout Ocean" || image.name == "Dispatch Deployment Chart")
+                    image.name == "Lookout Ocean")
                 .ToDictionary(image => image, MonthlyArtIdentity);
             Scene stagingScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
             GameObject staging = null;
@@ -145,9 +129,6 @@ namespace ShatteredSail.Editor
                 if (destination.EditorPreviewScreen == CoreGameplayPreviewScreen.Navigation ||
                     destination.EditorPreviewScreen == CoreGameplayPreviewScreen.Encounter)
                     SyncMonthlyNavigationClock(source, destination);
-                if (destination.EditorPreviewScreen == CoreGameplayPreviewScreen.Dispatch ||
-                    destination.EditorPreviewScreen == CoreGameplayPreviewScreen.DispatchDeployment)
-                    SyncMonthlyDispatchText(source, destination);
                 foreach (KeyValuePair<RawImage, string> image in retainedArt)
                     if (image.Key == null || MonthlyArtIdentity(image.Key) != image.Value)
                         throw new InvalidOperationException("Authored calendar backdrop changed in " + path);
@@ -188,9 +169,7 @@ namespace ShatteredSail.Editor
         }
 
         private static bool IsMonthlyOfferControl(string name) =>
-            name.StartsWith("Component Shop Offer ", StringComparison.Ordinal) ||
-            name == "Component Shop Regional Rule" || name == "Component Shop Previous Display" ||
-            name == "Component Shop Next Display" || name == "Component Shop Display Page";
+            name.StartsWith("Component Shop ", StringComparison.Ordinal) || name == "Open Component Resale";
 
         private static void SyncMonthlyComponentOffers(CoreGameplayDemoController source,
             CoreGameplayDemoController destination, string reference)
@@ -198,6 +177,7 @@ namespace ShatteredSail.Editor
             Transform generated = MonthlyFind(source, "Component Shop Panel");
             Transform target = MonthlyFind(destination, "Component Shop Panel");
             if (generated == null || target == null) throw new InvalidOperationException("Missing monthly showroom panel.");
+            ((RectTransform)target).sizeDelta = ((RectTransform)generated).sizeDelta;
             PreviewSceneSpec spec = Array.Find(Specs, item => item.Screen == CoreGameplayPreviewScreen.ComponentShop);
             foreach (Transform old in target.Cast<Transform>().Where(item => IsMonthlyOfferControl(item.name)).ToArray())
                 UnityEngine.Object.DestroyImmediate(old.gameObject);
@@ -209,10 +189,11 @@ namespace ShatteredSail.Editor
             if (reference.EndsWith("UIComponentShop_OfferSoldOut.unity", StringComparison.Ordinal))
             {
                 Transform sold = target.Cast<Transform>().First(item => item.name.StartsWith("Component Shop Offer ", StringComparison.Ordinal));
-                sold.GetComponent<Button>().interactable = false;
+                sold.GetComponent<Button>().interactable = true;
                 Text status = sold.GetComponentsInChildren<Text>(true)
-                    .First(item => item.name.StartsWith("Component Shop Plaque Status ", StringComparison.Ordinal));
+                    .First(item => item.name.StartsWith("Component Shop Thumbnail State ", StringComparison.Ordinal));
                 status.text = "本月已售出";
+                sold.GetComponentsInChildren<RawImage>(true).Single().color = new Color(.68f, .68f, .68f, 1f);
             }
         }
 
@@ -247,22 +228,6 @@ namespace ShatteredSail.Editor
                 if (separator >= 0 && Enum.GetValues(typeof(NavigationTimeOfDay)).Cast<NavigationTimeOfDay>()
                     .Any(time => heading.text.Substring(separator + 1).Trim() == NavigationTimeOfDayUtility.Label(time)))
                     heading.text = heading.text.Substring(0, separator).TrimEnd();
-            }
-        }
-
-        private static void SyncMonthlyDispatchText(CoreGameplayDemoController source, CoreGameplayDemoController destination)
-        {
-            foreach (Text target in destination.GetComponentsInChildren<Text>(true))
-            {
-                if (!target.name.StartsWith("Dispatch ", StringComparison.Ordinal) &&
-                    !target.name.StartsWith("Active Dispatch ", StringComparison.Ordinal)) continue;
-                if (target.name == "Dispatch Deployment Mission Rule" || target.name == "Active Dispatch Badge")
-                {
-                    Text generated = MonthlyFind(source, target.name)?.GetComponent<Text>();
-                    if (generated != null) target.text = generated.text;
-                }
-                // Keep authored crew selections, mission identity and chosen duration.
-                target.text = target.text.Replace(" 游戏小时", " 小时").Replace(" 现实小时", " 小时").Replace(" 小时", " 现实小时");
             }
         }
     }

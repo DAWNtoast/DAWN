@@ -7,6 +7,7 @@ using UnityEngine;
 
 namespace ShatteredSail.Presentation.Tests
 {
+    [Ignore("UIPreviewsForMe was retired and cleared on 2026-10-13; these historical saved-scene fixtures are no longer maintained.")]
     public sealed class WarehouseSerializedSceneTests
     {
         [TestCase("UI_Warehouse.unity")]

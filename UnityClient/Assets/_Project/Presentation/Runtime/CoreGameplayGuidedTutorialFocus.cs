@@ -17,12 +17,19 @@ namespace ShatteredSail.Presentation
             RectTransform layer = CreateRect("Guided Tutorial Focus Layer", contentRoot, Vector2.zero, Vector2.zero);
             StretchGuidedFocus(layer);
             guidedDecorations.Add(layer.gameObject);
+            var markers = new List<GuidedTutorialFocusGraphic>();
             foreach (Selectable target in targets)
             {
-                RectTransform marker = CreateRect("Guide Focus " + UiId.GetOrLegacyName(target), layer, Vector2.zero, Vector2.zero);
+                RectTransform marker = CreateRect("Guide Focus " + target.name, layer, Vector2.zero, Vector2.zero);
                 StretchGuidedFocus(marker);
-                marker.gameObject.AddComponent<GuidedTutorialFocusGraphic>().Configure(target);
+                GuidedTutorialFocusGraphic graphic = marker.gameObject.AddComponent<GuidedTutorialFocusGraphic>();
+                graphic.Configure(target);
+                markers.Add(graphic);
             }
+            Transform banner = FindActiveGuidedContent("Guided Tutorial Banner");
+            if (banner != null)
+                banner.gameObject.AddComponent<GuidedTutorialBannerLayout>().Configure(contentRoot, markers.ToArray(),
+                    GuidedTutorialReadingContext());
             if (EventSystem.current != null)
             {
                 GameObject selected = EventSystem.current.currentSelectedGameObject;
@@ -38,14 +45,27 @@ namespace ShatteredSail.Presentation
             rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero;
         }
 
+        private RectTransform[] GuidedTutorialReadingContext()
+        {
+            string[] names = session.Phase == CoreDemoPhase.Battle
+                ? new[] { "Voyage Header", "Player Battle Name", "Enemy Battle Name", "Player Ship Art", "Enemy Ship Art",
+                    "Player Battle Hull Bar Track", "Enemy Battle Hull Bar Track", "Player Resource HUD", "Enemy Intent HUD",
+                    "Battle Buff Panel", "Enemy Resource HUD" }
+                : session.Phase == CoreDemoPhase.Sailing || session.Phase == CoreDemoPhase.Encounter
+                    ? new[] { "Voyage Header", "Navigation Map Title Strip", "Distance Label", "Forecast", "Lookout Report" }
+                    : Array.Empty<string>();
+            var context = new List<RectTransform>();
+            foreach (RectTransform rect in contentRoot.GetComponentsInChildren<RectTransform>())
+                if (rect.gameObject.activeInHierarchy && Array.IndexOf(names, rect.name) >= 0) context.Add(rect);
+            return context.ToArray();
+        }
+
         private bool FocusGuidedControl(List<Selectable> targets, string name)
         {
-            Transform target = UiId.FindOrLegacyName(contentRoot, name);
-            if (target == null) return false;
             foreach (GuidedControlSnapshot snapshot in guidedControlSnapshots)
             {
                 Selectable control = snapshot.Control;
-                if (control == null || !control.gameObject.activeInHierarchy || control.transform != target ||
+                if (control == null || !control.gameObject.activeInHierarchy || control.name != name ||
                     !control.IsInteractable() || !GuidedTutorialAllowsControl(name)) continue;
                 if (!targets.Contains(control)) targets.Add(control);
                 return true;
@@ -56,8 +76,8 @@ namespace ShatteredSail.Presentation
         private bool FocusFirstGuidedPrefix(List<Selectable> targets, string prefix)
         {
             foreach (GuidedControlSnapshot snapshot in guidedControlSnapshots)
-                if (snapshot.Control != null && UiId.GetOrLegacyName(snapshot.Control).StartsWith(prefix, StringComparison.Ordinal) &&
-                    FocusGuidedControl(targets, UiId.GetOrLegacyName(snapshot.Control))) return true;
+                if (snapshot.Control != null && snapshot.Control.name.StartsWith(prefix, StringComparison.Ordinal) &&
+                    FocusGuidedControl(targets, snapshot.Control.name)) return true;
             return false;
         }
 
@@ -80,11 +100,11 @@ namespace ShatteredSail.Presentation
             if (session.Phase == CoreDemoPhase.Encounter)
             {
                 foreach (GuidedControlSnapshot snapshot in guidedControlSnapshots)
-                    if (snapshot.Control != null && (UiId.GetOrLegacyName(snapshot.Control).StartsWith("Encounter Choice ", StringComparison.Ordinal) ||
-                        UiId.GetOrLegacyName(snapshot.Control) == "Skip Encounter")) FocusGuidedControl(targets, UiId.GetOrLegacyName(snapshot.Control));
+                    if (snapshot.Control != null && (snapshot.Control.name.StartsWith("Encounter Choice ", StringComparison.Ordinal) ||
+                        snapshot.Control.name == "Skip Encounter")) FocusGuidedControl(targets, snapshot.Control.name);
                 return;
             }
-            if (GuidedTutorialRecoveryActive && session.Phase == CoreDemoPhase.Port && activePortFacility == 7)
+            if (GuidedTutorialRecoveryActive && session.Phase == CoreDemoPhase.Port && activePortFacility == PortFacilityArtCatalog.MaintenanceFacilityIndex)
             {
                 FocusGuidedControl(targets, "Open Port Market");
                 FocusGuidedControl(targets, "Return To Port Hub");
@@ -93,8 +113,15 @@ namespace ShatteredSail.Presentation
             if (GuidedTutorialRecoveryActive && session.Phase == CoreDemoPhase.Port &&
                 activePortFacility == PortFacilityArtCatalog.MarketFacilityIndex)
             {
-                if (!FocusFirstGuidedPrefix(targets, "Market Buy "))
-                    FocusFirstGuidedPrefix(targets, "Market Sell ");
+                if (!FocusFirstGuidedPrefix(targets, "Confirm Market Buy ") &&
+                    !FocusFirstGuidedPrefix(targets, "Confirm Market Sell ") &&
+                    !FocusFirstGuidedPrefix(targets, "Market Buy ") &&
+                    !FocusFirstGuidedPrefix(targets, "Market Sell ") &&
+                    !FocusFirstGuidedPrefix(targets, "Market Item Icon "))
+                    FocusFirstGuidedPrefix(targets, "Market Shop ");
+                FocusFirstGuidedPrefix(targets, "Market Quantity Slider ");
+                FocusGuidedControl(targets, "Cancel Market Trade");
+                FocusGuidedControl(targets, "Close Market Shop");
                 FocusGuidedControl(targets, "Return To Port Hub");
                 return;
             }
@@ -114,6 +141,12 @@ namespace ShatteredSail.Presentation
             switch (guidedTutorialStep)
             {
                 case GuidedTutorialStep.FirstDeparture:
+                    if (activePortFacility != PortFacilityArtCatalog.VoyageFacilityIndex)
+                    {
+                        FocusGuidedPortDestination(targets, "Voyage");
+                        break;
+                    }
+                    goto case GuidedTutorialStep.SecondRoute;
                 case GuidedTutorialStep.SecondRoute:
                 case GuidedTutorialStep.ThirdRoute:
                     if (!guidedDepartureDestinationSelected) FocusFirstGuidedPrefix(targets, "Departure Destination ");
@@ -188,3 +221,4 @@ namespace ShatteredSail.Presentation
 
     }
 }
+

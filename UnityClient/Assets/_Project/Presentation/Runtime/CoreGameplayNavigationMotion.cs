@@ -10,10 +10,9 @@ namespace ShatteredSail.Presentation
     public sealed partial class CoreGameplayDemoController
     {
         private bool navigationMotionPlaying;
-        private bool navigationMotionSkipRequested;
         private bool navigationPresentationNeedsRecovery;
         private Coroutine navigationMotionRoutine;
-        private RectTransform navigationMotionOverlay;
+        private RectTransform navigationMotionInputGuard;
         private readonly List<Image> navigationMotionWake = new List<Image>();
 
         private void SuspendNavigationPresentation()
@@ -23,9 +22,8 @@ namespace ShatteredSail.Presentation
             if (navigationMotionRoutine != null) StopCoroutine(navigationMotionRoutine);
             navigationMotionRoutine = null;
             navigationMotionPlaying = false;
-            navigationMotionSkipRequested = false;
             ClearNavigationWake();
-            if (navigationMotionOverlay != null) navigationMotionOverlay.gameObject.SetActive(false);
+            if (navigationMotionInputGuard != null) navigationMotionInputGuard.gameObject.SetActive(false);
         }
 
         private void ResumeNavigationPresentation()
@@ -62,12 +60,9 @@ namespace ShatteredSail.Presentation
             VoyagePoint start = session.Position;
             RectTransform mapRoot = FindNavigationMapRoot();
             RectTransform ship = FindNavigationVisual(mapRoot, "Player Ship");
-            RectTransform heading = FindNavigationVisual(mapRoot, "Ship Heading");
-            RectTransform label = FindNavigationVisual(mapRoot, "Ship Label");
             List<VoyagePoint> forecastPath = BuildNavigationMotionPath(forecast.PathPoints, start, forecast.Target);
 
             navigationMotionPlaying = true;
-            navigationMotionSkipRequested = false;
             bool sailed = session.Sail();
             PlaySfx("sail_step", 0.44f);
             if (!sailed)
@@ -85,8 +80,8 @@ namespace ShatteredSail.Presentation
                 return;
             }
 
-            BuildNavigationMotionOverlay();
-            navigationMotionRoutine = StartCoroutine(AnimateNavigationMotion(motionPath, mapRoot, ship, heading, label));
+            BuildNavigationMotionInputGuard();
+            navigationMotionRoutine = StartCoroutine(AnimateNavigationMotion(motionPath, mapRoot, ship));
         }
 
         private RectTransform FindNavigationMapRoot()
@@ -103,70 +98,48 @@ namespace ShatteredSail.Presentation
             return visual as RectTransform;
         }
 
-        private void BuildNavigationMotionOverlay()
+        private void BuildNavigationMotionInputGuard()
         {
-            if (navigationMotionOverlay != null)
+            if (navigationMotionInputGuard != null)
             {
-                navigationMotionOverlay.gameObject.SetActive(true);
-                navigationMotionOverlay.SetAsLastSibling();
+                navigationMotionInputGuard.gameObject.SetActive(true);
+                navigationMotionInputGuard.SetAsLastSibling();
                 return;
             }
 
-            navigationMotionOverlay = CreateRect("Navigation Motion Overlay", contentRoot,
+            // Block repeat pointer input during the brief automatic move without
+            // dimming the chart or showing a status message/skip interaction.
+            navigationMotionInputGuard = CreateRect("Navigation Motion Input Guard", contentRoot,
                 Vector2.zero, Vector2.zero);
-            navigationMotionOverlay.anchorMin = Vector2.zero;
-            navigationMotionOverlay.anchorMax = Vector2.one;
-            Image shade = navigationMotionOverlay.gameObject.AddComponent<Image>();
-            shade.color = new Color(0.025f, 0.09f, 0.11f, 0.18f);
-            shade.raycastTarget = true;
-
-            Text status = CreateText("Voyage Motion Status", navigationMotionOverlay,
-                new Vector2(560f, 56f), new Vector2(0f, 24f), 28, FontStyle.Bold,
-                TextAnchor.MiddleCenter, Ink);
-            status.text = "正在航行 · 船只沿航线前进";
-            status.raycastTarget = false;
-
-            Text hint = CreateText("Voyage Motion Hint", navigationMotionOverlay,
-                new Vector2(560f, 30f), new Vector2(0f, -18f), 15, FontStyle.Normal,
-                TextAnchor.MiddleCenter, MutedInk);
-            hint.text = "航海日志将在抵达后更新";
-            hint.raycastTarget = false;
-
-            Button skip = CreateButton("Skip Voyage Motion", navigationMotionOverlay,
-                new Vector2(230f, 48f), new Vector2(0f, -88f), PanelRaised, Ink, 16);
-            skip.GetComponentInChildren<Text>().text = "跳过动效";
-            skip.onClick.AddListener(() => navigationMotionSkipRequested = true);
-            navigationMotionOverlay.SetAsLastSibling();
+            navigationMotionInputGuard.anchorMin = Vector2.zero;
+            navigationMotionInputGuard.anchorMax = Vector2.one;
+            Image guard = navigationMotionInputGuard.gameObject.AddComponent<Image>();
+            guard.color = Color.clear;
+            guard.raycastTarget = true;
+            navigationMotionInputGuard.SetAsLastSibling();
         }
 
         private IEnumerator AnimateNavigationMotion(
             List<VoyagePoint> path,
             RectTransform mapRoot,
-            RectTransform ship,
-            RectTransform heading,
-            RectTransform label)
+            RectTransform ship)
         {
-            RectTransform[] visuals = { ship, heading, label };
-            Vector2[] origins = new Vector2[visuals.Length];
-            for (int index = 0; index < visuals.Length; index += 1)
-            {
-                if (visuals[index] != null) origins[index] = visuals[index].anchoredPosition;
-            }
+            Vector2 origin = ship.anchoredPosition;
 
             CreateNavigationWake(mapRoot, ship);
             float routePixels = NavigationPathPixels(path);
-            float duration = Mathf.Clamp(0.72f + routePixels / 760f, 0.78f, 1.45f);
+            float duration = Mathf.Clamp(0.20f + routePixels / 2000f, 0.24f, 0.50f);
             float elapsed = 0f;
-            while (elapsed < duration && !navigationMotionSkipRequested)
+            while (elapsed < duration)
             {
                 elapsed += Time.unscaledDeltaTime;
                 float raw = Mathf.Clamp01(elapsed / duration);
                 float eased = raw * raw * (3f - 2f * raw);
-                UpdateNavigationMotionVisuals(path, eased, visuals, origins);
+                UpdateNavigationMotionVisuals(path, eased, ship, origin);
                 yield return null;
             }
 
-            UpdateNavigationMotionVisuals(path, 1f, visuals, origins);
+            UpdateNavigationMotionVisuals(path, 1f, ship, origin);
             ClearNavigationWake();
             if (session != null && session.Phase == CoreDemoPhase.Settlement && session.Settlement != null &&
                 session.Settlement.Outcome == VoyageOutcome.ArrivedAtPort)
@@ -175,25 +148,25 @@ namespace ShatteredSail.Presentation
             }
 
             navigationMotionPlaying = false;
-            navigationMotionSkipRequested = false;
             navigationMotionRoutine = null;
-            if (navigationMotionOverlay != null) navigationMotionOverlay.gameObject.SetActive(false);
+            if (navigationMotionInputGuard != null) navigationMotionInputGuard.gameObject.SetActive(false);
             Render();
         }
 
         private void UpdateNavigationMotionVisuals(
             IList<VoyagePoint> path,
             float progress,
-            RectTransform[] visuals,
-            Vector2[] origins)
+            RectTransform ship,
+            Vector2 origin)
         {
             VoyagePoint current = NavigationPointAt(path, progress);
             Vector2 currentMapPosition = MapPosition(current);
             Vector2 originMapPosition = MapPosition(path[0]);
             Vector2 delta = currentMapPosition - originMapPosition;
-            for (int index = 0; index < visuals.Length; index += 1)
+            if (ship != null)
             {
-                if (visuals[index] != null) visuals[index].anchoredPosition = origins[index] + delta;
+                ship.anchoredPosition = origin + delta;
+                ship.parent.GetComponent<NavigationMapViewport>()?.EnsureVisible(ship.anchoredPosition);
             }
 
             for (int index = 0; index < navigationMotionWake.Count; index += 1)
@@ -315,7 +288,7 @@ namespace ShatteredSail.Presentation
             return path[path.Count - 1];
         }
 
-        private static float NavigationPathPixels(IList<VoyagePoint> path)
+        private float NavigationPathPixels(IList<VoyagePoint> path)
         {
             float pixels = 0f;
             if (path == null) return pixels;

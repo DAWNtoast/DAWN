@@ -147,7 +147,20 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.ResolveChoice(0), Is.True);
             Assert.That(session.Battle.Profile, Is.SameAs(CoreGuidedTutorialContent.BossProfile));
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
-            Assert.That(CoreGuidedBossScriptTests.PlayToCompletion(session), Is.EqualTo(21));
+            int actions = 0;
+            int completeScriptBudget = (int)GuidedBossBattleStep.Complete - 1;
+            bool reachedBoarding = false;
+            // Balanced damage may end the fight early; it must still reach
+            // boarding and finish within the complete lesson's action budget.
+            while (session.Phase == CoreDemoPhase.Battle && actions < completeScriptBudget)
+            {
+                reachedBoarding |= session.Battle.Stage == NavalBattleStage.Boarding;
+                CoreGuidedBossScriptTests.Advance(session);
+                actions++;
+            }
+            Assert.That(actions, Is.InRange(1, completeScriptBudget));
+            Assert.That(reachedBoarding, Is.True);
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(session.BossDefeated, Is.True);
             Assert.That(session.GuidedTutorialCompletedEncounters, Is.EqualTo(1));
             Assert.That(session.Map.Nodes, Is.Empty, "The defeated chart boss disappears immediately.");
@@ -182,7 +195,15 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void MandatoryEvent_ExhaustedArrivalCanTowWithoutCompletingLesson()
         {
-            CoreVoyageSession session = Start(1, false, water: 4);
+            // Measure this real leg with the current ship/crew speed, then give
+            // the tested voyage exactly its arrival rations instead of relying
+            // on a previous speed rule's fixed four-unit budget.
+            CoreVoyageSession reference = Start(1, false);
+            int startingWater = reference.Cargo.Water;
+            SailTo(reference, CoreGuidedTutorialContent.FirstEventId);
+            int arrivalWater = startingWater - reference.Cargo.Water;
+            Assert.That(arrivalWater, Is.GreaterThan(0));
+            CoreVoyageSession session = Start(1, false, water: arrivalWater);
             SailTo(session, CoreGuidedTutorialContent.FirstEventId);
             Assert.That(session.Cargo.Water, Is.Zero);
             // The smaller crew may still have prepaid fractional rations after
@@ -349,7 +370,7 @@ namespace ShatteredSail.Core.Tests
                 var customDecks = new Dictionary<NavalBattleStage, int[]>();
                 foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
                 {
-                    customDecks[stage] = session.GetBattleDeck(stage).Skip(1).ToArray();
+                    customDecks[stage] = session.GetBattleDeck(stage).Reverse().ToArray();
                     Assert.That(session.SetBattleDeck(stage, customDecks[stage]), Is.True);
                 }
                 session.ConfigureGuidedTutorialVoyage(CoreGuidedTutorialContent.BossVoyageLeg);

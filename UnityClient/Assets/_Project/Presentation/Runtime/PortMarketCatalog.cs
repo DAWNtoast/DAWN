@@ -40,6 +40,10 @@ namespace ShatteredSail.Presentation
     /// </summary>
     public static class PortMarketCatalog
     {
+        /// <summary>Each complete 50 points of fame grants one percentage point off market purchases.</summary>
+        public const int FamePerPurchaseDiscountPercent = 50;
+        public const int MaximumFamePurchaseDiscountPercent = 15;
+
         private static readonly IReadOnlyList<PortMarketItem> Items = Array.AsReadOnly(new[]
         {
             PortMarketItem.Water,
@@ -65,11 +69,17 @@ namespace ShatteredSail.Presentation
             return date.ToString("yyyy-MM", CultureInfo.InvariantCulture);
         }
 
+        public static string MonthLabel(DateTime date)
+        {
+            return date.Year.ToString(CultureInfo.InvariantCulture) + date.ToString("-MM", CultureInfo.InvariantCulture);
+        }
+
         public static string NextRefreshLabel(DateTime date)
         {
-            if (date.Year == 9999 && date.Month == 12) return "已达历法上限";
-            return new DateTime(date.Year, date.Month, 1).AddMonths(1)
-                .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            DateTime nextMonth = date.Year == 9999 && date.Month == 12
+                ? new DateTime(1, 1, 1)
+                : new DateTime(date.Year, date.Month, 1).AddMonths(1);
+            return CoreVoyageSession.FormatGameDate(nextMonth);
         }
 
         public static string CanonicalPortName(string portName)
@@ -183,8 +193,15 @@ namespace ShatteredSail.Presentation
 
         public static decimal BuyUnitPrice(string portName, PortMarketItem item, DateTime date)
         {
+            return BuyUnitPrice(portName, item, date, 0);
+        }
+
+        /// <summary>Returns the current market unit price after the profile fame discount.</summary>
+        public static decimal BuyUnitPrice(string portName, PortMarketItem item, DateTime date, int fame)
+        {
             PortMarketDayState day = DayState(portName, item, date);
             decimal raw = BaseBuyPrice(item) * CorePortEconomy.LocalPriceMultiplier(portName, Key(item)) * day.BuyMultiplier;
+            raw *= FamePurchaseDiscountMultiplier(fame);
             return decimal.Round(raw, 4);
         }
 
@@ -197,8 +214,25 @@ namespace ShatteredSail.Presentation
 
         public static decimal CalculateBuyCost(string portName, PortMarketItem item, DateTime date, int quantity)
         {
+            return CalculateBuyCost(portName, item, date, quantity, 0);
+        }
+
+        /// <summary>Calculates a lot cost using the profile fame discount.</summary>
+        public static decimal CalculateBuyCost(string portName, PortMarketItem item, DateTime date, int quantity, int fame)
+        {
             if (quantity <= 0) return 0;
-            return BuyUnitPrice(portName, item, date) * quantity;
+            return BuyUnitPrice(portName, item, date, fame) * quantity;
+        }
+
+        public static int FamePurchaseDiscountPercent(int fame)
+        {
+            if (fame <= 0) return 0;
+            return Math.Min(MaximumFamePurchaseDiscountPercent, fame / FamePerPurchaseDiscountPercent);
+        }
+
+        public static decimal FamePurchaseDiscountMultiplier(int fame)
+        {
+            return 1m - FamePurchaseDiscountPercent(fame) / 100m;
         }
 
         public static decimal CalculateSellRevenue(string portName, PortMarketItem item, DateTime date, int quantity)

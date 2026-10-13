@@ -12,7 +12,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
-        public IEnumerator ChartSeed_UnlocksAfterRealRecruitment_AndOnboardIncidentsNeverBecomeMarkers()
+        public IEnumerator ChartSeed_EntryUnlocksAfterRecruitmentButNavigationKeepsItHidden_AndOnboardIncidentsNeverBecomeMarkers()
         {
             const string internalSeed = "CHART-DISCLOSURE-FLOW";
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
@@ -20,10 +20,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             yield return null;
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            Assert.That(controller.Session.CanDrawSeaChart, Is.False);
             controller.Session.SetSeed(internalSeed);
             ActiveButton("Port Hotspot Voyage").onClick.Invoke();
             yield return null;
+            Assert.That(controller.Session.CanDrawSeaChart, Is.False,
+                "The departure panel must apply the actual selected crew before deciding whether to expose chart entry.");
             Assert.That(GameObject.Find("Seed Input"), Is.Null);
             NavalBattleVisualCapture.Capture(controller, "30_Chart_Seed_Locked_Departure.png",
                 "没有随船航海士时不提前公开种子，仍可正常出航", "Voyage Setup");
@@ -43,7 +44,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Event Node " + leak.Id), Is.Null);
             Assert.That(GameObject.Find("Event Label " + leak.Id), Is.Null);
             Assert.That(GameObject.Find("Event Icon " + leak.Id), Is.Null);
-            Assert.That(GameObject.Find("Map Seed").GetComponent<Text>().text, Does.Contain("尚未绘制"));
+            Assert.That(GameObject.Find("Map Seed"), Is.Null);
             string hash = controller.Session.Map.Hash.ToString("X8");
             foreach (Text visibleText in controller.GetComponentsInChildren<Text>())
             {
@@ -75,10 +76,14 @@ namespace ShatteredSail.Presentation.Tests
             ActiveButton("Start Voyage").onClick.Invoke();
             yield return null;
             Assert.That(controller.Session.Map.Seed, Is.EqualTo(seed));
-            Assert.That(GameObject.Find("Map Seed").GetComponent<Text>().text, Does.Contain(controller.Session.Map.Seed));
-            Assert.That(GameObject.Find("Map Seed").GetComponent<Text>().text, Does.Contain(controller.Session.Map.Hash.ToString("X8")));
-            NavalBattleVisualCapture.Capture(controller, "32_Chart_Seed_Revealed_Navigation.png",
-                "真实招募随船航海士后才公开种子与海图识别码", "Navigation Chart");
+            Assert.That(GameObject.Find("Map Seed"), Is.Null);
+            foreach (Text visibleText in controller.GetComponentsInChildren<Text>())
+            {
+                Assert.That(visibleText.text, Does.Not.Contain(seed), visibleText.name);
+                Assert.That(visibleText.text, Does.Not.Contain(controller.Session.Map.Hash.ToString("X8")), visibleText.name);
+            }
+            NavalBattleVisualCapture.Capture(controller, "32_Chart_Seed_Hidden_With_Navigator.png",
+                "随船航海士允许输入海图种子，航海界面仍不显示种子与识别码", "Navigation Chart");
         }
     }
 }

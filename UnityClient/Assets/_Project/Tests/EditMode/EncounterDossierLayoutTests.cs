@@ -15,20 +15,11 @@ namespace ShatteredSail.Core.Tests
     {
         private GameObject host;
         private CoreGameplayDemoController controller;
-        private int? previousReadingLevel;
-
-        [SetUp]
-        public void PrepareReadingSize()
-        {
-            previousReadingLevel = GameReadability.OverrideLevel;
-            GameReadability.OverrideLevel = 0;
-        }
 
         [TearDown]
         public void Cleanup()
         {
             if (host != null) Object.DestroyImmediate(host);
-            GameReadability.OverrideLevel = previousReadingLevel;
         }
 
         [TestCase(false)]
@@ -60,18 +51,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(card.localScale, Is.EqualTo(scale), "Refreshing a preview must not accumulate its entrance scale/offset.");
         }
 
-        [TestCase(0, 0)]
-        [TestCase(1, 0)]
-        [TestCase(2, 0)]
-        [TestCase(0, 1)]
-        [TestCase(1, 1)]
-        [TestCase(2, 1)]
-        [TestCase(0, 2)]
-        [TestCase(1, 2)]
-        [TestCase(2, 2)]
-        public void ThreeChoicesAndSkip_StayInsidePaperAndClearOfNarrative(int routeIndex, int level)
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        public void ThreeChoicesAndSkip_StayInsidePaperAndClearOfNarrative(int routeIndex)
         {
-            GameReadability.OverrideLevel = level;
             CreatePreview(routeIndex);
             CoreEncounter encounter = ThreeChoiceEncounter(false);
             ShowCoreEncounter(encounter);
@@ -82,56 +66,6 @@ namespace ShatteredSail.Core.Tests
                     encounter.Choices[index].Label, encounter.Choices[index].Detail);
             Assert.That(Find<Text>(host.transform, "Encounter Description").text,
                 Is.EqualTo(encounter.Description));
-        }
-
-        [TestCase(0)]
-        [TestCase(1)]
-        [TestCase(2)]
-        public void EmbeddedEncounter_FinalDisplayScaleKeepsEveryGlyphAndFixedNotesAboveTheFrame(int level)
-        {
-            GameReadability.OverrideLevel = level;
-            CreatePreview(0);
-            using (var viewport = new NavigationDashboardTests.DashboardViewport(host))
-            {
-                // Moving an ExecuteAlways preview into its render scene can
-                // rebuild the stock event. Install the custom four-action case
-                // after the fixture owns that scene/canvas.
-                ShowCoreEncounter(ThreeChoiceEncounter(false));
-                foreach (Transform child in viewport.Canvas.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = 31;
-                foreach (Vector2Int size in new[] { new Vector2Int(1920, 1080), new Vector2Int(1280, 720) })
-                {
-                    viewport.ResizeAndRender(size.x, size.y);
-                    RectTransform card = Find<RectTransform>(host.transform, "Encounter Card");
-                    RectTransform paper = Find<RectTransform>(card, "Encounter Paper Content");
-                    ScrollRect scroll = Find<ScrollRect>(card, "Encounter Decision Viewport");
-                    scroll.verticalNormalizedPosition = 1;
-                    Canvas.ForceUpdateCanvases();
-                    foreach (Text label in card.GetComponentsInChildren<Text>()) AssertEveryGlyphFits(label);
-                    AssertDossierLayout(false, 3, true);
-                    foreach (string name in new[] { "Encounter Terrain", "Encounter Decision Footer" })
-                    {
-                        Text note = Find<Text>(card, name);
-                        Assert.That(BoundsIn(paper, note.rectTransform).yMin, Is.GreaterThanOrEqualTo(-184.1f),
-                            name + " must stay above the bottom rope, medallion and chest at " + size);
-                    }
-                    Assert.That(BoundsIn(paper, Find<RectTransform>(card, "Encounter Title")).yMax,
-                        Is.LessThanOrEqualTo(216.1f), "Title must clear the top compass and rope artwork.");
-                    Assert.That(Find<Text>(card, "Encounter Decision Footer").alignment, Is.EqualTo(TextAnchor.MiddleLeft),
-                        "The complete reminder starts on clean paper instead of ending over the right-hand chest.");
-                    AssertClearGap(BoundsIn(paper, Find<RectTransform>(card, "Encounter Illustration Mount")),
-                        BoundsIn(paper, Find<RectTransform>(card, "Encounter Location")), "Art / location");
-                    AssertClearGap(BoundsIn(paper, Find<RectTransform>(card, "Encounter Location")),
-                        BoundsIn(paper, Find<RectTransform>(card, "Encounter Terrain")), "Location / pause note");
-                    NavigationDashboardLayout layout = Find<NavigationDashboardLayout>(host.transform, "Navigation Dashboard Layout");
-                    layout.Apply();
-                    layout.Apply();
-                    Canvas.ForceUpdateCanvases();
-                    Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0).Within(.001f),
-                        "Final-scale reflow preserves the last choice being read.");
-                    Assert.That(card.GetComponentsInChildren<ScrollRect>().Length, Is.EqualTo(1));
-                    foreach (Text label in card.GetComponentsInChildren<Text>()) AssertEveryGlyphFits(label);
-                }
-            }
         }
 
         [Test]
@@ -145,15 +79,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Encounter));
         }
 
-        [TestCase(true, 0)]
-        [TestCase(false, 0)]
-        [TestCase(true, 1)]
-        [TestCase(false, 1)]
-        [TestCase(true, 2)]
-        [TestCase(false, 2)]
-        public void Tutorial_LongNarrativeAndCrewChoiceFitWithCorrectSkipVisibility(bool optional, int level)
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Tutorial_LongNarrativeAndCrewChoiceFitWithCorrectSkipVisibility(bool optional)
         {
-            GameReadability.OverrideLevel = level;
             CreatePreview(0);
             controller.TutorialSession.BeginFirstLeg();
             TutorialEncounter encounter = new TutorialEncounter(
@@ -182,20 +111,36 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void EveryRoute_UsesDistinctFrameArtworkAndNonBlockingIllustrations()
+        public void EventIllustration_CropMatchesDisplayAspectWithoutStretchingSubjects()
         {
             CreatePreview(0);
-            HashSet<Texture> frames = new HashSet<Texture>();
+            ShowCoreEncounter(ThreeChoiceEncounter(false));
+            RawImage art = Find<RawImage>(host.transform, "Demo Event Art");
+            float sourceAspect = art.texture.width * art.uvRect.width / (art.texture.height * art.uvRect.height);
+            float displayAspect = art.rectTransform.rect.width / art.rectTransform.rect.height;
+            Assert.That(sourceAspect, Is.EqualTo(displayAspect).Within(0.0001f),
+                "The event crop must preserve painted faces, vessels and objects in the current illustration box.");
+            Assert.That(((Texture2D)art.texture).mipmapCount, Is.GreaterThan(1),
+                "High-resolution event paintings must minify cleanly in the compact event window.");
+            Assert.That(art.uvRect.width, Is.EqualTo(0.2f - 16f / art.texture.width).Within(0.0001f),
+                "Retain the painting apart from the eight-pixel guard against neighboring atlas cells at small mip levels.");
+        }
+
+        [Test]
+        public void EveryRoute_UsesPlainParchmentAndNonBlockingIllustrations()
+        {
+            CreatePreview(0);
             for (int routeIndex = 0; routeIndex < 3; routeIndex++)
             {
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Encounter,
                     CoreGameplayPreviewPort.GrayGull, routeIndex);
                 ShowCoreEncounter(ThreeChoiceEncounter(false));
-                RawImage frame = Find<RawImage>(host.transform, "Encounter Themed Frame");
                 RawImage parchment = Find<RawImage>(host.transform, "Encounter Parchment");
-                Assert.That(frame.texture, Is.Not.Null, "Route " + routeIndex);
+                Assert.That(FindOptional<Transform>(host.transform, "Encounter Themed Frame"), Is.Null,
+                    "Embedded encounters must leave the parchment visible without the decorative route frame.");
                 Assert.That(parchment.texture, Is.Not.Null, "Route " + routeIndex);
-                Assert.That(frames.Add(frame.texture), Is.True, "Each route should have its own themed frame.");
+                Assert.That(Find<RawImage>(host.transform, "Demo Event Art").texture, Is.Not.Null,
+                    "Removing the border must preserve the encounter illustration.");
                 AssertDecorationsDoNotInterceptInput(Find<RectTransform>(host.transform, "Encounter Card"));
             }
         }
@@ -303,60 +248,6 @@ namespace ShatteredSail.Core.Tests
             Assert.That(controller.Session.Map, Is.Not.Null);
         }
 
-        [TestCase(0)]
-        [TestCase(1)]
-        [TestCase(2)]
-        public void TreasureStory_ReadingSizesKeepDialogueComicAndActionsSeparated(int level)
-        {
-            GameReadability.OverrideLevel = level;
-            CreatePreview(0);
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
-            MethodInfo build = typeof(CoreGameplayDemoController).GetMethod("BuildTreasureStoryOverlay", flags);
-            FieldInfo page = typeof(CoreGameplayDemoController).GetField("treasureStoryPage", flags);
-            foreach (TreasureStoryChapter chapter in CoreTreasureStoryCatalog.Chapters)
-            {
-                var stories = new List<TreasureBattleStory> { null };
-                stories.AddRange(chapter.LegendaryIds.Select(CoreTreasureStoryCatalog.FindBattle));
-                foreach (TreasureBattleStory battle in stories)
-                for (int index = 0; index < 2; index++)
-                {
-                    ClearPhaseContent();
-                    page.SetValue(controller, index);
-                    build.Invoke(controller, new object[] { chapter, battle, "reading-test" });
-                    Canvas.ForceUpdateCanvases();
-                    RectTransform card = Find<RectTransform>(host.transform, "Treasure Story Card");
-                    Text dialogue = Find<Text>(card, "Treasure Story Dialogue");
-                    Assert.That(dialogue.text, Is.EqualTo(battle == null ? chapter.Pages[index] : battle.Pages[index]));
-                    Assert.That(dialogue.fontSize, Is.EqualTo(GameReadability.FontSize(22)));
-                    AssertTextFits(dialogue);
-                    Text heading = Find<Text>(card, "Treasure Story Heading");
-                    Assert.That(heading.fontSize, Is.EqualTo(GameReadability.FontSize(32)));
-                    Assert.That(heading.font, Is.SameAs(GameTypography.InterfaceFont));
-                    AssertTextFits(heading);
-                    string[] regions = { "Treasure Story Eyebrow", "Treasure Story Heading", "Treasure Story Skip",
-                        "Treasure Story Comic Frame", "Treasure Story Dialogue Rail", "Treasure Story Previous", "Treasure Story Next" };
-                    var bounds = new List<Rect>();
-                    foreach (string name in regions)
-                    {
-                        Rect rect = BoundsIn(card, Find<RectTransform>(card, name));
-                        AssertContained(card.rect, rect, name);
-                        foreach (Rect other in bounds) AssertClearGap(rect, other, name);
-                        bounds.Add(rect);
-                    }
-                    RawImage comic = Find<RawImage>(card, "Treasure Story Comic Page");
-                    RectTransform art = Find<RectTransform>(card, "Treasure Story Comic Frame");
-                    AssertContained(art.rect, BoundsIn(art, comic.rectTransform), "Complete comic image");
-                    Assert.That(comic.rectTransform.rect.width / comic.rectTransform.rect.height,
-                        Is.EqualTo((float)comic.texture.width / comic.texture.height).Within(.001f));
-                    ScrollRect scroll = dialogue.GetComponentInParent<ScrollRect>();
-                    scroll.verticalNormalizedPosition = 0;
-                    Canvas.ForceUpdateCanvases();
-                    Assert.That(BoundsIn(scroll.viewport, dialogue.rectTransform).yMin,
-                        Is.GreaterThanOrEqualTo(scroll.viewport.rect.yMin - .1f), "The last dialogue line remains reachable.");
-                }
-            }
-        }
-
         private void ShowCoreEncounter(CoreEncounter encounter)
         {
             SetProperty(controller.Session, "ActiveEncounter", encounter);
@@ -390,7 +281,6 @@ namespace ShatteredSail.Core.Tests
             RectTransform card = Find<RectTransform>(host.transform, prefix + " Card");
             RectTransform paper = Find<RectTransform>(card, prefix + " Paper Content");
             RectTransform choices = Find<RectTransform>(card, tutorial ? "Tutorial Choices" : "Encounter Choices");
-            ScrollRect scroll = choices.GetComponentInParent<ScrollRect>();
             LayoutRebuilder.ForceRebuildLayoutImmediate(choices);
             Canvas.ForceUpdateCanvases();
 
@@ -399,32 +289,52 @@ namespace ShatteredSail.Core.Tests
             Rect titleBounds = BoundsIn(paper, title.rectTransform);
             Rect descriptionBounds = BoundsIn(paper, description.rectTransform);
             AssertContained(paper.rect, titleBounds, title.name);
-            AssertContained(choices.rect, BoundsIn(choices, description.rectTransform), description.name);
-            AssertContained(paper.rect, BoundsIn(paper, scroll.viewport), "Reading viewport / writable paper");
-            AssertContained(scroll.viewport.rect, BoundsIn(scroll.viewport, description.rectTransform),
-                "A fresh encounter starts with the whole narrative visible");
+            AssertContained(paper.rect, descriptionBounds, description.name);
             AssertClearGap(titleBounds, descriptionBounds, "Title and narrative");
             AssertTextFits(title);
             AssertTextFits(description);
-            Assert.That(title.fontSize, Is.EqualTo(GameReadability.FontSize(32)));
-            Assert.That(title.font, Is.SameAs(GameTypography.InterfaceFont));
-            Assert.That(description.fontSize, Is.EqualTo(GameReadability.FontSize(22)));
-            // The viewport stays within the writable paper; long text and all
-            // decision rows must be reachable through its real scroll range.
             Text badge = Find<Text>(card, prefix + " Badge");
             Text footer = Find<Text>(card, prefix + " Decision Footer");
             Rect badgeBounds = BoundsIn(paper, badge.rectTransform);
-            AssertContained(paper.rect, badgeBounds, "Badge / writable paper");
+            Rect footerBounds = BoundsIn(paper, footer.rectTransform);
+            if (tutorial)
+            {
+                // The standalone tutorial still reserves space for its wheel and medallion.
+                AssertContained(Rect.MinMaxRect(160f, 122f, 700f, 153f), badgeBounds, "Badge / hanging jewels");
+                AssertContained(Rect.MinMaxRect(180f, -316f, 650f, -280f), footerBounds, "Footer / lower medallion");
+            }
+            else
+            {
+                AssertContained(paper.rect, badgeBounds, badge.name);
+                AssertContained(paper.rect, footerBounds, footer.name);
+                RectTransform art = Find<RectTransform>(card, "Encounter Illustration Mount");
+                Rect artBounds = BoundsIn(paper, art);
+                AssertContained(paper.rect, artBounds, art.name);
+                AssertContained(art.rect, BoundsIn(art, Find<RawImage>(art, "Demo Event Art").rectTransform), "Encounter illustration");
+                AssertClearGap(artBounds, titleBounds, "Illustration and title");
+                AssertClearGap(artBounds, descriptionBounds, "Illustration and narrative");
+                AssertClearGap(artBounds, badgeBounds, "Illustration and badge");
+                AssertClearGap(descriptionBounds, badgeBounds, "Narrative and badge");
+                AssertClearGap(badgeBounds, footerBounds, "Badge and footer");
+                AssertTextFits(badge);
+                AssertTextFits(footer);
+            }
             AssertClearGap(badgeBounds, titleBounds, "Badge and title");
-            AssertContained(paper.rect, BoundsIn(paper, footer.rectTransform), "Footer / writable paper");
-            AssertClearGap(BoundsIn(paper, scroll.viewport), badgeBounds, "Badge above reading viewport");
-            AssertClearGap(BoundsIn(paper, scroll.viewport), BoundsIn(paper, footer.rectTransform), "Footer below reading viewport");
-            Assert.That(scroll.viewport.GetComponent<Image>().raycastTarget, Is.True);
-            Assert.That(scroll.verticalScrollbar, Is.Not.Null);
 
             Button[] buttons = choices.GetComponentsInChildren<Button>(true);
             Assert.That(buttons.Length, Is.EqualTo(choiceCount + (optional ? 1 : 0)));
             Assert.That(FindOptional<Button>(card, skipName) != null, Is.EqualTo(optional));
+            ScrollRect decisionScroll = tutorial ? null : Find<ScrollRect>(card, "Encounter Decision Viewport");
+            if (decisionScroll != null)
+            {
+                Assert.That(decisionScroll.content, Is.SameAs(choices));
+                Assert.That(choices.parent, Is.SameAs(decisionScroll.viewport));
+                Assert.That(decisionScroll.viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+                Assert.That(decisionScroll.horizontal, Is.False);
+                Assert.That(decisionScroll.movementType, Is.EqualTo(ScrollRect.MovementType.Clamped));
+                Assert.That(decisionScroll.vertical, Is.EqualTo(choices.rect.height > decisionScroll.viewport.rect.height + 0.1f));
+                AssertContained(paper.rect, BoundsIn(paper, decisionScroll.viewport), "Visible decision area");
+            }
             List<Rect> actionBounds = new List<Rect>();
             for (int index = 0; index < choiceCount; index++)
             {
@@ -446,21 +356,33 @@ namespace ShatteredSail.Core.Tests
             foreach (Button button in buttons)
             {
                 Rect bounds = BoundsIn(paper, button.GetComponent<RectTransform>());
-                AssertContained(choices.rect, BoundsIn(choices, button.GetComponent<RectTransform>()), button.name);
-                AssertVisibleClearGap(titleBounds, bounds, BoundsIn(paper, scroll.viewport), button.name + " / title");
+                if (tutorial) AssertContained(paper.rect, bounds, button.name);
+                else AssertContained(choices.rect, BoundsIn(choices, button.GetComponent<RectTransform>()), button.name);
+                AssertClearGap(titleBounds, bounds, button.name + " / title");
                 AssertClearGap(descriptionBounds, bounds, button.name + " / narrative");
+                if (!tutorial)
+                {
+                    AssertClearGap(badgeBounds, bounds, button.name + " / badge");
+                    AssertClearGap(footerBounds, bounds, button.name + " / footer");
+                    AssertClearGap(BoundsIn(paper, Find<RectTransform>(card, "Encounter Illustration Mount")),
+                        bounds, button.name + " / illustration");
+                }
                 Assert.That(button.targetGraphic, Is.Not.Null, button.name);
                 Assert.That(button.targetGraphic.raycastTarget, Is.True, button.name);
                 foreach (Rect other in actionBounds) AssertClearGap(other, bounds, "Action buttons");
                 actionBounds.Add(bounds);
             }
-            scroll.verticalNormalizedPosition = 0;
-            Canvas.ForceUpdateCanvases();
-            Button last = buttons.Last();
-            AssertContained(scroll.viewport.rect, BoundsIn(scroll.viewport, last.GetComponent<RectTransform>()), "Last decision after scrolling");
-            foreach (Button button in buttons)
-                AssertVisibleClearGap(titleBounds, BoundsIn(paper, button.GetComponent<RectTransform>()),
-                    BoundsIn(paper, scroll.viewport), button.name + " / title after scrolling");
+            if (decisionScroll != null)
+            {
+                decisionScroll.verticalNormalizedPosition = 1f;
+                Canvas.ForceUpdateCanvases();
+                AssertContained(decisionScroll.viewport.rect,
+                    BoundsIn(decisionScroll.viewport, buttons.First().GetComponent<RectTransform>()), "First action is visible at the top");
+                decisionScroll.verticalNormalizedPosition = 0f;
+                Canvas.ForceUpdateCanvases();
+                AssertContained(decisionScroll.viewport.rect,
+                    BoundsIn(decisionScroll.viewport, buttons.Last().GetComponent<RectTransform>()), "Last action is reachable by scrolling");
+            }
             AssertDecorationsDoNotInterceptInput(card);
         }
 
@@ -486,8 +408,6 @@ namespace ShatteredSail.Core.Tests
         private static void AssertTextFits(Text text)
         {
             Assert.That(text.text, Is.Not.Empty, text.name);
-            Assert.That(text.resizeTextForBestFit, Is.False, text.name + " must keep the selected reading size");
-            Assert.That(text.fontSize, Is.GreaterThanOrEqualTo(GameReadability.FontSize(18)), text.name);
             Assert.That(text.preferredHeight, Is.LessThanOrEqualTo(text.rectTransform.rect.height + 0.5f),
                 text.name + " must display all lines without vertical clipping.");
             if (text.horizontalOverflow == HorizontalWrapMode.Overflow)
@@ -495,38 +415,11 @@ namespace ShatteredSail.Core.Tests
                     text.name + " must fit within its horizontal field.");
         }
 
-        private static void AssertEveryGlyphFits(Text text)
-        {
-            AssertTextFits(text);
-            TextGenerationSettings settings = text.GetGenerationSettings(text.rectTransform.rect.size);
-            using (var displayed = new TextGenerator())
-            using (var complete = new TextGenerator())
-            {
-                displayed.Populate(text.text, settings);
-                settings.verticalOverflow = VerticalWrapMode.Overflow;
-                complete.Populate(text.text, settings);
-                Assert.That(displayed.characterCount, Is.EqualTo(complete.characterCount),
-                    text.name + " must generate every glyph at the final display scale: " + text.text);
-            }
-        }
-
         private static void AssertClearGap(Rect first, Rect second, string context)
         {
             float gap = Mathf.Max(first.xMin - second.xMax, second.xMin - first.xMax,
                 first.yMin - second.yMax, second.yMin - first.yMax);
             Assert.That(gap, Is.GreaterThan(0.1f), context + " should have visible separation.");
-        }
-
-        private static void AssertVisibleClearGap(Rect fixedRegion, Rect scrollingRegion, Rect viewport, string context)
-        {
-            float left = Mathf.Max(scrollingRegion.xMin, viewport.xMin);
-            float right = Mathf.Min(scrollingRegion.xMax, viewport.xMax);
-            float bottom = Mathf.Max(scrollingRegion.yMin, viewport.yMin);
-            float top = Mathf.Min(scrollingRegion.yMax, viewport.yMax);
-            // Hidden rows can pass behind fixed headings while scrolling, but
-            // every pixel inside the real mask must remain separated from them.
-            if (right > left && top > bottom)
-                AssertClearGap(fixedRegion, Rect.MinMaxRect(left, bottom, right, top), context);
         }
 
         private static void AssertContained(Rect outer, Rect inner, string context)

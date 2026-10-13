@@ -34,7 +34,10 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
                 RectTransform marker = GameObject.Find("Player Ship").GetComponent<RectTransform>();
                 Assert.That(marker.sizeDelta, Is.EqualTo(new Vector2(98f, 64f)), "Vessel selection must not enlarge its map hit footprint.");
-                Assert.That(GameObject.Find("Ship Label").GetComponent<Text>().text, Is.EqualTo(CoreVoyageSession.Ships[ship].Name));
+                Assert.That(GameObject.Find("Ship Label"), Is.Null);
+                Assert.That(GameObject.Find("Departure Label"), Is.Null);
+                Assert.That(GameObject.Find("Destination Label"), Is.Null);
+                Assert.That(GameObject.Find("Course Target Label"), Is.Null);
                 foreach (RawImage layer in marker.GetComponentsInChildren<RawImage>())
                     Assert.That(layer.raycastTarget, Is.False, "Ship artwork must not intercept free-course clicks.");
 

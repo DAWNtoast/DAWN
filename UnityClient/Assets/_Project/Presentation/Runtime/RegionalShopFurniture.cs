@@ -31,10 +31,18 @@ namespace ShatteredSail.Presentation
 #endif
         }
 
-        private static void ReleaseGeneratedResources()
+        public static void ReleaseGeneratedResources()
         {
-            foreach (var value in Cache.Values)
+            ReleaseUnusedGeneratedResources(null);
+        }
+
+        public static void ReleaseUnusedGeneratedResources(string retainedPort)
+        {
+            var released = new List<string>();
+            foreach (var pair in Cache)
             {
+                if (pair.Key == retainedPort) continue;
+                var value = pair.Value;
                 if (Application.isPlaying)
                 {
                     UnityEngine.Object.Destroy(value.Material);
@@ -45,8 +53,9 @@ namespace ShatteredSail.Presentation
                     UnityEngine.Object.DestroyImmediate(value.Material);
                     UnityEngine.Object.DestroyImmediate(value.Coverage);
                 }
+                released.Add(pair.Key);
             }
-            Cache.Clear();
+            foreach (string port in released) Cache.Remove(port);
         }
         public static readonly string[] Ports = { "灰鸥港", "白贝港", "铜钟港", "盐冠港", "暮潮港", "断锚港" };
         private static readonly string[] Slugs = { "gray_gull", "white_shell", "bronze_bell", "salt_crown", "twilight_tide", "broken_anchor" };

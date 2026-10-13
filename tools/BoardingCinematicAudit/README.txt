@@ -1,5 +1,7 @@
 Temporary boarding cinematic capture and scoped preview synchronization
 
+2026-10-13: UIPreviewsForMe is retired. SyncBoardingCinematicFromCommandLine is disabled before any writes. The scoped-sync details below describe historical evidence only; do not regenerate or copy those scene files back. Production UI capture remains available.
+
 Do not run in the main UnityClient project. Root coordinates Unity execution.
 Import BoardingCinematicAuditCapture.cs and BoardingCinematicPreviewSync.cs into
 the isolated project's Assets/_Project/Editor directory. The updated permanent
@@ -39,7 +41,7 @@ and the real segmented-health component's maximum. report.json includes raw
 geometry and errors; any failed frame makes the command fail. Text geometry flags
 are evidence for visual review, not a claim of occlusion-aware accessibility.
 
-Scoped sync entry:
+Historical scoped sync entry (disabled):
   -executeMethod ShatteredSail.Editor.GameplayPreviewSceneBuilder.SyncBoardingCinematicFromCommandLine
   -boardingSyncProject ABSOLUTE_ISOLATED_PROJECT_DIRECTORY
   -boardingSyncReport NEW_ABSOLUTE_JSON_PATH
@@ -56,8 +58,7 @@ normalized while GlobalObjectIds and asset paths are checked separately. Scene
 meta hashes must not change. Original scene+meta backups and before/after SHA256
 are recorded. changedEditableAssets lists all newly created/modified/deleted
 EditablePreviewAssets files including meta; referencedEditableAssetsAndMeta lists
-the complete relevant dependency set. Root must inspect and copy required new
-assets+meta together with the three scene files; do not copy only scenes.
+the complete relevant dependency set. Those historical scene/dependency copies must no longer be applied to UIPreviewsForMe.
 
 Regenerate the capture source with create-capture.ps1 after changing the fixture
 include. .cs.inc is generator input, not a Unity source file; only copy the two .cs

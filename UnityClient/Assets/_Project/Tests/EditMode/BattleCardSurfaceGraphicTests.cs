@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
@@ -22,12 +23,12 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void FiveCardTypes_HaveDifferentMaterialsAndDistinctOpaquePalettes()
+        public void SixCardTypes_HaveDifferentMaterialsAndDistinctOpaquePalettes()
         {
             var materials = new HashSet<BattleCardSurfaceMaterial>();
             var surfaces = new HashSet<Color>();
             var parchments = new HashSet<Color>();
-            foreach (string type in new[] { "炮击", "机动", "登船", "维修", "防御" })
+            foreach (string type in new[] { "炮击", "机动", "登船", "维修", "防御", "策略" })
             {
                 BattleCardPalette palette = BattleCardStylePalette.ForType(type);
                 materials.Add(palette.Material);
@@ -39,9 +40,9 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(palette.Ink.grayscale, Is.LessThan(0.23f), type + " needs legible dark ink.");
                 Assert.That(palette.Surface.grayscale, Is.GreaterThan(0.24f), type + " must not return to a black backing.");
             }
-            Assert.That(materials.Count, Is.EqualTo(5));
-            Assert.That(surfaces.Count, Is.EqualTo(5));
-            Assert.That(parchments.Count, Is.EqualTo(5));
+            Assert.That(materials.Count, Is.EqualTo(6));
+            Assert.That(surfaces.Count, Is.EqualTo(6));
+            Assert.That(parchments.Count, Is.EqualTo(6));
         }
 
         [TestCase(null)]
@@ -57,6 +58,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("登船")]
         [TestCase("维修")]
         [TestCase("防御")]
+        [TestCase("策略")]
         public void AllDecorativeGeometry_IsOpaqueBoundedAndDoesNotInterceptPointer(string type)
         {
             BattleCardSurfaceGraphic graphic = CreateSurface(type, true, new Vector2(202f, 296f));
@@ -125,16 +127,18 @@ namespace ShatteredSail.Core.Tests
             Assert.That(button.colors.normalColor, Is.EqualTo(Color.white));
             Assert.That(button.colors.highlightedColor, Is.EqualTo(Color.white));
             Assert.That(button.colors.disabledColor.grayscale, Is.GreaterThan(0.7f));
-            Assert.That(button.GetComponent<Image>().color, Is.EqualTo(BattleCardStylePalette.ForType("登船").Surface),
-                "The explicit type must win even when a boarding card provides block, not damage.");
+            Assert.That(button.GetComponent<Image>().color.a, Is.Zero,
+                "The complete wooden frame PNG owns the visible backing of an ordinary card.");
+            Assert.That(host.GetComponentInChildren<CardSchoolFrameGraphic>().SchoolId, Is.EqualTo("neutral"));
             Assert.That(host.transform.GetChild(0).GetComponent<BattleCardSurfaceGraphic>(), Is.Not.Null);
-            Transform labelLayer = label.transform;
-            while (labelLayer.parent != host.transform) labelLayer = labelLayer.parent;
-            Assert.That(labelLayer.GetSiblingIndex(), Is.GreaterThan(0),
-                "The scrolling label viewport must render above the decorative surface.");
+            Assert.That(label.transform.GetSiblingIndex(), Is.GreaterThan(0));
             Assert.That(illustration.transform.GetSiblingIndex(), Is.GreaterThan(0));
-            Assert.That(label.color, Is.EqualTo(BattleCardStylePalette.ForType("登船").Ink));
-            StringAssert.Contains("登船", label.text);
+            Assert.That(label.color, Is.EqualTo(CardSchoolArtCatalog.Palette(card.SchoolId).Ink));
+            Assert.That(label.text, Is.EqualTo("获得3点格挡"));
+            Assert.That(host.GetComponentsInChildren<Text>(true).Single(item => item.name == "Card Name 0").text,
+                Is.EqualTo("船首战旗"));
+            Assert.That(host.GetComponentsInChildren<Text>(true).Any(item => item.name == "Card Type 0"), Is.False);
+            Assert.That(host.transform.Find("Card Type Plate 0"), Is.Null);
             StringAssert.DoesNotContain("#D6AA48", label.text);
         }
 

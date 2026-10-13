@@ -24,6 +24,7 @@ namespace ShatteredSail.Presentation.Tests
         private GameObject eventObject;
         private EventSystem previousEvents;
         private EventSystem[] suspendedEvents;
+        private GraphicRaycaster[] suspendedRaycasters;
         private GameObject previousSelection;
         private CoreGameplayDemoController controller;
         private CoreVoyageSession session;
@@ -35,6 +36,7 @@ namespace ShatteredSail.Presentation.Tests
         private string scopeBefore;
         private bool decimalGoldExisted;
         private string decimalGoldBefore;
+        private StringPreference treasurePreference;
         private ComponentArtCatalog componentArt;
         private PortComponentShopStockItem oldOffer;
 
@@ -42,9 +44,16 @@ namespace ShatteredSail.Presentation.Tests
         public void SetUp()
         {
             Assert.That(Application.isPlaying, Is.True);
+            // RaycastAll queries every registered canvas, even when that canvas's
+            // EventSystem is suspended. Isolate pointer tests from prior scenes.
+            suspendedRaycasters = Object.FindObjectsByType<GraphicRaycaster>(FindObjectsSortMode.None)
+                .Where(raycaster => raycaster.enabled).ToArray();
+            foreach (GraphicRaycaster raycaster in suspendedRaycasters) raycaster.enabled = false;
             decimalGoldExisted = PlayerPrefs.HasKey(ProfileGoldPersistence.DecimalKey);
             decimalGoldBefore = PlayerPrefs.GetString(ProfileGoldPersistence.DecimalKey, string.Empty);
             PlayerPrefs.DeleteKey(ProfileGoldPersistence.DecimalKey);
+            treasurePreference = StringPreference.Read(CoreGameplayDemoController.TreasureProgressKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.TreasureProgressKey);
             componentArt = new ComponentArtCatalog();
             oldOffer = PortComponentShopCatalog.BuildStock(componentArt, "灰鸥港", CoreVoyageSession.GameClockOrigin)[0];
             changedInts = new[]
@@ -107,11 +116,15 @@ namespace ShatteredSail.Presentation.Tests
             if (canvasObject != null) Object.Destroy(canvasObject);
             if (eventObject != null) Object.Destroy(eventObject);
             if (host != null) Object.Destroy(host);
+            if (suspendedRaycasters != null)
+                foreach (GraphicRaycaster raycaster in suspendedRaycasters)
+                    if (raycaster != null) raycaster.enabled = true;
             foreach (IntPreference preference in changedInts) preference.Restore();
             if (decimalGoldExisted) PlayerPrefs.SetString(ProfileGoldPersistence.DecimalKey, decimalGoldBefore);
             else PlayerPrefs.DeleteKey(ProfileGoldPersistence.DecimalKey);
             if (scopeExisted) PlayerPrefs.SetString(CoreGameplayDemoController.GameMasterShopScopeKey, scopeBefore);
             else PlayerPrefs.DeleteKey(CoreGameplayDemoController.GameMasterShopScopeKey);
+            treasurePreference.Restore();
             PlayerPrefs.Save();
             yield return null;
             foreach (IntPreference preference in protectedInts) preference.AssertUnchanged();
@@ -128,12 +141,18 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.IsGameMasterOpen, Is.True);
             Assert.That(Read<Toggle>("gameMasterUnlockToggle").isOn, Is.False);
             Assert.That(Read<Button>("gameMasterSetGoldButton").interactable, Is.False);
+            Assert.That(Read<InputField>("gameMasterTreasureFragmentsInput").interactable, Is.False);
+            Assert.That(Read<Button>("gameMasterSetTreasureFragmentsButton").interactable, Is.False);
             Assert.That(Read<Button>("gameMasterRefreshShopButton").interactable, Is.False);
             Assert.That(Read<Button>("gameMasterRefreshMarketButton").interactable, Is.False);
             Read<Button>("gameMasterSetGoldButton").onClick.Invoke();
+            Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
+            Read<Button>("gameMasterSetTreasureFragmentsButton").onClick.Invoke();
             Read<Button>("gameMasterRefreshShopButton").onClick.Invoke();
             Read<Button>("gameMasterRefreshMarketButton").onClick.Invoke();
             Assert.That(session.ProfileGold, Is.EqualTo(1234));
+            Assert.That(session.TreasureFragments, Is.Zero);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TreasureProgressKey), Is.False);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GameMasterShopRefreshKey("灰鸥港")), Is.Zero);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.GameMasterShopScopeKey), Is.False);
             goldBefore.AssertUnchanged();
@@ -171,7 +190,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ProfileGoldPersistence.Load(), Is.Zero);
             input.text = "1000000000";
             set.onClick.Invoke();
+            Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
+            Read<Button>("gameMasterSetTreasureFragmentsButton").onClick.Invoke();
             Assert.That(session.ProfileGold, Is.Zero, "A duplicate callback in the same frame must not perform another command.");
+            Assert.That(session.TreasureFragments, Is.Zero, "Gold and fragment commands must share the same cooldown.");
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TreasureProgressKey), Is.False);
             Assert.That(set.interactable, Is.False);
             yield return new WaitForSecondsRealtime(0.45f);
             set.onClick.Invoke();
@@ -197,6 +220,177 @@ namespace ShatteredSail.Presentation.Tests
             set.onClick.Invoke();
             Assert.That(session.ProfileGold, Is.EqualTo(1234));
             before.AssertUnchanged();
+        }
+
+        [TestCase("")]
+        [TestCase("-1")]
+        [TestCase("+1")]
+        [TestCase("1.0")]
+        [TestCase(" 4")]
+        [TestCase("4 ")]
+        [TestCase("1,000")]
+        [TestCase("2147483648")]
+        [TestCase("99999999999999999999999")]
+        [TestCase("４")]
+        [TestCase("١")]
+        public void InvalidTreasureFragmentInput_RejectsWholeInputWithoutWritingProgress(string value)
+        {
+            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 100, fragments = 7 });
+            string before = JsonUtility.ToJson(session.CaptureTreasureProgress());
+            OpenUnlocked();
+            InputField input = Read<InputField>("gameMasterTreasureFragmentsInput");
+            Assert.That(input.contentType, Is.EqualTo(InputField.ContentType.Standard));
+            Assert.That(input.characterLimit, Is.Zero);
+            input.text = value;
+            Assert.That(input.text, Is.EqualTo(value), "Pasted invalid text must not be silently filtered into a valid amount.");
+            Button set = Read<Button>("gameMasterSetTreasureFragmentsButton");
+            Assert.That(set.interactable, Is.False);
+            set.onClick.Invoke();
+            Assert.That(JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TreasureProgressKey), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator SettingTreasureFragments_SavesZeroAndFourAndPreservesOtherSessionAndSavedFields()
+        {
+            var progress = TreasureProgressFixture();
+            session.RestoreTreasureProgress(progress);
+            session.Cargo.Water = 42;
+            session.Cargo.Gold = 17;
+            string sessionBefore = TreasureProgressWithoutFragments(session.CaptureTreasureProgress());
+            // Persisted progress can differ from an unsaved runtime draft. The GM
+            // command must preserve the existing record rather than save the draft.
+            CoreTreasureProgress saved = TreasureProgressFixture();
+            saved.fragments = 37;
+            saved.identifiedWeatheredFragments = 11;
+            saved.identifiedGildedFragments = 9;
+            saved.identificationSeed = "SAVED-IDENTIFICATION-SEED";
+            saved.identificationSequence = 123;
+            saved.selectedMapId = "saved:held";
+            saved.maps = new[] { new CoreTreasureMapSave { id = "saved:held", seed = "SAVED-HELD", rankId = "gilded" } };
+            saved.gems = 63;
+            PlayerPrefs.SetString(CoreGameplayDemoController.TreasureProgressKey, JsonUtility.ToJson(saved));
+            string persistedBefore = TreasureProgressWithoutFragments(saved);
+            Write("treasureFragmentNotice", "旧的碎片提示");
+
+            OpenUnlocked();
+            yield return null;
+            InputField input = Read<InputField>("gameMasterTreasureFragmentsInput");
+            Button set = Read<Button>("gameMasterSetTreasureFragmentsButton");
+            Button.ButtonClickedEvent callback = set.onClick;
+            Assert.That(input.text, Is.EqualTo("8"));
+            input.text = "0";
+            ClickGameMasterGraphic(set);
+            Assert.That(session.TreasureFragments, Is.Zero);
+            Assert.That(Read<string>("treasureFragmentNotice"), Is.Null.Or.Empty);
+            Assert.That(set.interactable, Is.False);
+            Assert.That(TreasureProgressWithoutFragments(session.CaptureTreasureProgress()), Is.EqualTo(sessionBefore));
+            CoreTreasureProgress loaded = JsonUtility.FromJson<CoreTreasureProgress>(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey));
+            Assert.That(loaded.fragments, Is.Zero);
+            Assert.That(TreasureProgressWithoutFragments(loaded), Is.EqualTo(persistedBefore));
+
+            input.text = "4";
+            callback.Invoke();
+            Read<InputField>("gameMasterGoldInput").text = "99";
+            Read<Button>("gameMasterSetGoldButton").onClick.Invoke();
+            Read<Button>("gameMasterRefreshShopButton").onClick.Invoke();
+            Assert.That(session.TreasureFragments, Is.Zero, "A repeated fragment callback must respect the cooldown.");
+            Assert.That(session.ProfileGold, Is.EqualTo(1234), "Fragments and gold must share the same cooldown.");
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GameMasterShopRefreshKey("灰鸥港")), Is.Zero,
+                "Fragments and shop refresh must share the same cooldown.");
+
+            yield return new WaitForSecondsRealtime(.45f);
+            Invoke("RefreshGameMasterControls");
+            ClickGameMasterGraphic(set);
+            Assert.That(session.TreasureFragments, Is.EqualTo(4));
+            Assert.That(session.Cargo.Water, Is.EqualTo(42));
+            Assert.That(session.Cargo.Gold, Is.EqualTo(17));
+            Assert.That(TreasureProgressWithoutFragments(session.CaptureTreasureProgress()), Is.EqualTo(sessionBefore));
+            loaded = JsonUtility.FromJson<CoreTreasureProgress>(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey));
+            Assert.That(loaded.fragments, Is.EqualTo(4));
+            Assert.That(TreasureProgressWithoutFragments(loaded), Is.EqualTo(persistedBefore));
+            var reloaded = new CoreVoyageSession();
+            reloaded.RestoreProfile(1234, "灰鸥港");
+            reloaded.RestoreTreasureProgress(loaded);
+            Assert.That(reloaded.TreasureFragments, Is.EqualTo(4));
+            Assert.That(reloaded.GetIdentifiedTreasureFragments("weathered"), Is.EqualTo(11));
+            Assert.That(reloaded.GetIdentifiedTreasureFragments("gilded"), Is.EqualTo(9));
+            Assert.That(reloaded.SelectedTreasureMap.Seed, Is.EqualTo("SAVED-HELD"));
+            Assert.That(reloaded.Cargo.Gem, Is.EqualTo(63));
+            Assert.That(reloaded.CaptureTreasureProgress().identificationSequence, Is.EqualTo(123));
+
+            string savedAfter = PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey);
+            Invoke("CloseGameMaster");
+            yield return new WaitForSecondsRealtime(.45f);
+            callback.Invoke();
+            Assert.That(session.TreasureFragments, Is.EqualTo(4), "A closed GM panel cannot run a stored callback.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Is.EqualTo(savedAfter));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [Test]
+        public void SettingTreasureFragments_WithNoSavedRecordCapturesProgressAndEnablesIdentificationAndCrafting()
+        {
+            session.RestoreTreasureProgress(new CoreTreasureProgress {
+                pirateExperience = 100, identificationSeed = "GM-FRAGMENT-INTERACTION", identificationSequence = 14,
+                gems = 9, ancientMaterials = 5,
+            });
+            OpenUnlocked();
+            Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
+            Read<Button>("gameMasterSetTreasureFragmentsButton").onClick.Invoke();
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey),
+                Is.EqualTo(JsonUtility.ToJson(session.CaptureTreasureProgress())));
+            Assert.That(session.TreasureMaps, Is.Empty, "Setting unidentified fragments must not create or select a map.");
+            for (int piece = 0; piece < 4; piece++)
+            {
+                Assert.That(session.TryIdentifyTreasureFragment(out string reason), Is.True, reason);
+                Assert.That(session.TreasureFragments, Is.EqualTo(3 - piece));
+                Assert.That(session.GetIdentifiedTreasureFragments("weathered"), Is.EqualTo(piece + 1));
+            }
+            Assert.That(session.CanIdentifyTreasureFragment(out _), Is.False);
+            Assert.That(session.TryCraftTreasureMapForRank("weathered", "GM-FRAGMENT-CRAFT", out string craftReason), Is.True, craftReason);
+            Assert.That(session.GetIdentifiedTreasureFragments("weathered"), Is.Zero);
+            Assert.That(session.TreasureMaps.Single().Seed, Is.EqualTo("GM-FRAGMENT-CRAFT"));
+            Assert.That(session.SelectedTreasureMap, Is.Null);
+            Assert.That(session.CaptureTreasureProgress().identificationSequence, Is.EqualTo(18));
+            Assert.That(session.Cargo.Gem, Is.EqualTo(9));
+            Assert.That(session.Cargo.AncientMaterial, Is.EqualTo(5));
+        }
+
+        [TestCase("not JSON")]
+        [TestCase("null")]
+        [TestCase("")]
+        public void UnreadableTreasureRecord_RejectsFragmentActionAndPreservesOriginalRecord(string saved)
+        {
+            session.RestoreTreasureProgress(TreasureProgressFixture());
+            string before = JsonUtility.ToJson(session.CaptureTreasureProgress());
+            PlayerPrefs.SetString(CoreGameplayDemoController.TreasureProgressKey, saved);
+            OpenUnlocked();
+            Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
+            Read<Button>("gameMasterSetTreasureFragmentsButton").onClick.Invoke();
+            Assert.That(JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Is.EqualTo(saved));
+            Assert.That(Read<bool>("treasureProgressReadFailed"), Is.True);
+            Assert.That(Read<Button>("gameMasterSetTreasureFragmentsButton").interactable, Is.False);
+            Invoke("SaveTreasureProgress");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Is.EqualTo(saved),
+                "The failed-read guard must continue protecting the original record after the GM action.");
+        }
+
+        [Test]
+        public void ExistingTreasureReadFailure_DisablesAndRejectsFragmentCallback()
+        {
+            session.RestoreTreasureProgress(TreasureProgressFixture());
+            string before = JsonUtility.ToJson(session.CaptureTreasureProgress());
+            PlayerPrefs.SetString(CoreGameplayDemoController.TreasureProgressKey, before);
+            Write("treasureProgressReadFailed", true);
+            OpenUnlocked();
+            Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
+            Button set = Read<Button>("gameMasterSetTreasureFragmentsButton");
+            Assert.That(set.interactable, Is.False);
+            set.onClick.Invoke();
+            Assert.That(JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Is.EqualTo(before));
         }
 
         [UnityTest]
@@ -360,11 +554,15 @@ namespace ShatteredSail.Presentation.Tests
             IntPreference before = IntPreference.Read(CoreGameplayDemoController.ProfileGoldKey);
             OpenUnlocked();
             Read<InputField>("gameMasterGoldInput").text = "100";
+            Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
             typeof(CoreVoyageSession).GetProperty("Phase").SetValue(session, phase);
             Read<Button>("gameMasterSetGoldButton").onClick.Invoke();
+            Read<Button>("gameMasterSetTreasureFragmentsButton").onClick.Invoke();
             Read<Button>("gameMasterRefreshShopButton").onClick.Invoke();
             Read<Button>("gameMasterRefreshMarketButton").onClick.Invoke();
             Assert.That(session.ProfileGold, Is.EqualTo(1234));
+            Assert.That(session.TreasureFragments, Is.Zero);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TreasureProgressKey), Is.False);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GameMasterShopRefreshKey("灰鸥港")), Is.Zero);
             before.AssertUnchanged();
             Invoke("CloseGameMaster");
@@ -423,6 +621,35 @@ namespace ShatteredSail.Presentation.Tests
         {
             Invoke("OpenGameMaster");
             Read<Toggle>("gameMasterUnlockToggle").isOn = true;
+        }
+
+        private static CoreTreasureProgress TreasureProgressFixture()
+        {
+            return new CoreTreasureProgress {
+                pirateExperience = 900, fragments = 8,
+                identifiedWeatheredFragments = 3, identifiedGildedFragments = 2, identifiedMoonlitFragments = 1,
+                identificationSeed = "GM-IDENTIFICATION-SEED", identificationSequence = 19, moonlitPityCount = 7,
+                selectedMapId = "weathered:GM-HELD",
+                maps = new[] { new CoreTreasureMapSave { id = "weathered:GM-HELD", seed = "GM-HELD", rankId = "weathered" } },
+                usedMaps = new[] { new CoreUsedTreasureMapSave { id = "moonlit:GM-USED", seed = "GM-USED", rankId = "moonlit",
+                    departurePort = "白贝港", hasExplorationCoverage = true, explorationCoverage = 45f } },
+                completedSeeds = new[] { "GM-COMPLETE" }, issuedSeeds = new[] { "GM-HELD", "GM-USED", "GM-COMPLETE" },
+                gems = 7, ancientMaterials = 8, relics = 9, blackPearls = 10, ancientCompasses = 11, lanterns = 12, curses = 13,
+            };
+        }
+
+        private static string TreasureProgressWithoutFragments(CoreTreasureProgress progress)
+        {
+            int fragments = progress.fragments;
+            try
+            {
+                progress.fragments = 0;
+                return JsonUtility.ToJson(progress);
+            }
+            finally
+            {
+                progress.fragments = fragments;
+            }
         }
 
         private static void ClickGameMasterGraphic(Selectable target)
@@ -485,6 +712,24 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Assert.That(PlayerPrefs.HasKey(key), Is.EqualTo(existed), key);
                 Assert.That(PlayerPrefs.GetInt(key, int.MinValue), Is.EqualTo(value), key);
+            }
+        }
+
+        private sealed class StringPreference
+        {
+            private string key;
+            private bool existed;
+            private string value;
+
+            public static StringPreference Read(string key)
+            {
+                return new StringPreference { key = key, existed = PlayerPrefs.HasKey(key), value = PlayerPrefs.GetString(key, string.Empty) };
+            }
+
+            public void Restore()
+            {
+                if (existed) PlayerPrefs.SetString(key, value);
+                else PlayerPrefs.DeleteKey(key);
             }
         }
     }

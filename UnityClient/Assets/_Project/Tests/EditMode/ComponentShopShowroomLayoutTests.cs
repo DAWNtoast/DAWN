@@ -7,222 +7,195 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
-
 namespace ShatteredSail.Presentation.Tests
 {
     public sealed class ComponentShopShowroomLayoutTests
     {
         private GameObject host;
         private CoreGameplayDemoController controller;
-
-        [TearDown]
-        public void Cleanup() { if (host != null) Object.DestroyImmediate(host); }
-
+        private ComponentArtCatalog catalog;
+        [TearDown] public void Cleanup() { if (host != null) Object.DestroyImmediate(host); }
         private static IEnumerable<TestCaseData> StockCases()
         {
             foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
-                foreach (int count in new[] { 1, 2, 3, 4, 5, 6, 16 })
-                    yield return new TestCaseData(count, slot).SetName("ShopFloor_" + slot + "_Stock" + count);
+                foreach (int count in new[] { 1, 5, 6, 16 })
+                    yield return new TestCaseData(count, slot).SetName("ShopCatalogue_" + slot + "_Stock" + count);
         }
-
         [TestCaseSource(nameof(StockCases))]
-        public void EveryStockCount_KeepsCompleteDisplaysOnCentralFloorAndAllOffersReachable(int count, ComponentSlot slot)
+        public void EveryCategory_PagesAllOffersWithOneLargeAspectFittedHero(int count, ComponentSlot slot)
         {
             CreatePreview();
-            List<PortComponentShopStockItem> stock = CreateStock(count, slot);
-            HashSet<string> seen = new HashSet<string>();
-            int pageCount = (count + 2) / 3;
-            for (int page = 0; page < pageCount; page++)
-            {
-                RectTransform panel = BuildStock(stock, page);
-                Button[] offers = panel.GetComponentsInChildren<Button>(true)
-                    .Where(button => button.name.StartsWith("Component Shop Offer ", StringComparison.Ordinal)).ToArray();
-                Assert.That(offers.Length, Is.EqualTo(Math.Min(3, count - page * 3)), "Show at most three physical displays per page.");
-
-                AssertNoMerchantOrSupports(panel);
-                List<Rect> displayBounds = new List<Rect>();
-                foreach (Button offer in offers)
-                {
-                    PortComponentShopStockItem item = stock.Single(candidate => offer.name == "Component Shop Offer " + candidate.Id);
-                    Assert.That(seen.Add(item.Id), Is.True, "An offer must occur exactly once across the showroom pages.");
-                    RawImage model = Require<RawImage>(offer.transform, "Component Shop Model " + item.Entry.Id);
-                    RawImage plaque = Require<RawImage>(offer.transform, "Component Shop Plaque " + item.Entry.Id);
-                    Rect modelBounds = BoundsIn(panel, model.rectTransform);
-                    Rect plaqueBounds = BoundsIn(panel, plaque.rectTransform);
-                    Assert.That(modelBounds.Overlaps(plaqueBounds), Is.False, "The sign must never cover the component.");
-                    Rect bounds = Union(modelBounds,
-                        BoundsIn(panel, plaque.rectTransform));
-                    Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(-530f), item.Entry.Id + ": the left wall and foreground cargo are outside the display floor.");
-                    Assert.That(bounds.xMax, Is.LessThanOrEqualTo(530f), item.Entry.Id + ": preserve the right wall and keep all displays central.");
-                    foreach (Rect previous in displayBounds)
-                        Assert.That(bounds.Overlaps(previous), Is.False, item.Entry.Id + ": complete components and plaques must not interpenetrate another display.");
-                    displayBounds.Add(bounds);
-
-                    RectTransform assembly = Require<RectTransform>(offer.transform, "Component Shop Display Assembly " + item.Entry.Id);
-                    ComponentShopDisplayGeometry geometry = ComponentShopDisplayGeometry.For(item.Entry, controller.Session.CurrentPort);
-                    AssertFloorPoint(panel.InverseTransformPoint(assembly.TransformPoint(
-                        new Vector2(geometry.PlaquePosition.x, ComponentShopDisplayGeometry.PlaqueFloorY))), item.Entry.Id + " plaque foot");
-                    Assert.That(assembly.localScale.x, Is.EqualTo(assembly.localScale.y).Within(0.0001f),
-                        "The component and its sign must retain a shared uniform scale.");
-
-                    foreach (RawImage target in new[] { model, plaque })
-                    {
-                        Assert.That(target.raycastTarget, Is.True, target.name);
-                        Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(target.gameObject), Is.SameAs(offer.gameObject));
-                    }
-                }
-            }
-            CollectionAssert.AreEquivalent(stock.Select(item => item.Id), seen, "Pagination must retain every monthly offer.");
-        }
-
-        [TestCase(4)]
-        [TestCase(5)]
-        public void PageControls_AdvanceAndReturnWithoutBuyingAnOffer(int count)
-        {
-            CreatePreview();
-            List<PortComponentShopStockItem> stock = CreateStock(count, ComponentSlot.Bow);
-            BuildStock(stock, 0);
+            var stock = CreateStock(count, slot);
+            var seen = new HashSet<string>();
             decimal gold = controller.Session.ProfileGold;
-            Button previous = Require<Button>(host.transform, "Component Shop Previous Display");
-            Button next = Require<Button>(host.transform, "Component Shop Next Display");
-            Assert.That(previous.interactable, Is.False);
-            Assert.That(next.interactable, Is.True);
-            next.onClick.Invoke();
-            Assert.That((int)PageField().GetValue(controller), Is.EqualTo(1));
-            CollectionAssert.AreEqual(stock.Skip(3).Select(item => "Component Shop Offer " + item.Id),
-                VisibleOfferNames(), "The callback must preserve this showroom's stock and show its remaining offers.");
-            Assert.That(Require<Button>(host.transform, "Component Shop Previous Display").interactable, Is.True);
-            Assert.That(Require<Button>(host.transform, "Component Shop Next Display").interactable, Is.False);
-            Require<Button>(host.transform, "Component Shop Previous Display").onClick.Invoke();
-            Assert.That((int)PageField().GetValue(controller), Is.Zero);
-            CollectionAssert.AreEqual(stock.Take(3).Select(item => "Component Shop Offer " + item.Id), VisibleOfferNames());
+            for (int page = 0; page < ComponentShopShowroomLayout.PageCount(count); page++)
+            {
+                BuildStock(stock, slot, page);
+                var offers = Offers();
+                Assert.That(offers.Length, Is.EqualTo(Math.Min(5, count - page * 5)));
+                foreach (Button button in offers)
+                {
+                    var offer = stock.Single(item => button.name == "Component Shop Offer " + item.Id);
+                    Assert.That(seen.Add(offer.Id), Is.True);
+                    Assert.That(button.GetComponentsInChildren<RawImage>().Single().texture, Is.SameAs(offer.Entry.Texture));
+                }
+                var hero = host.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Hero "));
+                var selected = stock[page * 5].Entry;
+                Assert.That(hero.texture, Is.SameAs(selected.ShipLayer));
+                float aspect = hero.texture.width * hero.uvRect.width / (hero.texture.height * hero.uvRect.height);
+                Assert.That(hero.rectTransform.sizeDelta.x / hero.rectTransform.sizeDelta.y, Is.EqualTo(aspect).Within(.001f));
+                Assert.That(Mathf.Max(hero.rectTransform.sizeDelta.x, hero.rectTransform.sizeDelta.y), Is.GreaterThan(slot == ComponentSlot.Instrument ? 300f : 530f));
+                Assert.That(hero.rectTransform.anchoredPosition, Is.EqualTo(new Vector2(0f, 25f)));
+                Assert.That(hero.rectTransform.sizeDelta.x, Is.LessThanOrEqualTo(slot == ComponentSlot.Instrument ? 390.01f : 1100.01f));
+                Assert.That(hero.rectTransform.sizeDelta.y, Is.LessThanOrEqualTo(slot == ComponentSlot.Instrument ? 330.01f : 610.01f));
+                Assert.That(host.GetComponentsInChildren<Transform>().Any(item => item.name.Contains("Component Shop Summary") ||
+                    item.name.Contains("Scale Support") || item.name.Contains("Contact Shadow")), Is.False);
+                Assert.That(host.GetComponentsInChildren<Button>().Any(item => item.name.StartsWith("Purchase")), Is.False);
+                Assert.That(host.GetComponentsInChildren<Transform>().Any(item => item.name.Contains("Merchant")), Is.False);
+            }
+            CollectionAssert.AreEquivalent(stock.Select(item => item.Id), seen);
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
-            foreach (PortComponentShopStockItem item in stock)
-                Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(item.Id), 0), Is.Zero);
         }
-
+        [Test]
+        public void CategoryPageAndSelection_DoNotChangeStockOrSpendGold_EmptyCategoryIsExplicit()
+        {
+            CreatePreview();
+            var bows = CreateStock(6, ComponentSlot.Bow);
+            var sails = CreateStock(2, ComponentSlot.Sail);
+            var stock = bows.Concat(sails).ToList();
+            BuildStock(stock, ComponentSlot.Bow, 0);
+            decimal gold = controller.Session.ProfileGold;
+            Find<Button>("Component Shop Next Display").onClick.Invoke();
+            CollectionAssert.AreEqual(bows.Skip(5).Select(item => "Component Shop Offer " + item.Id), Offers().Select(item => item.name));
+            Assert.That(host.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Hero ")).texture,
+                Is.SameAs(bows[5].Entry.ShipLayer));
+            Assert.That(Read<int>("componentShopDisplayPage"), Is.EqualTo(1));
+            Find<Button>("Component Shop Category Sail").onClick.Invoke();
+            Assert.That(Read<int>("componentShopDisplayPage"), Is.Zero);
+            CollectionAssert.AreEqual(sails.Select(item => "Component Shop Offer " + item.Id), Offers().Select(item => item.name));
+            Find<Button>("Component Shop Category Cannon").onClick.Invoke();
+            Assert.That(Offers(), Is.Empty);
+            Assert.That(Find<Text>("Component Shop Empty Category").text, Does.Contain("暂无"));
+            Assert.That(host.GetComponentsInChildren<Button>().Any(item => item.name.StartsWith("Purchase")), Is.False);
+            Assert.That(host.GetComponentsInChildren<Transform>().Any(item => item.name.Contains("Summary") || item.name.Contains("Parchment")), Is.False);
+            Assert.That(Find<Button>("Component Shop Previous Display").interactable, Is.False);
+            Assert.That(Find<Button>("Component Shop Next Display").interactable, Is.False);
+            Find<Button>("Component Shop Category Bow").onClick.Invoke();
+            Assert.That(Offers().Length, Is.EqualTo(5));
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+            foreach (var item in stock) Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(item.Id), 0), Is.Zero);
+        }
         [TestCase(CoreGameplayPreviewPort.GrayGull)]
-        [TestCase(CoreGameplayPreviewPort.WhiteShell)]
-        [TestCase(CoreGameplayPreviewPort.BronzeBell)]
-        [TestCase(CoreGameplayPreviewPort.SaltCrown)]
-        [TestCase(CoreGameplayPreviewPort.TwilightTide)]
         [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
-        public void ShopAndDetail_ContainNoMerchantOrAddedSupports(CoreGameplayPreviewPort port)
+        public void DossierRetainsCategoryPageAndSelectionOnReturn(CoreGameplayPreviewPort port)
         {
             CreatePreview(port);
-            AssertNoMerchantOrSupports(host.transform);
-            Button offer = host.GetComponentsInChildren<Button>(true)
-                .First(item => item.name.StartsWith("Component Shop Offer ", StringComparison.Ordinal));
+            Offers().Last().onClick.Invoke();
+            string selected = Read<string>("componentShopShowroomOfferId");
+            int page = Read<int>("componentShopDisplayPage"), category = Read<int>("componentShopCategory");
+            Assert.That(Find<RectTransform>("Component Shop Detail"), Is.Not.Null);
+            Assert.That(Read<string>("selectedComponentShopOfferId"), Is.EqualTo(selected));
+            Assert.That(Read<int>("componentDossierPage"), Is.Zero);
+            Assert.That(Find<RectTransform>("Component Dossier Overview Page").gameObject.activeInHierarchy, Is.True);
+            Find<Button>("Return To Port Hub").onClick.Invoke();
+            Assert.That(Read<string>("componentShopShowroomOfferId"), Is.EqualTo(selected));
+            Assert.That(Read<int>("componentShopDisplayPage"), Is.EqualTo(page));
+            Assert.That(Read<int>("componentShopCategory"), Is.EqualTo(category));
+            Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
+        }
+        [TestCase(EventTriggerType.PointerEnter, 0)]
+        [TestCase(EventTriggerType.Select, 0)]
+        [TestCase(EventTriggerType.PointerEnter, 1)]
+        [TestCase(EventTriggerType.Select, 1)]
+        public void CatalogueHoverAndFocusUpdateOnlyHeroWithoutOpeningDossierOrSpendingGold(EventTriggerType triggerType, int page)
+        {
+            CreatePreview();
+            var stock = CreateStock(10, ComponentSlot.Bow);
+            BuildStock(stock, ComponentSlot.Bow, page);
+            Button[] offers = Offers();
+            PortComponentShopStockItem selected = stock[page * 5 + 3];
             decimal gold = controller.Session.ProfileGold;
-            offer.onClick.Invoke();
-            Assert.That(host.GetComponentsInChildren<RawImage>(true).Any(item => item.name == "Component Detail Model"), Is.True,
-                "Clicking a part/sign must open its support-free detail sheet.");
-            AssertNoMerchantOrSupports(host.transform);
-            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold), "Viewing a component must not buy it.");
+            string dossier = Read<string>("selectedComponentShopOfferId");
+            EventTrigger trigger = offers[3].GetComponent<EventTrigger>();
+            Assert.That(trigger, Is.Not.Null);
+            trigger.triggers.Single(item => item.eventID == triggerType).callback.Invoke(null);
+            CollectionAssert.AreEqual(offers, Offers(), "Preview must preserve the same live catalogue controls.");
+            Assert.That(Read<string>("componentShopShowroomOfferId"), Is.EqualTo(selected.Id));
+            Assert.That(Read<int>("componentShopDisplayPage"), Is.EqualTo(page));
+            Assert.That(Read<string>("selectedComponentShopOfferId"), Is.EqualTo(dossier));
+            Assert.That(host.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Hero ")).texture,
+                Is.SameAs(selected.Entry.ShipLayer));
+            Assert.That(host.GetComponentsInChildren<Transform>().Any(item => item.name == "Component Shop Detail"), Is.False);
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+            foreach (var item in stock) Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(item.Id), 0), Is.Zero);
         }
-
-        private static void AssertNoMerchantOrSupports(Transform root)
-        {
-            Assert.That(root.GetComponentsInChildren<Transform>(true).Any(item =>
-                item.name.StartsWith("Component Shop Merchant", StringComparison.Ordinal) ||
-                item.name.StartsWith("Component Shop Mount", StringComparison.Ordinal) ||
-                item.name.StartsWith("Component Detail Mount", StringComparison.Ordinal) ||
-                item.name.Contains("Furniture Foot") || item.name.Contains("Load Contact") ||
-                item.name.Contains("Unified Art Frame")), Is.False,
-                "Remove merchant, racks, foreground lips, backing panels and orphaned support shadows.");
-
-            foreach (RawImage aura in root.GetComponentsInChildren<RawImage>(true)
-                .Where(item => item.name.IndexOf("Rarity Aura", StringComparison.Ordinal) >= 0))
-                Assert.That(aura.color.a, Is.LessThanOrEqualTo(0.001f), aura.name);
-        }
-
         [Test]
-        public void ChangingPreviewPort_ResetsDisplayPageAndShowsTheNewPortsFirstOffers()
+        public void SoldOfferIsInspectableWithBothPurchaseButtonsDisabled()
         {
-            CreatePreview(CoreGameplayPreviewPort.GrayGull);
-            PageField().SetValue(controller, 1);
-            controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.ComponentShop, CoreGameplayPreviewPort.BrokenAnchor, 0);
-
-            Assert.That(controller.Session.CurrentPort, Is.EqualTo("断锚港"));
-            Assert.That((int)PageField().GetValue(controller), Is.Zero,
-                "A new port preview must not inherit the previous port's display page.");
-            IReadOnlyList<PortComponentShopStockItem> stock = PortComponentShopCatalog.BuildStock(
-                new ComponentArtCatalog(), controller.Session.CurrentPort, controller.Session.GameDateTime);
-            CollectionAssert.AreEqual(stock.Take(3).Select(item => "Component Shop Offer " + item.Id), VisibleOfferNames(),
-                "The new port must open on its first group of at most three monthly offers.");
+            CreatePreview(); var stock = CreateStock(1, ComponentSlot.Cannon);
+            string key = CoreGameplayDemoController.ComponentShopPurchaseKey(stock[0].Id);
+            try
+            {
+                PlayerPrefs.SetInt(key, 1); BuildStock(stock, ComponentSlot.Cannon, 0);
+                Assert.That(Offers()[0].interactable, Is.True);
+                Assert.That(Offers()[0].GetComponentsInChildren<Text>().Any(item => item.text.Contains("已售")), Is.True);
+                var panel = Find<RectTransform>("Component Shop Panel");
+                for (int index = panel.childCount - 1; index >= 0; index--) Object.DestroyImmediate(panel.GetChild(index).gameObject);
+                typeof(CoreGameplayDemoController).GetMethod("BuildComponentShopDetail", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(controller, new object[] { panel, stock[0] });
+                Assert.That(Find<Button>("Purchase Component " + stock[0].Id).interactable, Is.False);
+                Assert.That(Find<Button>("Purchase And Equip Component " + stock[0].Id).interactable, Is.False);
+            }
+            finally { PlayerPrefs.DeleteKey(key); }
         }
-
+        [Test]
+        public void CompactHeader_RestoresOriginalGeometryWhenRetainedHeaderLeavesShop()
+        {
+            CreatePreview();
+            controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Tavern, CoreGameplayPreviewPort.GrayGull, 0);
+            RectTransform header = Find<RectTransform>("Port Facility Header");
+            RectTransform title = Find<RectTransform>("Port Facility Title");
+            RectTransform next = Find<RectTransform>("Next Port Facility");
+            Vector2 titlePosition = title.anchoredPosition, titleSize = title.sizeDelta, nextPosition = next.anchoredPosition;
+            MethodInfo apply = typeof(CoreGameplayDemoController).GetMethod("ApplyComponentShopHeaderLayout", BindingFlags.Instance | BindingFlags.NonPublic);
+            apply.Invoke(controller, new object[] { header, true });
+            Assert.That(title.anchoredPosition, Is.Not.EqualTo(titlePosition));
+            Assert.That(next.anchoredPosition.x, Is.LessThan(title.anchoredPosition.x));
+            apply.Invoke(controller, new object[] { header, false });
+            Assert.That(title.anchoredPosition, Is.EqualTo(titlePosition));
+            Assert.That(title.sizeDelta, Is.EqualTo(titleSize));
+            Assert.That(next.anchoredPosition, Is.EqualTo(nextPosition));
+        }
         private void CreatePreview(CoreGameplayPreviewPort port = CoreGameplayPreviewPort.GrayGull)
         {
-            host = new GameObject("Component Shop Showroom Layout Test");
+            host = new GameObject("Component Shop Showroom Test");
             controller = host.AddComponent<CoreGameplayDemoController>();
             controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.ComponentShop, port, 0);
+            catalog = new ComponentArtCatalog();
         }
-
         private List<PortComponentShopStockItem> CreateStock(int count, ComponentSlot slot)
         {
-            ComponentArtCatalog catalog = new ComponentArtCatalog();
-            ComponentArtEntry[] entries = catalog.Entries.Where(item => item.Slot == slot).ToArray();
-            return Enumerable.Range(0, count).Select(index =>
-            {
-                ComponentArtEntry entry = entries[index];
-                return new PortComponentShopStockItem("layout-test|" + count + "|" + slot + "|" + index,
-                    controller.Session.CurrentPort, PortComponentShopCatalog.MonthKey(controller.Session.GameDateTime), entry, 1f, 200);
-            }).ToList();
+            string prefix = "showroom-test|" + Guid.NewGuid().ToString("N");
+            var entries = catalog.ExpandedEntries.Where(item => item.Slot == slot).Take(count).ToArray();
+            return entries.Select((entry, index) => new PortComponentShopStockItem(prefix + index, controller.Session.CurrentPort,
+                PortComponentShopCatalog.MonthKey(controller.Session.GameDateTime), entry, 1f, 200)).ToList();
         }
-
-        private RectTransform BuildStock(IReadOnlyList<PortComponentShopStockItem> stock, int page)
+        private void BuildStock(IReadOnlyList<PortComponentShopStockItem> stock, ComponentSlot slot, int page)
         {
-            PageField().SetValue(controller, page);
-            RectTransform panel = Require<RectTransform>(host.transform, "Component Shop Panel");
+            Write("componentShopCategory", (int)slot); Write("componentShopDisplayPage", page); Write("componentShopShowroomOfferId", null);
+            var panel = Find<RectTransform>("Component Shop Panel");
             for (int index = panel.childCount - 1; index >= 0; index--) Object.DestroyImmediate(panel.GetChild(index).gameObject);
-            MethodInfo build = typeof(CoreGameplayDemoController).GetMethod("BuildComponentShopShowroom", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(build, Is.Not.Null);
-            build.Invoke(controller, new object[] { panel, stock, controller.Session.GameDateTime, 0 });
+            typeof(CoreGameplayDemoController).GetMethod("BuildComponentShopShowroom", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, new object[] { panel, stock, controller.Session.GameDateTime, 0 });
             Canvas.ForceUpdateCanvases();
-            return panel;
         }
-
-        private static FieldInfo PageField()
+        private Button[] Offers() => host.GetComponentsInChildren<Button>().Where(item => item.name.StartsWith("Component Shop Offer ")).ToArray();
+        private T Find<T>(string name) where T : Component
         {
-            FieldInfo field = typeof(CoreGameplayDemoController).GetField("componentShopDisplayPage", BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(field, Is.Not.Null);
-            return field;
+            T result = host.GetComponentsInChildren<T>(true).FirstOrDefault(item => item.name == name);
+            Assert.That(result, Is.Not.Null, name); return result;
         }
-
-        private static void AssertFloorPoint(Vector3 point, string context)
-        {
-            Assert.That(point.x, Is.InRange(-500f, 560f), context + ": a load-bearing foot must avoid the side shelving.");
-            Assert.That(point.y, Is.InRange(-365f, -110f), context + ": a load-bearing foot must be on the central floor band, including the signs' foreground feet.");
-        }
-
-        private string[] VisibleOfferNames()
-        {
-            return host.GetComponentsInChildren<Button>(true)
-                .Where(button => button.name.StartsWith("Component Shop Offer ", StringComparison.Ordinal))
-                .Select(button => button.name).ToArray();
-        }
-
-        private static T Require<T>(Transform root, string name) where T : Component
-        {
-            T item = root.GetComponentsInChildren<T>(true).FirstOrDefault(candidate => candidate.name == name);
-            Assert.That(item, Is.Not.Null, name);
-            return item;
-        }
-
-        private static Rect BoundsIn(Transform parent, RectTransform child)
-        {
-            Vector3[] corners = new Vector3[4];
-            child.GetWorldCorners(corners);
-            Vector3[] points = corners.Select(parent.InverseTransformPoint).ToArray();
-            return Rect.MinMaxRect(points.Min(point => point.x), points.Min(point => point.y),
-                points.Max(point => point.x), points.Max(point => point.y));
-        }
-
-        private static Rect Union(Rect a, Rect b)
-        {
-            return Rect.MinMaxRect(Mathf.Min(a.xMin, b.xMin), Mathf.Min(a.yMin, b.yMin),
-                Mathf.Max(a.xMax, b.xMax), Mathf.Max(a.yMax, b.yMax));
-        }
+        private T Read<T>(string name) => (T)typeof(CoreGameplayDemoController).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+        private void Write(string name, object value) => typeof(CoreGameplayDemoController).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(controller, value);
     }
 }

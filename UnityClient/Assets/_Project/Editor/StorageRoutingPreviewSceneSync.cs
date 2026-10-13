@@ -47,12 +47,14 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureStorageRoutingFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncStorageRoutingFromCommandLine();
             UIPreviewSceneAcceptance.CaptureStorageRoutingFromCommandLine();
         }
 
         public static void SyncStorageRoutingFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Storage routing preview synchronization requires edit mode.");
             var report = new List<string>

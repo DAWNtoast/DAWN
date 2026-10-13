@@ -9,7 +9,7 @@ using UnityEngine;
 namespace ShatteredSail.Editor
 {
     /// <summary>
-    /// Desktop-only, explicit full-background policy. No startup callback scans
+    /// Desktop-only, explicit background and painted UI-surface policy. No startup callback scans
     /// or reimports assets; existing art is processed on its next import or by
     /// the explicit ApplyAll command. Source PNGs are never rewritten.
     /// </summary>
@@ -23,19 +23,27 @@ namespace ShatteredSail.Editor
         private static string[] CreatePaths()
         {
             var result = new List<string> { Root + "MainMenu/main_menu_background.png" };
+            result.Add(Root + "PortFacilities/Regional/Voyage/voyage_broken_anchor_scene_v2.png");
+            result.Add(Root + "PortFacilities/Regional/Voyage/voyage_broken_anchor_scene_v3.png");
+            result.Add(Root + "PortFacilities/Regional/Voyage/voyage_broken_anchor_scene_v4.png");
+            foreach (string chart in new[] { "chart-shattered-reef", "chart-golden-trade", "chart-moon-ruins" })
+                result.Add(Root + "PortFacilities/DepartureCharts4K/" + chart + ".png");
             string[] ports = { "broken_anchor", "white_shell", "bronze_bell", "salt_crown", "twilight_tide", "gray_gull" };
             foreach (string port in ports)
             {
                 result.Add(Root + "PortArt/port_hub_" + port + "_v3.png");
+                result.Add(Root + "PortFacilities/Regional/Warehouse/warehouse_" + port + "_v1.png");
                 result.Add(Root + "PortFacilities/Regional/Tavern/tavern_" + port + "_v1.png");
                 result.Add(Root + "PortFacilities/Regional/ComponentShop/component_shop_" + port + "_v1.png");
                 result.Add(Root + "PortFacilities/Regional/Maintenance/maintenance_" + port + "_side_v2.png");
+                result.Add(Root + "PortFacilities/Regional/Voyage/voyage_" + port + "_v1.png");
+                result.Add(Root + "PortHeaders/" + port + "_header_v1.png");
             }
             // The current generic backgrounds in PortFacilityArtCatalog, not
             // every historical image or prop under the PortFacilities folder.
             string[] facilities = { "warehouse_background", "shipyard_water_gallery_v3", "tavern_background_seated_v2",
-                "component_shop_background_v2", "card_workshop_background", "dispatch_room_integrated_v3",
-                "treasure_room_boards_v2", "port_investment_background_v2", "voyage_background", "Market/market_background_v1" };
+                "component_shop_background_v2", "card_workshop_background",
+                "treasure_worktable_background_v3", "port_investment_scene_internal_v1", "voyage_background", "Market/market_scene_background_v2" };
             foreach (string facility in facilities) result.Add(Root + "PortFacilities/" + facility + ".png");
             string[] naval = { "beach_cove", "coral_reef", "misty_sea", "open_ocean", "rocky_strait", "storm_sea" };
             foreach (string environment in naval) result.Add(Root + "BattleEnvironments/battle_" + environment + "_v1.png");
@@ -50,6 +58,12 @@ namespace ShatteredSail.Editor
                 foreach (string time in times)
                     if (weather != "clear" || time != "day")
                         result.Add(Root + "NavigationLookout/Environments/lookout_" + weather + "_" + time + "_v2.png");
+            // Opaque painted surfaces only. Keep small pixel art, transparent
+            // chart markers, ship/crew cutouts and CPU-read furniture excluded.
+            // The mipmapped wood button reverted to RGBA32 during real importer
+            // finalization. Keep its authored sampling and original import policy.
+            result.Add(Root + "UISurfaces/journal_parchment_v1.png");
+            result.Add(Root + "UISurfaces/nautical_canvas_v1.png");
             return result.ToArray();
         }
 
@@ -60,7 +74,8 @@ namespace ShatteredSail.Editor
 
         public static bool IsEligible(string assetPath, BuildTarget target, bool readable,
             TextureImporterType type, TextureImporterShape shape) => IsListed(assetPath) && SupportsTarget(target) &&
-            !readable && type == TextureImporterType.Default && shape == TextureImporterShape.Texture2D;
+            !readable && (type == TextureImporterType.Default || type == TextureImporterType.Sprite) &&
+            shape == TextureImporterShape.Texture2D;
 
         public static int AlignedDimension(int dimension)
         {
@@ -148,7 +163,7 @@ namespace ShatteredSail.Editor
         [Serializable] private sealed class Record
         {
             public string path, status, error, sourceSha256, format, graphicsFormat;
-            public int sourceWidth, sourceHeight, width, height, mipmapCount, maxTextureSize;
+            public int sourceWidth, sourceHeight, width, height, mipmapCount, maxTextureSize, spriteCount;
             public bool readable, sourceUnchanged;
         }
 
@@ -216,6 +231,19 @@ namespace ShatteredSail.Editor
                                 importer.filterMode != oldFilter || importer.wrapModeU != oldU || importer.wrapModeV != oldV || importer.wrapModeW != oldW ||
                                 importer.GetPlatformTextureSettings("Standalone").maxTextureSize != record.maxTextureSize)
                                 throw new InvalidOperationException("Protected import settings changed.");
+                            if (importer.textureType == TextureImporterType.Sprite)
+                            {
+                                foreach (UnityEngine.Object subasset in AssetDatabase.LoadAllAssetsAtPath(path))
+                                {
+                                    if (!(subasset is Sprite sprite)) continue;
+                                    record.spriteCount++;
+                                    Rect rect = sprite.rect;
+                                    if (sprite.texture != texture || rect.width <= 0f || rect.height <= 0f ||
+                                        rect.xMin < 0f || rect.yMin < 0f || rect.xMax > texture.width || rect.yMax > texture.height)
+                                        throw new InvalidOperationException("Sprite bounds exceed aligned background texture: " + sprite.name);
+                                }
+                                if (record.spriteCount == 0) throw new InvalidOperationException("Sprite background lost its Sprite subassets.");
+                            }
                             record.status = "passed"; audit.imported++;
                         }
                         catch (Exception error) { record.status = "failed"; record.error = error.ToString(); audit.failed++; }

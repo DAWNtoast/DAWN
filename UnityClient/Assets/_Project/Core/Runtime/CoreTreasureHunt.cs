@@ -10,18 +10,39 @@ namespace ShatteredSail.Core.Gameplay
         public string id;
         public string seed;
         public string rankId;
+        // Missing from old saves means the original 48 x 32 sea.
+        public int mapGeometryVersion;
+    }
+
+    [Serializable]
+    public sealed class CoreUsedTreasureMapSave
+    {
+        public string id;
+        public string seed;
+        public string rankId;
+        public int mapGeometryVersion;
+        public string departurePort;
+        public bool hasExplorationCoverage;
+        public float explorationCoverage;
     }
 
     [Serializable]
     public sealed class CoreTreasureProgress
     {
         public int pirateExperience;
+        // Legacy fragments remain unidentified; migration never assigns or spends them.
         public int fragments;
-        // Consecutive non-moonlit crafts after the moonlit rank is unlocked.
+        public int identifiedWeatheredFragments;
+        public int identifiedGildedFragments;
+        public int identifiedMoonlitFragments;
+        public string identificationSeed;
+        public long identificationSequence;
+        // Consecutive non-moonlit identifications after the moonlit rank is unlocked.
         // Missing in older saves, where JsonUtility restores the default 0.
         public int moonlitPityCount;
         public string selectedMapId;
         public CoreTreasureMapSave[] maps = Array.Empty<CoreTreasureMapSave>();
+        public CoreUsedTreasureMapSave[] usedMaps = Array.Empty<CoreUsedTreasureMapSave>();
         public string[] completedSeeds = Array.Empty<string>();
         public string[] issuedSeeds = Array.Empty<string>();
         public int gems;
@@ -35,24 +56,34 @@ namespace ShatteredSail.Core.Gameplay
 
     public sealed partial class CoreVoyageSession
     {
-        private static readonly int[] pirateThresholds = { 0, 100, 260, 520, 900, 1400 };
+        private static readonly int[] pirateThresholds = { 0, 100, 260, 520, 900, 1400, 2100, 3000, 4100, 5400 };
         private readonly List<CoreTreasureMapRecord> treasureMaps = new List<CoreTreasureMapRecord>();
+        private readonly List<CoreUsedTreasureMapRecord> usedTreasureMaps = new List<CoreUsedTreasureMapRecord>();
         private readonly List<string> completedTreasureSeeds = new List<string>();
         private readonly HashSet<string> issuedTreasureSeeds = new HashSet<string>(StringComparer.Ordinal);
         private string selectedTreasureMapId = string.Empty;
+        private readonly Dictionary<string, int> identifiedTreasureFragments = new Dictionary<string, int>(StringComparer.Ordinal);
+        private string treasureIdentificationSeed = Guid.NewGuid().ToString("N");
+        private long treasureIdentificationSequence;
         private int voyageTreasureFragments;
         public int PirateExperience { get; private set; }
         public int PirateLevel
         {
             get { int level = 1; for (int i = 1; i < pirateThresholds.Length; i++) if (PirateExperience >= pirateThresholds[i]) level = i + 1; return level; }
         }
+        public int MaximumPirateLevel => pirateThresholds.Length;
+        public int NextPirateLevelExperience => PirateLevel >= MaximumPirateLevel ? 0 : pirateThresholds[PirateLevel];
+        public int PirateExperienceToNextLevel => Math.Max(0, NextPirateLevelExperience - PirateExperience);
+        public static int PirateExperienceForLevel(int level) => pirateThresholds[Math.Max(1, Math.Min(pirateThresholds.Length, level)) - 1];
         public int TreasureFragments { get; private set; }
         public int MoonlitPityCount { get; private set; }
-        public double MoonlitCraftChance => PirateLevel < CoreTreasureHuntCatalog.MoonlitUnlockLevel ? 0d :
+        public double MoonlitIdentificationChance => PirateLevel < CoreTreasureHuntCatalog.MoonlitUnlockLevel ? 0d :
             Math.Min(CoreTreasureHuntCatalog.MoonlitMaxChance,
                 CoreTreasureHuntCatalog.MoonlitBaseChance + MoonlitPityCount * CoreTreasureHuntCatalog.MoonlitPityStep);
+        public double MoonlitCraftChance => MoonlitIdentificationChance;
         public int VoyageTreasureFragments => voyageTreasureFragments;
         public IReadOnlyList<CoreTreasureMapRecord> TreasureMaps => treasureMaps.AsReadOnly();
+        public IReadOnlyList<CoreUsedTreasureMapRecord> UsedTreasureMaps => usedTreasureMaps.AsReadOnly();
         public IReadOnlyList<string> CompletedTreasureSeeds => completedTreasureSeeds.AsReadOnly();
         public CoreTreasureMapRecord SelectedTreasureMap => treasureMaps.Find(map => map.Id == selectedTreasureMapId);
         public CoreTreasureMapRecord ActiveTreasureMap { get; private set; }
@@ -67,14 +98,29 @@ namespace ShatteredSail.Core.Gameplay
 
         public CoreTreasureProgress CaptureTreasureProgress()
         {
+            UpdateActiveUsedTreasureMapCoverage();
             var held = new CoreTreasureMapSave[treasureMaps.Count];
             for (int i = 0; i < held.Length; i++) held[i] = new CoreTreasureMapSave {
-                id = treasureMaps[i].Id, seed = treasureMaps[i].Seed, rankId = treasureMaps[i].RankId };
+                id = treasureMaps[i].Id, seed = treasureMaps[i].Seed, rankId = treasureMaps[i].RankId,
+                mapGeometryVersion = treasureMaps[i].MapGeometryVersion };
+            var used = new CoreUsedTreasureMapSave[usedTreasureMaps.Count];
+            for (int i = 0; i < used.Length; i++)
+            {
+                CoreUsedTreasureMapRecord record = usedTreasureMaps[i];
+                used[i] = new CoreUsedTreasureMapSave { id = record.Id, seed = record.Seed, rankId = record.RankId,
+                    mapGeometryVersion = record.MapGeometryVersion,
+                    departurePort = record.DeparturePort, hasExplorationCoverage = record.HasExplorationCoverage,
+                    explorationCoverage = record.ExplorationCoverage };
+            }
             var issued = new List<string>(issuedTreasureSeeds); issued.Sort(StringComparer.Ordinal);
             return new CoreTreasureProgress {
                 pirateExperience = PirateExperience, fragments = TreasureFragments, moonlitPityCount = MoonlitPityCount,
+                identifiedWeatheredFragments = GetIdentifiedTreasureFragments("weathered"),
+                identifiedGildedFragments = GetIdentifiedTreasureFragments("gilded"),
+                identifiedMoonlitFragments = GetIdentifiedTreasureFragments("moonlit"),
+                identificationSeed = treasureIdentificationSeed, identificationSequence = treasureIdentificationSequence,
                 selectedMapId = selectedTreasureMapId,
-                maps = held, completedSeeds = completedTreasureSeeds.ToArray(), issuedSeeds = issued.ToArray(),
+                maps = held, usedMaps = used, completedSeeds = completedTreasureSeeds.ToArray(), issuedSeeds = issued.ToArray(),
                 gems = Cargo.Gem, ancientMaterials = Cargo.AncientMaterial, relics = Cargo.Relic, blackPearls = Cargo.BlackPearl,
                 ancientCompasses = Cargo.AncientCompass, lanterns = Cargo.Lantern, curses = Cargo.Curse,
             };
@@ -84,10 +130,28 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (Phase != CoreDemoPhase.Port) return;
             progress = progress ?? new CoreTreasureProgress();
+            // An unknown geometry must not be skipped and then overwritten by
+            // a save of the remaining inventory. The profile loader preserves
+            // the original JSON when it receives this compatibility failure.
+            foreach (CoreTreasureMapSave saved in progress.maps ?? Array.Empty<CoreTreasureMapSave>())
+                if (saved != null && !ValidMapGeometryVersion(saved.mapGeometryVersion))
+                    throw new ArgumentException("藏宝图海域版本不兼容，原始档案已保留。", nameof(progress));
+            foreach (CoreUsedTreasureMapSave saved in progress.usedMaps ?? Array.Empty<CoreUsedTreasureMapSave>())
+                if (saved != null && !ValidMapGeometryVersion(saved.mapGeometryVersion))
+                    throw new ArgumentException("藏宝图海域版本不兼容，原始档案已保留。", nameof(progress));
             PirateExperience = Math.Max(0, progress.pirateExperience);
             TreasureFragments = Math.Max(0, progress.fragments);
+            identifiedTreasureFragments.Clear();
+            identifiedTreasureFragments["weathered"] = Math.Max(0, progress.identifiedWeatheredFragments);
+            identifiedTreasureFragments["gilded"] = Math.Max(0, progress.identifiedGildedFragments);
+            identifiedTreasureFragments["moonlit"] = Math.Max(0, progress.identifiedMoonlitFragments);
+            // A fixed migration seed makes reloading an old save before its first
+            // identification stable, even before the upgraded save is written.
+            treasureIdentificationSeed = string.IsNullOrWhiteSpace(progress.identificationSeed)
+                ? "LEGACY-TREASURE-FRAGMENTS-V1" : progress.identificationSeed.Trim();
+            treasureIdentificationSequence = Math.Max(0L, progress.identificationSequence);
             MoonlitPityCount = Math.Max(0, Math.Min(CoreTreasureHuntCatalog.MoonlitPityCap, progress.moonlitPityCount));
-            treasureMaps.Clear(); completedTreasureSeeds.Clear(); issuedTreasureSeeds.Clear();
+            treasureMaps.Clear(); usedTreasureMaps.Clear(); completedTreasureSeeds.Clear(); issuedTreasureSeeds.Clear();
             foreach (string seed in progress.issuedSeeds ?? Array.Empty<string>())
                 if (!string.IsNullOrWhiteSpace(seed)) issuedTreasureSeeds.Add(seed.Trim());
             foreach (string seed in progress.completedSeeds ?? Array.Empty<string>())
@@ -95,14 +159,38 @@ namespace ShatteredSail.Core.Gameplay
                 { completedTreasureSeeds.Add(seed.Trim()); issuedTreasureSeeds.Add(seed.Trim()); }
             var ids = new HashSet<string>(StringComparer.Ordinal);
             var seeds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (CoreUsedTreasureMapSave save in progress.usedMaps ?? Array.Empty<CoreUsedTreasureMapSave>())
+            {
+                if (save == null || string.IsNullOrWhiteSpace(save.id) || string.IsNullOrWhiteSpace(save.seed) ||
+                    !string.IsNullOrEmpty(save.rankId) && CoreTreasureHuntCatalog.FindRank(save.rankId) == null ||
+                    !ValidMapGeometryVersion(save.mapGeometryVersion) ||
+                    !ids.Add(save.id) || !seeds.Add(save.seed.Trim())) continue;
+                bool hasCoverage = save.hasExplorationCoverage && !float.IsNaN(save.explorationCoverage) && !float.IsInfinity(save.explorationCoverage);
+                usedTreasureMaps.Add(new CoreUsedTreasureMapRecord(save.id, save.seed.Trim(), save.rankId,
+                    save.departurePort, hasCoverage, hasCoverage ? ClampExplorationCoverage(save.explorationCoverage) : 0f,
+                    save.mapGeometryVersion));
+                issuedTreasureSeeds.Add(save.seed.Trim());
+            }
             foreach (CoreTreasureMapSave save in progress.maps ?? Array.Empty<CoreTreasureMapSave>())
             {
                 if (save == null || string.IsNullOrWhiteSpace(save.seed) || string.IsNullOrWhiteSpace(save.id) ||
-                    CoreTreasureHuntCatalog.FindRank(save.rankId) == null || treasureMaps.Count >= CoreTreasureHuntCatalog.MaxHeldMaps ||
-                    completedTreasureSeeds.Contains(save.seed.Trim()) || !ids.Add(save.id) || !seeds.Add(save.seed.Trim())) continue;
-                treasureMaps.Add(new CoreTreasureMapRecord(save.id, save.seed.Trim(), save.rankId));
+                    CoreTreasureHuntCatalog.FindRank(save.rankId) == null || !ValidMapGeometryVersion(save.mapGeometryVersion)) continue;
+                if (completedTreasureSeeds.Contains(save.seed.Trim()))
+                {
+                    // A legacy record can sometimes retain its actual rank beside a completed seed.
+                    AddUsedTreasureMap(new CoreTreasureMapRecord(save.id, save.seed.Trim(), save.rankId, save.mapGeometryVersion), string.Empty);
+                    continue;
+                }
+                if (treasureMaps.Count >= CoreTreasureHuntCatalog.MaxHeldMaps || !ids.Add(save.id) || !seeds.Add(save.seed.Trim())) continue;
+                treasureMaps.Add(new CoreTreasureMapRecord(save.id, save.seed.Trim(), save.rankId, save.mapGeometryVersion));
                 issuedTreasureSeeds.Add(save.seed.Trim());
             }
+            // Issued seeds absent from the held inventory have been consumed, but old saves
+            // cannot tell us their category or exploration. Preserve that uncertainty.
+            var legacySeeds = new List<string>(issuedTreasureSeeds); legacySeeds.Sort(StringComparer.Ordinal);
+            foreach (string seed in legacySeeds)
+                if (!treasureMaps.Exists(map => map.Seed == seed) && !usedTreasureMaps.Exists(map => map.Seed == seed))
+                    usedTreasureMaps.Add(new CoreUsedTreasureMapRecord("used:" + seed, seed, string.Empty, string.Empty, false, 0f));
             selectedTreasureMapId = treasureMaps.Exists(map => map.Id == progress.selectedMapId) ? progress.selectedMapId : string.Empty;
             Cargo.Gem = Math.Max(0, progress.gems); Cargo.AncientMaterial = Math.Max(0, progress.ancientMaterials);
             Cargo.Relic = Math.Max(0, progress.relics); Cargo.BlackPearl = Math.Max(0, progress.blackPearls);
@@ -110,32 +198,100 @@ namespace ShatteredSail.Core.Gameplay
             Cargo.Curse = Math.Max(0, progress.curses);
         }
 
+        public int GetIdentifiedTreasureFragments(string rankId) =>
+            rankId != null && identifiedTreasureFragments.TryGetValue(rankId, out int count) ? count : 0;
+
+        private string NextIdentifiedTreasureRank()
+        {
+            string rollSeed = treasureIdentificationSeed + "::" + treasureIdentificationSequence.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            double roll = new Mulberry32Random(SeedHash.Compute("TREASURE-FRAGMENT::" + rollSeed)).NextDouble();
+            bool moonlitEligible = PirateLevel >= CoreTreasureHuntCatalog.MoonlitUnlockLevel;
+            return moonlitEligible && roll >= 1d - MoonlitIdentificationChance ? "moonlit" :
+                PirateLevel >= 3 && roll >= (moonlitEligible ? .40 : .55) ? "gilded" : "weathered";
+        }
+
+        public bool CanIdentifyTreasureFragment(out string reason)
+        {
+            reason = Phase != CoreDemoPhase.Port ? "返回港口后才能鉴定藏宝图碎片。" :
+                PirateLevel < 2 ? "海盗等级达到 2 后解锁碎片鉴定。" :
+                TreasureFragments <= 0 ? "没有未鉴定的藏宝图碎片。" :
+                treasureIdentificationSequence == long.MaxValue ? "碎片鉴定记录已满。" :
+                GetIdentifiedTreasureFragments(NextIdentifiedTreasureRank()) == int.MaxValue ? "该图碎片已满，请先拼合藏宝图。" : string.Empty;
+            return reason.Length == 0;
+        }
+
+        public bool TryIdentifyTreasureFragment(out string reason)
+        {
+            if (!CanIdentifyTreasureFragment(out reason)) return false;
+            string rankId = NextIdentifiedTreasureRank();
+            TreasureFragments--;
+            identifiedTreasureFragments[rankId] = GetIdentifiedTreasureFragments(rankId) + 1;
+            treasureIdentificationSequence++;
+            if (PirateLevel >= CoreTreasureHuntCatalog.MoonlitUnlockLevel)
+                MoonlitPityCount = rankId == "moonlit" ? 0 : Math.Min(CoreTreasureHuntCatalog.MoonlitPityCap, MoonlitPityCount + 1);
+            reason = "已鉴定为「" + CoreTreasureHuntCatalog.FindRank(rankId).Name + "藏宝图」碎片，已归入对应拼图。";
+            AddLog(reason);
+            return true;
+        }
+
+        private string FirstReadyTreasureRank()
+        {
+            foreach (CoreTreasureMapRank rank in CoreTreasureHuntCatalog.Ranks)
+                if (PirateLevel >= rank.UnlockLevel && GetIdentifiedTreasureFragments(rank.Id) >= CoreTreasureHuntCatalog.FragmentCost)
+                    return rank.Id;
+            return null;
+        }
+
         public bool CanCraftTreasureMap(out string reason)
         {
+            string rankId = FirstReadyTreasureRank();
+            if (rankId != null) return CanCraftTreasureMap(rankId, out reason);
             reason = Phase != CoreDemoPhase.Port ? "返回港口后才能拼合藏宝图。" :
                 PirateLevel < 2 ? "海盗等级达到 2 后解锁拼合。" :
                 treasureMaps.Count >= CoreTreasureHuntCatalog.MaxHeldMaps ? "最多持有 6 张未使用藏宝图。" :
-                TreasureFragments < CoreTreasureHuntCatalog.FragmentCost ? "还缺 " + (CoreTreasureHuntCatalog.FragmentCost - TreasureFragments) + " 个藏宝图碎片。" : string.Empty;
+                "请先鉴定碎片，集齐同一张藏宝图的 4 个碎片后再拼合。";
+            return false;
+        }
+
+        public bool CanCraftTreasureMap(string rankId, out string reason)
+        {
+            CoreTreasureMapRank rank = CoreTreasureHuntCatalog.FindRank(rankId);
+            reason = Phase != CoreDemoPhase.Port ? "返回港口后才能拼合藏宝图。" :
+                rank == null ? "未知的藏宝图。" :
+                PirateLevel < rank.UnlockLevel ? "海盗等级达到 " + rank.UnlockLevel + " 后解锁此图。" :
+                treasureMaps.Count >= CoreTreasureHuntCatalog.MaxHeldMaps ? "最多持有 6 张未使用藏宝图。" :
+                GetIdentifiedTreasureFragments(rankId) < CoreTreasureHuntCatalog.FragmentCost ?
+                    "还缺 " + (CoreTreasureHuntCatalog.FragmentCost - GetIdentifiedTreasureFragments(rankId)) + " 个已鉴定的「" + rank.Name + "藏宝图」碎片。" : string.Empty;
             return reason.Length == 0;
         }
 
         public bool TryCraftTreasureMap(string seed, out string reason)
         {
             if (!CanCraftTreasureMap(out reason)) return false;
+            return TryCraftTreasureMapForRank(FirstReadyTreasureRank(), seed, out reason);
+        }
+
+        public bool TryCraftTreasureMapForRank(string rankId, string seed, out string reason)
+        {
+            if (!CanCraftTreasureMap(rankId, out reason)) return false;
             seed = string.IsNullOrWhiteSpace(seed) ? "CACHE-" + Guid.NewGuid().ToString("N") : seed.Trim();
             if (seed.Length > 64) { reason = "藏宝图种子最多 64 个字符。"; return false; }
             if (issuedTreasureSeeds.Contains(seed)) { reason = "该种子的藏宝图已经拼合或使用过。"; return false; }
-            double roll = new Mulberry32Random(SeedHash.Compute("TREASURE-RANK::" + seed)).NextDouble();
-            bool moonlitEligible = PirateLevel >= CoreTreasureHuntCatalog.MoonlitUnlockLevel;
-            string rankId = moonlitEligible && roll >= 1d - MoonlitCraftChance ? "moonlit" :
-                PirateLevel >= 3 && roll >= (moonlitEligible ? .40 : .55) ? "gilded" : "weathered";
-            if (moonlitEligible)
-                MoonlitPityCount = rankId == "moonlit" ? 0 : Math.Min(CoreTreasureHuntCatalog.MoonlitPityCap, MoonlitPityCount + 1);
             var record = new CoreTreasureMapRecord(rankId + ":" + seed, seed, rankId);
-            TreasureFragments -= CoreTreasureHuntCatalog.FragmentCost;
-            treasureMaps.Add(record); issuedTreasureSeeds.Add(seed); selectedTreasureMapId = record.Id;
-            AddLog("拼合「" + record.Name + "」，消耗碎片 4。藏宝图将在成功出航时消耗。");
+            identifiedTreasureFragments[rankId] -= CoreTreasureHuntCatalog.FragmentCost;
+            treasureMaps.Add(record); issuedTreasureSeeds.Add(seed);
+            AddLog("拼合「" + record.Name + "」，消耗同图碎片 4。种子已收入藏图册，可在任意港口装备出航。");
             return true;
+        }
+
+        public bool TrySelectTreasureSeed(string seed, out string reason)
+        {
+            string normalizedSeed = string.IsNullOrWhiteSpace(seed) ? string.Empty : seed.Trim();
+            CoreTreasureMapRecord record = treasureMaps.Find(map => map.Seed == normalizedSeed);
+            reason = Phase != CoreDemoPhase.Port ? "返回港口后才能装备藏宝图。" :
+                record == null ? "该种子不属于持有的未使用藏宝图。" : string.Empty;
+            if (reason.Length > 0) return false;
+            return TrySelectTreasureMap(record.Id, out reason);
         }
 
         public bool TrySelectTreasureMap(string id, out string reason)
@@ -177,7 +333,36 @@ namespace ShatteredSail.Core.Gameplay
             TreasureAdventureCompleted = false; TreasureClues = 0; voyageTreasureFragments = 0;
             if (treasure == null) return;
             treasureMaps.Remove(treasure); selectedTreasureMapId = string.Empty;
+            AddUsedTreasureMap(treasure, Map.DepartureName);
+            UpdateActiveUsedTreasureMapCoverage();
             AddLog("已消耗「" + treasure.Name + "」。集齐 " + treasure.Rank.RequiredClues + " 条线索后开启叉号秘藏；撤离或失败不返还。");
+        }
+
+        private void AddUsedTreasureMap(CoreTreasureMapRecord treasure, string departurePort)
+        {
+            int existingIndex = usedTreasureMaps.FindIndex(map => map.Seed == treasure.Seed);
+            if (existingIndex >= 0 && usedTreasureMaps[existingIndex].Rank != null) return;
+            var record = new CoreUsedTreasureMapRecord(treasure.Id, treasure.Seed, treasure.RankId, departurePort, false, 0f,
+                treasure.MapGeometryVersion);
+            if (existingIndex < 0) usedTreasureMaps.Add(record);
+            else usedTreasureMaps[existingIndex] = record;
+            issuedTreasureSeeds.Add(treasure.Seed);
+        }
+
+        private void UpdateActiveUsedTreasureMapCoverage()
+        {
+            if (!IsTreasureVoyage || ActiveTreasureMap == null) return;
+            AddUsedTreasureMap(ActiveTreasureMap, Map.DepartureName);
+            CoreUsedTreasureMapRecord record = usedTreasureMaps.Find(map => map.Seed == ActiveTreasureMap.Seed);
+            record.RecordExploration(ClampExplorationCoverage(ExplorationCoverage()));
+        }
+
+        /// <summary>Regenerates the entire consumed chart without changing the live voyage or its fog.</summary>
+        public CoreVoyageMap PreviewUsedTreasureMap(CoreUsedTreasureMapRecord record)
+        {
+            if (record == null || record.Rank == null) return null;
+            string port = string.IsNullOrWhiteSpace(record.DeparturePort) ? CurrentPort : record.DeparturePort;
+            return GenerateTreasureMap(new CoreTreasureMapRecord(record.Id, record.Seed, record.RankId, record.MapGeometryVersion), port);
         }
 
         private static CoreRouteDefinition TreasureRoute(CoreTreasureMapRank rank) =>
@@ -190,7 +375,7 @@ namespace ShatteredSail.Core.Gameplay
             CoreTreasureMapRank rank = record.Rank;
             uint hash = SeedHash.Compute("TREASURE::" + record.RankId + "::" + record.Seed);
             var random = new Mulberry32Random(hash ^ 0x7F4A7C15u);
-            var map = new CoreVoyageMap {
+            var map = new CoreVoyageMap(record.MapGeometryVersion) {
                 Seed = record.Seed, Hash = hash, IsTreasureMap = true, Route = TreasureRoute(rank),
                 Departure = new VoyagePoint(8f, 53f), Destination = new VoyagePoint(88f, 20f),
                 DepartureName = port, DestinationName = "秘藏核心",
@@ -322,6 +507,9 @@ namespace ShatteredSail.Core.Gameplay
             if (!progressed) return 0;
             if (GuidedTutorialLeg > 0) return GuidedTutorialLeg == CoreGuidedTutorialContent.BossVoyageLeg ||
                 UsesCombinedGuidedTutorialVoyage && GuidedTutorialBossDefeated ? 80 : 20;
+            // Ordinary empty returns must not turn the minimum sailing step
+            // into repeatable pirate experience. Treasure voyages keep their rules.
+            if (!IsTreasureVoyage && outcome == VoyageOutcome.SafeReturn && completed == 0) return 0;
             // The 20-nautical-mile eligibility threshold stays physical. Experience
             // measures chart exploration instead: the old per-mile coefficient
             // could promote a captain straight to level 6 after one ordinary trip.
@@ -331,6 +519,7 @@ namespace ShatteredSail.Core.Gameplay
         }
         private void CommitTreasureVoyageSettlement()
         {
+            UpdateActiveUsedTreasureMapCoverage();
             TreasureFragments = SumResource(TreasureFragments, Settlement.BankedFragments);
             PirateExperience = SumResource(PirateExperience, Settlement.BankedPirateExperience);
             if (Settlement.TreasureCompleted && ActiveTreasureMap != null && !completedTreasureSeeds.Contains(ActiveTreasureMap.Seed))

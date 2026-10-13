@@ -2,9 +2,9 @@ using System;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
-using ShatteredSail.Content;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -14,63 +14,6 @@ namespace ShatteredSail.Presentation.Tests
 {
     public sealed class MainMenuLayoutTests
     {
-        [TestCase(0)]
-        [TestCase(1)]
-        [TestCase(2)]
-        public void ReadingSizes_SettingsAndHomeKeepTextSizeAndControlsReachable(int level)
-        {
-            int? previous = GameReadability.OverrideLevel;
-            GameReadability.OverrideLevel = level;
-            try
-            {
-                using (var fixture = new MenuFixture(1280, 720))
-                {
-                    fixture.Show("Settings Panel"); fixture.Render();
-                    RectTransform card = fixture.Find<RectTransform>("Settings Card");
-                    foreach (Text label in card.GetComponentsInChildren<Text>(false))
-                    {
-                        if (string.IsNullOrEmpty(label.text)) continue;
-                        Assert.That(label.resizeTextForBestFit, Is.False, label.name);
-                        Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + 1f), label.name);
-                        AssertInsideScreen(fixture.Camera, label.rectTransform, 1280, 720, label.name);
-                    }
-                    foreach (Button button in card.GetComponentsInChildren<Button>())
-                        Assert.That(button.GetComponentInChildren<Text>().fontSize, Is.GreaterThanOrEqualTo(GameReadability.FontSize(22)), button.name);
-                    ReadabilitySelector selector = card.GetComponentInChildren<ReadabilitySelector>();
-                    selector.Buttons[(level + 1) % 3].onClick.Invoke();
-                    Assert.That(selector.Value, Is.EqualTo((level + 1) % 3));
-                    Assert.That(GameReadability.Level, Is.EqualTo(level), "Choosing a draft must not apply it before confirmation.");
-                    fixture.Show("Home"); fixture.Render();
-                    foreach (string name in new[] { "Eyebrow", "English Title", "Save State", "Version" })
-                    {
-                        Text label = fixture.Find<Text>(name);
-                        Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .1f), name);
-                        Assert.That(label.cachedTextGenerator.characterCountVisible, Is.GreaterThanOrEqualTo(label.text.Length), name);
-                    }
-                    Text intro = fixture.Find<Text>("Subtitle");
-                    Assert.That(intro.fontSize, Is.EqualTo(GameReadability.FontSize(22)));
-                    Assert.That(intro.text, Is.EqualTo(SeventhPortLoreCatalog.CurrentIntroduction));
-                    if (level > 0)
-                    {
-                        ScrollRect scroll = intro.GetComponentInParent<ScrollRect>();
-                        Assert.That(scroll, Is.Not.Null);
-                        scroll.verticalNormalizedPosition = 0f; fixture.Render();
-                        Rect thumb = RectIn(scroll.verticalScrollbar.GetComponent<RectTransform>(), scroll.verticalScrollbar.handleRect);
-                        Assert.That(thumb.width, Is.LessThanOrEqualTo(8.1f), "The scrollbar thumb must stay on its narrow rail.");
-                        Assert.That(RectIn(scroll.viewport, intro.rectTransform).yMin,
-                            Is.GreaterThanOrEqualTo(scroll.viewport.rect.yMin - 1f), "The last story line remains reachable.");
-                    }
-                    foreach (string name in new[] { "New Game", "Continue Game", "Settings", "Achievements", "Exit Game" })
-                    {
-                        Button button = fixture.Find<Button>(name);
-                        AssertInsideScreen(fixture.Camera, button.GetComponent<RectTransform>(), 1280, 720, name);
-                        Assert.That(button.transform.Find("Title").GetComponent<Text>().fontSize, Is.EqualTo(GameReadability.FontSize(26)));
-                    }
-                }
-            }
-            finally { GameReadability.OverrideLevel = previous; }
-        }
-
         [TestCase(1920, 1080)]
         [TestCase(1280, 720)]
         [TestCase(1280, 1024)]
@@ -88,24 +31,46 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(fixture.Canvas.renderingDisplaySize.y, Is.EqualTo(height).Within(0.5f));
                     Assert.That(fixture.Canvas.scaleFactor,
                         Is.EqualTo(Mathf.Min(width / 1920f, height / 1080f)).Within(0.001f));
+                    fixture.AssertFixedGameSurface(width, height, state);
                     foreach (Text label in fixture.Host.GetComponentsInChildren<Text>(false))
-                        AssertInsideScreen(fixture.Camera, label.rectTransform, width, height, state + " / " + label.name);
+                        AssertInsideGameSurface(fixture.GameRoot, label.rectTransform, state + " / " + label.name);
                     foreach (Selectable control in fixture.Host.GetComponentsInChildren<Selectable>(false))
-                        AssertInsideScreen(fixture.Camera, control.GetComponent<RectTransform>(), width, height, state + " / " + control.name);
+                        AssertInsideGameSurface(fixture.GameRoot, control.GetComponent<RectTransform>(), state + " / " + control.name);
                 }
                 fixture.Show("Home");
                 fixture.Render();
-                Text introduction = fixture.Find<Text>("Subtitle");
-                Assert.That(introduction.text, Is.EqualTo(SeventhPortLoreCatalog.CurrentIntroduction), "Do not shorten away the story to make it fit.");
-                Assert.That(introduction.resizeTextForBestFit, Is.False, "The paragraph must not shrink back to the unreadable old size.");
-                Assert.That(introduction.fontSize * fixture.Canvas.scaleFactor, Is.GreaterThanOrEqualTo(14f));
-                Assert.That(introduction.preferredHeight, Is.LessThanOrEqualTo(introduction.rectTransform.rect.height + 0.5f),
-                    "The full introduction must fit without vertical truncation.");
-                Assert.That(introduction.cachedTextGenerator.characterCountVisible, Is.GreaterThanOrEqualTo(introduction.text.Length),
-                    "All story characters must survive actual text generation.");
-                Rect intro = RectIn(fixture.Find<RectTransform>("Main Menu Content"), introduction.rectTransform);
-                Rect firstButton = RectIn(fixture.Find<RectTransform>("Main Menu Content"), fixture.Find<Button>("New Game").GetComponent<RectTransform>());
-                Assert.That(intro.yMin - firstButton.yMax, Is.GreaterThanOrEqualTo(12f), "The narrative needs separation from the first action.");
+                RectTransform menu = fixture.Find<RectTransform>("Main Menu Content");
+                foreach (string removedLabel in new[] { "Eyebrow", "Subtitle", "Version", "Save State" })
+                    Assert.That(menu.Find(removedLabel), Is.Null, removedLabel + " must be removed from the main menu.");
+
+                RawImage title = fixture.Find<RawImage>("Game Title Artwork");
+                Texture2D titleTexture = Resources.Load<Texture2D>("MainMenu/main_menu_title_bilingual");
+                Assert.That(titleTexture, Is.Not.Null, "The bilingual title artwork must be available to the menu.");
+                Assert.That(title.texture, Is.SameAs(titleTexture));
+                Assert.That(title.isActiveAndEnabled && title.color.a > 0f, Is.True,
+                    "The title artwork must remain visible on the home screen.");
+                Assert.That(titleTexture.width / (float)titleTexture.height, Is.EqualTo(2f).Within(0.01f));
+                Assert.That(title.rectTransform.rect.width / title.rectTransform.rect.height,
+                    Is.EqualTo(titleTexture.width / (float)titleTexture.height).Within(0.01f),
+                    "The nautical lettering must keep the source artwork's proportions.");
+                AssertInsideGameSurface(fixture.GameRoot, title.rectTransform, "Home / Game Title Artwork");
+
+                string[] actionNames = { "New Game", "Continue Game", "Settings", "Achievements", "Exit Game" };
+                foreach (string name in actionNames)
+                    Assert.That(menu.Find(name + "/Detail"), Is.Null,
+                        name + " must keep a single title without auxiliary menu text.");
+                Rect[] actions = actionNames.Select(name =>
+                    RectIn(menu, fixture.Find<Button>(name).GetComponent<RectTransform>())).ToArray();
+                Rect heading = RectIn(menu, title.rectTransform);
+                Assert.That(heading.yMin - actions[0].yMax, Is.GreaterThanOrEqualTo(12f),
+                    "The large title needs clear separation from the first action.");
+                for (int index = 1; index < actions.Length; index++)
+                    Assert.That(actions[index - 1].yMin - actions[index].yMax, Is.GreaterThan(0f),
+                        actionNames[index - 1] + " must appear above " + actionNames[index] + " with separate hit areas.");
+
+                fixture.Click("Settings");
+                Assert.That(fixture.Find<RectTransform>("Settings Panel").gameObject.activeInHierarchy, Is.True,
+                    "The centered game surface must preserve real pointer interaction at " + width + "x" + height);
             }
         }
 
@@ -133,15 +98,14 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
-        private static void AssertInsideScreen(Camera camera, RectTransform rect, int width, int height, string context)
+        private static void AssertInsideGameSurface(RectTransform surface, RectTransform rect, string context)
         {
-            var corners = new Vector3[4]; rect.GetWorldCorners(corners);
-            foreach (Vector3 corner in corners)
-            {
-                Vector3 p = camera.WorldToScreenPoint(corner);
-                Assert.That(p.x, Is.InRange(-0.75f, width + 0.75f), context + " / x");
-                Assert.That(p.y, Is.InRange(-0.75f, height + 0.75f), context + " / y");
-            }
+            Assert.That(rect.IsChildOf(surface), Is.True, context + " belongs to the fixed game surface");
+            Rect bounds = RectIn(surface, rect);
+            Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(surface.rect.xMin - .75f), context + " left");
+            Assert.That(bounds.xMax, Is.LessThanOrEqualTo(surface.rect.xMax + .75f), context + " right");
+            Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(surface.rect.yMin - .75f), context + " bottom");
+            Assert.That(bounds.yMax, Is.LessThanOrEqualTo(surface.rect.yMax + .75f), context + " top");
         }
 
         private static Rect RectIn(Transform parent, RectTransform child)
@@ -164,11 +128,19 @@ namespace ShatteredSail.Presentation.Tests
 
         private sealed class MenuFixture : IDisposable
         {
+            private static readonly MethodInfo AddRaycaster = typeof(RaycasterManager)
+                .GetMethod("AddRaycaster", BindingFlags.Static | BindingFlags.NonPublic);
+            private static readonly MethodInfo RemoveRaycaster = typeof(RaycasterManager)
+                .GetMethod("RemoveRaycasters", BindingFlags.Static | BindingFlags.NonPublic);
+            private readonly System.Collections.Generic.HashSet<BaseRaycaster> registeredRaycasters =
+                new System.Collections.Generic.HashSet<BaseRaycaster>();
             private readonly Scene scene;
             private readonly RenderTexture target;
             public readonly GameObject Host;
             public readonly Canvas Canvas;
             public readonly Camera Camera;
+            private readonly EventSystem events;
+            public RectTransform GameRoot => Find<RectTransform>(FixedGameViewport.Name);
             public MenuFixture(int width, int height)
             {
                 scene = EditorSceneManager.NewPreviewScene();
@@ -198,6 +170,10 @@ namespace ShatteredSail.Presentation.Tests
                 Canvas.renderMode = RenderMode.ScreenSpaceCamera;
                 Canvas.worldCamera = Camera;
                 Canvas.planeDistance = 100f;
+                var eventHost = new GameObject("Menu Layout Events");
+                eventHost.SetActive(false);
+                SceneManager.MoveGameObjectToScene(eventHost, scene);
+                events = eventHost.AddComponent<EventSystem>();
                 foreach (Transform child in Canvas.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = 31;
             }
             public T Find<T>(string name) where T : Component => Host.GetComponentsInChildren<T>(true).Single(c => c.name == name);
@@ -225,9 +201,114 @@ namespace ShatteredSail.Presentation.Tests
                         RenderPipeline.SubmitRenderRequest(Camera, new RenderPipeline.StandardRequest { destination = target });
                     else Camera.Render();
                 }
+                RegisterRaycasters();
+            }
+            public void AssertFixedGameSurface(int width, int height, string state)
+            {
+                string context = state + " " + width + "x" + height;
+                RectTransform root = GameRoot;
+                Assert.That(root.rect.width, Is.EqualTo(1920f).Within(.01f), context + " logical game width");
+                Assert.That(root.rect.height, Is.EqualTo(1080f).Within(.01f), context + " logical game height");
+                Assert.That(root.GetComponent<RectMask2D>(), Is.Not.Null, context + " game content stays out of the bars");
+                float scale = Mathf.Min(width / 1920f, height / 1080f);
+                var expected = new Rect((width - 1920f * scale) * .5f, (height - 1080f * scale) * .5f,
+                    1920f * scale, 1080f * scale);
+                var corners = new Vector3[4];
+                root.GetWorldCorners(corners);
+                Vector3 lower = Camera.WorldToScreenPoint(corners[0]);
+                Vector3 upper = Camera.WorldToScreenPoint(corners[2]);
+                Assert.That(lower.x, Is.EqualTo(expected.xMin).Within(.1f), context + " centered game left");
+                Assert.That(lower.y, Is.EqualTo(expected.yMin).Within(.1f), context + " centered game bottom");
+                Assert.That(upper.x, Is.EqualTo(expected.xMax).Within(.1f), context + " centered game right");
+                Assert.That(upper.y, Is.EqualTo(expected.yMax).Within(.1f), context + " centered game top");
+                Assert.That((upper.x - lower.x) / (upper.y - lower.y), Is.EqualTo(16f / 9f).Within(.0001f), context);
+                Graphic bars = Find<Graphic>("Game Letterbox");
+                Assert.That(bars.isActiveAndEnabled, Is.True, context);
+                Assert.That(bars.color, Is.EqualTo(Color.black), context + " opaque black bars");
+                Assert.That(bars.raycastTarget, Is.False, context + " bars cannot intercept input");
+                RectTransform canvasRect = Canvas.GetComponent<RectTransform>();
+                Rect barBounds = RectIn(canvasRect, bars.rectTransform);
+                Assert.That(barBounds.xMin, Is.EqualTo(canvasRect.rect.xMin).Within(.01f), context);
+                Assert.That(barBounds.xMax, Is.EqualTo(canvasRect.rect.xMax).Within(.01f), context);
+                Assert.That(barBounds.yMin, Is.EqualTo(canvasRect.rect.yMin).Within(.01f), context);
+                Assert.That(barBounds.yMax, Is.EqualTo(canvasRect.rect.yMax).Within(.01f), context);
+                Transform overlay = Canvas.transform.Find("Game Letterbox Overlay");
+                Assert.That(overlay, Is.Not.Null, context + " black bars must cover independently sorted popups");
+                var probes = new System.Collections.Generic.List<Vector2>();
+                if (expected.xMin > 1f)
+                    foreach (float y in new[] { .1f, .5f, .9f })
+                    {
+                        probes.Add(new Vector2(expected.xMin * .5f, height * y));
+                        probes.Add(new Vector2((expected.xMax + width) * .5f, height * y));
+                    }
+                if (expected.yMin > 1f)
+                    foreach (float x in new[] { .1f, .5f, .9f })
+                    {
+                        probes.Add(new Vector2(width * x, expected.yMin * .5f));
+                        probes.Add(new Vector2(width * x, (expected.yMax + height) * .5f));
+                    }
+                foreach (Vector2 pixel in probes)
+                {
+                    var hits = new System.Collections.Generic.List<RaycastResult>();
+                    var pointer = new PointerEventData(events) { position = pixel };
+                    events.RaycastAll(pointer, hits);
+                    Assert.That(hits, Is.Not.Empty, context + " black bar must block input at " + pixel);
+                    Assert.That(hits[0].gameObject.transform.IsChildOf(overlay), Is.True,
+                        context + " topmost hit must be the black bar at " + pixel);
+                    Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(hits[0].gameObject), Is.Null,
+                        context + " black bar click cannot reach an underlying action");
+                    Assert.That(ExecuteEvents.ExecuteHierarchy(hits[0].gameObject, pointer, ExecuteEvents.pointerClickHandler), Is.Null,
+                        context + " blocked click must not invoke a control");
+                }
+                foreach (float x in new[] { .01f, .5f, .99f })
+                    foreach (float y in new[] { .01f, .5f, .99f })
+                    {
+                        Vector2 pixel = new Vector2(expected.xMin + expected.width * x, expected.yMin + expected.height * y);
+                        var hits = new System.Collections.Generic.List<RaycastResult>();
+                        events.RaycastAll(new PointerEventData(events) { position = pixel }, hits);
+                        Assert.That(hits.Any(hit => hit.gameObject.transform.IsChildOf(overlay)), Is.False,
+                            context + " the black bars must leave game input clear at " + pixel);
+                    }
+                if (probes.Count == 0)
+                {
+                    foreach (Graphic edge in overlay.GetComponentsInChildren<Graphic>().Where(edge => edge.isActiveAndEnabled))
+                        Assert.That(Mathf.Min(Mathf.Abs(edge.rectTransform.rect.width), Mathf.Abs(edge.rectTransform.rect.height)),
+                            Is.LessThanOrEqualTo(.001f), context + " 16:9 must have no visible or interactive black bar");
+                }
+            }
+            public void Click(string name)
+            {
+                Button button = Find<Button>(name);
+                var rect = button.GetComponent<RectTransform>();
+                var pointer = new PointerEventData(events)
+                {
+                    button = PointerEventData.InputButton.Left,
+                    position = RectTransformUtility.WorldToScreenPoint(Camera, rect.TransformPoint(rect.rect.center))
+                };
+                var hits = new System.Collections.Generic.List<RaycastResult>();
+                events.RaycastAll(pointer, hits);
+                Assert.That(hits, Is.Not.Empty, name + " must receive a real screen-space pointer hit");
+                Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(hits[0].gameObject), Is.SameAs(button.gameObject), name);
+                pointer.pointerPressRaycast = pointer.pointerCurrentRaycast = hits[0];
+                ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+            }
+            private void RegisterRaycasters()
+            {
+                // Preview scenes do not run BaseRaycaster's normal OnEnable.
+                // Register actual modules through the same API, preserving the
+                // normal EventSystem raycasts and cross-canvas hit sorting.
+                foreach (BaseRaycaster raycaster in Canvas.GetComponentsInChildren<BaseRaycaster>())
+                {
+                    if (!raycaster.isActiveAndEnabled || RaycasterManager.GetRaycasters().Contains(raycaster)) continue;
+                    AddRaycaster.Invoke(null, new object[] { raycaster });
+                    registeredRaycasters.Add(raycaster);
+                }
             }
             public void Dispose()
             {
+                foreach (BaseRaycaster raycaster in registeredRaycasters)
+                    RemoveRaycaster.Invoke(null, new object[] { raycaster });
+                registeredRaycasters.Clear();
                 if (scene.IsValid()) EditorSceneManager.ClosePreviewScene(scene);
                 target.Release(); Object.DestroyImmediate(target);
             }

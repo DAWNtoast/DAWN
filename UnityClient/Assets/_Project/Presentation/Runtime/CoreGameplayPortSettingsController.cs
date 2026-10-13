@@ -12,7 +12,6 @@ namespace ShatteredSail.Presentation
         private Slider portSettingsMusicSlider;
         private Slider portSettingsEffectsSlider;
         private Toggle portSettingsFullScreenToggle;
-        private ReadabilitySelector portReadabilitySelector;
         private Text portSettingsHint;
         private CanvasGroup portSettingsPageGroup;
         private bool portSettingsCreatedPageGroup;
@@ -26,7 +25,8 @@ namespace ShatteredSail.Presentation
         /// </summary>
         private void OpenPortSettings()
         {
-            if (navigationMotionPlaying || voyageCargoOverlay != null) return;
+            if (BlockIncompleteDeckBuilderNavigation()) return;
+            if (navigationMotionPlaying || voyageCargoOverlay != null || pendingMarketPurchase != null) return;
             if (portSettingsOverlay != null)
             {
                 portSettingsOverlay.SetAsLastSibling();
@@ -47,31 +47,29 @@ namespace ShatteredSail.Presentation
             portSettingsOverlay = CreateStretchPanel("Port Settings Overlay", contentRoot.parent, new Color(0.075f, 0.04f, 0.015f, 0.76f));
             portSettingsOverlay.SetAsLastSibling();
             portSettingsOverlay.gameObject.AddComponent<PortSettingsBackgroundFocusHandler>().OnBackgroundPressed = FocusPortSettingsControl;
-            RectTransform sheet = CreateFixedPanel("Port Settings Sheet", portSettingsOverlay, new Vector2(1040f, 960f), Vector2.zero, Html("#DFC591"));
+            RectTransform sheet = CreateFixedPanel("Port Settings Sheet", portSettingsOverlay, new Vector2(1000f, 800f), Vector2.zero, Html("#DFC591"));
             portSettingsSheetGroup = sheet.gameObject.AddComponent<CanvasGroup>();
             Texture2D parchment = cardWorkshopArt == null ? null : cardWorkshopArt.CollectionParchment;
             if (parchment == null) parchment = Resources.Load<Texture2D>("CardWorkshopV2/deck_builder_parchment_v2");
             if (parchment != null)
             {
-                RawImage paper = CreateRawImage("Port Settings Parchment", sheet, sheet.sizeDelta, Vector2.zero, parchment, new Rect(0f, 0f, 1f, 1f));
+                RawImage paper = CreateRawImage("Port Settings Parchment", sheet, new Vector2(1000f, 800f), Vector2.zero, parchment, new Rect(0f, 0f, 1f, 1f));
                 paper.raycastTarget = false;
             }
 
             Color ink = Html("#322215");
             Color mutedInk = Html("#665037");
-            Text title = CreateText("Port Settings Title", sheet, new Vector2(920f, 80f), new Vector2(0f, 390f), 36, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
-            GameReadability.Heading(title, 36);
+            Text title = CreateText("Port Settings Title", sheet, new Vector2(760f, 48f), new Vector2(0f, 274f), 30, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
             title.text = "船长的航海偏好";
-            Text subtitle = CreateText("Port Settings Subtitle", sheet, new Vector2(920f, 44f), new Vector2(0f, 325f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, mutedInk);
-            GameReadability.Body(subtitle, 18);
+            Text subtitle = CreateText("Port Settings Subtitle", sheet, new Vector2(760f, 28f), new Vector2(0f, 234f), 16, FontStyle.Normal, TextAnchor.MiddleCenter, mutedInk);
             subtitle.text = "应用后生效；关闭放弃调整";
-            Image divider = CreateImage("Port Settings Heading Rule", sheet, new Vector2(920f, 2f), new Vector2(0f, 290f), Html("#967348"));
+            Image divider = CreateImage("Port Settings Heading Rule", sheet, new Vector2(740f, 2f), new Vector2(0f, 206f), Html("#967348"));
             divider.raycastTarget = false;
 
-            portSettingsMasterSlider = CreatePortSettingsSlider(sheet, "Master", "主音量", 224f, PlayerPrefs.GetFloat(MainMenuController.MasterVolumeKey, 0.8f));
-            portSettingsMusicSlider = CreatePortSettingsSlider(sheet, "Music", "背景音乐", 110f, PlayerPrefs.GetFloat(MainMenuController.MusicVolumeKey, 0.7f));
+            portSettingsMasterSlider = CreatePortSettingsSlider(sheet, "Master", "主音量", 160f, PlayerPrefs.GetFloat(MainMenuController.MasterVolumeKey, 0.8f));
+            portSettingsMusicSlider = CreatePortSettingsSlider(sheet, "Music", "背景音乐", 66f, PlayerPrefs.GetFloat(MainMenuController.MusicVolumeKey, 0.7f));
             portSettingsEffectsSlider = CreatePortSettingsSlider(sheet, "Effects",
-                "战斗音效", -4f,
+                "战斗音效", -28f,
                 PlayerPrefs.GetFloat(MainMenuController.EffectsVolumeKey, 0.8f));
             portSettingsMasterSlider.interactable = true;
             portSettingsMusicSlider.interactable = true;
@@ -79,21 +77,18 @@ namespace ShatteredSail.Presentation
             portSettingsFullScreenToggle = CreatePortSettingsToggle(sheet,
                 PlayerPrefs.GetInt(MainMenuController.FullScreenKey, Screen.fullScreen ? 1 : 0) == 1);
 
-            portReadabilitySelector = GameReadability.CreateSelector(sheet, "Port Reading Size", new Vector2(0, -210f), GameReadability.Level);
-            portSettingsHint = CreateText("Port Settings Hint", sheet, new Vector2(920f, 42f), new Vector2(0f, -278f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, mutedInk);
-            GameReadability.Body(portSettingsHint, 18);
+            portSettingsHint = CreateText("Port Settings Hint", sheet, new Vector2(750f, 48f), new Vector2(0f, -213f), 15, FontStyle.Normal, TextAnchor.MiddleCenter, mutedInk);
             portSettingsHint.text = Application.isPlaying
                 ? ""
                 : "编辑预览：不保存设置，不改变音量或全屏。";
-            Button close = CreatePortSettingsButton("Close Port Settings", sheet, new Vector2(-225f, -342f), "关闭 · 不保存", Html("#705136"));
+            Button close = CreatePortSettingsButton("Close Port Settings", sheet, new Vector2(-205f, -283f), "关闭 · 不保存", Html("#705136"));
             close.onClick.AddListener(ClosePortSettings);
-            Button apply = CreatePortSettingsButton("Apply Port Settings", sheet, new Vector2(225f, -342f), "应用设置", Html("#98682D"));
+            Button apply = CreatePortSettingsButton("Apply Port Settings", sheet, new Vector2(205f, -283f), "应用设置", Html("#98682D"));
             apply.onClick.AddListener(ApplyPortSettings);
             Button returnToMenu = BuildReturnToMenuSettingsButton(sheet);
 
             Selectable[] controls = Array.FindAll(new Selectable[]
-                { portSettingsMasterSlider, portSettingsMusicSlider, portSettingsEffectsSlider, portSettingsFullScreenToggle,
-                    portReadabilitySelector.Buttons[0], portReadabilitySelector.Buttons[1], portReadabilitySelector.Buttons[2], apply, close, returnToMenu },
+                { portSettingsMasterSlider, portSettingsMusicSlider, portSettingsEffectsSlider, portSettingsFullScreenToggle, apply, close, returnToMenu },
                 control => control.interactable);
             for (int index = 0; index < controls.Length; index += 1)
             {
@@ -136,12 +131,10 @@ namespace ShatteredSail.Presentation
 
         private Slider CreatePortSettingsSlider(RectTransform parent, string key, string label, float y, float value)
         {
-            Text title = CreateText("Port Settings " + key + " Label", parent, new Vector2(620f, 48f), new Vector2(-45f, y + 22f), 24, FontStyle.Normal, TextAnchor.MiddleLeft, Html("#322215"));
-            GameReadability.Body(title, 24);
+            Text title = CreateText("Port Settings " + key + " Label", parent, new Vector2(620f, 30f), new Vector2(-45f, y + 16f), 20, FontStyle.Bold, TextAnchor.MiddleLeft, Html("#322215"));
             title.text = label;
-            Text percent = CreateText("Port Settings " + key + " Value", parent, new Vector2(120f, 48f), new Vector2(324f, y + 22f), 22, FontStyle.Normal, TextAnchor.MiddleRight, Html("#6C421B"));
-            GameReadability.Body(percent, 22);
-            RectTransform rect = CreateRect("Port Settings " + key + " Slider", parent, new Vector2(720f, 38f), new Vector2(0f, y - 28f));
+            Text percent = CreateText("Port Settings " + key + " Value", parent, new Vector2(90f, 30f), new Vector2(324f, y + 16f), 20, FontStyle.Bold, TextAnchor.MiddleRight, Html("#6C421B"));
+            RectTransform rect = CreateRect("Port Settings " + key + " Slider", parent, new Vector2(720f, 38f), new Vector2(0f, y - 22f));
             Image hitArea = rect.gameObject.AddComponent<Image>();
             hitArea.color = Color.clear;
             Slider slider = rect.gameObject.AddComponent<Slider>();
@@ -167,7 +160,7 @@ namespace ShatteredSail.Presentation
 
         private Toggle CreatePortSettingsToggle(RectTransform parent, bool fullScreen)
         {
-            RectTransform rect = CreateRect("Port Settings Full Screen Toggle", parent, new Vector2(720f, 64f), new Vector2(0f, -118f));
+            RectTransform rect = CreateRect("Port Settings Full Screen Toggle", parent, new Vector2(720f, 54f), new Vector2(0f, -139f));
             Image hitArea = rect.gameObject.AddComponent<Image>();
             hitArea.color = Color.clear;
             Toggle toggle = rect.gameObject.AddComponent<Toggle>();
@@ -177,19 +170,16 @@ namespace ShatteredSail.Presentation
             toggle.targetGraphic = box;
             toggle.graphic = check;
             toggle.SetIsOnWithoutNotify(fullScreen);
-            Text label = CreateText("Port Settings Full Screen Label", rect, new Vector2(410f, 54f), new Vector2(-93f, 0f), 24, FontStyle.Normal, TextAnchor.MiddleLeft, Html("#322215"));
-            GameReadability.Body(label, 24);
+            Text label = CreateText("Port Settings Full Screen Label", rect, new Vector2(410f, 42f), new Vector2(-93f, 0f), 20, FontStyle.Bold, TextAnchor.MiddleLeft, Html("#322215"));
             label.text = "全屏显示";
-            Text detail = CreateText("Port Settings Full Screen Note", rect, new Vector2(270f, 54f), new Vector2(210f, 0f), 18, FontStyle.Normal, TextAnchor.MiddleRight, Html("#665037"));
-            GameReadability.Body(detail, 18);
+            Text detail = CreateText("Port Settings Full Screen Note", rect, new Vector2(270f, 42f), new Vector2(210f, 0f), 14, FontStyle.Normal, TextAnchor.MiddleRight, Html("#665037"));
             detail.text = "";
             return toggle;
         }
 
         private Button CreatePortSettingsButton(string name, RectTransform parent, Vector2 position, string label, Color face)
         {
-            Button button = CreateButton(name, parent, new Vector2(410f, 48f * GameReadability.Scale), position, face, Html("#FFEDBE"), 24);
-            GameReadability.Body(button.GetComponentInChildren<Text>(), 24);
+            Button button = CreateButton(name, parent, new Vector2(330f, 52f), position, face, Html("#FFEDBE"), 19);
             button.GetComponentInChildren<Text>().text = label;
             return button;
         }
@@ -209,18 +199,14 @@ namespace ShatteredSail.Presentation
             float music = Mathf.Clamp01(portSettingsMusicSlider.value);
             float effects = Mathf.Clamp01(portSettingsEffectsSlider.value);
             bool fullScreen = portSettingsFullScreenToggle.isOn;
-            int readingLevel = portReadabilitySelector.Value;
-            bool readingChanged = readingLevel != GameReadability.Level;
             PlayerPrefs.SetFloat(MainMenuController.MasterVolumeKey, master);
             PlayerPrefs.SetFloat(MainMenuController.MusicVolumeKey, music);
             if (SoundEffectsEnabled) PlayerPrefs.SetFloat(MainMenuController.EffectsVolumeKey, effects);
             PlayerPrefs.SetInt(MainMenuController.FullScreenKey, fullScreen ? 1 : 0);
-            PlayerPrefs.SetInt(GameReadability.PreferenceKey, readingLevel);
             PlayerPrefs.Save();
             RefreshMusicVolume();
             if (Screen.fullScreen != fullScreen) Screen.fullScreen = fullScreen;
             ClosePortSettings();
-            if (readingChanged) Render();
         }
 
         private void ClosePortSettings()
@@ -252,7 +238,6 @@ namespace ShatteredSail.Presentation
             portSettingsMusicSlider = null;
             portSettingsEffectsSlider = null;
             portSettingsFullScreenToggle = null;
-            portReadabilitySelector = null;
             portSettingsHint = null;
             portSettingsSheetGroup = null;
             returnMenuButton = null;
@@ -291,3 +276,4 @@ namespace ShatteredSail.Presentation
         }
     }
 }
+

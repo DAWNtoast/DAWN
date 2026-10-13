@@ -18,12 +18,13 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = CreateMixedFlameBattle();
             ExhaustStrongReserve(session);
             Assert.That(session.Battle.PlayerFireRounds, Is.Zero);
-            Assert.That(session.GetBattleCard(Index(WeakFlame)).BurnDamage, Is.EqualTo(5));
+            int weakDamage = session.GetBattleCard(Index(WeakFlame)).BurnDamage;
+            Assert.That(weakDamage, Is.LessThan(session.GetBattleCard(Index(StrongFlame)).BurnDamage));
 
             Play(session, WeakFlame);
 
             Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(2));
-            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(5),
+            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(weakDamage),
                 "An exhausted upgraded reserve must not permanently upgrade a different source.");
         }
 
@@ -38,11 +39,12 @@ namespace ShatteredSail.Core.Tests
             Play(session, WeakFlame);
             Play(session, "card_chain_shot");
 
-            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(5));
-            Assert.That(session.GetEnemyIntent(), Does.Contain("灼烧 5"));
+            int weakDamage = session.GetBattleCard(Index(WeakFlame)).BurnDamage;
+            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(weakDamage));
+            Assert.That(session.GetEnemyIntent(), Does.Contain("灼烧 " + weakDamage));
             int hull = session.Battle.EnemyHull;
             Assert.That(session.EndBattleTurn(), Is.True);
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hull - 5));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hull - weakDamage));
         }
 
         [Test]
@@ -50,12 +52,14 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = CreateMixedFlameBattle();
             ExhaustStrongReserve(session);
+            Assert.That(session.EndBattleTurn(), Is.True);
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(1), "The stronger effect is still alive in the new action window.");
             Play(session, WeakFlame);
             Play(session, "card_chain_shot");
 
-            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(5));
+            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(session.GetBattleCard(Index(WeakFlame)).BurnDamage));
             Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(2));
-            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(10),
+            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(session.GetBattleCard(Index(StrongFlame)).BurnDamage),
                 "A still-burning stronger effect remains active until it expires.");
         }
 
@@ -104,9 +108,9 @@ namespace ShatteredSail.Core.Tests
         private static void ExhaustStrongReserve(CoreVoyageSession session)
         {
             Play(session, StrongFlame);
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(4));
-            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(10));
-            for (int shot = 0; shot < 4; shot++)
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(2), "Upgrade damage does not multiply ammunition reserves.");
+            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(session.GetBattleCard(Index(StrongFlame)).BurnDamage));
+            for (int shot = 0; shot < 2; shot++)
             {
                 // Exhaust ammunition through normal turns, not unlimited same-ID
                 // zero-cost plays. Each hit refreshes the still-live strong burn;
@@ -115,7 +119,7 @@ namespace ShatteredSail.Core.Tests
                 Play(session, "card_chain_shot");
             }
             Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(2));
-            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(10));
+            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(session.GetBattleCard(Index(StrongFlame)).BurnDamage));
         }
 
         private static void Play(CoreVoyageSession session, string id)

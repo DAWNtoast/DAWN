@@ -103,6 +103,7 @@ namespace ShatteredSail.Core.Tests
         public void ASharedSeedPreservesTheExistingOpenRouteSelection(int route)
         {
             var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 1500 });
             string seed = CoreVoyageSession.CreateChartSeed(route, "断锚港", "白贝港");
             Assert.That(session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
             session.StartVoyage();
@@ -378,7 +379,7 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void LegacyDrawImportCarriesCompletedEventsAndBossesWithoutChangingTheOldMap()
         {
-            var session = new CoreVoyageSession(); Refill(session); session.SetSeed("LEGACY-CHART"); session.StartVoyage();
+            var session = new CoreVoyageSession { MapGeometryVersion = 0 }; Refill(session); session.SetSeed("LEGACY-CHART"); session.StartVoyage();
             uint hash = session.Map.Hash; Assert.That(session.CurrentChartSeed, Is.Empty);
             Enter(session, "event_reef_sunken_boat"); Assert.That(session.ResolveChoice(0), Is.True);
             Enter(session, "boss_" + session.Map.Route.Id); Assert.That(session.ResolveChoice(0), Is.True); Win(session, false);

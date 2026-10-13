@@ -13,10 +13,26 @@ namespace ShatteredSail.Presentation
     public static class ProfileSaveJournal
     {
         private const string Format = "ShatteredSail.ProfileSaveJournal";
+        private const int CurrentVersion = 3;
+        private const string VoyageThreeEventsKey = "ShatteredSail.Achievements.Unlocked.v1.voyage_three_events";
+        private static readonly string[] VersionThreeAchievementKeys =
+        {
+            "ShatteredSail.Achievements.Unlocked.v1.voyage_half_chart",
+            "ShatteredSail.Achievements.Unlocked.v1.voyage_event_arrival",
+        };
         private static string directoryOverride;
         private static string activePayload;
         private static string activeDirectory;
+        // Read compatibility only: retired records are validated but never restored.
+        private static readonly string[] RetiredAchievementKeys =
+        {
+            "ShatteredSail.Achievements.Unlocked.v1.dispatch_prepare",
+            "ShatteredSail.Achievements.Unlocked.v1.dispatch_long",
+            "ShatteredSail.Achievements.Unlocked.v1.dispatch_resolved",
+        };
         private static readonly KeySpec[] Specs = BuildSpecs();
+        private static readonly KeySpec[] VersionTwoSpecs = Specs.Where(spec => !VersionThreeAchievementKeys.Contains(spec.Key)).ToArray();
+        private static readonly KeySpec[] VersionOneSpecs = VersionTwoSpecs.Where(spec => spec.Key != VoyageThreeEventsKey).ToArray();
         public static IReadOnlyList<string> ProtectedKeys { get; } = Array.AsReadOnly(Specs.Select(spec => spec.Key).ToArray());
         private static string DirectoryPath => Path.GetFullPath(directoryOverride ?? Path.Combine(Application.persistentDataPath, "ProfileSaveJournal"));
 
@@ -60,7 +76,7 @@ namespace ShatteredSail.Presentation
                 }
                 var record = new Record
                 {
-                    format = Format, version = 1, company = Application.companyName, product = Application.productName,
+                    format = Format, version = CurrentVersion, company = Application.companyName, product = Application.productName,
                     profileScope = PlayerPrefs.GetString(CoreGameplayDemoController.WorldEconomyScopeKey, string.Empty),
                     entries = Specs.Select(Capture).ToArray(),
                 };
@@ -119,8 +135,13 @@ namespace ShatteredSail.Presentation
                 // replaying this loop after another interruption is idempotent.
                 foreach (Entry entry in record.entries)
                 {
-                    RestoreEntry(entry);
+                    if (!RetiredAchievementKeys.Contains(entry.key)) RestoreEntry(entry);
                 }
+                // Old before-images cannot retain unlocks introduced in a
+                // later version and produced by the interrupted save.
+                if (record.version == 1) PlayerPrefs.DeleteKey(VoyageThreeEventsKey);
+                if (record.version < 3)
+                    foreach (string key in VersionThreeAchievementKeys) PlayerPrefs.DeleteKey(key);
                 PlayerPrefs.Save();
                 if (!store.TryClear(out notice)) return false;
                 ForgetActive();
@@ -151,16 +172,28 @@ namespace ShatteredSail.Presentation
             record = null;
             if (!store.TryLoad(out payload, out notice)) return string.IsNullOrEmpty(notice);
             Record candidate = JsonUtility.FromJson<Record>(payload);
-            if (candidate == null || candidate.format != Format || candidate.version != 1 ||
+            if (candidate == null || candidate.format != Format || candidate.version < 1 || candidate.version > CurrentVersion ||
                 candidate.company != Application.companyName || candidate.product != Application.productName ||
                 candidate.profileScope == null || candidate.profileScope != PlayerPrefs.GetString(CoreGameplayDemoController.WorldEconomyScopeKey, string.Empty) ||
-                candidate.entries == null || candidate.entries.Length != Specs.Length)
+                candidate.entries == null)
             {
                 notice = "角色保存日志损坏、版本不兼容或不属于当前角色，已停止读取和覆盖，原文件已保留。";
                 return false;
             }
-            var remaining = new Dictionary<string, string>(Specs.Length, StringComparer.Ordinal);
-            foreach (KeySpec spec in Specs) remaining.Add(spec.Key, spec.Type);
+            KeySpec[] expected = candidate.version == 1 ? VersionOneSpecs : candidate.version == 2 ? VersionTwoSpecs : Specs;
+            bool includesRetired = candidate.version == 1 &&
+                candidate.entries.Length == VersionOneSpecs.Length + RetiredAchievementKeys.Length;
+            // Each version requires its exact manifest. Missing newer keys
+            // never turns a damaged current record into a valid older one.
+            if (candidate.entries.Length != expected.Length && !includesRetired)
+            {
+                notice = "角色保存日志键或类型不完整，已停止恢复，原文件已保留。";
+                return false;
+            }
+            var remaining = new Dictionary<string, string>(expected.Length, StringComparer.Ordinal);
+            foreach (KeySpec spec in expected) remaining.Add(spec.Key, spec.Type);
+            if (includesRetired)
+                foreach (string key in RetiredAchievementKeys) remaining.Add(key, "int");
             foreach (Entry entry in candidate.entries)
             {
                 if (entry == null || entry.key == null || !remaining.TryGetValue(entry.key, out string type) ||
@@ -170,6 +203,11 @@ namespace ShatteredSail.Presentation
                     return false;
                 }
                 remaining.Remove(entry.key);
+            }
+            if (remaining.Count != 0)
+            {
+                notice = "角色保存日志键或类型不完整，已停止恢复，原文件已保留。";
+                return false;
             }
             record = candidate;
             return true;
@@ -239,6 +277,7 @@ namespace ShatteredSail.Presentation
                 CoreGameplayDemoController.CollectionProgressKey, CoreGameplayDemoController.TreasureProgressKey,
                 CoreGameplayDemoController.SeaChartProgressKey, CoreGameplayDemoController.GameClockKey,
                 ProfileGoldPersistence.DecimalKey, CoreGameplayDemoController.CurrentPortKey,
+                CoreGameplayDemoController.LastVoyageExplorationCoverageKey,
                 CoreGameplayDemoController.BattleDeckKey, CoreGameplayDemoController.BattleCardUpgradeKey,
                 CoreGameplayDemoController.SpecialCardExperienceKey, CoreGameplayDemoController.AcquiredSpecialCardsKey,
             }) specs.Add(new KeySpec(key, "string"));
@@ -253,6 +292,7 @@ namespace ShatteredSail.Presentation
             {
                 CoreGameplayDemoController.WarehouseDisplayRecordKey, CoreGameplayDemoController.WarehousePortMigrationKey,
                 CoreGameplayDemoController.ProfileGoldKey, CoreGameplayDemoController.SelectedShipKey,
+                CoreGameplayDemoController.BattleDeckEditedKey,
             }) specs.Add(new KeySpec(key, "int"));
             foreach (string cargo in new[] { "Water", "Food", "Beer", "Medicine", "Wood", "Iron", "Cloth", "Powder", "Cannonballs", "Gold", "Fame" })
                 specs.Add(new KeySpec(CoreGameplayDemoController.CargoKey(cargo), "int"));

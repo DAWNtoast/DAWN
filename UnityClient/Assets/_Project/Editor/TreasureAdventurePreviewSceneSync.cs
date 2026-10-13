@@ -39,21 +39,21 @@ namespace ShatteredSail.Editor
             new FlowSceneSpec("UITavern/UITavern_ContractSigned.unity", "UI_Tavern.unity", "UI_Tavern",
                 GameplayFlowPreviewState.ContractSigned, "Tavern Crew Stage", "Tavern Crew Detail"),
             new FlowSceneSpec("UICardWorkshop/UICardWorkshop_UpgradePreview.unity", "UI_CardWorkshop.unity", "UI_CardWorkshop",
-                GameplayFlowPreviewState.UpgradePreview, "Card Workshop Chest Stage", "Battle Card Upgrade Panel"),
+                GameplayFlowPreviewState.UpgradePreview, "CardWorkshop Background", "Facility Backdrop Tint", "Card Workshop Preview Panel", "Battle Card Upgrade Panel"),
             new FlowSceneSpec("UICardWorkshop/UICardWorkshop_UpgradeComplete.unity", "UI_CardWorkshop.unity", "UI_CardWorkshop",
-                GameplayFlowPreviewState.UpgradeComplete, "Card Workshop Chest Stage", "Battle Card Upgrade Panel"),
+                GameplayFlowPreviewState.UpgradeComplete, "CardWorkshop Background", "Facility Backdrop Tint", "Card Workshop Preview Panel", "Battle Card Upgrade Panel"),
             new FlowSceneSpec("UICardUpgrade/UICardUpgrade_UpgradePreview.unity", "UI_CardWorkshop.unity", "UI_CardWorkshop",
-                GameplayFlowPreviewState.UpgradePreview, "Card Workshop Chest Stage", "Battle Card Upgrade Panel"),
+                GameplayFlowPreviewState.UpgradePreview, "CardWorkshop Background", "Facility Backdrop Tint", "Card Workshop Preview Panel", "Battle Card Upgrade Panel"),
             new FlowSceneSpec("UIVoyageDeparture/UIVoyageDeparture_TreasureReady.unity", "UI_VoyageDeparture.unity", "UI_VoyageDeparture",
                 GameplayFlowPreviewState.TreasureDeparture, "Port Briefing", "Route Selection", "Voyage Setup"),
             new FlowSceneSpec("UINavigation/UINavigation_TreasureExploration.unity", "UI_Navigation.unity", "UI_Navigation",
-                GameplayFlowPreviewState.TreasureNavigation, "Navigation Chart", "Navigation Controls", "Forward View Panel", "Navigation Journal"),
+                GameplayFlowPreviewState.TreasureNavigation, "Navigation Chart", "Navigation Controls", "Forward View Panel"),
             new FlowSceneSpec("UIEncounter/UIEncounter_TreasureClue.unity", "UI_Encounter.unity", "UI_Encounter",
-                GameplayFlowPreviewState.TreasureClue, "Navigation Chart", "Navigation Controls", "Forward View Panel", "Navigation Journal"),
+                GameplayFlowPreviewState.TreasureClue, "Navigation Chart", "Navigation Controls", "Forward View Panel"),
             new FlowSceneSpec("UIEncounter/UIEncounter_TreasureCoreLocked.unity", "UI_Encounter.unity", "UI_Encounter",
-                GameplayFlowPreviewState.TreasureCoreLocked, "Navigation Chart", "Navigation Controls", "Forward View Panel", "Navigation Journal"),
+                GameplayFlowPreviewState.TreasureCoreLocked, "Navigation Chart", "Navigation Controls", "Forward View Panel"),
             new FlowSceneSpec("UIEncounter/UIEncounter_TreasureCoreReady.unity", "UI_Encounter.unity", "UI_Encounter",
-                GameplayFlowPreviewState.TreasureCoreReady, "Navigation Chart", "Navigation Controls", "Forward View Panel", "Navigation Journal"),
+                GameplayFlowPreviewState.TreasureCoreReady, "Navigation Chart", "Navigation Controls", "Forward View Panel"),
             new FlowSceneSpec("UISettlement/UISettlement_TreasureRecovered.unity", "UI_Settlement.unity", "UI_Settlement",
                 GameplayFlowPreviewState.TreasureSettlement, "Settlement Card"),
         };
@@ -67,6 +67,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncTreasureAdventureStatesFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Flow preview synchronization requires edit mode.");
             SyncTreasureStatesFromCommandLine();
@@ -79,6 +80,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureTreasureAdventureFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncTreasureAdventureStatesFromCommandLine();
             UIPreviewSceneAcceptance.CaptureTreasureAdventureFromCommandLine();
         }
@@ -117,12 +119,17 @@ namespace ShatteredSail.Editor
                 if (sourceContent.Find("Port Facility Description") == null)
                     CopyTreasureLayer(null, targetContent, "Port Facility Description");
                 SyncPreviewCanvasScaling(source, destination);
+                if (flow.State == GameplayFlowPreviewState.UpgradePreview || flow.State == GameplayFlowPreviewState.UpgradeComplete)
+                {
+                    CopyTreasureLayer(null, targetContent, "Card Workshop Chest Stage");
+                    CopyTreasureLayer(null, targetContent, "Deck Builder Panel");
+                }
                 foreach (string layer in flow.Layers)
                     CopyTreasureLayer(sourceContent.Find(layer), targetContent, layer);
                 CopyTreasureLayer(sourceContent.Find("Flow Preview Sample Badge"), targetContent, "Flow Preview Sample Badge");
                 UpdateMatchedPreviewText(source.transform, destination.transform);
                 var serialized = new SerializedObject(destination);
-                serialized.FindProperty("editorPreviewScreen").enumValueIndex = (int)source.EditorPreviewScreen;
+                serialized.FindProperty("editorPreviewScreen").intValue = (int)source.EditorPreviewScreen;
                 serialized.FindProperty("editorPreviewFlowState").enumValueIndex = (int)flow.State;
                 serialized.FindProperty("editorPreviewPersistGeneratedUi").boolValue = true;
                 serialized.ApplyModifiedPropertiesWithoutUndo();

@@ -37,7 +37,7 @@ namespace ShatteredSail.Presentation
             coastMaterial = new Material(shader) { name = "Voyage Coast " + Field.GeometryFingerprint, hideFlags = HideFlags.HideAndDontSave };
             coastMaterial.SetTexture("_LandArt", art.GroundDetail != null ? art.GroundDetail : art.TerrainFor(SeaTerrainType.Island));
             coastMaterial.SetTexture("_WaterArt", art.ChartBase);
-            coastMaterial.SetVector("_Grid", new Vector4(CoreVoyageMap.GridColumns, CoreVoyageMap.GridRows, 1f / Field.Width, 1f / Field.Height));
+            coastMaterial.SetVector("_Grid", new Vector4(map.Columns, map.Rows, 1f / Field.Width, 1f / Field.Height));
             coastMaterial.SetVector("_Seed", new Vector4((map.Hash & 1023u) * .0137f, ((map.Hash >> 10) & 1023u) * .0191f, route, 0f));
             material = coastMaterial;
             color = Color.white;

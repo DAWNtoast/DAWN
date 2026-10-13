@@ -1,0 +1,72 @@
+{
+    "generatedUtc": "2026-10-12T06:01:30.9819054Z",
+    "characters": 1,
+    "pages": 4,
+    "expectedPages": 4,
+    "captures": [
+        {
+            "id": "crew_broken_anchor_navigator_lorne",
+            "name": "测潮师 洛恩",
+            "port": "断锚港",
+            "page": "Background",
+            "image": "crew_broken_anchor_navigator_lorne_Background.png",
+            "texture": "Assets/_Project/Resources/PortArt/UI/tavern_crew_dossier_parchment_v1.png",
+            "textureWidth": 1672,
+            "textureHeight": 941,
+            "nameFixed": true,
+            "roleBesideName": true,
+            "textPreserved": true,
+            "noSeparatePortrait": true,
+            "oneIntegratedPainting": false
+        },
+        {
+            "id": "crew_broken_anchor_navigator_lorne",
+            "name": "测潮师 洛恩",
+            "port": "断锚港",
+            "page": "Story",
+            "image": "crew_broken_anchor_navigator_lorne_Story.png",
+            "texture": "Assets/_Project/Resources/PortArt/UI/tavern_crew_dossier_parchment_v1.png",
+            "textureWidth": 1672,
+            "textureHeight": 941,
+            "nameFixed": true,
+            "roleBesideName": true,
+            "textPreserved": true,
+            "noSeparatePortrait": true,
+            "oneIntegratedPainting": false
+        },
+        {
+            "id": "crew_broken_anchor_navigator_lorne",
+            "name": "测潮师 洛恩",
+            "port": "断锚港",
+            "page": "Skills",
+            "image": "crew_broken_anchor_navigator_lorne_Skills.png",
+            "texture": "Assets/_Project/Resources/PortArt/UI/tavern_crew_dossier_parchment_v1.png",
+            "textureWidth": 1672,
+            "textureHeight": 941,
+            "nameFixed": true,
+            "roleBesideName": true,
+            "textPreserved": true,
+            "noSeparatePortrait": true,
+            "oneIntegratedPainting": false
+        },
+        {
+            "id": "crew_broken_anchor_navigator_lorne",
+            "name": "测潮师 洛恩",
+            "port": "断锚港",
+            "page": "SpecialCards",
+            "image": "crew_broken_anchor_navigator_lorne_SpecialCards.png",
+            "texture": "Assets/_Project/Resources/PortArt/UI/tavern_crew_dossier_parchment_v1.png",
+            "textureWidth": 1672,
+            "textureHeight": 941,
+            "nameFixed": true,
+            "roleBesideName": true,
+            "textPreserved": true,
+            "noSeparatePortrait": true,
+            "oneIntegratedPainting": false
+        }
+    ],
+    "errors": [
+        "crew_broken_anchor_navigator_lorne: wrong or missing integrated painting Assets/_Project/Resources/PortArt/UI/tavern_crew_dossier_parchment_v1.png",
+        "crew_broken_anchor_navigator_lorne: insufficient painting resolution"
+    ]
+}

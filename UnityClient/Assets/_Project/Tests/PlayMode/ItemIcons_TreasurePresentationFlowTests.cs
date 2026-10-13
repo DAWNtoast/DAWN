@@ -11,7 +11,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest, Timeout(120000)]
-        public IEnumerator ItemIcons_TreasureWorkshopAndAllMapRanksKeepCraftingAndSelectionReachable()
+        public IEnumerator ItemIcons_TreasureWorkshopAndAllMapRanksKeepCraftingAndBrowsingReachable()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -33,58 +33,53 @@ namespace ShatteredSail.Presentation.Tests
             RawImage fragment = AssertItemIcon("Treasure Craft Fragment Icon",
                 ItemIconCatalog.ForSpecial("treasurefragment"), 32f);
             AssertIconDoesNotCoverRowText(fragment);
-            AssertIconPointerReachesButton(fragment, "Treasure Craft Map", false);
+            AssertIconPointerReachesButton(fragment, "Treasure Identify Fragment", false);
             Assert.That(GameObject.Find("Treasure Workbench Status").GetComponent<Text>().text,
-                Does.Contain("图碎片 8/" + CoreTreasureHuntCatalog.FragmentCost));
+                Does.Contain("未鉴定碎片 8"));
             NavalBattleVisualCapture.Capture(controller, "ItemIcons_07_Treasure_Workshop.png",
                 "工坊碎片小图标；8碎片与三档藏宝图由隔离展示夹具准备，非游玩所得", "Treasure Workbench");
 
             ClickAcceptanceButton("Treasure Open Folio"); yield return null;
             yield return WaitForItemIconView(controller);
-            for (int index = 0; index < ranks.Length; index++)
+            ClickAcceptanceButton("Treasure Browse Unused"); yield return null;
+            yield return WaitForItemIconView(controller);
+            for (int page = 0; page < 2; page++)
             {
-                RawImage map = AssertItemIcon("Treasure Map Rank Icon " + index,
-                    ItemIconCatalog.ForTreasureMap(ranks[index]), 40f);
-                AssertIconDoesNotCoverRowText(map);
-                AssertIconPointerReachesButton(map, "Treasure Map Select " + index, false);
-                Assert.That(ActiveButton("Treasure Map Select " + index).GetComponentInChildren<Text>().text,
-                    Does.Contain(session.TreasureMaps[index].Name));
-            }
-
-            for (int index = 0; index < ranks.Length; index++)
-            {
-                // Click the art itself through the actual raycast path. Its
-                // button must still select the matching detail panel.
-                RawImage map = GameObject.Find("Treasure Map Rank Icon " + index).GetComponent<RawImage>();
-                AssertIconPointerReachesButton(map, "Treasure Map Select " + index, true);
-                yield return null;
-                yield return WaitForItemIconView(controller);
-                RawImage heading = AssertItemIcon("Treasure Map Heading Icon",
-                    ItemIconCatalog.ForTreasureMap(ranks[index]), 40f);
-                AssertIconDoesNotCoverRowText(heading);
-                Assert.That(GameObject.Find("Treasure Map Heading").GetComponent<Text>().text,
-                    Does.StartWith(session.TreasureMaps[index].Name));
+                for (int slot = 0; slot < 2 && page * 2 + slot < ranks.Length; slot++)
+                {
+                    int index = page * 2 + slot;
+                    RawImage map = GameObject.Find("Treasure Map Preview " + slot).GetComponent<RawImage>();
+                    Assert.That(map.texture.name, Is.EqualTo("treasure_chart_" + ranks[index]));
+                    Assert.That(map.raycastTarget, Is.False);
+                    Assert.That(GameObject.Find("Treasure Map Details " + slot).GetComponent<Text>().text,
+                        Does.Contain(session.TreasureMaps[index].Rank.Name).And.Contain(session.TreasureMaps[index].Seed)
+                        .And.Contain("探索度"));
+                }
                 Assert.That(session.TreasureFragments, Is.EqualTo(8));
                 Assert.That(session.TreasureMaps.Count, Is.EqualTo(3));
                 Assert.That(session.SelectedTreasureMap.Id, Is.EqualTo("item-icon-weathered"),
-                    "Browsing map art must not silently equip or consume a map.");
+                    "Turning pages must preserve the equipped map and inventory.");
                 NavalBattleVisualCapture.Capture(controller,
-                    "ItemIcons_" + (8 + index).ToString("00") + "_Treasure_Folio_" + ranks[index] + ".png",
-                    session.TreasureMaps[index].Name + "：列表与详情共用品阶图标，保留原大型路线地图；库存为隔离展示夹具",
+                    "ItemIcons_" + (8 + page).ToString("00") + "_Treasure_Folio_Page_" + page + ".png",
+                    "藏图册每页最多两张海图，三档藏宝图分两页展示；库存为隔离展示夹具",
                     "Treasure Folio");
+                if (page == 0)
+                {
+                    ClickAcceptanceButton("Treasure Folio Next Page"); yield return null;
+                    yield return WaitForItemIconView(controller);
+                }
             }
 
             ClickAcceptanceButton("Treasure Close Folio"); yield return null;
             yield return WaitForItemIconView(controller);
             fragment = GameObject.Find("Treasure Craft Fragment Icon").GetComponent<RawImage>();
-            AssertIconPointerReachesButton(fragment, "Treasure Craft Map", true);
+            AssertIconPointerReachesButton(fragment, "Treasure Identify Fragment", true);
             yield return null;
             yield return WaitForItemIconView(controller);
-            Assert.That(session.TreasureFragments, Is.EqualTo(8 - CoreTreasureHuntCatalog.FragmentCost));
-            Assert.That(session.TreasureMaps.Count, Is.EqualTo(4), "Clicking the icon must craft exactly one map.");
-            Assert.That(session.SelectedTreasureMap, Is.SameAs(session.TreasureMaps.Last()));
-            AssertItemIcon("Treasure Map Heading Icon",
-                ItemIconCatalog.ForTreasureMap(session.SelectedTreasureMap.RankId), 40f);
+            Assert.That(session.TreasureFragments, Is.EqualTo(7));
+            Assert.That(CoreTreasureHuntCatalog.Ranks.Sum(rank => session.GetIdentifiedTreasureFragments(rank.Id)), Is.EqualTo(1));
+            Assert.That(session.TreasureMaps.Count, Is.EqualTo(3), "Identifying does not craft a map.");
+            Assert.That(session.SelectedTreasureMap.Id, Is.EqualTo("item-icon-weathered"));
             LogAssert.NoUnexpectedReceived();
         }
     }

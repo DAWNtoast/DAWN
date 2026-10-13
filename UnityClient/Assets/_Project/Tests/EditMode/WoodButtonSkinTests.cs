@@ -58,9 +58,7 @@ namespace ShatteredSail.Presentation.Tests
 
         [TestCase("Battle Card 0", false)]
         [TestCase("Add Deck Card 0", false)]
-        [TestCase("Dispatch Crew Toggle 0", false)]
         [TestCase("Event Node wreck", false)]
-        [TestCase("Confirm Dispatch Deployment", true)]
         [TestCase("Supply Increase Water", true)]
         public void OnlyActionControlsReceiveBacking(string name, bool expected)
         {
@@ -79,7 +77,6 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase("Voyage Settings", WoodButtonRole.Secondary)]
         [TestCase("Safe Return", WoodButtonRole.Secondary)]
         [TestCase("Confirm New Game", WoodButtonRole.Danger)]
-        [TestCase("Recall Dispatch Job", WoodButtonRole.Danger)]
         public void SemanticRolesDoNotTreatGoldNavigationOrRoutineTurnsAsDanger(string name, WoodButtonRole expected)
         {
             Assert.That(WoodButtonSkin.DefaultRoleFor(name), Is.EqualTo(expected));
@@ -147,8 +144,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(button.colors, Is.EqualTo(before));
         }
 
-        [TestCase(CoreGameplayPreviewScreen.ComponentShopDetail, "Back To Component Shop")]
-        [TestCase(CoreGameplayPreviewScreen.DispatchDeployment, "Confirm Dispatch Deployment")]
+        [TestCase(CoreGameplayPreviewScreen.ComponentShopDetail, "Next Component Dossier Page")]
         [TestCase(CoreGameplayPreviewScreen.Battle, "End Battle Turn")]
         [TestCase(CoreGameplayPreviewScreen.Maintenance, "Confirm Port Investment")]
         [TestCase(CoreGameplayPreviewScreen.Navigation, "Execute Sail")]
@@ -164,19 +160,34 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(button.targetGraphic, Is.TypeOf<Image>());
             Assert.That(((Image)button.targetGraphic).sprite, Is.SameAs(WoodButtonSkin.Face));
             foreach (Button other in host.GetComponentsInChildren<Button>(true).Where(item =>
-                item.name.StartsWith("Battle Card ") || item.name.StartsWith("Tavern Crew ") || item.name.StartsWith("Component Shop Offer ")))
+                item.name.StartsWith("Battle Card ") || item.name.StartsWith("Tavern Crew ")))
                 Assert.That(other.GetComponent<Image>().sprite, Is.Not.SameAs(WoodButtonSkin.Face), other.name);
         }
 
         [Test]
-        public void MainMenuAndItsInactiveDialogsAreSkinned()
+        public void MainMenuTextActionsKeepTransparentHitAreasWhileDialogsUseWood()
         {
             host = new GameObject("Wood Main Menu Test");
             host.AddComponent<MainMenuController>();
             Button[] buttons = host.GetComponentsInChildren<Button>(true);
             Assert.That(buttons.Length, Is.GreaterThan(8));
+            string[] actionNames = { "New Game", "Continue Game", "Settings", "Achievements", "Exit Game" };
+            Button[] menuActions = buttons.Where(button => button.transform.parent.name == "Main Menu Content").ToArray();
+            Assert.That(menuActions.Select(button => button.name), Is.EquivalentTo(actionNames));
             foreach (Button button in buttons)
-                Assert.That(button.GetComponent<Image>().sprite, Is.SameAs(WoodButtonSkin.Face), button.name);
+            {
+                Image background = button.GetComponent<Image>();
+                if (!menuActions.Contains(button))
+                {
+                    Assert.That(background.sprite, Is.SameAs(WoodButtonSkin.Face), button.name);
+                    continue;
+                }
+                Assert.That(background.sprite, Is.Not.SameAs(WoodButtonSkin.Face), button.name);
+                Assert.That(background.color.a, Is.Zero, button.name + " must leave the sunset visible.");
+                Assert.That(background.raycastTarget, Is.True, button.name + " needs its full transparent hit area.");
+                Text title = button.transform.Find("Title").GetComponent<Text>();
+                Assert.That(button.targetGraphic, Is.SameAs(title), button.name + " must show selection feedback on its title.");
+            }
         }
 
         [Test]

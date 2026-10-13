@@ -18,6 +18,9 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             var catalog = new ComponentArtCatalog();
+            // This is an equipment-art fixture, so explicitly create the
+            // catalogue loadout rather than relying on the new bare starter.
+            PopulateBareStarterForFixture(controller);
             ComponentArtEntry[] samples = new[] { ComponentSlot.Bow, ComponentSlot.Cannon }
                 .Select(slot => catalog.Entries.First(entry => entry.Slot == slot && entry.Rarity == ComponentRarity.Rare)).ToArray();
             OwnedShipComponent[] inventory = samples.Select(entry => controller.GrantOwnedComponent(entry, 1f)).ToArray();

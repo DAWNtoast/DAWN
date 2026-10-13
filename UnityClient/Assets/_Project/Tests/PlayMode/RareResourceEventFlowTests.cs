@@ -54,14 +54,35 @@ namespace ShatteredSail.Presentation.Tests
                 if (i == 0) yield return DismissTreasureStoryIfPresent(controller);
                 yield return WaitForEncounterDossierPresentationCompletion();
                 ScrollRect scroll = GameObject.Find("Encounter Decision Viewport").GetComponent<ScrollRect>();
-                Assert.That(scroll.vertical, Is.True);
-                scroll.OnScroll(new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -20) });
-                yield return null;
+                RectTransform[] rows = scroll.content.GetComponentsInChildren<Button>()
+                    .Select(button => button.GetComponent<RectTransform>()).ToArray();
+                float requiredHeight = rows.Sum(row => row.rect.height);
+                for (int row = 1; row < rows.Length; row++)
+                {
+                    float gap = rows[row - 1].anchoredPosition.y - rows[row - 1].rect.height * .5f -
+                        (rows[row].anchoredPosition.y + rows[row].rect.height * .5f);
+                    Assert.That(gap, Is.GreaterThanOrEqualTo(0f), "Event options must not overlap.");
+                    requiredHeight += gap;
+                }
+                bool overflow = requiredHeight > scroll.viewport.rect.height;
+                Assert.That(scroll.vertical, Is.EqualTo(overflow), "Only overflowing decisions need scrolling.");
+                if (overflow)
+                {
+                    scroll.OnScroll(new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -20) });
+                    yield return null;
+                }
                 Button spend = ActiveButton("Encounter Choice 3");
                 Assert.That(spend.interactable, Is.True, ids[i] + ": " + session.ChoiceUnavailableReason(3));
-                Vector3 center = spend.GetComponent<RectTransform>().TransformPoint(Vector3.zero);
-                Assert.That(RectTransformUtility.RectangleContainsScreenPoint(scroll.viewport,
-                    RectTransformUtility.WorldToScreenPoint(null, center)), Is.True, "Fourth option must be reachable in the viewport.");
+                Vector3[] corners = new Vector3[4];
+                spend.GetComponent<RectTransform>().GetWorldCorners(corners);
+                foreach (Vector3 corner in corners)
+                {
+                    Vector3 point = scroll.viewport.InverseTransformPoint(corner);
+                    Assert.That(point.x, Is.InRange(scroll.viewport.rect.xMin - .5f, scroll.viewport.rect.xMax + .5f),
+                        "The entire fourth option must be reachable in the viewport.");
+                    Assert.That(point.y, Is.InRange(scroll.viewport.rect.yMin - .5f, scroll.viewport.rect.yMax + .5f),
+                        "The entire fourth option must be reachable in the viewport.");
+                }
                 NavalBattleVisualCapture.Capture(controller, "RareEvent_" + keys[i] + ".png",
                     "珍稀物品可选事件：" + node.Encounter.Choices[3].Detail, "Encounter Card");
                 ClickAcceptanceButton("Encounter Choice 3");

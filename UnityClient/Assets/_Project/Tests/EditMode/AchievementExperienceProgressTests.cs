@@ -36,13 +36,13 @@ namespace ShatteredSail.Presentation.Tests
         [Test]
         public void ExperienceProgress_ExactMoneyThresholdAndPermanentCompletionDoNotRegress()
         {
-            ProfileGoldPersistence.Save(899.9999m);
+            ProfileGoldPersistence.Save(2499.9999m);
             AchievementProgressView before = ExperienceProgressFor("gold_900");
             Assert.That(before.IsQuantified, Is.True);
-            Assert.That(before.Current, Is.EqualTo(899.9999m));
-            Assert.That(before.Target, Is.EqualTo(900m));
+            Assert.That(before.Current, Is.EqualTo(2499.9999m));
+            Assert.That(before.Target, Is.EqualTo(2500m));
             Assert.That(before.Unlocked, Is.False);
-            ProfileGoldPersistence.Save(900m);
+            ProfileGoldPersistence.Save(2500m);
             Assert.That(ExperienceProgressFor("gold_900").Unlocked, Is.True);
             AchievementCatalog.CaptureProgress();
             ProfileGoldPersistence.Save(2m);
@@ -55,12 +55,12 @@ namespace ShatteredSail.Presentation.Tests
         [Test]
         public void ExperienceProgress_CompositeRequirementsReportTheirActualParts()
         {
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 80);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 120);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 480);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 520);
             var ready = ExperienceProgressFor("cargo_ready");
-            Assert.That(ready.Current, Is.EqualTo(80m));
-            Assert.That(ready.Target, Is.EqualTo(100m));
-            Assert.That(ready.Detail, Is.EqualTo("水 80/100 · 粮 120/100"));
+            Assert.That(ready.Current, Is.EqualTo(480m));
+            Assert.That(ready.Target, Is.EqualTo(500m));
+            Assert.That(ready.Detail, Is.EqualTo("水 480/500 · 粮 520/500"));
             var cargo = ExperienceProgressFor("cargo_all");
             Assert.That(cargo.Current, Is.EqualTo(2m));
             Assert.That(cargo.Target, Is.EqualTo(9m));
@@ -81,7 +81,7 @@ namespace ShatteredSail.Presentation.Tests
             Recruit(crew);
             PlayerPrefs.SetInt(CoreGameplayDemoController.CrewRecruitmentKey(0), 1);
             Assert.That(ExperienceProgressFor("crew_three").Current, Is.EqualTo(1m));
-            Assert.That(ExperienceProgressFor("dispatch_resolved").IsQuantified, Is.False);
+            Assert.That(ExperienceProgressFor("tutorial_recovery").IsQuantified, Is.False);
             Assert.That(ExperienceProgressFor("tutorial_recovery").IsQuantified, Is.False);
         }
 
@@ -89,9 +89,9 @@ namespace ShatteredSail.Presentation.Tests
         public void ExperienceProgress_InvalidBuffersAreRejectedWithoutPartialWrites()
         {
             Assert.Throws<ArgumentNullException>(() => AchievementCatalog.FillProgress(null));
-            Assert.Throws<ArgumentException>(() => AchievementCatalog.FillProgress(new AchievementProgressView[49]));
+            Assert.Throws<ArgumentException>(() => AchievementCatalog.FillProgress(new AchievementProgressView[AchievementCatalog.TotalCount - 1]));
             Assert.Throws<ArgumentNullException>(() => AchievementCatalog.FillCapturedStates(null));
-            Assert.Throws<ArgumentException>(() => AchievementCatalog.FillCapturedStates(new bool[49]));
+            Assert.Throws<ArgumentException>(() => AchievementCatalog.FillCapturedStates(new bool[AchievementCatalog.TotalCount - 1]));
             Assert.That(default(AchievementProgressView).Fraction, Is.Zero);
             Assert.That(AchievementCatalog.PersistenceKeys.Any(PlayerPrefs.HasKey), Is.False);
         }

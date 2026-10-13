@@ -42,6 +42,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncDepartureProvisionStatesFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Departure provisioning previews require edit mode.");
             foreach (string reference in DepartureProvisionReferencePaths)
@@ -54,12 +55,14 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureDepartureProvisionsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncDepartureProvisionStatesFromCommandLine();
             UIPreviewSceneAcceptance.CaptureDepartureProvisionsFromCommandLine();
         }
 
         public static void SyncAndCaptureTradeEconomyFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Trade economy previews require edit mode.");
             foreach (string reference in DepartureProvisionReferencePaths)
@@ -76,6 +79,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureRareInvestmentFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Investment previews require stopped edit mode.");
             foreach (string reference in RareInvestmentReferencePaths)
@@ -143,8 +147,7 @@ namespace ShatteredSail.Editor
                     // back to the setup, where provisioning is available in the game.
                     if (targetSetup.Find("Departure Crew Configuration Title") == null)
                     {
-                        if (sourceSetup.Find("Departure Buy Provisions") == null ||
-                            sourceSetup.Find("Departure Provision Quote") == null)
+                        if (sourceSetup.Find("Departure Buy Provisions") == null)
                             throw new InvalidOperationException("Runtime provisioning controls are missing in " + path);
                         targetSetup.GetComponent<RectTransform>().sizeDelta = sourceSetup.GetComponent<RectTransform>().sizeDelta;
                         foreach (string control in DepartureProvisionControls)

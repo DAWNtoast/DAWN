@@ -5,6 +5,11 @@ namespace ShatteredSail.Editor
 {
     public sealed class DesktopBackgroundCompressionPostprocessor : AssetPostprocessor
     {
+        // Rebuild old importer artifacts after correcting the Sprite-background
+        // exclusion. A selected BC7 enum alone cannot prove the cached texture
+        // was actually encoded with the updated policy.
+        public override uint GetVersion() => 1;
+
         private bool Eligible(TextureImporter importer) => DesktopBackgroundCompressionPolicy.IsEligible(
             assetPath, context.selectedBuildTarget, importer.isReadable, importer.textureType, importer.textureShape) &&
             TextureImporter.IsPlatformTextureFormatValid(importer.textureType, context.selectedBuildTarget, TextureImporterFormat.BC7);

@@ -50,16 +50,11 @@ namespace ShatteredSail.Presentation
         {
             if (crew == null || !IsCrewRecruited(crew)) return false;
             if (!Application.isPlaying || editorPreviewBuilding) return true;
-            if (PlayerPrefs.GetInt(DispatchMissionKey, -1) >= 0)
-                foreach (string id in PlayerPrefs.GetString(DispatchCrewIdentityKey, string.Empty).Split(','))
-                    if (string.Equals(id.Trim(), crew.Id, StringComparison.Ordinal)) return false;
             // Older saves (and saves written before the regional roster gained
             // location records) do not have a location key. A recruited active
             // identity is the crew member represented by the captain's current
             // roster, so keep it available only while its location is unknown.
-            // An explicit port or at-sea marker must be respected. A separately
-            // recruited regional identity remain aboard when another identity of
-            // the same profession is sent on dispatch.
+            // An explicit port or at-sea marker must be respected.
             if (!PlayerPrefs.HasKey(CrewLocationKey(crew.Id))) return true;
             string location = CrewLocation(crew);
             if (string.Equals(location, CrewAtSeaLocation, StringComparison.Ordinal)) return false;
@@ -180,6 +175,76 @@ namespace ShatteredSail.Presentation
             selectedDepartureSpecialCrew.Clear();
         }
 
+        private string DepartureOrdinaryCrewLabel() =>
+            "普通船员 " + selectedDepartureOrdinaryCrew + "/" + session.CrewCountValue +
+            "　特殊 " + selectedDepartureSpecialCrew.Count + "（普通上限 " +
+            Math.Max(0, session.CrewCountValue - selectedDepartureSpecialCrew.Count) + "）";
+
+        private string DepartureCrewSpeedSummary()
+        {
+            float penalty = session.GetCrewSpeedPenalty(selectedDepartureOrdinaryCrew);
+            float bonus = session.GetCrewSpeedBonus(selectedDepartureOrdinaryCrew);
+            string effect = penalty > 0f ? "航速 -" + penalty.ToString("0.0") + " 节 · 战斗 -" +
+                ((session.MinimumOrdinaryCrew - selectedDepartureOrdinaryCrew) * 2) :
+                bonus > 0f ? "航速 +" + bonus.ToString("0.0") + " 节" : "无船员航速增减";
+            return "航速 " + session.GetEffectiveSpeedKnots(selectedDepartureOrdinaryCrew).ToString("0.0") +
+                " 节 · " + effect;
+        }
+
+        private string DepartureCrewSpeedHint() =>
+            (session.GetCrewSpeedPenalty(selectedDepartureOrdinaryCrew) > 0f ? "普通船员不足半载 · " : "已达半载 · ") +
+            DepartureCrewSpeedSummary() +
+            "\n普通不足半编每缺 1 人 -0.8 节；严格超 80% 才加速，满编 +10%。";
+
+        private void BuildDepartureOrdinaryCrewControls(RectTransform panel)
+        {
+            EnsureDepartureCrewSelection();
+            int revision = ++departureCrewViewRevision;
+            CoreVoyageSession owner = session;
+            string port = session.CurrentPort;
+            int ship = session.SelectedShipIndex;
+            int chartRevision = departureChartRevision;
+            Text count = CreateText("DepartureOrdinaryCrewCount", panel, new Vector2(436f, 32f),
+                new Vector2(0f, 148f), 17, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
+            count.text = DepartureOrdinaryCrewLabel();
+            count.raycastTarget = false;
+            Text speed = CreateText("DepartureCrewSpeedPreview", panel, new Vector2(552f, 28f),
+                new Vector2(0f, 114f), 15, FontStyle.Normal, TextAnchor.MiddleCenter,
+                session.GetCrewSpeedPenalty(selectedDepartureOrdinaryCrew) > 0f ? Coral : MutedInk);
+            speed.text = DepartureCrewSpeedSummary();
+            speed.raycastTarget = false;
+
+            for (int direction = -1; direction <= 1; direction += 2)
+            {
+                int change = direction;
+                Button adjust = CreateButton(direction < 0 ? "DepartureOrdinaryCrewDecreaseButton" : "DepartureOrdinaryCrewIncreaseButton",
+                    panel, new Vector2(40f, 32f), new Vector2(direction * 252f, 148f), PanelRaised, Gold, 21);
+                adjust.GetComponentInChildren<Text>().text = direction < 0 ? "−" : "+";
+                int maximum = Math.Max(0, session.CrewCountValue - selectedDepartureSpecialCrew.Count);
+                adjust.interactable = Application.isPlaying && !editorPreviewBuilding &&
+                    (direction < 0 ? selectedDepartureOrdinaryCrew > 0 : selectedDepartureOrdinaryCrew < maximum);
+                adjust.onClick.AddListener(() =>
+                {
+                    if (!IsCurrentDepartureOrdinaryCrewControl(adjust, panel, owner, port, ship, revision, chartRevision)) return;
+                    EnsureDepartureCrewSelection();
+                    int currentMaximum = Math.Max(0, session.CrewCountValue - selectedDepartureSpecialCrew.Count);
+                    int next = Mathf.Clamp(selectedDepartureOrdinaryCrew + change, 0, currentMaximum);
+                    if (next == selectedDepartureOrdinaryCrew) return;
+                    CommitDepartureSeed(panel);
+                    selectedDepartureOrdinaryCrew = next;
+                    ApplyDepartureCrewConfiguration();
+                    Render();
+                });
+            }
+        }
+
+        private bool IsCurrentDepartureOrdinaryCrewControl(Button control, RectTransform panel,
+            CoreVoyageSession owner, string port, int ship, int revision, int chartRevision) =>
+            Application.isPlaying && !editorPreviewBuilding && control != null && control.gameObject.activeInHierarchy &&
+            control.interactable && IsDepartureShipView() && !departureCrewConfigurationOpen &&
+            ReferenceEquals(session, owner) && session.CurrentPort == port && session.SelectedShipIndex == ship &&
+            departureCrewViewRevision == revision && DepartureChartViewCurrent(panel, owner, chartRevision);
+
         private void BuildDepartureCrewConfiguration(RectTransform setupPanel)
         {
             EnsureDepartureCrewSelection();
@@ -193,20 +258,15 @@ namespace ShatteredSail.Presentation
 
             Text ordinary = CreateText("Departure Ordinary Crew Label", setupPanel, new Vector2(540f, 40f),
                 new Vector2(0f, 205f), 17, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
-            ordinary.text = "普通船员　" + selectedDepartureOrdinaryCrew + "/" + session.CrewCountValue +
-                "　（半载要求 " + session.MinimumOrdinaryCrew + "）";
+            ordinary.text = DepartureOrdinaryCrewLabel();
             Slider ordinarySlider = CreateSlider("Departure Ordinary Crew Slider", setupPanel,
                 new Vector2(470f, 30f), new Vector2(-12f, 160f), 0f, Math.Max(0, session.CrewCountValue - selectedDepartureSpecialCrew.Count), selectedDepartureOrdinaryCrew);
             ordinarySlider.wholeNumbers = true;
 
-            bool shortStaffed = selectedDepartureOrdinaryCrew < session.MinimumOrdinaryCrew;
-            float configuredSpeedPenalty = shortStaffed ? (session.MinimumOrdinaryCrew - selectedDepartureOrdinaryCrew) * 0.8f : 0f;
-            int configuredCombatPenalty = shortStaffed ? (session.MinimumOrdinaryCrew - selectedDepartureOrdinaryCrew) * 2 : 0;
+            bool shortStaffed = session.GetCrewSpeedPenalty(selectedDepartureOrdinaryCrew) > 0f;
             Text ordinaryHint = CreateText("Departure Ordinary Crew Hint", setupPanel, new Vector2(540f, 44f),
                 new Vector2(0f, 116f), 13, FontStyle.Bold, TextAnchor.MiddleLeft, shortStaffed ? Coral : MutedInk);
-            ordinaryHint.text = shortStaffed
-                ? "普通船员不足半载：航速 -" + configuredSpeedPenalty.ToString("0.0") + " 节，战斗属性 -" + configuredCombatPenalty
-                : "已达半载要求，航速与战斗无减益。";
+            ordinaryHint.text = DepartureCrewSpeedHint();
 
             Text special = CreateText("Departure Special Crew Heading", setupPanel, new Vector2(540f, 34f),
                 new Vector2(0f, 78f), 16, FontStyle.Bold, TextAnchor.MiddleLeft, Gold);
@@ -275,27 +335,24 @@ namespace ShatteredSail.Presentation
                     Math.Max(0, session.CrewCountValue - selectedDepartureSpecialCrew.Count));
                 ordinarySlider.SetValueWithoutNotify(selectedDepartureOrdinaryCrew);
                 ApplyDepartureCrewConfiguration();
-                ordinary.text = "普通船员　" + selectedDepartureOrdinaryCrew + "/" + session.CrewCountValue +
-                    "　（半载要求 " + session.MinimumOrdinaryCrew + "）";
-                bool understaffed = selectedDepartureOrdinaryCrew < session.MinimumOrdinaryCrew;
-                ordinaryHint.color = understaffed ? Coral : MutedInk;
-                ordinaryHint.text = understaffed
-                    ? "普通船员不足半载：航速 -" + ((session.MinimumOrdinaryCrew - selectedDepartureOrdinaryCrew) * .8f).ToString("0.0") +
-                        " 节，战斗属性 -" + ((session.MinimumOrdinaryCrew - selectedDepartureOrdinaryCrew) * 2)
-                    : "已达半载要求，航速与战斗无减益。";
+                ordinary.text = DepartureOrdinaryCrewLabel();
+                bool understaffed = session.GetCrewSpeedPenalty(selectedDepartureOrdinaryCrew) > 0f;
+                ordinaryHint.color = NauticalSurfaceSkin.ReadableTextColor(ordinaryHint.transform.parent,
+                    understaffed ? Coral : MutedInk);
+                ordinaryHint.text = DepartureCrewSpeedHint();
                 total.text = "本次出航编组　普通 " + selectedDepartureOrdinaryCrew + "　+　特殊 " +
                     selectedDepartureSpecialCrew.Count + "　/　船只最大承载 " + session.CrewCountValue;
                 if (headerStatus != null) headerStatus.text = BuildHeaderStatus();
-                DepartureLayout.ApplySetup(setupPanel);
             });
 
             Button back = CreateButton("Back To Voyage Setup", setupPanel, new Vector2(240f, 48f),
                 new Vector2(-135f, -220f), PanelRaised, Ink, 15);
-            back.GetComponentInChildren<Text>().text = "返回出航配置";
+            back.GetComponentInChildren<Text>().text = HasWorkshopSpecialCardReturn ? "返回特殊卡牌" : "返回出航配置";
             back.onClick.AddListener(() =>
             {
                 if (!IsCurrentDepartureCrewControl(back, owner, port, ship, revision)) return;
                 departureCrewConfigurationOpen = false;
+                if (TryReturnToWorkshopSpecialCards()) return;
                 Render();
             });
             Button confirm = CreateButton("Confirm Departure Crew", setupPanel, new Vector2(240f, 48f),
@@ -309,6 +366,7 @@ namespace ShatteredSail.Presentation
                 portNotice = session.IsShortStaffed
                     ? "编组已保存；普通船员不足半载，航速与战斗减益。"
                     : "船员配置已保存，特殊船员将随船抵达目的港。";
+                if (TryReturnToWorkshopSpecialCards()) return;
                 Render();
             });
         }
@@ -316,7 +374,7 @@ namespace ShatteredSail.Presentation
         private bool IsCurrentDepartureCrewControl(Component control, CoreVoyageSession owner, string port, int ship, int revision) =>
             Application.isPlaying && !editorPreviewBuilding && control != null && control.gameObject.activeInHierarchy &&
             ReferenceEquals(session, owner) && session != null && session.Phase == CoreDemoPhase.Port &&
-            activePortFacility == 8 && departureCrewConfigurationOpen && session.CurrentPort == port &&
+            activePortFacility == PortFacilityArtCatalog.VoyageFacilityIndex && departureCrewConfigurationOpen && session.CurrentPort == port &&
             session.SelectedShipIndex == ship && departureCrewViewRevision == revision;
 
         private void MarkCrewAtCurrentPortOnRecruitment(CrewVariantDefinition crew)

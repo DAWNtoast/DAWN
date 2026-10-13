@@ -59,23 +59,28 @@ namespace ShatteredSail.Core.Tests
         private static int ExpectedHand(CoreVoyageSession session) =>
             session.Battle.Hand.FindIndex(i => session.GetBattleCard(i).Id == session.GuidedBossExpectedCardId);
 
-        [TestCase(0, 0)] [TestCase(5, 3)]
-        public void AuthoredBattle_ThreeNavalAndThreeBoardingTurnsWinWithExactDamageAndPreservePlayerLoadout(int supplies, int upgrade)
+        [TestCase(0, 0)] [TestCase(1, 0)] [TestCase(2, 3)] [TestCase(5, 3)]
+        public void AuthoredBattle_UnscaledSecondBoardingAttackWinsWithExactCostsAndPreservesPlayerLoadout(int supplies, int upgrade)
         {
             CoreVoyageSession session = StartBoss(supplies, upgrade);
             Assert.That(session.Hull, Is.EqualTo(session.MaxHull), "The lesson repairs prior voyage attrition at entry.");
             int hull = session.Hull;
             CoreBattleState battle = session.Battle;
+            int boardingHealthAfterRam = InitialBoardingHealth(battle.PlayerMaxBoardingHealth,
+                battle.NavalStartPlayerHull, hull - 10, session.MaxHull);
+            // Reduced naval guard lets one hull damage through, then ram costs nine.
+            // Two unscaled eight-damage thrusts defeat the ten-health boarding enemy.
+            // The intervening guard and medicine lesson now executes with its exact costs.
             Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
             Assert.That(battle.DistanceMeters, Is.EqualTo(400));
             Assert.That(battle.PlayerOrdinaryCrew, Is.EqualTo(10));
             Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(60));
-            Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(9));
-            Assert.That(session.Cargo.Powder, Is.EqualTo(1));
+            Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(12));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(2));
             Assert.That(session.Cargo.Cannonballs, Is.EqualTo(1));
             Assert.That(session.Cargo.Medicine, Is.EqualTo(1));
             Assert.That(session.GetBattleCard(ExpectedHandLibrary(session)).UpgradeLevel, Is.Zero);
-            for (int i = 1; i <= (int)GuidedBossBattleStep.BoardingAttack3; i++)
+            for (int i = 1; i <= (int)GuidedBossBattleStep.BoardingAttack2; i++)
             {
                 Assert.That(session.GuidedBossStep, Is.EqualTo((GuidedBossBattleStep)i));
                 switch (session.GuidedBossStep)
@@ -85,36 +90,68 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(session.GetEnemyIntent(), Does.Contain("靠近 100 米").And.Contain("格挡设为 3")); break;
                     case GuidedBossBattleStep.NavalRangeAttempt:
                         Assert.That(battle.DistanceMeters, Is.EqualTo(430)); Assert.That(battle.EnemyBlock, Is.EqualTo(3)); break;
-                    case GuidedBossBattleStep.NavalFire: Assert.That(battle.DistanceMeters, Is.EqualTo(280)); break;
+                    case GuidedBossBattleStep.NavalFire:
+                        Assert.That(battle.DistanceMeters, Is.EqualTo(280));
+                        Assert.That(session.Cargo.Powder, Is.EqualTo(1), "Loading spent one charge; firing still needs its own charge."); break;
                     case GuidedBossBattleStep.NavalEndTurn2:
-                        Assert.That(battle.EnemyHull, Is.EqualTo(43)); Assert.That(battle.PlayerBlock, Is.EqualTo(3));
+                        Assert.That(battle.EnemyHull, Is.EqualTo(40)); Assert.That(battle.PlayerBlock, Is.EqualTo(2));
                         Assert.That(session.GetEnemyIntent(), Does.Contain("靠近 180 米").And.Contain("伤害 3")); break;
                     case GuidedBossBattleStep.NavalLoadAttempt:
-                        Assert.That(battle.DistanceMeters, Is.EqualTo(100)); Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(3));
-                        Assert.That(session.Hull, Is.EqualTo(hull)); break;
+                        Assert.That(battle.DistanceMeters, Is.EqualTo(100)); Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(2));
+                        Assert.That(session.Cargo.Powder, Is.Zero, "Loading and firing consumed the two training charges.");
+                        Assert.That(session.Hull, Is.EqualTo(hull - 1)); break;
                     case GuidedBossBattleStep.NavalApproach3:
                         Assert.That(battle.DistanceMeters, Is.EqualTo(40)); Assert.That(battle.Alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside)); break;
+                    case GuidedBossBattleStep.NavalRam:
+                        Assert.That(battle.DistanceMeters, Is.EqualTo(30), "The final approach preserves room for the ram.");
+                        Assert.That(battle.PlayerMovingTowardEnemy, Is.True);
+                        Assert.That(battle.Alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside));
+                        Assert.That(battle.Energy, Is.EqualTo(1));
+                        Assert.That(session.CanRam(out string ramReason), Is.True, ramReason);
+                        Assert.That(session.GetEnemyIntent(), Does.Not.Contain("靠近"), "The enemy also holds at the minimum gap.");
+                        break;
                     case GuidedBossBattleStep.BoardingAttack1:
                         Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Boarding)); Assert.That(battle.PhaseTurn, Is.EqualTo(1));
-                        Assert.That(session.Hull, Is.EqualTo(hull - 9)); Assert.That(battle.EnemyHull, Is.EqualTo(30)); break;
+                        Assert.That(session.Hull, Is.EqualTo(hull - 10)); Assert.That(battle.EnemyHull, Is.EqualTo(27));
+                        Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(boardingHealthAfterRam));
+                        Assert.That(session.GetBattleCardEffects(ExpectedHandLibrary(session), NavalBattleStage.Boarding).Damage, Is.EqualTo(8));
+                        Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(10)); break;
+                    case GuidedBossBattleStep.BoardingGuard1:
+                        Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(2)); break;
+                    case GuidedBossBattleStep.BoardingEndTurn1:
+                        Assert.That(battle.PlayerBlock, Is.EqualTo(4)); break;
                     case GuidedBossBattleStep.BoardingHeal:
-                        Assert.That(battle.PhaseTurn, Is.EqualTo(2)); Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(56));
-                        Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(6)); break;
+                        Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(boardingHealthAfterRam - 3));
+                        Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(4));
+                        Assert.That(session.GetBattleCardEffects(ExpectedHandLibrary(session), NavalBattleStage.Boarding).Repair, Is.EqualTo(6));
+                        Assert.That(session.Cargo.Medicine, Is.EqualTo(1)); break;
                     case GuidedBossBattleStep.BoardingAttack2:
-                        Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(60)); Assert.That(session.Cargo.Medicine, Is.Zero); break;
-                    case GuidedBossBattleStep.BoardingAttack3:
-                        Assert.That(battle.PhaseTurn, Is.EqualTo(3)); Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(3));
-                        Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(60)); Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(3)); break;
+                        Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(boardingHealthAfterRam + 3));
+                        Assert.That(session.Cargo.Medicine, Is.Zero);
+                        Assert.That(session.GetBattleCardEffects(ExpectedHandLibrary(session), NavalBattleStage.Boarding).Damage, Is.EqualTo(8));
+                        Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(2)); break;
                 }
+                GuidedBossBattleStep stepBefore = session.GuidedBossStep;
+                int powderBefore = session.Cargo.Powder, ballsBefore = session.Cargo.Cannonballs, medicineBefore = session.Cargo.Medicine;
                 Advance(session);
+                if (session.Phase == CoreDemoPhase.Battle)
+                {
+                    Assert.That(session.Cargo.Powder, Is.EqualTo(powderBefore -
+                        (stepBefore == GuidedBossBattleStep.NavalLoad || stepBefore == GuidedBossBattleStep.NavalFire ? 1 : 0)), stepBefore.ToString());
+                    Assert.That(session.Cargo.Cannonballs, Is.EqualTo(ballsBefore -
+                        (stepBefore == GuidedBossBattleStep.NavalFire ? 1 : 0)), stepBefore.ToString());
+                    Assert.That(session.Cargo.Medicine, Is.EqualTo(medicineBefore -
+                        (stepBefore == GuidedBossBattleStep.BoardingHeal ? 1 : 0)), stepBefore.ToString());
+                }
             }
-            Assert.That(session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.Complete));
+            Assert.That(session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.BoardingGuard2), "The second thrust is lethal after the guard and healing lesson.");
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(session.GuidedTutorialBossDefeated, Is.True);
+            Assert.That(battle.EnemyBoardingHealth, Is.Zero, "The final authored thrust clamps lethal damage at zero.");
             Assert.That(session.VoyageTreasureFragments, Is.EqualTo(1));
-            Assert.That(session.Cargo.Powder, Is.EqualTo(Math.Max(0, supplies - 1)));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(Math.Max(0, supplies - 2)));
             Assert.That(session.Cargo.Cannonballs, Is.EqualTo(Math.Max(0, supplies - 1)));
-            Assert.That(session.Cargo.Medicine, Is.EqualTo(Math.Max(0, supplies - 1)));
+            Assert.That(session.Cargo.Medicine, Is.EqualTo(Math.Max(0, supplies - 1)), "The healing lesson spends exactly one medicine before the second thrust wins.");
             int cannon = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).Single(i => CoreVoyageSession.CardLibrary[i].Id == "card_chain_shot");
             Assert.That(session.GetBattleCard(cannon).UpgradeLevel, Is.EqualTo(upgrade), "The tutorial never overwrites owned upgrades.");
             Assert.That(session.SafeReturn(), Is.True);
@@ -126,6 +163,11 @@ namespace ShatteredSail.Core.Tests
         }
 
         private static int ExpectedHandLibrary(CoreVoyageSession session) => session.Battle.Hand[ExpectedHand(session)];
+
+        private static int InitialBoardingHealth(int maxBoardingHealth, int startHull, int currentHull, int maxHull)
+        {
+            return (int)Math.Ceiling(maxBoardingHealth * (1d - Math.Max(0, startHull - currentHull) / (2d * maxHull)));
+        }
 
         [Test]
         public void WrongActionsAndPureQueriesNeverAdvance_OnlyTheTwoObservedFailuresDo()
@@ -164,17 +206,18 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GuidedTutorialBossDefeated, Is.True);
         }
 
-        [Test]
-        public void FailureRestoresOnlyOwnedSupplyReserveWithoutLeakingTemporaryTrainingSupplies()
+        [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(5)]
+        public void FailureRestoresOnlyOwnedSupplyReserveWithoutLeakingTemporaryTrainingSupplies(int supplies)
         {
-            CoreVoyageSession session = StartBoss(5);
+            CoreVoyageSession session = StartBoss(supplies);
             while (session.GuidedBossStep != GuidedBossBattleStep.NavalRam) Advance(session);
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, 1);
             Assert.That(session.TryRam(), Is.True);
             Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
             Assert.That(session.Hull, Is.Zero);
-            Assert.That(session.Cargo.Powder, Is.EqualTo(4)); Assert.That(session.Cargo.Cannonballs, Is.EqualTo(4));
-            Assert.That(session.Cargo.Medicine, Is.EqualTo(5), "Unspent owned medicine is restored.");
+            Assert.That(session.Cargo.Powder, Is.EqualTo(Math.Max(0, supplies - 2)));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(Math.Max(0, supplies - 1)));
+            Assert.That(session.Cargo.Medicine, Is.EqualTo(supplies), "Unspent owned medicine is restored without retaining borrowed training medicine.");
             Assert.That(session.VoyageTreasureFragments, Is.Zero);
             Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(80), "The legacy leg-3 outcome keeps its existing experience rule.");
         }

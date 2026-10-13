@@ -81,38 +81,100 @@ namespace ShatteredSail.Presentation.Tests
         {
             const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
             System.Reflection.MethodInfo render = typeof(CoreGameplayDemoController).GetMethod("Render", flags);
-            System.Reflection.FieldInfo animation = typeof(CoreGameplayDemoController).GetField("treasureStoryPageTransition", flags);
-            // Force a fresh first-page turn, then retire it synchronously before
-            // its first yield can complete, regardless of the runner's frame rate.
-            typeof(CoreGameplayDemoController).GetField("treasureStoryRenderedPage", flags).SetValue(controller, -1);
+            System.Reflection.FieldInfo page = typeof(CoreGameplayDemoController).GetField("treasureStoryPage", flags);
             render.Invoke(controller, null);
-            RectTransform first = GameObject.Find("Treasure Story Comic Frame").GetComponent<RectTransform>();
-            Button.ButtonClickedEvent retiredNext = ActiveButton("Treasure Story Next").onClick;
-            Button.ButtonClickedEvent retiredSkip = ActiveButton("Treasure Story Skip").onClick;
-            Assert.That(animation.GetValue(controller), Is.Not.Null);
+            RawImage first = AssertTreasureStoryFullscreen();
+            Button.ButtonClickedEvent retiredAdvance = ActiveButton("Treasure Story Advance").onClick;
+            Assert.That(page.GetValue(controller), Is.EqualTo(0));
+            ComicAutoAdvance firstTimer = GameObject.Find("Treasure Story Overlay").GetComponent<ComicAutoAdvance>();
+            Assert.That(firstTimer, Is.Not.Null);
+            Assert.That(firstTimer.RemainingSeconds, Is.InRange(11f, 12f));
+            yield return new WaitForSecondsRealtime(0.5f);
+            Assert.That(page.GetValue(controller), Is.EqualTo(0), "A page stays open before its twelve-second reading interval expires.");
+            Assert.That(GameObject.Find("Treasure Story Comic Page").GetComponent<RawImage>(), Is.SameAs(first));
 
+            firstTimer.RestoreRemainingSeconds(.6f);
+            float beforeRender = firstTimer.RemainingSeconds;
             render.Invoke(controller, null);
 
-            RectTransform replacement = GameObject.Find("Treasure Story Comic Frame").GetComponent<RectTransform>();
+            RawImage replacement = AssertTreasureStoryFullscreen();
+            ComicAutoAdvance replacementTimer = GameObject.Find("Treasure Story Overlay").GetComponent<ComicAutoAdvance>();
+            Assert.That(replacementTimer.RemainingSeconds, Is.EqualTo(beforeRender).Within(.01f),
+                "Rebuilding the same page must retain its remaining reading time.");
             Assert.That(replacement, Is.Not.SameAs(first));
             Assert.That(first.gameObject.activeInHierarchy, Is.False);
-            Assert.That(animation.GetValue(controller), Is.Null, "Rebuilding the same page stops its retired animation without replaying it.");
-            Assert.That(replacement.localScale, Is.EqualTo(Vector3.one));
-            retiredNext.Invoke(); retiredSkip.Invoke();
-            Assert.That(GameObject.Find("Treasure Story Comic Frame").GetComponent<RectTransform>(), Is.SameAs(replacement));
-            Assert.That(GameObject.Find("Treasure Story Heading").GetComponent<Text>().text, Does.Contain("第 1 / 2 页"));
+            retiredAdvance.Invoke();
+            Assert.That(page.GetValue(controller), Is.EqualTo(0), "Retired callbacks cannot advance a replacement page.");
+            Assert.That(GameObject.Find("Treasure Story Comic Page").GetComponent<RawImage>(), Is.SameAs(replacement));
             yield return null;
 
-            // Finish the final page immediately while its new turn is still
-            // running. Closing the overlay must cancel that coroutine too.
-            ActiveButton("Treasure Story Next").onClick.Invoke();
-            Assert.That(animation.GetValue(controller), Is.Not.Null);
-            ActiveButton("Treasure Story Next").onClick.Invoke();
-            Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null);
-            Assert.That(animation.GetValue(controller), Is.Null);
-            yield return null;
+            Button.ButtonClickedEvent firstPageAdvance = ActiveButton("Treasure Story Advance").onClick;
+            ClickAcceptanceButton("Treasure Story Advance");
+            RawImage final = AssertTreasureStoryFullscreen();
+            Assert.That(page.GetValue(controller), Is.EqualTo(1), "One click advances exactly one image.");
+            ComicAutoAdvance finalTimer = GameObject.Find("Treasure Story Overlay").GetComponent<ComicAutoAdvance>();
+            Assert.That(finalTimer.RemainingSeconds, Is.EqualTo(12f).Within(.01f), "A real page change starts a full reading interval.");
+            Assert.That(final.texture, Is.Not.SameAs(replacement.texture));
+            firstPageAdvance.Invoke(); firstPageAdvance.Invoke(); retiredAdvance.Invoke();
+            Assert.That(page.GetValue(controller), Is.EqualTo(1), "An old page callback cannot finish the current page.");
+            Assert.That(GameObject.Find("Treasure Story Comic Page").GetComponent<RawImage>(), Is.SameAs(final));
             yield return new WaitForSecondsRealtime(0.5f);
+            Assert.That(page.GetValue(controller), Is.EqualTo(1), "The final page also remains open before its timeout.");
+
+            Button.ButtonClickedEvent finalPageAdvance = ActiveButton("Treasure Story Advance").onClick;
+            finalTimer.RestoreRemainingSeconds(.08f);
+            float deadline = Time.realtimeSinceStartup + 2f;
+            while (GameObject.Find("Treasure Story Overlay") != null && Time.realtimeSinceStartup < deadline)
+            {
+                // Even frequent unrelated UI renders must not restart the clock
+                // and prevent the last page from completing automatically.
+                render.Invoke(controller, null);
+                yield return null;
+            }
+            Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null);
+            finalPageAdvance.Invoke(); firstPageAdvance.Invoke(); retiredAdvance.Invoke();
+            Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null, "Retired callbacks must not reopen a completed story.");
+            yield return null;
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static RawImage AssertTreasureStoryFullscreen()
+        {
+            GameObject overlay = GameObject.Find("Treasure Story Overlay");
+            Assert.That(overlay, Is.Not.Null);
+            Text[] dialogue = overlay.GetComponentsInChildren<Text>(true);
+            Assert.That(dialogue, Is.Not.Empty, "The authored comic dialogue boxes must contain their story text.");
+            foreach (Text label in dialogue)
+            {
+                Assert.That(label.name, Does.StartWith("Treasure Comic Dialogue "), "Full-screen comics only add text inside the authored dialogue boxes.");
+                Assert.That(string.IsNullOrWhiteSpace(label.text), Is.False, label.name);
+                Assert.That(label.font, Is.SameAs(GameTypography.InterfaceFont), label.name + " uses the embedded artistic face.");
+                Assert.That(label.raycastTarget, Is.False, label.name + " must not intercept click-to-advance.");
+            }
+            Button advance = overlay.GetComponentsInChildren<Button>(false).Single();
+            Assert.That(advance.name, Is.EqualTo("Treasure Story Advance"));
+            Assert.That(advance.targetGraphic.color.a, Is.EqualTo(0f));
+            RawImage image = overlay.GetComponentsInChildren<RawImage>(false).Single();
+            Assert.That(image.name, Is.EqualTo("Treasure Story Comic Page"));
+            Assert.That(image.texture, Is.Not.Null);
+            Canvas canvas = image.GetComponentInParent<Canvas>().rootCanvas;
+            Assert.That(overlay.transform.parent, Is.SameAs(canvas.transform), "Full-screen comics must use the real canvas rather than the fixed phase surface.");
+            Canvas.ForceUpdateCanvases();
+            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            foreach (RectTransform rect in new[] { overlay.GetComponent<RectTransform>(), image.rectTransform, (RectTransform)advance.transform })
+            {
+                var corners = new Vector3[4];
+                rect.GetWorldCorners(corners);
+                Vector2 bottomLeft = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
+                Vector2 topRight = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
+                Assert.That(bottomLeft.x, Is.EqualTo(0f).Within(1f));
+                Assert.That(bottomLeft.y, Is.EqualTo(0f).Within(1f));
+                Assert.That(topRight.x, Is.EqualTo(Screen.width).Within(1f));
+                Assert.That(topRight.y, Is.EqualTo(Screen.height).Within(1f));
+            }
+            Assert.That(image.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)),
+                "Treasure pages retain the complete artwork so dialogue near an outer edge remains visible at every window ratio.");
+            return image;
         }
     }
 }

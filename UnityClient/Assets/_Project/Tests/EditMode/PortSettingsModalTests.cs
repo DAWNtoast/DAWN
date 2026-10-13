@@ -11,45 +11,8 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class PortSettingsModalTests
     {
-        [TestCase(0)]
-        [TestCase(1)]
-        [TestCase(2)]
-        public void ReadingSizes_SettingsAndReturnConfirmationNeverShrinkText(int level)
-        {
-            int? previous = GameReadability.OverrideLevel;
-            GameReadability.OverrideLevel = level;
-            GameObject host = new GameObject("Settings Reading Size Test");
-            try
-            {
-                var controller = host.AddComponent<CoreGameplayDemoController>();
-                controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.PortHub, CoreGameplayPreviewPort.GrayGull, 0);
-                Invoke(controller, "OpenPortSettings");
-                Canvas.ForceUpdateCanvases();
-                RectTransform sheet = host.GetComponentsInChildren<RectTransform>(true).Single(t => t.name == "Port Settings Sheet");
-                foreach (Text text in sheet.GetComponentsInChildren<Text>())
-                {
-                    if (string.IsNullOrEmpty(text.text)) continue;
-                    Assert.That(text.resizeTextForBestFit, Is.False, text.name);
-                    Assert.That(text.fontSize, Is.GreaterThanOrEqualTo(GameReadability.FontSize(18)), text.name);
-                    Assert.That(text.preferredHeight, Is.LessThanOrEqualTo(text.rectTransform.rect.height + 1f), text.name);
-                }
-                Invoke(controller, "OpenReturnToMenuConfirmation");
-                Canvas.ForceUpdateCanvases();
-                Text message = host.GetComponentsInChildren<Text>(true).Single(t => t.name == "Return To Main Menu Message");
-                Assert.That(message.fontSize, Is.EqualTo(GameReadability.FontSize(22)));
-                Assert.That(message.preferredHeight, Is.LessThanOrEqualTo(message.rectTransform.rect.height + 1f));
-                Assert.That(message.resizeTextForBestFit, Is.False);
-            }
-            finally
-            {
-                Object.DestroyImmediate(host);
-                GameReadability.OverrideLevel = previous;
-            }
-        }
-
         [TestCase(CoreGameplayPreviewScreen.Maintenance)]
         [TestCase(CoreGameplayPreviewScreen.DeckBuilder)]
-        [TestCase(CoreGameplayPreviewScreen.DispatchDeployment)]
         [TestCase(CoreGameplayPreviewScreen.PortHub)]
         public void CloseSettings_PreservesCurrentPageDraftsAndPreferences(CoreGameplayPreviewScreen screen)
         {
@@ -72,11 +35,6 @@ namespace ShatteredSail.Core.Tests
                 order.Cannonballs = 3;
                 List<int> deck = ReadField<List<int>>(controller, "configuredBattleDeck");
                 int[] originalDeck = deck.ToArray();
-                List<int> crew = ReadField<List<int>>(controller, "selectedDispatchCrew");
-                crew.Clear();
-                crew.Add(1);
-                crew.Add(5);
-                WriteField(controller, "selectedDispatchDurationHours", 7);
                 SettingsSnapshot before = SettingsSnapshot.Read();
 
                 if (screen == CoreGameplayPreviewScreen.PortHub)
@@ -114,8 +72,6 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(order.Water, Is.EqualTo(70));
                 Assert.That(order.Cannonballs, Is.EqualTo(3));
                 Assert.That(deck, Is.EqualTo(originalDeck));
-                Assert.That(crew, Is.EqualTo(new[] { 1, 5 }));
-                Assert.That(ReadField<int>(controller, "selectedDispatchDurationHours"), Is.EqualTo(7));
                 Assert.That(controller.Session, Is.SameAs(session));
                 Assert.That(session.ProfileGold, Is.EqualTo(originalGold));
                 Assert.That(session.CurrentPort, Is.EqualTo(originalPort));

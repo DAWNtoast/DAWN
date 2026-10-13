@@ -26,7 +26,7 @@ backup or report is never overwritten. Optional -textPolishValidateOnly makes
 the same full plan and backups/report without changing scene bytes.
 
 Scope and guarantees:
-* Scans exactly the audited 189 Assets/_Project/Scenes/**/*.unity files.
+* Scans current Assets/_Project/Scenes/**/*.unity files, excluding the entire retired UIPreviewsForMe subtree (2026-10-13). The former fixed 189-scene count is no longer required.
 * Only legacy Unity UI Text components (the actual Text script GUID plus
   m_FontData) qualify. Hidden/inactive Text is included. TMP/custom component
   data, object names, transforms, images, styles, scripts and callbacks do not.

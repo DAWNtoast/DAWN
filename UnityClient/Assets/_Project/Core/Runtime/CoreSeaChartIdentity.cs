@@ -6,13 +6,13 @@ namespace ShatteredSail.Core.Gameplay
 {
     public sealed class CoreSeaChartDefinition
     {
-        internal CoreSeaChartDefinition(string seed, int route, int portA, int portB, int forward, int kind, uint hash)
+        internal CoreSeaChartDefinition(string seed, int route, int portA, int portB, int forward, int kind, uint hash, int geometryVersion)
         {
             Seed = seed; RouteIndex = route; PortA = CoreVoyageSession.DestinationPorts[portA];
             PortB = CoreVoyageSession.DestinationPorts[portB];
             ForwardDeparturePort = forward == 0 ? PortA : PortB;
             ForwardDestinationPort = forward == 0 ? PortB : PortA;
-            GeographyHash = hash; TutorialWaters = kind == 2;
+            GeographyHash = hash; TutorialWaters = kind == 2; MapGeometryVersion = geometryVersion;
         }
         public string Seed { get; }
         public int RouteIndex { get; }
@@ -22,6 +22,7 @@ namespace ShatteredSail.Core.Gameplay
         public string ForwardDestinationPort { get; }
         public uint GeographyHash { get; }
         public bool TutorialWaters { get; }
+        public int MapGeometryVersion { get; }
         public bool ContainsPort(string port) => port == PortA || port == PortB;
         public string OtherPort(string port) => port == PortA ? PortB : port == PortB ? PortA : string.Empty;
     }
@@ -33,8 +34,8 @@ namespace ShatteredSail.Core.Gameplay
             if (!TryChartPorts(routeIndex, departurePort, destinationPort, out int a, out int b, out int forward))
                 throw new ArgumentException("A chart requires a known route and two distinct known ports.");
             uint salt = unchecked((uint)Guid.NewGuid().GetHashCode());
-            uint hash = NewChartHash(routeIndex, a, b, forward, salt);
-            return EncodeChartSeed(routeIndex, a, b, forward, 0, hash, salt);
+            uint hash = NewChartHash(routeIndex, a, b, forward, salt, 1);
+            return EncodeChartSeed(routeIndex, a, b, forward, 0, hash, salt, 1);
         }
 
         public static bool TryParseChartSeed(string seed, out CoreSeaChartDefinition definition)
@@ -43,7 +44,7 @@ namespace ShatteredSail.Core.Gameplay
             string value = (seed ?? string.Empty).Trim().ToUpperInvariant();
             if (value.Length > 100) return false;
             string[] pieces = value.Split('.');
-            if (pieces.Length != 9 || pieces[0] != "SS2" ||
+            if (pieces.Length != 9 || (pieces[0] != "SS2" && pieces[0] != "SS3") ||
                 !TryChartDigit(pieces[1], out int route) || !TryChartDigit(pieces[2], out int a) ||
                 !TryChartDigit(pieces[3], out int b) || !TryChartDigit(pieces[4], out int forward) ||
                 !TryChartDigit(pieces[5], out int kind) || route >= Routes.Count || a >= b ||
@@ -51,15 +52,17 @@ namespace ShatteredSail.Core.Gameplay
                 !TryChartHex(pieces[6], out uint hash) || !TryChartHex(pieces[7], out uint salt) ||
                 !TryChartHex(pieces[8], out uint checksum)) return false;
             string payload = string.Join(".", pieces, 0, 8);
+            int geometryVersion = pieces[0] == "SS3" ? 1 : 0;
             if (checksum != SeedHash.Compute(payload)) return false;
-            if (kind == 0 && hash != NewChartHash(route, a, b, forward, salt)) return false;
+            if (kind == 0 && hash != NewChartHash(route, a, b, forward, salt, geometryVersion)) return false;
             if (kind != 0 && salt != 0) return false;
             if (kind == 2)
             {
+                if (geometryVersion != 0) return false;
                 string from = DestinationPorts[forward == 0 ? a : b], to = DestinationPorts[forward == 0 ? b : a];
                 if (route != 0 || hash != SeedHash.Compute(CoreGuidedTutorialContent.Seed + "::" + from + "::" + to)) return false;
             }
-            definition = new CoreSeaChartDefinition(value, route, a, b, forward, kind, hash);
+            definition = new CoreSeaChartDefinition(value, route, a, b, forward, kind, hash, geometryVersion);
             return true;
         }
 
@@ -76,12 +79,12 @@ namespace ShatteredSail.Core.Gameplay
             return true;
         }
 
-        private static uint NewChartHash(int route, int a, int b, int forward, uint salt) =>
-            SeedHash.Compute("SEA-CHART-V2::" + route + "::" + a + "::" + b + "::" + forward + "::" + salt.ToString("X8", CultureInfo.InvariantCulture));
+        private static uint NewChartHash(int route, int a, int b, int forward, uint salt, int geometryVersion) =>
+            SeedHash.Compute((geometryVersion == 0 ? "SEA-CHART-V2::" : "SEA-CHART-V3::") + route + "::" + a + "::" + b + "::" + forward + "::" + salt.ToString("X8", CultureInfo.InvariantCulture));
 
-        private static string EncodeChartSeed(int route, int a, int b, int forward, int kind, uint hash, uint salt)
+        private static string EncodeChartSeed(int route, int a, int b, int forward, int kind, uint hash, uint salt, int geometryVersion = 0)
         {
-            string payload = "SS2." + route + "." + a + "." + b + "." + forward + "." + kind + "." +
+            string payload = (geometryVersion == 0 ? "SS2." : "SS3.") + route + "." + a + "." + b + "." + forward + "." + kind + "." +
                 hash.ToString("X8", CultureInfo.InvariantCulture) + "." + salt.ToString("X8", CultureInfo.InvariantCulture);
             return payload + "." + SeedHash.Compute(payload).ToString("X8", CultureInfo.InvariantCulture);
         }

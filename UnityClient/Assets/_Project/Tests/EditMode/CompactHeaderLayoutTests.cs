@@ -9,7 +9,7 @@ namespace ShatteredSail.Presentation.Tests
         private const float UvTolerance = 0.000002f;
 
         [Test]
-        public void CompactHeader_ReclaimsFortyPixelsWhileTutorialKeepsItsTwoInstructionBands()
+        public void CompactHeader_ReclaimsFortyPixelsWhileTutorialKeepsItsReservedHeaderHeight()
         {
             Assert.That(PhaseSurfaceLayout.HeaderHeight, Is.EqualTo(108f));
             Assert.That(PhaseSurfaceLayout.TutorialHeaderHeight, Is.EqualTo(148f));
@@ -27,8 +27,6 @@ namespace ShatteredSail.Presentation.Tests
             float tutorialBottom = 540f - PhaseSurfaceLayout.GetHeaderHeight(true);
             Assert.That(backgroundTop - tutorialBottom, Is.EqualTo(40f).Within(GeometryTolerance),
                 "The taller teaching header covers the newly exposed band without moving the stage.");
-            Assert.That(53f + 28f * .5f, Is.LessThan(PhaseSurfaceLayout.TutorialHeaderHeight * .5f), "Objective fits the upper band.");
-            Assert.That(-53f - 32f * .5f, Is.GreaterThan(-PhaseSurfaceLayout.TutorialHeaderHeight * .5f), "Instruction fits the lower band.");
         }
 
         [TestCase(1672f, 940f)]

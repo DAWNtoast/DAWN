@@ -140,6 +140,19 @@ namespace ShatteredSail.Presentation.Tests
 
             if (tutorial)
             {
+                Image paper = Find<Image>("Guided Tutorial Banner");
+                Rect paperBounds = WorldRect(paper.rectTransform);
+                Assert.That(paper.transform.parent, Is.SameAs(header.parent), "The lesson owns an independent reading surface.");
+                Assert.That(NauticalSurfaceSkin.IsPaperSurface(paper.sprite), Is.True);
+                Assert.That(paper.color.a, Is.EqualTo(1f), "The battle artwork must not bleed through the reading area.");
+                Assert.That(paper.raycastTarget, Is.False);
+                AssertContains(WorldRect((RectTransform)header.parent), paperBounds, 0.1f, "The full paper must stay on screen.");
+                // This disposable EditMode hierarchy has not been rendered, so
+                // CanvasRenderer.absoluteDepth is -1. These peers share a canvas.
+                Assert.That(paper.transform.GetSiblingIndex(), Is.GreaterThan(header.GetSiblingIndex()),
+                    "Raising the regional header must not cover the paper.");
+                Assert.That(paper.transform.GetSiblingIndex(), Is.GreaterThan(readouts.GetSiblingIndex()),
+                    "Teaching paper floats above the ordinary battle information.");
                 Rect? precedingBand = null;
                 foreach (string name in new[] { "Guided Tutorial Objective", "Guided Tutorial Instruction" })
                 {
@@ -147,9 +160,12 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(label.isActiveAndEnabled, Is.True, name);
                     Assert.That(label.text, Is.Not.Empty, name);
                     Rect band = WorldRect(label.rectTransform);
-                    AssertContains(headerBounds, band, 0.1f, name + " must stay in its reserved teaching band");
-                    for (int i = 0; i < bounds.Length; i++)
-                        Assert.That(band.Overlaps(bounds[i]), Is.False, name + " overlaps " + readoutNames[i]);
+                    AssertContains(paperBounds, band, 0.1f, name + " must stay on its paper");
+                    Assert.That(label.resizeTextForBestFit, Is.False, name + " must keep its enlarged font.");
+                    Assert.That(label.fontSize, Is.GreaterThanOrEqualTo(24), name);
+                    Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .5f),
+                        name + " must show the complete lesson without truncation.");
+                    Assert.That(label.raycastTarget, Is.False);
                     if (precedingBand.HasValue)
                         Assert.That(band.Overlaps(precedingBand.Value), Is.False, "Teaching objective and instruction must remain separate.");
                     precedingBand = band;
@@ -224,10 +240,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(frame.sprite.texture.name, Does.Contain("gray_gull"));
             RectTransform voyageTitle = Find<RectTransform>("Voyage Header Title");
             RectTransform voyageStatus = Find<RectTransform>("Voyage Header Status");
-            Assert.That(voyageTitle.anchoredPosition, Is.EqualTo(new Vector2(-710f, 0f)).Within(0.1f));
-            Assert.That(voyageTitle.sizeDelta, Is.EqualTo(new Vector2(300f, 60f)).Within(0.1f));
-            Assert.That(voyageTitle.GetComponent<Text>().fontSize, Is.EqualTo(GameReadability.FontSize(32)));
-            Assert.That(voyageTitle.GetComponent<Text>().resizeTextForBestFit, Is.False);
+            Assert.That(voyageTitle.anchoredPosition, Is.EqualTo(new Vector2(-734f, 0f)).Within(0.1f));
+            Assert.That(voyageTitle.sizeDelta, Is.EqualTo(new Vector2(234.8733f, 60f)).Within(0.1f));
             Assert.That(voyageStatus.anchoredPosition, Is.EqualTo(new Vector2(660f, 0f)).Within(0.1f));
             Assert.That(voyageStatus.sizeDelta, Is.EqualTo(new Vector2(420f, 60f)).Within(0.1f));
 
@@ -235,22 +249,25 @@ namespace ShatteredSail.Presentation.Tests
             Image intent = Find<Image>("Enemy Intent HUD");
             Assert.That(intent.sprite, Is.SameAs(retreat.sprite));
             Assert.That(Find<RectTransform>("Player Battle Name").anchoredPosition,
-                Is.EqualTo(new Vector2(-620f, 396f)).Within(0.1f));
+                Is.EqualTo(new Vector2(-727f, 410f)).Within(0.1f));
             Assert.That(Find<RectTransform>("Enemy Battle Name").anchoredPosition,
-                Is.EqualTo(new Vector2(620f, 396f)).Within(0.1f));
-            Assert.That(intent.rectTransform.anchoredPosition.x, Is.EqualTo(780f).Within(0.1f));
-            Assert.That(intent.rectTransform.anchoredPosition.y - intent.rectTransform.rect.height * .5f,
-                Is.EqualTo(-82f).Within(0.1f), "The intent grows upward from its reserved action boundary.");
+                Is.EqualTo(new Vector2(727f, 410f)).Within(0.1f));
+            Assert.That(intent.rectTransform.anchoredPosition, Is.EqualTo(new Vector2(735f, -196f)).Within(0.1f));
+            Assert.That(intent.rectTransform.sizeDelta, Is.EqualTo(new Vector2(230f, 120f)).Within(0.1f));
             Assert.That(Find<Image>("Player Battle Name Board").sprite, Is.SameAs(retreat.sprite));
             Assert.That(Find<Image>("Enemy Battle Name Board").sprite, Is.SameAs(retreat.sprite));
             Assert.That(Find<RectTransform>("Retreat Battle").anchoredPosition.y,
-                Is.EqualTo(-417f).Within(0.1f));
+                Is.EqualTo(-414f).Within(0.1f));
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Header"), Is.False,
                 "Battle previews should not keep the obsolete generic Header.");
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Ocean Backdrop"), Is.False,
                 "Battle previews should not keep the obsolete Ocean Backdrop.");
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Stage Progress"), Is.False);
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Stage Instructions"), Is.False);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Card Cost Rule Panel"), Is.False);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Card Cost Rule"), Is.False);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Status"), Is.False);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Collision Quality"), Is.False);
         }
         private void CreateBattlePreview(CoreGameplayPreviewPort port = CoreGameplayPreviewPort.GrayGull)
         {

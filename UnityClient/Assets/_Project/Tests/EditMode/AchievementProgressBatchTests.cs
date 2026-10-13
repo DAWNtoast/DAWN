@@ -20,7 +20,7 @@ namespace ShatteredSail.Presentation.Tests
             if (state == "mixed" || state == "captured") PrepareBatchMixedProgress();
             if (state == "legacy")
             {
-                PlayerPrefs.SetInt(CoreGameplayDemoController.ProfileGoldKey, 1200);
+                PlayerPrefs.SetInt(CoreGameplayDemoController.ProfileGoldKey, 2500);
                 PlayerPrefs.SetInt(CoreGameplayDemoController.CrewRecruitmentKey(0), 1);
                 PlayerPrefs.SetInt(CoreGameplayDemoController.CrewRecruitmentKey(1), 1);
                 var art = new ComponentArtCatalog();
@@ -64,12 +64,12 @@ namespace ShatteredSail.Presentation.Tests
             var states = new bool[AchievementCatalog.All.Count];
             int goldIndex = AchievementCatalog.All.ToList().FindIndex(item => item.Id == "gold_900");
             int collectionIndex = AchievementCatalog.All.ToList().FindIndex(item => item.Id == "warehouse_three");
-            ProfileGoldPersistence.Save(899.9999m);
+            ProfileGoldPersistence.Save(2499.9999m);
             AchievementCatalog.FillUnlockStates(states);
             Assert.That(states[goldIndex], Is.False);
             Assert.That(states[collectionIndex], Is.False);
 
-            ProfileGoldPersistence.Save(900m);
+            ProfileGoldPersistence.Save(2500m);
             var collection = new CoreWarehouseCollection();
             foreach (CoreWarehouseTreasureDefinition item in CoreWarehouseCollection.Catalog.Take(3))
                 Assert.That(collection.Grant(item.Id), Is.True);
@@ -84,7 +84,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(states[goldIndex], Is.False, "An uncaptured condition must refresh after spending.");
             Assert.That(states[collectionIndex], Is.False, "Snapshot-derived counts must not outlive one query.");
 
-            ProfileGoldPersistence.Save(900m);
+            ProfileGoldPersistence.Save(2500m);
             AchievementCatalog.CaptureProgress();
             ProfileGoldPersistence.Save(0m);
             AchievementCatalog.FillUnlockStates(states);
@@ -157,7 +157,7 @@ namespace ShatteredSail.Presentation.Tests
 
         private static void PrepareBatchMixedProgress()
         {
-            ProfileGoldPersistence.Save(900m);
+            ProfileGoldPersistence.Save(2500m);
             PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "白贝港");
             PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(1), 1);
             foreach (string port in Ports.Take(3)) Recruit(CrewNarrativeCatalog.ForPortAndProfession(port, 0));
@@ -172,8 +172,8 @@ namespace ShatteredSail.Presentation.Tests
             var collection = new CoreWarehouseCollection();
             foreach (CoreWarehouseTreasureDefinition item in CoreWarehouseCollection.Catalog.Take(3)) collection.Grant(item.Id);
             PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, collection.ExportOwned());
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 100);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 100);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 500);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 500);
         }
 
         private static string ReadBatchPreference(string key, bool isString) => !PlayerPrefs.HasKey(key) ? "absent" :

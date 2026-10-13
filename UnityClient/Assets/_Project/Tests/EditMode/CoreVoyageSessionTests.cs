@@ -8,6 +8,69 @@ namespace ShatteredSail.Core.Tests
     public sealed class CoreVoyageSessionTests
     {
         [Test]
+        public void NewCampaignProvisionsLeaveSpaceForCargoWithoutChangingItsBudget()
+        {
+            var session = new CoreVoyageSession();
+
+            Assert.That(session.Cargo.Water, Is.EqualTo(120));
+            Assert.That(session.Cargo.Food, Is.EqualTo(120));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(16));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(20));
+            Assert.That(session.Cargo.UsedVolume, Is.EqualTo(53.60f).Within(0.001f));
+            Assert.That(session.CargoCapacityValue - session.Cargo.UsedVolume,
+                Is.EqualTo(26.40f).Within(0.001f));
+            Assert.That(session.ProfileGold, Is.EqualTo(500));
+            Assert.That(session.Cargo.Gold, Is.EqualTo(60));
+        }
+
+        [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)]
+        public void DeparturesAndTutorialSetupDoNotReissueStartingProvisions(int tutorialLeg)
+        {
+            var session = new CoreVoyageSession();
+            session.Cargo.Water = 35;
+            session.Cargo.Food = 41;
+            session.Cargo.Cannonballs = 3;
+            session.Cargo.Powder = 5;
+            session.RestoreProfile(432, "白贝港");
+
+            Assert.That(session.SelectShip(0), Is.True);
+            Assert.That(session.ConfigureGuidedTutorialVoyage(tutorialLeg), Is.True);
+            session.StartVoyage();
+
+            Assert.That(session.Cargo.Water, Is.EqualTo(35));
+            Assert.That(session.Cargo.Food, Is.EqualTo(41));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(3));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(5));
+            Assert.That(session.ProfileGold, Is.EqualTo(432));
+        }
+
+        [TestCase(286, 286, 10, 0)]
+        [TestCase(42, 31, 0, 2)]
+        [TestCase(300, 275, 21, 0)]
+        public void RestoringExistingVoyageCargoDoesNotApplyNewCampaignProvisions(
+            int water, int food, int cannonballs, int tutorialLeg)
+        {
+            var previous = new CoreVoyageSession();
+            previous.Cargo.Water = water;
+            previous.Cargo.Food = food;
+            previous.Cargo.Cannonballs = cannonballs;
+            previous.RestoreProfile(432, "白贝港");
+            previous.ConfigureGuidedTutorialVoyage(tutorialLeg);
+            previous.StartVoyage();
+            CoreVoyageCheckpoint checkpoint = previous.CaptureVoyageCheckpoint();
+            var restored = new CoreVoyageSession();
+
+            Assert.That(restored.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
+            Assert.That(restored.Cargo.Water, Is.EqualTo(water));
+            Assert.That(restored.Cargo.Food, Is.EqualTo(food));
+            Assert.That(restored.Cargo.Cannonballs, Is.EqualTo(cannonballs));
+            Assert.That(restored.Cargo.Powder, Is.EqualTo(previous.Cargo.Powder));
+            Assert.That(restored.Cargo.UsedVolume, Is.EqualTo(previous.Cargo.UsedVolume).Within(0.001f));
+            Assert.That(restored.ProfileGold, Is.EqualTo(previous.ProfileGold));
+            Assert.That(restored.Cargo.Gold, Is.EqualTo(previous.Cargo.Gold));
+        }
+
+        [Test]
         public void SameRouteSeedAndPort_GeneratesIdenticalMap()
         {
             CoreVoyageSession first = CreateVoyage(0, "MAP-ALPHA");
@@ -18,7 +81,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(first.Map.Nodes.Count, Is.GreaterThanOrEqualTo(10));
             Assert.That(first.Map.Nodes.Count(node => node.IsBoss), Is.EqualTo(1));
             Assert.That(first.Map.Nodes.Select(node => node.Encounter.Id).Distinct().Count(), Is.EqualTo(first.Map.Nodes.Count), "Seeded map events should be drawn without replacement.");
-            Assert.That(first.Map.ExploredCells.Length, Is.EqualTo(CoreVoyageMap.GridColumns * CoreVoyageMap.GridRows));
+            Assert.That(first.Map.ExploredCells.Length, Is.EqualTo(first.Map.Columns * first.Map.Rows));
             Assert.That(first.Map.TerrainCells, Is.EqualTo(second.Map.TerrainCells));
             Assert.That(first.Map.TerrainFeatureIds, Is.EqualTo(second.Map.TerrainFeatureIds));
             Assert.That(first.Map.AnchorNodeIds, Is.EqualTo(second.Map.AnchorNodeIds));
@@ -156,10 +219,10 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(destinationDistance, Is.InRange(CoreVoyageSession.BossPortClearanceMapUnits, CoreVoyageSession.BossPortApproachRadiusMapUnits));
                     Assert.That(boss.Position.X, Is.InRange(
                         CoreVoyageSession.BossBorderMarginMapUnits,
-                        CoreVoyageMap.Width - CoreVoyageSession.BossBorderMarginMapUnits));
+                        voyage.Map.WorldWidth - CoreVoyageSession.BossBorderMarginMapUnits));
                     Assert.That(boss.Position.Y, Is.InRange(
                         CoreVoyageSession.BossBorderMarginMapUnits,
-                        CoreVoyageMap.Height - CoreVoyageSession.BossBorderMarginMapUnits));
+                        voyage.Map.WorldHeight - CoreVoyageSession.BossBorderMarginMapUnits));
 
                     locations.Add(route + ":" + boss.Position.X.ToString("F2") + ":" + boss.Position.Y.ToString("F2"));
                 }
@@ -173,19 +236,19 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession voyage = CreateVoyage(0, "TERRAIN-VISION-01");
 
-            Assert.That(CoreVoyageMap.GridColumns, Is.EqualTo(48));
-            Assert.That(CoreVoyageMap.GridRows, Is.EqualTo(32));
+            Assert.That(voyage.Map.Columns, Is.EqualTo(48));
+            Assert.That(voyage.Map.Rows, Is.EqualTo(36));
             Assert.That(voyage.Map.TerrainCells.Count(value => value != SeaTerrainType.OpenWater), Is.GreaterThan(80));
 
             int eventLinkedTerrain = 0;
             float farthestVisible = 0f;
             float nearestHidden = float.MaxValue;
             float visionRadius = 180f / voyage.Map.Route.NauticalMilesPerMapUnit;
-            for (int row = 0; row < CoreVoyageMap.GridRows; row += 1)
+            for (int row = 0; row < voyage.Map.Rows; row += 1)
             {
-                for (int column = 0; column < CoreVoyageMap.GridColumns; column += 1)
+                for (int column = 0; column < voyage.Map.Columns; column += 1)
                 {
-                    int cellIndex = row * CoreVoyageMap.GridColumns + column;
+                    int cellIndex = row * voyage.Map.Columns + column;
                     VoyagePoint center = voyage.Map.CellCenter(column, row);
                     float dx = center.X - voyage.Position.X;
                     float dy = center.Y - voyage.Position.Y;
@@ -277,7 +340,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession voyage = CreateVoyage(0, "ISLAND-ROUTING-01");
             int islandIndex = System.Array.FindIndex(voyage.Map.TerrainCells, terrain => terrain == SeaTerrainType.Island);
             Assert.That(islandIndex, Is.GreaterThanOrEqualTo(0));
-            VoyagePoint blockedTarget = voyage.Map.CellCenter(islandIndex % CoreVoyageMap.GridColumns, islandIndex / CoreVoyageMap.GridColumns);
+            VoyagePoint blockedTarget = voyage.Map.CellCenter(islandIndex % voyage.Map.Columns, islandIndex / voyage.Map.Columns);
 
             voyage.SetCourseTo(blockedTarget);
             SailingForecast forecast = voyage.GetForecast();
@@ -434,6 +497,52 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void VoyageStartingMoraleUsesPreviousExplorationCoverage()
+        {
+            CoreVoyageSession first = new CoreVoyageSession();
+            first.StartVoyage();
+            Assert.That(first.Morale, Is.EqualTo(CoreVoyageSession.DefaultStartingMorale));
+
+            CoreVoyageSession high = new CoreVoyageSession();
+            high.RestoreLastVoyageExplorationCoverage(80.01f);
+            high.StartVoyage();
+            Assert.That(high.Morale, Is.EqualTo(CoreVoyageSession.HighExplorationStartingMorale));
+
+            CoreVoyageSession low = new CoreVoyageSession();
+            low.RestoreLastVoyageExplorationCoverage(29.99f);
+            low.StartVoyage();
+            Assert.That(low.Morale, Is.EqualTo(CoreVoyageSession.LowExplorationStartingMorale));
+
+            CoreVoyageSession boundary = new CoreVoyageSession();
+            boundary.RestoreLastVoyageExplorationCoverage(80f);
+            boundary.StartVoyage();
+            Assert.That(boundary.Morale, Is.EqualTo(CoreVoyageSession.DefaultStartingMorale));
+        }
+
+        [Test]
+        public void MoraleClampsToTwentyAndDeterminesBoardingCriticalRate()
+        {
+            CoreVoyageSession session = new CoreVoyageSession();
+            session.StartVoyage();
+            SetEncounter(session, new CoreEncounterChoice("极值士气", "", 0,
+                new VoyageEffect { Morale = int.MaxValue }));
+
+            Assert.That(session.ResolveChoice(0), Is.True);
+            Assert.That(session.Morale, Is.EqualTo(CoreVoyageSession.MaxMorale));
+            Assert.That(session.BoardingCriticalChancePercent, Is.EqualTo(60));
+        }
+
+        private static void SetEncounter(CoreVoyageSession session, CoreEncounterChoice choice)
+        {
+            SetProperty(session, "Phase", CoreDemoPhase.Encounter);
+            SetProperty(session, "ActiveEncounter",
+                new CoreEncounter("morale-test", "士气测试", "事件", "", true, false, 1, 0, choice));
+        }
+
+        private static void SetProperty(CoreVoyageSession session, string name, object value) =>
+            typeof(CoreVoyageSession).GetProperty(name).SetValue(session, value);
+
+        [Test]
         public void PortSupplies_QuotePurchaseAndCarryThePurchasedLoadoutIntoVoyage()
         {
             CoreVoyageSession session = new CoreVoyageSession();
@@ -450,7 +559,7 @@ namespace ShatteredSail.Core.Tests
             VoyageSupplyQuote quote = session.QuoteSupplyPurchase(order);
             // Broken Anchor: retain the exact quantity-based prices; medicine
             // is an import here, while timber is a local specialty.
-            Assert.That(quote.Cost, Is.EqualTo(.4m + 1.2m + 12.4m + 3.25m + 5m + 8m));
+            Assert.That(quote.Cost, Is.EqualTo(.32m + .96m + 9.92m + 3.25m + 5m + 8m));
             Assert.That(quote.AddedVolume, Is.EqualTo(4.14f).Within(0.001f));
             Assert.That(quote.CanPurchase, Is.True);
 
@@ -467,10 +576,11 @@ namespace ShatteredSail.Core.Tests
         public void PortSupplies_RejectOrdersThatExceedCargoOrAvailableGold()
         {
             CoreVoyageSession fullCargo = new CoreVoyageSession();
-            VoyageSupplyOrder oversized = new VoyageSupplyOrder { Cannonballs = 23 };
+            int excessCannonballs = (int)(fullCargo.CargoCapacityValue - fullCargo.Cargo.UsedVolume) + 1;
+            VoyageSupplyOrder oversized = new VoyageSupplyOrder { Cannonballs = excessCannonballs };
             Assert.That(fullCargo.QuoteSupplyPurchase(oversized).FitsCargo, Is.False);
             Assert.That(fullCargo.TryPurchaseSupplies(oversized), Is.False);
-            Assert.That(fullCargo.Cargo.Cannonballs, Is.EqualTo(10));
+            Assert.That(fullCargo.Cargo.Cannonballs, Is.EqualTo(16));
 
             CoreVoyageSession poorCaptain = new CoreVoyageSession();
             poorCaptain.RestoreProfile(1, "断锚港");
@@ -507,12 +617,12 @@ namespace ShatteredSail.Core.Tests
         public void PortProgression_CustomDeckValidatesCopiesAndPersistsIntoSession()
         {
             CoreVoyageSession session = new CoreVoyageSession();
-            List<int> validDeck = new List<int> { 0, 0, 0, 1, 2, 5, 6, 7 };
+            List<int> validDeck = new List<int> { 0, 0, 1, 2, 5, 6, 7, 8, 9, 10 };
             Assert.That(session.SetBattleDeck(NavalBattleStage.Naval, validDeck), Is.True);
             Assert.That(session.GetBattleDeck(NavalBattleStage.Naval), Is.EqualTo(validDeck));
 
-            Assert.That(session.SetBattleDeck(NavalBattleStage.Naval, new List<int> { 0, 0, 0, 0, 1, 2, 5, 6 }), Is.False, "A deck cannot contain more than three copies of one card.");
-            Assert.That(session.SetBattleDeck(NavalBattleStage.Naval, new List<int> { 0, 1, 2, 5, 6, 7, 8 }), Is.False, "A deck needs at least eight cards.");
+            Assert.That(session.SetBattleDeck(NavalBattleStage.Naval, new List<int> { 0, 0, 0, 1, 2, 5, 6, 7, 8, 9 }), Is.False, "A deck cannot contain more than two owned copies of one card.");
+            Assert.That(session.SetBattleDeck(NavalBattleStage.Naval, validDeck.Take(9).ToList()), Is.False, "A deck needs at least ten cards.");
             Assert.That(session.GetBattleDeck(NavalBattleStage.Naval), Is.EqualTo(validDeck), "Rejected edits must leave the valid deck unchanged.");
         }
 
@@ -557,7 +667,9 @@ namespace ShatteredSail.Core.Tests
         private static CoreVoyageSession CreateVoyage(int route, string seed)
         {
             CoreVoyageSession session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 1500 });
             session.SelectRoute(route);
+            Assert.That(session.SelectedRouteIndex, Is.EqualTo(route), "Terrain fixtures must unlock their requested route.");
             session.SetSeed(seed);
             session.StartVoyage();
             return session;
@@ -565,8 +677,8 @@ namespace ShatteredSail.Core.Tests
 
         private static SeaTerrainType TerrainAt(CoreVoyageMap map, VoyagePoint point)
         {
-            int column = System.Math.Max(0, System.Math.Min(CoreVoyageMap.GridColumns - 1, (int)(point.X / CoreVoyageMap.Width * CoreVoyageMap.GridColumns)));
-            int row = System.Math.Max(0, System.Math.Min(CoreVoyageMap.GridRows - 1, (int)(point.Y / CoreVoyageMap.Height * CoreVoyageMap.GridRows)));
+            int column = System.Math.Max(0, System.Math.Min(map.Columns - 1, (int)(point.X / map.WorldWidth * map.Columns)));
+            int row = System.Math.Max(0, System.Math.Min(map.Rows - 1, (int)(point.Y / map.WorldHeight * map.Rows)));
             return map.TerrainAt(column, row);
         }
 

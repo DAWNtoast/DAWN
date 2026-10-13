@@ -12,6 +12,135 @@ namespace ShatteredSail.Core.Tests
         [TestCase("0", 0)]
         [TestCase("1", 1)]
         [TestCase("00042", 42)]
+        [TestCase("2147483647", int.MaxValue)]
+        public void ParseTreasureFragments_AcceptsNonnegativeAsciiIntegers(string input, int expected)
+        {
+            Assert.That(CoreGameMasterTools.TryParseTreasureFragments(input, out int fragments), Is.True);
+            Assert.That(fragments, Is.EqualTo(expected));
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase("-1")]
+        [TestCase("+1")]
+        [TestCase(" 1")]
+        [TestCase("1 ")]
+        [TestCase("1\n")]
+        [TestCase("1.0")]
+        [TestCase("1,000")]
+        [TestCase("1e3")]
+        [TestCase("１２３")]
+        [TestCase("١٢٣")]
+        [TestCase("2147483648")]
+        [TestCase("9999999999999999999999")]
+        public void ParseTreasureFragments_RejectsMalformedOrOverflowingInput(string input)
+        {
+            Assert.That(CoreGameMasterTools.TryParseTreasureFragments(input, out int fragments), Is.False);
+            Assert.That(fragments, Is.Zero);
+        }
+
+        [Test]
+        public void ParseTreasureFragments_RejectsOverlongInputWithoutTruncatingItsValue()
+        {
+            Assert.That(CoreGameMasterTools.TryParseTreasureFragments(new string('0', 63) + "1", out int allowed), Is.True);
+            Assert.That(allowed, Is.EqualTo(1));
+            Assert.That(CoreGameMasterTools.TryParseTreasureFragments(new string('0', 64) + "1", out int rejected), Is.False);
+            Assert.That(rejected, Is.Zero);
+        }
+
+        [TestCase(0)]
+        [TestCase(42)]
+        [TestCase(int.MaxValue)]
+        public void SetTreasureFragments_InPortChangesOnlyUnidentifiedInventory(int fragments)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreProfile(1234, "灰鸥港");
+            session.RestoreTreasureProgress(new CoreTreasureProgress {
+                pirateExperience = 900, fragments = 12,
+                identifiedWeatheredFragments = 3, identifiedGildedFragments = 5, identifiedMoonlitFragments = 2,
+                identificationSeed = "GM-KEEPS-IDENTIFICATION", identificationSequence = 17, moonlitPityCount = 2,
+                selectedMapId = "gilded:HELD", maps = new[] {
+                    new CoreTreasureMapSave { id = "gilded:HELD", seed = "HELD", rankId = "gilded" } },
+                usedMaps = new[] { new CoreUsedTreasureMapSave { id = "weathered:USED", seed = "USED",
+                    rankId = "weathered", departurePort = "白贝港", hasExplorationCoverage = true, explorationCoverage = .5f } },
+                completedSeeds = new[] { "COMPLETED" }, issuedSeeds = new[] { "HELD", "USED", "COMPLETED" },
+                gems = 2, ancientMaterials = 3, relics = 4, blackPearls = 5, ancientCompasses = 6, lanterns = 7, curses = 8,
+            });
+            CoreTreasureProgress expected = session.CaptureTreasureProgress();
+            expected.fragments = fragments;
+            var cargo = session.Cargo;
+            int cargoGold = cargo.Gold;
+            int water = cargo.Water;
+            int ship = session.SelectedShipIndex;
+            int voyageFragments = session.VoyageTreasureFragments;
+
+            Assert.That(session.TryGameMasterSetTreasureFragments(fragments), Is.True);
+
+            Assert.That(session.TreasureFragments, Is.EqualTo(fragments));
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress()),
+                Is.EqualTo(UnityEngine.JsonUtility.ToJson(expected)), "GM must preserve identified fragments, maps and identification progress.");
+            Assert.That(session.ProfileGold, Is.EqualTo(1234));
+            Assert.That(session.Cargo, Is.SameAs(cargo));
+            Assert.That(cargo.Gold, Is.EqualTo(cargoGold));
+            Assert.That(cargo.Water, Is.EqualTo(water));
+            Assert.That(session.SelectedShipIndex, Is.EqualTo(ship));
+            Assert.That(session.VoyageTreasureFragments, Is.EqualTo(voyageFragments));
+            Assert.That(session.CurrentPort, Is.EqualTo("灰鸥港"));
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
+        }
+
+        [TestCase(CoreDemoPhase.Sailing)]
+        [TestCase(CoreDemoPhase.Encounter)]
+        [TestCase(CoreDemoPhase.Battle)]
+        [TestCase(CoreDemoPhase.Settlement)]
+        public void SetTreasureFragments_RejectsEveryNonPortPhaseWithoutChangingProgress(CoreDemoPhase phase)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress { fragments = 12, identifiedWeatheredFragments = 3 });
+            typeof(CoreVoyageSession).GetProperty("Phase", BindingFlags.Public | BindingFlags.Instance).SetValue(session, phase);
+            string before = UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress());
+            int logCount = session.LogEntries.Count;
+            Assert.That(session.TryGameMasterSetTreasureFragments(0), Is.False);
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
+            Assert.That(session.LogEntries.Count, Is.EqualTo(logCount));
+        }
+
+        [TestCase(-1)]
+        [TestCase(int.MinValue)]
+        public void SetTreasureFragments_RejectsNegativeCountsWithoutClamping(int fragments)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress { fragments = 12, identifiedWeatheredFragments = 3 });
+            string before = UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress());
+            int logCount = session.LogEntries.Count;
+            Assert.That(session.TryGameMasterSetTreasureFragments(fragments), Is.False);
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
+            Assert.That(session.LogEntries.Count, Is.EqualTo(logCount));
+        }
+
+        [Test]
+        public void SetTreasureFragments_UsesNormalIdentificationAndCraftingRules()
+        {
+            var session = new CoreVoyageSession();
+            Assert.That(session.TryGameMasterSetTreasureFragments(4), Is.True);
+            Assert.That(session.TryIdentifyTreasureFragment(out _), Is.False, "Setting inventory must not unlock identification early.");
+            Assert.That(session.TreasureFragments, Is.EqualTo(4));
+
+            CoreTreasureProgress unlocked = session.CaptureTreasureProgress();
+            unlocked.pirateExperience = 100;
+            session.RestoreTreasureProgress(unlocked);
+            for (int index = 0; index < 4; index++)
+                Assert.That(session.TryIdentifyTreasureFragment(out string reason), Is.True, reason);
+            Assert.That(session.TreasureFragments, Is.Zero);
+            Assert.That(session.GetIdentifiedTreasureFragments("weathered"), Is.EqualTo(4));
+            Assert.That(session.TryCraftTreasureMapForRank("weathered", "GM-INTERACTION", out string craftReason), Is.True, craftReason);
+            Assert.That(session.GetIdentifiedTreasureFragments("weathered"), Is.Zero);
+            Assert.That(session.TreasureMaps.Single().Seed, Is.EqualTo("GM-INTERACTION"));
+        }
+
+        [TestCase("0", 0)]
+        [TestCase("1", 1)]
+        [TestCase("00042", 42)]
         [TestCase("1000000000", CoreGameMasterTools.MaximumProfileGold)]
         public void ParseGold_AcceptsOnlyExactSupportedAmounts(string input, int expected)
         {

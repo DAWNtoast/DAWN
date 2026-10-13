@@ -1,215 +1,271 @@
-using System;
 using System.Linq;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
-using ShatteredSail.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation.Tests
 {
-    /// <summary>
-    /// Regression coverage for the strategy-deck rail. The rail is a vertical scroll list;
-    /// rows stay inside the content grid and the old pager controls stay removed.
-    /// </summary>
     public sealed class DeckBuilderScrollLayoutTests
     {
         private GameObject host;
+        private CoreGameplayDemoController controller;
 
         [TearDown]
-        public void Cleanup()
+        public void Cleanup() { if (host != null) Object.DestroyImmediate(host); }
+
+        [TestCase("neutral")]
+        [TestCase("fire")]
+        [TestCase("arcane")]
+        [TestCase("curse")]
+        [TestCase("tide")]
+        [TestCase("thunder")]
+        [TestCase("blood")]
+        public void EverySchoolHasAuthoredDeckListArtWithUsableUvAndEnergyPlacement(string school)
         {
-            if (host != null) UnityEngine.Object.DestroyImmediate(host);
+            Texture2D texture = DeckListArtCatalog.Texture(school);
+            DeckListArtCatalog.Layout layout = DeckListArtCatalog.Bounds(school);
+            Assert.That(texture, Is.Not.Null, school + " row texture must be packaged in Resources.");
+            Assert.That(layout, Is.Not.Null, school + " must have its own trim and ornament bounds.");
+            Assert.That(layout.id, Is.EqualTo(school));
+            Assert.That(layout.Uv.width, Is.GreaterThan(0f));
+            Assert.That(layout.Uv.height, Is.GreaterThan(0f));
+            Assert.That(layout.Uv.xMin, Is.InRange(0f, 1f));
+            Assert.That(layout.Uv.yMin, Is.InRange(0f, 1f));
+            Assert.That(layout.Uv.xMax, Is.InRange(0f, 1f));
+            Assert.That(layout.Uv.yMax, Is.InRange(0f, 1f));
+            Assert.That(layout.left, Is.GreaterThan(0f));
+            Assert.That(layout.right, Is.GreaterThan(0f));
+            Assert.That(layout.left + layout.right, Is.LessThan(1f), "The card name and art retain a nonempty middle section.");
+            Assert.That(layout.energyX, Is.InRange(0f, layout.left), "The single energy numeral sits in the left icon.");
+            Assert.That(layout.energyY, Is.InRange(0f, 1f));
+            Assert.That(DeckListArtCatalog.MapRowX(layout.energyX, layout, 306f), Is.InRange(0f, 54f));
+            host = new GameObject("School Deck List Resource Test", typeof(RectTransform));
+            DeckListRowGraphic frame = host.AddComponent<DeckListRowGraphic>();
+            frame.Configure(school);
+            Assert.That(frame.HasAuthoredTexture, Is.True);
+            Assert.That(frame.SchoolId, Is.EqualTo(school));
+            Assert.That(frame.mainTexture, Is.SameAs(texture));
+            Assert.That(frame.raycastTarget, Is.False);
         }
 
         [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
         [TestCase(CoreGameplayPreviewPort.GrayGull)]
-        public void StrategyDeckUsesBoundedVerticalScrollWithoutPager(CoreGameplayPreviewPort port)
+        public void DeckColumnsAggregateDuplicatesAndCountCopiesIndependently(CoreGameplayPreviewPort port)
         {
-            host = new GameObject("Deck Builder Scroll Layout Test");
-            host.SetActive(false);
-            CoreGameplayDemoController controller = host.AddComponent<CoreGameplayDemoController>();
-            controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.DeckBuilder, port, 0);
-            host.SetActive(true);
-            Assert.That(controller.HasCompleteEditorPreview, Is.True);
-            Canvas.ForceUpdateCanvases();
-
+            CreatePreview(port);
+            int[] unique = BasePool().Take(10).ToArray();
+            int[] deck = new[] { unique[0], unique[1], unique[0] }.Concat(unique.Skip(2)).ToArray();
+            Assert.That(controller.Session.SetBattleDeck(NavalBattleStage.Naval, deck), Is.True);
+            RebuildColumns();
+            ScrollRect basic = DeckScroll(false);
+            ScrollRect special = DeckScroll(true);
             RectTransform rail = Find<RectTransform>("Deck Builder Deck Rail");
-            Image deckBacking = Find<Image>("Deck Builder Deck Backing");
-            RectTransform pirateFrame = Find<RectTransform>("Deck Builder Pirate Frame");
-            RectTransform viewport = Find<RectTransform>("Deck Builder Deck Scroll Viewport");
-            RectTransform content = Find<RectTransform>("Deck Builder Deck Scroll Content");
-            ScrollRect scroll = viewport.GetComponent<ScrollRect>();
-
-            Assert.That(rail.GetComponent<RectMask2D>(), Is.Not.Null);
-            Assert.That(deckBacking.sprite, Is.Not.Null);
-            Assert.That(deckBacking.sprite.texture.name, Is.EqualTo("deck_builder_parchment_v2"));
-            Assert.That(deckBacking.raycastTarget, Is.False);
-            Assert.That(viewport.GetComponent<RectMask2D>(), Is.Not.Null);
-            Assert.That(scroll, Is.Not.Null);
-            Assert.That(scroll.content, Is.SameAs(content));
-            Assert.That(scroll.vertical, Is.True);
-            Assert.That(scroll.horizontal, Is.False);
-            Assert.That(viewport.transform.IsChildOf(rail), Is.True);
-            Assert.That(content.transform.IsChildOf(viewport), Is.True);
-            Assert.That(viewport.rect.width, Is.LessThanOrEqualTo(rail.rect.width - 20f));
-            Assert.That(viewport.rect.height, Is.LessThan(rail.rect.height - 120f));
-            Assert.That(pirateFrame.transform.GetSiblingIndex(), Is.GreaterThan(rail.transform.GetSiblingIndex()),
-                "Pirate frame must render above the deck scroll rail/content");
-
-            string[] obsoletePagerNames =
+            Button[] rows = Cards(false);
+            Assert.That(rows, Has.Length.EqualTo(10), "Two copies of a card share one row.");
+            CollectionAssert.AreEqual(deck.Distinct(), rows.Select(CardIndex), "Groups retain the first occurrence order.");
+            AssertColumnTotal(false, deck.Length);
+            int[] sourceCards = controller.Session.GetBonusBattleCards(NavalBattleStage.Naval).ToArray();
+            CollectionAssert.AreEqual(sourceCards.Distinct(), Cards(true).Select(CardIndex));
+            AssertColumnTotal(true, sourceCards.Length);
+            foreach (bool isSpecial in new[] { false, true })
             {
-                "Previous Stage Deck Page", "Stage Deck Page", "Next Stage Deck Page",
-            };
-            foreach (string obsoleteName in obsoletePagerNames)
-                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == obsoleteName), Is.False, obsoleteName);
-
-            Button[] rows = content.GetComponentsInChildren<Button>(true)
-                .Where(button => button.name.StartsWith("Remove Deck Card ", StringComparison.Ordinal) ||
-                                 button.name.StartsWith("Crew Bonus Deck Card ", StringComparison.Ordinal))
-                .ToArray();
-            Assert.That(rows.Length, Is.GreaterThan(0));
-            foreach (Button row in rows)
-            {
-                Assert.That(row.transform.IsChildOf(content), Is.True, row.name);
-                if (row.name.StartsWith("Remove Deck Card ", StringComparison.Ordinal))
+                ScrollRect scroll = DeckScroll(isSpecial);
+                RectTransform column = Column(isSpecial);
+                Assert.That(scroll.viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+                Assert.That(scroll.content.IsChildOf(scroll.viewport), Is.True);
+                Assert.That(scroll.viewport.IsChildOf(column), Is.True);
+                AssertContained(rail.rect, BoundsIn(rail, column), column.name);
+                AssertContained(column.rect, BoundsIn(column, scroll.viewport), scroll.name);
+                Assert.That(scroll.vertical, Is.True);
+                Assert.That(scroll.horizontal, Is.False);
+                Assert.That(scroll.content.rect.width, Is.EqualTo(scroll.viewport.rect.width).Within(.01f));
+                foreach (Button row in Cards(isSpecial))
                 {
-                    RectTransform rowTransform = row.GetComponent<RectTransform>();
-                    Assert.That(rowTransform.rect.width, Is.EqualTo(296f).Within(0.01f), row.name + " / width");
-                    Assert.That(rowTransform.rect.height, Is.EqualTo(68f * GameReadability.Scale - 8f).Within(0.01f), row.name + " / height");
+                    int copies = (isSpecial ? sourceCards : deck).Count(index => index == CardIndex(row));
+                    AssertCompactRow(row, scroll, copies);
+                    Assert.That(row.GetComponent<DeckBuilderCardDrag>() != null, Is.EqualTo(!isSpecial));
                 }
-                Rect bounds = BoundsIn(content, row.GetComponent<RectTransform>());
-                Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(content.rect.xMin - 0.5f), row.name + " / left");
-                Assert.That(bounds.xMax, Is.LessThanOrEqualTo(content.rect.xMax + 0.5f), row.name + " / right");
-                Assert.That(bounds.width, Is.LessThanOrEqualTo(viewport.rect.width + 0.5f), row.name + " / viewport width");
-                Assert.That(bounds.height, Is.GreaterThanOrEqualTo(24f), row.name + " / usable height");
             }
+            Assert.That(BoundsIn(rail, Column(false)).xMax, Is.LessThan(BoundsIn(rail, Column(true)).xMin));
+            Assert.That(basic.verticalNormalizedPosition, Is.EqualTo(1f).Within(.001f));
+            Assert.That(special.verticalNormalizedPosition, Is.EqualTo(1f).Within(.001f));
+            foreach (string obsolete in new[] { "Deck Builder Base Filter", "Deck Builder Special Filter",
+                "Deck Builder Deck Scroll Viewport", "Previous Stage Deck Page", "Next Stage Deck Page" })
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == obsolete), Is.False, obsolete);
+        }
 
-            Rect[] orderedRows = rows.Select(row => BoundsIn(content, row.GetComponent<RectTransform>()))
-                .OrderByDescending(bounds => bounds.center.y).ToArray();
-            for (int index = 0; index < orderedRows.Length; index++)
+        [TestCase(10, false)]
+        [TestCase(11, false)]
+        [TestCase(12, false)]
+        [TestCase(10, true)]
+        [TestCase(11, true)]
+        public void TenDifferentCardsFillTheViewportAndOnlyAdditionalKindsScroll(int differentCards, bool special)
+        {
+            CreatePreview(CoreGameplayPreviewPort.GrayGull);
+            if (special)
             {
-                Assert.That(orderedRows[index].yMax, Is.LessThanOrEqualTo(content.rect.yMax + 0.5f), "row top / " + index);
-                Assert.That(orderedRows[index].yMin, Is.GreaterThanOrEqualTo(content.rect.yMin - 0.5f), "row bottom / " + index);
-                if (index > 0)
-                    Assert.That(orderedRows[index - 1].yMin - orderedRows[index].yMax, Is.GreaterThanOrEqualTo(4.5f), "row gap / " + index);
+                CoreSpecialCardDefinition[] sources = CoreSpecialCardCatalog.All.Where(card => card.Card.IsAllowedInStage(NavalBattleStage.Naval))
+                    .Take(differentCards).ToArray();
+                controller.Session.ConfigureSpecialCardSources(
+                    sources.Where(card => card.SourceKind == CoreSpecialCardSourceKind.Crew).Select(card => card.SourceId).ToArray(),
+                    sources.Where(card => card.SourceKind == CoreSpecialCardSourceKind.Component).Select(card => card.SourceId).ToArray());
+                Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval).Distinct().Count(), Is.EqualTo(differentCards));
             }
-
-            Rect viewportInRail = BoundsIn(rail, viewport);
-            Assert.That(viewportInRail.xMin, Is.GreaterThanOrEqualTo(rail.rect.xMin + 8f));
-            Assert.That(viewportInRail.xMax, Is.LessThanOrEqualTo(rail.rect.xMax - 8f));
-            Assert.That(viewportInRail.yMin, Is.GreaterThanOrEqualTo(rail.rect.yMin + 8f));
-            Assert.That(viewportInRail.yMax, Is.LessThanOrEqualTo(rail.rect.yMax - 112f));
-            AssertInsidePaintedOpening(viewportInRail, "viewport");
-            AssertInsidePaintedOpening(BoundsIn(rail, Find<RectTransform>("Deck Builder Scrollbar")), "scrollbar");
-            // With no overflow Unity reports zero for either end of the same view.
-            if (content.rect.height > viewport.rect.height + .1f)
-                Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1f).Within(.001f), "The overflowing initial view starts at the first row.");
-            Button firstRow = rows.OrderByDescending(row => BoundsIn(content, row.GetComponent<RectTransform>()).yMax).First();
-            AssertInsidePaintedOpening(BoundsIn(rail, firstRow.GetComponent<RectTransform>()), "initial first row");
-            AssertInsideViewport(scroll, firstRow.GetComponent<RectTransform>(), "initial first row");
-            Assert.That(content.anchoredPosition.y, Is.EqualTo(0f).Within(.1f), "Fresh content remains anchored to the actual viewport top.");
-            AssertRowTextColumns(rail, rows);
+            else
+            {
+                int[] deck = BasePool().Take(differentCards).ToArray();
+                Assert.That(deck, Has.Length.EqualTo(differentCards), "The fixture uses real unlocked card kinds.");
+                Assert.That(controller.Session.SetBattleDeck(NavalBattleStage.Naval, deck), Is.True);
+            }
+            RebuildColumns();
+            ScrollRect scroll = DeckScroll(special);
+            Button[] rows = Cards(special);
+            DeckListDiamondScrollbar scrollbar = Column(special).GetComponentInChildren<DeckListDiamondScrollbar>(true);
+            Assert.That(scrollbar, Is.Not.Null);
+            Assert.That(scrollbar.Scroll, Is.SameAs(scroll));
+            scrollbar.Refresh();
+            Assert.That(scrollbar.HasOverflow, Is.EqualTo(differentCards > 10));
+            Assert.That(scrollbar.Handle.gameObject.activeSelf, Is.EqualTo(differentCards > 10));
+            Assert.That(scrollbar.Handle.rect.size, Is.EqualTo(new Vector2(18f, 30f)), "The border diamond never stretches into a conventional scrollbar.");
+            Assert.That(scroll.content.rect.height, Is.EqualTo(scroll.viewport.rect.height * differentCards / 10f).Within(.01f));
+            Rect[] bounds = rows.Select(row => BoundsIn(scroll.content, row.GetComponent<RectTransform>())).ToArray();
+            Assert.That(bounds[0].yMax, Is.EqualTo(scroll.content.rect.yMax).Within(.01f), "No unused space above the first row.");
+            Assert.That(bounds.Last().yMin, Is.EqualTo(scroll.content.rect.yMin).Within(.01f), "No unused space below the last row.");
+            for (int row = 0; row < bounds.Length; row++)
+            {
+                Assert.That(bounds[row].xMin, Is.EqualTo(scroll.content.rect.xMin).Within(.01f), "Rows meet the left list edge.");
+                Assert.That(bounds[row].xMax, Is.EqualTo(scroll.content.rect.xMax).Within(.01f), "Rows meet the right list edge.");
+                Assert.That(bounds[row].height, Is.EqualTo(scroll.viewport.rect.height / 10f).Within(.01f));
+                if (row > 0) Assert.That(bounds[row].yMax, Is.EqualTo(bounds[row - 1].yMin).Within(.01f), "Rows meet without gaps or overlap.");
+            }
+            if (differentCards == 10)
+                foreach (Button row in rows) AssertContained(scroll.viewport.rect, BoundsIn(scroll.viewport, row.GetComponent<RectTransform>()), row.name);
+            else
+            {
+                scroll.verticalNormalizedPosition = 0f;
+                Canvas.ForceUpdateCanvases();
+                scrollbar.Refresh();
+                AssertContained(scroll.viewport.rect, BoundsIn(scroll.viewport, rows.Last().GetComponent<RectTransform>()), "Last row is reachable.");
+                Rect thumb = BoundsIn(scrollbar.transform, scrollbar.Handle);
+                Rect track = ((RectTransform)scrollbar.transform).rect;
+                Assert.That(thumb.yMin, Is.EqualTo(track.yMin).Within(.1f));
+            }
         }
 
         [Test]
-        public void StrategyDeckRowsRemainAvailableAfterScrollingToTheEnd()
+        public void BothColumnsPreserveIndependentScrollOffsetsAndSpecialRowsRemainReadOnly()
         {
-            host = new GameObject("Deck Builder Scroll Interaction Test");
+            CreatePreview(CoreGameplayPreviewPort.GrayGull);
+            int[] deck = BasePool().Take(12).ToArray();
+            Assert.That(controller.Session.SetBattleDeck(NavalBattleStage.Naval, deck), Is.True);
+            controller.Session.ConfigureSpecialCardSources(
+                CoreSpecialCardCatalog.All.Where(card => card.SourceKind == CoreSpecialCardSourceKind.Crew).Select(card => card.SourceId).ToArray(),
+                CoreSpecialCardCatalog.All.Where(card => card.SourceKind == CoreSpecialCardSourceKind.Component).Select(card => card.SourceId).ToArray());
+            RebuildColumns();
+            int[] sources = controller.Session.GetBonusBattleCards(NavalBattleStage.Naval).ToArray();
+            decimal gold = controller.Session.ProfileGold;
+            Assert.That(sources.Distinct().Count(), Is.GreaterThan(10), "Use real source cards to exercise a second overflowing column.");
+            DeckScroll(false).verticalNormalizedPosition = .31f;
+            DeckScroll(true).verticalNormalizedPosition = .64f;
+            Canvas.ForceUpdateCanvases();
+            Vector2 baseOffset = DeckScroll(false).content.anchoredPosition;
+            Vector2 specialOffset = DeckScroll(true).content.anchoredPosition;
+            Button next = Find<Button>("Next Battle Card Collection Page");
+            Assert.That(next.interactable, Is.True);
+            next.onClick.Invoke();
+            Canvas.ForceUpdateCanvases();
+            Assert.That(DeckScroll(false).content.anchoredPosition.y, Is.EqualTo(baseOffset.y).Within(.1f));
+            Assert.That(DeckScroll(true).content.anchoredPosition.y, Is.EqualTo(specialOffset.y).Within(.1f));
+            foreach (Button row in Cards(true))
+            {
+                Assert.That(row.interactable, Is.True);
+                Assert.That(row.GetComponent<DeckBuilderCardDrag>(), Is.Null);
+                row.onClick.Invoke();
+                Assert.That(Find<Text>("Deck Builder Status").text, Does.Contain("不能手动移除"));
+            }
+            AssertColumnTotal(false, deck.Length);
+            AssertColumnTotal(true, sources.Length);
+            CollectionAssert.AreEqual(deck, controller.Session.GetBattleDeck(NavalBattleStage.Naval));
+            CollectionAssert.AreEqual(sources, controller.Session.GetBonusBattleCards(NavalBattleStage.Naval));
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+        }
+
+        private void AssertCompactRow(Button row, ScrollRect scroll, int copies)
+        {
+            CoreBattleCard data = controller.Session.GetBattleCard(CardIndex(row));
+            Assert.That(row.GetComponentInChildren<CardSchoolFrameGraphic>(), Is.Null, "The deck uses a compact summary, not a shrunken full card.");
+            DeckListRowGraphic frame = row.GetComponentInChildren<DeckListRowGraphic>();
+            Assert.That(frame, Is.Not.Null);
+            Assert.That(frame.HasAuthoredTexture, Is.True);
+            Assert.That(frame.SchoolId, Is.EqualTo(CardSchoolArtCatalog.NormalizeSchool(data.SchoolId)));
+            Assert.That(frame.mainTexture, Is.SameAs(DeckListArtCatalog.Texture(frame.SchoolId)));
+            Assert.That(row.GetComponentsInChildren<CardOrnamentGraphic>(true), Is.Empty, "Compact rows do not repeat the full card's resource ornaments.");
+            Text[] labels = row.GetComponentsInChildren<Text>(true).Where(label => !string.IsNullOrEmpty(label.text)).ToArray();
+            Assert.That(labels, Has.Length.EqualTo(3), "Energy is shown once inside its icon; only the live name and quantity accompany it.");
+            Assert.That(labels.Single(label => label.name == row.name + " Energy").text, Is.EqualTo(data.Energy.ToString()));
+            Text quantity = labels.Single(label => label.name == row.name + " Quantity");
+            Assert.That(quantity.text, Is.EqualTo(copies.ToString()));
+            Assert.That(quantity.preferredWidth, Is.LessThanOrEqualTo(quantity.rectTransform.rect.width + .5f), "The complete quantity fits on one line.");
+            Assert.That(quantity.preferredHeight, Is.LessThanOrEqualTo(quantity.rectTransform.rect.height + .5f), "The numeral is not clipped on a wrapped second line.");
+            Text title = labels.Single(label => label.name == row.name + " Name");
+            string fullName = CardFaceLayout.DisplayName(data);
+            if (title.text != fullName)
+            {
+                Assert.That(title.text, Does.EndWith("…"));
+                Assert.That(title.text.Length, Is.GreaterThan(1));
+                Assert.That(fullName, Does.StartWith(title.text.Substring(0, title.text.Length - 1)));
+            }
+            Assert.That(title.fontSize, Is.GreaterThanOrEqualTo(12));
+            Assert.That(title.preferredWidth, Is.LessThanOrEqualTo(title.rectTransform.rect.width + .5f), "Final text width fits: " + fullName);
+            Assert.That(title.preferredHeight, Is.LessThanOrEqualTo(title.rectTransform.rect.height + .5f));
+            RawImage art = row.GetComponentsInChildren<RawImage>(true).Single(image => image.name == row.name + " Art");
+            Assert.That(art.texture, Is.Not.Null, "Each summary retains card art.");
+            Assert.That(art.uvRect.width, Is.GreaterThan(0f));
+            Assert.That(art.uvRect.height, Is.GreaterThan(0f));
+            Assert.That(art.uvRect.xMin, Is.InRange(0f, 1f));
+            Assert.That(art.uvRect.yMin, Is.InRange(0f, 1f));
+            Assert.That(art.uvRect.xMax, Is.InRange(0f, 1f));
+            Assert.That(art.uvRect.yMax, Is.InRange(0f, 1f));
+            AssertContained(scroll.content.rect, BoundsIn(scroll.content, row.GetComponent<RectTransform>()), row.name);
+            foreach (Graphic child in row.GetComponentsInChildren<Graphic>(true).Where(graphic => graphic.gameObject != row.gameObject))
+                Assert.That(child.raycastTarget, Is.False, "Decorations cannot intercept clicking, scrolling or dragging: " + child.name);
+        }
+
+        private void AssertColumnTotal(bool special, int total)
+        {
+            string expected = (special ? "专属牌 " : "基础卡 ") + total + " 张";
+            Assert.That(Find<Text>("Deck Builder " + (special ? "Special" : "Base") + " Column Count").text, Is.EqualTo(expected));
+        }
+
+        private int[] BasePool() => controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval)
+            .Where(index => !CoreVoyageSession.IsSpecialBattleCard(controller.Session.GetBattleCard(index).Id) &&
+                string.IsNullOrEmpty(controller.Session.GetBattleCard(index).RequiredCrew) &&
+                string.IsNullOrEmpty(controller.Session.GetBattleCard(index).RequiredComponent)).Distinct().ToArray();
+
+        private void CreatePreview(CoreGameplayPreviewPort port)
+        {
+            host = new GameObject("Deck Builder Compact Columns Test");
             host.SetActive(false);
-            CoreGameplayDemoController controller = host.AddComponent<CoreGameplayDemoController>();
-            controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.DeckBuilder, CoreGameplayPreviewPort.GrayGull, 0);
+            controller = host.AddComponent<CoreGameplayDemoController>();
+            controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.DeckBuilder, port, 1);
             host.SetActive(true);
             Assert.That(controller.HasCompleteEditorPreview, Is.True);
-            // Use a legal ten-card deck with distinct base cards, plus the preview's
-            // actual crew sources, so reaching the final row requires real scrolling.
-            int[] distinctCards = controller.Session.GetAvailableBattleCards(NavalBattleStage.Preparation)
-                .Distinct().Take(10).ToArray();
-            Assert.That(distinctCards.Length, Is.EqualTo(10));
-            Assert.That(controller.Session.SetBattleDeck(NavalBattleStage.Preparation, distinctCards), Is.True);
-            int crewRows = controller.Session.GetBonusBattleCards(NavalBattleStage.Preparation).Count;
-            Assert.That(crewRows, Is.GreaterThan(0), "The fixture includes real preview crew/component source rows.");
-            Find<Button>("Battle Deck Stage Tab " + NavalBattleStage.Preparation).onClick.Invoke();
             Canvas.ForceUpdateCanvases();
+        }
 
-            ScrollRect scroll = Find<RectTransform>("Deck Builder Deck Scroll Viewport").GetComponent<ScrollRect>();
-            RectTransform rail = Find<RectTransform>("Deck Builder Deck Rail");
-            RectTransform content = Find<RectTransform>("Deck Builder Deck Scroll Content");
-            Button[] rows = content.GetComponentsInChildren<Button>(true)
-                .Where(button => button.name.StartsWith("Remove Deck Card ", StringComparison.Ordinal) ||
-                                 button.name.StartsWith("Crew Bonus Deck Card ", StringComparison.Ordinal))
-                .ToArray();
-            Assert.That(rows.Length, Is.EqualTo(distinctCards.Length + crewRows), "Every base and source card remains available.");
-            Assert.That(content.rect.height, Is.GreaterThan(scroll.viewport.rect.height), "This fixture must overflow.");
-            Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1f).Within(.001f));
-            Assert.That(scroll.verticalScrollbar.value, Is.EqualTo(1f).Within(.001f));
-            // Match the native Editor prelayout callback which previously emitted
-            // the scrollbar's default zero and hid the first row behind the mask.
-            scroll.verticalScrollbar.Rebuild(CanvasUpdate.Prelayout);
+        private void RebuildColumns()
+        {
+            Find<Button>("Battle Deck Stage Tab Naval").onClick.Invoke();
             Canvas.ForceUpdateCanvases();
-            Assert.That(content.anchoredPosition.y, Is.EqualTo(0f).Within(.1f));
-            Button firstRow = rows.OrderByDescending(row => BoundsIn(content, row.GetComponent<RectTransform>()).yMax).First();
-            Button lastRow = rows.OrderBy(row => BoundsIn(content, row.GetComponent<RectTransform>()).yMin).First();
-            AssertInsidePaintedOpening(BoundsIn(rail, firstRow.GetComponent<RectTransform>()), "overflowing initial first row");
-            AssertInsideViewport(scroll, firstRow.GetComponent<RectTransform>(), "overflowing initial first row");
-            foreach (Text text in firstRow.GetComponentsInChildren<Text>())
-                AssertInsideViewport(scroll, text.rectTransform, "initial first row / " + text.name);
-            Assert.That(BoundsIn(scroll.viewport, lastRow.GetComponent<RectTransform>()).yMin,
-                Is.LessThan(scroll.viewport.rect.yMin), "The last row starts below the visible area.");
-            Vector2 beforeScroll = content.anchoredPosition;
-
-            scroll.verticalNormalizedPosition = 0f;
-            Canvas.ForceUpdateCanvases();
-            Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0f).Within(0.001f));
-            Assert.That(Vector2.Distance(content.anchoredPosition, beforeScroll), Is.GreaterThan(1f), "Scrolling must actually move the list.");
-            foreach (Button row in rows)
-                Assert.That(row.transform.IsChildOf(content), Is.True, row.name);
-            AssertInsidePaintedOpening(BoundsIn(rail, lastRow.GetComponent<RectTransform>()), "last row after scrolling");
-            AssertInsideViewport(scroll, lastRow.GetComponent<RectTransform>(), "last row after scrolling");
-            foreach (Text text in lastRow.GetComponentsInChildren<Text>())
-            {
-                AssertInsidePaintedOpening(BoundsIn(rail, text.rectTransform), "last row / " + text.name);
-                AssertInsideViewport(scroll, text.rectTransform, "last row / " + text.name);
-            }
         }
 
-        private static void AssertInsideViewport(ScrollRect scroll, RectTransform child, string context)
-        {
-            Rect bounds = BoundsIn(scroll.viewport, child);
-            Rect visible = scroll.viewport.rect;
-            Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(visible.xMin - .1f), context + " / mask left");
-            Assert.That(bounds.xMax, Is.LessThanOrEqualTo(visible.xMax + .1f), context + " / mask right");
-            Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(visible.yMin - .1f), context + " / mask bottom");
-            Assert.That(bounds.yMax, Is.LessThanOrEqualTo(visible.yMax + .1f), context + " / mask top");
-        }
-
-        private static void AssertInsidePaintedOpening(Rect bounds, string context)
-        {
-            // Measured usable paper inside deck_builder_pirate_frame_v1, in rail
-            // coordinates. The opaque header/carvings are not usable UI surface.
-            Rect paper = Rect.MinMaxRect(-150f, -220f, 150f, 125f);
-            Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(paper.xMin - .1f), context + " / painted left");
-            Assert.That(bounds.xMax, Is.LessThanOrEqualTo(paper.xMax + .1f), context + " / painted right");
-            Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(paper.yMin - .1f), context + " / painted bottom");
-            Assert.That(bounds.yMax, Is.LessThanOrEqualTo(paper.yMax + .1f), context + " / painted header");
-        }
-
-        private static void AssertRowTextColumns(RectTransform rail, Button[] rows)
-        {
-            Rect scrollbar = BoundsIn(rail, rail.GetComponentsInChildren<RectTransform>(true)
-                .Single(rect => rect.name == "Deck Builder Scrollbar"));
-            foreach (Button row in rows)
-            foreach (Text label in row.GetComponentsInChildren<Text>())
-            {
-                Rect bounds = BoundsIn(rail, label.rectTransform);
-                Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(-150f), row.name + " / visible left text edge");
-                Assert.That(bounds.xMax, Is.LessThanOrEqualTo(scrollbar.xMin - 4f), row.name + " / text clear of frame and scrollbar");
-                if (!label.name.EndsWith(" Quantity", StringComparison.Ordinal)) continue;
-                Assert.That(label.text, Is.Not.Empty, row.name + " / count or source");
-                Assert.That(label.preferredWidth, Is.LessThanOrEqualTo(label.rectTransform.rect.width + .5f), row.name + " / complete count or source");
-                Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .5f), row.name + " / complete count or source");
-            }
-        }
+        private ScrollRect DeckScroll(bool special) => Find<ScrollRect>("Deck Builder " + (special ? "Special" : "Base") + " Scroll Viewport");
+        private RectTransform Column(bool special) => Find<RectTransform>("Deck Builder " + (special ? "Special" : "Base") + " Column");
+        private Button[] Cards(bool special) => DeckScroll(special).content.GetComponentsInChildren<Button>()
+            .Where(button => button.name.StartsWith(special ? "Crew Bonus Deck Card " : "Remove Deck Card ")).ToArray();
+        private static int CardIndex(Button button) => int.Parse(button.name.Substring(
+            button.name.StartsWith("Remove Deck Card ") ? "Remove Deck Card ".Length : "Crew Bonus Deck Card ".Length).Split(' ')[0]);
 
         private T Find<T>(string name) where T : Component
         {
@@ -222,15 +278,15 @@ namespace ShatteredSail.Presentation.Tests
         {
             Vector3[] corners = new Vector3[4];
             child.GetWorldCorners(corners);
-            Vector2 min = parent.InverseTransformPoint(corners[0]);
-            Vector2 max = min;
-            foreach (Vector3 corner in corners)
-            {
-                Vector2 local = parent.InverseTransformPoint(corner);
-                min = Vector2.Min(min, local);
-                max = Vector2.Max(max, local);
-            }
-            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+            Vector3[] local = corners.Select(parent.InverseTransformPoint).ToArray();
+            return Rect.MinMaxRect(local.Min(point => point.x), local.Min(point => point.y), local.Max(point => point.x), local.Max(point => point.y));
+        }
+        private static void AssertContained(Rect outer, Rect inner, string context)
+        {
+            Assert.That(inner.xMin, Is.GreaterThanOrEqualTo(outer.xMin - .5f), context + " left");
+            Assert.That(inner.xMax, Is.LessThanOrEqualTo(outer.xMax + .5f), context + " right");
+            Assert.That(inner.yMin, Is.GreaterThanOrEqualTo(outer.yMin - .5f), context + " bottom");
+            Assert.That(inner.yMax, Is.LessThanOrEqualTo(outer.yMax + .5f), context + " top");
         }
     }
 }

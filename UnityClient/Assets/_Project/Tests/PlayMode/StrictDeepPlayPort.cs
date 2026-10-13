@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -58,30 +58,36 @@ namespace ShatteredSail.Presentation.Tests
 
             private static int VisibleMarketRemaining(string key)
             {
+                if (PortText("Market Quota " + key) == null)
+                {
+                    PortButton("Cancel Market Trade")?.onClick.Invoke();
+                    PortButton("Market Detail Back")?.onClick.Invoke();
+                    PortButton("Market Item Icon " + key)?.onClick.Invoke();
+                }
+                if (PortText("Market Quota " + key) == null)
+                {
+                    Button inventory = PortButton("Market Inventory Toggle");
+                    Assert.That(inventory, Is.Not.Null, "Open the selected item's inventory through its visible control: " + key);
+                    Assert.That(inventory.IsInteractable(), Is.True);
+                    inventory.onClick.Invoke();
+                }
                 string caption = PortText("Market Quota " + key)?.text ?? string.Empty;
                 Match match = Regex.Match(caption, @"可购\s+(\d+)");
                 Assert.That(match.Success, Is.True, "No visible market allowance: " + caption);
                 return int.Parse(match.Groups[1].Value);
             }
 
-            private IEnumerator SetStrictMarketQuantity(string key, int target)
+            private IEnumerator SetStrictMarketQuantity(string key, int target, bool purchase = true)
             {
-                yield return EnsureMarketItemVisible(key);
-                InputField input = GameObject.Find("Market Quantity Input " + key)?.GetComponent<InputField>();
-                Assert.That(input, Is.Not.Null);
-                string quantity = target.ToString(CultureInfo.InvariantCulture);
-                if (input.text == quantity) yield break;
-                Assert.That(input.IsInteractable(), Is.True, "Quantity field must be editable through the displayed market.");
-                Record("Type actual market quantity " + key + "=" + quantity);
-                yield return ClickDestinationTestGraphic(input.gameObject, Vector2.zero);
-                Assert.That(input.isFocused, Is.True);
-                input.ProcessEvent(Event.KeyboardEvent("^a"));
-                input.ProcessEvent(Event.KeyboardEvent("backspace"));
-                foreach (char character in quantity)
-                    input.ProcessEvent(new Event { type = EventType.KeyDown, character = character, keyCode = KeyCode.None });
-                input.DeactivateInputField();
+                yield return OpenMarketTrade(key, purchase);
+                Slider slider = MarketQuantityField(key);
+                Assert.That(slider, Is.Not.Null);
+                Assert.That(slider.IsInteractable(), Is.True);
+                Assert.That(target, Is.InRange(0, Mathf.RoundToInt(slider.maxValue)));
+                Record("Adjust actual market quantity slider " + key + "=" + target);
+                slider.value = target;
                 yield return null;
-                Assert.That(input.text, Is.EqualTo(quantity), "The visible market must retain the requested legal quantity.");
+                Assert.That(slider.value, Is.EqualTo(target), "The visible market must retain the requested legal quantity.");
             }
 
             // Target is total carried inventory, not an injected increment.
@@ -89,7 +95,6 @@ namespace ShatteredSail.Presentation.Tests
             public IEnumerator BuyResource(string key, int target)
             {
                 yield return OpenStrictMarket();
-                yield return EnsureMarketItemVisible(key);
                 PortMarketItem item = PortItem(key);
                 int missing = Math.Max(0, target - Session.GetMarketCargoAmount(key));
                 if (missing == 0) yield break;
@@ -111,7 +116,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 string key = PortMarketCatalog.Key(item);
                 yield return SetStrictMarketQuantity(key, quantity);
-                if (PortButton("Market Buy " + key)?.IsInteractable() != true)
+                if (PortButton("Confirm Market Buy " + key)?.IsInteractable() != true)
                 {
                     Record("Displayed purchase is disabled; no override: " + key + " x" + quantity);
                     yield break;
@@ -119,7 +124,7 @@ namespace ShatteredSail.Presentation.Tests
                 int before = Session.GetMarketCargoAmount(key);
                 decimal gold = Session.ProfileGold;
                 decimal quotedCost = NoGmFirstTreasure ? PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, item, PricingDate, quantity) : 0m;
-                yield return Click("Market Buy " + key);
+                yield return Click("Confirm Market Buy " + key);
                 int received = Session.GetMarketCargoAmount(key) - before;
                 Assert.That(received, Is.EqualTo(quantity), "A real market purchase must deliver its displayed quantity.");
                 Assert.That(Session.ProfileGold, Is.LessThan(gold));
@@ -138,7 +143,6 @@ namespace ShatteredSail.Presentation.Tests
             {
                 // Plan both sources together, then buy through the normal two UI
                 // actions. Every last unit is useful; the default lot is not a minimum.
-                yield return EnsureMarketItemVisible("water");
                 int water = 0, food = 0;
                 int waterLimit = Math.Min(Math.Max(0, target - Session.Cargo.Water), VisibleMarketRemaining("water"));
                 int foodLimit = Math.Min(Math.Max(0, target - Session.Cargo.Food), VisibleMarketRemaining("food"));
@@ -209,7 +213,6 @@ namespace ShatteredSail.Presentation.Tests
                     foreach (var candidate in candidates)
                     {
                         string key = PortMarketCatalog.Key(candidate.Item);
-                        yield return EnsureMarketItemVisible(key);
                         int fits = Math.Max(0, (int)Math.Floor((Session.CargoCapacityValue - Session.Cargo.UsedVolume - 5f) /
                             PortMarketCatalog.CargoVolume(candidate.Item)));
                         int quantity = Math.Min(VisibleMarketRemaining(key), fits);
@@ -236,7 +239,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Session.SelectedRouteIndex, Is.EqualTo(route), "The recorded chart must match the requested trading route.");
                 Assert.That(Session.SelectedDestinationPort, Is.EqualTo(targetPort), "The chart must lead to the quoted sale port.");
                 Shot("Port_Ready_To_Depart", "Voyage Setup");
-                Record("Actual departure quote: " + (PortText("Departure Provision Quote")?.text ?? "missing"));
+                Record("Actual departure provision action: " + (PortButton("Departure Buy Provisions")?.GetComponentInChildren<Text>()?.text ?? "missing"));
                 Assert.That(Session.Cargo.UsedVolume, Is.LessThanOrEqualTo(Session.CargoCapacityValue + .001f));
                 Assert.That(Math.Min(Session.Cargo.Water, Session.Cargo.Food), Is.GreaterThanOrEqualTo(Session.CrewCountValue), "Stop automatic departure: insufficient real water/food; preserve port for investment or normal stocking.");
                 Assert.That(PortButton("Start Voyage")?.IsInteractable(), Is.True, "The real departure button rejects this voyage.");
@@ -252,7 +255,6 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     if (item == PortMarketItem.Water || item == PortMarketItem.Food) continue;
                     string key = PortMarketCatalog.Key(item);
-                    yield return EnsureMarketItemVisible(key);
                     bool usesCannon = Session.GetBattleDeck(NavalBattleStage.Naval)
                         .Any(index => Session.GetBattleCard(index).Action == NavalBattleCardAction.Cannon);
                     int reserve = key == "wood" ? 10 : key == "medicine" ? 3 : key == "beer" ? 4 :
@@ -268,17 +270,13 @@ namespace ShatteredSail.Presentation.Tests
                     for (int n = 0; available > 0 && n < 1000; n++)
                     {
                         int quantity = Math.Min(10, available);
-                        int remaining = VisibleMarketRemaining(key);
-                        if (remaining > 0) yield return SetStrictMarketQuantity(key, Math.Min(quantity, remaining));
-                        // A sold-out market disables quantity editing, but its
-                        // visible sale button can still sell the retained lot.
-                        string saleCaption = PortButton("Market Sell " + key)?.GetComponentInChildren<Text>()?.text ?? "";
-                        Match sale = Regex.Match(saleCaption, @"出售\s+(\d+)");
-                        if (!sale.Success || !int.TryParse(sale.Groups[1].Value, out quantity) || quantity <= 0 || quantity > available) break;
-                        if (PortButton("Market Sell " + key)?.IsInteractable() != true) break;
+                        yield return SetStrictMarketQuantity(key, quantity, false);
+                        quantity = Mathf.RoundToInt(MarketQuantityField(key).value);
+                        if (quantity <= 0 || quantity > available) break;
+                        if (PortButton("Confirm Market Sell " + key)?.IsInteractable() != true) break;
                         int before = Session.GetMarketCargoAmount(key);
                         decimal gold = Session.ProfileGold;
-                        yield return Click("Market Sell " + key);
+                        yield return Click("Confirm Market Sell " + key);
                         int sold = before - Session.GetMarketCargoAmount(key);
                         Assert.That(sold, Is.EqualTo(quantity));
                         soldTotal += sold; revenue += Session.ProfileGold - gold; available -= sold;

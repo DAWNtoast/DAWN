@@ -20,7 +20,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             using (var scope = new ProfileJournalSceneScope())
             {
-                ProfileGoldPersistence.Save(750m);
+                ProfileGoldPersistence.Save(1500m);
                 SceneManager.LoadScene("MainMenu"); yield return null; yield return null;
                 var menu = Object.FindFirstObjectByType<MainMenuController>();
                 Assert.That(menu.GetComponentsInChildren<RawImage>(true).Any(image => image.name.StartsWith("Achievement Icon ")), Is.False);
@@ -32,20 +32,20 @@ namespace ShatteredSail.Presentation.Tests
                 yield return SelectExperienceCategory("财富");
                 yield return ClickAchievementIconControl("Achievements Filter Locked");
                 CollectionAssert.AreEquivalent(new[] { "gold_900", "gold_1200", "gold_2000" }, VisibleExperienceIds(menu));
-                Assert.That(GameObject.Find("Achievement Row gold_900").transform.Find("Progress").GetComponent<Text>().text, Is.EqualTo("750 / 900"));
+                Assert.That(GameObject.Find("Achievement Row gold_900").transform.Find("Progress").GetComponent<Text>().text, Is.EqualTo("1500 / 2500"));
                 Assert.That(GameObject.Find("Achievements Page Indicator").GetComponent<Text>().text, Is.EqualTo("1 / 1"));
                 AssertExperienceRowsClear(menu);
                 NavalBattleVisualCapture.Capture(null, "AchievementExperience_02_Wealth.png", "财富未解锁筛选：显示当前资金与真实目标，查询不写存档", "Achievements Card");
                 Assert.That(SnapshotJournalScenePreferences(), Is.EquivalentTo(before));
                 yield return ClickAchievementIconControl("Back From Achievements");
-                ProfileGoldPersistence.Save(1000m); AchievementCatalog.CaptureProgress();
+                ProfileGoldPersistence.Save(3000m); AchievementCatalog.CaptureProgress();
                 before = SnapshotJournalScenePreferences();
                 yield return ClickAchievementIconControl("Achievements");
                 CollectionAssert.AreEquivalent(new[] { "gold_1200", "gold_2000" }, VisibleExperienceIds(menu));
                 yield return ClickAchievementIconControl("Achievements Filter Unlocked");
                 CollectionAssert.AreEquivalent(new[] { "gold_600", "gold_900" }, VisibleExperienceIds(menu));
                 Assert.That(GameObject.Find("Achievement Row gold_900").transform.Find("Progress").GetComponent<Text>().text, Is.Empty);
-                yield return SelectExperienceCategory("派遣");
+                yield return SelectExperienceCategory("探索");
                 Assert.That(VisibleExperienceIds(menu), Is.Empty);
                 Assert.That(GameObject.Find("Achievements Empty"), Is.Not.Null);
                 Assert.That(ActiveButton("Achievements Previous Page").interactable, Is.False);
@@ -67,17 +67,28 @@ namespace ShatteredSail.Presentation.Tests
             using (var scope = new ProfileJournalSceneScope())
             {
                 SeedExperienceToastProfile();
+                // Leave exactly 73/80 hold units in the historical profile so
+                // buying 100 water legitimately reaches the milestone and fills the hold.
+                foreach (string cargo in new[] { "Beer", "Medicine", "Wood", "Iron", "Cloth", "Powder", "Cannonballs" })
+                    PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey(cargo), 0);
+                PlayerPrefs.SetInt(CoreGameplayDemoController.MarketPurchaseStorageModeKey, (int)MarketPurchaseStorageMode.Ship);
+                PlayerPrefs.Save();
                 SceneManager.LoadScene(MainMenuController.MainSceneName); yield return null; yield return null;
                 yield return new WaitForSecondsRealtime(.35f);
                 var game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                Assert.That(game.Session.Cargo.UsedVolume, Is.EqualTo(73f).Within(.001f));
+                Assert.That(game.Session.CargoCapacityValue, Is.EqualTo(80f));
                 Assert.That(GameObject.Find("Achievement Notification Canvas"), Is.Null, "Loading an old profile must not replay its milestones.");
                 string ledger = CoreGameplayDemoController.MarketPurchaseKey(game.Session.CurrentPort, game.Session.GameDateTime, PortMarketItem.Water);
                 try
                 {
                     yield return ClickAchievementIconControl("Port Hotspot Market");
                     yield return new WaitForSecondsRealtime(.35f);
+                    yield return ClickAchievementIconControl("Market Item Icon water");
                     yield return ClickAchievementIconControl("Market Buy water");
-                    Assert.That(game.Session.Cargo.Water, Is.GreaterThanOrEqualTo(100));
+                    yield return ClickAchievementIconControl("Confirm Market Buy water");
+                    Assert.That(game.Session.Cargo.Water, Is.EqualTo(500));
+                    Assert.That(game.Session.Cargo.UsedVolume, Is.EqualTo(game.Session.CargoCapacityValue).Within(.001f));
                     Assert.That(PlayerPrefs.GetInt("ShatteredSail.Achievements.Unlocked.v1.cargo_ready"), Is.EqualTo(1));
                     Assert.That(scope.Store.TryLoad(out _, out string notice), Is.False, "The notification follows completed journal retirement.");
                     Assert.That(notice, Is.Null);
@@ -89,8 +100,23 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(card.GetComponentInParent<CanvasGroup>().blocksRaycasts, Is.False);
                     NavalBattleVisualCapture.Capture(game, "AchievementExperience_03_Toast.png", "真实市场补水跨越成就条件，整组保存完成后提示，不阻挡操作", "Market Panel");
                     int water = game.Session.Cargo.Water;
-                    yield return ClickAchievementIconControl("Market Buy water");
-                    Assert.That(game.Session.Cargo.Water, Is.GreaterThan(water), "The actual market remains clickable while the toast is visible.");
+                    if (ActiveButton("Cancel Market Trade") != null)
+                        yield return ClickAchievementIconControl("Cancel Market Trade");
+                    if (ActiveButton("Market Detail Back") != null)
+                        yield return ClickAchievementIconControl("Market Detail Back");
+                    yield return ClickAchievementIconControl("Market Item Icon water");
+                    yield return ClickAchievementIconControl("Market Sell water");
+                    Slider quantity = GameObject.Find("Market Quantity Slider water").GetComponent<Slider>();
+                    Assert.That(quantity.IsInteractable(), Is.True);
+                    quantity.value = 1f; yield return null;
+                    Assert.That(GameObject.Find("Market Quantity water").GetComponent<Text>().text, Is.EqualTo("1"));
+                    decimal gold = game.Session.ProfileGold;
+                    decimal revenue = PortMarketCatalog.CalculateSellRevenue(game.Session.CurrentPort,
+                        PortMarketItem.Water, game.Session.GameDateTime, 1);
+                    Assert.That(card.activeSelf, Is.True, "Exercise actual market input while its non-blocking toast is visible.");
+                    yield return ClickAchievementIconControl("Confirm Market Sell water");
+                    Assert.That(game.Session.Cargo.Water, Is.EqualTo(water - 1), "The actual market remains clickable while the toast is visible.");
+                    Assert.That(game.Session.ProfileGold, Is.EqualTo(gold + revenue));
                     yield return new WaitForSecondsRealtime(4.1f);
                     Assert.That(card.activeSelf, Is.False);
                     InvokeGame(game, "SaveProgress"); yield return null;
@@ -113,7 +139,7 @@ namespace ShatteredSail.Presentation.Tests
                 SceneManager.LoadScene(MainMenuController.MainSceneName); yield return null; yield return null;
                 yield return new WaitForSecondsRealtime(.35f);
                 var game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                game.Session.Cargo.Water = 100;
+                game.Session.Cargo.Water = 500;
                 InvokeGame(game, "SaveProgress"); yield return null;
                 Assert.That(GameObject.Find("Achievement Notification"), Is.Not.Null, "Arrange an already visible legitimate toast before the failure.");
                 game.Session.GrantProfileGold(300, "Achievement notification failed-save fixture");
@@ -144,8 +170,8 @@ namespace ShatteredSail.Presentation.Tests
             // must not replay when one new gameplay condition becomes true.
             foreach (var definition in AchievementCatalog.All)
                 if (definition.Id != "cargo_ready") PlayerPrefs.SetInt("ShatteredSail.Achievements.Unlocked.v1." + definition.Id, 1);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 99);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 100);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 400);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 500);
             PlayerPrefs.Save();
         }
 

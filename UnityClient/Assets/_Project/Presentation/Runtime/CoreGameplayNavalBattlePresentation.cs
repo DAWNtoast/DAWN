@@ -71,11 +71,12 @@ namespace ShatteredSail.Presentation
             float separation = BattleViewLayout.ShipX(distance, stage);
             float waterY = BattleViewLayout.WaterY(distance, stage);
             ApplyBattleHullBarPose(root, distance, stage);
-            foreach (string side in new[] { "Player", "Enemy" })
+            for (int sideIndex = 0; sideIndex < 2; sideIndex++)
             {
-                bool enemy = side == "Enemy";
+                bool enemy = sideIndex == 1;
                 float x = enemy ? separation : -separation;
-                RectTransform ship = root.Find(side + " Ship Art") as RectTransform;
+                RectTransform ship = root.Find(enemy ? "Enemy Ship Art" : "Player Ship Art") as RectTransform;
+                RawImage hull = ship == null ? null : ship.GetComponentInChildren<RawImage>();
                 if (ship != null)
                 {
                     // Zoom the authored frame, not the fitted hull's width;
@@ -84,23 +85,28 @@ namespace ShatteredSail.Presentation
                     ship.localScale = new Vector3(scale, scale, 1f);
                     ship.anchoredPosition = new Vector2(x, waterY);
                     ship.localRotation = Quaternion.Euler(0f, enemy ? enemyYaw : 0f, 0f);
-                    RawImage hull = ship.GetComponentInChildren<RawImage>();
                     if (hull != null)
                     {
                         Vector3 contact = root.InverseTransformPoint(hull.rectTransform.TransformPoint(ShipWaterlineLayout.HullContactLocal(hull)));
                         ship.anchoredPosition += Vector2.up * (waterY - contact.y);
                     }
                 }
-                foreach (string effect in new[] { " Shadow", " Contact" })
+                // Range/heading tweens call this once per frame. Use literal
+                // paths and a single hull lookup per ship to avoid temporary
+                // arrays, concatenated names and repeated hierarchy searches.
+                float projectedWidth = enemy ? Mathf.Max(0.16f, Mathf.Abs(Mathf.Cos(enemyYaw * Mathf.Deg2Rad))) : 1f;
+                float fittedWidth = hull == null ? BattleShipDesignWidth : hull.rectTransform.rect.width;
+                Vector2 waterSize = new Vector2(width * fittedWidth / BattleShipDesignWidth * 0.93f * projectedWidth, 48f);
+                for (int effectIndex = 0; effectIndex < 2; effectIndex++)
                 {
-                    RectTransform water = root.Find(side + " Ship Water" + effect) as RectTransform;
+                    string path = enemy
+                        ? (effectIndex == 0 ? "Enemy Ship Water Shadow" : "Enemy Ship Water Contact")
+                        : (effectIndex == 0 ? "Player Ship Water Shadow" : "Player Ship Water Contact");
+                    RectTransform water = root.Find(path) as RectTransform;
                     if (water == null) continue;
                     water.anchoredPosition = new Vector2(x, waterY);
                     // The wake follows the projected hull width while turning.
-                    float projectedWidth = enemy ? Mathf.Max(0.16f, Mathf.Abs(Mathf.Cos(enemyYaw * Mathf.Deg2Rad))) : 1f;
-                    RawImage hull = ship == null ? null : ship.GetComponentInChildren<RawImage>();
-                    float fittedWidth = hull == null ? BattleShipDesignWidth : hull.rectTransform.rect.width;
-                    water.sizeDelta = new Vector2(width * fittedWidth / BattleShipDesignWidth * 0.93f * projectedWidth, 48f);
+                    water.sizeDelta = waterSize;
                 }
             }
         }
@@ -124,10 +130,10 @@ namespace ShatteredSail.Presentation
             CoreGameplayDemoController controller = root.GetComponentInParent<CoreGameplayDemoController>();
             if (controller != null && controller.Session != null && controller.Session.Battle != null)
                 approach = controller.Session.Battle.BoardingApproach;
-            foreach (bool enemy in new[] { false, true })
+            for (int sideIndex = 0; sideIndex < 2; sideIndex++)
             {
-                string side = enemy ? "Enemy" : "Player";
-                RectTransform track = root.Find(side + " Battle Hull Bar Track") as RectTransform;
+                bool enemy = sideIndex == 1;
+                RectTransform track = root.Find(enemy ? "Enemy Battle Hull Bar Track" : "Player Battle Hull Bar Track") as RectTransform;
                 if (track == null) continue;
                 track.anchoredPosition = BattleHullBarPosition(enemy, distance, stage, approach);
             }
@@ -194,10 +200,13 @@ namespace ShatteredSail.Presentation
             RawImage hull = ship.GetComponentInChildren<RawImage>();
             if (root == null || hull == null) return;
             Vector3 contact = root.InverseTransformPoint(hull.rectTransform.TransformPoint(ShipWaterlineLayout.HullContactLocal(hull)));
-            string side = ship.name == "Player Ship Art" ? "Player" : "Enemy";
-            foreach (string effect in new[] { " Shadow", " Contact" })
+            bool enemy = ship.name == "Enemy Ship Art";
+            for (int effectIndex = 0; effectIndex < 2; effectIndex++)
             {
-                RectTransform water = root.Find(side + " Ship Water" + effect) as RectTransform;
+                string path = enemy
+                    ? (effectIndex == 0 ? "Enemy Ship Water Shadow" : "Enemy Ship Water Contact")
+                    : (effectIndex == 0 ? "Player Ship Water Shadow" : "Player Ship Water Contact");
+                RectTransform water = root.Find(path) as RectTransform;
                 if (water != null) water.anchoredPosition = new Vector2(contact.x, water.anchoredPosition.y);
             }
         }
@@ -326,7 +335,8 @@ namespace ShatteredSail.Presentation
             if (texture == null) return null;
             Vector2 size = UiImageAspect.FitSize(texture, uv, bounds);
             RawImage figure = CreateRawImage(name, party, size,
-                new Vector2(x, (size.y - BoardingBattleLayout.PartySize.y) * .5f), texture, uv);
+                new Vector2(x, 0f), texture, uv);
+            BoardingBattleLayout.GroundFigure(figure);
             figure.raycastTarget = false;
             figure.color = Color.white;
             return figure;
@@ -339,8 +349,6 @@ namespace ShatteredSail.Presentation
             {
                 bool liveBattle = Application.isPlaying && session != null && session.Phase == CoreDemoPhase.Battle && session.Battle != null;
                 var activeSources = new HashSet<string>(System.StringComparer.Ordinal);
-                var dispatchedIdentities = new HashSet<string>(System.StringComparer.Ordinal);
-                List<int> legacyDispatchedProfessions = null;
                 if (liveBattle)
                 {
                     // The core's card availability is backed by the committed
@@ -349,21 +357,12 @@ namespace ShatteredSail.Presentation
                     foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
                         foreach (int index in session.GetCrewBattleCards(stage))
                             activeSources.Add(CoreVoyageSession.CardLibrary[index].RequiredCrew);
-                    if (PlayerPrefs.GetInt(DispatchMissionKey, -1) >= 0)
-                    {
-                        foreach (string id in PlayerPrefs.GetString(DispatchCrewIdentityKey, string.Empty).Split(','))
-                            if (!string.IsNullOrWhiteSpace(id)) dispatchedIdentities.Add(id.Trim());
-                        if (dispatchedIdentities.Count == 0)
-                            legacyDispatchedProfessions = ParseDispatchCrewCsv(PlayerPrefs.GetString(DispatchCrewKey, string.Empty));
-                    }
                 }
 
                 bool Available(CrewVariantDefinition crew, bool selected)
                 {
                     if (crew == null || !IsCrewRecruited(crew)) return false;
                     if (!liveBattle) return IsCrewAvailableAtCurrentPort(crew) && IsCrewAvailableForVoyage(crew.ProfessionIndex);
-                    if (dispatchedIdentities.Contains(crew.Id) ||
-                        (legacyDispatchedProfessions != null && legacyDispatchedProfessions.Contains(crew.ProfessionIndex))) return false;
                     if (activeSources.Contains(crew.Id)) return true;
                     // Offline/legacy sessions expose profession sources rather
                     // than IDs. Match only the selected or original identity,
@@ -471,13 +470,7 @@ namespace ShatteredSail.Presentation
             buffPanel.GetComponent<Image>().raycastTarget = false;
             Text buff = CreateText("Battle Active Buffs", buffPanel, new Vector2(212f, 80f), Vector2.zero, 13, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
             buff.text = BattleActiveBuffText(battle);
-            RectTransform rulePlate = CreateRect("Battle Card Cost Rule Panel", root,
-                new Vector2(800f, 36f), new Vector2(0f, 351f));
-            Text cardRule = CreateText("Battle Card Cost Rule", rulePlate, new Vector2(784f, 28f), Vector2.zero,
-                14, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
-            cardRule.text = "同名牌连用 +1 费 · 副本共享 · 下回合或切换阶段重置";
-            cardRule.raycastTarget = false;
-            UiLabelBacking.Apply(cardRule);
+            BuildBattleSchoolHud(root, battle);
             RectTransform cursePanel = CreateRect("Battle Curse Panel", root,
                 new Vector2(800f, 30f), new Vector2(0f, 316f));
             Text curse = CreateText("Battle Curse Status", cursePanel, new Vector2(784f, 28f),
@@ -501,11 +494,7 @@ namespace ShatteredSail.Presentation
                 Text ramHint = CreateText("Battle Ram Condition", root, new Vector2(230f, 25f), new Vector2(735f, -149f), 12, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
                 ramHint.text = ramAllowed ? "撞击方先手 · 舰艏品质对拼" : ramReason;
                 Text boardHint = CreateText("Battle Board Condition", root, new Vector2(230f, 25f), new Vector2(735f, -219f), 12, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-                boardHint.text = boardAllowed ? "普通水手数影响接舷生命上限" : boardReason;
-                Text quality = CreateText("Battle Collision Quality", root, new Vector2(1000f, 24f), new Vector2(0f, -51f), 13, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-                quality.rectTransform.anchoredPosition = new Vector2(0f, -19f);
-                quality.text = "舰艏对拼 " + battle.PlayerBowQuality.ToString("0.0") + " / " + battle.EnemyBowQuality.ToString("0.0") +
-                    "     船身品质 " + battle.PlayerHullQuality.ToString("0.0") + " / " + battle.EnemyHullQuality.ToString("0.0");
+                boardHint.text = boardAllowed ? "普通水手数决定接舷生命上限；海战船体损伤按一半带入" : boardReason;
             }
         }
 

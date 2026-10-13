@@ -57,43 +57,54 @@ namespace ShatteredSail.Presentation
         private static readonly int[] CardTopPixels = { 25, 329, 634, 937 };
         private static readonly int[] CardBottomPixels = { 313, 618, 921, 1226 };
 
-        private readonly Texture2D[] routeMaps;
-        private readonly Texture2D[] eventSheets;
+        private static readonly string[] RouteMapNames =
+            { "shattered_sail_route_map_v2", "golden_tide_route_map_v2", "moon_tide_route_map_v2" };
+        private static readonly string[] EventSheetNames =
+            { "shattered_sail_event_sheet_v2", "golden_tide_event_sheet_v2", "moon_tide_event_sheet_v2" };
+        private readonly Func<string, Texture2D> resourceLoader;
+        private readonly Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>(StringComparer.Ordinal);
 
-        public LegacyDemoArtCatalog()
+        public LegacyDemoArtCatalog() : this(Resources.Load<Texture2D>) { }
+
+        internal LegacyDemoArtCatalog(Func<string, Texture2D> resourceLoader)
         {
-            routeMaps = new[]
-            {
-                Load("shattered_sail_route_map_v2"),
-                Load("golden_tide_route_map_v2"),
-                Load("moon_tide_route_map_v2"),
-            };
-            eventSheets = new[]
-            {
-                Load("shattered_sail_event_sheet_v2"),
-                Load("golden_tide_event_sheet_v2"),
-                Load("moon_tide_event_sheet_v2"),
-            };
-            ShipSheet = Load("ship_sprite_sheet");
-            ResourceSheet = Load("resource_icon_sheet");
-            CardSheet = Load("card_icon_sheet");
-            CrewSheet = Load("crew_portrait_sheet");
+            this.resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         }
 
-        public Texture2D ShipSheet { get; }
-        public Texture2D ResourceSheet { get; }
-        public Texture2D CardSheet { get; }
-        public Texture2D CrewSheet { get; }
-        public bool IsAvailable => routeMaps[0] != null && eventSheets[0] != null && ShipSheet != null && ResourceSheet != null && CardSheet != null && CrewSheet != null;
+        public Texture2D ShipSheet => Load("ship_sprite_sheet");
+        public Texture2D ResourceSheet => Load("resource_icon_sheet");
+        public Texture2D CardSheet => Load("card_icon_sheet");
+        public Texture2D CrewSheet => Load("crew_portrait_sheet");
+        /// <summary>Releases cached references; live UI and Resources still own the borrowed textures.</summary>
+        public void ReleaseLoadedTextures() => textures.Clear();
+
+        // Availability is an explicit full validation; normal lookups load only their own art.
+        public bool IsAvailable
+        {
+            get
+            {
+                bool available = true;
+                for (int index = 0; index < RouteMapNames.Length; index++)
+                {
+                    available &= RouteMap(index) != null;
+                    available &= EventSheet(index) != null;
+                }
+                available &= ShipSheet != null;
+                available &= ResourceSheet != null;
+                available &= CardSheet != null;
+                available &= CrewSheet != null;
+                return available;
+            }
+        }
 
         public Texture2D RouteMap(int routeIndex)
         {
-            return routeMaps[Mathf.Clamp(routeIndex, 0, routeMaps.Length - 1)];
+            return Load(RouteMapNames[Mathf.Clamp(routeIndex, 0, RouteMapNames.Length - 1)]);
         }
 
         public Texture2D EventSheet(int routeIndex)
         {
-            return eventSheets[Mathf.Clamp(routeIndex, 0, eventSheets.Length - 1)];
+            return Load(EventSheetNames[Mathf.Clamp(routeIndex, 0, EventSheetNames.Length - 1)]);
         }
 
         public Rect EncounterUv(CoreEncounter encounter)
@@ -164,16 +175,20 @@ namespace ShatteredSail.Presentation
             return new Rect(column * width, 1f - (rowFromTop + 1) * height, width, height);
         }
 
-        private static Texture2D Load(string name)
+        private Texture2D Load(string name)
         {
-            Texture2D texture = Resources.Load<Texture2D>("LegacyDemo/" + name);
+            if (textures.TryGetValue(name, out Texture2D texture)) return texture;
+            texture = resourceLoader("LegacyDemo/" + name);
             if (texture != null)
             {
                 bool mapThumbnail = name.EndsWith("_route_map_v2", StringComparison.Ordinal);
-                texture.filterMode = mapThumbnail ? FilterMode.Trilinear : FilterMode.Point;
+                bool paintedEvent = name.EndsWith("_event_sheet_v2", StringComparison.Ordinal);
+                texture.filterMode = mapThumbnail ? FilterMode.Trilinear :
+                    paintedEvent || name == "ship_sprite_sheet" ? FilterMode.Bilinear : FilterMode.Point;
                 if (mapThumbnail) texture.anisoLevel = 4;
                 texture.wrapMode = TextureWrapMode.Clamp;
             }
+            textures.Add(name, texture);
             return texture;
         }
     }

@@ -25,6 +25,10 @@ namespace ShatteredSail.Presentation.Tests
 
             Assert.That(GameObject.Find("Warehouse Panel"), Is.Not.Null);
             Assert.That(GameObject.Find("Warehouse Background"), Is.Not.Null);
+            Image collectionSurface = AssertLiveWarehouseCabinetSurface();
+            Vector2 ledgerSize = collectionSurface.rectTransform.sizeDelta;
+            Vector2 ledgerPosition = collectionSurface.rectTransform.anchoredPosition;
+            Assert.That(GameObject.Find("Warehouse Collection Count").GetComponent<Text>().color.grayscale, Is.GreaterThan(.6f));
             Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty);
             Assert.That(RequireWarehouseButton("Warehouse Display Selected").IsInteractable(), Is.False);
             Assert.That(RequireWarehouseButton("Warehouse Remove Selected").IsInteractable(), Is.False);
@@ -34,8 +38,10 @@ namespace ShatteredSail.Presentation.Tests
             NavalBattleVisualCapture.Capture(controller, "60_Warehouse_Valuables_Empty.png",
                 "藏品陈列页默认打开；尚未获得藏品时保留空展位，不替旧存档虚构战利品", "Warehouse Panel");
 
-            ClickWarehouseButton("Warehouse Tab Storage");
-            yield return null;
+            yield return ClickShipyardControl("Warehouse Tab Storage");
+            Assert.That(AssertLiveWarehouseCabinetSurface(), Is.SameAs(collectionSurface));
+            Assert.That(collectionSurface.rectTransform.sizeDelta, Is.EqualTo(ledgerSize));
+            Assert.That(collectionSurface.rectTransform.anchoredPosition, Is.EqualTo(ledgerPosition));
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
                 Assert.That(RequireWarehouseButton("Warehouse Storage Row " + PortMarketCatalog.Key(item)).IsInteractable(), Is.True);
             Assert.That(ActiveButton("Warehouse Tab Basics"), Is.Null);
@@ -45,11 +51,22 @@ namespace ShatteredSail.Presentation.Tests
                 "藏品陈列、基础货物与珍稀物品分栏；九行基础物资继续使用调整或出售流程", "Warehouse Panel");
             ClickWarehouseButton("Warehouse Tab Valuables");
             yield return null;
+            Assert.That(AssertLiveWarehouseCabinetSurface(), Is.SameAs(collectionSurface));
+            Assert.That(GameObject.Find("Warehouse Collection Count").GetComponent<Text>().color.grayscale, Is.GreaterThan(.6f));
             Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty);
             Assert.That(RequireWarehouseButton("Warehouse Display Selected").IsInteractable(), Is.False);
             Assert.That(ActiveButton("Warehouse Storage Row wood"), Is.Null);
             Assert.That(ActiveButton("Warehouse Tab Basics"), Is.Null);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static Image AssertLiveWarehouseCabinetSurface()
+        {
+            Image surface = GameObject.Find("Warehouse Ledger").GetComponent<Image>();
+            Assert.That(surface.sprite, Is.Null, "Regional cabinet supplies the outer framing.");
+            Assert.That(surface.color.a, Is.Zero);
+            Assert.That(GameObject.Find("Warehouse Summary Bar"), Is.Not.Null);
+            return surface;
         }
 
         [UnityTest]

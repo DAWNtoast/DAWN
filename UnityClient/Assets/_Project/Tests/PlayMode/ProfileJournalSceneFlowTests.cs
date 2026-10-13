@@ -87,6 +87,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(750m));
                 Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Water")), Is.EqualTo(81));
                 Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Food")), Is.EqualTo(91));
+                Assert.That(Object.FindFirstObjectByType<MainMenuController>().HasSaveData, Is.True);
+                Assert.That(GameObject.Find("Save State"), Is.Null);
+                Assert.That(Object.FindFirstObjectByType<MainMenuController>().ContinueButton.transform.Find("Detail"), Is.Null);
                 Assert.That(journal.Store.TryLoad(out _, out notice), Is.False, notice);
                 Assert.That(notice, Is.Null);
                 Assert.That(Object.FindFirstObjectByType<MainMenuController>().ContinueButton.IsInteractable(), Is.True);

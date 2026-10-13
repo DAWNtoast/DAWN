@@ -277,18 +277,52 @@ namespace ShatteredSail.Core.Gameplay
     {
         public const int GridColumns = 48;
         public const int GridRows = 32;
+        public const int ChartColumns = GridColumns * 2;
+        public const int ChartRows = GridRows * 2;
         public const float Width = 100f;
         public const float Height = 64f;
 
         private readonly List<CoreEventFootprint> eventFootprints = new List<CoreEventFootprint>();
+        private bool chartExplorationInitialized;
 
-        public CoreVoyageMap()
+        public CoreVoyageMap(int geometryVersion = 0)
         {
-            for (int index = 0; index < TerrainFeatureIds.Length; index += 1)
+            GeometryVersion = geometryVersion;
+            Rows = RowsForGeometry(geometryVersion);
+            int count = CellCount;
+            ExploredCells = new bool[count];
+            VoyageExploredCells = new bool[count];
+            ChartExploredCells = new bool[FineColumns * FineRows];
+            TerrainCells = new SeaTerrainType[count];
+            TerrainFeatureIds = new int[count];
+            AnchorNodeIds = new int[count];
+            EventAnchorCells = new bool[count];
+            EventReservedCells = new bool[count];
+            TerrainVariants = new byte[count];
+            CurrentVectors = new VoyagePoint[count];
+            CurrentStrengths = new float[count];
+            for (int index = 0; index < count; index += 1)
             {
                 TerrainFeatureIds[index] = -1;
                 AnchorNodeIds[index] = -1;
             }
+        }
+
+        // Geometry belongs to the generated sea and never changes with the viewport.
+        // The original constants remain the format of legacy maps and records.
+        public int GeometryVersion { get; }
+        public int Columns => GridColumns;
+        public int Rows { get; }
+        public int FineColumns => Columns * 2;
+        public int FineRows => Rows * 2;
+        public float WorldWidth => Width;
+        public float WorldHeight => GeometryVersion == 0 ? Height : 75f;
+
+        private static int RowsForGeometry(int geometryVersion)
+        {
+            if (geometryVersion == 0) return GridRows;
+            if (geometryVersion == 1) return 36;
+            throw new ArgumentOutOfRangeException(nameof(geometryVersion), "Unknown voyage map geometry.");
         }
 
         public string Seed { get; set; }
@@ -301,31 +335,34 @@ namespace ShatteredSail.Core.Gameplay
         public bool IsTreasureMap { get; set; }
         public List<CoreMapNode> Nodes { get; } = new List<CoreMapNode>();
         public List<VoyagePoint> Islands { get; } = new List<VoyagePoint>();
-        public bool[] ExploredCells { get; } = new bool[GridColumns * GridRows];
-        public SeaTerrainType[] TerrainCells { get; } = new SeaTerrainType[GridColumns * GridRows];
-        public int[] TerrainFeatureIds { get; } = new int[GridColumns * GridRows];
-        public int[] AnchorNodeIds { get; } = new int[GridColumns * GridRows];
-        public bool[] EventAnchorCells { get; } = new bool[GridColumns * GridRows];
-        public bool[] EventReservedCells { get; } = new bool[GridColumns * GridRows];
-        public byte[] TerrainVariants { get; } = new byte[GridColumns * GridRows];
-        public VoyagePoint[] CurrentVectors { get; } = new VoyagePoint[GridColumns * GridRows];
-        public float[] CurrentStrengths { get; } = new float[GridColumns * GridRows];
+        public bool[] ExploredCells { get; }
+        // Actual observations made in this voyage, independent of imported chart knowledge.
+        public bool[] VoyageExploredCells { get; }
+        public bool[] ChartExploredCells { get; }
+        public SeaTerrainType[] TerrainCells { get; }
+        public int[] TerrainFeatureIds { get; }
+        public int[] AnchorNodeIds { get; }
+        public bool[] EventAnchorCells { get; }
+        public bool[] EventReservedCells { get; }
+        public byte[] TerrainVariants { get; }
+        public VoyagePoint[] CurrentVectors { get; }
+        public float[] CurrentStrengths { get; }
         public VoyagePoint GlobalWindVector { get; set; }
         public SailingDirection GlobalWindDirection { get; set; }
         public float GlobalWindStrength { get; set; }
         public double CurrentPhaseA { get; set; }
         public double CurrentPhaseB { get; set; }
         public float BossExclusionRadius { get; set; }
-        public int CellCount => GridColumns * GridRows;
-        public float CellWidth => Width / GridColumns;
-        public float CellHeight => Height / GridRows;
+        public int CellCount => Columns * Rows;
+        public float CellWidth => WorldWidth / Columns;
+        public float CellHeight => WorldHeight / Rows;
         public IReadOnlyList<CoreEventFootprint> EventFootprints => eventFootprints;
 
         internal List<CoreEventFootprint> MutableEventFootprints => eventFootprints;
 
         public bool IsInBounds(int column, int row)
         {
-            return column >= 0 && column < GridColumns && row >= 0 && row < GridRows;
+            return column >= 0 && column < Columns && row >= 0 && row < Rows;
         }
 
         public int CellIndex(int column, int row)
@@ -335,21 +372,82 @@ namespace ShatteredSail.Core.Gameplay
                 throw new ArgumentOutOfRangeException(nameof(column), "Cell coordinates are outside the voyage map.");
             }
 
-            return row * GridColumns + column;
+            return row * Columns + column;
         }
 
         public VoyagePoint CellCenter(int column, int row)
         {
             return new VoyagePoint(
-                (column + 0.5f) * Width / GridColumns,
-                (row + 0.5f) * Height / GridRows);
+                (column + 0.5f) * WorldWidth / Columns,
+                (row + 0.5f) * WorldHeight / Rows);
+        }
+
+        public VoyagePoint ChartCellCenter(int column, int row)
+        {
+            return new VoyagePoint(
+                (column + 0.5f) * WorldWidth / FineColumns,
+                (row + 0.5f) * WorldHeight / FineRows);
+        }
+
+        public bool IsChartCellExplored(int column, int row)
+        {
+            if (column < 0 || column >= FineColumns || row < 0 || row >= FineRows) return false;
+            return chartExplorationInitialized
+                ? ChartExploredCells[row * FineColumns + column]
+                : ExploredCells[(row / 2) * Columns + column / 2];
+        }
+
+        // Chart detail is independent of terrain, route finding and event discovery.
+        // Legacy knowledge expands once; subsequent reveals sample individual fine cells.
+        public void InitializeChartExploration()
+        {
+            if (chartExplorationInitialized) return;
+            ExpandExplorationIntoChart(ExploredCells, ChartExploredCells, Columns, Rows);
+            chartExplorationInitialized = true;
+        }
+
+        public bool[] CaptureChartExploration()
+        {
+            InitializeChartExploration();
+            return (bool[])ChartExploredCells.Clone();
+        }
+
+        public bool RestoreChartExploration(bool[] cells)
+        {
+            if (cells != null && cells.Length != 0 && cells.Length != ChartExploredCells.Length) return false;
+            if (cells == null || cells.Length == 0)
+                ExpandExplorationIntoChart(ExploredCells, ChartExploredCells, Columns, Rows);
+            else Array.Copy(cells, ChartExploredCells, cells.Length);
+            chartExplorationInitialized = true;
+            return true;
+        }
+
+        public static bool[] ExpandExplorationForChart(bool[] exploredCells) =>
+            ExpandExplorationForChart(exploredCells, 0);
+
+        public static bool[] ExpandExplorationForChart(bool[] exploredCells, int geometryVersion)
+        {
+            int columns = GridColumns, rows = RowsForGeometry(geometryVersion);
+            if (exploredCells == null || exploredCells.Length != columns * rows)
+                throw new ArgumentException("Exploration must match the terrain grid.", nameof(exploredCells));
+            var result = new bool[columns * rows * 4];
+            ExpandExplorationIntoChart(exploredCells, result, columns, rows);
+            return result;
+        }
+
+        private static void ExpandExplorationIntoChart(bool[] source, bool[] target, int columns, int rows)
+        {
+            int fineColumns = columns * 2, fineRows = rows * 2;
+            for (int row = 0; row < fineRows; row++)
+                for (int column = 0; column < fineColumns; column++)
+                    target[row * fineColumns + column] = source[(row / 2) * columns + column / 2];
         }
 
         public SeaTerrainType TerrainAt(int column, int row)
         {
-            int safeColumn = Math.Max(0, Math.Min(GridColumns - 1, column));
-            int safeRow = Math.Max(0, Math.Min(GridRows - 1, row));
-            return TerrainCells[safeRow * GridColumns + safeColumn];
+            int safeColumn = Math.Max(0, Math.Min(Columns - 1, column));
+            int safeRow = Math.Max(0, Math.Min(Rows - 1, row));
+            return TerrainCells[safeRow * Columns + safeColumn];
         }
 
         public bool IsPassable(int column, int row)
@@ -360,19 +458,19 @@ namespace ShatteredSail.Core.Gameplay
         public int CellIndex(VoyagePoint point)
         {
             VoyageGridCoordinate cell = PointToCell(point);
-            return cell.Row * GridColumns + cell.Column;
+            return cell.Row * Columns + cell.Column;
         }
 
         public VoyageGridCoordinate PointToCell(VoyagePoint point)
         {
-            int column = Math.Max(0, Math.Min(GridColumns - 1, (int)(point.X / Width * GridColumns)));
-            int row = Math.Max(0, Math.Min(GridRows - 1, (int)(point.Y / Height * GridRows)));
+            int column = Math.Max(0, Math.Min(Columns - 1, (int)(point.X / WorldWidth * Columns)));
+            int row = Math.Max(0, Math.Min(Rows - 1, (int)(point.Y / WorldHeight * Rows)));
             return new VoyageGridCoordinate(column, row);
         }
 
         public bool TryPointToCell(VoyagePoint point, out VoyageGridCoordinate cell)
         {
-            bool inside = point.X >= 0f && point.X <= Width && point.Y >= 0f && point.Y <= Height;
+            bool inside = point.X >= 0f && point.X <= WorldWidth && point.Y >= 0f && point.Y <= WorldHeight;
             cell = PointToCell(point);
             return inside;
         }
@@ -390,12 +488,12 @@ namespace ShatteredSail.Core.Gameplay
 
         public int TerrainFeatureIdAt(int column, int row)
         {
-            return IsInBounds(column, row) ? TerrainFeatureIds[row * GridColumns + column] : -1;
+            return IsInBounds(column, row) ? TerrainFeatureIds[row * Columns + column] : -1;
         }
 
         public int AnchorNodeIdAt(int column, int row)
         {
-            return IsInBounds(column, row) ? AnchorNodeIds[row * GridColumns + column] : -1;
+            return IsInBounds(column, row) ? AnchorNodeIds[row * Columns + column] : -1;
         }
 
         public bool TryGetCell(int column, int row, out CoreVoyageMapCell cell)
@@ -406,7 +504,7 @@ namespace ShatteredSail.Core.Gameplay
                 return false;
             }
 
-            int index = row * GridColumns + column;
+            int index = row * Columns + column;
             cell = new CoreVoyageMapCell(
                 column,
                 row,
@@ -591,6 +689,7 @@ namespace ShatteredSail.Core.Gameplay
         public float DistanceNm { get; set; }
         public double Hours { get; set; }
         public float Coverage { get; set; }
+        public float VoyageCoverage { get; set; }
         public int CompletedEvents { get; set; }
         public int TotalEvents { get; set; }
         public int BankedGold { get; set; }
@@ -640,6 +739,13 @@ namespace ShatteredSail.Core.Gameplay
     /// </summary>
     public sealed partial class CoreVoyageSession
     {
+        public const int MaxMorale = 20;
+        public const int DefaultStartingMorale = 10;
+        public const int HighExplorationStartingMorale = 12;
+        public const int LowExplorationStartingMorale = 5;
+        public const float HighExplorationThreshold = 80f;
+        public const float LowExplorationThreshold = 30f;
+
         public const int ShipMaxHull = 55;
         public const int ShipArmor = 2;
         public const int ShipFirepower = 6;
@@ -718,6 +824,12 @@ namespace ShatteredSail.Core.Gameplay
         private float componentContextRationMultiplier = 1f;
         private int selectedOrdinaryCrew;
         private int selectedSpecialCrewCount;
+        // The previous voyage's chart coverage determines the next voyage's
+        // opening morale. Keep it on the session so the rule also survives a
+        // settlement-to-port transition before the next departure.
+        private float lastVoyageExplorationCoverage;
+        private bool hasLastVoyageExplorationCoverage;
+        private int battleCriticalRollCount;
 
         public CoreVoyageSession()
         {
@@ -731,7 +843,7 @@ namespace ShatteredSail.Core.Gameplay
             PlannedDistanceNm = 120;
             Phase = CoreDemoPhase.Port;
             Hull = MaxHull;
-            Morale = 5;
+            Morale = DefaultStartingMorale;
             Cargo = CreateStartingCargo();
             selectedOrdinaryCrew = SelectedShip.CrewCount;
             selectedSpecialCrewCount = 0;
@@ -765,16 +877,44 @@ namespace ShatteredSail.Core.Gameplay
         public int SelectedSpecialCrewCount => Math.Max(0, selectedSpecialCrewCount);
         public int MinimumOrdinaryCrew => (CrewCountValue + 1) / 2;
         public bool IsShortStaffed => SelectedOrdinaryCrew < MinimumOrdinaryCrew;
-        public float CrewSpeedPenalty => IsShortStaffed ? (MinimumOrdinaryCrew - SelectedOrdinaryCrew) * 0.8f : 0f;
+        public float CrewSpeedPenalty => GetCrewSpeedPenalty(SelectedOrdinaryCrew);
+        public float CrewSpeedBonus => GetCrewSpeedBonus(SelectedOrdinaryCrew);
         public int CrewCombatPenalty => IsShortStaffed ? (MinimumOrdinaryCrew - SelectedOrdinaryCrew) * 2 : 0;
-        public float EffectiveSpeedKnots => Math.Max(2.5f, SpeedKnots - CrewSpeedPenalty);
+        public float EffectiveSpeedKnots => GetEffectiveSpeedKnots(SelectedOrdinaryCrew);
         public int EffectiveFirepower => Math.Max(0, Firepower - CrewCombatPenalty);
         public int EffectiveArmor => Math.Max(0, Armor - (CrewCombatPenalty / 2));
         public int EffectiveCrewCount => Math.Min(CrewCountValue, SelectedOrdinaryCrew + SelectedSpecialCrewCount);
+
+        /// <summary>Departure preview in knots; only ordinary sailors operate the sails.</summary>
+        public float GetCrewSpeedPenalty(int ordinaryCrew)
+        {
+            int ordinary = Math.Max(0, Math.Min(CrewCountValue, ordinaryCrew));
+            return Math.Max(0, MinimumOrdinaryCrew - ordinary) * 0.8f;
+        }
+
+        /// <summary>Above 80% of the ship's total berths, ordinary sailors add up to 10% of SpeedKnots.</summary>
+        public float GetCrewSpeedBonus(int ordinaryCrew)
+        {
+            int capacity = CrewCountValue;
+            if (capacity <= 0) return 0f;
+            int ordinary = Math.Max(0, Math.Min(capacity, ordinaryCrew));
+            // Integer fifths keep exactly 80% bonus-free, including small ships.
+            long aboveThreshold = Math.Max(0L, 5L * ordinary - 4L * capacity);
+            return SpeedKnots * 0.1f * aboveThreshold / capacity;
+        }
+
+        /// <summary>Pure preview for a proposed ordinary count; formation callers reserve specialist berths first.</summary>
+        public float GetEffectiveSpeedKnots(int ordinaryCrew) =>
+            Math.Max(2.5f, SpeedKnots - GetCrewSpeedPenalty(ordinaryCrew) + GetCrewSpeedBonus(ordinaryCrew));
+
         public int Hull { get; private set; }
         public int Morale { get; private set; }
+        public float LastVoyageExplorationCoverage => lastVoyageExplorationCoverage;
+        public bool HasLastVoyageExplorationCoverage => hasLastVoyageExplorationCoverage;
+        public int BoardingCriticalChancePercent => (int)Math.Max(0L, Math.Min(100L, (long)Morale * 3L));
         public VoyageCargo Cargo { get; private set; }
         public CoreVoyageMap Map { get; private set; }
+        public int MapGeometryVersion { get; set; } = 1;
         public VoyagePoint Position { get; private set; }
         public SailingDirection Heading { get; private set; }
         public int PlannedDistanceNm { get; private set; }
@@ -843,6 +983,20 @@ namespace ShatteredSail.Core.Gameplay
                 CurrentPort = currentPort.Trim();
             }
             EnsureSelectedDestination();
+        }
+
+        /// <summary>Restores the last completed voyage's exploration coverage from the profile.</summary>
+        public void RestoreLastVoyageExplorationCoverage(float coverage)
+        {
+            if (Phase != CoreDemoPhase.Port) return;
+            if (float.IsNaN(coverage) || float.IsInfinity(coverage))
+            {
+                lastVoyageExplorationCoverage = 0f;
+                hasLastVoyageExplorationCoverage = false;
+                return;
+            }
+            lastVoyageExplorationCoverage = ClampExplorationCoverage(coverage);
+            hasLastVoyageExplorationCoverage = true;
         }
 
         public bool SelectDestinationPort(int portIndex)
@@ -1315,7 +1469,9 @@ namespace ShatteredSail.Core.Gameplay
             }
             foreach (VoyageSupplyType type in new[] { VoyageSupplyType.Medicine, VoyageSupplyType.Wood, VoyageSupplyType.Powder, VoyageSupplyType.Cannonballs })
             {
-                int reserve = type == VoyageSupplyType.Medicine ? 2 : type == VoyageSupplyType.Cannonballs ? 10 : 8;
+                // Ten shots plus two optional extra loading charges.
+                int reserve = type == VoyageSupplyType.Medicine ? 2 : type == VoyageSupplyType.Cannonballs ? 10 :
+                    type == VoyageSupplyType.Powder ? 12 : 8;
                 int amount = Math.Min(Math.Max(0, reserve - GetSupplyAmount(type)),
                     Math.Max(0, (int)Math.Floor((space + 0.0001f) / SupplyVolume(type))));
                 order[type] = amount;
@@ -1326,12 +1482,12 @@ namespace ShatteredSail.Core.Gameplay
 
         public void SelectRoute(int routeIndex)
         {
-            if (Phase != CoreDemoPhase.Port)
+            if (!CanSelectRoute(routeIndex, out _))
             {
                 return;
             }
 
-            SelectedRouteIndex = Math.Max(0, Math.Min(routes.Count - 1, routeIndex));
+            SelectedRouteIndex = routeIndex;
             selectedSeaChart = null;
             selectedTreasureMapId = string.Empty;
         }
@@ -1364,9 +1520,11 @@ namespace ShatteredSail.Core.Gameplay
             // Structured seeds cannot fall back to the legacy raw-seed path
             // after a route change or an API caller clearing selection state.
             if (treasure == null && GuidedTutorialLeg == 0 && selectedSeaChart == null &&
-                SelectedSeed.StartsWith("SS2.", StringComparison.OrdinalIgnoreCase) &&
+                (SelectedSeed.StartsWith("SS2.", StringComparison.OrdinalIgnoreCase) ||
+                    SelectedSeed.StartsWith("SS3.", StringComparison.OrdinalIgnoreCase)) &&
                 !TrySelectChartSeed(SelectedSeed, out string selectionFailure))
                 throw new InvalidOperationException(selectionFailure);
+            if (!CanStartOrdinaryVoyage(out string routeFailure)) throw new InvalidOperationException(routeFailure);
             if (!CanStartSelectedChart(out string chartFailure)) throw new InvalidOperationException(chartFailure);
             if (selectedSeaChart != null && treasure == null && GuidedTutorialLeg == 0 && !string.IsNullOrWhiteSpace(destinationPort) &&
                 destinationPort.Trim() != selectedSeaChart.OtherPort(CurrentPort))
@@ -1381,7 +1539,7 @@ namespace ShatteredSail.Core.Gameplay
             // Generate before consuming the one-shot record or mutating the port purse.
             CoreVoyageMap nextMap = treasure == null
                 ? (GuidedTutorialLeg > 0 ? GenerateGuidedTutorialMap(CurrentPort) : selectedSeaChart != null ? GenerateSelectedSeaChartMap() :
-                    GenerateMap(route, SelectedSeed, CurrentPort, SelectedDestinationPort))
+                    GenerateMap(route, SelectedSeed, CurrentPort, SelectedDestinationPort, geometryVersion: MapGeometryVersion))
                 : GenerateTreasureMap(treasure, CurrentPort);
             LockSpecialCardsForVoyage();
             // Voyage rewards and cash remain integer resources; leave the account's
@@ -1401,7 +1559,10 @@ namespace ShatteredSail.Core.Gameplay
             Heading = SailingDirection.East;
             PlannedDistanceNm = 120;
             Hull = MaxHull;
-            Morale = 5;
+            Morale = hasLastVoyageExplorationCoverage
+                ? StartingMoraleForCoverage(lastVoyageExplorationCoverage)
+                : DefaultStartingMorale;
+            battleCriticalRollCount = 0;
             TotalDistanceNm = 0f;
             TotalHours = 0d;
             rationProgress = 0d;
@@ -1510,15 +1671,15 @@ namespace ShatteredSail.Core.Gameplay
             if (HasDirectCourseTarget)
             {
                 VoyagePoint directTarget = new VoyagePoint(
-                    Clamp(DirectCourseTarget.X, 2f, 98f),
-                    Clamp(DirectCourseTarget.Y, 2f, 62f));
+                    Clamp(DirectCourseTarget.X, 2f, Map.WorldWidth - 2f),
+                    Clamp(DirectCourseTarget.Y, 2f, Map.WorldHeight - 2f));
                 return CreatePathForecast(Position, directTarget, false);
             }
 
             VoyagePoint vector = DirectionVector(Heading);
             float mapDistance = PlannedDistanceNm / Map.Route.NauticalMilesPerMapUnit;
             VoyagePoint rawTarget = new VoyagePoint(Position.X + vector.X * mapDistance, Position.Y + vector.Y * mapDistance);
-            VoyagePoint target = new VoyagePoint(Clamp(rawTarget.X, 2f, 98f), Clamp(rawTarget.Y, 2f, 62f));
+            VoyagePoint target = new VoyagePoint(Clamp(rawTarget.X, 2f, Map.WorldWidth - 2f), Clamp(rawTarget.Y, 2f, Map.WorldHeight - 2f));
             float actualMapDistance = Distance(Position, target);
             return CreatePathForecast(Position, target, actualMapDistance + 0.01f < mapDistance);
         }
@@ -2142,17 +2303,43 @@ namespace ShatteredSail.Core.Gameplay
 
         public float ExplorationCoverage()
         {
-            if (Map == null)
-            {
-                return 0f;
-            }
+            return ExplorationCoverage(Map?.ExploredCells);
+        }
 
+        public float VoyageExplorationCoverage()
+        {
+            return ExplorationCoverage(Map?.VoyageExploredCells);
+        }
+
+        private static float ExplorationCoverage(bool[] cells)
+        {
+            if (cells == null || cells.Length == 0) return 0f;
             int count = 0;
-            for (int index = 0; index < Map.ExploredCells.Length; index += 1)
+            for (int index = 0; index < cells.Length; index += 1)
             {
-                if (Map.ExploredCells[index]) count += 1;
+                if (cells[index]) count += 1;
             }
-            return count / (float)Map.ExploredCells.Length * 100f;
+            return count / (float)cells.Length * 100f;
+        }
+
+        private static float ClampExplorationCoverage(float coverage)
+        {
+            return float.IsNaN(coverage) || float.IsInfinity(coverage)
+                ? 0f
+                : Math.Max(0f, Math.Min(100f, coverage));
+        }
+
+        private static int StartingMoraleForCoverage(float coverage)
+        {
+            float clamped = ClampExplorationCoverage(coverage);
+            if (clamped > HighExplorationThreshold) return HighExplorationStartingMorale;
+            if (clamped < LowExplorationThreshold) return LowExplorationStartingMorale;
+            return DefaultStartingMorale;
+        }
+
+        private static int ClampMorale(long value)
+        {
+            return (int)Math.Max(0L, Math.Min((long)MaxMorale, value));
         }
 
         public int CompletedEventCount()
@@ -2215,16 +2402,16 @@ namespace ShatteredSail.Core.Gameplay
 
         private CoreVoyageMap GenerateMap(CoreRouteDefinition route, string seed, string departureName)
         {
-            return GenerateMap(route, seed, departureName, DefaultDestinationFor(departureName));
+            return GenerateMap(route, seed, departureName, DefaultDestinationFor(departureName), geometryVersion: MapGeometryVersion);
         }
 
-        private CoreVoyageMap GenerateMap(CoreRouteDefinition route, string seed, string departureName, string destinationName, uint? geographyHash = null)
+        private CoreVoyageMap GenerateMap(CoreRouteDefinition route, string seed, string departureName, string destinationName, uint? geographyHash = null, int geometryVersion = 1)
         {
             destinationName = NormalizeDestination(departureName, destinationName);
             uint hash = geographyHash ?? SeedHash.Compute(route.Id + "::" + seed + "::" + departureName + "::" + destinationName);
             Mulberry32Random random = new Mulberry32Random(hash ^ 0x9E3779B9u);
 
-            CoreVoyageMap map = new CoreVoyageMap
+            CoreVoyageMap map = new CoreVoyageMap(geometryVersion)
             {
                 Seed = seed,
                 Hash = hash,
@@ -2351,11 +2538,11 @@ namespace ShatteredSail.Core.Gameplay
             float routeX = map.Destination.X - map.Departure.X;
             float routeY = map.Destination.Y - map.Departure.Y;
             Normalize(ref routeX, ref routeY);
-            for (int row = 0; row < CoreVoyageMap.GridRows; row += 1)
+            for (int row = 0; row < map.Rows; row += 1)
             {
-                for (int column = 0; column < CoreVoyageMap.GridColumns; column += 1)
+                for (int column = 0; column < map.Columns; column += 1)
                 {
-                    int index = row * CoreVoyageMap.GridColumns + column;
+                    int index = row * map.Columns + column;
                     if (!map.IsPassable(column, row))
                     {
                         map.CurrentVectors[index] = new VoyagePoint(0f, 0f);
@@ -2385,10 +2572,10 @@ namespace ShatteredSail.Core.Gameplay
             y /= length;
         }
 
-        private static void PointToCell(VoyagePoint point, out int column, out int row)
+        private void PointToCell(VoyagePoint point, out int column, out int row)
         {
-            column = Math.Max(0, Math.Min(CoreVoyageMap.GridColumns - 1, (int)(point.X / CoreVoyageMap.Width * CoreVoyageMap.GridColumns)));
-            row = Math.Max(0, Math.Min(CoreVoyageMap.GridRows - 1, (int)(point.Y / CoreVoyageMap.Height * CoreVoyageMap.GridRows)));
+            column = Math.Max(0, Math.Min(Map.Columns - 1, (int)(point.X / Map.WorldWidth * Map.Columns)));
+            row = Math.Max(0, Math.Min(Map.Rows - 1, (int)(point.Y / Map.WorldHeight * Map.Rows)));
         }
 
         private static bool IsBattleTerrain(CoreEncounter encounter)
@@ -2620,7 +2807,7 @@ namespace ShatteredSail.Core.Gameplay
             long woodEffect = effect.CrewBonusesApplied ? effect.Wood : AdjustedSalvageEffect(effect.Wood);
             long ironEffect = effect.CrewBonusesApplied ? effect.Iron : AdjustedSalvageEffect(effect.Iron);
             Hull = (int)Math.Max(0L, Math.Min(MaxHull, (long)Hull + effect.Hull + (!effect.CrewBonusesApplied && effect.Hull > 0 && HasDoctor ? 2 : 0)));
-            Morale = (int)Math.Max(0L, Math.Min(5L, (long)Morale + effect.Morale));
+            Morale = ClampMorale((long)Morale + effect.Morale);
             Cargo.Water = Math.Max(0, Cargo.Water + effect.Water);
             Cargo.Food = Math.Max(0, Cargo.Food + effect.Food);
             Cargo.Beer = Math.Max(0, Cargo.Beer + effect.Beer);
@@ -2735,7 +2922,7 @@ namespace ShatteredSail.Core.Gameplay
             {
                 VoyageEffect reward = pendingBattleReward;
                 Hull = (int)Math.Max(0L, Math.Min(MaxHull, (long)Hull + ScaleSeaChartBattleReward(reward.Hull + (reward.Hull > 0 && HasDoctor ? 2 : 0))));
-                Morale = (int)Math.Max(0L, Math.Min(5L, (long)Morale + ScaleSeaChartBattleReward(reward.Morale)));
+                Morale = ClampMorale((long)Morale + ScaleSeaChartBattleReward(reward.Morale));
                 Cargo.Water = Receive(Cargo.Water, BoardingLoot(reward.Water), "淡水");
                 Cargo.Food = Receive(Cargo.Food, BoardingLoot(reward.Food), "口粮");
                 Cargo.Beer = Receive(Cargo.Beer, BoardingLoot(reward.Beer), "啤酒");
@@ -2805,6 +2992,9 @@ namespace ShatteredSail.Core.Gameplay
             float protection = outcome == VoyageOutcome.ArrivedAtPort || outcome == VoyageOutcome.TreasureRecovered ? 0.95f : outcome == VoyageOutcome.SafeReturn ? 0.85f : 0.35f;
             string title = outcome == VoyageOutcome.TreasureRecovered ? "秘藏探索完成" : outcome == VoyageOutcome.ArrivedAtPort ? "抵达新港" : outcome == VoyageOutcome.SafeReturn ? "安全返航" : "航行失败";
             int completed = CompletedEventCount();
+            lastVoyageExplorationCoverage = ClampExplorationCoverage(ExplorationCoverage());
+            hasLastVoyageExplorationCoverage = true;
+            UpdateActiveUsedTreasureMapCoverage();
             VoyageCargo starting = departureCargo ?? SnapshotCargo(Cargo);
             int earnedGold = Math.Max(0, Cargo.Gold - starting.Gold);
             int wood = ProtectedGain(Cargo.Wood, starting.Wood, protection);
@@ -2819,6 +3009,7 @@ namespace ShatteredSail.Core.Gameplay
                 DistanceNm = TotalDistanceNm,
                 Hours = TotalHours,
                 Coverage = ExplorationCoverage(),
+                VoyageCoverage = VoyageExplorationCoverage(),
                 CompletedEvents = completed,
                 TotalEvents = TotalEventCount(),
                 BankedGold = (int)Math.Floor(earnedGold * protection),
@@ -2884,24 +3075,21 @@ namespace ShatteredSail.Core.Gameplay
 
         private void RevealAt(VoyagePoint position)
         {
+            // Import prior coarse knowledge before this observation updates it.
+            // Expanding afterward would turn every newly seen coarse cell into four
+            // visible chart cells and erase the finer frontier.
+            Map.InitializeChartExploration();
             float visionNm = 120f + (HasNavigator ? 60f : 0f) + VisionBonusNm;
             float radius = visionNm / Map.Route.NauticalMilesPerMapUnit;
-            for (int row = 0; row < CoreVoyageMap.GridRows; row += 1)
-            {
-                for (int column = 0; column < CoreVoyageMap.GridColumns; column += 1)
-                {
-                    if (CanSeeCell(position, column, row, radius))
-                    {
-                        Map.ExploredCells[row * CoreVoyageMap.GridColumns + column] = true;
-                    }
-                }
-            }
+            RevealVisibleCells(position, radius, Map.Columns, Map.Rows,
+                Map.ExploredCells, 1f, Map.VoyageExploredCells);
+            RevealVisibleCells(position, radius, Map.FineColumns, Map.FineRows, Map.ChartExploredCells, 0.5f);
 
             for (int index = 0; index < Map.Nodes.Count; index += 1)
             {
                 CoreMapNode node = Map.Nodes[index];
-                int nodeColumn = Math.Max(0, Math.Min(CoreVoyageMap.GridColumns - 1, (int)(node.Position.X / CoreVoyageMap.Width * CoreVoyageMap.GridColumns)));
-                int nodeRow = Math.Max(0, Math.Min(CoreVoyageMap.GridRows - 1, (int)(node.Position.Y / CoreVoyageMap.Height * CoreVoyageMap.GridRows)));
+                int nodeColumn = Math.Max(0, Math.Min(Map.Columns - 1, (int)(node.Position.X / Map.WorldWidth * Map.Columns)));
+                int nodeRow = Math.Max(0, Math.Min(Map.Rows - 1, (int)(node.Position.Y / Map.WorldHeight * Map.Rows)));
                 if (node.Encounter != null && node.Encounter.CanDiscoverBySight && Distance(node.Position, position) <= radius && CanSeeCell(position, nodeColumn, nodeRow, radius))
                 {
                     node.Discovered = true;
@@ -2909,16 +3097,55 @@ namespace ShatteredSail.Core.Gameplay
             }
         }
 
+        private void RevealVisibleCells(VoyagePoint observer, float radius, int columns, int rows, bool[] explored,
+            float edgeScale, bool[] voyageExplored = null)
+        {
+            // VisibilityEdgeVariation is at most 0.85; terrain can only reduce
+            // visibility. The nearby 1.2-unit reveal still applies at low vision.
+            // Bound the candidate scan before distance and obstruction sampling.
+            float searchRadius = Math.Max(1.2f, radius + 0.85f * edgeScale);
+            int firstColumn = 0, lastColumn = columns - 1, firstRow = 0, lastRow = rows - 1;
+            if (!float.IsNaN(searchRadius) && !float.IsInfinity(searchRadius))
+            {
+                // Include a neighboring cell at each edge to make the bound
+                // conservative even when float arithmetic rounds a grid boundary.
+                firstColumn = Math.Max(0, (int)(Math.Max(0f, Math.Min(Map.WorldWidth, observer.X - searchRadius)) / Map.WorldWidth * columns) - 1);
+                lastColumn = Math.Min(columns - 1, (int)(Math.Max(0f, Math.Min(Map.WorldWidth, observer.X + searchRadius)) / Map.WorldWidth * columns) + 1);
+                firstRow = Math.Max(0, (int)(Math.Max(0f, Math.Min(Map.WorldHeight, observer.Y - searchRadius)) / Map.WorldHeight * rows) - 1);
+                lastRow = Math.Min(rows - 1, (int)(Math.Max(0f, Math.Min(Map.WorldHeight, observer.Y + searchRadius)) / Map.WorldHeight * rows) + 1);
+            }
+            for (int row = firstRow; row <= lastRow; row++)
+            {
+                for (int column = firstColumn; column <= lastColumn; column++)
+                {
+                    int index = row * columns + column;
+                    if (explored[index] && (voyageExplored == null || voyageExplored[index])) continue;
+                    VoyagePoint center = new VoyagePoint((column + 0.5f) * Map.WorldWidth / columns,
+                        (row + 0.5f) * Map.WorldHeight / rows);
+                    float edgeVariation = VisibilityEdgeVariation(Map.Hash, column, row) * edgeScale;
+                    if (CanSeePoint(observer, center, radius, edgeVariation))
+                    {
+                        explored[index] = true;
+                        if (voyageExplored != null) voyageExplored[index] = true;
+                    }
+                }
+            }
+        }
+
         private bool CanSeeCell(VoyagePoint observer, int column, int row, float baseRadius)
         {
             VoyagePoint center = Map.CellCenter(column, row);
+            return CanSeePoint(observer, center, baseRadius, VisibilityEdgeVariation(Map.Hash, column, row));
+        }
+
+        private bool CanSeePoint(VoyagePoint observer, VoyagePoint center, float baseRadius, float edgeVariation)
+        {
             float distance = Distance(observer, center);
             if (distance <= 1.2f)
             {
                 return true;
             }
 
-            float edgeVariation = VisibilityEdgeVariation(Map.Hash, column, row);
             if (distance > baseRadius + Math.Max(0f, edgeVariation))
             {
                 return false;
@@ -2932,8 +3159,8 @@ namespace ShatteredSail.Core.Gameplay
                 VoyagePoint point = new VoyagePoint(
                     observer.X + (center.X - observer.X) * t,
                     observer.Y + (center.Y - observer.Y) * t);
-                int sampleColumn = Math.Max(0, Math.Min(CoreVoyageMap.GridColumns - 1, (int)(point.X / CoreVoyageMap.Width * CoreVoyageMap.GridColumns)));
-                int sampleRow = Math.Max(0, Math.Min(CoreVoyageMap.GridRows - 1, (int)(point.Y / CoreVoyageMap.Height * CoreVoyageMap.GridRows)));
+                int sampleColumn = Math.Max(0, Math.Min(Map.Columns - 1, (int)(point.X / Map.WorldWidth * Map.Columns)));
+                int sampleRow = Math.Max(0, Math.Min(Map.Rows - 1, (int)(point.Y / Map.WorldHeight * Map.Rows)));
                 float multiplier = sample == samples ? 0.42f : 0.18f;
                 obstruction += TerrainVisionPenalty(Map.TerrainAt(sampleColumn, sampleRow)) * multiplier;
             }
@@ -2972,7 +3199,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             PointToCell(point, out int originColumn, out int originRow);
             if (Map.IsPassable(originColumn, originRow)) return point;
-            for (int radius = 1; radius < Math.Max(CoreVoyageMap.GridColumns, CoreVoyageMap.GridRows); radius += 1)
+            for (int radius = 1; radius < Math.Max(Map.Columns, Map.Rows); radius += 1)
             {
                 VoyagePoint best = point;
                 float bestDistance = float.MaxValue;
@@ -2980,7 +3207,7 @@ namespace ShatteredSail.Core.Gameplay
                 {
                     for (int column = originColumn - radius; column <= originColumn + radius; column += 1)
                     {
-                        if (column < 0 || row < 0 || column >= CoreVoyageMap.GridColumns || row >= CoreVoyageMap.GridRows || !Map.IsPassable(column, row)) continue;
+                        if (column < 0 || row < 0 || column >= Map.Columns || row >= Map.Rows || !Map.IsPassable(column, row)) continue;
                         VoyagePoint candidate = Map.CellCenter(column, row);
                         float distance = Distance(point, candidate);
                         if (distance < bestDistance) { best = candidate; bestDistance = distance; }
@@ -2996,9 +3223,9 @@ namespace ShatteredSail.Core.Gameplay
             VoyagePoint target = SnapToNearestPassable(requestedTarget);
             PointToCell(start, out int startColumn, out int startRow);
             PointToCell(target, out int targetColumn, out int targetRow);
-            int startIndex = startRow * CoreVoyageMap.GridColumns + startColumn;
-            int targetIndex = targetRow * CoreVoyageMap.GridColumns + targetColumn;
-            int count = CoreVoyageMap.GridColumns * CoreVoyageMap.GridRows;
+            int startIndex = startRow * Map.Columns + startColumn;
+            int targetIndex = targetRow * Map.Columns + targetColumn;
+            int count = Map.Columns * Map.Rows;
             float[] cost = new float[count];
             int[] previous = new int[count];
             bool[] closed = new bool[count];
@@ -3013,8 +3240,8 @@ namespace ShatteredSail.Core.Gameplay
                 for (int index = 0; index < open.Count; index += 1)
                 {
                     int cell = open[index];
-                    int column = cell % CoreVoyageMap.GridColumns;
-                    int row = cell / CoreVoyageMap.GridColumns;
+                    int column = cell % Map.Columns;
+                    int row = cell / Map.Columns;
                     float dx = targetColumn - column;
                     float dy = targetRow - row;
                     float score = cost[cell] + (float)Math.Sqrt(dx * dx + dy * dy);
@@ -3026,8 +3253,8 @@ namespace ShatteredSail.Core.Gameplay
                 if (current == targetIndex) break;
                 if (closed[current]) continue;
                 closed[current] = true;
-                int currentColumn = current % CoreVoyageMap.GridColumns;
-                int currentRow = current / CoreVoyageMap.GridColumns;
+                int currentColumn = current % Map.Columns;
+                int currentRow = current / Map.Columns;
                 foreach (int y in offsets)
                 {
                     foreach (int x in offsets)
@@ -3035,9 +3262,9 @@ namespace ShatteredSail.Core.Gameplay
                         if (x == 0 && y == 0) continue;
                         int column = currentColumn + x;
                         int row = currentRow + y;
-                        if (column < 0 || row < 0 || column >= CoreVoyageMap.GridColumns || row >= CoreVoyageMap.GridRows || !Map.IsPassable(column, row)) continue;
+                        if (column < 0 || row < 0 || column >= Map.Columns || row >= Map.Rows || !Map.IsPassable(column, row)) continue;
                         if (x != 0 && y != 0 && (!Map.IsPassable(currentColumn + x, currentRow) || !Map.IsPassable(currentColumn, currentRow + y))) continue;
-                        int neighbor = row * CoreVoyageMap.GridColumns + column;
+                        int neighbor = row * Map.Columns + column;
                         if (closed[neighbor]) continue;
                         float step = x == 0 || y == 0 ? 1f : 1.41421356f;
                         step += TerrainNavigationCost(Map.TerrainCells[neighbor]);
@@ -3058,7 +3285,7 @@ namespace ShatteredSail.Core.Gameplay
             {
                 cursor = previous[cursor];
                 if (cursor >= 0 && cursor != startIndex)
-                    raw.Add(Map.CellCenter(cursor % CoreVoyageMap.GridColumns, cursor / CoreVoyageMap.GridColumns));
+                    raw.Add(Map.CellCenter(cursor % Map.Columns, cursor / Map.Columns));
             }
             raw.Add(start);
             raw.Reverse();
@@ -3190,15 +3417,17 @@ namespace ShatteredSail.Core.Gameplay
 
         private static VoyageCargo CreateStartingCargo()
         {
+            // New-campaign provisions only. Profile/checkpoint restoration and
+            // later departures retain the player's existing cargo quantities.
             return new VoyageCargo
             {
-                Water = 286,
-                Food = 286,
+                Water = 120,
+                Food = 120,
                 Beer = 4,
                 Medicine = 2,
                 Wood = 8,
-                Powder = 8,
-                Cannonballs = 10,
+                Powder = 20,
+                Cannonballs = 16,
                 Gold = 60,
             };
         }

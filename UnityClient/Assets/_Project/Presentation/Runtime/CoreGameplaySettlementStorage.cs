@@ -21,6 +21,8 @@ namespace ShatteredSail.Presentation
             Text caption = store.GetComponentInChildren<Text>();
             caption.rectTransform.anchoredPosition = new Vector2(18f, 0f);
             caption.rectTransform.sizeDelta = new Vector2(530f, 36f);
+            caption.alignment = TextAnchor.MiddleLeft;
+            CenterSettlementText(caption);
             Image checkbox = CreateImage("Settlement Cargo Checkbox", store.transform,
                 new Vector2(24f, 24f), new Vector2(-267f, 0f), Ink);
             Image inset = CreateImage("Settlement Cargo Checkbox Interior", checkbox.transform,
@@ -28,8 +30,8 @@ namespace ShatteredSail.Presentation
             CreateImage("Settlement Cargo Selected", inset.transform,
                 new Vector2(12f, 12f), Vector2.zero, Gold).raycastTarget = false;
             checkbox.raycastTarget = inset.raycastTarget = false;
-            Text note = SettlementText("Settlement Note", card, new Vector2(600f, 55f),
-                new Vector2(-510f, -427f), 17, MutedInk, TextAnchor.MiddleLeft);
+            Text note = SettlementText("Settlement Note", card, new Vector2(570f, 55f),
+                new Vector2(-495f, -427f), 17, MutedInk, TextAnchor.MiddleLeft);
             UpdateSettlementStorageLabels(caption, note, result);
             store.interactable = Application.isPlaying && !editorPreviewBuilding && !previewSample && !tutorialActive;
             store.onClick.AddListener(() =>

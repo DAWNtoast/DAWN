@@ -102,23 +102,16 @@ namespace ShatteredSail.Presentation.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void LedgerTextsAndButtonsStayInsidePaperOnBothTabs(bool storage)
+        public void LedgerTextsAndButtonsStayInsideTheCabinetOpeningOnBothTabs(bool storage)
         {
             CreatePreview();
             if (storage) Click("Warehouse Tab Storage");
             Canvas.ForceUpdateCanvases();
             RectTransform ledger = Find<RectTransform>("Warehouse Ledger");
-            ScrollRect[] scrolls = ledger.GetComponentsInChildren<ScrollRect>(true);
-            foreach (ScrollRect scroll in scrolls) AssertContained(ledger, scroll.viewport, .1f);
-            foreach (float position in new[] { 1f, 0f })
-            {
-                foreach (ScrollRect scroll in scrolls) scroll.verticalNormalizedPosition = position;
-                Canvas.ForceUpdateCanvases();
-                foreach (Text text in ledger.GetComponentsInChildren<Text>(true))
-                    AssertVisibleContained(ledger, text.rectTransform, .1f);
-                foreach (Button button in ledger.GetComponentsInChildren<Button>(true))
-                    AssertVisibleContained(ledger, button.GetComponent<RectTransform>(), .1f);
-            }
+            foreach (Text text in ledger.GetComponentsInChildren<Text>(true))
+                AssertContained(ledger, text.rectTransform, 0.1f);
+            foreach (Button button in ledger.GetComponentsInChildren<Button>(true))
+                AssertContained(ledger, button.GetComponent<RectTransform>(), 0.1f);
         }
 
         [Test]
@@ -130,13 +123,18 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform background = Find<RectTransform>("Warehouse Background");
             RectTransform ledger = Find<RectTransform>("Warehouse Ledger");
             RectTransform warehousePanel = Find<RectTransform>("Warehouse Panel");
-            Assert.That(backdrop.texture, Is.SameAs(Resources.Load<Texture2D>("WarehouseV2/trophy_cabinet_v2_expanded")));
+            Assert.That(backdrop.texture, Is.Null, "The compatibility layer must not load or draw another room.");
+            Assert.That(backdrop.color.a, Is.Zero);
             Assert.That(background.GetComponent<RawImage>().texture,
-                Is.SameAs(Resources.Load<Texture2D>("PortFacilities/warehouse_background")));
-            Assert.That(backdrop.rectTransform.anchoredPosition, Is.EqualTo(PhaseSurfaceLayout.BackgroundPosition));
-            Assert.That(backdrop.uvRect, Is.EqualTo(PhaseSurfaceLayout.BackgroundUv(backdrop.texture)));
+                Is.SameAs(Resources.Load<Texture2D>(PortFacilityArtCatalog.RegionalBackgroundResourcePath(
+                    PortFacilityArtCatalog.WarehouseFacilityIndex, controller.Session.CurrentPort))));
+            Assert.That(background.anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(background.sizeDelta, Is.EqualTo(new Vector2(1920f, 1080f)));
+            Assert.That(backdrop.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(backdrop.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+            Assert.That(ledger.GetComponent<Image>().color.a, Is.Zero, "Regional velvet remains visible inside the cabinet.");
             Assert.That(backdrop.rectTransform.sizeDelta, Is.EqualTo(background.sizeDelta),
-                "The cabinet art must cover the same surface as Warehouse Background.");
+                "The compatibility layer keeps the same geometry as Warehouse Background.");
             Assert.That(backdrop.transform.parent, Is.EqualTo(background.transform.parent),
                 "The expanded cabinet art must share the phase-content layer with the warehouse background.");
             Assert.That(backdrop.transform.GetSiblingIndex(), Is.LessThan(warehousePanel.transform.GetSiblingIndex()),
@@ -267,7 +265,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(1));
             Assert.That(controller.Session.CargoCapacityValue, Is.EqualTo(CoreVoyageSession.Ships[1].CargoCapacity));
             Assert.That(controller.Session.Cargo.UsedVolume, Is.LessThanOrEqualTo(controller.Session.CargoCapacityValue));
-            Assert.That(Find<Text>("Warehouse Rare Hint").text, Does.Contain("最多4盏生效"));
+            Assert.That(Find<Text>("Warehouse Rare Hint").text, Is.EqualTo("点击物品查看详情、存取或出售"));
             if (state == 1) Find<RectTransform>("Warehouse Cargo Adjustment");
             AssertPlayerPreferences(expectedInts, expectedStrings);
         }
@@ -302,12 +300,13 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void ExpandedCabinetArtMatchesTheWarehouseBackgroundSurface()
+        public void RegionalWarehouseUsesAnUncroppedFullFrameSurface()
         {
-            Texture2D expanded = Resources.Load<Texture2D>("WarehouseV2/trophy_cabinet_v2_expanded");
-            Assert.That(expanded, Is.Not.Null);
-            Assert.That(expanded.width, Is.EqualTo(1920));
-            Assert.That(expanded.height, Is.EqualTo(990));
+            CreatePreview();
+            RawImage background = Find<RawImage>("Warehouse Background");
+            Assert.That(background.texture, Is.Not.Null);
+            Assert.That(background.rectTransform.sizeDelta, Is.EqualTo(new Vector2(1920f, 1080f)));
+            Assert.That(background.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
         }
 
         [TestCase("WarehouseV2/first_victory_compass_v1", true, true)]
@@ -349,31 +348,6 @@ namespace ShatteredSail.Presentation.Tests
             controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Warehouse, CoreGameplayPreviewPort.GrayGull, 0);
             host.SetActive(true);
             Assert.That(controller.HasCompleteEditorPreview, Is.True);
-        }
-
-        private static void AssertVisibleContained(RectTransform parent, RectTransform child, float tolerance)
-        {
-            Rect LocalBounds(RectTransform item)
-            {
-                var corners = new Vector3[4]; item.GetWorldCorners(corners);
-                Vector3[] local = corners.Select(parent.InverseTransformPoint).ToArray();
-                return Rect.MinMaxRect(local.Min(point => point.x), local.Min(point => point.y),
-                    local.Max(point => point.x), local.Max(point => point.y));
-            }
-            Rect visible = LocalBounds(child);
-            for (Transform ancestor = child.parent; ancestor != null && ancestor != parent; ancestor = ancestor.parent)
-            {
-                RectMask2D mask = ancestor.GetComponent<RectMask2D>();
-                if (mask == null || !mask.isActiveAndEnabled) continue;
-                Rect clip = LocalBounds(mask.rectTransform);
-                visible = Rect.MinMaxRect(Mathf.Max(visible.xMin, clip.xMin), Mathf.Max(visible.yMin, clip.yMin),
-                    Mathf.Min(visible.xMax, clip.xMax), Mathf.Min(visible.yMax, clip.yMax));
-                if (visible.width <= 0f || visible.height <= 0f) return;
-            }
-            Assert.That(visible.xMin, Is.GreaterThanOrEqualTo(parent.rect.xMin - tolerance), child.name);
-            Assert.That(visible.xMax, Is.LessThanOrEqualTo(parent.rect.xMax + tolerance), child.name);
-            Assert.That(visible.yMin, Is.GreaterThanOrEqualTo(parent.rect.yMin - tolerance), child.name);
-            Assert.That(visible.yMax, Is.LessThanOrEqualTo(parent.rect.yMax + tolerance), child.name);
         }
 
         private static void AssertContained(RectTransform parent, RectTransform child, float tolerance)

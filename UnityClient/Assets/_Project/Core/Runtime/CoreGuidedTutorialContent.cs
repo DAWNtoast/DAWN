@@ -24,7 +24,7 @@ namespace ShatteredSail.Core.Gameplay
         // The guided encounter uses an authored action script. Its encounter ID
         // alone does not enable the script on an ordinary replayed sea chart.
         public static readonly CoreBattleProfile BossProfile = new CoreBattleProfile(
-            CoreBossKind.Route, CoreBattleArchetype.Balanced, 52, 7, 5, 3, 0, 2, 1f, 1f);
+            CoreBossKind.Route, CoreBattleArchetype.Balanced, 52, 7, 5, 3, 0, 2, 1f, 1f, healthMultiplier: 1m);
 
         internal static CoreEncounter FirstEvent() => new CoreEncounter(FirstEventId,
             "航道断桅", "强制事件", "一截拖着缆绳的断桅横在船前。不处理就无法继续沿航道前进。", true, false, 1, 0,

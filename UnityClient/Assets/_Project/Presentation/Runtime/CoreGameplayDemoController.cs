@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using ShatteredSail.Core.Gameplay;
@@ -13,8 +14,8 @@ using UnityEngine.UI;
 namespace ShatteredSail.Presentation
 {
     /// <summary>
-    /// Runtime-built UI for the playable core loop. The scene deliberately owns
-    /// only this component so the prototype remains easy to refresh and test.
+    /// Core-loop UI with prefab-backed port headers and retained inventory views.
+    /// Other screens share procedural layout builders with the editor previews.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
@@ -25,22 +26,22 @@ namespace ShatteredSail.Presentation
         public const string ProfileGoldKey = "ShatteredSail.ProfileGold.v1";
         public const string CurrentPortKey = "ShatteredSail.CurrentPort.v1";
         public const string SelectedShipKey = "ShatteredSail.SelectedShip.v1";
+        public const string LastVoyageExplorationCoverageKey = "ShatteredSail.LastVoyageExplorationCoverage.v1";
         public const string BattleDeckKey = "ShatteredSail.BattleDeck.v1";
-        public const string DispatchMissionKey = "ShatteredSail.Dispatch.Mission.v1";
-        public const string DispatchEndsAtKey = "ShatteredSail.Dispatch.EndsAt.v1";
-        public const string DispatchDurationKey = DispatchDurationHoursKey;
+        /// <summary>Set only after the player changes a battle deck in the workshop.</summary>
+        public const string BattleDeckEditedKey = "ShatteredSail.BattleDeck.Edited.v1";
         public const string CargoKeyPrefix = "ShatteredSail.Cargo.v1.";
 
-        private static readonly Color Ink = UiTheme.Gameplay.Ink;
-        private static readonly Color MutedInk = UiTheme.Gameplay.MutedInk;
-        private static readonly Color DeepSea = UiTheme.Gameplay.DeepSea;
-        private static readonly Color Panel = UiTheme.Gameplay.Panel;
-        private static readonly Color PanelRaised = UiTheme.Gameplay.PanelRaised;
-        private static readonly Color Teal = UiTheme.Gameplay.Teal;
-        private static readonly Color Gold = UiTheme.Gameplay.Gold;
-        private static readonly Color Coral = UiTheme.Gameplay.Coral;
-        private static readonly Color Green = UiTheme.Gameplay.Green;
-        private static readonly Color Fog = UiTheme.Gameplay.Fog;
+        private static readonly Color Ink = Html("#E8E1C7");
+        private static readonly Color MutedInk = Html("#9DB0AE");
+        private static readonly Color DeepSea = Html("#071820");
+        private static readonly Color Panel = Html("#0F2932");
+        private static readonly Color PanelRaised = Html("#173A43");
+        private static readonly Color Teal = Html("#287E79");
+        private static readonly Color Gold = Html("#D8A541");
+        private static readonly Color Coral = Html("#CE6750");
+        private static readonly Color Green = Html("#5EAE78");
+        private static readonly Color Fog = Html("#061218");
         private CoreVoyageSession session;
         private TutorialVoyageSession tutorial;
         private LegacyDemoArtCatalog art;
@@ -63,7 +64,6 @@ namespace ShatteredSail.Presentation
         private int selectedTavernCandidate = -1;
         private int selectedShipPreview;
         private int selectedUpgradePreview;
-        private string courseTargetNotice = "点击海图设定航点。";
 
         public CoreVoyageSession Session => session;
         public TutorialVoyageSession TutorialSession => tutorial;
@@ -72,6 +72,9 @@ namespace ShatteredSail.Presentation
         private bool profileSaveBlocked;
         private string profileSaveFailure;
         private RectTransform profileSaveFailurePanel;
+        private bool pendingVoyageThreeEventsAchievement;
+        private bool pendingVoyageHalfChartAchievement;
+        private bool pendingVoyageEventArrivalAchievement;
 
         private void Awake()
         {
@@ -95,11 +98,14 @@ namespace ShatteredSail.Presentation
             Application.targetFrameRate = 60;
             session = new CoreVoyageSession();
             RestoreGameCalendar();
-            MigrateDispatchGameClock();
             tutorial = new TutorialVoyageSession();
             session.RestoreProfile(
                 ProfileGoldPersistence.Load(),
                 PlayerPrefs.GetString(CurrentPortKey, "断锚港"));
+            string previousCoverage = PlayerPrefs.GetString(LastVoyageExplorationCoverageKey, string.Empty);
+            if (float.TryParse(previousCoverage, NumberStyles.Float, CultureInfo.InvariantCulture, out float coverage) &&
+                !float.IsNaN(coverage) && !float.IsInfinity(coverage))
+                session.RestoreLastVoyageExplorationCoverage(coverage);
             tutorialActive = PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 0;
             art = new LegacyDemoArtCatalog();
             portArt = new PortArtCatalog();
@@ -108,7 +114,6 @@ namespace ShatteredSail.Presentation
             componentArt = new ComponentArtCatalog();
             componentShopArt = new ComponentShopArtCatalog();
             cardWorkshopArt = new CardWorkshopArtCatalog();
-            dispatchArt = new DispatchArtCatalog();
             maintenanceArt = new MaintenanceArtCatalog();
             RestoreComponentLoadout();
             if (componentInventoryReadFailed)
@@ -137,10 +142,14 @@ namespace ShatteredSail.Presentation
             InitializeAudio();
             Render();
             InitializeAchievementNotifications();
+            if (OpeningComicCatalog.ConsumePlaybackRequest() && suspendedVoyage == null)
+                BuildOpeningComicOverlay();
         }
 
         private void OnDestroy()
         {
+            RestoreDeparturePaintedHeader();
+            CloseOpeningComic();
             ClearAchievementNotifications();
             ReleaseGeneratedVisualResources();
         }
@@ -155,15 +164,14 @@ namespace ShatteredSail.Presentation
             CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
-            // The dashboard is authored on a fixed 1920x1080 surface. Fitting
-            // its entire surface keeps edge chart markers clickable in 4:3,
-            // 16:10 and resized windows as well as the reference aspect ratio.
+            // Fit the fixed game surface; excess window space becomes letterbox.
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
             RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
             // CanvasScaler can sample a zero editor viewport while the preview is being serialized.
             // Keep the authored preview root at unit scale so child RectTransforms remain visible and editable.
             canvasRect.localScale = Vector3.one;
+            canvasRect = FixedGameViewport.Create(canvas);
             contentRoot = CreateRect("Phase Content", canvasRect, PhaseSurfaceLayout.ContentSize, Vector2.zero);
             legacyCanvasRoot = canvasRect;
         }
@@ -171,19 +179,25 @@ namespace ShatteredSail.Presentation
         private void Render()
         {
             if (profileSaveBlocked) return;
+            RestoreDeckBuilderNavigationControls();
+            RestoreDeparturePaintedHeader();
+            CloseTreasureStoryOverlay();
             CloseVoyageCargo(false);
             SaveSeaChartProgress();
             RefreshCollectionRewards();
             RestoreGuidedTutorialControls();
             UpdateGuidedTutorialProgress();
             ResolveBoardingComponentDrop();
+            if (TryRefreshPortBody()) return;
             bool battle = session != null && session.Phase == CoreDemoPhase.Battle;
             if (battle)
                 RemoveLegacyBattleScaffolding();
             else
                 EnsureLegacyCanvasScaffolding();
-            InvalidateCurrentUiView();
-            ClearChildren(contentRoot);
+            // An input field can emit EndEdit while its route panel is disabled.
+            // Invalidate the outgoing chart callbacks before either panel is torn down.
+            departureChartRevision++;
+            ClearPhaseContentForRender();
             bool navigation = session.Phase == CoreDemoPhase.Sailing || session.Phase == CoreDemoPhase.Encounter;
             contentRoot.anchorMin = navigation ? Vector2.zero : Vector2.one * 0.5f;
             contentRoot.anchorMax = navigation ? Vector2.one : Vector2.one * 0.5f;
@@ -202,14 +216,34 @@ namespace ShatteredSail.Presentation
                 headerStatus.enabled = true;
                 headerStatus.text = BuildHeaderStatus();
             }
-            BuildCurrentUiView();
+            switch (session.Phase)
+            {
+                case CoreDemoPhase.Port:
+                    BuildPort();
+                    break;
+                case CoreDemoPhase.Sailing:
+                    BuildSailing();
+                    break;
+                case CoreDemoPhase.Encounter:
+                    BuildSailing();
+                    BuildEncounterOverlay();
+                    break;
+                case CoreDemoPhase.Battle:
+                    BuildBattleOverlay();
+                    break;
+                case CoreDemoPhase.Settlement:
+                    BuildSettlement();
+                    break;
+            }
             BuildGuidedTutorialActions();
             BuildGuidedTutorialOverlay();
-            if (navigation) NavigationDashboardLayout.Attach(contentRoot);
+            if (navigation)
+            {
+                NavigationDashboardLayout.Attach(contentRoot);
+                InitializeNavigationControlColors();
+            }
 
-            // Tutorial banners and focus decorations are added after the phase
-            // content. Keep the regional voyage header above those decorations
-            // so it remains a stable navigation/status bar during the lesson.
+            // Keep the regional header above the phase art and focus markers.
             if (session.Phase == CoreDemoPhase.Battle)
             {
                 BringVoyageHeaderToFront();
@@ -223,10 +257,15 @@ namespace ShatteredSail.Presentation
                 BringVoyageHeaderToFront();
             }
 
+            BringGuidedTutorialBannerToFront();
+
             // Treasure chapter pages are appended last so their modal surface
             // remains above the voyage header, battle readouts and card hand.
             BuildTreasureStoryOverlayIfNeeded();
             PlayScreenTransitionIfNeeded();
+            ApplyDeckBuilderNavigationLock();
+            RecordRenderedPortView();
+            QueueUnusedArtCollection();
         }
 
         private string BuildHeaderStatus()
@@ -247,7 +286,10 @@ namespace ShatteredSail.Presentation
             }
 
             return "船体 " + session.Hull + "/" + session.MaxHull +
-                "　士气 " + session.Morale + "/5　航程 " + session.TotalDistanceNm.ToString("0") + " 海里";
+                "　士气 " + session.Morale + "/" + CoreVoyageSession.MaxMorale +
+                (session.Phase == CoreDemoPhase.Battle && session.Battle != null && session.Battle.Stage == NavalBattleStage.Boarding
+                    ? "　接舷暴击 " + session.BoardingCriticalChancePercent + "%" : string.Empty) +
+                "　航程 " + session.TotalDistanceNm.ToString("0") + " 海里";
         }
 
         /// <summary>
@@ -475,7 +517,7 @@ namespace ShatteredSail.Presentation
                 "\n我方船体 " + tutorial.Hull + "　当前格挡 " + tutorial.BattleBlock + "　木材 " + tutorial.Wood +
                 "\n" + tutorial.LastBattleMessage;
 
-            RectTransform actions = CreateRect("Tutorial Battle Actions", card, new Vector2(1120f, 300f), new Vector2(0f, -55f));
+            RectTransform actions = CreateRect("Tutorial Battle Actions", card, new Vector2(1120f, 355f), new Vector2(0f, -85f));
             HorizontalLayoutGroup layout = actions.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.spacing = 18f;
             layout.childAlignment = TextAnchor.MiddleCenter;
@@ -492,14 +534,54 @@ namespace ShatteredSail.Presentation
         private void AddTutorialBattleAction(RectTransform parent, string name, string label, string detail, TutorialBattleAction action, string cardId, Color color)
         {
             bool available = tutorial.IsBattleActionAvailable(action);
-            Button button = CreateButton(name, parent, new Vector2(350f, 285f), Vector2.zero, available ? color : Html("#34484A"), Ink, 17);
+            RectTransform slot = CreateRect(name + " Slot", parent, new Vector2(350f, 335f), Vector2.zero);
+            RectTransform face = CreateRect(name + " Face", slot, CardFaceLayout.CardSize, Vector2.zero);
+            face.localScale = Vector3.one * Mathf.Min(.88f, (slot.rect.height - 8f) / CardFaceLayout.FrameSize.y);
+            Button button = CreateButton(name, face, CardFaceLayout.CardSize, Vector2.zero,
+                available ? color : Html("#34484A"), Ink, 17);
+            string cardType = action == TutorialBattleAction.FireCannons ? "炮击" :
+                action == TutorialBattleAction.EmergencyRepair ? "维修" : "防御";
+            BattleCardPalette palette = CardSchoolArtCatalog.Palette(string.Empty);
+            Image backing = button.GetComponent<Image>();
+            backing.sprite = NauticalSurfaceSkin.Paper;
+            backing.type = Image.Type.Tiled;
+            backing.color = Color.Lerp(Color.white, palette.Parchment, 0.35f);
+            ColorBlock states = button.colors;
+            states.normalColor = states.highlightedColor = states.selectedColor = Color.white;
+            states.pressedColor = new Color(0.88f, 0.88f, 0.88f, 1f);
+            states.disabledColor = new Color(0.76f, 0.76f, 0.76f, 1f);
+            button.colors = states;
             ConfigureBattleCardPresentation(button, color);
-            RawImage cardArt = CreateRawImage("Action Art", button.transform, new Vector2(190f, 190f), new Vector2(0f, 36f), art.CardSheet, art.CardUv(cardId));
-            cardArt.raycastTarget = false;
+            CoreBattleCard illustrationCard = CoreVoyageSession.CardLibrary.First(card => card.Id == cardId);
+            CreateCardIllustration("Action Art", button.transform, illustrationCard);
+            Image effectPaper = CreateImage("Tutorial Action Effect Paper", button.transform,
+                CardFaceLayout.EffectPaperSize, CardFaceLayout.EffectPaperPosition,
+                Color.Lerp(Color.white, palette.Parchment, 0.35f), NauticalSurfaceSkin.Paper);
+            effectPaper.type = Image.Type.Tiled;
+            effectPaper.pixelsPerUnitMultiplier = NauticalSurfaceSkin.Paper == null ? 1f : NauticalSurfaceSkin.Paper.rect.width / 280f;
+            effectPaper.raycastTarget = false;
+            RectTransform ribbon = CreateCardOrnament("Tutorial Action Name Ribbon", button.transform,
+                CardFaceLayout.NamePlateSize, CardFaceLayout.NamePlatePosition, CardOrnamentKind.NameRibbon, cardType, string.Empty);
+            Text title = CreateText("Tutorial Action Name", ribbon, CardFaceLayout.NameSize, CardFaceLayout.NamePosition,
+                20, FontStyle.Bold, TextAnchor.MiddleCenter, palette.TitleInk);
+            title.text = label;
+            title.color = palette.TitleInk;
+            CardFaceLayout.FitName(title);
             Text text = button.GetComponentInChildren<Text>();
-            text.rectTransform.sizeDelta = new Vector2(300f, 70f);
-            text.rectTransform.anchoredPosition = new Vector2(0f, -96f);
-            text.text = label + "\n" + detail;
+            text.rectTransform.sizeDelta = CardFaceLayout.EffectSize;
+            text.rectTransform.anchoredPosition = CardFaceLayout.EffectPosition;
+            text.text = FormatBattleCardDescription(detail);
+            text.color = palette.Ink;
+            text.fontStyle = FontStyle.Normal;
+            text.alignment = TextAnchor.MiddleCenter;
+            CardFaceLayout.FitEffect(text);
+            text.transform.SetAsLastSibling();
+            AddCardSchoolFrame(button.transform, string.Empty, available);
+            // This legacy tutorial has no action-point economy. Its repair
+            // material payment remains described by the actual tutorial rules.
+            CreateCardCostIcon("Tutorial Action Energy Icon", "Tutorial Action Energy Cost", button.transform,
+                CardFaceLayout.EnergyIconSize, CardSchoolArtCatalog.CostPosition(illustrationCard, CardOrnamentKind.Energy),
+                CardOrnamentKind.Energy, cardType, 0);
             button.interactable = available;
             button.onClick.AddListener(() =>
             {
@@ -588,14 +670,22 @@ namespace ShatteredSail.Presentation
                 ProfileGoldPersistence.Save(session.ProfileGold);
                 PlayerPrefs.SetString(CurrentPortKey, session.CurrentPort);
                 PlayerPrefs.SetInt(SelectedShipKey, session.SelectedShipIndex);
+                PlayerPrefs.SetString(LastVoyageExplorationCoverageKey,
+                    session.HasLastVoyageExplorationCoverage
+                        ? session.LastVoyageExplorationCoverage.ToString("R", CultureInfo.InvariantCulture)
+                        : string.Empty);
                 SaveStageBattleDecks();
                 SaveSpecialCardProgress(false);
                 SaveBattleCardUpgrades();
                 PlayerPrefs.SetString(BattleDeckKey, string.Join(",", configuredBattleDeck));
                 SaveCargo();
+                if (pendingVoyageThreeEventsAchievement) AchievementCatalog.RecordVoyageThreeEvents();
+                if (pendingVoyageHalfChartAchievement) AchievementCatalog.RecordVoyageHalfChart();
+                if (pendingVoyageEventArrivalAchievement) AchievementCatalog.RecordVoyageEventArrival();
                 AchievementCatalog.CaptureProgress();
                 PlayerPrefs.Save();
                 if (!ProfileSaveJournal.TryComplete(out notice)) throw new ProfileSaveException(notice);
+                ClearPendingVoyageAchievements();
             }
             catch (Exception error)
             {
@@ -609,8 +699,16 @@ namespace ShatteredSail.Presentation
             NotifyCommittedAchievementsSafely();
         }
 
+        private void ClearPendingVoyageAchievements()
+        {
+            pendingVoyageThreeEventsAchievement = false;
+            pendingVoyageHalfChartAchievement = false;
+            pendingVoyageEventArrivalAchievement = false;
+        }
+
         private void BlockAfterProfileSaveFailure(string reason)
         {
+            ClearPendingVoyageAchievements();
             profileSaveBlocked = true;
             profileSaveFailure = reason;
             ClearAchievementNotifications();
@@ -626,7 +724,7 @@ namespace ShatteredSail.Presentation
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
-            profileSaveFailurePanel = CreateRect("Profile Save Failure", overlay.transform, Vector2.zero, Vector2.zero);
+            profileSaveFailurePanel = CreateRect("Profile Save Failure", FixedGameViewport.Create(overlay), Vector2.zero, Vector2.zero);
             profileSaveFailurePanel.anchorMin = Vector2.zero;
             profileSaveFailurePanel.anchorMax = Vector2.one;
             profileSaveFailurePanel.offsetMin = profileSaveFailurePanel.offsetMax = Vector2.zero;
@@ -675,10 +773,12 @@ namespace ShatteredSail.Presentation
             // Preview detection still uses this marker; it does not need a visible background.
             CreateRect("Port Briefing", contentRoot, new Vector2(1820f, 86f), new Vector2(0f, 340f));
 
-            // Use the space below either header; the destination row and actions
-            // stay fixed while enlarged ship details can scroll independently.
+            // Keep the two departure columns aligned with the hand-editable
+            // UIPreviewsForMe scene. The route list owns the full left frame;
+            // the destination buttons sit above the three route rows.
             BeginDepartureChartSelectionView();
-            RectTransform routePanel = CreateFixedPanel("Route Selection", contentRoot, DepartureLayout.RouteSize, DepartureLayout.RoutePosition, FacilityPanelColor());
+            RectTransform routePanel = CreateFixedPanel("Route Selection", contentRoot, DepartureLayout.RoutePanelSize, DepartureLayout.RoutePanelPosition, FacilityPanelColor());
+            DepartureSkin.ApplyPanel(routePanel.GetComponent<Image>());
             BuildDepartureDestinationSelection(routePanel);
             BuildTreasureDepartureRoute(routePanel);
             for (int index = 0; session.SelectedTreasureMap == null && index < CoreVoyageSession.Routes.Count; index += 1)
@@ -698,83 +798,54 @@ namespace ShatteredSail.Presentation
                 RawImage preview = CreateRawImage("Route Preview " + index, routeButton.transform, new Vector2(260f, 120f), new Vector2(-380f, 0f), art.RouteMap(index), new Rect(0f, 0f, 1f, 1f));
                 UiImageAspect.Fit(preview, new Vector2(260f, 120f));
                 preview.raycastTarget = false;
-                WoodButtonSkin.SetSelected(routeButton, selected);
+                DepartureSkin.SetRouteSelected(routeButton, selected);
                 Text routeLabel = routeButton.GetComponentInChildren<Text>();
                 routeLabel.rectTransform.sizeDelta = new Vector2(700f, 130f);
                 routeLabel.rectTransform.anchoredPosition = new Vector2(165f, 0f);
                 routeLabel.alignment = TextAnchor.MiddleLeft;
+                routeLabel.fontStyle = FontStyle.Normal;
                 routeLabel.text =
-                    (selected ? "◆  " : "◇  ") + route.Name + "　推荐战力 " + route.RecommendedPower + "\n" +
-                    route.Theme + "　·　每海图格 " + route.NauticalMilesPerMapUnit.ToString("0") + " 海里\n" +
-                    "区域首领：" + route.BossName + "（" + route.BossPower + "）";
+                    (selected ? "◆  " : "◇  ") + "<size=26>" + route.Name + "</size>\n" +
+                    route.Theme + "\n" +
+                    "每海图格 " + route.NauticalMilesPerMapUnit.ToString("0") + " 海里\n区域首领：" + route.BossName +
+                    (session.PirateLevel < route.UnlockLevel ? " · 等级 " + route.UnlockLevel + " 开放" : string.Empty);
 
                 routeButton.onClick.AddListener(() =>
                 {
                     if (routeButton == null || !routeButton.gameObject.activeInHierarchy ||
                         !IsDepartureShipView() || DepartureChartModeActive) return;
                     if (tutorialActive && capturedIndex != 0) return;
+                    if (!session.CanSelectRoute(capturedIndex, out _)) return;
                     session.SelectRoute(capturedIndex);
                     OnGuidedTutorialRouteSelected(capturedIndex);
                     Render();
                 });
             }
 
-            RectTransform setupPanel = CreateFixedPanel("Voyage Setup", contentRoot, DepartureLayout.SetupSize, DepartureLayout.SetupPosition, ScenePlaqueColor(0.86f));
+            RectTransform setupPanel = CreateFixedPanel("Voyage Setup", contentRoot, DepartureLayout.SetupPanelSize, DepartureLayout.SetupPanelPosition, ScenePlaqueColor(0.86f));
             // Information must stay readable over every port's busy artwork.
             Image setupBacking = setupPanel.GetComponent<Image>();
-            setupBacking.sprite = null;
-            setupBacking.color = ScenePlaqueColor(0.97f);
+            DepartureSkin.ApplyPanel(setupBacking);
             Text setupTitle = CreateText("Setup Title", setupPanel, new Vector2(340f, 40f), new Vector2(-90f, 274f), 23, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
             setupTitle.text = "旗舰 · 出航配置";
-            Button replayTutorial = CreateButton("Replay Tutorial", setupPanel, new Vector2(140f, 36f), new Vector2(190f, 274f), PanelRaised, MutedInk, 13);
-            replayTutorial.GetComponentInChildren<Text>().text = "教学说明";
-            replayTutorial.onClick.AddListener(() =>
-            {
-                portNotice = "新存档通过三次真实航行学习基础事件、付费招募与航海士职业事件、默认卡组首领战，再返航绘图、陈列藏品并装配船坞部件；进行中的教学从最近港口节点继续。重新体验请在主菜单创建新存档。";
-                Render();
-            });
             EnsureDepartureCrewSelection();
             BuildDepartureChartControls(routePanel, setupPanel);
             if (departureCrewConfigurationOpen)
             {
                 BuildDepartureCrewConfiguration(setupPanel);
-                DepartureLayout.Apply(routePanel, setupPanel);
+                ApplyDeparturePresentation(routePanel, setupPanel);
                 return;
             }
             BuildDepartureVesselSelector(setupPanel);
-            Text ship = CreateText("Ship Stats", setupPanel, new Vector2(240f, 108f), new Vector2(125f, 180f), 18, FontStyle.Normal, TextAnchor.UpperLeft, Ink);
-            ship.text = "船体 " + session.MaxHull + "　装甲 " + session.EffectiveArmor + "\n火力 " + session.EffectiveFirepower + "　航速 " + session.EffectiveSpeedKnots.ToString("0") + " 节\n" +
-                "船员 " + session.CrewCountValue + "　货舱 " + session.CargoCapacityValue.ToString("0") + "\n" + BuildCrewCapabilitySummary();
-            Text destinationSummary = CreateText("Destination Summary", setupPanel, new Vector2(390f, 28f), new Vector2(115f, 100f), 16, FontStyle.Bold, TextAnchor.MiddleLeft, Gold);
-            destinationSummary.text = session.SelectedTreasureMap != null ? "隐藏海域 · 返航港：" + session.CurrentPort :
-                "到达港口：" + session.SelectedDestinationPort + "　（当前港：" + session.CurrentPort + "）";
-
-            CoreRouteDefinition selectedRoute = CoreVoyageSession.Routes[session.SelectedRouteIndex];
-            ComponentSlot[] previewSlots = { ComponentSlot.Bow, ComponentSlot.Plating, ComponentSlot.Cannon, ComponentSlot.Instrument, ComponentSlot.Sail };
-            for (int upgradeIndex = 0; upgradeIndex < previewSlots.Length; upgradeIndex += 1)
-            {
-                float x = -208f + upgradeIndex * 104f;
-                ComponentArtEntry upgradeEntry = EquippedComponent(previewSlots[upgradeIndex]);
-                if (upgradeEntry != null)
-                {
-                    RawImage upgrade = CreateRawImage("Upgrade Part " + upgradeIndex, setupPanel, new Vector2(54f, 54f), new Vector2(x, -46f), upgradeEntry.Texture, new Rect(0f, 0f, 1f, 1f));
-                    upgrade.raycastTarget = false;
-                }
-                Text upgradeName = CreateText("Upgrade Name " + upgradeIndex, setupPanel, new Vector2(100f, 20f), new Vector2(x, -83f), 12, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
-                upgradeName.text = upgradeEntry != null ? upgradeEntry.Name : "空槽";
-            }
-
-            Text cargo = CreateText("Cargo", setupPanel, new Vector2(520f, 52f), new Vector2(0f, -122f), 16, FontStyle.Normal, TextAnchor.UpperLeft, Ink);
-            cargo.text = "实际装载　淡水 " + session.Cargo.Water + "　食物 " + session.Cargo.Food + "　药品 " + session.Cargo.Medicine +
-                "\n木材 " + session.Cargo.Wood + "　火药 " + session.Cargo.Powder + "　炮弹 " + session.Cargo.Cannonballs +
-                "\n货舱 " + session.Cargo.UsedVolume.ToString("0.0") + "/" + session.CargoCapacityValue.ToString("0") + "　航线：" +
-                (session.SelectedTreasureMap != null ? session.SelectedTreasureMap.Name : selectedRoute.Name);
+            BuildDepartureOrdinaryCrewControls(setupPanel);
             BuildDepartureProvisionPurchase(setupPanel);
             Button adjustSupplies = CreateButton("Adjust Voyage Supplies", setupPanel, new Vector2(180f, 40f), new Vector2(170f, -237f), PanelRaised, Gold, 16);
-            adjustSupplies.GetComponentInChildren<Text>().text = "采购补给";
+            adjustSupplies.GetComponentInChildren<Text>().text = "前往市场";
             adjustSupplies.onClick.AddListener(() =>
             {
-                activePortFacility = PortFacilityArtCatalog.MarketFacilityIndex;
+                if (adjustSupplies == null || !adjustSupplies.gameObject.activeInHierarchy ||
+                    !adjustSupplies.IsInteractable() || !IsDepartureShipView()) return;
+                OpenFacilityFromDeparture(PortFacilityArtCatalog.MarketFacilityIndex, setupPanel);
                 portNotice = "按预计航程备足补给。";
                 Render();
             });
@@ -784,8 +855,10 @@ namespace ShatteredSail.Presentation
             configureDecks.GetComponentInChildren<Text>().text = "配置三阶段牌组";
             configureDecks.onClick.AddListener(() =>
             {
+                if (configureDecks == null || !configureDecks.gameObject.activeInHierarchy ||
+                    !configureDecks.IsInteractable() || !IsDepartureShipView()) return;
                 ResetCardWorkshopView();
-                activePortFacility = 4;
+                OpenFacilityFromDeparture(4, setupPanel);
                 selectedCardWorkshopChest = 3;
                 cardWorkshopDeckBuilderOpen = true;
                 battleDeckOverviewOpen = true;
@@ -824,6 +897,12 @@ namespace ShatteredSail.Presentation
                     return;
                 }
                 if (!PrepareDepartureChartForVoyage(setupPanel)) return;
+                if (!session.CanStartOrdinaryVoyage(out string routeReason))
+                {
+                    portNotice = routeReason;
+                    Render();
+                    return;
+                }
                 session.StartVoyage();
                 if (session.Phase != CoreDemoPhase.Sailing) { Render(); return; }
                 ApplyRecordedSeaChartKnowledge();
@@ -834,12 +913,11 @@ namespace ShatteredSail.Presentation
                 // still persist consumption of their one-shot map immediately.
                 if (!tutorialActive) SaveProgress();
                 pendingSupplyOrder.Clear();
-                courseTargetNotice = "点击海图设定航点。";
                 PlaySfx("sail_depart", 0.72f);
                 Render();
             });
             RefreshDepartureChartControls();
-            DepartureLayout.Apply(routePanel, setupPanel);
+            ApplyDeparturePresentation(routePanel, setupPanel);
         }
 
         private void BuildSailing()
@@ -851,7 +929,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildMap(RectTransform mapRoot)
         {
-            Image inputSurface = CreateImage("Map Course Input", mapRoot, new Vector2(1200f, 675f), Vector2.zero, Color.clear);
+            Image inputSurface = CreateImage("Map Course Input", mapRoot, mapRoot.sizeDelta, Vector2.zero, Color.clear);
             inputSurface.raycastTarget = session.Phase == CoreDemoPhase.Sailing;
             MapCourseInputSurface courseInput = inputSurface.gameObject.AddComponent<MapCourseInputSurface>();
             courseInput.Initialize(mapRoot, SelectCourseAtMapPoint);
@@ -860,13 +938,13 @@ namespace ShatteredSail.Presentation
 
             BuildSeaConditionOverlay(mapRoot);
 
-            RectTransform course = CreateRect("Course Preview Layer", mapRoot, new Vector2(1200f, 675f), Vector2.zero);
+            RectTransform course = CreateRect("Course Preview Layer", mapRoot, mapRoot.sizeDelta, Vector2.zero);
             BuildMapCoursePreview(course);
 
             if (!session.IsTreasureVoyage)
             {
-                CreatePortMarker(mapRoot, session.Map.Departure, session.Map.DepartureName, session.Map.DepartureName, false);
-                CreatePortMarker(mapRoot, session.Map.Destination, session.Map.DestinationName, session.BossDefeated ? session.Map.DestinationName : session.Map.DestinationName + " · 航道封锁", true);
+                CreatePortMarker(mapRoot, session.Map.Departure, session.Map.DepartureName, false);
+                CreatePortMarker(mapRoot, session.Map.Destination, session.Map.DestinationName, true);
             }
 
             for (int index = 0; index < session.Map.Nodes.Count; index += 1)
@@ -887,40 +965,23 @@ namespace ShatteredSail.Presentation
                 Text markerGlyph = marker.GetComponentInChildren<Text>();
                 markerGlyph.text = node.Visited ? "✓" : treasureCore ? "X" : nodeBossKind == CoreBossKind.Legendary ? "传" : nodeBossKind == CoreBossKind.Treasure ? "藏" : node.IsBoss ? "首" : "!";
                 markerGlyph.rectTransform.sizeDelta = marker.GetComponent<RectTransform>().sizeDelta - new Vector2(4f, 4f);
+                if (!treasureCore) DecorateVoyageEventMarker(marker, node);
                 if (!node.Visited && (nodeBossKind == CoreBossKind.Legendary || nodeBossKind == CoreBossKind.Treasure || treasureCore))
                 {
                     VoyageEventMarkerPulse pulse = marker.gameObject.AddComponent<VoyageEventMarkerPulse>();
                     pulse.Configure(node.Id * 0.47f, nodeBossKind == CoreBossKind.Treasure || treasureCore);
                 }
-                if (!treasureCore) DecorateVoyageEventMarker(marker, node);
                 marker.interactable = session.Phase == CoreDemoPhase.Sailing && !node.Visited;
                 marker.onClick.AddListener(() =>
                 {
                     SelectCourseToEvent(capturedIndex);
                 });
-                // Keep the caption inside the chart's writable field.  Nodes at
-                // the outer grid edge used to place their 190x46 label outside
-                // the 1200x675 map root; after the dashboard scale that spilled
-                // into the course hint below the chart or into the forward-view
-                // panel at the left/right edges.  The marker itself stays at its
-                // authored position, while the caption is nudged inward.
-                Vector2 labelSize = new Vector2(190f, 46f);
-                Vector2 labelPosition = ClampMapCaptionPosition(MapPosition(node.Position) + new Vector2(0f, -39f), labelSize);
-                Text label = CreateText("Event Label " + node.Id, mapRoot, labelSize, labelPosition, 14, FontStyle.Bold, TextAnchor.UpperCenter, Ink);
-                label.text = !treasureCore && node.IntelRevealed && !node.Discovered ? "情报：未知信号" : node.Encounter.Name;
             }
 
             RectTransform playerMarker = BuildActiveShipPreview("Player Ship", mapRoot, new Vector2(98f, 64f), MapPosition(session.Position));
             foreach (RawImage layer in playerMarker.GetComponentsInChildren<RawImage>())
                 if (layer.texture == portArt.ShipSheet) BattleShipCutout.Attach(layer);
-            Image heading = CreateImage("Ship Heading", mapRoot, new Vector2(13f, 26f), MapPosition(session.Position) + new Vector2(0f, 30f), Gold);
-            heading.rectTransform.localRotation = Quaternion.Euler(0f, 0f, DirectionRotation(session.Heading));
-            heading.raycastTarget = false;
-            Vector2 shipLabelSize = new Vector2(140f, 28f);
-            Text shipLabel = CreateText("Ship Label", mapRoot, shipLabelSize,
-                ClampMapCaptionPosition(MapPosition(session.Position) + new Vector2(0f, 36f), shipLabelSize),
-                14, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
-            shipLabel.text = session.SelectedShip.Name;
+            ConfigureNavigationMapViewport(mapRoot);
         }
 
         private void BuildMapCoursePreview(RectTransform mapRoot)
@@ -936,8 +997,6 @@ namespace ShatteredSail.Presentation
                 {
                     Image halo = CreateImage("Direct Course Target Halo", mapRoot, new Vector2(54f, 54f), MapPosition(forecast.Target), new Color(Gold.r, Gold.g, Gold.b, 0.28f), circleSprite);
                     halo.raycastTarget = false;
-                    Text targetLabel = CreateText("Course Target Label", mapRoot, new Vector2(260f, 34f), MapPosition(forecast.Target) + new Vector2(0f, 38f), 14, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
-                    targetLabel.text = courseTargetNotice;
                 }
                 Image target = CreateImage("Course Target", mapRoot, new Vector2(24f, 24f), MapPosition(forecast.Target), Gold, circleSprite);
                 target.raycastTarget = false;
@@ -947,13 +1006,12 @@ namespace ShatteredSail.Presentation
         private void BuildSeaConditionOverlay(RectTransform mapRoot)
         {
             Color currentBlue = Html("#58B8E8");
-            Color windBlue = Html("#78C8EF");
             int arrowIndex = 0;
-            for (int row = 3; row < CoreVoyageMap.GridRows; row += 6)
+            for (int row = 3; row < session.Map.Rows; row += 6)
             {
-                for (int column = 3; column < CoreVoyageMap.GridColumns; column += 8)
+                for (int column = 3; column < session.Map.Columns; column += 8)
                 {
-                    int cellIndex = row * CoreVoyageMap.GridColumns + column;
+                    int cellIndex = row * session.Map.Columns + column;
                     if (!session.Map.ExploredCells[cellIndex] || !session.Map.IsPassable(column, row))
                     {
                         continue;
@@ -969,12 +1027,6 @@ namespace ShatteredSail.Presentation
                 }
             }
 
-            SeaCondition global = session.GetSeaConditionAt(session.Position);
-            RectTransform legend = CreateFixedPanel("Sea Conditions Legend", mapRoot, new Vector2(310f, 48f), new Vector2(-430f, 292f), new Color(Panel.r, Panel.g, Panel.b, 0.72f));
-            legend.GetComponent<Image>().raycastTarget = false;
-            CreateFlowArrow("Global Wind Direction Arrow", legend, new Vector2(-112f, 0f), global.WindVector, windBlue, 30f, 0.62f);
-            Text legendText = CreateText("Sea Conditions Legend Text", legend, new Vector2(215f, 30f), new Vector2(34f, 0f), 14, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
-            legendText.text = "全域海风 · " + session.DirectionLabel(global.WindDirection) + " " + global.WindStrength.ToString("0.0") + " 节";
         }
 
         private void CreateFlowArrow(string name, Transform parent, Vector2 position, VoyagePoint direction, Color color, float length, float alpha)
@@ -1032,8 +1084,8 @@ namespace ShatteredSail.Presentation
             }
 
             Vector2 clampedLocal = new Vector2(
-                Mathf.Clamp(localPoint.x, -580f, 580f),
-                Mathf.Clamp(localPoint.y, -315f, 315f));
+                Mathf.Clamp(localPoint.x, -ChartGridWidth * .5f, ChartGridWidth * .5f),
+                Mathf.Clamp(localPoint.y, -ChartGridHeight * .5f, ChartGridHeight * .5f));
             int snapIndex = -1;
             float closestPixels = 58f;
             for (int index = 0; index < session.Map.Nodes.Count; index += 1)
@@ -1066,13 +1118,9 @@ namespace ShatteredSail.Presentation
             }
 
             VoyagePoint target = new VoyagePoint(
-                Mathf.InverseLerp(-580f, 580f, clampedLocal.x) * 100f,
-                Mathf.InverseLerp(-315f, 315f, clampedLocal.y) * 64f);
+                (clampedLocal.x / ChartGridWidth + .5f) * session.Map.WorldWidth,
+                (clampedLocal.y / ChartGridHeight + .5f) * session.Map.WorldHeight);
             session.SetCourseTo(target);
-            SailingForecast forecast = session.GetForecast();
-            courseTargetNotice = forecast == null
-                ? "无法设置航点"
-                : "自由航点 · " + forecast.ActualDistanceNm.ToString("0") + " 海里";
             PlaySfx("course_plot", 0.44f);
             Render();
         }
@@ -1087,7 +1135,6 @@ namespace ShatteredSail.Presentation
             CoreMapNode node = session.Map.Nodes[nodeIndex];
             if (node.Visited || !node.IsChartVisible) return;
             session.SetCourseTo(node.Position);
-            courseTargetNotice = "已吸附 · " + (node.IntelRevealed && !node.Discovered ? "未知信号" : node.Encounter.Name);
             PlaySfx("course_plot", 0.48f);
             Render();
         }
@@ -1096,12 +1143,11 @@ namespace ShatteredSail.Presentation
         {
             if (tutorialActive || navigationMotionPlaying || session.Phase != CoreDemoPhase.Sailing || session.Map == null) return;
             session.SetCourseTo(session.Map.Destination);
-            courseTargetNotice = "已吸附 · " + session.Map.DestinationName + (session.BossDefeated ? "" : " · 航道封锁");
             PlaySfx("course_plot", 0.44f);
             Render();
         }
 
-        private void CreatePortMarker(RectTransform mapRoot, VoyagePoint point, string portName, string labelText, bool destination)
+        private void CreatePortMarker(RectTransform mapRoot, VoyagePoint point, string portName, bool destination)
         {
             Vector2 position = MapPosition(point);
             Image halo = CreateImage(destination ? "Destination Port Halo" : "Departure Port Halo", mapRoot, new Vector2(76f, 76f), position, new Color((destination ? Green : Teal).r, (destination ? Green : Teal).g, (destination ? Green : Teal).b, 0.3f), circleSprite);
@@ -1128,10 +1174,6 @@ namespace ShatteredSail.Presentation
                 selectPort.interactable = marker.raycastTarget;
                 selectPort.onClick.AddListener(SelectCourseToDestination);
             }
-            Vector2 labelSize = new Vector2(240f, 40f);
-            Text label = CreateText(destination ? "Destination Label" : "Departure Label", mapRoot, labelSize,
-                ClampMapCaptionPosition(position + new Vector2(0f, -51f), labelSize), 15, FontStyle.Bold, TextAnchor.UpperCenter, Ink);
-            label.text = labelText;
         }
 
         private static Color ProceduralWaterColor(int routeIndex)
@@ -1258,65 +1300,41 @@ namespace ShatteredSail.Presentation
                 enemyUv = new Rect(enemyUv.x + insetX, enemyUv.y + insetY,
                     enemyUv.width - insetX * 2f, enemyUv.height - insetY * 2f);
             }
-            enemyUv = new Rect(enemyUv.x, enemyUv.y + enemyUv.height * 0.085f,
-                enemyUv.width, enemyUv.height * 0.90f);
             enemyUv = new Rect(enemyUv.xMax, enemyUv.y, -enemyUv.width, enemyUv.height);
             BuildStagedBattleScene(card, battle, combatShipSheet, enemyUv);
 
-            Text badge = UiKit.CreateBadge("Battle Badge", card, new Vector2(520f, 34f), new Vector2(0f, 410f), string.Empty, 18, Ink);
+            Text badge = CreateText("Battle Badge", card, new Vector2(520f, 34f), new Vector2(0f, 410f), 18, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
             UiLabelBacking.Apply(badge);
             CoreBossKind bossKind = battle.Profile == null ? (battle.IsBoss ? CoreBossKind.Route : CoreBossKind.None) : battle.Profile.BossKind;
             badge.text = (bossKind == CoreBossKind.Legendary ? "传奇战舰挑战" : bossKind == CoreBossKind.Treasure ? "藏宝图首领战" : battle.IsBoss ? "区域首领战" : "航路遭遇战") + " · " + BattleEnvironmentArtCatalog.LabelFor(session.BattleTerrain) + " · 回合 " + (session.IsGuidedBossBattle ? battle.PhaseTurn : battle.Turn);
-            // The battle surface scales past the original corner offsets. Inset
-            // each callout and reserve extra height for the large crew summary.
-            float battleNameHeight = 108f + 40f * (GameReadability.Scale - 1f);
-            float battleNameY = 450f - battleNameHeight * .5f;
+            // Keep the combatant labels in the upper corner callouts from the authored battle layout. Their wide separation leaves the central range/alignment readout unobstructed.
             RectTransform playerNameBoard = CreateFixedPanel("Player Battle Name Board", card,
-                new Vector2(460f, battleNameHeight), new Vector2(-620f, battleNameY), PanelRaised);
+                new Vector2(400f, 80f), new Vector2(-727f, 410f), PanelRaised);
             ApplyRetreatBattleWoodBoard(playerNameBoard.GetComponent<Image>());
             playerNameBoard.GetComponent<Image>().raycastTarget = false;
-            Text playerName = CreateText("Player Battle Name", card, new Vector2(440f, battleNameHeight - 12f), new Vector2(-620f, battleNameY), 23, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
+            Text playerName = CreateText("Player Battle Name", card, new Vector2(400f, 80f), new Vector2(-727f, 410f), 23, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
             playerName.text = BattleCrewName(battle, true);
-            playerName.horizontalOverflow = HorizontalWrapMode.Wrap;
             RectTransform enemyNameBoard = CreateFixedPanel("Enemy Battle Name Board", card,
-                new Vector2(460f, battleNameHeight), new Vector2(620f, battleNameY), PanelRaised);
+                new Vector2(400f, 80f), new Vector2(727f, 410f), PanelRaised);
             ApplyRetreatBattleWoodBoard(enemyNameBoard.GetComponent<Image>());
             enemyNameBoard.GetComponent<Image>().raycastTarget = false;
-            Text enemyName = CreateText("Enemy Battle Name", card, new Vector2(440f, battleNameHeight - 12f), new Vector2(620f, battleNameY), 23, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
+            Text enemyName = CreateText("Enemy Battle Name", card, new Vector2(400f, 80f), new Vector2(727f, 410f), 23, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
             enemyName.text = BattleCrewName(battle, false);
-            enemyName.horizontalOverflow = HorizontalWrapMode.Wrap;
             ConfigureBattleDefenses(card, battle);
             CreateEnemyIntentHud(card, battle);
 
-            Text status = CreateText("Battle Status", card, new Vector2(1030f, 34f), new Vector2(0f, -112f), 15, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
-            if (boarding)
-            {
-                status.rectTransform.anchoredPosition = new Vector2(0f, 380f);
-                status.rectTransform.sizeDelta = new Vector2(1030f, 24f);
-                UiLabelBacking.Apply(status, true);
-            }
-            status.text = battle.LastAction;
-            UiLabelBacking.Apply(status);
             RectTransform battleReadouts = CreateRect("Battle Readouts Overlay", contentRoot,
                 PhaseSurfaceLayout.ContentSize, Vector2.zero);
             battleReadouts.localScale = card.localScale;
             BuildNavalBattleTactics(card, battle, battleReadouts);
 
-            RectTransform hand = CreateRect("Battle Hand", card, new Vector2(1120f, 306f), new Vector2(0f, -286f));
-            HorizontalLayoutGroup layout = hand.gameObject.AddComponent<HorizontalLayoutGroup>();
-            // Extra draws fan within the hand area rather than spilling over
-            // the action/resource HUDs. Hover renders a complete card on top.
-            layout.spacing = battle.Hand.Count <= 5 ? 16f : (1120f - battle.Hand.Count * 206f) / (battle.Hand.Count - 1);
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
+            RectTransform hand = CreateRect("Battle Hand", card, CardFaceLayout.HandSize, CardFaceLayout.HandPosition);
             retainedBattleHandViews.Clear();
             for (int index = 0; index < battle.Hand.Count; index += 1)
             {
                 retainedBattleHandViews.Add(CreateRetainedBattleHandCard(hand, battle, index));
             }
+            ArrangeBattleHand(hand);
 
             CreateBattleResourceHud(card, battle, true);
             CreateBattleResourceHud(card, battle, false);
@@ -1351,11 +1369,13 @@ namespace ShatteredSail.Presentation
             iconPlate.raycastTarget = false;
             Text icon = CreateText("Enemy Intent Glyph", iconPlate.transform, new Vector2(42f, 42f), Vector2.zero, 22, FontStyle.Bold, TextAnchor.MiddleCenter, DeepSea);
             icon.text = session.EnemyWillRam ? "撞" : defending ? "策" : battle.Stage == NavalBattleStage.Boarding ? "刃" : "攻";
-            Text label = CreateText("Enemy Intent Text", hud, new Vector2(245f, 58f), new Vector2(38f, 0f), GameReadability.FontSize(22), FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
+            Text label = CreateText("Enemy Intent Text", hud, new Vector2(245f, 58f), new Vector2(38f, 0f), 15, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
             label.text = "敌方意图\n" + intent;
             label.horizontalOverflow = HorizontalWrapMode.Wrap;
             label.verticalOverflow = VerticalWrapMode.Truncate;
-            GameReadability.Body(label, 22);
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = 11;
+            label.resizeTextMaxSize = 15;
             ConfigureEnemyIntentLayout(parent, hud, label, iconPlate, session.EnemyWillRam);
         }
 
@@ -1369,13 +1389,24 @@ namespace ShatteredSail.Presentation
             Outline outline = hud.gameObject.AddComponent<Outline>();
             outline.effectColor = new Color(accent.r, accent.g, accent.b, 0.9f);
             outline.effectDistance = new Vector2(2f, -2f);
-            Text title = CreateText(player ? "Player Resource Title" : "Enemy Resource Title", hud, new Vector2(190f, 36f), new Vector2(0f, 30f), GameReadability.FontSize(18), FontStyle.Normal, TextAnchor.MiddleCenter, accent);
+            Text title = CreateText(player ? "Player Resource Title" : "Enemy Resource Title", hud, new Vector2(190f, 24f), new Vector2(0f, 30f), 13, FontStyle.Bold, TextAnchor.MiddleCenter, accent);
             title.text = player ? "旗舰资源 · 格挡 " + battle.PlayerBlock : "敌舰状态";
-            CreateBattleResourceRow(hud, player ? "能" : "回", player ? battle.Energy + "/" + battle.MaxEnergy : (session.IsGuidedBossBattle ? battle.PhaseTurn : battle.Turn).ToString(), new Vector2(-54f, -4f), player ? Gold : Ink);
-            CreateBattleResourceRow(hud, player ? "药" : "盾", player ? (boarding ? session.Cargo.Medicine : session.Cargo.Powder).ToString() : battle.EnemyBlock.ToString(), new Vector2(54f, -4f), player ? Coral : Gold);
-            Text reserve = CreateText(player ? "Player Ammunition" : "Enemy Burning", hud, new Vector2(206f, 36f), new Vector2(0f, -31f), GameReadability.FontSize(18), FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-            reserve.text = player ? (boarding ? "药品仅在有效增疗时消耗" : "炮弹 " + session.Cargo.Cannonballs + " · 装填 +" + battle.PlayerLoadedShot) : "燃烧 " + battle.EnemyBurnTurns + " 回合";
+            CreateBattleResourceRow(hud, player ? "能" : "回",
+                player ? battle.Energy + "/" + battle.MaxEnergy : (session.IsGuidedBossBattle ? battle.PhaseTurn : battle.Turn).ToString(),
+                new Vector2(-54f, -4f), player ? Gold : Ink,
+                player ? CardOrnamentKind.Energy : (CardOrnamentKind?)null);
+            // Keep the stable "药" row key used by retained value updates. Its
+            // visible symbol is gunpowder at sea and medicine during boarding.
+            CreateBattleResourceRow(hud, player ? "药" : "盾",
+                player ? (boarding ? session.Cargo.Medicine : session.Cargo.Powder).ToString() : battle.EnemyBlock.ToString(),
+                new Vector2(54f, -4f), player ? Coral : Gold,
+                player && !boarding ? CardOrnamentKind.Gunpowder : (CardOrnamentKind?)null);
+            Text reserve = CreateText(player ? "Player Ammunition" : "Enemy Burning", hud, new Vector2(206f, 20f), new Vector2(0f, -31f), 12, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
+            reserve.text = player ? BattleSupplyReserveText(boarding) : "燃烧 " + battle.EnemyBurnTurns + " 回合";
         }
+
+        private string BattleSupplyReserveText(bool boarding) =>
+            (boarding ? "火药 " + session.Cargo.Powder : "炮弹 " + session.Cargo.Cannonballs) + " · 木板 " + session.Cargo.Wood;
 
         private static void ApplyRetreatBattleWoodBoard(Image image)
         {
@@ -1390,24 +1421,36 @@ namespace ShatteredSail.Presentation
             image.raycastTarget = false;
         }
 
-        private void CreateBattleResourceRow(RectTransform parent, string glyph, string value, Vector2 position, Color color)
+        private void CreateBattleResourceRow(RectTransform parent, string glyph, string value, Vector2 position, Color color,
+            CardOrnamentKind? ornament = null)
         {
-            Image icon = CreateImage("Resource " + glyph + " Icon", parent, new Vector2(38f, 38f), position + new Vector2(-22f, 0f), color, circleSprite);
-            icon.raycastTarget = false;
-            Text glyphText = CreateText("Resource " + glyph + " Glyph", icon.transform, new Vector2(32f, 32f), Vector2.zero, GameReadability.FontSize(18), FontStyle.Normal, TextAnchor.MiddleCenter, DeepSea);
-            glyphText.text = glyph;
-            Text amount = CreateText("Resource " + glyph + " Value", parent, new Vector2(68f, 38f * GameReadability.Scale), position + new Vector2(26f, 0f), GameReadability.FontSize(22), FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
+            if (ornament.HasValue)
+            {
+                CreateCardOrnament("Resource " + glyph + " Icon", parent, new Vector2(38f, 38f),
+                    position + new Vector2(-22f, 0f), ornament.Value, string.Empty);
+            }
+            else
+            {
+                Image icon = CreateImage("Resource " + glyph + " Icon", parent, new Vector2(38f, 38f), position + new Vector2(-22f, 0f), color, circleSprite);
+                icon.raycastTarget = false;
+                Text glyphText = CreateText("Resource " + glyph + " Glyph", icon.transform, new Vector2(32f, 32f), Vector2.zero, 16, FontStyle.Bold, TextAnchor.MiddleCenter, DeepSea);
+                glyphText.text = glyph;
+            }
+            Text amount = CreateText("Resource " + glyph + " Value", parent, new Vector2(48f, 38f), position + new Vector2(26f, 0f), 18, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
             amount.text = value;
         }
 
         private RectTransform CreateCardKeywordBubble(Transform card, int index, CoreBattleCard battleCard, bool rightSide)
         {
-            float extraHeight = session.Battle.Stage == NavalBattleStage.Boarding && battleCard.Repair > 0 ? 110f : 0f;
-            RectTransform bubble = CreateFixedPanel("Card Keyword Bubble " + index, card, new Vector2(420f, 552f + extraHeight), new Vector2(rightSide ? 322f : -322f, 118f + extraHeight * .5f), new Color(0.025f, 0.06f, 0.072f, 0.98f));
+            string tooltipText = BattleCardTooltipText(battleCard, index);
+            if (string.IsNullOrWhiteSpace(tooltipText)) return null;
+            float extraHeight = 0f;
+            float bubbleOffset = CardFaceLayout.FrameSize.x * .5f + 222f;
+            RectTransform bubble = CreateFixedPanel("Card Keyword Bubble " + index, card, new Vector2(420f, 552f + extraHeight), new Vector2(rightSide ? bubbleOffset : -bubbleOffset, 118f + extraHeight * .5f), new Color(0.025f, 0.06f, 0.072f, 0.98f));
             Image background = bubble.GetComponent<Image>();
             background.raycastTarget = false;
             Outline outline = bubble.gameObject.AddComponent<Outline>();
-            Color accent = CardEffectColor(battleCard);
+            Color accent = CardSchoolArtCatalog.Palette(battleCard.SchoolId).Accent;
             outline.effectColor = accent;
             outline.effectDistance = new Vector2(2f, -2f);
             Image pointer = CreateImage("Keyword Bubble Pointer", bubble, new Vector2(18f, 18f), new Vector2(rightSide ? -200f : 200f, -78f - extraHeight * .5f), new Color(0.025f, 0.06f, 0.072f, 0.98f));
@@ -1422,7 +1465,7 @@ namespace ShatteredSail.Presentation
             // category color on its border, and use dark ink for the small text.
             Color tooltipInk = Html("#2B2116");
             Text title = CreateText("Keyword Bubble Title", bubble, new Vector2(384f, 64f), new Vector2(0f, 232f + extraHeight * .5f), 24, FontStyle.Bold, TextAnchor.UpperLeft, tooltipInk);
-            title.text = battleCard.Name + "\n<size=18>分类 · " + battleCard.Type + "</size>";
+            title.text = battleCard.Name + "\n<size=18>" + CardKeywordCategory(battleCard) + "</size>";
             title.horizontalOverflow = HorizontalWrapMode.Wrap;
             title.verticalOverflow = VerticalWrapMode.Truncate;
             title.resizeTextForBestFit = true;
@@ -1430,7 +1473,7 @@ namespace ShatteredSail.Presentation
             title.resizeTextMaxSize = 24;
             title.raycastTarget = false;
             Text explanation = CreateText("Keyword Bubble Text", bubble, new Vector2(384f, 456f + extraHeight), new Vector2(0f, -36f), 20, FontStyle.Normal, TextAnchor.UpperLeft, tooltipInk);
-            explanation.text = BattleCardTooltipText(battleCard, index);
+            explanation.text = tooltipText;
             explanation.horizontalOverflow = HorizontalWrapMode.Wrap;
             explanation.verticalOverflow = VerticalWrapMode.Truncate;
             explanation.resizeTextForBestFit = false;
@@ -1451,28 +1494,19 @@ namespace ShatteredSail.Presentation
                 body.fontSize = 20;
                 body.resizeTextForBestFit = false;
                 body.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 384f);
-                extraHeight = Mathf.Max(extraHeight, MeasureCardTextHeight(body) - 456f);
+                // The calculation-only bubble can shrink as well as grow. Keep
+                // the original lower edge/pointer and reserve the title above it.
+                extraHeight = Mathf.Max(120f, MeasureCardTextHeight(body)) - 456f;
             }
             bubble.sizeDelta = new Vector2(420f,552f + extraHeight);
-            bubble.anchoredPosition = new Vector2(rightSide ? 322f : -322f,118f + extraHeight * .5f);
+            float bubbleOffset = CardFaceLayout.FrameSize.x * .5f + 222f;
+            bubble.anchoredPosition = new Vector2(rightSide ? bubbleOffset : -bubbleOffset,118f + extraHeight * .5f);
             RectTransform pointer = bubble.Find("Keyword Bubble Pointer") as RectTransform;
             if (pointer != null) pointer.anchoredPosition = new Vector2(rightSide ? -200f : 200f,-78f - extraHeight * .5f);
             RectTransform title = bubble.Find("Keyword Bubble Title") as RectTransform;
             if (title != null) { title.sizeDelta = new Vector2(384f,64f); title.anchoredPosition = new Vector2(0f,232f + extraHeight * .5f); }
             RectTransform explanation = bubble.Find("Keyword Bubble Text") as RectTransform;
             if (explanation != null) { explanation.sizeDelta = new Vector2(384f,456f + extraHeight); explanation.anchoredPosition = new Vector2(0f,-36f); }
-        }
-
-        private string CardKeywordHelp(CoreBattleCard card)
-        {
-            StringBuilder help = new StringBuilder();
-            help.Append("<color=#5C3A0C>能量</color>　本回合打出卡牌的行动点。\n");
-            if (card.Damage > 0) help.Append(session.Battle.Stage == NavalBattleStage.Boarding ? "<color=#6B251C>白刃</color>　削减船员生命，归零即可夺船。\n" : "<color=#6B251C>伤害</color>　扣除敌舰格挡后削减船体。\n");
-            if (card.Block > 0) help.Append("<color=#154C46>格挡</color>　本回合优先抵消敌方攻击。\n");
-            if (card.Repair > 0) help.Append(session.Battle.Stage == NavalBattleStage.Boarding ? "<color=#234921>治疗</color>　恢复船员生命，不超过上限。\n" : "<color=#234921>修复</color>　恢复旗舰船体，不超过上限。\n");
-            if (card.Draw > 0) help.Append("<color=#5C3A0C>抽牌</color>　立即从牌堆补充手牌。\n");
-            if (card.PowderCost > 0) help.Append("<color=#6B251C>火药</color>　出航携带的有限弹药资源。\n");
-            return help.ToString().TrimEnd();
         }
 
         private void BuildSettlement()
@@ -1504,36 +1538,10 @@ namespace ShatteredSail.Presentation
             return crew;
         }
 
-        private static float DirectionRotation(SailingDirection direction)
-        {
-            switch (direction)
-            {
-                case SailingDirection.North: return 0f;
-                case SailingDirection.NorthEast: return -45f;
-                case SailingDirection.East: return -90f;
-                case SailingDirection.SouthEast: return -135f;
-                case SailingDirection.South: return 180f;
-                case SailingDirection.SouthWest: return 135f;
-                case SailingDirection.West: return 90f;
-                case SailingDirection.NorthWest: return 45f;
-                default: return -90f;
-            }
-        }
-
-    private static Vector2 MapPosition(VoyagePoint point)
+    private Vector2 MapPosition(VoyagePoint point)
     {
-        return new Vector2(Mathf.Lerp(-580f, 580f, point.X / 100f), Mathf.Lerp(-315f, 315f, point.Y / 64f));
-    }
-
-    private static Vector2 ClampMapCaptionPosition(Vector2 position, Vector2 size)
-    {
-        // Leave a safe lower margin for the map course hint, which sits just
-        // below the chart frame after the dashboard scale is applied.
-        float halfWidth = Mathf.Max(0f, size.x * 0.5f);
-        float halfHeight = Mathf.Max(0f, size.y * 0.5f);
-        return new Vector2(
-            Mathf.Clamp(position.x, -600f + halfWidth, 600f - halfWidth),
-            Mathf.Clamp(position.y, -292f, 337.5f - halfHeight));
+        return new Vector2((point.X / session.Map.WorldWidth - .5f) * ChartGridWidth,
+            (point.Y / session.Map.WorldHeight - .5f) * ChartGridHeight);
     }
 
         private void EnsureEventSystem()
@@ -1602,22 +1610,49 @@ namespace ShatteredSail.Presentation
 
         private RectTransform CreateStretchPanel(string name, Transform parent, Color color)
         {
-            return UiKit.CreateStretchPanel(name, parent, color);
+            GameObject panel = new GameObject(name, typeof(RectTransform), typeof(Image));
+            panel.transform.SetParent(parent, false);
+            RectTransform rect = panel.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            panel.GetComponent<Image>().color = color;
+            if (name == "Fill") NauticalSurfaceSkin.ApplyControlPart(panel.GetComponent<Image>());
+            else NauticalSurfaceSkin.ApplyPanel(panel.GetComponent<Image>(), color);
+            return rect;
         }
 
         private RectTransform CreateFixedPanel(string name, Transform parent, Vector2 size, Vector2 position, Color color)
         {
-            return UiKit.CreatePanel(name, parent, size, position, color);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            NauticalSurfaceSkin.ApplyPanel(image, color);
+            return rect;
         }
 
         private static RectTransform CreateRect(string name, Transform parent, Vector2 size, Vector2 position)
         {
-            return UiKit.CreateRect(name, parent, size, position);
+            GameObject item = new GameObject(name, typeof(RectTransform));
+            item.transform.SetParent(parent, false);
+            RectTransform rect = item.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+            return rect;
         }
 
         private Image CreateImage(string name, Transform parent, Vector2 size, Vector2 position, Color color, Sprite sprite = null)
         {
-            return UiKit.CreateImage(name, parent, size, position, color, sprite);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            image.sprite = sprite;
+            NauticalSurfaceSkin.ApplyControlPart(image);
+            return image;
         }
 
         private RawImage CreateRawImage(string name, Transform parent, Vector2 size, Vector2 position, Texture texture, Rect uvRect)
@@ -1632,18 +1667,56 @@ namespace ShatteredSail.Presentation
 
         private Text CreateText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, FontStyle style, TextAnchor alignment, Color color)
         {
-            return UiKit.CreateText(name, parent, size, position, fontSize, style, alignment, color);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Text text = rect.gameObject.AddComponent<Text>();
+            GameTypography.Apply(text, fontSize, style);
+            text.alignment = alignment;
+            text.color = NauticalSurfaceSkin.ReadableTextColor(parent, color);
+            text.raycastTarget = false;
+            text.supportRichText = true;
+            return text;
         }
 
         private Button CreateButton(string name, Transform parent, Vector2 size, Vector2 position, Color normalColor, Color textColor, int fontSize)
         {
-            return UiKit.CreateButton(name, parent, size, position, normalColor, textColor, fontSize, animate: true, specialSkinFallback: true);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = normalColor;
+            Button button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            if (rect.GetComponent<NauticalButtonMotion>() == null)
+                rect.gameObject.AddComponent<NauticalButtonMotion>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = normalColor;
+            colors.highlightedColor = Color.Lerp(normalColor, Color.white, 0.16f);
+            colors.pressedColor = Color.Lerp(normalColor, Color.black, 0.18f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.disabledColor = new Color(0.2f, 0.26f, 0.27f, 0.75f);
+            button.colors = colors;
+            Text label = CreateText("Label", rect, size - new Vector2(24f, 10f), Vector2.zero, fontSize, FontStyle.Bold, TextAnchor.MiddleCenter, textColor);
+            label.text = name;
+            if (!WoodButtonSkin.Apply(button, normalColor))
+                NauticalSurfaceSkin.ApplySpecialButton(button, normalColor);
+            return button;
         }
 
         private InputField CreateInputField(string name, Transform parent, Vector2 size, Vector2 position, string value)
         {
-            return UiKit.CreateInputField(name, parent, size, position, value,
-                "输入任意种子", Html("#071C24"), Ink, MutedInk);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image background = rect.gameObject.AddComponent<Image>();
+            background.color = Html("#071C24");
+            NauticalSurfaceSkin.ApplyPanel(background, background.color);
+            InputField input = rect.gameObject.AddComponent<InputField>();
+            input.targetGraphic = background;
+            Text valueText = CreateText("Text", rect, size - new Vector2(32f, 8f), Vector2.zero, 19, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
+            valueText.raycastTarget = true;
+            Text placeholder = CreateText("Placeholder", rect, size - new Vector2(32f, 8f), Vector2.zero, 18, FontStyle.Italic, TextAnchor.MiddleLeft, MutedInk);
+            placeholder.text = "输入任意种子";
+            input.textComponent = valueText;
+            input.placeholder = placeholder;
+            input.text = value;
+            input.lineType = InputField.LineType.SingleLine;
+            return input;
         }
 
         private Dropdown CreateSeedDropdown(string name, Transform parent, Vector2 size, Vector2 position,
@@ -1653,8 +1726,29 @@ namespace ShatteredSail.Presentation
         }
         private Slider CreateSlider(string name, Transform parent, Vector2 size, Vector2 position, float minimum, float maximum, float value)
         {
-            return UiKit.CreateSlider(name, parent, size, position, minimum, maximum, value,
-                Html("#071C24"), Gold, handleSprite: circleSprite);
+            RectTransform root = CreateRect(name, parent, size, position);
+            Slider slider = root.gameObject.AddComponent<Slider>();
+            slider.minValue = minimum;
+            slider.maxValue = maximum;
+            RectTransform background = CreateRect("Background", root, new Vector2(size.x, 8f), Vector2.zero);
+            background.gameObject.AddComponent<Image>().color = Html("#071C24");
+            NauticalSurfaceSkin.ApplyControlPart(background.GetComponent<Image>());
+            RectTransform fillArea = CreateRect("Fill Area", root, new Vector2(size.x - 18f, 8f), new Vector2(-9f, 0f));
+            RectTransform fill = CreateRect("Fill", fillArea, Vector2.zero, Vector2.zero);
+            fill.anchorMin = Vector2.zero;
+            fill.anchorMax = Vector2.one;
+            fill.offsetMin = Vector2.zero;
+            fill.offsetMax = Vector2.zero;
+            fill.gameObject.AddComponent<Image>().color = Gold;
+            NauticalSurfaceSkin.ApplyControlPart(fill.GetComponent<Image>());
+            RectTransform handleArea = CreateRect("Handle Slide Area", root, new Vector2(size.x - 24f, size.y), Vector2.zero);
+            Image handle = CreateImage("Handle", handleArea, new Vector2(28f, 0f), Vector2.zero, Gold, circleSprite);
+            slider.fillRect = fill;
+            slider.handleRect = handle.rectTransform;
+            slider.targetGraphic = handle;
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.value = value;
+            return slider;
         }
 
         private Image CreateLine(Transform parent, Vector2 from, Vector2 to, Color color, float thickness)

@@ -22,8 +22,8 @@ namespace ShatteredSail.Presentation
 
         private VoyageChartCoastField(CoreVoyageMap map)
         {
-            Width = CoreVoyageMap.GridColumns * SamplesPerCell + 1;
-            Height = CoreVoyageMap.GridRows * SamplesPerCell + 1;
+            Width = map.Columns * SamplesPerCell + 1;
+            Height = map.Rows * SamplesPerCell + 1;
             GeometryFingerprint = Fingerprint(map);
             int length = Width * Height;
             bool[] land = new bool[length];
@@ -45,8 +45,8 @@ namespace ShatteredSail.Presentation
                 // too small to change any cell centre or close a one-cell strait.
                 float roughness = (Noise(gx * 2.7f, gy * 2.7f, map.Hash) - .5f) * .26f
                     + (Noise(gx * 7.3f, gy * 7.3f, map.Hash ^ 0xD1B54A35u) - .5f) * .09f;
-                float border = Mathf.Min(Mathf.Min(gx, CoreVoyageMap.GridColumns - gx),
-                    Mathf.Min(gy, CoreVoyageMap.GridRows - gy));
+                float border = Mathf.Min(Mathf.Min(gx, map.Columns - gx),
+                    Mathf.Min(gy, map.Rows - gy));
                 bool solid = density + roughness > .5f && border > .20f;
                 int i = y * Width + x;
                 land[i] = solid;
@@ -113,7 +113,7 @@ namespace ShatteredSail.Presentation
 
         private static float IsTerrain(CoreVoyageMap map, int x, int y, SeaTerrainType type)
         {
-            return map.IsInBounds(x, y) && map.TerrainCells[y * CoreVoyageMap.GridColumns + x] == type ? 1f : 0f;
+            return map.IsInBounds(x, y) && map.TerrainCells[y * map.Columns + x] == type ? 1f : 0f;
         }
 
         private static void DistanceTransform(float[] values, int width, int height)

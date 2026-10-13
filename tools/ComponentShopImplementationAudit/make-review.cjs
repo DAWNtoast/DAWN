@@ -1,0 +1,19 @@
+const fs=require('fs'),path=require('path');
+const sharp=require('C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/sharp');
+const out='D:/Game/Artifacts/ComponentShopImplementation20261012';
+const capture=out+'/validation/'+fs.readdirSync(out+'/validation').filter(x=>x.startsWith('capture-')).sort().at(-1);
+const data=JSON.parse(fs.readFileSync(capture+'/report.json','utf8'));
+const titles={bow:'船首',sail:'船帆',cannon:'火炮',plating:'船壳',instrument:'航海仪'};
+const esc=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
+(async()=>{
+ fs.mkdirSync(out+'/review',{recursive:true});
+ for(const slot of Object.keys(titles)){
+  const frames=data.frames.filter(f=>f.state==='Shop'&&f.id.startsWith(slot+'_'));
+  const images=[];for(let i=0;i<frames.length;i++)images.push({input:await sharp(capture+'/'+frames[i].file).extract({left:290,top:180,width:1320,height:720}).resize(330,180).png().toBuffer(),left:(i%5)*330,top:Math.floor(i/5)*180});
+  await sharp({create:{width:1650,height:Math.ceil(frames.length/5)*180,channels:3,background:'#182630'}}).composite(images).png().toFile(out+'/review/'+slot+'-contact.png');
+ }
+ const base=path.relative(out,capture).replaceAll('\\','/');
+ const options=data.frames.map(f=>({state:f.state,id:f.id,file:base+'/'+f.file}));
+ fs.writeFileSync(out+'/review.html',`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>部件商店 · 右列目录</title><style>*{box-sizing:border-box}body{margin:0;background:#13202a;color:#f2e6cf;font:16px/1.65 system-ui}main{max-width:1560px;margin:32px auto;padding:0 24px}h1{font-size:30px;margin:0}p{color:#c4bdaf}button,select{font:inherit;border:1px solid #79684b;background:#283a43;color:#f2e6cf;border-radius:6px;padding:8px 16px;margin:5px 8px 12px 0;cursor:pointer}button.active{background:#675134}img{width:100%;height:auto;border:1px solid #6b624e;border-radius:8px}small{color:#b4ada0}a{color:#edce91}.status{padding:12px 18px;background:#24363d;border-left:3px solid #be9c5f}</style><main><h1>部件商店 · 右列目录</h1><p>左侧分类与右侧五行目录对齐。悬停预览中央大图，点击进入详情页。右侧展示板、底部横排目录及独立陈列支架已移除。</p><p class="status">150件部件 · 300张图标/主图资源核验 · 160张实际 Unity 界面截图 · 未出包</p><nav id="tabs"></nav><select id="pick" aria-label="选择界面"></select><p id="caption"></p><img id="image" alt="Unity实际界面截图"><p><small>完整目录样本使用统一品质/价格以核对150件部件的造型与界面；“港口库存”展示各港原有库存生成结果。详情与购买逻辑沿用游戏实际数据。</small></p><p><a href="${base}/report.json">截图与资源校验记录</a> · <a href="text-audit/text-audit.json">150件四页详情文字检查</a> · <a href="validation/focusededitmode.xml">商店编辑器测试</a> · <a href="validation/playmode.xml">运行测试记录</a></p></main><script>const frames=${JSON.stringify(options)},titles=${JSON.stringify(titles)};const tabs=document.querySelector('#tabs'),pick=document.querySelector('#pick'),image=document.querySelector('#image'),caption=document.querySelector('#caption');let current='bow';function show(){const f=frames.find(x=>x.file===pick.value);image.src=f.file;caption.textContent=f.id;}function select(group){current=group;const list=frames.filter(f=>group==='ports'?f.state==='Port':group==='states'?f.state!=='Port'&&f.state!=='Shop':f.state==='Shop'&&f.id.startsWith(group+'_'));pick.replaceChildren(...list.map(f=>new Option(f.id,f.file)));document.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.group===group));show();}for(const [key,title] of Object.entries({...titles,ports:'港口库存',states:'详情与特殊状态'})){const b=document.createElement('button');b.textContent=title;b.dataset.group=key;b.onclick=()=>select(key);tabs.appendChild(b);}pick.onchange=show;select('bow');</script></html>`);
+ console.log(JSON.stringify({capture,frames:data.frames.length,assets:data.assets.length,review:out+'/review.html',contacts:Object.keys(titles)}));
+})().catch(e=>{console.error(e);process.exit(1)});

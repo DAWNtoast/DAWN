@@ -1,126 +1,126 @@
-component_id,name,slot,rarity,volume,install_hours,install_wood,max_hull,armor,firepower,speed,vision,power,cannon_slots,shop_rarity_chance,shop_rarity_price,shop_slot_multiplier,description,effect,specialization,art_source_id,story_id
-bow_oak_ram,橡木破浪角,bow,common,16,3,6,5,0,0,0,0,0,0,0.6,240,1,老船匠把沉船龙骨削成这枚撞角。它曾护送三代近海邮船穿过冬季碎冰。断锚之夜，它撞开了废船坞的闸板，守夜人才能把无名船藏入黑暗。,船体 +5,稳健耐撞,bow_oak_ram,seventh_berth_01
-bow_ironwood_beak,铁木穿潮喙,bow,common,17,3,7,+4,0,0,+0.1,0,1,0,0.6,250,1,白贝渔民把盐浸铁木拼成尖喙，借它劈开低潮回流。珂拉曾将银壳系在喙尖；小船驶进潮沟，壳里第一次念出铜钟港的名字。,船体 +4　航速 +0.1,近岸破浪,bow_oak_ram,seventh_berth_02
-bow_ashwave_wedge,灰浪楔首,bow,common,15,2,5,+3,0,0,+0.2,0,1,0,0.6,260,1,旧码头的楔木陪一位退役领航员跑完十二趟短航。洛恩摸过船首的钉孔，认出那是失踪守夜人修过的码头留下的孔眼。,船体 +3　航速 +0.2,轻量巡航,bow_oak_ram,seventh_berth_01
-bow_harborbreaker,港闸短冲角,bow,common,18,4,8,+6,0,0,-0.1,0,1,0,0.6,270,1,推开失控货驳时留下的撞痕，港卫一直没有磨平。钟响十三次的夜里，它再次顶开货驳，露出压在船底的薄铜海图拓片。,船体 +6　航速 -0.1,港湾接舷,bow_oak_ram,seventh_berth_03
-bow_sawtooth_drift,漂木锯齿首,bow,common,16,3,5,+4,0,+1,0,0,2,0,0.6,280,1,拾荒者把旧锯片嵌进漂木，先用它割断登船索。乌铎后来带它下到锚墓，锯开腐绳，取回了缠在绳中的舰队铜牌。,船体 +4　火力 +1,缠索破坏,bow_oak_ram,seventh_berth_11
-bow_reef_cutter,礁切斜首,bow,uncommon,18,4,8,7,0,0,0.4,0,0,0,0.27,520,1,船首沿鲸鲨的吻线收窄，曾满帆穿过双礁门。赛娜在门后追上移动的岛影，才发现船一直航行在海巨人的手指之间。,船体 +7　航速 +0.4,礁区穿行,bow_reef_cutter,seventh_berth_06
-bow_coral_parting_blade,分珊瑚刃首,bow,uncommon,19,4,9,+6,0,0,+0.5,0,2,0,0.27,550,1,潜水匠照着珊瑚枝杈量出弧刃，让船拨开枝条而不惊鱼。阿棠用活龙骨刨花校正它时，新木与珊瑚一同弯向海图的空白处。,船体 +6　航速 +0.5,浅滩突进,bow_reef_cutter,seventh_berth_07
-bow_smuggler_needle,走私客针首,bow,uncommon,17,3,7,+5,0,0,+0.3,+8,2,0,0.27,570,1,无灯船队称它为“针”，说它能循一缕月光穿过封锁。无旗盐船到港那夜，针首的银光照见盐人胸口，一颗星比别处迟亮了片刻。,船体 +5　航速 +0.3　视野 +8,夜航潜入,bow_reef_cutter,seventh_berth_04
-bow_tidehook_ram,钩潮弯角,bow,uncommon,20,5,9,+8,0,+1,+0.1,0,4,0,0.27,590,1,捕鲸船的牵引钩改作船首后，仍能咬住敌舰舷侧，替炮手争取一次齐射。米拉曾借它固定测距绳，将最后一门旧炮对准潮门巨链。,船体 +8　火力 +1　航速 +0.1,侧撞牵制,bow_reef_cutter,seventh_berth_09
-bow_sprayfox_prow,逐沫狐首,bow,uncommon,18,4,7,+6,0,0,+0.2,+12,3,0,0.27,610,1,少年船长把故乡石狐刻在船头，雾里的白沫常替它标出暗礁间隙。银壳初次传来求救声时，狐首正望着退潮露出的白沙小径。,船体 +6　航速 +0.2　视野 +12,侦察机动,bow_reef_cutter,seventh_berth_02
-bow_gilded_mermaid,鎏金海妖像,bow,rare,22,5,10,10,1,0,0,0,6,0,0.1,1100,1,商会旗舰沉没后，只有海妖像浮回港湾，眼角的火药痕无人擦去。伊岚从中认出回音咒文：弥赛拉不愿重唱的歌，被雕像记住了。,船体 +10　装甲 +1,旗舰威慑,bow_gilded_mermaid,seventh_berth_05
-bow_sunlion_figurehead,日狮镇浪像,bow,rare,23,6,11,+11,0,+1,0,+10,5,0,0.1,1160,1,狮鬃浇自盐冠港第一炉晨金。晨光落上船首，水手便知道该列队了。盐船账册写着铸匠姓名，可归潮舰队失踪时，那人的炉子早已封停。,船体 +11　火力 +1　视野 +10,正面压制,bow_gilded_mermaid,seventh_berth_04
-bow_pearl_siren,珠母歌姬首,bow,rare,21,5,9,+9,0,0,+0.6,+14,4,0,0.1,1210,1,百片旧珠母拼成鳞衣，夜航人说浪声经过它，会唱出安全水道。弥赛拉用最后一节歌补好缺鳞，把守门的誓言留在了船首。,船体 +9　航速 +0.6　视野 +14,远洋引航,bow_gilded_mermaid,seventh_berth_13
-bow_guildbreaker_crest,破会徽角,bow,rare,24,6,12,+12,+1,0,+0.2,0,5,0,0.1,1260,1,缴获的私掠徽章被熔进冲角。六港签盟那天，最后一枚也下了炉；冷却后的金属上，再辨不出它原属哪家商会。,船体 +12　装甲 +1　航速 +0.2,商船护航,bow_gilded_mermaid,seventh_berth_14
-bow_amber_albatross,琥珀信天翁首,bow,rare,20,5,10,+8,0,0,+0.7,0,3,0,0.1,1320,1,鸟首的琥珀封着一根羽毛，失踪船队据说循其倒影找回航线。晨曦海显现时，羽尖却转向归潮水手的故乡，越过了藏宝海沟。,船体 +8　航速 +0.7,长途追风,bow_gilded_mermaid,seventh_berth_15
-bow_abyssal_fang,深渊鲸牙,bow,epic,26,7,13,16,2,0,-0.3,0,0,0,0.029,2400,1,兽骨取自无光海沟，静海里也有远鲸般的低鸣。琪娅在牙根找到会愈合的纤维，与无名船龙骨相同；两者原出自同一种古兽。,船体 +16　装甲 +2　航速 -0.3,重装冲阵,bow_abyssal_fang,seventh_berth_07
-bow_nightkraken_tusk,夜海妖巨齿,bow,epic,27,8,14,+15,0,+3,-0.2,0,8,0,0.029,2520,1,幸存炮长不愿重提巨齿来处，只说它曾咬断海怪腕足。很久以后他才承认，那夜救下自己的，是伊岚逼退海妖时的一束蓝焰。,船体 +15　火力 +3　航速 -0.2,破甲突击,bow_abyssal_fang,seventh_berth_05
-bow_gravecurrent_spur,墓潮骨刺,bow,epic,25,7,12,+14,0,0,+0.1,+24,5,0,0.029,2640,1,经过沉船海域，盐霜下便显出一行失落舰名。石港升起后，人们拿着拓本沿泊位寻找，每一个名字都找到了它的船。,船体 +14　航速 +0.1　视野 +24,迷雾探索,bow_abyssal_fang,seventh_berth_12
-bow_blackreef_hammer,黑礁碎舰槌,bow,epic,29,9,15,+18,+3,0,-0.6,0,8,0,0.029,2760,1,火山礁心裹住钢梁，初航便撞开废海堡的封港链。潮门之战时，槌首先敲松外链铆钉，赫莲才得以一炮击断主链。,船体 +18　装甲 +3　航速 -0.6,堡垒攻坚,bow_abyssal_fang,seventh_berth_09
-bow_voidray_edge,虚空鳐翼首,bow,epic,24,7,13,+13,0,0,+0.9,+20,6,0,0.029,2880,1,薄刃依深海鳐翼锻成，转舵时仿佛有另一片海托住船底。海巨人见到它，曾低下手掌，让试航船避开自己醒来带起的涡流。,船体 +13　航速 +0.9　视野 +20,高速侧切,bow_abyssal_fang,seventh_berth_06
-bow_leviathan_ram,海兽王冲角,bow,legendary,30,9,16,24,3,0,-0.5,0,10,0,0.001,5200,1,铁甲舰被撕开后，对手将冲角画进避战旗。舰阵散去，持有者把旗裁成六份，缝在同盟救生艇上，盼炮手看见便肯停火。,船体 +24　装甲 +3　航速 -0.5,舰阵撕裂,bow_leviathan_ram,seventh_berth_14
-bow_crownless_colossus,无冠巨像首,bow,legendary,31,10,17,+22,0,+5,-0.2,0,13,0,0.001,5480,1,海潮磨去了古像的王冠，留下整圈凹槽。巨人说那原是一副枷锁；铸匠听后收起金料，没再替它补冠。,船体 +22　火力 +5　航速 -0.2,王舰猎杀,bow_leviathan_ram,seventh_berth_06
-bow_worldsplitter,裂海天楔,bow,legendary,29,9,15,+20,0,0,+1.2,+30,9,0,0.001,5760,1,落进礁湖的天外铁被锻成船楔，驶过时白浪久久不合。最后一道浪口通向晨曦海，合拢前，还容得下一艘救生艇。,船体 +20　航速 +1.2　视野 +30,极限破浪,bow_leviathan_ram,seventh_berth_15
-bow_dragonwake_ram,龙醒赤角,bow,legendary,33,11,19,+26,+4,+3,-0.8,0,15,0,0.001,6040,1,赤角曾钉在焚毁龙船的脊梁上，闻鼓声便亮起旧焦痕。潮门炮响前，船员击鼓三下，借它挡住撞击，让装弹手稳住身子。,船体 +26　装甲 +4　火力 +3　航速 -0.8,决战冲锋,bow_leviathan_ram,seventh_berth_09
-bow_last_horizon,终界航标首,bow,legendary,28,9,16,+19,0,0,+1,+45,9,0,0.001,6320,1,没有工匠承认造过它。唯一记录说它从地图尽头漂回并把船头永远指向尚未命名的海。第七码头消失后，终界航标仍指向东方，仿佛还有一位迟到水手需要接回。,船体 +19　航速 +1　视野 +45,未知海开拓,bow_leviathan_ram,seventh_berth_15
-sail_patched_lateen,补片三角帆,sail,common,10,2,3,0,0,0,0.6,0,0,0,0.6,240,0.9,七色补片记着七次平安返航，最后一道针脚始终歪着。洛恩摸到来自无名船的第七块布，才知道那艘船也曾回来过。,航速 +0.6,低耗巡航,sail_patched_lateen,seventh_berth_01
-sail_coast_runner,岸风短帆,sail,common,9,2,3,0,0,0,+0.5,+4,1,0,0.6,250,0.9,渔妇用晒网架裁成短帆，最能接住清晨岩壁边的轻风。赛娜借这阵风送出银壳译信，送到了旧钟楼值夜的赫莲手里。,航速 +0.5　视野 +4,沿岸机动,sail_patched_lateen,seventh_berth_02
-sail_tarred_square,焦油方帆,sail,common,12,3,4,+1,0,0,+0.4,0,1,0,0.6,260,0.9,打翻的焦油浸透旧帆，反让它撑过三场暴雨。货船纷纷照做，艾达也用它隔出病舱，替黑沙伤员挡住雨夜泼进来的海水。,船体 +1　航速 +0.4,耐候运输,sail_patched_lateen,seventh_berth_08
-sail_gullwing_cloth,鸥翼小帆,sail,common,8,2,2,0,0,0,+0.7,+2,2,0,0.6,270,0.9,制帆童照着海鸥收翼的样子下剪，小船转过港汊便能吃满风。珂拉随船捞起银壳时，那个孩子听见壳里唤了一声自己的乳名。,航速 +0.7　视野 +2,轻帆侦察,sail_patched_lateen,seventh_berth_02
-sail_dawnstripe_canvas,曙纹帆布,sail,common,11,3,3,0,0,0,+0.55,+6,1,0,0.6,280,0.9,橙纹起初只是晨雾里的相认标记，远航后成了归途的颜色。六港舰队约好：等曙纹帆升起，再一同点灯。,航速 +0.55　视野 +6,晨雾航行,sail_patched_lateen,seventh_berth_14
-sail_storm_canvas,风暴帆布,sail,uncommon,13,3,4,0,0,0,1,20,0,0,0.27,520,0.9,湿气先收紧帆线，桅杆弯下去时，帆弧仍然完整。海巨人翻身掀浪那日，试航船没有落帆，赛娜才得以看清它背上的星图。,航速 +1　视野 +20,恶劣天气,sail_storm_canvas,seventh_berth_06
-sail_crosswind_lattice,横风格帆,sail,uncommon,14,4,5,0,0,0,+1.1,+12,3,0,0.27,550,0.9,交错索带把侧风分入三段帆面，曾在逆风海峡抢回半日。走私领航员用它拖出漩涡里的盐船，船上的盐人却连眼睛也没转一下。,航速 +1.1　视野 +12,侧风转化,sail_storm_canvas,seventh_berth_04
-sail_rainheron_wing,雨鹭翼帆,sail,uncommon,12,3,4,0,0,0,+0.9,+24,3,0,0.27,570,0.9,灰白帆尖像雨鹭伸颈，沿纹流下的雨珠指着晴空。蓝火照上这些水珠时，伊岚第一次看见歌声回音穿过雨幕的轨迹。,航速 +0.9　视野 +24,雨幕索敌,sail_storm_canvas,seventh_berth_05
-sail_saltfox_rig,盐狐索帆,sail,uncommon,11,4,4,+1,0,0,+1.2,0,3,0,0.27,590,0.9,走私犯制成三角索帆后，港官只追得到他的尾浪。盐船到港那夜，他却主动亮出船名，为账册上的失踪者留下证词。,船体 +1　航速 +1.2,快速转帆,sail_storm_canvas,seventh_berth_04
-sail_bluebell_canvas,蓝钟报风帆,sail,uncommon,15,4,5,0,0,0,+0.8,+28,3,0,0.27,610,0.9,帆角小铃会在变风前响三声，催人收帆。那夜它竟随港钟响了十三次；维克拆开铃舌，取出父亲藏下的密码短句。,航速 +0.8　视野 +28,风向预警,sail_storm_canvas,seventh_berth_03
-sail_guild_silk,商会金丝帆,sail,rare,16,4,5,0,0,0,1.5,30,0,0,0.1,1100,0.9,金丝织成远距识别码，曾把迷航商船领回护航队。签盟后，商会交出了织法，六港船长不必再付过路费便能认得彼此。,航速 +1.5　视野 +30,商路远航,sail_guild_silk,seventh_berth_14
-sail_emerald_trade_wing,翡翠商翼帆,sail,rare,17,5,6,+1,0,0,+1.4,+38,5,0,0.1,1160,0.9,帆缘缝着十二座补给港的徽记，第十三枚却没有港名。拆开针脚，里面是一张芙萝的青柑汤配方。,船体 +1　航速 +1.4　视野 +38,护航编队,sail_guild_silk,seventh_berth_10
-sail_sunthread_spinnaker,日线追风帆,sail,rare,14,4,5,0,0,0,+1.8,+22,5,0,0.1,1210,0.9,矿丝把日光留到黄昏，让帆仍泛着暖色，兜住暮风。驶入晨曦海后，那点光慢慢淡了；船终于被真正的黎明追上。,航速 +1.8　视野 +22,顺风冲刺,sail_guild_silk,seventh_berth_15
-sail_redroute_broadsail,红航路阔帆,sail,rare,18,5,7,0,0,+1,+1.3,+34,6,0,0.1,1260,0.9,帆上赤线标着旧海军的安全航道，炮烟里也能认队形。赫莲按线布置舰位，让六种口径一同瞄住巨链最薄的一环。,火力 +1　航速 +1.3　视野 +34,战列巡航,sail_guild_silk,seventh_berth_09
-sail_whisperveil,低语雾帆,sail,rare,13,4,5,0,0,0,+1.6,+42,6,0,0.1,1320,0.9,银灰帆布吸走绳索声，勘探船得以从沉睡海兽头顶驶过。赛娜屏息看向水下，才发现那巨物身上竟有人的掌纹。,航速 +1.6　视野 +42,隐雾侦察,sail_guild_silk,seventh_berth_06
-sail_moonweave,月织静风帆,sail,epic,18,5,7,0,0,0,2,50,0,0,0.029,2400,0.9,织工在满月涨潮时完成最后一针。此后即使海面如镜帆布也会被月潮轻轻牵动。第七码头无风无浪，只有这面帆仍在摆动，为被困舰队指出了出港方向。,航速 +2　视野 +50,无风航行,sail_moonweave,seventh_berth_12
-sail_eclipse_shroud,蚀月影帆,sail,epic,19,6,8,0,0,+1,+1.9,+62,9,0,0.029,2520,0.9,暗银环留在黑帆中央，瞭望塔见到它时，舰影往往已经很近。弥赛拉把最后一道月影藏入帆心；六港船只便靠这点暗光认出潮门。,火力 +1　航速 +1.9　视野 +62,夜战接近,sail_moonweave,seventh_berth_13
-sail_starshear_rig,裁星索帆,sail,epic,17,5,7,0,0,0,+2.3,+44,7,0,0.029,2640,0.9,索结依五颗航星排列，据说星位对准便不漏掉一缕高空风。它与石盘上的五颗星恰好重合，让赛娜开始相信巨人也曾航过海。,航速 +2.3　视野 +44,远洋竞速,sail_moonweave,seventh_berth_06
-sail_ghostcurrent_canvas,幽流逆帆,sail,epic,20,7,9,+2,0,0,+1.8,+56,7,0,0.029,2760,0.9,潮术师缝起沉船旧帆，它仍记着吞没主人的洋流。无名船进港时，残帆忽然反向鼓起；守夜人知道，船后跟着的潮水不属于今夜。,船体 +2　航速 +1.8　视野 +56,逆流突破,sail_moonweave,seventh_berth_01
-sail_aurora_fan,极光扇帆,sail,epic,16,5,6,0,0,0,+2.2,+68,8,0,0.029,2880,0.9,极光曾落进半透明帆面，冰海夜里仍能循着那道彩路航行。米蕾让旧水手看它，水手想起沉没那晚，北方还有一条未结冰的路。,航速 +2.2　视野 +68,极地探索,sail_moonweave,seventh_berth_08
-sail_tempest_wing,暴风翼帆,sail,legendary,22,7,9,0,0,0,3,70,6,0,0.001,5200,0.9,翼帆把侧风折向船后，初任船长凭它穿过风暴眼，绘回气象图。重返那片海时，图背多了一条航线，指向晨曦海。,航速 +3　视野 +70,风暴征服,sail_tempest_wing,seventh_berth_15
-sail_skybreaker_array,裂空九翼帆,sail,legendary,24,8,10,+2,0,0,+3.2,+60,10,0,0.001,5480,0.9,九片副翼逐次展开，曾让满载舰追上轻快的私掠船。奥瑟将九翼骨架分给同盟重舰，那些互不相让的船才渐渐有了同一个节奏。,船体 +2　航速 +3.2　视野 +60,重舰高速,sail_tempest_wing,seventh_berth_14
-sail_crown_of_gales,万风王冠帆,sail,legendary,23,8,11,0,0,+2,+2.8,+90,14,0,0.001,5760,0.9,顶帆汇集八方风声，失散编队循着金光归列。六港领航旗依次升起时，每一种颜色都映进了这面帆的顶冠。,火力 +2　航速 +2.8　视野 +90,舰队领航,sail_tempest_wing,seventh_berth_14
-sail_thunderphoenix,雷凰浴火帆,sail,legendary,21,7,9,+1,0,0,+3.4,+55,10,0,0.001,6040,0.9,雷击在帆上留下凰纹，布却没有烧穿。伊岚借一场雷雨洗去海妖咒音，只留雷纹；后来每逢闪电，旧帆便会短暂鼓满。,船体 +1　航速 +3.4　视野 +55,雷暴突进,sail_tempest_wing,seventh_berth_05
-sail_last_free_wind,最后自由风帆,sail,legendary,20,7,8,0,0,0,+3.1,+105,12,0,0.001,6320,0.9,它由五支被解散船队各献一幅帆布拼成。缝线之间藏着他们尚未完成的航海愿望。第六座港口献来最后一根缝线时，自由风帆终于能带着归潮舰队离开旧时代。,航速 +3.1　视野 +105,无界探索,sail_tempest_wing,seventh_berth_15
-cannon_deck_swivel,甲板回旋炮,cannon,common,14,3,4,0,0,2,0,0,3,0,0.6,240,1.2,这门小炮在码头骚乱中转过整整一圈。它用最后一发空包弹吓退了登船者。它最后一发空包弹惊醒了洛恩，让他赶在涨潮前记下无名船的吃水线。,火力 +2,近距警戒,cannon_deck_swivel,seventh_berth_01
-cannon_harbor_popgun,港卫短响炮,cannon,common,13,2,3,0,0,+1,0,+3,2,0,0.6,250,1.2,短炮响得清脆，偷网的小艇往往听见便调头。加洛发现这一声恰能接在十二记港钟之后，把试射记录送进了钟楼。,火力 +1　视野 +3,驱离快艇,cannon_deck_swivel,seventh_berth_03
-cannon_grapeshot_cup,铁砂盏炮,cannon,common,15,3,5,0,+1,+2,0,0,4,0,0.6,260,1.2,裂钟被铸作散射炮膛，仍守着原来的港门。赫莲从内壁拓出舰队密码时，铸炮师手里的锉刀离那片刻痕已不到一寸。,装甲 +1　火力 +2,甲板压制,cannon_deck_swivel,seventh_berth_03
-cannon_ropeguard_swivel,护索旋炮,cannon,common,12,3,4,0,0,+1,+0.1,+2,2,0,0.6,270,1.2,炮座靠着主索，夜袭时曾转身击落三只钩爪，护住升帆手。六港起航前，小补给船分到了这些炮；它们舱里装着药，也装着菜谱。,火力 +1　航速 +0.1　视野 +2,桅索防御,cannon_deck_swivel,seventh_berth_14
-cannon_sparksnout,火星短铳炮,cannon,common,16,4,5,0,0,+3,-0.1,0,4,0,0.6,280,1.2,短膛火舌在浓雾里替友舰报过位置。艾达循光找到一艘伤船，船上无人呼救，舱里躺着第一位黑沙水手。,火力 +3　航速 -0.1,短程爆发,cannon_deck_swivel,seventh_berth_08
-cannon_bronze_longgun,青铜长炮,cannon,uncommon,20,5,6,0,0,4,0,0,6,0,0.27,520,1.2,旧海防台的长炮移上甲板，仍瞄得准那条狭长航道。赫莲擦去炮管锈迹，发现前任炮官也曾以同样的角度对准潮门巨链。,火力 +4,均衡远射,cannon_bronze_longgun,seventh_berth_09
-cannon_gullcry_chaser,鸥鸣追击炮,cannon,uncommon,18,4,5,0,0,+3,+0.2,+5,5,0,0.27,550,1.2,弹丸的尖鸣先于炮烟传来，常令逃船乱阵。加洛借这一声替珂拉唤出银壳的最后一次回音，补齐坐标缺失的末位。,火力 +3　航速 +0.2　视野 +5,追逃射击,cannon_bronze_longgun,seventh_berth_02
-cannon_breakwater_spear,防波堤长矛炮,cannon,uncommon,22,6,7,0,+1,+5,-0.2,0,9,0,0.27,570,1.2,防波堤吊机改成的炮架，在大浪里仍很稳。米拉把架上的旧刻度写进装药表，小港的炮也终于能加入断链齐射。,装甲 +1　火力 +5　航速 -0.2,定点破甲,cannon_bronze_longgun,seventh_berth_09
-cannon_saltflash_tube,盐闪火炮,cannon,uncommon,19,5,6,0,0,+4,0,+8,6,0,0.27,590,1.2,白烟被第二阵风吹弯，炮长便据此校正下一发落点。无旗盐船的结晶有次混进装药，烟里短暂浮出了六枚港印。,火力 +4　视野 +8,雾中校射,cannon_bronze_longgun,seventh_berth_04
-cannon_twinwatch_gun,双哨长炮,cannon,uncommon,21,5,7,+2,0,+4,0,0,6,0,0.27,610,1.2,两名退役哨兵合制瞄具，一个看浪，一个看旗，商船再没受过二次偷袭。护送无名伤员那趟，他们始终没有开炮。,船体 +2　火力 +4,护航反击,cannon_bronze_longgun,seventh_berth_08
-cannon_chain_repeater,链弹连发炮,cannon,rare,24,6,8,0,0,6,0,0,10,1,0.1,1100,1.2,额外炮架最初用来储存链弹。试射时它一轮便剪断了靶船全部横桁。乌铎带回一环巨链供它试射，炮手终于找到必须同时命中的两个薄弱铆口。,火力 +6,断帆控制,cannon_chain_repeater,seventh_berth_09
-cannon_anchorbreaker,断锚双联炮,cannon,rare,26,7,9,0,+1,+7,-0.2,0,12,1,0.1,1160,1.2,双联炮首先击断的是封锁舰的巨锚，不是一艘船。赫莲在酒馆听完那阵链响的故事，明白潮门也不必整座摧毁。,装甲 +1　火力 +7　航速 -0.2,重件破坏,cannon_chain_repeater,seventh_berth_09
-cannon_redwake_repeater,赤尾连火炮,cannon,rare,23,6,7,0,0,+6,+0.2,+6,10,1,0.1,1210,1.2,连发红光贴着水面延伸，曾被夜战舰队当作进攻旗号。米拉看着信号传遍六队，等最后一艘救生艇退开，才下令点火。,火力 +6　航速 +0.2　视野 +6,机动齐射,cannon_chain_repeater,seventh_berth_14
-cannon_stormnail_array,风暴钉炮组,cannon,rare,25,7,10,+1,0,+8,-0.3,0,12,1,0.1,1260,1.2,长弹在强风里仍不偏航，曾钉住逃向云墙的敌船。风暴眼外，它又钉牢一块将翻的桅板，让最后一艘归潮船从旁驶过。,船体 +1　火力 +8　航速 -0.3,逆风压制,cannon_chain_repeater,seventh_berth_15
-cannon_echochamber,回声膛炮,cannon,rare,22,6,8,0,+1,+5,0,+14,10,1,0.1,1320,1.2,双膛将爆音送回测距筒，老炮长闭眼也能听出远近。伊岚借它追索海妖歌声，在射表上画出了那个看不见的对手。,装甲 +1　火力 +5　视野 +14,声测校射,cannon_chain_repeater,seventh_berth_05
-cannon_starfire_battery,星火炮列,cannon,epic,28,8,11,0,0,9,0,0,16,1,0.029,2400,1.2,古导轨让整列炮口同时点亮，海面像升起一小段星河。赛娜认出那光点与巨人背上的旧伤一致，向炮手要走了试炮纸。,火力 +9,同步火力,cannon_starfire_battery,seventh_berth_06
-cannon_cometfall_battery,彗落重炮列,cannon,epic,31,9,13,0,+1,+11,-0.5,0,17,1,0.029,2520,1.2,重弹拖着白焰划过夜空，岛堡称之为第二场流星雨。石港升起后，守军才认出同样的光：二十年前，舰队曾用它请求关门。,装甲 +1　火力 +11　航速 -0.5,堡垒轰击,cannon_starfire_battery,seventh_berth_12
-cannon_blueflare_organ,蓝焰风琴炮,cannon,epic,27,8,10,+2,0,+8,0,+22,14,1,0.029,2640,1.2,十二根细管排成风琴，蓝火逐条照出弹道。伊岚装入回音咒文后，十二道火线从海面切开了弥赛拉的歌声。,船体 +2　火力 +8　视野 +22,多目标覆盖,cannon_starfire_battery,seventh_berth_05
-cannon_voidbell_mortar,虚钟曲射炮,cannon,epic,30,9,12,0,0,+10,-0.3,+16,15,1,0.029,2760,1.2,击发时无声，落弹后才远远传回钟鸣。封存的炮尚未获准试射，赫莲已在钟楼听见第十三响，知道有人先动过它。,火力 +10　航速 -0.3　视野 +16,越障打击,cannon_starfire_battery,seventh_berth_03
-cannon_sunforge_salvo,日炉齐射炮,cannon,epic,29,8,12,+4,+1,+9,0,0,16,1,0.029,2880,1.2,反复回炼的铜纹越打越亮，热中仍不失准。奥瑟守炉三夜，才铸齐断链齐射所需的最后一批铜套，没有一只炸膛。,船体 +4　装甲 +1　火力 +9,持续炮战,cannon_starfire_battery,seventh_berth_09
-cannon_queens_broadside,海盗女王舷炮,cannon,legendary,34,10,15,0,0,13,-0.4,0,24,1,0.001,5200,1.2,炮口原只准刻下败过的旗舰名。一轮齐射改写海战阵线后，女王又添了六个未曾战胜的港名：这次，它们与她并肩。,火力 +13　航速 -0.4,舰队决战,cannon_queens_broadside,seventh_berth_14
-cannon_krakens_thunder,海怪雷鸣炮,cannon,legendary,36,11,17,0,+2,+15,-0.7,0,24,1,0.001,5480,1.2,海怪甲壳箍紧炮膛，据说初次轰鸣便让百年触手松开沉船。弥赛拉从响声认出守门兽，低声提醒炮手，真正的敌人还在门后。,装甲 +2　火力 +15　航速 -0.7,巨兽猎杀,cannon_queens_broadside,seventh_berth_13
-cannon_worlds_end_volley,天涯终幕炮,cannon,legendary,35,11,16,+3,0,+14,0,+30,24,1,0.001,5760,1.2,测距尺的末格写着“天涯”，它曾越过那道刻度击中远桅。最后一发却换成信号星火，为迟到的归潮船照亮地平线。,船体 +3　火力 +14　视野 +30,超距终结,cannon_queens_broadside,seventh_berth_15
-cannon_dragonbreath_battery,赤龙吐息炮列,cannon,legendary,38,12,19,+2,0,+16,-0.8,0,23,1,0.001,6040,1.2,赤铜炮口在齐射前如鳞片张开，热浪逼得敌兵伏下。伊岚曾让火线绕过浅滩上的海妖；那一轮打完，海妖仍活着。,船体 +2　火力 +16　航速 -0.8,近距歼灭,cannon_queens_broadside,seventh_berth_05
-cannon_liberty_salute,自由海二十一响,cannon,legendary,33,10,14,0,0,+12,+0.3,+25,20,1,0.001,6320,1.2,二十一艘解放船各献一根炮管，齐鸣时诸港便敲钟应答。迎接归潮舰队的那次，全装的是空包弹，晨光下没有再添一条沉船。,火力 +12　航速 +0.3　视野 +25,快速决战,cannon_queens_broadside,seventh_berth_15
-plating_braced_ribs,交叉撑肋,plating,common,18,4,8,8,1,0,-0.2,0,0,0,0.6,240,1.15,搁浅船腹教会木匠交叉受力，修好的船又走了十五年。琪娅拆开船肋时，才发现老木匠早把活龙骨屑塞进了最深的接缝。,船体 +8　装甲 +1　航速 -0.2,结构加固,plating_braced_ribs,seventh_berth_07
-plating_ropebound_ribs,缆束船肋,plating,common,17,3,7,+7,+1,0,-0.1,0,3,0,0.6,250,1.15,废缆浸胶束住船肋，碰撞时发出低沉回弹。乌铎循声找到井底通道，从潜水钟背后拽回遗落的铜牌。,船体 +7　装甲 +1　航速 -0.1,轻型防护,plating_braced_ribs,seventh_berth_11
-plating_pinepatch_skin,松脂补覆板,plating,common,16,3,6,+6,0,0,+0.1,0,2,0,0.6,260,1.15,松脂与箱板本是暴雨里的急修法，撑到返港后便留了下来。赫克托补好伤员小艇，每块板上都沾着一位无名水手的手印。,船体 +6　航速 +0.1,快速修复,plating_braced_ribs,seventh_berth_08
-plating_harboroak_band,港橡护舷带,plating,common,19,4,9,+9,0,0,-0.3,0,2,0,0.6,270,1.15,护舷木取自百年系船桩，撞痕层层叠着。锯开时落出一枚失踪守夜人的纽扣，人们才想起无名船也曾拴在这里。,船体 +9　航速 -0.3,靠泊抗撞,plating_braced_ribs,seventh_berth_01
-plating_corkwave_liner,软木隔浪层,plating,common,15,3,5,+5,+1,0,0,+3,3,0,0.6,280,1.15,软木吞去浪击的震动，让瞭望手稳住镜筒。赛娜也靠它托稳石盘，发现那颗所谓的新星，只是巨人旧伤延伸出的末梢。,船体 +5　装甲 +1　视野 +3,减震侦巡,plating_braced_ribs,seventh_berth_06
-plating_iron_band,铁箍船壳,plating,uncommon,24,6,10,12,2,0,-0.5,0,0,0,0.27,520,1.15,触礁后船板尽裂，水线上的铁箍仍把船带回港。后来它把活龙骨勒得太紧，阿棠拆去内圈，船腹才重新响起呼吸声。,船体 +12　装甲 +2　航速 -0.5,水线防御,plating_iron_band,seventh_berth_07
-plating_riveted_scale,铆钉鳞板,plating,uncommon,22,5,9,+11,+2,0,-0.3,0,5,0,0.27,550,1.15,小铁片如鱼鳞叠覆，坏一片便换一片。琪娅与奥瑟交换锤印尺寸后，同盟维修船装上的甲，终于能在六港通用。,船体 +11　装甲 +2　航速 -0.3,均衡装甲,plating_iron_band,seventh_berth_14
-plating_wavebreaker_belt,破浪腰甲,plating,uncommon,23,6,11,+10,+2,0,-0.1,0,5,0,0.27,570,1.15,弧甲将浪分向两舷，让满载商船在冬汛里保住航速。白贝港曾把银壳译信藏在甲内，托船赶在封水前穿过最后一条沙洲。,船体 +10　装甲 +2　航速 -0.1,高速防浪,plating_iron_band,seventh_berth_02
-plating_blacksmith_grid,炉匠格甲,plating,uncommon,25,7,12,+13,+3,0,-0.7,0,6,0,0.27,590,1.15,每块甲都留着不同的锤印，是港镇一夜炉火凑齐的护航装甲。背面还记着各港的钟声高低，米拉照着那些字排下一轮齐射。,船体 +13　装甲 +3　航速 -0.7,重载护航,plating_iron_band,seventh_berth_09
-plating_saltbronze_shell,盐青铜覆壳,plating,uncommon,21,5,10,+9,+2,0,0,+6,6,0,0.27,610,1.15,青铜在盐池埋满一年才上船，远航回来只添薄薄海绿。工人发现它与无旗盐船同时泛色，才从账册的星点里读出潮汐规律。,船体 +9　装甲 +2　视野 +6,耐蚀远航,plating_iron_band,seventh_berth_04
-plating_gilded_bulwark,鎏金舷墙,plating,rare,28,7,13,16,3,0,-0.7,0,5,0,0.1,1100,1.15,金边下是层叠钢木，挡过整轮舷炮，里面的宴会仍照常。那晚只多了一位不说话的客人，胸口时不时透出盐星的光。,船体 +16　装甲 +3　航速 -0.7,商队旗舰,plating_gilded_bulwark,seventh_berth_04
-plating_suncoin_rampart,日币护壁,plating,rare,27,7,12,+15,+3,0,-0.5,+8,8,0,0.1,1160,1.15,退市金币被熔成薄夹层，护住新装上船的货物。厨师取旧币压住锅底盐冠，六道缺口与六种配方的次序才看得分明。,船体 +15　装甲 +3　航速 -0.5　视野 +8,财富护航,plating_gilded_bulwark,seventh_berth_10
-plating_coralsteel_hide,珊钢复合壳,plating,rare,26,6,11,+14,+4,0,-0.6,0,8,0,0.1,1210,1.15,活珊瑚沿钢网长出缓冲层，受伤后也要修剪。米蕾发现它避着黑沙生长，阿棠便借它辨认无名船上尚活着的龙骨。,船体 +14　装甲 +4　航速 -0.6,礁海抗击,plating_gilded_bulwark,seventh_berth_07
-plating_redbanner_wall,赤旗舷垒,plating,rare,29,8,14,+17,+3,+1,-0.8,0,9,0,0.1,1260,1.15,透明树脂封住旧战旗，炮火亮起，旗上姓名便一一显现。归潮伤员看见它，喊出了自己的舰名，艾达才补全第一份病历。,船体 +17　装甲 +3　火力 +1　航速 -0.8,战列防护,plating_gilded_bulwark,seventh_berth_08
-plating_merchants_oath,商誓护甲,plating,rare,25,7,12,+13,+3,0,+0.1,0,8,0,0.1,1320,1.15,三家敌对商会在轻合金甲后签下护航约定。六港结盟前夜，他们翻过旧约，又写上另外三座港口的名字。,船体 +13　装甲 +3　航速 +0.1,快速护送,plating_gilded_bulwark,seventh_berth_14
-plating_moonsilver_skin,月银覆板,plating,epic,32,9,16,22,4,0,-0.8,0,8,0,0.029,2400,1.15,遗迹金属会随潮汐缓慢闭合裂缝。守夜人常听见覆板在月下发出细小生长声。守夜人失踪前留下纸条：板上的生长声不是木头，是那艘船在试着记住回家路线。,船体 +22　装甲 +4　航速 -0.8,自愈防护,plating_moonsilver_skin,seventh_berth_07
-plating_eclipse_mail,蚀影链甲壳,plating,epic,31,9,15,+20,+5,0,-0.7,+10,12,0,0.029,2520,1.15,黑银环遇暗收紧，链弹曾沿甲滑进海里。弥赛拉刮下一枚银环，说当年的舰队正是借这种金属，把自己的时间锁住了。,船体 +20　装甲 +5　航速 -0.7　视野 +10,夜战防御,plating_moonsilver_skin,seventh_berth_13
-plating_starseal_panels,星印封舱板,plating,epic,30,8,14,+21,+4,0,-0.4,0,10,0,0.029,2640,1.15,舱板刻着不同星位，进水时星图会标出裂口。伊芙琳将巨人星图刻上最后一块板，从此补漏工也能循着星光干活。,船体 +21　装甲 +4　航速 -0.4,破损控制,plating_moonsilver_skin,seventh_berth_06
-plating_ghostreef_carapace,幽礁甲壳,plating,epic,34,10,18,+24,+5,0,-1.1,0,11,0,0.029,2760,1.15,移动幽礁剥下的壳，在深水里摩擦作响，海兽闻声便避开。巨人醒来轻触它，船员才知道这原是它蜕下的一片肩甲。,船体 +24　装甲 +5　航速 -1.1,深海抗压,plating_moonsilver_skin,seventh_berth_06
-plating_aurora_laminate,极光叠层甲,plating,epic,29,8,15,+19,+4,0,-0.3,+18,11,0,0.029,2880,1.15,极光封在透明叠层里，冰逼近时便聚向薄弱处。第七码头的旧船也泛着同样光带，只是那里的弱处，都是尚未留下的炮痕。,船体 +19　装甲 +4　航速 -0.3　视野 +18,寒海探索,plating_moonsilver_skin,seventh_berth_12
-plating_living_hull,活潮船壳,plating,legendary,38,12,20,30,5,0,-1,0,12,0,0.001,5200,1.15,远古整体船壳仿佛仍在呼吸。受创后它会用潮湿木纹把碎片一点点拉回原位。六港船匠拼合龙骨刻痕时，活潮壳缓缓包住无名船，像终于认回失散的骨骼。,船体 +30　装甲 +5　航速 -1,持续远征,plating_living_hull,seventh_berth_07
-plating_leviathan_scales,海兽王鳞甲,plating,legendary,40,13,22,+32,+6,0,-1.3,0,14,0,0.001,5480,1.15,海军试炮三日，厚鳞上只留一枚浅白圆斑。海妖却请他们停手：门后的守兽把每次轰击，都听成舰队背弃誓言的信号。,船体 +32　装甲 +6　航速 -1.3,巨炮承受,plating_living_hull,seventh_berth_13
-plating_worldtree_bark,海上世界树皮,plating,legendary,36,11,19,+28,+5,0,-0.4,+15,15,0,0.001,5760,1.15,树皮来自漂流森林的老干，缝里总冒出未播过的嫩芽。晨曦海上，新芽终于生根，归潮水手把第一片叶子留给送他们回家的六港。,船体 +28　装甲 +5　航速 -0.4　视野 +15,长航再生,plating_living_hull,seventh_berth_15
-plating_dragonwake_armor,龙醒熔鳞壳,plating,legendary,42,14,24,+34,+7,0,-1.5,0,16,0,0.001,6040,1.15,鳞片入炉不改原形，命中时热量沿红纹散开。米拉把末道赤纹朝向巨链，船壳替火炮承住热浪，争得一次重新装填。,船体 +34　装甲 +7　航速 -1.5,正面决战,plating_living_hull,seventh_berth_09
-plating_freedom_ark,自由方舟外壳,plating,legendary,35,11,18,+27,+5,0,+0.2,+20,16,0,0.001,6320,1.15,五港城门木合成外壳，一段受损，其余四段便分担裂纹。第六港无门可拆，只送来旧系船桩，最后撑住了方舟尾舵。,船体 +27　装甲 +5　航速 +0.2　视野 +20,高速生存,plating_living_hull,seventh_berth_14
-instrument_brass_compass,黄铜定向仪,instrument,common,6,1,1,0,0,0,0,20,0,0,0.6,240,0.85,老钟表匠把退休怀表的摆轮装进罗盘。它因此比普通指针更能熬过船身颠簸。维克在退休怀表的编号中认出父亲的舰队密码，于是拆开了钟楼尘封的记录柜。,视野 +20,基础导航,instrument_brass_compass,seventh_berth_03
-instrument_harbor_dial,港汊方位盘,instrument,common,7,2,2,0,0,0,+0.1,+18,1,0,0.6,250,0.85,盘面写满潮沟俗名，外乡人须跟渔民学着念。赛娜将银壳坐标译成这些名字，第一队搜救船才认出该往哪里走。,航速 +0.1　视野 +18,近港引航,instrument_brass_compass,seventh_berth_02
-instrument_gullbone_needle,鸥骨磁针,instrument,common,5,1,1,0,0,0,0,+22,1,0,0.6,260,0.85,磁针藏在中空鸥骨里，不易被颠簸摇偏。捡到它的孩子成了少年领航员，循针看见移动岛影后，再没称海巨人为怪物。,视野 +22,轻装侦测,instrument_brass_compass,seventh_berth_06
-instrument_ropeknot_log,绳结计程器,instrument,common,8,2,2,0,0,0,+0.2,+16,1,0,0.6,270,0.85,绳结逐一经过同一双手，星月全无时也能凭掌心报船速。洛恩握着守夜人留下的绳，测出无名船曾逆潮走满一海里。,航速 +0.2　视野 +16,航程估算,instrument_brass_compass,seventh_berth_01
-instrument_lantern_bearing,灯影测向尺,instrument,common,6,2,1,+1,0,0,0,+24,2,0,0.6,280,0.85,两片铜尺借灯塔投影测向，雾里带救生艇找到最后一盏孤灯。灯挂在废船坞门前，下面只剩六枚港印和映着陌生星空的黑玻璃。,船体 +1　视野 +24,夜港定位,instrument_brass_compass,seventh_berth_01
-instrument_tideglass,潮差镜,instrument,uncommon,8,2,2,0,0,0,0.3,35,0,0,0.27,520,0.85,玻璃提前显出下一轮潮差，让近岸船赶在沙洲封路前通过。珂拉发现银壳只在两道潮线重合时说话，从此不必整夜抱壳等候。,航速 +0.3　视野 +35,潮汐预判,instrument_tideglass,seventh_berth_02
-instrument_rainline_scope,雨线望镜,instrument,uncommon,9,3,3,0,0,0,+0.1,+40,3,0,0.27,550,0.85,镜片将雨幕折成竖线，斜度标出风暴远近。伊岚从镜里看见蓝火后的第二层雨，才识破海妖留在回音中的假影。,航速 +0.1　视野 +40,天气侦察,instrument_tideglass,seventh_berth_05
-instrument_current_spoon,洋流听勺,instrument,uncommon,7,2,2,0,0,0,+0.5,+30,3,0,0.27,570,0.85,铜勺贴住船底，水声便足以辨出暗流。塔姆误把它放进盐锅，却听见六港井水的声音，找到了还缺的最后一种配方。,航速 +0.5　视野 +30,顺流规划,instrument_tideglass,seventh_berth_10
-instrument_fogbell_chart,雾钟回声盘,instrument,uncommon,10,3,3,+1,0,0,0,+42,3,0,0.27,590,0.85,钟声回波在盘上画出细纹，白雾中也能标出礁壁。有次十三道纹竟排成古帝国港印，赫莲照着它打开了钟腹暗格。,船体 +1　视野 +42,雾区避障,instrument_tideglass,seventh_berth_03
-instrument_sunshadow_ring,日影航向环,instrument,uncommon,8,2,3,0,0,0,+0.4,+38,3,0,0.27,610,0.85,刻环缺的一格对着制作者故乡，正午指针便往那里偏。六港船长后来将各自经线刻入同一只环，盘上有了六条归路。,航速 +0.4　视野 +38,昼间定位,instrument_tideglass,seventh_berth_14
-instrument_guild_engine,商路推演机,instrument,rare,10,3,3,0,0,0,0,50,6,0,0.1,1100,0.85,数百份商船日志藏进齿轮，每转一圈便排去一条险路。录入盐船账册后，机器停在所有商会都已删去的第七码头航线。,视野 +50,安全商路,instrument_guild_engine,seventh_berth_04
-instrument_starledger,星位账簿机,instrument,rare,11,4,4,0,0,0,+0.3,+58,4,0,0.1,1160,0.85,星位曾被记作借贷，机器却只算归港最稳的路。财务官倒着录入六港账目，发现那些星点计的不是欠款，而是被困的水手。,航速 +0.3　视野 +58,远洋测位,instrument_guild_engine,seventh_berth_04
-instrument_corsair_decoder,私掠旗语译机,instrument,rare,9,3,3,0,0,+1,+0.2,+46,5,0,0.1,1210,0.85,滚筒记着数十支海盗旗队的暗号，曾用假旗让伏兵等到天亮。结盟那日，它第一次把同一句誓言译成六种旗语。,火力 +1　航速 +0.2　视野 +46,敌情识别,instrument_guild_engine,seventh_berth_14
-instrument_deepwater_abacus,深水算珠仪,instrument,rare,12,4,5,+2,0,0,+0.1,+55,4,0,0.1,1260,0.85,蓝石珠随船吃水移动，不开舱也能估算补给余量。无名伤员上船，珠子却纹丝不动；艾达由此发现，他们的时间仍停在沉没那夜。,船体 +2　航速 +0.1　视野 +55,补给精算,instrument_guild_engine,seventh_berth_08
-instrument_trade_wind_oracle,信风谕盘,instrument,rare,10,4,4,0,0,0,+0.4,+62,5,0,0.1,1320,0.85,七片薄叶存着七条商路的季风，换季便依次立起。进入晨曦海时，它们竟一齐竖直，那里的风不属于任何一条旧商路。,航速 +0.4　视野 +62,季风远征,instrument_guild_engine,seventh_berth_15
-instrument_lunar_astrolabe,月潮星盘,instrument,epic,12,4,4,0,0,0,0.5,75,8,0,0.029,2400,0.85,星盘同时读取星位与月潮。失去海图的探险队曾靠它把两种周期拼成一条归途。伊芙琳以石质星盘为底重校月轮，海巨人旧伤上的星座终于与真实天空接轨。,航速 +0.5　视野 +75,星潮合算,instrument_lunar_astrolabe,seventh_berth_06
-instrument_eclipse_orrery,蚀月天仪,instrument,epic,13,5,5,+2,0,0,+0.3,+82,6,0,0.029,2520,0.85,微型月轮先于真正的月蚀落下阴影，曾给船长几分钟避开暗流。弥赛拉看见它才道出：归潮舰队锁住的，除了门，还有时间。,船体 +2　航速 +0.3　视野 +82,暗夜航线,instrument_lunar_astrolabe,seventh_berth_13
-instrument_whalestar_receiver,鲸歌星讯仪,instrument,epic,11,4,4,0,0,+1,+0.8,+70,7,0,0.029,2640,0.85,鲸歌摇动星针，迁徙线恰好绕过季节风暴。伊岚并录海妖与鲸的歌，发现两种声音最终都在劝航船远离同一道深海门。,火力 +1　航速 +0.8　视野 +70,深海追踪,instrument_lunar_astrolabe,seventh_berth_05
-instrument_ghostmap_projector,幽图投影仪,instrument,epic,14,5,6,0,0,0,+0.2,+90,6,0,0.029,2760,0.85,薄雾穿镜，沉没的旧岸便重新显现，考古船曾循它找到灯塔基座。照上黑玻璃时，两重海岸慢慢相合，拼出完整的第七码头。,航速 +0.2　视野 +90,遗迹勘探,instrument_lunar_astrolabe,seventh_berth_12
-instrument_aurora_calculator,极光航算机,instrument,epic,12,5,5,+1,0,0,+0.7,+78,6,0,0.029,2880,0.85,晶轮将极光颜色换成方位，磁针冻住也能指北。巨人把碎晶按入轮中后，机器所指的北方，变成了它记忆里的故乡。,船体 +1　航速 +0.7　视野 +78,高纬导航,instrument_lunar_astrolabe,seventh_berth_06
-instrument_allseeing_sextant,全视六分仪,instrument,legendary,15,5,6,0,0,0,1,110,12,0,0.001,5200,0.85,雾中也能锁住远方地标的六分仪，偶尔映出尚未建成的灯塔。归潮水手一眼认出它，喊的却是二十年前的旧名。,航速 +1　视野 +110,迷雾全知,instrument_allseeing_sextant,seventh_berth_12
-instrument_eye_of_depths,深渊观测眼,instrument,legendary,16,6,7,+3,0,0,+0.6,+120,9,0,0.001,5480,0.85,黑透镜取自未知巨兽，海下危险将至便收窄光圈。每次收缩，守门兽都向后退；弥赛拉请持有者别忘了，预警也可能是在求救。,船体 +3　航速 +0.6　视野 +120,深海预警,instrument_allseeing_sextant,seventh_berth_13
-instrument_worldcompass,万海归一罗盘,instrument,legendary,14,5,6,0,0,+1,+1.3,+105,10,0,0.001,5760,0.85,五海砂粒嵌在盘缘，总有一粒先亮，指着近处的安全港。第六份港砂添入后，原先相斥的五针一同转向约定的会师点。,火力 +1　航速 +1.3　视野 +105,环球远征,instrument_allseeing_sextant,seventh_berth_14
-instrument_celestial_engine,天穹推演圣机,instrument,legendary,18,7,9,+2,0,0,+0.7,+135,10,0,0.001,6040,0.85,星轮曾替二十艘散船算出同时抵港的路线。维克拆去象征贸易优先的金齿轮，最慢的医疗船才得以与旗舰一同靠岸。,船体 +2　航速 +0.7　视野 +135,舰队统筹,instrument_allseeing_sextant,seventh_berth_14
-instrument_last_horizon_lens,终界地平镜,instrument,legendary,13,5,5,0,0,0,+1.1,+145,11,0,0.001,6320,0.85,镜里总比海图多一道地平线，驶近便有新岛从晨雾中升起。末艘归潮船越过那条线后，镜中还留着六座旧港的灯火。,航速 +1.1　视野 +145,未知海发现,instrument_allseeing_sextant,seventh_berth_15
+component_id,name,slot,rarity,install_wood,max_hull,armor,firepower,speed,vision,power,cannon_slots,shop_rarity_chance,shop_rarity_price,shop_slot_multiplier,description,effect,specialization,art_source_id,story_id
+bow_oak_ram,橡木破浪角,bow,common,6,5,0,0,0,0,0,0,0.6,240,1,老船匠把沉船龙骨削成这枚撞角。它曾护送三代近海邮船穿过冬季碎冰。断锚之夜，它撞开了废船坞的闸板，守夜人才能把无名船藏入黑暗。,船体 +5,稳健耐撞,bow_oak_ram,seventh_berth_01
+bow_ironwood_beak,铁木穿潮喙,bow,common,7,+4,0,0,+0.1,0,1,0,0.6,250,1,白贝渔民把盐浸铁木拼成尖喙，借它劈开低潮回流。珂拉曾将银壳系在喙尖；小船驶进潮沟，壳里第一次念出铜钟港的名字。,船体 +4　航速 +0.1,近岸破浪,bow_ironwood_beak,seventh_berth_02
+bow_ashwave_wedge,灰浪楔首,bow,common,5,+3,0,0,+0.2,0,1,0,0.6,260,1,旧码头的楔木陪一位退役领航员跑完十二趟短航。洛恩摸过船首的钉孔，认出那是失踪守夜人修过的码头留下的孔眼。,船体 +3　航速 +0.2,轻量巡航,bow_ashwave_wedge,seventh_berth_01
+bow_harborbreaker,港闸短冲角,bow,common,8,+6,0,0,-0.1,0,1,0,0.6,270,1,推开失控货驳时留下的撞痕，港卫一直没有磨平。钟响十三次的夜里，它再次顶开货驳，露出压在船底的薄铜海图拓片。,船体 +6　航速 -0.1,港湾接舷,bow_harborbreaker,seventh_berth_03
+bow_sawtooth_drift,漂木锯齿首,bow,common,5,+4,0,+1,0,0,2,0,0.6,280,1,拾荒者把旧锯片嵌进漂木，先用它割断登船索。乌铎后来带它下到锚墓，锯开腐绳，取回了缠在绳中的舰队铜牌。,船体 +4　火力 +1,缠索破坏,bow_sawtooth_drift,seventh_berth_11
+bow_reef_cutter,礁切斜首,bow,uncommon,8,7,0,0,0.4,0,0,0,0.27,520,1,船首沿鲸鲨的吻线收窄，曾满帆穿过双礁门。赛娜在门后追上移动的岛影，才发现船一直航行在海巨人的手指之间。,船体 +7　航速 +0.4,礁区穿行,bow_reef_cutter,seventh_berth_06
+bow_coral_parting_blade,分珊瑚刃首,bow,uncommon,9,+6,0,0,+0.5,0,2,0,0.27,550,1,潜水匠照着珊瑚枝杈量出弧刃，让船拨开枝条而不惊鱼。阿棠用活龙骨刨花校正它时，新木与珊瑚一同弯向海图的空白处。,船体 +6　航速 +0.5,浅滩突进,bow_coral_parting_blade,seventh_berth_07
+bow_smuggler_needle,走私客针首,bow,uncommon,7,+5,0,0,+0.3,+8,2,0,0.27,570,1,无灯船队称它为“针”，说它能循一缕月光穿过封锁。无旗盐船到港那夜，针首的银光照见盐人胸口，一颗星比别处迟亮了片刻。,船体 +5　航速 +0.3　视野 +8,夜航潜入,bow_smuggler_needle,seventh_berth_04
+bow_tidehook_ram,钩潮弯角,bow,uncommon,9,+8,0,+1,+0.1,0,4,0,0.27,590,1,捕鲸船的牵引钩改作船首后，仍能咬住敌舰舷侧，替炮手争取一次齐射。米拉曾借它固定测距绳，将最后一门旧炮对准潮门巨链。,船体 +8　火力 +1　航速 +0.1,侧撞牵制,bow_tidehook_ram,seventh_berth_09
+bow_sprayfox_prow,逐沫狐首,bow,uncommon,7,+6,0,0,+0.2,+12,3,0,0.27,610,1,少年船长把故乡石狐刻在船头，雾里的白沫常替它标出暗礁间隙。银壳初次传来求救声时，狐首正望着退潮露出的白沙小径。,船体 +6　航速 +0.2　视野 +12,侦察机动,bow_sprayfox_prow,seventh_berth_02
+bow_gilded_mermaid,鎏金海妖像,bow,rare,10,10,1,0,0,0,6,0,0.1,1100,1,商会旗舰沉没后，只有海妖像浮回港湾，眼角的火药痕无人擦去。伊岚从中认出回音咒文：弥赛拉不愿重唱的歌，被雕像记住了。,船体 +10　装甲 +1,旗舰威慑,bow_gilded_mermaid,seventh_berth_05
+bow_sunlion_figurehead,日狮镇浪像,bow,rare,11,+11,0,+1,0,+10,5,0,0.1,1160,1,狮鬃浇自盐冠港第一炉晨金。晨光落上船首，水手便知道该列队了。盐船账册写着铸匠姓名，可归潮舰队失踪时，那人的炉子早已封停。,船体 +11　火力 +1　视野 +10,正面压制,bow_sunlion_figurehead,seventh_berth_04
+bow_pearl_siren,珠母歌姬首,bow,rare,9,+9,0,0,+0.6,+14,4,0,0.1,1210,1,百片旧珠母拼成鳞衣，夜航人说浪声经过它，会唱出安全水道。弥赛拉用最后一节歌补好缺鳞，把守门的誓言留在了船首。,船体 +9　航速 +0.6　视野 +14,远洋引航,bow_pearl_siren,seventh_berth_13
+bow_guildbreaker_crest,破会徽角,bow,rare,12,+12,+1,0,+0.2,0,5,0,0.1,1260,1,缴获的私掠徽章被熔进冲角。六港签盟那天，最后一枚也下了炉；冷却后的金属上，再辨不出它原属哪家商会。,船体 +12　装甲 +1　航速 +0.2,商船护航,bow_guildbreaker_crest,seventh_berth_14
+bow_amber_albatross,琥珀信天翁首,bow,rare,10,+8,0,0,+0.7,0,3,0,0.1,1320,1,鸟首的琥珀封着一根羽毛，失踪船队据说循其倒影找回航线。晨曦海显现时，羽尖却转向归潮水手的故乡，越过了藏宝海沟。,船体 +8　航速 +0.7,长途追风,bow_amber_albatross,seventh_berth_15
+bow_abyssal_fang,深渊鲸牙,bow,epic,13,16,2,0,-0.3,0,0,0,0.029,2400,1,兽骨取自无光海沟，静海里也有远鲸般的低鸣。琪娅在牙根找到会愈合的纤维，与无名船龙骨相同；两者原出自同一种古兽。,船体 +16　装甲 +2　航速 -0.3,重装冲阵,bow_abyssal_fang,seventh_berth_07
+bow_nightkraken_tusk,夜海妖巨齿,bow,epic,14,+15,0,+3,-0.2,0,8,0,0.029,2520,1,幸存炮长不愿重提巨齿来处，只说它曾咬断海怪腕足。很久以后他才承认，那夜救下自己的，是伊岚逼退海妖时的一束蓝焰。,船体 +15　火力 +3　航速 -0.2,破甲突击,bow_nightkraken_tusk,seventh_berth_05
+bow_gravecurrent_spur,墓潮骨刺,bow,epic,12,+14,0,0,+0.1,+24,5,0,0.029,2640,1,经过沉船海域，盐霜下便显出一行失落舰名。石港升起后，人们拿着拓本沿泊位寻找，每一个名字都找到了它的船。,船体 +14　航速 +0.1　视野 +24,迷雾探索,bow_gravecurrent_spur,seventh_berth_12
+bow_blackreef_hammer,黑礁碎舰槌,bow,epic,15,+18,+3,0,-0.6,0,8,0,0.029,2760,1,火山礁心裹住钢梁，初航便撞开废海堡的封港链。潮门之战时，槌首先敲松外链铆钉，赫莲才得以一炮击断主链。,船体 +18　装甲 +3　航速 -0.6,堡垒攻坚,bow_blackreef_hammer,seventh_berth_09
+bow_voidray_edge,虚空鳐翼首,bow,epic,13,+13,0,0,+0.9,+20,6,0,0.029,2880,1,薄刃依深海鳐翼锻成，转舵时仿佛有另一片海托住船底。海巨人见到它，曾低下手掌，让试航船避开自己醒来带起的涡流。,船体 +13　航速 +0.9　视野 +20,高速侧切,bow_voidray_edge,seventh_berth_06
+bow_leviathan_ram,海兽王冲角,bow,legendary,16,24,3,0,-0.5,0,10,0,0.001,5200,1,铁甲舰被撕开后，对手将冲角画进避战旗。舰阵散去，持有者把旗裁成六份，缝在同盟救生艇上，盼炮手看见便肯停火。,船体 +24　装甲 +3　航速 -0.5,舰阵撕裂,bow_leviathan_ram,seventh_berth_14
+bow_crownless_colossus,无冠巨像首,bow,legendary,17,+22,0,+5,-0.2,0,13,0,0.001,5480,1,海潮磨去了古像的王冠，留下整圈凹槽。巨人说那原是一副枷锁；铸匠听后收起金料，没再替它补冠。,船体 +22　火力 +5　航速 -0.2,王舰猎杀,bow_crownless_colossus,seventh_berth_06
+bow_worldsplitter,裂海天楔,bow,legendary,15,+20,0,0,+1.2,+30,9,0,0.001,5760,1,落进礁湖的天外铁被锻成船楔，驶过时白浪久久不合。最后一道浪口通向晨曦海，合拢前，还容得下一艘救生艇。,船体 +20　航速 +1.2　视野 +30,极限破浪,bow_worldsplitter,seventh_berth_15
+bow_dragonwake_ram,龙醒赤角,bow,legendary,19,+26,+4,+3,-0.8,0,15,0,0.001,6040,1,赤角曾钉在焚毁龙船的脊梁上，闻鼓声便亮起旧焦痕。潮门炮响前，船员击鼓三下，借它挡住撞击，让装弹手稳住身子。,船体 +26　装甲 +4　火力 +3　航速 -0.8,决战冲锋,bow_dragonwake_ram,seventh_berth_09
+bow_last_horizon,终界航标首,bow,legendary,16,+19,0,0,+1,+45,9,0,0.001,6320,1,没有工匠承认造过它。唯一记录说它从地图尽头漂回并把船头永远指向尚未命名的海。第七码头消失后，终界航标仍指向东方，仿佛还有一位迟到水手需要接回。,船体 +19　航速 +1　视野 +45,未知海开拓,bow_last_horizon,seventh_berth_15
+sail_patched_lateen,补片三角帆,sail,common,3,0,0,0,0.6,0,0,0,0.6,240,0.9,七色补片记着七次平安返航，最后一道针脚始终歪着。洛恩摸到来自无名船的第七块布，才知道那艘船也曾回来过。,航速 +0.6,低耗巡航,sail_patched_lateen,seventh_berth_01
+sail_coast_runner,岸风短帆,sail,common,3,0,0,0,+0.5,+4,1,0,0.6,250,0.9,渔妇用晒网架裁成短帆，最能接住清晨岩壁边的轻风。赛娜借这阵风送出银壳译信，送到了旧钟楼值夜的赫莲手里。,航速 +0.5　视野 +4,沿岸机动,sail_coast_runner,seventh_berth_02
+sail_tarred_square,焦油方帆,sail,common,4,+1,0,0,+0.4,0,1,0,0.6,260,0.9,打翻的焦油浸透旧帆，反让它撑过三场暴雨。货船纷纷照做，艾达也用它隔出病舱，替黑沙伤员挡住雨夜泼进来的海水。,船体 +1　航速 +0.4,耐候运输,sail_tarred_square,seventh_berth_08
+sail_gullwing_cloth,鸥翼小帆,sail,common,2,0,0,0,+0.7,+2,2,0,0.6,270,0.9,制帆童照着海鸥收翼的样子下剪，小船转过港汊便能吃满风。珂拉随船捞起银壳时，那个孩子听见壳里唤了一声自己的乳名。,航速 +0.7　视野 +2,轻帆侦察,sail_gullwing_cloth,seventh_berth_02
+sail_dawnstripe_canvas,曙纹帆布,sail,common,3,0,0,0,+0.55,+6,1,0,0.6,280,0.9,橙纹起初只是晨雾里的相认标记，远航后成了归途的颜色。六港舰队约好：等曙纹帆升起，再一同点灯。,航速 +0.55　视野 +6,晨雾航行,sail_dawnstripe_canvas,seventh_berth_14
+sail_storm_canvas,风暴帆布,sail,uncommon,4,0,0,0,1,20,0,0,0.27,520,0.9,湿气先收紧帆线，桅杆弯下去时，帆弧仍然完整。海巨人翻身掀浪那日，试航船没有落帆，赛娜才得以看清它背上的星图。,航速 +1　视野 +20,恶劣天气,sail_storm_canvas,seventh_berth_06
+sail_crosswind_lattice,横风格帆,sail,uncommon,5,0,0,0,+1.1,+12,3,0,0.27,550,0.9,交错索带把侧风分入三段帆面，曾在逆风海峡抢回半日。走私领航员用它拖出漩涡里的盐船，船上的盐人却连眼睛也没转一下。,航速 +1.1　视野 +12,侧风转化,sail_crosswind_lattice,seventh_berth_04
+sail_rainheron_wing,雨鹭翼帆,sail,uncommon,4,0,0,0,+0.9,+24,3,0,0.27,570,0.9,灰白帆尖像雨鹭伸颈，沿纹流下的雨珠指着晴空。蓝火照上这些水珠时，伊岚第一次看见歌声回音穿过雨幕的轨迹。,航速 +0.9　视野 +24,雨幕索敌,sail_rainheron_wing,seventh_berth_05
+sail_saltfox_rig,盐狐索帆,sail,uncommon,4,+1,0,0,+1.2,0,3,0,0.27,590,0.9,走私犯制成三角索帆后，港官只追得到他的尾浪。盐船到港那夜，他却主动亮出船名，为账册上的失踪者留下证词。,船体 +1　航速 +1.2,快速转帆,sail_saltfox_rig,seventh_berth_04
+sail_bluebell_canvas,蓝钟报风帆,sail,uncommon,5,0,0,0,+0.8,+28,3,0,0.27,610,0.9,帆角小铃会在变风前响三声，催人收帆。那夜它竟随港钟响了十三次；维克拆开铃舌，取出父亲藏下的密码短句。,航速 +0.8　视野 +28,风向预警,sail_bluebell_canvas,seventh_berth_03
+sail_guild_silk,商会金丝帆,sail,rare,5,0,0,0,1.5,30,0,0,0.1,1100,0.9,金丝织成远距识别码，曾把迷航商船领回护航队。签盟后，商会交出了织法，六港船长不必再付过路费便能认得彼此。,航速 +1.5　视野 +30,商路远航,sail_guild_silk,seventh_berth_14
+sail_emerald_trade_wing,翡翠商翼帆,sail,rare,6,+1,0,0,+1.4,+38,5,0,0.1,1160,0.9,帆缘缝着十二座补给港的徽记，第十三枚却没有港名。拆开针脚，里面是一张芙萝的青柑汤配方。,船体 +1　航速 +1.4　视野 +38,护航编队,sail_emerald_trade_wing,seventh_berth_10
+sail_sunthread_spinnaker,日线追风帆,sail,rare,5,0,0,0,+1.8,+22,5,0,0.1,1210,0.9,矿丝把日光留到黄昏，让帆仍泛着暖色，兜住暮风。驶入晨曦海后，那点光慢慢淡了；船终于被真正的黎明追上。,航速 +1.8　视野 +22,顺风冲刺,sail_sunthread_spinnaker,seventh_berth_15
+sail_redroute_broadsail,红航路阔帆,sail,rare,7,0,0,+1,+1.3,+34,6,0,0.1,1260,0.9,帆上赤线标着旧海军的安全航道，炮烟里也能认队形。赫莲按线布置舰位，让六种口径一同瞄住巨链最薄的一环。,火力 +1　航速 +1.3　视野 +34,战列巡航,sail_redroute_broadsail,seventh_berth_09
+sail_whisperveil,低语雾帆,sail,rare,5,0,0,0,+1.6,+42,6,0,0.1,1320,0.9,银灰帆布吸走绳索声，勘探船得以从沉睡海兽头顶驶过。赛娜屏息看向水下，才发现那巨物身上竟有人的掌纹。,航速 +1.6　视野 +42,隐雾侦察,sail_whisperveil,seventh_berth_06
+sail_moonweave,月织静风帆,sail,epic,7,0,0,0,2,50,0,0,0.029,2400,0.9,织工在满月涨潮时完成最后一针。此后即使海面如镜帆布也会被月潮轻轻牵动。第七码头无风无浪，只有这面帆仍在摆动，为被困舰队指出了出港方向。,航速 +2　视野 +50,无风航行,sail_moonweave,seventh_berth_12
+sail_eclipse_shroud,蚀月影帆,sail,epic,8,0,0,+1,+1.9,+62,9,0,0.029,2520,0.9,暗银环留在黑帆中央，瞭望塔见到它时，舰影往往已经很近。弥赛拉把最后一道月影藏入帆心；六港船只便靠这点暗光认出潮门。,火力 +1　航速 +1.9　视野 +62,夜战接近,sail_eclipse_shroud,seventh_berth_13
+sail_starshear_rig,裁星索帆,sail,epic,7,0,0,0,+2.3,+44,7,0,0.029,2640,0.9,索结依五颗航星排列，据说星位对准便不漏掉一缕高空风。它与石盘上的五颗星恰好重合，让赛娜开始相信巨人也曾航过海。,航速 +2.3　视野 +44,远洋竞速,sail_starshear_rig,seventh_berth_06
+sail_ghostcurrent_canvas,幽流逆帆,sail,epic,9,+2,0,0,+1.8,+56,7,0,0.029,2760,0.9,潮术师缝起沉船旧帆，它仍记着吞没主人的洋流。无名船进港时，残帆忽然反向鼓起；守夜人知道，船后跟着的潮水不属于今夜。,船体 +2　航速 +1.8　视野 +56,逆流突破,sail_ghostcurrent_canvas,seventh_berth_01
+sail_aurora_fan,极光扇帆,sail,epic,6,0,0,0,+2.2,+68,8,0,0.029,2880,0.9,极光曾落进半透明帆面，冰海夜里仍能循着那道彩路航行。米蕾让旧水手看它，水手想起沉没那晚，北方还有一条未结冰的路。,航速 +2.2　视野 +68,极地探索,sail_aurora_fan,seventh_berth_08
+sail_tempest_wing,暴风翼帆,sail,legendary,9,0,0,0,3,70,6,0,0.001,5200,0.9,翼帆把侧风折向船后，初任船长凭它穿过风暴眼，绘回气象图。重返那片海时，图背多了一条航线，指向晨曦海。,航速 +3　视野 +70,风暴征服,sail_tempest_wing,seventh_berth_15
+sail_skybreaker_array,裂空九翼帆,sail,legendary,10,+2,0,0,+3.2,+60,10,0,0.001,5480,0.9,九片副翼逐次展开，曾让满载舰追上轻快的私掠船。奥瑟将九翼骨架分给同盟重舰，那些互不相让的船才渐渐有了同一个节奏。,船体 +2　航速 +3.2　视野 +60,重舰高速,sail_skybreaker_array,seventh_berth_14
+sail_crown_of_gales,万风王冠帆,sail,legendary,11,0,0,+2,+2.8,+90,14,0,0.001,5760,0.9,顶帆汇集八方风声，失散编队循着金光归列。六港领航旗依次升起时，每一种颜色都映进了这面帆的顶冠。,火力 +2　航速 +2.8　视野 +90,舰队领航,sail_crown_of_gales,seventh_berth_14
+sail_thunderphoenix,雷凰浴火帆,sail,legendary,9,+1,0,0,+3.4,+55,10,0,0.001,6040,0.9,雷击在帆上留下凰纹，布却没有烧穿。伊岚借一场雷雨洗去海妖咒音，只留雷纹；后来每逢闪电，旧帆便会短暂鼓满。,船体 +1　航速 +3.4　视野 +55,雷暴突进,sail_thunderphoenix,seventh_berth_05
+sail_last_free_wind,最后自由风帆,sail,legendary,8,0,0,0,+3.1,+105,12,0,0.001,6320,0.9,它由五支被解散船队各献一幅帆布拼成。缝线之间藏着他们尚未完成的航海愿望。第六座港口献来最后一根缝线时，自由风帆终于能带着归潮舰队离开旧时代。,航速 +3.1　视野 +105,无界探索,sail_last_free_wind,seventh_berth_15
+cannon_deck_swivel,甲板回旋炮,cannon,common,4,0,0,2,0,0,3,0,0.6,240,1.2,这门小炮在码头骚乱中转过整整一圈。它用最后一发空包弹吓退了登船者。它最后一发空包弹惊醒了洛恩，让他赶在涨潮前记下无名船的吃水线。,火力 +2,近距警戒,cannon_deck_swivel,seventh_berth_01
+cannon_harbor_popgun,港卫短响炮,cannon,common,3,0,0,+1,0,+3,2,0,0.6,250,1.2,短炮响得清脆，偷网的小艇往往听见便调头。加洛发现这一声恰能接在十二记港钟之后，把试射记录送进了钟楼。,火力 +1　视野 +3,驱离快艇,cannon_harbor_popgun,seventh_berth_03
+cannon_grapeshot_cup,铁砂盏炮,cannon,common,5,0,+1,+2,0,0,4,0,0.6,260,1.2,裂钟被铸作散射炮膛，仍守着原来的港门。赫莲从内壁拓出舰队密码时，铸炮师手里的锉刀离那片刻痕已不到一寸。,装甲 +1　火力 +2,甲板压制,cannon_grapeshot_cup,seventh_berth_03
+cannon_ropeguard_swivel,护索旋炮,cannon,common,4,0,0,+1,+0.1,+2,2,0,0.6,270,1.2,炮座靠着主索，夜袭时曾转身击落三只钩爪，护住升帆手。六港起航前，小补给船分到了这些炮；它们舱里装着药，也装着菜谱。,火力 +1　航速 +0.1　视野 +2,桅索防御,cannon_ropeguard_swivel,seventh_berth_14
+cannon_sparksnout,火星短铳炮,cannon,common,5,0,0,+3,-0.1,0,4,0,0.6,280,1.2,短膛火舌在浓雾里替友舰报过位置。艾达循光找到一艘伤船，船上无人呼救，舱里躺着第一位黑沙水手。,火力 +3　航速 -0.1,短程爆发,cannon_sparksnout,seventh_berth_08
+cannon_bronze_longgun,青铜长炮,cannon,uncommon,6,0,0,4,0,0,6,0,0.27,520,1.2,旧海防台的长炮移上甲板，仍瞄得准那条狭长航道。赫莲擦去炮管锈迹，发现前任炮官也曾以同样的角度对准潮门巨链。,火力 +4,均衡远射,cannon_bronze_longgun,seventh_berth_09
+cannon_gullcry_chaser,鸥鸣追击炮,cannon,uncommon,5,0,0,+3,+0.2,+5,5,0,0.27,550,1.2,弹丸的尖鸣先于炮烟传来，常令逃船乱阵。加洛借这一声替珂拉唤出银壳的最后一次回音，补齐坐标缺失的末位。,火力 +3　航速 +0.2　视野 +5,追逃射击,cannon_gullcry_chaser,seventh_berth_02
+cannon_breakwater_spear,防波堤长矛炮,cannon,uncommon,7,0,+1,+5,-0.2,0,9,0,0.27,570,1.2,防波堤吊机改成的炮架，在大浪里仍很稳。米拉把架上的旧刻度写进装药表，小港的炮也终于能加入断链齐射。,装甲 +1　火力 +5　航速 -0.2,定点破甲,cannon_breakwater_spear,seventh_berth_09
+cannon_saltflash_tube,盐闪火炮,cannon,uncommon,6,0,0,+4,0,+8,6,0,0.27,590,1.2,白烟被第二阵风吹弯，炮长便据此校正下一发落点。无旗盐船的结晶有次混进装药，烟里短暂浮出了六枚港印。,火力 +4　视野 +8,雾中校射,cannon_saltflash_tube,seventh_berth_04
+cannon_twinwatch_gun,双哨长炮,cannon,uncommon,7,+2,0,+4,0,0,6,0,0.27,610,1.2,两名退役哨兵合制瞄具，一个看浪，一个看旗，商船再没受过二次偷袭。护送无名伤员那趟，他们始终没有开炮。,船体 +2　火力 +4,护航反击,cannon_twinwatch_gun,seventh_berth_08
+cannon_chain_repeater,链弹连发炮,cannon,rare,8,0,0,6,0,0,10,1,0.1,1100,1.2,额外炮架最初用来储存链弹。试射时它一轮便剪断了靶船全部横桁。乌铎带回一环巨链供它试射，炮手终于找到必须同时命中的两个薄弱铆口。,火力 +6,断帆控制,cannon_chain_repeater,seventh_berth_09
+cannon_anchorbreaker,断锚双联炮,cannon,rare,9,0,+1,+7,-0.2,0,12,1,0.1,1160,1.2,双联炮首先击断的是封锁舰的巨锚，不是一艘船。赫莲在酒馆听完那阵链响的故事，明白潮门也不必整座摧毁。,装甲 +1　火力 +7　航速 -0.2,重件破坏,cannon_anchorbreaker,seventh_berth_09
+cannon_redwake_repeater,赤尾连火炮,cannon,rare,7,0,0,+6,+0.2,+6,10,1,0.1,1210,1.2,连发红光贴着水面延伸，曾被夜战舰队当作进攻旗号。米拉看着信号传遍六队，等最后一艘救生艇退开，才下令点火。,火力 +6　航速 +0.2　视野 +6,机动齐射,cannon_redwake_repeater,seventh_berth_14
+cannon_stormnail_array,风暴钉炮组,cannon,rare,10,+1,0,+8,-0.3,0,12,1,0.1,1260,1.2,长弹在强风里仍不偏航，曾钉住逃向云墙的敌船。风暴眼外，它又钉牢一块将翻的桅板，让最后一艘归潮船从旁驶过。,船体 +1　火力 +8　航速 -0.3,逆风压制,cannon_stormnail_array,seventh_berth_15
+cannon_echochamber,回声膛炮,cannon,rare,8,0,+1,+5,0,+14,10,1,0.1,1320,1.2,双膛将爆音送回测距筒，老炮长闭眼也能听出远近。伊岚借它追索海妖歌声，在射表上画出了那个看不见的对手。,装甲 +1　火力 +5　视野 +14,声测校射,cannon_echochamber,seventh_berth_05
+cannon_starfire_battery,星火炮列,cannon,epic,11,0,0,9,0,0,16,1,0.029,2400,1.2,古导轨让整列炮口同时点亮，海面像升起一小段星河。赛娜认出那光点与巨人背上的旧伤一致，向炮手要走了试炮纸。,火力 +9,同步火力,cannon_starfire_battery,seventh_berth_06
+cannon_cometfall_battery,彗落重炮列,cannon,epic,13,0,+1,+11,-0.5,0,17,1,0.029,2520,1.2,重弹拖着白焰划过夜空，岛堡称之为第二场流星雨。石港升起后，守军才认出同样的光：二十年前，舰队曾用它请求关门。,装甲 +1　火力 +11　航速 -0.5,堡垒轰击,cannon_cometfall_battery,seventh_berth_12
+cannon_blueflare_organ,蓝焰风琴炮,cannon,epic,10,+2,0,+8,0,+22,14,1,0.029,2640,1.2,十二根细管排成风琴，蓝火逐条照出弹道。伊岚装入回音咒文后，十二道火线从海面切开了弥赛拉的歌声。,船体 +2　火力 +8　视野 +22,多目标覆盖,cannon_blueflare_organ,seventh_berth_05
+cannon_voidbell_mortar,虚钟曲射炮,cannon,epic,12,0,0,+10,-0.3,+16,15,1,0.029,2760,1.2,击发时无声，落弹后才远远传回钟鸣。封存的炮尚未获准试射，赫莲已在钟楼听见第十三响，知道有人先动过它。,火力 +10　航速 -0.3　视野 +16,越障打击,cannon_voidbell_mortar,seventh_berth_03
+cannon_sunforge_salvo,日炉齐射炮,cannon,epic,12,+4,+1,+9,0,0,16,1,0.029,2880,1.2,反复回炼的铜纹越打越亮，热中仍不失准。奥瑟守炉三夜，才铸齐断链齐射所需的最后一批铜套，没有一只炸膛。,船体 +4　装甲 +1　火力 +9,持续炮战,cannon_sunforge_salvo,seventh_berth_09
+cannon_queens_broadside,海盗女王舷炮,cannon,legendary,15,0,0,13,-0.4,0,24,1,0.001,5200,1.2,炮口原只准刻下败过的旗舰名。一轮齐射改写海战阵线后，女王又添了六个未曾战胜的港名：这次，它们与她并肩。,火力 +13　航速 -0.4,舰队决战,cannon_queens_broadside,seventh_berth_14
+cannon_krakens_thunder,海怪雷鸣炮,cannon,legendary,17,0,+2,+15,-0.7,0,24,1,0.001,5480,1.2,海怪甲壳箍紧炮膛，据说初次轰鸣便让百年触手松开沉船。弥赛拉从响声认出守门兽，低声提醒炮手，真正的敌人还在门后。,装甲 +2　火力 +15　航速 -0.7,巨兽猎杀,cannon_krakens_thunder,seventh_berth_13
+cannon_worlds_end_volley,天涯终幕炮,cannon,legendary,16,+3,0,+14,0,+30,24,1,0.001,5760,1.2,测距尺的末格写着“天涯”，它曾越过那道刻度击中远桅。最后一发却换成信号星火，为迟到的归潮船照亮地平线。,船体 +3　火力 +14　视野 +30,超距终结,cannon_worlds_end_volley,seventh_berth_15
+cannon_dragonbreath_battery,赤龙吐息炮列,cannon,legendary,19,+2,0,+16,-0.8,0,23,1,0.001,6040,1.2,赤铜炮口在齐射前如鳞片张开，热浪逼得敌兵伏下。伊岚曾让火线绕过浅滩上的海妖；那一轮打完，海妖仍活着。,船体 +2　火力 +16　航速 -0.8,近距歼灭,cannon_dragonbreath_battery,seventh_berth_05
+cannon_liberty_salute,自由海二十一响,cannon,legendary,14,0,0,+12,+0.3,+25,20,1,0.001,6320,1.2,二十一艘解放船各献一根炮管，齐鸣时诸港便敲钟应答。迎接归潮舰队的那次，全装的是空包弹，晨光下没有再添一条沉船。,火力 +12　航速 +0.3　视野 +25,快速决战,cannon_liberty_salute,seventh_berth_15
+plating_braced_ribs,交叉撑肋,plating,common,8,8,1,0,-0.2,0,0,0,0.6,240,1.15,搁浅船腹教会木匠交叉受力，修好的船又走了十五年。琪娅拆开船肋时，才发现老木匠早把活龙骨屑塞进了最深的接缝。,船体 +8　装甲 +1　航速 -0.2,结构加固,plating_braced_ribs,seventh_berth_07
+plating_ropebound_ribs,缆束船肋,plating,common,7,+7,+1,0,-0.1,0,3,0,0.6,250,1.15,废缆浸胶束住船肋，碰撞时发出低沉回弹。乌铎循声找到井底通道，从潜水钟背后拽回遗落的铜牌。,船体 +7　装甲 +1　航速 -0.1,轻型防护,plating_ropebound_ribs,seventh_berth_11
+plating_pinepatch_skin,松脂补覆板,plating,common,6,+6,0,0,+0.1,0,2,0,0.6,260,1.15,松脂与箱板本是暴雨里的急修法，撑到返港后便留了下来。赫克托补好伤员小艇，每块板上都沾着一位无名水手的手印。,船体 +6　航速 +0.1,快速修复,plating_pinepatch_skin,seventh_berth_08
+plating_harboroak_band,港橡护舷带,plating,common,9,+9,0,0,-0.3,0,2,0,0.6,270,1.15,护舷木取自百年系船桩，撞痕层层叠着。锯开时落出一枚失踪守夜人的纽扣，人们才想起无名船也曾拴在这里。,船体 +9　航速 -0.3,靠泊抗撞,plating_harboroak_band,seventh_berth_01
+plating_corkwave_liner,软木隔浪层,plating,common,5,+5,+1,0,0,+3,3,0,0.6,280,1.15,软木吞去浪击的震动，让瞭望手稳住镜筒。赛娜也靠它托稳石盘，发现那颗所谓的新星，只是巨人旧伤延伸出的末梢。,船体 +5　装甲 +1　视野 +3,减震侦巡,plating_corkwave_liner,seventh_berth_06
+plating_iron_band,铁箍船壳,plating,uncommon,10,12,2,0,-0.5,0,0,0,0.27,520,1.15,触礁后船板尽裂，水线上的铁箍仍把船带回港。后来它把活龙骨勒得太紧，阿棠拆去内圈，船腹才重新响起呼吸声。,船体 +12　装甲 +2　航速 -0.5,水线防御,plating_iron_band,seventh_berth_07
+plating_riveted_scale,铆钉鳞板,plating,uncommon,9,+11,+2,0,-0.3,0,5,0,0.27,550,1.15,小铁片如鱼鳞叠覆，坏一片便换一片。琪娅与奥瑟交换锤印尺寸后，同盟维修船装上的甲，终于能在六港通用。,船体 +11　装甲 +2　航速 -0.3,均衡装甲,plating_riveted_scale,seventh_berth_14
+plating_wavebreaker_belt,破浪腰甲,plating,uncommon,11,+10,+2,0,-0.1,0,5,0,0.27,570,1.15,弧甲将浪分向两舷，让满载商船在冬汛里保住航速。白贝港曾把银壳译信藏在甲内，托船赶在封水前穿过最后一条沙洲。,船体 +10　装甲 +2　航速 -0.1,高速防浪,plating_wavebreaker_belt,seventh_berth_02
+plating_blacksmith_grid,炉匠格甲,plating,uncommon,12,+13,+3,0,-0.7,0,6,0,0.27,590,1.15,每块甲都留着不同的锤印，是港镇一夜炉火凑齐的护航装甲。背面还记着各港的钟声高低，米拉照着那些字排下一轮齐射。,船体 +13　装甲 +3　航速 -0.7,重载护航,plating_blacksmith_grid,seventh_berth_09
+plating_saltbronze_shell,盐青铜覆壳,plating,uncommon,10,+9,+2,0,0,+6,6,0,0.27,610,1.15,青铜在盐池埋满一年才上船，远航回来只添薄薄海绿。工人发现它与无旗盐船同时泛色，才从账册的星点里读出潮汐规律。,船体 +9　装甲 +2　视野 +6,耐蚀远航,plating_saltbronze_shell,seventh_berth_04
+plating_gilded_bulwark,鎏金舷墙,plating,rare,13,16,3,0,-0.7,0,5,0,0.1,1100,1.15,金边下是层叠钢木，挡过整轮舷炮，里面的宴会仍照常。那晚只多了一位不说话的客人，胸口时不时透出盐星的光。,船体 +16　装甲 +3　航速 -0.7,商队旗舰,plating_gilded_bulwark,seventh_berth_04
+plating_suncoin_rampart,日币护壁,plating,rare,12,+15,+3,0,-0.5,+8,8,0,0.1,1160,1.15,退市金币被熔成薄夹层，护住新装上船的货物。厨师取旧币压住锅底盐冠，六道缺口与六种配方的次序才看得分明。,船体 +15　装甲 +3　航速 -0.5　视野 +8,财富护航,plating_suncoin_rampart,seventh_berth_10
+plating_coralsteel_hide,珊钢复合壳,plating,rare,11,+14,+4,0,-0.6,0,8,0,0.1,1210,1.15,活珊瑚沿钢网长出缓冲层，受伤后也要修剪。米蕾发现它避着黑沙生长，阿棠便借它辨认无名船上尚活着的龙骨。,船体 +14　装甲 +4　航速 -0.6,礁海抗击,plating_coralsteel_hide,seventh_berth_07
+plating_redbanner_wall,赤旗舷垒,plating,rare,14,+17,+3,+1,-0.8,0,9,0,0.1,1260,1.15,透明树脂封住旧战旗，炮火亮起，旗上姓名便一一显现。归潮伤员看见它，喊出了自己的舰名，艾达才补全第一份病历。,船体 +17　装甲 +3　火力 +1　航速 -0.8,战列防护,plating_redbanner_wall,seventh_berth_08
+plating_merchants_oath,商誓护甲,plating,rare,12,+13,+3,0,+0.1,0,8,0,0.1,1320,1.15,三家敌对商会在轻合金甲后签下护航约定。六港结盟前夜，他们翻过旧约，又写上另外三座港口的名字。,船体 +13　装甲 +3　航速 +0.1,快速护送,plating_merchants_oath,seventh_berth_14
+plating_moonsilver_skin,月银覆板,plating,epic,16,22,4,0,-0.8,0,8,0,0.029,2400,1.15,遗迹金属会随潮汐缓慢闭合裂缝。守夜人常听见覆板在月下发出细小生长声。守夜人失踪前留下纸条：板上的生长声不是木头，是那艘船在试着记住回家路线。,船体 +22　装甲 +4　航速 -0.8,自愈防护,plating_moonsilver_skin,seventh_berth_07
+plating_eclipse_mail,蚀影链甲壳,plating,epic,15,+20,+5,0,-0.7,+10,12,0,0.029,2520,1.15,黑银环遇暗收紧，链弹曾沿甲滑进海里。弥赛拉刮下一枚银环，说当年的舰队正是借这种金属，把自己的时间锁住了。,船体 +20　装甲 +5　航速 -0.7　视野 +10,夜战防御,plating_eclipse_mail,seventh_berth_13
+plating_starseal_panels,星印封舱板,plating,epic,14,+21,+4,0,-0.4,0,10,0,0.029,2640,1.15,舱板刻着不同星位，进水时星图会标出裂口。伊芙琳将巨人星图刻上最后一块板，从此补漏工也能循着星光干活。,船体 +21　装甲 +4　航速 -0.4,破损控制,plating_starseal_panels,seventh_berth_06
+plating_ghostreef_carapace,幽礁甲壳,plating,epic,18,+24,+5,0,-1.1,0,11,0,0.029,2760,1.15,移动幽礁剥下的壳，在深水里摩擦作响，海兽闻声便避开。巨人醒来轻触它，船员才知道这原是它蜕下的一片肩甲。,船体 +24　装甲 +5　航速 -1.1,深海抗压,plating_ghostreef_carapace,seventh_berth_06
+plating_aurora_laminate,极光叠层甲,plating,epic,15,+19,+4,0,-0.3,+18,11,0,0.029,2880,1.15,极光封在透明叠层里，冰逼近时便聚向薄弱处。第七码头的旧船也泛着同样光带，只是那里的弱处，都是尚未留下的炮痕。,船体 +19　装甲 +4　航速 -0.3　视野 +18,寒海探索,plating_aurora_laminate,seventh_berth_12
+plating_living_hull,活潮船壳,plating,legendary,20,30,5,0,-1,0,12,0,0.001,5200,1.15,远古整体船壳仿佛仍在呼吸。受创后它会用潮湿木纹把碎片一点点拉回原位。六港船匠拼合龙骨刻痕时，活潮壳缓缓包住无名船，像终于认回失散的骨骼。,船体 +30　装甲 +5　航速 -1,持续远征,plating_living_hull,seventh_berth_07
+plating_leviathan_scales,海兽王鳞甲,plating,legendary,22,+32,+6,0,-1.3,0,14,0,0.001,5480,1.15,海军试炮三日，厚鳞上只留一枚浅白圆斑。海妖却请他们停手：门后的守兽把每次轰击，都听成舰队背弃誓言的信号。,船体 +32　装甲 +6　航速 -1.3,巨炮承受,plating_leviathan_scales,seventh_berth_13
+plating_worldtree_bark,海上世界树皮,plating,legendary,19,+28,+5,0,-0.4,+15,15,0,0.001,5760,1.15,树皮来自漂流森林的老干，缝里总冒出未播过的嫩芽。晨曦海上，新芽终于生根，归潮水手把第一片叶子留给送他们回家的六港。,船体 +28　装甲 +5　航速 -0.4　视野 +15,长航再生,plating_worldtree_bark,seventh_berth_15
+plating_dragonwake_armor,龙醒熔鳞壳,plating,legendary,24,+34,+7,0,-1.5,0,16,0,0.001,6040,1.15,鳞片入炉不改原形，命中时热量沿红纹散开。米拉把末道赤纹朝向巨链，船壳替火炮承住热浪，争得一次重新装填。,船体 +34　装甲 +7　航速 -1.5,正面决战,plating_dragonwake_armor,seventh_berth_09
+plating_freedom_ark,自由方舟外壳,plating,legendary,18,+27,+5,0,+0.2,+20,16,0,0.001,6320,1.15,五港城门木合成外壳，一段受损，其余四段便分担裂纹。第六港无门可拆，只送来旧系船桩，最后撑住了方舟尾舵。,船体 +27　装甲 +5　航速 +0.2　视野 +20,高速生存,plating_freedom_ark,seventh_berth_14
+instrument_brass_compass,黄铜定向仪,instrument,common,1,0,0,0,0,20,0,0,0.6,240,0.85,老钟表匠把退休怀表的摆轮装进罗盘。它因此比普通指针更能熬过船身颠簸。维克在退休怀表的编号中认出父亲的舰队密码，于是拆开了钟楼尘封的记录柜。,视野 +20,基础导航,instrument_brass_compass,seventh_berth_03
+instrument_harbor_dial,港汊方位盘,instrument,common,2,0,0,0,+0.1,+18,1,0,0.6,250,0.85,盘面写满潮沟俗名，外乡人须跟渔民学着念。赛娜将银壳坐标译成这些名字，第一队搜救船才认出该往哪里走。,航速 +0.1　视野 +18,近港引航,instrument_harbor_dial,seventh_berth_02
+instrument_gullbone_needle,鸥骨磁针,instrument,common,1,0,0,0,0,+22,1,0,0.6,260,0.85,磁针藏在中空鸥骨里，不易被颠簸摇偏。捡到它的孩子成了少年领航员，循针看见移动岛影后，再没称海巨人为怪物。,视野 +22,轻装侦测,instrument_gullbone_needle,seventh_berth_06
+instrument_ropeknot_log,绳结计程器,instrument,common,2,0,0,0,+0.2,+16,1,0,0.6,270,0.85,绳结逐一经过同一双手，星月全无时也能凭掌心报船速。洛恩握着守夜人留下的绳，测出无名船曾逆潮走满一海里。,航速 +0.2　视野 +16,航程估算,instrument_ropeknot_log,seventh_berth_01
+instrument_lantern_bearing,灯影测向尺,instrument,common,1,+1,0,0,0,+24,2,0,0.6,280,0.85,两片铜尺借灯塔投影测向，雾里带救生艇找到最后一盏孤灯。灯挂在废船坞门前，下面只剩六枚港印和映着陌生星空的黑玻璃。,船体 +1　视野 +24,夜港定位,instrument_lantern_bearing,seventh_berth_01
+instrument_tideglass,潮差镜,instrument,uncommon,2,0,0,0,0.3,35,0,0,0.27,520,0.85,玻璃提前显出下一轮潮差，让近岸船赶在沙洲封路前通过。珂拉发现银壳只在两道潮线重合时说话，从此不必整夜抱壳等候。,航速 +0.3　视野 +35,潮汐预判,instrument_tideglass,seventh_berth_02
+instrument_rainline_scope,雨线望镜,instrument,uncommon,3,0,0,0,+0.1,+40,3,0,0.27,550,0.85,镜片将雨幕折成竖线，斜度标出风暴远近。伊岚从镜里看见蓝火后的第二层雨，才识破海妖留在回音中的假影。,航速 +0.1　视野 +40,天气侦察,instrument_rainline_scope,seventh_berth_05
+instrument_current_spoon,洋流听勺,instrument,uncommon,2,0,0,0,+0.5,+30,3,0,0.27,570,0.85,铜勺贴住船底，水声便足以辨出暗流。塔姆误把它放进盐锅，却听见六港井水的声音，找到了还缺的最后一种配方。,航速 +0.5　视野 +30,顺流规划,instrument_current_spoon,seventh_berth_10
+instrument_fogbell_chart,雾钟回声盘,instrument,uncommon,3,+1,0,0,0,+42,3,0,0.27,590,0.85,钟声回波在盘上画出细纹，白雾中也能标出礁壁。有次十三道纹竟排成古帝国港印，赫莲照着它打开了钟腹暗格。,船体 +1　视野 +42,雾区避障,instrument_fogbell_chart,seventh_berth_03
+instrument_sunshadow_ring,日影航向环,instrument,uncommon,3,0,0,0,+0.4,+38,3,0,0.27,610,0.85,刻环缺的一格对着制作者故乡，正午指针便往那里偏。六港船长后来将各自经线刻入同一只环，盘上有了六条归路。,航速 +0.4　视野 +38,昼间定位,instrument_sunshadow_ring,seventh_berth_14
+instrument_guild_engine,商路推演机,instrument,rare,3,0,0,0,0,50,6,0,0.1,1100,0.85,数百份商船日志藏进齿轮，每转一圈便排去一条险路。录入盐船账册后，机器停在所有商会都已删去的第七码头航线。,视野 +50,安全商路,instrument_guild_engine,seventh_berth_04
+instrument_starledger,星位账簿机,instrument,rare,4,0,0,0,+0.3,+58,4,0,0.1,1160,0.85,星位曾被记作借贷，机器却只算归港最稳的路。财务官倒着录入六港账目，发现那些星点计的不是欠款，而是被困的水手。,航速 +0.3　视野 +58,远洋测位,instrument_starledger,seventh_berth_04
+instrument_corsair_decoder,私掠旗语译机,instrument,rare,3,0,0,+1,+0.2,+46,5,0,0.1,1210,0.85,滚筒记着数十支海盗旗队的暗号，曾用假旗让伏兵等到天亮。结盟那日，它第一次把同一句誓言译成六种旗语。,火力 +1　航速 +0.2　视野 +46,敌情识别,instrument_corsair_decoder,seventh_berth_14
+instrument_deepwater_abacus,深水算珠仪,instrument,rare,5,+2,0,0,+0.1,+55,4,0,0.1,1260,0.85,蓝石珠随船吃水移动，不开舱也能估算补给余量。无名伤员上船，珠子却纹丝不动；艾达由此发现，他们的时间仍停在沉没那夜。,船体 +2　航速 +0.1　视野 +55,补给精算,instrument_deepwater_abacus,seventh_berth_08
+instrument_trade_wind_oracle,信风谕盘,instrument,rare,4,0,0,0,+0.4,+62,5,0,0.1,1320,0.85,七片薄叶存着七条商路的季风，换季便依次立起。进入晨曦海时，它们竟一齐竖直，那里的风不属于任何一条旧商路。,航速 +0.4　视野 +62,季风远征,instrument_trade_wind_oracle,seventh_berth_15
+instrument_lunar_astrolabe,月潮星盘,instrument,epic,4,0,0,0,0.5,75,8,0,0.029,2400,0.85,星盘同时读取星位与月潮。失去海图的探险队曾靠它把两种周期拼成一条归途。伊芙琳以石质星盘为底重校月轮，海巨人旧伤上的星座终于与真实天空接轨。,航速 +0.5　视野 +75,星潮合算,instrument_lunar_astrolabe,seventh_berth_06
+instrument_eclipse_orrery,蚀月天仪,instrument,epic,5,+2,0,0,+0.3,+82,6,0,0.029,2520,0.85,微型月轮先于真正的月蚀落下阴影，曾给船长几分钟避开暗流。弥赛拉看见它才道出：归潮舰队锁住的，除了门，还有时间。,船体 +2　航速 +0.3　视野 +82,暗夜航线,instrument_eclipse_orrery,seventh_berth_13
+instrument_whalestar_receiver,鲸歌星讯仪,instrument,epic,4,0,0,+1,+0.8,+70,7,0,0.029,2640,0.85,鲸歌摇动星针，迁徙线恰好绕过季节风暴。伊岚并录海妖与鲸的歌，发现两种声音最终都在劝航船远离同一道深海门。,火力 +1　航速 +0.8　视野 +70,深海追踪,instrument_whalestar_receiver,seventh_berth_05
+instrument_ghostmap_projector,幽图投影仪,instrument,epic,6,0,0,0,+0.2,+90,6,0,0.029,2760,0.85,薄雾穿镜，沉没的旧岸便重新显现，考古船曾循它找到灯塔基座。照上黑玻璃时，两重海岸慢慢相合，拼出完整的第七码头。,航速 +0.2　视野 +90,遗迹勘探,instrument_ghostmap_projector,seventh_berth_12
+instrument_aurora_calculator,极光航算机,instrument,epic,5,+1,0,0,+0.7,+78,6,0,0.029,2880,0.85,晶轮将极光颜色换成方位，磁针冻住也能指北。巨人把碎晶按入轮中后，机器所指的北方，变成了它记忆里的故乡。,船体 +1　航速 +0.7　视野 +78,高纬导航,instrument_aurora_calculator,seventh_berth_06
+instrument_allseeing_sextant,全视六分仪,instrument,legendary,6,0,0,0,1,110,12,0,0.001,5200,0.85,雾中也能锁住远方地标的六分仪，偶尔映出尚未建成的灯塔。归潮水手一眼认出它，喊的却是二十年前的旧名。,航速 +1　视野 +110,迷雾全知,instrument_allseeing_sextant,seventh_berth_12
+instrument_eye_of_depths,深渊观测眼,instrument,legendary,7,+3,0,0,+0.6,+120,9,0,0.001,5480,0.85,黑透镜取自未知巨兽，海下危险将至便收窄光圈。每次收缩，守门兽都向后退；弥赛拉请持有者别忘了，预警也可能是在求救。,船体 +3　航速 +0.6　视野 +120,深海预警,instrument_eye_of_depths,seventh_berth_13
+instrument_worldcompass,万海归一罗盘,instrument,legendary,6,0,0,+1,+1.3,+105,10,0,0.001,5760,0.85,五海砂粒嵌在盘缘，总有一粒先亮，指着近处的安全港。第六份港砂添入后，原先相斥的五针一同转向约定的会师点。,火力 +1　航速 +1.3　视野 +105,环球远征,instrument_worldcompass,seventh_berth_14
+instrument_celestial_engine,天穹推演圣机,instrument,legendary,9,+2,0,0,+0.7,+135,10,0,0.001,6040,0.85,星轮曾替二十艘散船算出同时抵港的路线。维克拆去象征贸易优先的金齿轮，最慢的医疗船才得以与旗舰一同靠岸。,船体 +2　航速 +0.7　视野 +135,舰队统筹,instrument_celestial_engine,seventh_berth_14
+instrument_last_horizon_lens,终界地平镜,instrument,legendary,5,0,0,0,+1.1,+145,11,0,0.001,6320,0.85,镜里总比海图多一道地平线，驶近便有新岛从晨雾中升起。末艘归潮船越过那条线后，镜中还留着六座旧港的灯火。,航速 +1.1　视野 +145,未知海发现,instrument_last_horizon_lens,seventh_berth_15

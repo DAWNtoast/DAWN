@@ -125,6 +125,35 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void ReleaseLoadedTextures_PreservesBorrowedAtlasesAndRestoresLazyLoading()
+        {
+            ItemIconCatalog.ReleaseLoadedTextures();
+            Texture2D cargo = ItemIconCatalog.ForCargo("water").Texture;
+            Texture2D first = ItemIconCatalog.ForTreasure(CoreWarehouseCollection.Catalog[0]).Texture;
+            Texture2D second = ItemIconCatalog.ForTreasure(CoreWarehouseCollection.Catalog[20]).Texture;
+            Assert.That(new[] { cargo, first, second }.All(texture => texture != null), Is.True);
+            try
+            {
+                ItemIconCatalog.ReleaseLoadedTextures();
+                ItemIconCatalog.ReleaseLoadedTextures();
+                Assert.That(new[] { cargo, first, second }.All(texture => texture != null), Is.True,
+                    "Clearing borrowed cache references must not destroy textures retained by a view.");
+                foreach (string field in new[] { "atlas", "treasureAtlasA", "treasureAtlasB" })
+                {
+                    Assert.That(typeof(ItemIconCatalog).GetField(field, BindingFlags.Static | BindingFlags.NonPublic).GetValue(null), Is.Null);
+                    Assert.That(typeof(ItemIconCatalog).GetField(field + "Loaded", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null), Is.False);
+                }
+                Assert.That(ItemIconCatalog.ForCargo("water").Texture, Is.SameAs(cargo));
+                Assert.That(typeof(ItemIconCatalog).GetField("treasureAtlasA", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null), Is.Null);
+                Assert.That(typeof(ItemIconCatalog).GetField("treasureAtlasB", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null), Is.Null);
+                Assert.That(ItemIconCatalog.ForTreasure(CoreWarehouseCollection.Catalog[20]).Texture, Is.SameAs(second));
+                Assert.That(typeof(ItemIconCatalog).GetField("treasureAtlasA", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null), Is.Null);
+                Assert.That(ItemIconCatalog.ForTreasure(CoreWarehouseCollection.Catalog[0]).Texture, Is.SameAs(first));
+            }
+            finally { ItemIconCatalog.ReleaseLoadedTextures(); }
+        }
+
+        [Test]
         public void AllTreasureRanks_UseTheirOwnSpecialCell()
         {
             Assert.That(CoreTreasureHuntCatalog.Ranks.Count, Is.EqualTo(3));

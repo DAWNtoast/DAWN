@@ -11,28 +11,26 @@ namespace ShatteredSail.Presentation
 {
     public enum CoreGameplayPreviewScreen
     {
-        PortHub,
-        Warehouse,
-        Shipyard,
-        Tavern,
-        TavernCrewDetail,
-        ComponentShop,
-        CardWorkshop,
-        Dispatch,
-        TreasureMap,
-        Maintenance,
-        VoyageDeparture,
-        Navigation,
-        Encounter,
-        Battle,
-        Settlement,
-        DeckBuilder,
-        ComponentShopDetail,
-        DispatchDeployment,
-        ShipyardDetail,
-        CardUpgrade,
-        SpecialCardCollection,
-        Market,
+        PortHub = 0,
+        Warehouse = 1,
+        Shipyard = 2,
+        Tavern = 3,
+        TavernCrewDetail = 4,
+        ComponentShop = 5,
+        CardWorkshop = 6,
+        TreasureMap = 8,
+        Maintenance = 9,
+        VoyageDeparture = 10,
+        Navigation = 11,
+        Encounter = 12,
+        Battle = 13,
+        Settlement = 14,
+        DeckBuilder = 15,
+        ComponentShopDetail = 16,
+        ShipyardDetail = 18,
+        CardUpgrade = 19,
+        SpecialCardCollection = 20,
+        Market = 21,
     }
 
     public enum CoreGameplayPreviewPort
@@ -60,7 +58,7 @@ namespace ShatteredSail.Presentation
         [Header("非运行状态场景预览")]
         [SerializeField] private CoreGameplayPreviewScreen editorPreviewScreen = CoreGameplayPreviewScreen.PortHub;
         [SerializeField] private CoreGameplayPreviewPort editorPreviewPort = CoreGameplayPreviewPort.BrokenAnchor;
-        [SerializeField, Range(0, 2), Tooltip("航线或派遣序号；卡牌强化预览中为 0 策略、1 远程攻击、2 近战。")]
+        [SerializeField, Range(0, 2), Tooltip("航线序号；卡牌强化预览中为 0 策略、1 远程攻击、2 近战。")]
         private int editorPreviewRouteIndex;
         [SerializeField, Range(0, 5), Tooltip("船员档案中预览的职业序号。无需进入 Play 模式。")]
         private int editorPreviewCrewIndex;
@@ -182,9 +180,15 @@ namespace ShatteredSail.Presentation
                 ResumeAudioPresentation();
                 ResumeBattlePresentation();
                 ResumeNavigationPresentation();
+                QueueUnusedArtCollection();
             }
             // Saved previews own their authored controls. Explicit editor sync
             // upgrades old seed fields without overlaying an obsolete dropdown.
+            if (!Application.isPlaying && editorPreviewPersistGeneratedUi)
+            {
+                Canvas previewCanvas = transform.Find(EditorPreviewCanvasName)?.GetComponent<Canvas>();
+                if (previewCanvas != null) FixedGameViewport.Create(previewCanvas);
+            }
             if (!Application.isPlaying && !editorPreviewSuppressed && !editorPreviewPersistGeneratedUi)
             {
                 RebuildEditorPreview();
@@ -193,10 +197,13 @@ namespace ShatteredSail.Presentation
 
         private void OnDisable()
         {
+            RestoreDeparturePaintedHeader();
+            CloseOpeningComic();
             CloseVoyageCargo(false);
             SuspendBattlePresentation();
             SuspendNavigationPresentation();
             SuspendScreenTransition();
+            SuspendUnusedArtCollection();
             CloseGameMaster();
             if (!Application.isPlaying && !editorPreviewPersistGeneratedUi)
             {
@@ -279,7 +286,6 @@ namespace ShatteredSail.Presentation
             componentShopArt = new ComponentShopArtCatalog();
             facilityArt = new PortFacilityArtCatalog();
             cardWorkshopArt = new CardWorkshopArtCatalog();
-            dispatchArt = new DispatchArtCatalog();
             maintenanceArt = new MaintenanceArtCatalog();
             interfaceFont = CreateInterfaceFont();
             seaSprite = CreateSeaSprite();
@@ -307,18 +313,18 @@ namespace ShatteredSail.Presentation
                 }
                 selectedWarehouseTreasureId = CoreWarehouseCollection.TutorialTreasureId;
             }
-            selectedDispatchCrew.Clear();
             pendingSupplyOrder.Clear();
             portNotice = "编辑预览样本 · 本港航海士 / 船匠与蓝色火炮，不读取或写入玩家卡牌存档。";
-            courseTargetNotice = "点击海图任意位置设置自由航点。";
             InitializeTreasureEditorPreview();
         }
 
         private void InitializeTreasureEditorPreview()
         {
             treasureFolioOpen = false;
-            treasureFolioShowCompleted = false;
-            treasureDetailMapId = null;
+            treasureFolioView = 0;
+            treasureFolioPage = 0;
+            treasureBoardIndex = 0;
+            treasureFragmentNotice = null;
             if (editorPreviewScreen != CoreGameplayPreviewScreen.TreasureMap) return;
             session.SelectRoute(editorPreviewRouteIndex);
             const string seed = "TREASURE-PREVIEW-WEATHERED-01";
@@ -328,7 +334,9 @@ namespace ShatteredSail.Presentation
             session.RestoreTreasureProgress(new CoreTreasureProgress
             {
                 pirateExperience = 100,
-                fragments = editorPreviewTreasureState == TreasureMapPreviewState.FragmentsReady ? 4 : 0,
+                fragments = editorPreviewTreasureState == TreasureMapPreviewState.MapUnopened ||
+                    editorPreviewTreasureState == TreasureMapPreviewState.FragmentsReady ? 0 : 1,
+                identifiedWeatheredFragments = editorPreviewTreasureState == TreasureMapPreviewState.FragmentsReady ? 4 : 0,
                 selectedMapId = ownsMap ? id : string.Empty,
                 maps = ownsMap ? new[] { new CoreTreasureMapSave { id = id, seed = seed, rankId = "weathered" } } : new CoreTreasureMapSave[0],
                 issuedSeeds = ownsMap || completed ? new[] { seed } : new string[0],
@@ -337,8 +345,7 @@ namespace ShatteredSail.Presentation
                 ancientMaterials = completed ? 6 : 0,
             });
             treasureFolioOpen = ownsMap || completed;
-            treasureFolioShowCompleted = completed;
-            treasureDetailMapId = ownsMap ? id : null;
+            treasureFolioView = completed ? 2 : ownsMap ? 1 : 0;
         }
 
         private void InitializeEditorPreviewCardSources()
@@ -391,12 +398,6 @@ namespace ShatteredSail.Presentation
                 specialCardCollectionOpen = editorPreviewScreen == CoreGameplayPreviewScreen.SpecialCardCollection;
                 selectedBattleDeckStage = (NavalBattleStage)Mathf.Clamp(editorPreviewRouteIndex, 0, 2);
                 selectedCardWorkshopChest = specialCardCollectionOpen ? 3 : cardWorkshopDeckBuilderOpen ? (int)selectedBattleDeckStage : -1;
-                selectedDispatchMission = editorPreviewScreen == CoreGameplayPreviewScreen.DispatchDeployment
-                    ? Mathf.Clamp(editorPreviewRouteIndex, 0, DispatchNames.Length - 1)
-                    : -1;
-                selectedDispatchDurationHours = selectedDispatchMission >= 0
-                    ? DispatchDurations[selectedDispatchMission]
-                    : DispatchDurations[0];
                 if (editorPreviewScreen == CoreGameplayPreviewScreen.ComponentShopDetail)
                 {
                     PortComponentShopStockItem previewOffer = PortComponentShopCatalog
@@ -467,6 +468,7 @@ namespace ShatteredSail.Presentation
             {
                 session.Map.ExploredCells[index] = true;
             }
+            session.Map.RestoreChartExploration(null);
         }
 
         private CoreMapNode StagePreviewEncounter(bool requireBattle)
@@ -573,12 +575,10 @@ namespace ShatteredSail.Presentation
                 case CoreGameplayPreviewScreen.DeckBuilder: return 4;
                 case CoreGameplayPreviewScreen.CardUpgrade: return 4;
                 case CoreGameplayPreviewScreen.SpecialCardCollection: return 4;
-                case CoreGameplayPreviewScreen.Dispatch:
-                case CoreGameplayPreviewScreen.DispatchDeployment: return 5;
-                case CoreGameplayPreviewScreen.TreasureMap: return 6;
-                case CoreGameplayPreviewScreen.Maintenance: return 7;
-                case CoreGameplayPreviewScreen.VoyageDeparture: return 8;
-                case CoreGameplayPreviewScreen.Market: return 9;
+                case CoreGameplayPreviewScreen.TreasureMap: return PortFacilityArtCatalog.TreasureFacilityIndex;
+                case CoreGameplayPreviewScreen.Maintenance: return PortFacilityArtCatalog.MaintenanceFacilityIndex;
+                case CoreGameplayPreviewScreen.VoyageDeparture: return PortFacilityArtCatalog.VoyageFacilityIndex;
+                case CoreGameplayPreviewScreen.Market: return PortFacilityArtCatalog.MarketFacilityIndex;
                 default: return -1;
             }
         }
@@ -612,8 +612,6 @@ namespace ShatteredSail.Presentation
                 case CoreGameplayPreviewScreen.DeckBuilder: return "卡组构筑";
                 case CoreGameplayPreviewScreen.CardUpgrade: return "基础卡牌强化";
                 case CoreGameplayPreviewScreen.SpecialCardCollection: return "特殊卡牌收藏";
-                case CoreGameplayPreviewScreen.Dispatch: return "远航派遣台";
-                case CoreGameplayPreviewScreen.DispatchDeployment: return "派遣部署";
                 case CoreGameplayPreviewScreen.TreasureMap: return "藏宝图桌";
                 case CoreGameplayPreviewScreen.Maintenance: return "港口投资建设";
                 case CoreGameplayPreviewScreen.VoyageDeparture: return "出航码头";
@@ -638,12 +636,10 @@ namespace ShatteredSail.Presentation
                 case CoreGameplayPreviewScreen.TavernCrewDetail: return "Tavern Crew Detail";
                 case CoreGameplayPreviewScreen.ComponentShop: return "Component Shop Panel";
                 case CoreGameplayPreviewScreen.ComponentShopDetail: return "Component Shop Detail";
-                case CoreGameplayPreviewScreen.CardWorkshop: return "Card Workshop Chest Stage";
+                case CoreGameplayPreviewScreen.CardWorkshop: return "Card Workshop Preview Panel";
                 case CoreGameplayPreviewScreen.DeckBuilder: return "Deck Builder Panel";
                 case CoreGameplayPreviewScreen.CardUpgrade: return "Battle Card Upgrade Panel";
-                case CoreGameplayPreviewScreen.SpecialCardCollection: return "Special Card Collection Panel";
-                case CoreGameplayPreviewScreen.Dispatch: return "Dispatch Panel";
-                case CoreGameplayPreviewScreen.DispatchDeployment: return "Dispatch Deployment Panel";
+                case CoreGameplayPreviewScreen.SpecialCardCollection: return "Card Workshop Preview Panel";
                 case CoreGameplayPreviewScreen.TreasureMap: return "Treasure Panel";
                 case CoreGameplayPreviewScreen.Maintenance: return "Port Investment Panel";
                 case CoreGameplayPreviewScreen.VoyageDeparture: return "Port Briefing";

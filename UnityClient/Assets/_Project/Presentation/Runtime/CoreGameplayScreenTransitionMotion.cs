@@ -24,9 +24,18 @@ namespace ShatteredSail.Presentation
         {
             if (!Application.isPlaying || session == null || contentRoot == null) return;
             int facility = session.Phase == CoreDemoPhase.Port ? activePortFacility : -1;
+            bool navigation = session.Phase == CoreDemoPhase.Sailing || session.Phase == CoreDemoPhase.Encounter;
+            bool wasNavigation = transitionPhase == CoreDemoPhase.Sailing || transitionPhase == CoreDemoPhase.Encounter;
             bool changed = session.Phase != transitionPhase || facility != transitionFacility;
             transitionPhase = session.Phase;
             transitionFacility = facility;
+            // Arriving at or resolving an event updates the same voyage screen.
+            // Only the event dossier should reveal, never the whole chart and HUD.
+            if (navigation && wasNavigation)
+            {
+                SuspendScreenTransition();
+                return;
+            }
             if (!changed) return;
 
             if (transitionCanvasGroup == null)

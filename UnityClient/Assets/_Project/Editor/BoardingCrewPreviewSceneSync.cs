@@ -26,6 +26,7 @@ namespace ShatteredSail.Editor
         // the destination controller (which would replace the saved artwork).
         public static void SyncAndCaptureBoardingCrewFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Boarding preview synchronization requires stopped edit mode.");
             foreach (string reference in BoardingCrewReferencePaths) SyncBoardingCrewScene(reference);
@@ -78,7 +79,7 @@ namespace ShatteredSail.Editor
                 battle.PlayerBoardingHealth = Math.Max(1, battle.PlayerMaxBoardingHealth - 8);
                 battle.EnemyBoardingHealth = Math.Max(1, battle.EnemyMaxBoardingHealth - 8);
                 battle.LastAction = "接舷预览 · " + (ram ? "冲撞锁住侧舷" : hook ? "斜后钩索登船" : "并舷跳板登船") +
-                    " · 卡面显示当前普通水手编制的实际效果。";
+                    " · 卡面效果不受普通水手人数影响。";
                 // A declared visual sample covers damage, guard, healing and draw;
                 // it is not a played voyage and grants no inventory or progression.
                 battle.Hand.Clear();
@@ -119,8 +120,9 @@ namespace ShatteredSail.Editor
                 CopyTreasureLayer(readouts, content, "Battle Readouts Overlay");
                 if (target.Find("Battle Scene Art").GetComponent<RawImage>().texture != expectedPainting)
                     throw new InvalidOperationException("The new boarding painting was not copied: " + path);
-                if (!target.GetComponentsInChildren<Text>(true).Any(label => label.text.Contains("卡牌效果")))
-                    throw new InvalidOperationException("The saved boarding UI lacks its ordinary-crew effect label: " + path);
+                if (!content.GetComponentsInChildren<Text>(true).Any(label => label.name == "Battle Active Buffs" &&
+                    label.text.Contains("普通水手 " + battle.PlayerOrdinaryCrew + " 人") && label.text.Contains("船员生命")))
+                    throw new InvalidOperationException("The saved boarding UI lacks its crew-health label: " + path);
             }
             finally
             {

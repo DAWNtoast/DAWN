@@ -50,7 +50,12 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(menu, Is.Not.Null);
                     Assert.That(menu.HasSaveData, Is.False, "Smoke must not probe the suspended-voyage file store for labels.");
                     Assert.That(GameObject.Find("Voyage Save Notice"), Is.Null, "Pending recovery is left for the next normal launch.");
-                    Assert.That(GameObject.Find("Game Title").GetComponent<Text>().text, Is.EqualTo("第七港口"));
+                    Assert.That(GameClientInfo.DisplayName, Is.EqualTo("第七港口"));
+                    RawImage titleArtwork = Object.FindObjectsByType<RawImage>(FindObjectsSortMode.None)
+                        .SingleOrDefault(image => image.name == "Game Title Artwork");
+                    Assert.That(titleArtwork, Is.Not.Null);
+                    Assert.That(titleArtwork.texture, Is.Not.Null);
+                    Assert.That(titleArtwork.texture, Is.SameAs(Resources.Load<Texture2D>("MainMenu/main_menu_title_bilingual")));
                     Assert.That(ActiveButton("New Game").interactable, Is.False);
                     Assert.That(menu.ContinueButton.interactable, Is.False);
 

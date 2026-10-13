@@ -1,14 +1,10 @@
-// Read-only UI capture used for audits and for the UI refactor's before/after baselines.
-// Never saves scenes/assets and never enters PlayMode; battle states are arranged on the
-// disposable preview session only.
+// Temporary audit helper only. Install in an isolated validation project's Editor folder.
+// Never saves scenes/assets and never enters PlayMode or invokes gameplay callbacks.
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Reflection;
-using System.Text;
-using ShatteredSail.Core.Gameplay;
 using ShatteredSail.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -32,7 +28,7 @@ namespace ShatteredSail.Editor
         }
         [Serializable] public sealed class MenuFrame
         {
-            public string state, file, error;
+            public string state, variant, file, error;
             public int width, height;
             public bool verifiedScaler;
             public Vector2 renderingDisplaySize, logicalCanvasSize;
@@ -40,6 +36,19 @@ namespace ShatteredSail.Editor
             public float scaleFactor, expectedScaleFactor;
             public string screenMatchMode;
             public List<TextGeometry> text = new List<TextGeometry>();
+            public List<PaperFrame> papers = new List<PaperFrame>();
+        }
+        [Serializable] public sealed class PaperFrame
+        {
+            public string path, texture, coveredBy;
+            public Rect paperRect, safeRect;
+            public List<PaperContent> content = new List<PaperContent>();
+        }
+        [Serializable] public sealed class PaperContent
+        {
+            public string path, kind;
+            public Rect visibleBounds;
+            public bool touchesFrame;
         }
         [Serializable] public sealed class TextGeometry
         {
@@ -51,6 +60,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureAuthoredFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             RequireEditor();
             string output = Output();
             string project = Directory.GetParent(Application.dataPath).FullName;
@@ -120,73 +130,163 @@ namespace ShatteredSail.Editor
             if (report.frames.Any(f => !string.IsNullOrEmpty(f.error))) throw new InvalidOperationException("Fresh UI capture failed; inspect report.");
         }
 
-        /// <summary>
-        /// UI refactor baseline: main menu states, every gameplay preview screen and the
-        /// battle/forecast states at 1080p, 720p and 3440x1440, plus an index.html contact sheet.
-        /// </summary>
-        public static void CaptureRefactorBaselineFromCommandLine()
+        public static void CaptureParchmentFramesFromCommandLine()
         {
             RequireEditor();
             string output = Output();
-            if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any()) throw new IOException("Output must be new/empty: " + output);
+            if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
+                throw new IOException("Output must be new/empty.");
             Directory.CreateDirectory(output);
-            var states = new List<string> { "Home", "Settings", "Achievements" };
-            states.AddRange(Enum.GetNames(typeof(CoreGameplayPreviewScreen)));
-            states.AddRange(new[] { "ForecastOpen", "NavalFar", "NavalClose", "Boarding" });
-            Vector2Int[] sizes = { new Vector2Int(1920,1080), new Vector2Int(1280,720), new Vector2Int(3440,1440) };
-            var report = new MenuReport { capturedAtUtc = DateTime.UtcNow.ToString("O") };
-            foreach (string state in states)
-                foreach (Vector2Int size in sizes)
+            var report = new MenuReport { capturedAtUtc = DateTime.UtcNow.ToString("O"),
+                scope = "Disposable current-code Editor previews, actual CanvasScaler at 1920x1080, 1280x720 and 1280x1024. Includes paper sibling backdrops, rendered glyph meshes, full control bounds, and scroll clipping. Safe areas project the authored inner rules through the current nine-slice geometry with six logical pixels of clearance. Gameplay is not advanced and no saves are written. Hidden/occluded screens and GM require separate verification." };
+            var states = Enum.GetNames(typeof(CoreGameplayPreviewScreen)).Select(s => new[] { s, "" }).ToList();
+            states.AddRange(new[] {
+                new[] { "Achievements", "" }, new[] { "Settings", "" },
+                new[] { "NewGameConfirm", "" }, new[] { "SaveNotice", "" },
+                new[] { "CardUpgrade", "LastPage" },
+                new[] { "VoyageDeparture", "Crew" }, new[] { "VoyageDeparture", "TreasureSeed" },
+                new[] { "VoyageDeparture", "TreasureSeedFull" }, new[] { "VoyageDeparture", "ChartWarning" },
+                new[] { "TreasureMap", "Folio" }, new[] { "TreasureMap", "History" },
+                new[] { "TreasureMap", "FolioDecoded" }, new[] { "TreasureMap", "FolioReceipt" },
+                new[] { "Warehouse", "Storage" }, new[] { "Warehouse", "Rare" },
+                new[] { "Warehouse", "Catalog" }, new[] { "Warehouse", "CatalogLast" },
+                new[] { "Market", "MarketDetail" }, new[] { "Market", "MarketInventory" },
+                new[] { "Market", "MarketBuy" },
+                new[] { "Market", "MarketSell" }, new[] { "Market", "MarketChoice" },
+                new[] { "Warehouse", "Actions" }, new[] { "Warehouse", "Adjustment" }, new[] { "Warehouse", "Sale" },
+                new[] { "Navigation", "Cargo" }, new[] { "PortHub", "ReturnMenu" },
+                new[] { "Navigation", "StoryFirst" }, new[] { "Navigation", "StorySecond" }
+            });
+            foreach (string[] state in states)
+                foreach (Vector2Int size in new[] { new Vector2Int(1920,1080), new Vector2Int(1280,720), new Vector2Int(1280,1024) })
                 {
-                    var frame = new MenuFrame { state = state, width = size.x, height = size.y, file = state + "_" + size.x + "x" + size.y + ".png" };
+                    var frame = new MenuFrame { state = state[0], variant = state[1], width = size.x, height = size.y,
+                        file = state[0] + (state[1].Length == 0 ? "" : "_" + state[1]) + "_" + size.x + "x" + size.y + ".png" };
                     report.frames.Add(frame);
                     try { CaptureMenu(output, frame); }
                     catch (Exception e) { frame.error = e.ToString(); Debug.LogWarning(frame.file + ": " + e.Message); }
+                    File.WriteAllText(Path.Combine(output, "report.json"), JsonUtility.ToJson(report, true));
                 }
-            File.WriteAllText(Path.Combine(output, "report.json"), JsonUtility.ToJson(report, true));
-            File.WriteAllText(Path.Combine(output, "index.html"), ContactSheet(report, states, sizes), new UTF8Encoding(false));
-            int failed = report.frames.Count(f => !string.IsNullOrEmpty(f.error));
-            if (failed > 0) throw new InvalidOperationException(failed + " baseline frames failed; inspect report.json.");
-            Debug.Log("UI_REFACTOR_BASELINE_OK: " + report.frames.Count + " frames at " + output);
+            if (report.frames.Any(f => !string.IsNullOrEmpty(f.error)))
+                throw new InvalidOperationException("Parchment captures contain failures; inspect report.json.");
+            int violations = report.frames.Sum(f => f.papers.Sum(p => p.content.Count(c => c.touchesFrame)));
+            Debug.Log("PARCHMENT_FRAME_AUDIT: " + report.frames.Count + " captures; " + violations + " boundary warnings.");
         }
 
-        // Body text below 18 reference units is the readability threshold from GameReadability.
-        private const int SmallTextThreshold = 18;
-
-        private static string ContactSheet(MenuReport report, List<string> states, Vector2Int[] sizes)
+        private static void ArrangeParchmentVariant(GameObject host, MenuFrame frame)
         {
-            var html = new StringBuilder();
-            html.Append("<!doctype html><meta charset=utf-8><title>UI Baseline</title><style>")
-                .Append("body{background:#16120e;color:#eadcc3;font:14px system-ui,sans-serif;margin:24px}")
-                .Append("section{margin:0 0 40px}h2{font-size:18px;margin:0 0 8px}.row{display:flex;gap:12px;flex-wrap:wrap}")
-                .Append("figure{margin:0;width:31%;min-width:320px}img{width:100%;border:1px solid #4a3b2a}")
-                .Append("figcaption{font-size:12px;color:#b9a888;margin-top:4px}.err{color:#ff8a7a;white-space:pre-wrap}</style>")
-                .Append("<h1>UI refactor baseline</h1><p>Captured ").Append(report.capturedAtUtc)
-                .Append(" · text sizes in 1080p reference units · small = below ").Append(SmallTextThreshold).Append("</p>");
-            foreach (string state in states)
+            if (string.IsNullOrEmpty(frame.variant)) return;
+            var controller = host.GetComponent<CoreGameplayDemoController>();
+            void Click(string name) => host.GetComponentsInChildren<Button>(false).Single(b => b.name == name).onClick.Invoke();
+            object Invoke(string name, params object[] args)
             {
-                html.Append("<section id=\"").Append(state).Append("\"><h2>").Append(state).Append("</h2><div class=row>");
-                foreach (Vector2Int size in sizes)
-                {
-                    MenuFrame frame = report.frames.First(f => f.state == state && f.width == size.x && f.height == size.y);
-                    html.Append("<figure>");
-                    if (string.IsNullOrEmpty(frame.error))
-                    {
-                        List<TextGeometry> visible = frame.text.Where(t => t.meshAvailable).ToList();
-                        int smallest = visible.Count == 0 ? 0 : visible.Min(t => t.fontSize);
-                        html.Append("<a href=\"").Append(frame.file).Append("\"><img loading=lazy src=\"").Append(frame.file).Append("\"></a>")
-                            .Append("<figcaption>").Append(size.x).Append('×').Append(size.y)
-                            .Append(" · labels ").Append(visible.Count)
-                            .Append(" · smallest ").Append(smallest)
-                            .Append(" · small ").Append(visible.Count(t => t.fontSize < SmallTextThreshold))
-                            .Append(" · offscreen ").Append(visible.Count(t => t.meshOutsideTarget)).Append("</figcaption>");
-                    }
-                    else html.Append("<p class=err>").Append(size.x).Append('×').Append(size.y).Append(" failed\n").Append(WebUtility.HtmlEncode(frame.error)).Append("</p>");
-                    html.Append("</figure>");
-                }
-                html.Append("</div></section>");
+                MethodInfo method = typeof(CoreGameplayDemoController).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SingleOrDefault(m => m.Name == name && m.GetParameters().Length == args.Length &&
+                        m.GetParameters().Select((p,i) => args[i] == null || p.ParameterType.IsInstanceOfType(args[i])).All(matches => matches));
+                if (method == null) throw new MissingMethodException(name);
+                try { return method.Invoke(controller, args); }
+                catch (TargetInvocationException e) { throw e.InnerException ?? e; }
             }
-            return html.ToString();
+            switch (frame.variant)
+            {
+                case "MarketDetail": case "MarketInventory": case "MarketBuy": case "MarketSell": case "MarketChoice":
+                    // Read-only fixture arrangement: no purchase/sale callbacks or player preferences.
+                    controller.Session.Cargo.Water = 264;
+                    typeof(CoreGameplayDemoController).GetField("marketSelectedItem", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .SetValue(controller, (PortMarketItem?)PortMarketItem.Water);
+                    typeof(CoreGameplayDemoController).GetField("marketTradeSelecting", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .SetValue(controller, frame.variant == "MarketBuy" || frame.variant == "MarketSell" || frame.variant == "MarketChoice");
+                    typeof(CoreGameplayDemoController).GetField("marketTradeBuying", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .SetValue(controller, frame.variant != "MarketSell");
+                    typeof(CoreGameplayDemoController).GetField("marketInventoryExpanded", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .SetValue(controller, frame.variant == "MarketInventory");
+                    Invoke("RefreshMarketFacilityContents");
+                    if (frame.variant == "MarketChoice")
+                    {
+                        DateTime now = controller.Session.GameDateTime;
+                        int quantity = (int)Invoke("MarketQuantity", PortMarketItem.Water);
+                        int level = (int)Invoke("PortInvestmentLevel", controller.Session.CurrentPort);
+                        object purchase = Invoke("CreateMarketPurchaseQuote", PortMarketItem.Water, quantity,
+                            PortMarketCatalog.CalculateBuyCost(controller.Session.CurrentPort, PortMarketItem.Water, now, quantity, controller.Session.Cargo.Fame),
+                            now, level, 0, (int)Invoke("MarketRemaining", controller.Session.CurrentPort, PortMarketItem.Water, now, level));
+                        Invoke("BuildMarketPurchaseChoice", purchase);
+                    }
+                    break;
+                case "LastPage":
+                    for (int page = 0; page < 3; page++) Click("Next Upgrade Cards");
+                    break;
+                case "Crew": Click("Configure Voyage Crew"); break;
+                case "BasicSupplies":
+                    RectTransform departureSetup = host.GetComponentsInChildren<RectTransform>(true)
+                        .Single(item => item.name == "Voyage Setup");
+                    Invoke("OpenDepartureBasicSupplies", departureSetup);
+                    break;
+                case "TreasureSeed": Click("Departure Treasure Seed Picker"); break;
+                case "TreasureSeedFull":
+                    controller.Session.RestoreTreasureProgress(new ShatteredSail.Core.Gameplay.CoreTreasureProgress {
+                        pirateExperience = 1500, maps = Enumerable.Range(0,6).Select(index =>
+                            new ShatteredSail.Core.Gameplay.CoreTreasureMapSave { id = "frame-audit-" + index,
+                                rankId = index % 2 == 0 ? "weathered" : "gilded", seed = new string('W',63) + index }).ToArray() });
+                    Invoke("Render"); Click("Departure Treasure Seed Picker"); break;
+                case "ChartWarning": Invoke("ShowDepartureChartWarning", "示例种子与当前港口不匹配。"); break;
+                case "Folio": Click("Treasure Open Folio"); break;
+                case "History": Click("Treasure Open Folio"); Click("Treasure Open Completion"); break;
+                case "FolioDecoded": controller.ConfigureEditorTreasureState(TreasureMapPreviewState.MapDecoded); break;
+                case "FolioReceipt": controller.ConfigureEditorTreasureState(TreasureMapPreviewState.RewardClaim); break;
+                case "Storage": Click("Warehouse Tab Storage"); break;
+                case "Rare": Click("Warehouse Tab Rare"); break;
+                case "Catalog": case "CatalogLast":
+                    Click("Warehouse Collection Catalog");
+                    if (frame.variant == "CatalogLast")
+                        while (host.GetComponentsInChildren<Button>(false).Single(b => b.name == "Warehouse Catalog Page Next").interactable)
+                            Click("Warehouse Catalog Page Next");
+                    break;
+                case "Actions": case "Adjustment": case "Sale":
+                    Click("Warehouse Tab Storage");
+                    object quote = Invoke("CreateWarehouseCargoQuote", PortMarketItem.Water, true);
+                    if (frame.variant == "Adjustment") Invoke("BuildWarehouseCargoAdjustment", quote, 0);
+                    else if (frame.variant == "Sale") Invoke("BuildWarehouseCargoSale", quote, 0, 0);
+                    else Invoke("BuildWarehouseCargoActions", quote);
+                    break;
+                case "Cargo": Invoke("OpenVoyageCargo"); break;
+                case "ReturnMenu": Invoke("OpenPortSettings"); Click("Return To Main Menu"); break;
+                case "StoryFirst": case "StorySecond":
+                    controller.ConfigureEditorFlowState(GameplayFlowPreviewState.TreasureNavigation);
+                    Invoke("BuildTreasureStoryOverlayIfNeeded");
+                    if (frame.variant == "StorySecond") Click("Treasure Story Advance");
+                    break;
+                default: throw new ArgumentException("Unknown audit variant: " + frame.variant);
+            }
+        }
+
+        public static void CaptureNavigationHudFromCommandLine()
+        {
+            RequireEditor();
+            string output = Output();
+            if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
+                throw new IOException("Output must be new/empty: " + output);
+            Directory.CreateDirectory(output);
+            var report = new MenuReport
+            {
+                capturedAtUtc = DateTime.UtcNow.ToString("O"),
+                scope = "Fresh navigation and encounter HUDs in disposable Editor PreviewScenes with the production CanvasScaler. No scene or asset saves.",
+            };
+            foreach (CoreGameplayPreviewScreen screen in new[] { CoreGameplayPreviewScreen.Navigation, CoreGameplayPreviewScreen.Encounter })
+                foreach (Vector2Int size in new[] { new Vector2Int(1920, 1080), new Vector2Int(1280, 720) })
+                {
+                    var frame = new MenuFrame
+                    {
+                        state = screen.ToString(), width = size.x, height = size.y,
+                        file = screen + "_" + size.x + "x" + size.y + ".png",
+                    };
+                    report.frames.Add(frame);
+                    try { CaptureMenu(output, frame); }
+                    catch (Exception e) { frame.error = e.ToString(); Debug.LogWarning(frame.file + ": " + e.Message); }
+                    File.WriteAllText(Path.Combine(output, "report.json"), JsonUtility.ToJson(report, true));
+                }
+            if (report.frames.Any(frame => !string.IsNullOrEmpty(frame.error)))
+                throw new InvalidOperationException("Navigation HUD capture failed; inspect report.json.");
+            Debug.Log("NAVIGATION_HUD_CAPTURE_OK: " + report.frames.Count + " frames at " + output);
         }
 
         private static void CaptureMenu(string output, MenuFrame frame)
@@ -201,36 +301,34 @@ namespace ShatteredSail.Editor
                 GameObject host = new GameObject("Disposable UI Audit Main Menu");
                 host.SetActive(false);
                 SceneManager.MoveGameObjectToScene(host, scene);
-                bool battleState = frame.state == "NavalFar" || frame.state == "NavalClose" || frame.state == "Boarding";
-                string mapped = frame.state == "ForecastOpen" ? "Navigation" : battleState ? "Battle" : frame.state;
-                bool shop = Enum.TryParse(mapped, out CoreGameplayPreviewScreen screen);
+                bool shop = Enum.TryParse(frame.state, out CoreGameplayPreviewScreen screen);
                 if (shop) host.AddComponent<CoreGameplayDemoController>().ConfigureEditorPreview(screen, CoreGameplayPreviewPort.GrayGull, 0);
                 else host.AddComponent<MainMenuController>();
                 host.SetActive(true);
-                if (battleState)
-                {
-                    var controller = host.GetComponent<CoreGameplayDemoController>();
-                    var battle = controller.Session.Battle;
-                    battle.Stage = NavalBattleStage.Naval;
-                    battle.DistanceMeters = frame.state == "NavalFar" ? 600 : 0;
-                    battle.Alignment = NavalBattleAlignment.Parallel;
-                    if (frame.state == "Boarding" && !controller.Session.TryBoard()) throw new InvalidOperationException("Boarding preview failed");
-                    battle.PlayerBlock = 8; battle.EnemyBlock = 6;
-                    typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
-                }
-                if (frame.state == "ForecastOpen")
-                    host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Forecast Details").onClick.Invoke();
                 if (!shop && frame.state == "Achievements")
                     host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Achievements").onClick.Invoke();
+                ArrangeParchmentVariant(host, frame);
                 string canvasName = shop ? CoreGameplayDemoController.EditorPreviewCanvasName : MainMenuController.EditorPreviewCanvasName;
                 Canvas canvas = host.GetComponentsInChildren<Canvas>(true).Single(c => c.name == canvasName);
+                if (frame.state == "SaveNotice")
+                {
+                    string savedName = canvas.name;
+                    try
+                    {
+                        canvas.name = "Main Menu Canvas";
+                        typeof(MainMenuController).GetMethod("ShowSaveNotice", BindingFlags.Instance | BindingFlags.NonPublic)
+                            .Invoke(host.GetComponent<MainMenuController>(), new object[] {
+                                "示例存档提示：航程记录暂不可用，请返回菜单重新读取。\n本页用于检查长文本与关闭按钮的边框留白。" });
+                    }
+                    finally { canvas.name = savedName; }
+                }
                 CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
                 if (!scaler.enabled) throw new InvalidOperationException("Production CanvasScaler unexpectedly disabled.");
                 foreach (Transform child in canvas.GetComponentsInChildren<Transform>(true))
                 {
                     if (child.name == "Settings Panel") child.gameObject.SetActive(frame.state == "Settings");
                     if (child.name == "Achievements Panel") child.gameObject.SetActive(frame.state == "Achievements");
-                    if (child.name == "New Game Confirmation") child.gameObject.SetActive(false);
+                    if (child.name == "New Game Confirmation") child.gameObject.SetActive(frame.state == "NewGameConfirm");
                     child.gameObject.layer = Layer;
                 }
                 GameObject cameraHost = new GameObject("Disposable UI Audit Camera", typeof(Camera));
@@ -310,6 +408,7 @@ namespace ShatteredSail.Editor
                     finally { /* CanvasRenderer owns the returned mesh. */ }
                     frame.text.Add(geometry);
                 }
+                RecordParchmentGeometry(canvas, frame);
                 RenderTexture.active = rt;
                 pixels = new Texture2D(frame.width, frame.height, TextureFormat.RGB24, false, false);
                 pixels.ReadPixels(new Rect(0,0,frame.width,frame.height), 0,0);
@@ -326,6 +425,80 @@ namespace ShatteredSail.Editor
                 if (scene.IsValid()) EditorSceneManager.ClosePreviewScene(scene);
                 if (rt != null) { rt.Release(); Object.DestroyImmediate(rt); }
             }
+        }
+
+        private static void RecordParchmentGeometry(Canvas canvas, MenuFrame frame)
+        {
+            Image[] surfaces = canvas.GetComponentsInChildren<Image>(false).Where(i => i.enabled && i.color.a >= .65f &&
+                i.fillCenter && (i.sprite == NauticalSurfaceSkin.ReadingPaper || i.sprite == NauticalSurfaceSkin.InvestmentPaper ||
+                i.sprite == NauticalSurfaceSkin.CollectionPaper)).ToArray();
+            foreach (Image paper in surfaces)
+            {
+                RectTransform rect = paper.rectTransform;
+                Vector4 source = paper.sprite == NauticalSurfaceSkin.ReadingPaper ? new Vector4(60,67,60,62) :
+                    paper.sprite == NauticalSurfaceSkin.InvestmentPaper ? new Vector4(43,51,43,46) : new Vector4(45,64,45,49);
+                Vector4 border = paper.sprite.border;
+                float ppu = paper.pixelsPerUnit * paper.pixelsPerUnitMultiplier;
+                float Map(float distance, float edge, float opposite, float textureSize, float actualSize) =>
+                    distance <= edge ? distance / ppu : edge / ppu + (distance - edge) *
+                        (actualSize - (edge + opposite) / ppu) / (textureSize - edge - opposite);
+                Rect safe = Rect.MinMaxRect(rect.rect.xMin + Map(source.x,border.x,border.z,paper.sprite.rect.width,rect.rect.width)+6,
+                    rect.rect.yMin + Map(source.y,border.y,border.w,paper.sprite.rect.height,rect.rect.height)+6,
+                    rect.rect.xMax - Map(source.z,border.z,border.x,paper.sprite.rect.width,rect.rect.width)-6,
+                    rect.rect.yMax - Map(source.w,border.w,border.y,paper.sprite.rect.height,rect.rect.height)-6);
+                var entry = new PaperFrame { path = PathOf(rect,canvas.transform), texture = paper.sprite.texture.name,
+                    paperRect = rect.rect, safeRect = safe };
+                frame.papers.Add(entry);
+                // Full scenery/settings illustrations paint over these fallback papers.
+                // Their inner rule is invisible, so it cannot be used as a visible boundary.
+                foreach (RawImage illustration in rect.GetComponentsInChildren<RawImage>(false))
+                {
+                    if (!illustration.enabled || illustration.texture == null || illustration.color.a < .99f) continue;
+                    Rect drawn = Bounds(Corners(illustration.rectTransform).Select(v => (Vector2)rect.InverseTransformPoint(v)));
+                    if (drawn.Contains(safe.min) && drawn.Contains(safe.max))
+                    { entry.coveredBy = PathOf(illustration.transform,rect); break; }
+                }
+                if (!string.IsNullOrEmpty(entry.coveredBy)) continue;
+                // Card workshop uses a sibling backdrop. Other reading cards own their content.
+                Transform scope = rect.GetComponentsInChildren<Text>(true).Length == 0 &&
+                    rect.GetComponentsInChildren<Selectable>(true).Length == 0 ? rect.parent : rect;
+                bool Owns(Transform item)
+                {
+                    if (item == rect) return false;
+                    for (Transform t = item; t != null && t != scope; t = t.parent)
+                        if (t != rect && surfaces.Any(s => s.transform == t)) return false;
+                    return true;
+                }
+                Rect InPaper(RectTransform item) => Bounds(Corners(item).Select(v => (Vector2)rect.InverseTransformPoint(v)));
+                void Record(Transform item, string kind, Rect bounds)
+                {
+                    if (bounds.width <= 0 || bounds.height <= 0 || !rect.rect.Contains(bounds.center)) return;
+                    entry.content.Add(new PaperContent { path = PathOf(item,scope), kind = kind, visibleBounds = bounds,
+                        touchesFrame = bounds.xMin < safe.xMin-.1f || bounds.yMin < safe.yMin-.1f ||
+                            bounds.xMax > safe.xMax+.1f || bounds.yMax > safe.yMax+.1f });
+                }
+                foreach (Selectable control in scope.GetComponentsInChildren<Selectable>(false))
+                    if (control.enabled && Owns(control.transform)) Record(control.transform,"control",InPaper((RectTransform)control.transform));
+                foreach (Text label in scope.GetComponentsInChildren<Text>(false))
+                {
+                    if (!label.enabled || string.IsNullOrEmpty(label.text) || !Owns(label.transform)) continue;
+                    Mesh mesh = label.canvasRenderer.GetMesh();
+                    if (mesh == null || mesh.vertexCount == 0) continue;
+                    Rect bounds = Bounds(mesh.vertices.Select(v => (Vector2)rect.InverseTransformPoint(label.transform.TransformPoint(v))));
+                    for (Transform t = label.transform.parent; t != null && t != scope.parent; t = t.parent)
+                        if (t.TryGetComponent(out RectMask2D mask) && mask.enabled)
+                        {
+                            Rect clip = InPaper((RectTransform)t);
+                            bounds = Rect.MinMaxRect(Mathf.Max(bounds.xMin,clip.xMin),Mathf.Max(bounds.yMin,clip.yMin),
+                                Mathf.Min(bounds.xMax,clip.xMax),Mathf.Min(bounds.yMax,clip.yMax));
+                        }
+                    Record(label.transform,"glyph",bounds);
+                }
+            }
+        }
+        private static Vector3[] Corners(RectTransform rect)
+        {
+            var corners = new Vector3[4]; rect.GetWorldCorners(corners); return corners;
         }
         private static string PathOf(Transform item, Transform root)
         {

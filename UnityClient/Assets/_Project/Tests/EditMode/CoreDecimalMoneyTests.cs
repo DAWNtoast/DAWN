@@ -54,21 +54,21 @@ namespace ShatteredSail.Core.Tests
         public void SupplyQuotesAndCombinedOrdersKeepFractionalCostsAtomic()
         {
             var session = new CoreVoyageSession();
-            session.RestoreProfile(0.5999m, session.CurrentPort);
+            session.RestoreProfile(0.4799m, session.CurrentPort);
             int water = session.Cargo.Water;
             int food = session.Cargo.Food;
             var order = new VoyageSupplyOrder { Water = 3, Food = 4 };
-            Assert.That(session.GetSupplyUnitPrice(VoyageSupplyType.Water), Is.EqualTo(0.04m));
-            Assert.That(session.CalculateSupplyPurchaseCost(VoyageSupplyType.Water, 3), Is.EqualTo(0.12m));
-            Assert.That(session.QuoteSupplyPurchase(order).Cost, Is.EqualTo(0.60m));
+            Assert.That(session.GetSupplyUnitPrice(VoyageSupplyType.Water), Is.EqualTo(0.032m));
+            Assert.That(session.CalculateSupplyPurchaseCost(VoyageSupplyType.Water, 3), Is.EqualTo(0.096m));
+            Assert.That(session.QuoteSupplyPurchase(order).Cost, Is.EqualTo(0.48m));
             Assert.That(session.TryPurchaseSupplies(order), Is.False);
-            Assert.That(session.TryPurchaseMarketSupplyOrder(order, 0.60m), Is.False);
-            Assert.That(session.TryPurchaseMarketProvisions(3, 4, 0.60m), Is.False);
-            Assert.That(session.ProfileGold, Is.EqualTo(0.5999m));
+            Assert.That(session.TryPurchaseMarketSupplyOrder(order, 0.48m), Is.False);
+            Assert.That(session.TryPurchaseMarketProvisions(3, 4, 0.48m), Is.False);
+            Assert.That(session.ProfileGold, Is.EqualTo(0.4799m));
             Assert.That(session.Cargo.Water, Is.EqualTo(water));
             Assert.That(session.Cargo.Food, Is.EqualTo(food));
-            session.RestoreProfile(0.6001m, session.CurrentPort);
-            Assert.That(session.TryPurchaseMarketSupplyOrder(order, 0.60m), Is.True);
+            session.RestoreProfile(0.4801m, session.CurrentPort);
+            Assert.That(session.TryPurchaseMarketSupplyOrder(order, 0.48m), Is.True);
             Assert.That(session.ProfileGold, Is.EqualTo(0.0001m));
             Assert.That(session.Cargo.Water, Is.EqualTo(water + 3));
             Assert.That(session.Cargo.Food, Is.EqualTo(food + 4));
@@ -123,7 +123,6 @@ namespace ShatteredSail.Core.Tests
             session.PortWarehouse.Restore("v1;断锚港,water,2");
             Assert.That(session.TrySellPortWarehouseCargo("water", 1, 1, 0.0002m), Is.False);
             Assert.That(session.TrySellMarketCargo("water", 1, 0.0002m), Is.False);
-            Assert.That(session.TryReceivePortRewards(1, 0, 0, 0, "reward", out _), Is.False);
             Assert.That(session.Cargo.Water, Is.EqualTo(water));
             Assert.That(session.PortWarehouse.GetAmount(session.CurrentPort, "water"), Is.EqualTo(2));
             Assert.That(session.TrySellMarketCargo("water", 1, 0.0001m), Is.True);

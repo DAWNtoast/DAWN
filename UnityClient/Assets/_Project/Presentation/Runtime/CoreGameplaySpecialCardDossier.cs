@@ -16,8 +16,6 @@ namespace ShatteredSail.Presentation
             {
                 DossierCardText(prefix + " Special Card Name", page, width, 40f, new Vector2(0f, 72f), 28, ink, "没有专属卡牌");
                 DossierCardText(prefix + " Special Card Empty", page, width - 40f, 108f, Vector2.zero, 26, muted, emptyMessage);
-                DossierCardText(prefix + " Special Card Growth", page, width, 32f, new Vector2(0f, -105f), 20, muted,
-                    "特殊卡牌不接受金币强化，仅随对应来源出海获得经验。", TextAnchor.MiddleLeft);
                 return;
             }
 
@@ -25,25 +23,32 @@ namespace ShatteredSail.Presentation
             for (int index = 0; index < CoreVoyageSession.CardLibrary.Count; index++)
                 if (CoreVoyageSession.CardLibrary[index].Id == definition.Card.Id) { cardIndex = index; break; }
             CoreBattleCard card = cardIndex < 0 ? definition.Card : session.GetBattleCard(cardIndex);
-            float textWidth = width - 204f;
-            float textCenter = 102f;
-            RawImage picture = CreateRawImage(prefix + " Special Card Art", page, new Vector2(176f, 176f),
-                new Vector2(-width / 2f + 92f, 42f), art.CardSheet, art.CardUv(card.ArtId));
-            picture.raycastTarget = false;
-            DossierCardText(prefix + " Special Card Name", page, textWidth, 44f, new Vector2(textCenter, 118f), 32, ink,
-                card.Name + "　+" + card.UpgradeLevel);
+            // Keep the battle face intact; fit the whole card within the dossier
+            // bay, leaving the shared page controls and contract buttons clear.
+            float pageHeight = page.rect.height;
+            float cardScale = Mathf.Min(0.86f, (pageHeight - 12f) / CardFaceLayout.FrameSize.y);
+            RectTransform face = CreateCollectionCardFace(page, card, prefix + " Special Card",
+                prefix + " Special Card Art", prefix + " Special Card Name", cardScale,
+                effectDescription: SpecialCardPreviewEffectDescription(card),
+                effectName: prefix + " Special Card Effect");
+            face.anchoredPosition = new Vector2(-width * 0.5f + 112f, 0f) -
+                CardSchoolArtCatalog.FrameBounds(card).center * cardScale;
+            float textWidth = width - 250f;
+            const float textCenter = 125f;
             List<string> stages = new List<string>();
             if (card.IsAllowedInStage(NavalBattleStage.Preparation)) stages.Add("策略");
             if (card.IsAllowedInStage(NavalBattleStage.Naval)) stages.Add("远程攻击");
             if (card.IsAllowedInStage(NavalBattleStage.Boarding)) stages.Add("近战");
-            DossierCardText(prefix + " Special Card Stage", page, textWidth, 32f, new Vector2(textCenter, 76f), 20, muted,
-                string.Join(" / ", stages) + "　·　" + card.Energy + " 能量");
-            // Effects retain their semantic line breaks and full font size. The
-            // shared scroll area keeps long rules and lore clear of the footer.
-            int effectSize = 22;
-            CreateCardEffectArea(prefix + " Special Card Effect", page, new Vector2(textWidth, 136f),
-                new Vector2(textCenter, -12f), effectSize, ink, session.BattleCardPortDescription(card),
-                loreName: prefix + " Special Card Lore", lore: definition.Lore, loreColor: muted);
+            DossierCardText(prefix + " Special Card Stage", page, textWidth, 32f,
+                new Vector2(textCenter, pageHeight * 0.5f - 16f), 22, muted, string.Join(" / ", stages));
+            // Crew-dependent calculations remain beside the card, while the
+            // face uses the same description and line layout as other previews.
+            bool boarding = card.IsAllowedInStage(NavalBattleStage.Boarding);
+            CreateCardEffectArea(prefix + " Special Card Details", page, new Vector2(textWidth, pageHeight - 126f),
+                new Vector2(textCenter, 20f), boarding ? 20 : 22, boarding ? ink : muted,
+                boarding ? session.BattleCardPortDescription(card) : definition.Lore,
+                loreName: prefix + " Special Card Lore", lore: boarding ? definition.Lore : null, loreColor: muted,
+                textName: prefix + (boarding ? " Special Card Calculation" : " Special Card Lore"));
             bool acquired = false;
             foreach (string id in session.AcquiredSpecialCardIds)
                 if (id == card.Id) { acquired = true; break; }
@@ -51,13 +56,22 @@ namespace ShatteredSail.Presentation
             int threshold = session.GetSpecialCardNextThreshold(card.Id);
             string progress = !acquired ? "尚未获得" : threshold == 0 ? "航海经验 " + experience + " · 已达三阶" :
                 "航海经验 " + experience + " / " + threshold;
-            DossierCardText(prefix + " Special Card Growth", page, width, 32f, new Vector2(0f, -101f), 20, muted,
-                progress + "　·　仅随该来源出海成长，不可金币强化。", TextAnchor.MiddleLeft);
+            DossierCardText(prefix + " Special Card Growth", page, textWidth, 48f,
+                new Vector2(textCenter, -pageHeight * 0.5f + 44f), 20, muted,
+                progress + "\n仅随该来源出海成长，不可金币强化。", TextAnchor.MiddleLeft);
+        }
+
+        private string SpecialCardPreviewEffectDescription(CoreBattleCard card)
+        {
+            NavalBattleStage stage = card.IsAllowedInStage(NavalBattleStage.Boarding)
+                ? NavalBattleStage.Boarding : card.IsAllowedInStage(NavalBattleStage.Naval)
+                    ? NavalBattleStage.Naval : NavalBattleStage.Preparation;
+            return session.BattleCardFaceDescription(card, stage);
         }
 
         private Text CreateCardEffectArea(string name, Transform parent, Vector2 size, Vector2 position,
             int fontSize, Color color, string value, TextAnchor alignment = TextAnchor.UpperLeft,
-            string loreName = null, string lore = null, int loreSize = 20, Color? loreColor = null)
+            string loreName = null, string lore = null, int loreSize = 20, Color? loreColor = null, string textName = null)
         {
             RectTransform viewport = CreateRect(name + " Viewport", parent, size, position);
             viewport.gameObject.AddComponent<RectMask2D>();
@@ -70,7 +84,7 @@ namespace ShatteredSail.Presentation
             content.anchoredPosition = Vector2.zero;
 
             float textWidth = size.x - 16f;
-            Text effect = DossierCardText(name, content, textWidth, size.y, Vector2.zero,
+            Text effect = DossierCardText(textName ?? name, content, textWidth, size.y, Vector2.zero,
                 fontSize, color, value, alignment);
             // The viewport owns clipping. Legacy Text must not silently discard
             // its last row when capture or CanvasScaler changes pixelsPerUnit.
@@ -107,7 +121,6 @@ namespace ShatteredSail.Presentation
                 RectTransform handleArea = CreateRect("Sliding Area", track.transform, new Vector2(5f, size.y), Vector2.zero);
                 Image handle = CreateImage("Handle", handleArea, Vector2.zero, Vector2.zero,
                     new Color(color.r, color.g, color.b, 0.65f));
-                handle.rectTransform.anchorMin = Vector2.zero; handle.rectTransform.anchorMax = Vector2.one;
                 Scrollbar scrollbar = track.gameObject.AddComponent<Scrollbar>();
                 scrollbar.handleRect = handle.rectTransform;
                 scrollbar.targetGraphic = handle;

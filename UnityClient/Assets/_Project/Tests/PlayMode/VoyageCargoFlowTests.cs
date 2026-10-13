@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -40,10 +41,11 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(JsonUtility.ToJson(session.CaptureVoyageCheckpoint()), Is.EqualTo(voyageBeforeOpen));
                 Assert.That(ActiveButton("Execute Sail").IsInteractable(), Is.False, "The modal must disable underlying navigation.");
                 Assert.That(ActiveButton("Heading South").IsInteractable(), Is.False);
-                AssertVoyageCargoRows(session, false);
+                AssertVoyageCargoGrid(session, false);
                 Assert.That(GameObject.Find("Voyage Cargo Item gold"), Is.Null, "Gold is read-only, not discardable cargo.");
                 Assert.That(GameObject.Find("Voyage Cargo Capacity").GetComponent<Text>().text, Does.Contain("随船金币"));
                 ClickAcceptanceButton("Voyage Cargo Item wood"); yield return null;
+                AssertVoyageCargoDetailsBlendWithSheet();
                 int wood = session.Cargo.Wood;
                 ClickAcceptanceButton("Voyage Cargo Discard All"); yield return null;
                 Assert.That(GameObject.Find("Voyage Cargo Quantity").GetComponent<InputField>().text, Is.EqualTo(wood.ToString()));
@@ -65,19 +67,22 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(GameObject.Find("Voyage Cargo Capacity").GetComponent<Text>().text, Is.Not.EqualTo(capacity));
                 Assert.That(GameObject.Find("Voyage Cargo Item Amount wood").GetComponent<Text>().text, Does.Contain((wood - 2).ToString()));
                 Assert.That(GameObject.Find("Voyage Cargo Notice").GetComponent<Text>().text, Is.Not.Empty);
+                AssertVoyageCargoGrid(session, false);
 
                 ClickAcceptanceButton("Voyage Cargo Special Tab"); yield return null;
-                AssertVoyageCargoRows(session, true);
+                AssertVoyageCargoGrid(session, true);
                 ClickAcceptanceButton("Voyage Cargo Item lantern"); yield return null;
                 Assert.That(ActiveButton("Confirm Voyage Cargo Discard").IsInteractable(), Is.False);
                 Assert.That(session.Cargo.Lantern, Is.Zero, "Zero-stock rows remain inspectable.");
                 ClickAcceptanceButton("Voyage Cargo Item gem"); yield return null;
+                AssertVoyageCargoDetailsBlendWithSheet();
                 int gems = session.Cargo.Gem;
                 volume = session.Cargo.UsedVolume;
                 SetVoyageCargoQuantity("1");
                 ClickAcceptanceButton("Confirm Voyage Cargo Discard"); yield return null;
                 Assert.That(session.Cargo.Gem, Is.EqualTo(gems - 1));
                 Assert.That(session.Cargo.UsedVolume, Is.EqualTo(volume - 5f).Within(.001f));
+                AssertVoyageCargoGrid(session, true);
                 Assert.That(session.ProfileGold, Is.EqualTo(gold));
                 Assert.That(session.Cargo.Gold, Is.EqualTo(voyageGold));
                 Assert.That(VoyageCargoPortSnapshot(), Is.EqualTo(portBefore));
@@ -253,18 +258,95 @@ namespace ShatteredSail.Presentation.Tests
         private static void RenderVoyageCargoFixture(CoreGameplayDemoController controller) =>
             typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
 
-        private static void AssertVoyageCargoRows(CoreVoyageSession session, bool special)
+        private static void AssertVoyageCargoGrid(CoreVoyageSession session, bool special)
         {
+            Canvas.ForceUpdateCanvases();
             var expected = special ? CoreWarehouseItemCatalog.RareItems : CoreWarehouseItemCatalog.BasicItems;
-            Button[] rows = Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
+            Button[] items = Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
                 .Where(button => button.gameObject.activeInHierarchy && button.name.StartsWith("Voyage Cargo Item ", StringComparison.Ordinal)).ToArray();
-            Assert.That(rows.Length, Is.EqualTo(expected.Count));
+            Assert.That(items.Length, Is.EqualTo(expected.Count));
+            var grid = GameObject.Find("Voyage Cargo List").GetComponent<RectTransform>();
+            RectTransform[] cells = grid.Cast<Transform>().Where(child =>
+                    child.name.StartsWith("Voyage Cargo Item ", StringComparison.Ordinal) ||
+                    child.name.StartsWith("Voyage Cargo Empty Slot ", StringComparison.Ordinal))
+                .Cast<RectTransform>().OrderByDescending(cell => cell.anchoredPosition.y)
+                .ThenBy(cell => cell.anchoredPosition.x).ToArray();
+            Assert.That(cells.Length, Is.EqualTo(9), "Both tabs retain all nine evenly arranged slots.");
+            Rect[] bounds = cells.Select(cell => VoyageCargoBounds(grid, cell)).ToArray();
+            for (int i = 0; i < cells.Length; i++)
+            {
+                AssertVoyageCargoContains(grid.rect, bounds[i], cells[i].name);
+                Assert.That(bounds[i].width, Is.EqualTo(bounds[0].width).Within(.01f));
+                Assert.That(bounds[i].height, Is.EqualTo(bounds[0].height).Within(.01f));
+                Assert.That(bounds[i].center.x, Is.EqualTo(bounds[i % 3].center.x).Within(.01f));
+                Assert.That(bounds[i].center.y, Is.EqualTo(bounds[i / 3 * 3].center.y).Within(.01f));
+                for (int j = 0; j < i; j++) Assert.That(bounds[i].Overlaps(bounds[j]), Is.False, cells[i].name + " / " + cells[j].name);
+                if (cells[i].name.StartsWith("Voyage Cargo Empty Slot ", StringComparison.Ordinal))
+                {
+                    foreach (Selectable control in cells[i].GetComponentsInChildren<Selectable>())
+                        Assert.That(control.IsInteractable(), Is.False, "Empty slots cannot select or discard cargo.");
+                    foreach (Graphic graphic in cells[i].GetComponentsInChildren<Graphic>())
+                        Assert.That(graphic.raycastTarget, Is.False, "Empty slots must not intercept input.");
+                }
+            }
+            Assert.That(bounds[1].center.x - bounds[0].center.x,
+                Is.EqualTo(bounds[2].center.x - bounds[1].center.x).Within(.01f), "Columns have equal spacing.");
+            Assert.That(bounds[0].center.y - bounds[3].center.y,
+                Is.EqualTo(bounds[3].center.y - bounds[6].center.y).Within(.01f), "Rows have equal spacing.");
             foreach (CoreWarehouseItemDefinition item in expected)
             {
-                Assert.That(ActiveButton("Voyage Cargo Item " + item.Key), Is.Not.Null);
-                Assert.That(GameObject.Find("Voyage Cargo Item Amount " + item.Key).GetComponent<Text>().text,
-                    Does.Contain(session.GetWarehouseCargoAmount(item.Key).ToString()));
+                var cell = (RectTransform)ActiveButton("Voyage Cargo Item " + item.Key).transform;
+                var icon = cell.Find("Voyage Cargo Item Icon " + item.Key).GetComponent<RectTransform>();
+                Text name = cell.Find("Voyage Cargo Item Name " + item.Key).GetComponent<Text>();
+                Text amount = cell.Find("Voyage Cargo Item Amount " + item.Key).GetComponent<Text>();
+                Text volume = cell.Find("Voyage Cargo Item Volume " + item.Key).GetComponent<Text>();
+                int carried = session.GetWarehouseCargoAmount(item.Key);
+                Assert.That(name.text, Is.EqualTo(item.Name));
+                Assert.That(name.fontSize, Is.LessThanOrEqualTo(18), "Names use the requested small caption size.");
+                Assert.That(amount.text, Is.EqualTo(carried.ToString(CultureInfo.InvariantCulture)));
+                Assert.That(volume.text, Is.EqualTo((carried * item.UnitVolume).ToString("0.##", CultureInfo.InvariantCulture)));
+                Rect iconBounds = VoyageCargoBounds(cell, icon);
+                Rect nameBounds = VoyageCargoBounds(cell, name.rectTransform);
+                Rect amountBounds = VoyageCargoBounds(cell, amount.rectTransform);
+                Rect volumeBounds = VoyageCargoBounds(cell, volume.rectTransform);
+                foreach (Rect content in new[] { iconBounds, nameBounds, amountBounds, volumeBounds })
+                    AssertVoyageCargoContains(cell.rect, content, item.Key);
+                Assert.That(nameBounds.yMax, Is.LessThanOrEqualTo(iconBounds.yMin + .01f), "Caption sits below the icon: " + item.Key);
+                Assert.That(amountBounds.yMax, Is.LessThanOrEqualTo(nameBounds.yMin + .01f));
+                Assert.That(volumeBounds.yMax, Is.LessThanOrEqualTo(nameBounds.yMin + .01f));
+                Assert.That(amountBounds.xMax, Is.LessThan(0f), "Quantity occupies the lower left corner.");
+                Assert.That(volumeBounds.xMin, Is.GreaterThan(0f), "Occupied space occupies the lower right corner.");
+                Assert.That(amountBounds.center.y, Is.EqualTo(volumeBounds.center.y).Within(.01f));
             }
+        }
+
+        private static void AssertVoyageCargoDetailsBlendWithSheet()
+        {
+            var details = GameObject.Find("Voyage Cargo Details").GetComponent<RectTransform>();
+            Image backing = details.GetComponent<Image>();
+            Assert.That(backing == null || backing.color.a <= .1f, Is.True, "Details share the main parchment without an opaque colored rectangle.");
+            var sheet = (RectTransform)details.parent;
+            var grid = GameObject.Find("Voyage Cargo List").GetComponent<RectTransform>();
+            Assert.That(VoyageCargoBounds(sheet, details).Overlaps(VoyageCargoBounds(sheet, grid)), Is.False);
+            Image quantityBacking = GameObject.Find("Voyage Cargo Quantity").GetComponent<Image>();
+            Assert.That(quantityBacking.color.a, Is.LessThan(.35f), "The quantity field lets the parchment texture show through.");
+        }
+
+        private static Rect VoyageCargoBounds(RectTransform parent, RectTransform child)
+        {
+            var corners = new Vector3[4];
+            child.GetWorldCorners(corners);
+            Vector3[] points = corners.Select(parent.InverseTransformPoint).ToArray();
+            return Rect.MinMaxRect(points.Min(point => point.x), points.Min(point => point.y),
+                points.Max(point => point.x), points.Max(point => point.y));
+        }
+
+        private static void AssertVoyageCargoContains(Rect container, Rect content, string context)
+        {
+            Assert.That(content.xMin, Is.GreaterThanOrEqualTo(container.xMin - .01f), context);
+            Assert.That(content.xMax, Is.LessThanOrEqualTo(container.xMax + .01f), context);
+            Assert.That(content.yMin, Is.GreaterThanOrEqualTo(container.yMin - .01f), context);
+            Assert.That(content.yMax, Is.LessThanOrEqualTo(container.yMax + .01f), context);
         }
 
         private static string[] VoyageCargoPortSnapshot() => new[] {

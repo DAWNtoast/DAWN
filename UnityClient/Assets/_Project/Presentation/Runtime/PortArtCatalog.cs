@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ShatteredSail.Content;
 using UnityEngine;
@@ -10,93 +11,120 @@ namespace ShatteredSail.Presentation
     /// </summary>
     public sealed class PortArtCatalog
     {
-        private readonly Texture2D[] crewFullBodies;
-        private readonly Texture2D regionalShipSheet;
-        // New regional vessels reuse the established wide hull illustrations.
-        // The first four identities keep their original atlas cells for saves.
-        private static readonly int[] RegionalShipCells = { 2, 0, 1, 5, 6, 3, 4, 1 };
-        private readonly Dictionary<string, Texture2D> portBackgrounds;
+        private static readonly string[] CrewFullBodyNames =
+        {
+            "CrewFullBody/crew_navigator_evelyn_fullbody", "CrewFullBody/crew_carpenter_barlow_fullbody",
+            "CrewFullBody/crew_doctor_moer_fullbody", "CrewFullBody/crew_gunner_leisa_fullbody",
+            "CrewFullBody/crew_cook_pepe_fullbody", "CrewFullBody/crew_diver_noya_fullbody",
+        };
+        private readonly Func<string, Texture2D> resourceLoader;
+        private readonly Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>(StringComparer.Ordinal);
+        private Texture2D RegionalShipSheet => LoadResource("LegacyDemo/ship_sprite_sheet");
+        // Save identities and atlas grids remain stable. The clipper now has
+        // its own four-mast flush-deck hull instead of a tinted supply vessel.
+        private static readonly int[] RegionalShipCells = { 2, 0, 1, 5, 6, 3, 4, 7 };
+        private static readonly Dictionary<string, string> PortBackgroundNames = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            { "断锚港", "port_hub_broken_anchor_v3" }, { "白贝港", "port_hub_white_shell_v3" },
+            { "铜钟港", "port_hub_bronze_bell_v3" }, { "盐冠港", "port_hub_salt_crown_v3" },
+            { "暮潮港", "port_hub_twilight_tide_v3" }, { "灰鸥港", "port_hub_gray_gull_v3" },
+        };
         private readonly Dictionary<string, Texture2D> regionalCrewFullBodies = new Dictionary<string, Texture2D>();
         private readonly Dictionary<string, Texture2D> regionalCrewAtlases = new Dictionary<string, Texture2D>();
 
-        public PortArtCatalog()
+        public PortArtCatalog() : this(Resources.Load<Texture2D>) { }
+
+        internal PortArtCatalog(Func<string, Texture2D> resourceLoader)
         {
-            PortBackground = Load("port_hub_broken_anchor_v3");
-            portBackgrounds = new Dictionary<string, Texture2D>
-            {
-                { "断锚港", PortBackground },
-                { "白贝港", Load("port_hub_white_shell_v3") },
-                { "铜钟港", Load("port_hub_bronze_bell_v3") },
-                { "盐冠港", Load("port_hub_salt_crown_v3") },
-                { "暮潮港", Load("port_hub_twilight_tide_v3") },
-                { "灰鸥港", Load("port_hub_gray_gull_v3") },
-            };
-            ShipSheet = Load("ship_roster_sheet");
-            regionalShipSheet = LoadResource("LegacyDemo/ship_sprite_sheet");
-            SpecialCrewSheet = Load("special_crew_sheet");
-            // This legacy sheet is intentionally kept separate from the
-            // special-crew atlas. Its cells provide the fixed ordinary sailors
-            // and the dedicated hostile boarding portraits.
-            BoardingPortraitSheet = LoadResource("LegacyDemo/crew_portrait_sheet");
-            UpgradeSheet = Load("upgrade_parts_sheet");
-            BattleBackdropSheet = Load("battle_backdrop_sheet");
-            TavernCrewDossierParchment = Load("UI/tavern_crew_dossier_parchment_v1");
-            crewFullBodies = new[]
-            {
-                Load("CrewFullBody/crew_navigator_evelyn_fullbody"),
-                Load("CrewFullBody/crew_carpenter_barlow_fullbody"),
-                Load("CrewFullBody/crew_doctor_moer_fullbody"),
-                Load("CrewFullBody/crew_gunner_leisa_fullbody"),
-                Load("CrewFullBody/crew_cook_pepe_fullbody"),
-                Load("CrewFullBody/crew_diver_noya_fullbody"),
-            };
+            this.resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         }
 
-        public Texture2D PortBackground { get; }
-        public Texture2D ShipSheet { get; }
-        public Texture2D SpecialCrewSheet { get; }
-        public Texture2D BoardingPortraitSheet { get; }
-        public Texture2D UpgradeSheet { get; }
-        public Texture2D BattleBackdropSheet { get; }
-        public Texture2D TavernCrewDossierParchment { get; }
+        public Texture2D PortBackground => Load("port_hub_broken_anchor_v3");
+        public Texture2D ShipSheet => Load("ship_roster_sheet");
+        public Texture2D SpecialCrewSheet => Load("special_crew_sheet");
+        // Ordinary/hostile portraits retain their own atlas, separate from special crew.
+        public Texture2D BoardingPortraitSheet => LoadResource("LegacyDemo/crew_portrait_sheet");
+        public Texture2D UpgradeSheet => Load("upgrade_parts_sheet");
+        public Texture2D BattleBackdropSheet => Load("battle_backdrop_sheet");
+        public Texture2D TavernCrewDossierParchment => Load("UI/tavern_crew_dossier_parchment_v1");
+
+        /// <summary>The crew portrait is painted into its complete parchment; load only the selected identity.</summary>
+        public Texture2D CrewDossier(string crewId) => string.IsNullOrWhiteSpace(crewId)
+            ? TavernCrewDossierParchment
+            : Load("CrewDossiers/" + crewId + "_dossier_v1") ?? TavernCrewDossierParchment;
+
+        public Texture2D TavernDossierTrialAtlas(string crewId) => TryTavernDossierTrialUv(crewId, out _)
+            ? Load("CrewRegional/crew_broken_anchor_portraits_4k_layers_v1")
+            : null;
+
+        public Texture2D TavernDossierTrialFrame(string crewId) => TryTavernDossierTrialUv(crewId, out _)
+            ? Load("UI/tavern_crew_dossier_frame_4k_layers_v1")
+            : null;
+
+        public static bool TryTavernDossierTrialUv(string crewId, out Rect uv)
+        {
+            int index;
+            switch (crewId)
+            {
+                case "crew_broken_anchor_navigator_lorne": index = 0; break;
+                case "crew_broken_anchor_carpenter_kia": index = 1; break;
+                case "crew_broken_anchor_doctor_hector": index = 2; break;
+                case "crew_broken_anchor_gunner_mira": index = 3; break;
+                case "crew_broken_anchor_cook_tam": index = 4; break;
+                case "crew_broken_anchor_diver_udo": index = 5; break;
+                default: uv = default; return false;
+            }
+
+            // Reviewed exclusive pixel bounds omit the generated black grid
+            // and its JPEG fringe. Preserve the original image; crop only UVs.
+            int column = index % 3;
+            int left = column == 0 ? 0 : column == 1 ? 1372 : 2740;
+            int right = column == 0 ? 1356 : column == 1 ? 2723 : 4096;
+            int top = index < 3 ? 0 : 2056;
+            int bottom = index < 3 ? 2040 : 4096;
+            uv = new Rect(left / 4096f, 1f - bottom / 4096f, (right - left) / 4096f, (bottom - top) / 4096f);
+            return true;
+        }
+
+        /// <summary>Releases catalog references without destroying art still borrowed by live UI.</summary>
+        public void ReleaseLoadedTextures()
+        {
+            textures.Clear();
+            regionalCrewFullBodies.Clear();
+            regionalCrewAtlases.Clear();
+        }
 
         public bool IsAvailable
         {
             get
             {
-                if (PortBackground == null || portBackgrounds.Count != 6 || ShipSheet == null || SpecialCrewSheet == null ||
-                    BoardingPortraitSheet == null || regionalShipSheet == null ||
-                    UpgradeSheet == null || BattleBackdropSheet == null || TavernCrewDossierParchment == null)
-                {
-                    return false;
-                }
-
-                foreach (Texture2D background in portBackgrounds.Values)
-                {
-                    if (background == null) return false;
-                }
-
-                for (int index = 0; index < crewFullBodies.Length; index += 1)
-                {
-                    if (crewFullBodies[index] == null) return false;
-                }
-                return true;
+                bool available = PortBackgroundNames.Count == 6;
+                foreach (string name in PortBackgroundNames.Values) available &= Load(name) != null;
+                available &= ShipSheet != null;
+                available &= SpecialCrewSheet != null;
+                available &= BoardingPortraitSheet != null;
+                available &= RegionalShipSheet != null;
+                available &= UpgradeSheet != null;
+                available &= BattleBackdropSheet != null;
+                available &= TavernCrewDossierParchment != null;
+                for (int index = 0; index < CrewFullBodyNames.Length; index++) available &= CrewFullBody(index) != null;
+                return available;
             }
         }
 
-        public int CrewFullBodyCount => crewFullBodies.Length;
-        public int PortBackgroundCount => portBackgrounds.Count;
+        public int CrewFullBodyCount => CrewFullBodyNames.Length;
+        public int PortBackgroundCount => PortBackgroundNames.Count;
 
         public Texture2D PortBackgroundFor(string portName)
         {
-            return !string.IsNullOrWhiteSpace(portName) && portBackgrounds.TryGetValue(portName, out Texture2D background)
-                ? background
+            return !string.IsNullOrWhiteSpace(portName) && PortBackgroundNames.TryGetValue(portName, out string name)
+                ? Load(name)
                 : PortBackground;
         }
 
         public Texture2D CrewFullBody(int index)
         {
-            return crewFullBodies[Mathf.Clamp(index, 0, crewFullBodies.Length - 1)];
+            return Load(CrewFullBodyNames[Mathf.Clamp(index, 0, CrewFullBodyNames.Length - 1)]);
         }
 
         /// <summary>
@@ -187,10 +215,9 @@ namespace ShatteredSail.Presentation
         }
 
         public Texture2D ShipTexture(int index) =>
-            index >= 4 && index < 4 + RegionalShipCells.Length ? regionalShipSheet : ShipSheet;
+            index >= 4 && index < 4 + RegionalShipCells.Length ? RegionalShipSheet : ShipSheet;
 
-        public Color ShipTint(int index) => index == 6 ? new Color(0.86f, 0.91f, 1f) :
-            index == 11 ? new Color(0.85f, 1f, 0.93f) : Color.white;
+        public Color ShipTint(int index) => Color.white;
 
         public Rect SpecialCrewUv(int index)
         {
@@ -228,34 +255,39 @@ namespace ShatteredSail.Presentation
             return LegacyDemoArtCatalog.CellUv(cell % 2, cell / 2, 2, 2);
         }
 
-        private static Texture2D Load(string name)
+        private Texture2D Load(string name)
         {
-            Texture2D texture = Resources.Load<Texture2D>("PortArt/" + name);
+            string path = "PortArt/" + name;
+            if (textures.TryGetValue(path, out Texture2D texture)) return texture;
+            texture = resourceLoader(path);
             if (texture != null)
             {
                 // Port backdrops are painted illustrations.  Bilinear sampling
                 // keeps older regional scenes visually consistent with the newer
                 // v2 backgrounds when they are cropped to the 1920x932 viewport.
-                // The roster/crew/upgrade sheets are atlases, however: preserve
-                // point sampling there so the cutout shader cannot blend a cell
-                // separator into a neighbouring ship or portrait.
-                bool atlas = name.EndsWith("_sheet", System.StringComparison.Ordinal);
+                // Redrawn ships have authored alpha and padded cells; sample
+                // their fine painted rigging smoothly. Other icon atlases keep
+                // their existing point sampling.
+                bool atlas = name.EndsWith("_sheet", System.StringComparison.Ordinal) && name != "ship_roster_sheet";
                 texture.filterMode = atlas ? FilterMode.Point : FilterMode.Bilinear;
                 texture.anisoLevel = atlas ? 0 : 2;
                 texture.wrapMode = TextureWrapMode.Clamp;
             }
+            textures.Add(path, texture);
             return texture;
         }
 
-        private static Texture2D LoadResource(string path)
+        private Texture2D LoadResource(string path)
         {
-            Texture2D texture = Resources.Load<Texture2D>(path);
+            if (textures.TryGetValue(path, out Texture2D texture)) return texture;
+            texture = resourceLoader(path);
             if (texture != null)
             {
-                texture.filterMode = FilterMode.Point;
+                texture.filterMode = path == "LegacyDemo/ship_sprite_sheet" ? FilterMode.Bilinear : FilterMode.Point;
                 texture.anisoLevel = 0;
                 texture.wrapMode = TextureWrapMode.Clamp;
             }
+            textures.Add(path, texture);
             return texture;
         }
     }

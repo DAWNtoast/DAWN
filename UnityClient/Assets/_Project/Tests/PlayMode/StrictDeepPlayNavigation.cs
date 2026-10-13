@@ -372,8 +372,7 @@ namespace ShatteredSail.Presentation.Tests
                 double divisor = actualFee + .75;
                 int unblocked = Math.Max(0, incoming - battle.PlayerBlock);
                 double score = repair * (health < maximum * .6 ? 2.4 : .7) + block * (health <= unblocked * 2 ? 2.8 : 1.4);
-                int damage = card.Damage + (card.Action == NavalBattleCardAction.Cannon
-                    ? Math.Max(0, (Session.EffectiveFirepower - 8) / 2) + battle.PlayerLoadedShot : 0);
+                int damage = Session.GetBattleCardDamage(card, battle.Stage);
                 if (damage > 0 && damage >= enemy + battle.EnemyBlock) return 10000 / divisor;
                 if (health <= unblocked && repair + block > 0)
                     score += 500 + Math.Min(unblocked - health + 1, repair + block) * 20;

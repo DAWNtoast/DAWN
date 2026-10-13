@@ -28,6 +28,7 @@ namespace ShatteredSail.Presentation
         private readonly List<string> failures = new List<string>();
         private float started;
         private bool finished;
+        private int packagedAudioClipCount;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -63,9 +64,12 @@ namespace ShatteredSail.Presentation
             try
             {
                 Require(SceneManager.GetActiveScene().name == "MainMenu", "Player did not start in MainMenu.");
-                Text gameTitle = FindObjectsByType<Text>(FindObjectsSortMode.None).FirstOrDefault(label => label.name == "Game Title");
-                Require(GameClientInfo.DisplayName == "第七港口" && gameTitle != null && gameTitle.text == GameClientInfo.DisplayName,
-                    "Packaged menu title must be 第七港口.");
+                Texture2D titleTexture = Resources.Load<Texture2D>("MainMenu/main_menu_title_bilingual");
+                RawImage titleArtwork = FindObjectsByType<RawImage>(FindObjectsSortMode.None)
+                    .FirstOrDefault(image => image.name == "Game Title Artwork");
+                Require(GameClientInfo.DisplayName == "第七港口" && titleTexture != null &&
+                    titleArtwork != null && titleArtwork.texture == titleTexture,
+                    "Packaged menu must display the dedicated 第七港口 bilingual title artwork.");
                 Require(FindFirstObjectByType<MainMenuController>() != null, "Main menu controller missing.");
                 Require(EventSystem.current != null, "Input EventSystem missing.");
                 Require(Resources.Load<Texture2D>("MainMenu/main_menu_background") != null, "Packaged background missing.");
@@ -96,6 +100,8 @@ namespace ShatteredSail.Presentation
                 CapturePackagedMenu();
                 CapturePackagedBattleShips();
                 CheckPackagedAudio();
+                CheckPackagedSchoolCards();
+                CheckPackagedCrewDossiers();
             }
             catch (Exception error) { failures.Add(error.ToString()); }
             Finish();
@@ -120,7 +126,10 @@ namespace ShatteredSail.Presentation
                 "\nUnity: " + Application.unityVersion + "\nGraphics: " + SystemInfo.graphicsDeviceName +
                 "\nResolution: " + Screen.width + "x" + Screen.height +
                 "\nChecks: startup, packaged scenes, background, fonts, input, settings open/close, packaged UI offscreen frame, " +
-                ShatteredSail.Core.Gameplay.CoreVoyageSession.Ships.Count + " turned/mirrored ship cutouts and visible foreground, 63 packaged 48kHz audio clips." +
+                ShatteredSail.Core.Gameplay.CoreVoyageSession.Ships.Count + " turned/mirrored ship cutouts and visible foreground, " +
+                packagedAudioClipCount + " verified packaged 48kHz audio clips, " +
+                ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None) +
+                " individual card illustrations, 36 integrated school/wood resource frames and 36 integrated crew dossier paintings." +
                 "\nSave changes: none. Explicit smoke mode bypasses main-menu profile recovery, voyage-file reads and achievement capture; new-game, continue and settings-apply callbacks are blocked. No GM action invoked.\n" + string.Join("\n", failures);
             try
             {
@@ -141,15 +150,115 @@ namespace ShatteredSail.Presentation
         private static Button FindButton(string name) =>
             FindObjectsByType<Button>(FindObjectsSortMode.None).FirstOrDefault(button => button.name == name);
 
+        private void CheckPackagedCrewDossiers()
+        {
+            var crew = ShatteredSail.Content.CrewNarrativeCatalog.AllCrew;
+            Require(crew.Count == 36, "Packaged regional crew roster must contain 36 identities.");
+            foreach (var character in crew)
+            {
+                string path = "PortArt/CrewDossiers/" + character.Id + "_dossier_v1";
+                Texture2D parchment = Resources.Load<Texture2D>(path);
+                Require(parchment != null, "Packaged crew dossier missing: " + character.Id);
+                if (parchment == null) continue;
+                Require(parchment.width >= 1900 && parchment.height >= 700,
+                    "Packaged crew dossier lost native detail: " + character.Id);
+            }
+        }
+
+        private void CheckPackagedSchoolCards()
+        {
+            var cards = ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary
+                .Where(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None &&
+                    CardSchoolArtCatalog.NormalizeSchool(card.SchoolId) != "neutral").ToArray();
+            Require(cards.Length == 132 && cards.Select(card => card.ArtId).Distinct().Count() == 132,
+                "Packaged catalog must include 132 distinct school-card illustrations.");
+            var lines = new List<string> { "cardId,school,artId,resourcePath,width,height,fullSourceUv,sourceAspectPreserved" };
+            foreach (var card in ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary
+                .Where(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None))
+            {
+                Texture2D texture = CardSchoolArtCatalog.Illustration(card, null);
+                string resourcePath = CardSchoolArtCatalog.DedicatedIllustrationPath(card);
+                string textureName = Path.GetFileName(resourcePath);
+                Require(CardSchoolArtCatalog.HasDedicatedArt(card) && texture != null && texture.name == textureName,
+                    "Packaged individual card illustration missing: " + card.Id + " / " + resourcePath);
+                Rect uv = CardSchoolArtCatalog.IllustrationUv(card, null);
+                Vector2 size = CardFaceLayout.IllustrationSize(texture, uv);
+                bool fullUv = uv == new Rect(0f, 0f, 1f, 1f);
+                bool originalAspect = texture != null && Mathf.Abs(size.x / size.y - (float)texture.width / texture.height) < .0001f;
+                Require(fullUv && originalAspect, "Packaged card illustration was cropped or stretched: " + card.Id);
+                if (texture != null) lines.Add(card.Id + "," + CardSchoolArtCatalog.NormalizeSchool(card.SchoolId) + "," +
+                    card.ArtId + "," + resourcePath + "," + texture.width + "," + texture.height + "," + fullUv + "," + originalAspect);
+            }
+            var framePaths = new HashSet<string>();
+            var titleLines = new List<string> { "cardId,font,baseAndUpgradeCharactersPresent,curveCalibrated" };
+            Font titleFont = Resources.Load<Font>(GameTypography.FontResourcePath);
+            Require(titleFont != null && titleFont == GameTypography.InterfaceFont, "Packaged artistic card title font missing.");
+            foreach (string school in CardSchoolArtCatalog.SchoolIds.Concat(new[] { "neutral" }))
+                for (int powder = 0; powder <= 1; powder++)
+                    for (int cannonball = 0; cannonball <= 1; cannonball++)
+                    {
+                        string path = CardSchoolArtCatalog.FrameResourcePath(school, powder, cannonball);
+                        Require(CardSchoolArtCatalog.Frame(school, powder, cannonball) != null,
+                            "Packaged integrated card frame missing: " + path);
+                        framePaths.Add(path);
+                    }
+            // Resource completeness is independent of which cost variants the
+            // currently balanced card definitions happen to use.
+            foreach (var special in new[] { ("arcane", "mana"), ("blood", "health"), ("curse", "curse"), ("thunder", "chain") })
+                foreach (int cost in new[] { 0, 1 })
+                {
+                    string path = CardSchoolArtCatalog.FrameResourcePath(special.Item1, cost, cost, special.Item2);
+                    Require(CardSchoolArtCatalog.Frame(special.Item1, cost, cost, special.Item2) != null,
+                        "Packaged integrated special-cost frame missing: " + path);
+                    framePaths.Add(path);
+                }
+            var usedFramePaths = new HashSet<string>();
+            foreach (var card in ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary
+                .Where(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None))
+            {
+                string path = CardSchoolArtCatalog.FrameResourcePath(card);
+                Require(CardSchoolArtCatalog.Frame(card) != null, "Packaged card cost frame missing: " + card.Id + " / " + path);
+                Rect frameBounds = CardSchoolArtCatalog.FrameBounds(card);
+                Require(frameBounds.height > 450f && Mathf.Abs(frameBounds.width - 272f) < .01f,
+                    "Packaged card frame lost the approved taller geometry: " + card.Id);
+                bool characters = titleFont != null && (card.Name + "+123").All(character =>
+                    char.IsWhiteSpace(character) || titleFont.HasCharacter(character));
+                CardRibbonTitleLayout curve = CardSchoolArtCatalog.TitleLayoutForFrame(Path.GetFileName(path));
+                bool calibrated = curve.halfWidth == 87f && curve.halfThickness >= 11f && curve.edgeRise > 10f;
+                Require(characters && calibrated, "Packaged title font characters or ribbon calibration missing: " + card.Id);
+                titleLines.Add(card.Id + "," + titleFont.name + "," + characters + "," + calibrated);
+                framePaths.Add(path);
+                usedFramePaths.Add(path);
+            }
+            Require(framePaths.Count == 36, "Expected 36 complete integrated card-frame variants.");
+            File.WriteAllLines(Path.Combine(destination, "packaged-integrated-card-frames.txt"), framePaths.OrderBy(path => path));
+            File.WriteAllLines(Path.Combine(destination, "packaged-used-card-frames.txt"), usedFramePaths.OrderBy(path => path));
+            File.WriteAllLines(Path.Combine(destination, "packaged-school-card-assets.csv"), lines);
+            File.WriteAllLines(Path.Combine(destination, "packaged-card-title-font.csv"), titleLines);
+            CardSchoolArtCatalog.ReleaseLoadedTextures();
+        }
+
         private void CheckPackagedAudio()
         {
             string[] groups = { "Music", "BattleSfx", "WorldSfx", "InterfaceSfx", "Ambience" };
-            int[] counts = { 21, 14, 11, 11, 6 };
+            IReadOnlyList<string>[] expectedKeys = {
+                null,
+                CoreGameplayDemoController.BattleSoundEffectKeys,
+                CoreGameplayDemoController.WorldSoundEffectKeys,
+                CoreGameplayDemoController.InterfaceSoundEffectKeys,
+                CoreGameplayDemoController.AmbienceSoundEffectKeys
+            };
+            packagedAudioClipCount = 0;
             var lines = new List<string> { "group,name,frequency,channels,samples,seconds" };
             for (int index = 0; index < groups.Length; index++)
             {
                 AudioClip[] clips = Resources.LoadAll<AudioClip>("Audio/" + groups[index]);
-                Require(clips.Length == counts[index], "Packaged audio count mismatch: " + groups[index]);
+                int expectedCount = expectedKeys[index]?.Count ?? 21;
+                Require(clips.Length == expectedCount, "Packaged audio count mismatch: " + groups[index] +
+                    " (expected " + expectedCount + ", found " + clips.Length + ").");
+                if (expectedKeys[index] != null)
+                    Require(new HashSet<string>(clips.Select(clip => clip.name), StringComparer.Ordinal).SetEquals(expectedKeys[index]),
+                        "Packaged audio names do not match the runtime catalog: " + groups[index]);
                 foreach (AudioClip clip in clips)
                 {
                     Require(clip.frequency == 48000 && clip.samples > 0, "Invalid packaged audio: " + clip.name);
@@ -158,6 +267,7 @@ namespace ShatteredSail.Presentation
                     lines.Add(string.Join(",", groups[index], clip.name, clip.frequency, clip.channels,
                         clip.samples, clip.length.ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
                 }
+                packagedAudioClipCount += clips.Length;
             }
             File.WriteAllLines(Path.Combine(destination, "packaged-audio.csv"), lines);
         }

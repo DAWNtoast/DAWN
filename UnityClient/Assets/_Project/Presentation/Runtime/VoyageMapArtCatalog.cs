@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -13,53 +14,55 @@ namespace ShatteredSail.Presentation
     {
         public const string ResourceRoot = "VoyageMapV2/";
 
-        private readonly Texture2D[] openWater = new Texture2D[3];
-        private readonly Dictionary<SeaTerrainType, Texture2D> terrain = new Dictionary<SeaTerrainType, Texture2D>();
+        private static readonly string[] WaterNames = { "water_open_a_v2", "water_open_b_v2", "water_open_c_v2" };
+        private static readonly Dictionary<SeaTerrainType, string> TerrainNames = new Dictionary<SeaTerrainType, string>
+        {
+            { SeaTerrainType.Shoal, "terrain_shoal_v2" }, { SeaTerrainType.Island, "terrain_island_v2" },
+            { SeaTerrainType.Reef, "terrain_reef_v2" }, { SeaTerrainType.KelpField, "terrain_kelp_v2" },
+            { SeaTerrainType.FogBank, "terrain_fog_v2" }, { SeaTerrainType.StormFront, "terrain_storm_v2" },
+            { SeaTerrainType.Strait, "terrain_strait_v2" },
+        };
+        private readonly Func<string, Texture2D> resourceLoader;
+        private readonly Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>(StringComparer.Ordinal);
         private CoreVoyageMap cachedCoastMap;
         private VoyageChartCoastField cachedCoastField;
 
-        public VoyageMapArtCatalog()
-        {
-            ChartBase = Load("water_chart_base_v2", false);
-            GroundDetail = Load("terrain_ground_detail_v3", false);
-            openWater[0] = Load("water_open_a_v2", false);
-            openWater[1] = Load("water_open_b_v2", false);
-            openWater[2] = Load("water_open_c_v2", false);
+        public VoyageMapArtCatalog() : this(Resources.Load<Texture2D>) { }
 
-            terrain[SeaTerrainType.Shoal] = Load("terrain_shoal_v2", true);
-            terrain[SeaTerrainType.Island] = Load("terrain_island_v2", true);
-            terrain[SeaTerrainType.Reef] = Load("terrain_reef_v2", true);
-            terrain[SeaTerrainType.KelpField] = Load("terrain_kelp_v2", true);
-            terrain[SeaTerrainType.FogBank] = Load("terrain_fog_v2", true);
-            terrain[SeaTerrainType.StormFront] = Load("terrain_storm_v2", true);
-            terrain[SeaTerrainType.Strait] = Load("terrain_strait_v2", true);
+        internal VoyageMapArtCatalog(Func<string, Texture2D> resourceLoader)
+        {
+            this.resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         }
 
         public int LoadedTextureCount
         {
             get
             {
-                int count = ChartBase == null ? 0 : 1;
-                if (GroundDetail != null) count += 1;
-                for (int index = 0; index < openWater.Length; index += 1)
-                {
-                    if (openWater[index] != null) count += 1;
-                }
-
-                foreach (KeyValuePair<SeaTerrainType, Texture2D> entry in terrain)
-                {
-                    if (entry.Value != null) count += 1;
-                }
+                int count = 0;
+                foreach (Texture2D texture in textures.Values) if (texture != null) count++;
                 return count;
             }
         }
 
-        public bool IsAvailable => LoadedTextureCount == 12;
+        public bool IsAvailable
+        {
+            get
+            {
+                bool available = ChartBase != null;
+                available &= GroundDetail != null;
+                for (int index = 0; index < WaterNames.Length; index++) available &= WaterVariant(index) != null;
+                foreach (SeaTerrainType type in TerrainNames.Keys) available &= TerrainFor(type) != null;
+                return available;
+            }
+        }
 
-        public Texture2D ChartBase { get; }
-        public Texture2D GroundDetail { get; }
+        public Texture2D ChartBase => Load("water_chart_base_v2", false);
+        public Texture2D GroundDetail => Load("terrain_ground_detail_v3", false);
 
-        public int WaterVariantCount => openWater.Length;
+        public int WaterVariantCount => WaterNames.Length;
+
+        /// <summary>Releases borrowed texture references while preserving the managed coast geometry cache.</summary>
+        public void ReleaseLoadedTextures() => textures.Clear();
 
         /// <summary>
         /// Retains only the most recently displayed map's managed coast field.
@@ -83,18 +86,19 @@ namespace ShatteredSail.Presentation
 
         public Texture2D WaterVariant(int index)
         {
-            return openWater[Mathf.Clamp(index, 0, openWater.Length - 1)];
+            return Load(WaterNames[Mathf.Clamp(index, 0, WaterNames.Length - 1)], false);
         }
 
         public Texture2D WaterAt(uint mapHash, int column, int row)
         {
-            int preferred = (int)(VisualHash(mapHash, column, row, 0xA341316Cu) % (uint)openWater.Length);
-            Texture2D texture = openWater[preferred];
+            int preferred = (int)(VisualHash(mapHash, column, row, 0xA341316Cu) % (uint)WaterNames.Length);
+            Texture2D texture = WaterVariant(preferred);
             if (texture != null) return texture;
 
-            for (int index = 0; index < openWater.Length; index += 1)
+            for (int index = 0; index < WaterNames.Length; index += 1)
             {
-                if (openWater[index] != null) return openWater[index];
+                Texture2D fallback = WaterVariant(index);
+                if (fallback != null) return fallback;
             }
             return null;
         }
@@ -103,13 +107,13 @@ namespace ShatteredSail.Presentation
         {
             if (type == SeaTerrainType.Beach)
             {
-                return terrain[SeaTerrainType.Shoal];
+                type = SeaTerrainType.Shoal;
             }
 
-            return terrain.TryGetValue(type, out Texture2D texture) ? texture : null;
+            return TerrainNames.TryGetValue(type, out string name) ? Load(name, true) : null;
         }
 
-        public Texture2D BeachLandOverlay => terrain[SeaTerrainType.Island];
+        public Texture2D BeachLandOverlay => TerrainFor(SeaTerrainType.Island);
 
         public static uint VisualHash(uint mapHash, int column, int row, uint salt = 0u)
         {
@@ -126,9 +130,11 @@ namespace ShatteredSail.Presentation
             }
         }
 
-        private static Texture2D Load(string fileName, bool transparent)
+        private Texture2D Load(string fileName, bool transparent)
         {
-            Texture2D texture = Resources.Load<Texture2D>(ResourceRoot + fileName);
+            if (textures.TryGetValue(fileName, out Texture2D texture)) return texture;
+            texture = resourceLoader(ResourceRoot + fileName);
+            textures.Add(fileName, texture);
             if (texture == null) return null;
 
             texture.name = fileName;

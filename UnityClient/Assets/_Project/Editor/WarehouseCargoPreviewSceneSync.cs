@@ -20,6 +20,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureWarehouseCargoFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Warehouse cargo previews require edit mode.");
             for (int state = 0; state < WarehouseCargoReferencePaths.Length; state++)

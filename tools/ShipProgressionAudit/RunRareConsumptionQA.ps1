@@ -1,6 +1,8 @@
 param([string]$Version = 'v1', [ValidateSet('Play','References','FinalEdit')][string]$Stage = 'Play',
     [string]$Filter = 'RareWarehouse_;RareWarehouseSale_;PortInvestment_;RareResourceEvents_;BoardingMedicine_;BattleRules_;BattleResponsive_;WarehouseCargo_;MarketQuantity_;TreasureCore_')
 $ErrorActionPreference = 'Stop'
+# Retired by user request; exit before filesystem or Unity actions.
+if (@('References') -contains $Stage) { throw 'UIPreviewsForMe was retired on 2026-10-13; saved-preview generation, refresh and copy-back are disabled.' }
 if (Get-Process Unity -ErrorAction SilentlyContinue) { throw 'Close Unity before starting isolated QA.' }
 $project = 'D:\Game\UnityClient'
 $editor = 'D:\Unity\Hub\Editor\6000.3.23f1\Editor\Unity.exe'

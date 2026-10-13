@@ -16,6 +16,163 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
+        public IEnumerator BoardingCinematic_LegacyAssignmentDoesNotHideCommittedCrew()
+        {
+            yield return LoadResponsiveBattleScene();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CrewVariantDefinition doctor = CrewNarrativeCatalog.ForPortAndProfession("白贝港", 2);
+            CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Preparation, crewId: doctor.Id);
+            typeof(CoreVoyageSession).GetMethod("EnterBattleStage", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(session, new object[] { NavalBattleStage.Boarding });
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(doctor.Id), 1);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CrewRecruitmentKey(doctor.ProfessionIndex), 1);
+            PlayerPrefs.SetString(CoreGameplayDemoController.ActiveCrewVariantKey(doctor.ProfessionIndex), doctor.Id);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(doctor.Id), session.CurrentPort);
+            var selected = (List<string>)RamComicField("selectedDepartureSpecialCrew").GetValue(controller);
+            selected.Clear();
+            selected.Add(doctor.Id);
+            typeof(CoreGameplayDemoController).GetMethod("PersistCrewAtSea", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
+            PlayerPrefs.SetInt("ShatteredSail.Dispatch.Mission.v1", 0);
+            PlayerPrefs.SetInt("ShatteredSail.Dispatch.RealClock.v1", 1);
+            PlayerPrefs.SetString("ShatteredSail.Dispatch.EndsAt.v1", System.DateTime.UtcNow.AddDays(1).Ticks.ToString());
+            PlayerPrefs.SetString("ShatteredSail.Dispatch.CrewCsv.v1", "2");
+            PlayerPrefs.SetString("ShatteredSail.Dispatch.CrewIdentities.v2", doctor.Id);
+
+            RenderResponsiveBattle(controller);
+            yield return null;
+
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            RawImage figure = RequiredResponsive<RawImage>("Player Ship Art Sailor 0");
+            Assert.That(figure.texture, Is.SameAs(BoardingBattleArtCatalog.ForCrew(doctor)));
+            Assert.That(figure.uvRect, Is.EqualTo(BoardingBattleArtCatalog.CrewUv(doctor)));
+            Assert.That(GameObject.Find("Player Ship Art Party Illustration"), Is.Null,
+                "A retired assignment must not replace the committed doctor with ordinary sailors.");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [Test]
+        public void BoardingCinematic_AllEnemyLegacyAndThirtySixCrewBodiesCompensateTheirOwnTransparentFootMargins()
+        {
+            var enemyNames = new[] { "party", "imperial", "ghost", "route_reef", "route_gold", "route_moon", "treasure",
+                "iron_oath", "thunder_crown", "red_widow", "ember_ark", "tide_requiem" };
+            var legacyNames = new[] { "navigator_evelyn", "carpenter_barlow", "doctor_moer", "gunner_leisa", "cook_pepe", "diver_noya" };
+            IEnumerable<string> paths = enemyNames.Select(name => "BoardingBattle/Characters/boarding_enemy_" + name + "_v1")
+                .Concat(legacyNames.Select(name => "PortArt/CrewFullBody/crew_" + name + "_fullbody"));
+            var party = new GameObject("Boarding foot placement fixture", typeof(RectTransform));
+            try
+            {
+                var actor = new GameObject("Grounded actor", typeof(RectTransform), typeof(RawImage));
+                actor.transform.SetParent(party.transform, false);
+                RawImage figure = actor.GetComponent<RawImage>();
+                figure.raycastTarget = false;
+                void AssertGroundedBody(Texture2D texture, Rect uv, Vector2 bounds)
+                {
+                    Assert.That(texture, Is.Not.Null);
+                    figure.texture = texture;
+                    figure.uvRect = uv;
+                    figure.rectTransform.sizeDelta = UiImageAspect.FitSize(texture, uv, bounds);
+                    figure.rectTransform.anchoredPosition = new Vector2(73f, 91f);
+                    BoardingBattleLayout.GroundFigure(figure);
+                    BoardingCinematicAssertions.AssertFullBody(figure, uv);
+                    Assert.That(figure.rectTransform.anchoredPosition.x, Is.EqualTo(73f), "Grounding must preserve the formation's horizontal spacing.");
+                    Vector2 grounded = figure.rectTransform.anchoredPosition;
+                    BoardingBattleLayout.GroundFigure(figure);
+                    Assert.That(figure.rectTransform.anchoredPosition, Is.EqualTo(grounded), "Repeated pose restoration must not accumulate a foot offset.");
+                }
+                foreach (string path in paths)
+                {
+                    Texture2D texture = Resources.Load<Texture2D>(path);
+                    Assert.That(texture, Is.Not.Null, path);
+                    AssertGroundedBody(texture, new Rect(0f, 0f, 1f, 1f), BoardingBattleLayout.PartySize);
+                }
+                Assert.That(CrewNarrativeCatalog.AllCrew.Count, Is.EqualTo(36));
+                foreach (CrewVariantDefinition crew in CrewNarrativeCatalog.AllCrew)
+                    AssertGroundedBody(BoardingBattleArtCatalog.ForCrew(crew), BoardingBattleArtCatalog.CrewUv(crew), new Vector2(230f, 330f));
+            }
+            finally { Object.DestroyImmediate(party); }
+        }
+
+        [UnityTest]
+        public IEnumerator BoardingCinematic_AllEighteenDecksGroundOrdinaryAndSpecialistBodies()
+        {
+            using (var storage = new VoyageCargoStorageScope())
+            {
+                yield return LoadResponsiveBattleScene();
+                var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                var terrains = new[] { SeaTerrainType.OpenWater, SeaTerrainType.Beach, SeaTerrainType.Strait,
+                    SeaTerrainType.Reef, SeaTerrainType.FogBank, SeaTerrainType.StormFront };
+                var ports = new[] { "断锚港", "白贝港", "铜钟港", "盐冠港", "暮潮港", "灰鸥港" };
+                var hours = new[] { 0d, 10d, 14d };
+                var times = new[] { NavigationTimeOfDay.Day, NavigationTimeOfDay.Dusk, NavigationTimeOfDay.Night };
+                var backgrounds = new HashSet<Texture>();
+                var identities = new HashSet<string>();
+                var selected = (List<string>)RamComicField("selectedDepartureSpecialCrew").GetValue(controller);
+                PropertyInfo terrain = typeof(CoreVoyageSession).GetProperty("BattleTerrain");
+                MethodInfo persistAtSea = typeof(CoreGameplayDemoController).GetMethod("PersistCrewAtSea", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo enterStage = typeof(CoreVoyageSession).GetMethod("EnterBattleStage", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                for (int environment = 0; environment < terrains.Length; environment++)
+                    for (int time = 0; time < times.Length; time++)
+                    {
+                        selected.Clear();
+                        CoreVoyageSession ordinary = CreateResponsiveBattle(controller, NavalBattleStage.Preparation, gameHours: hours[time]);
+                        terrain.SetValue(ordinary, terrains[environment]);
+                        enterStage.Invoke(ordinary, new object[] { NavalBattleStage.Boarding });
+                        SetResponsiveHand(ordinary, "card_crew_thrust", "card_crew_guard");
+                        RenderResponsiveBattle(controller);
+                        yield return null;
+                        Assert.That(NavigationTimeOfDayUtility.FromVoyageHours(ordinary.ElapsedGameHours), Is.EqualTo(times[time]));
+                        BoardingCinematicAssertions.AssertScene(ordinary);
+                        Assert.That(backgrounds.Add(RequiredResponsive<RawImage>("Battle Scene Art").texture), Is.True,
+                            "Each environment/time fixture must inspect its own installed painting.");
+                        if (environment == 0 && time == 0)
+                            NavalBattleVisualCapture.Capture(controller, "Boarding_Grounded_OpenDay.png", "开阔海域白天：普通船员真实脚底落在绘制甲板上");
+                        if (environment == 2 && time == 2)
+                            NavalBattleVisualCapture.Capture(controller, "Boarding_Grounded_StraitNight.png", "海峡夜晚：双队脚底位于栏杆前的甲板区域");
+
+                        // Cooks do not provide combat cards and are not selected
+                        // by the live boarding roster. The direct grounding test
+                        // above still covers their complete authored atlas cells.
+                        var crew = (time == 0 ? new[] { 0, 1, 2 } : new[] { 3, 5, 0 })
+                            .Select(profession => CrewNarrativeCatalog.ForPortAndProfession(ports[environment], profession)).ToArray();
+                        CoreVoyageSession specialists = CreateResponsiveBattle(controller, NavalBattleStage.Preparation,
+                            crewIds: crew.Select(member => member.Id).ToArray(), gameHours: hours[time]);
+                        terrain.SetValue(specialists, terrains[environment]);
+                        enterStage.Invoke(specialists, new object[] { NavalBattleStage.Boarding });
+                        SetResponsiveHand(specialists, "card_crew_thrust", "card_crew_guard");
+                        foreach (CrewVariantDefinition member in crew)
+                        {
+                            PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(member.Id), 1);
+                            PlayerPrefs.SetInt(CoreGameplayDemoController.CrewRecruitmentKey(member.ProfessionIndex), 1);
+                            PlayerPrefs.SetString(CoreGameplayDemoController.ActiveCrewVariantKey(member.ProfessionIndex), member.Id);
+                            PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(member.Id), specialists.CurrentPort);
+                            selected.Add(member.Id);
+                            identities.Add(member.Id);
+                        }
+                        persistAtSea.Invoke(controller, null);
+                        RenderResponsiveBattle(controller);
+                        yield return null;
+                        BoardingCinematicAssertions.AssertScene(specialists, false);
+                        Assert.That(GameObject.Find("Player Ship Art Party Illustration"), Is.Null);
+                        Assert.That(RequiredResponsive<RectTransform>("Player Ship Art").GetComponentsInChildren<RawImage>(), Has.Length.EqualTo(3),
+                            ports[environment] + " / " + times[time] + " / " + string.Join(", ", crew.Select(member => member.Id)));
+                        for (int index = 0; index < crew.Length; index++)
+                        {
+                            RawImage figure = RequiredResponsive<RawImage>("Player Ship Art Sailor " + index);
+                            Assert.That(figure.texture, Is.SameAs(BoardingBattleArtCatalog.ForCrew(crew[index])));
+                            BoardingCinematicAssertions.AssertFullBody(figure, BoardingBattleArtCatalog.CrewUv(crew[index]));
+                        }
+                        if (environment == 2 && time == 2)
+                            NavalBattleVisualCapture.Capture(controller, "Boarding_Grounded_LowerAtlasCrew.png", "海峡夜晚：图集下排炮手、潜水员与领航员按不透明脚底落地");
+                    }
+                Assert.That(backgrounds.Count, Is.EqualTo(18));
+                Assert.That(identities.Count, Is.EqualTo(30));
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        [UnityTest]
         public IEnumerator BoardingCinematic_SelectedAtSeaSpecialistsKeepTheirIdentityAndCardsStillCommitOnce()
         {
             using (var storage = new VoyageCargoStorageScope())
@@ -93,6 +250,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return WaitBoardingFeedback(controller, "BoardingFX", BoardingCombatFxKind.Guard);
                 Assert.That(session.Battle.PlayerBlock, Is.EqualTo(guardBefore + block));
                 Assert.That(RequiredResponsive<BattleDefenseHud>("Player Battle Hull Bar Track").DisplayedGuard, Is.EqualTo(session.Battle.PlayerBlock));
+                BoardingCinematicAssertions.AssertScene(session, false);
                 AssertResponsiveHandMatchesCore(session);
                 LogAssert.NoUnexpectedReceived();
             }
@@ -167,6 +325,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(2), "The restored remaining hand must still accept one normal action.");
                 Assert.That(session.Battle.PlayerBlock, Is.EqualTo(block));
                 Assert.That(Object.FindObjectsByType<BoardingCombatFxGraphic>(FindObjectsSortMode.None), Is.Empty);
+                BoardingCinematicAssertions.AssertScene(session);
                 LogAssert.NoUnexpectedReceived();
             }
         }
@@ -212,8 +371,8 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton("Battle Ram");
                 yield return WaitForRamComic(controller);
                 yield return null;
-                UnityEvent oldSkip = RequiredResponsive<Button>("Battle Ram Comic Skip").onClick;
-                ClickAcceptanceButton("Battle Ram Comic Skip");
+                UnityEvent oldAdvance = RequiredResponsive<Button>("Battle Ram Comic Advance").onClick;
+                yield return ClickThroughRamComic(controller);
                 string committed = RamComicCoreState(session);
                 float deadline = Time.realtimeSinceStartup + 12f;
                 while ((GameObject.Find("Boarding Scene Transition") == null || GameObject.Find("Battle Ram Comic Overlay") != null) &&
@@ -235,7 +394,7 @@ namespace ShatteredSail.Presentation.Tests
                 else controller.enabled = true;
                 yield return null;
                 yield return null;
-                Assert.DoesNotThrow(() => oldSkip.Invoke());
+                Assert.DoesNotThrow(() => oldAdvance.Invoke());
                 oldRam.Invoke();
                 Assert.That(RamComicCoreState(session), Is.EqualTo(committed));
                 Assert.That(controller.IsBattleAnimationPlaying, Is.False);
@@ -249,6 +408,9 @@ namespace ShatteredSail.Presentation.Tests
 
     internal static class BoardingCinematicAssertions
     {
+        private static readonly Dictionary<Texture, Dictionary<Rect, Vector2>> VisibleFeet =
+            new Dictionary<Texture, Dictionary<Rect, Vector2>>();
+
         public static void AssertScene(CoreVoyageSession session, bool ordinaryPlayer = true)
         {
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
@@ -258,6 +420,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(expected, Is.Not.Null, "The actual battle's environment and campaign time require an installed painting.");
             Assert.That(background.texture, Is.SameAs(expected));
             Assert.That(background.uvRect, Is.EqualTo(BoardingBattleLayout.CoverUv(expected, background.rectTransform.rect.size)));
+            Assert.That(background.uvRect.yMin, Is.EqualTo(0f).Within(.00001f),
+                "Cover cropping must retain the foreground deck instead of centering on the sea and railing.");
             foreach (bool enemy in new[] { false, true })
             {
                 string side = enemy ? "Enemy" : "Player";
@@ -279,6 +443,7 @@ namespace ShatteredSail.Presentation.Tests
                     AssertFullBody(image);
                     Assert.That(party.GetComponentsInChildren<RawImage>(), Has.Length.EqualTo(1));
                 }
+                foreach (RawImage figure in party.GetComponentsInChildren<RawImage>()) AssertFeetOnDeck(figure);
                 BattleDefenseHud hud = Required<BattleDefenseHud>(side + " Battle Hull Bar Track");
                 int maximum = enemy ? session.Battle.EnemyMaxBoardingHealth : session.Battle.PlayerMaxBoardingHealth;
                 int current = enemy ? session.Battle.EnemyBoardingHealth : session.Battle.PlayerBoardingHealth;
@@ -306,8 +471,98 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(figure.rectTransform.rect.width / figure.rectTransform.rect.height,
                 Is.EqualTo(figure.texture.width * source.width / (figure.texture.height * source.height)).Within(.0001f));
             Assert.That(figure.raycastTarget, Is.False);
-            Assert.That(figure.rectTransform.anchoredPosition.y + figure.rectTransform.rect.yMin,
-                Is.EqualTo(-BoardingBattleLayout.PartySize.y * .5f).Within(.001f), "Every actor must stand on the shared deck floor.");
+            AssertFeetOnDeck(figure, false);
+        }
+
+        private static void AssertFeetOnDeck(RawImage figure, bool verifyPaintedDeck = true)
+        {
+            // Inspect visible source pixels independently of the production
+            // placement metadata: a transparent image's rectangle is not its foot.
+            Vector2 foot = VisibleFoot(figure.texture, figure.uvRect);
+            Rect bounds = figure.rectTransform.rect;
+            Vector3 world = figure.rectTransform.TransformPoint(new Vector3(
+                Mathf.Lerp(bounds.xMin, bounds.xMax, foot.x), Mathf.Lerp(bounds.yMin, bounds.yMax, foot.y), 0f));
+            Vector3 partyLocal = figure.transform.parent.InverseTransformPoint(world);
+            Assert.That(partyLocal.y, Is.EqualTo(-165f).Within(2f),
+                figure.name + " / " + figure.texture.name + " / " + figure.uvRect +
+                " must place its opaque feet on the shared floor, including atlas-cell padding.");
+            if (!verifyPaintedDeck) return;
+
+            RawImage background = Required<RawImage>("Battle Scene Art");
+            Rect deck = background.rectTransform.rect;
+            Vector3 deckLocal = background.rectTransform.InverseTransformPoint(world);
+            float sourceY = Mathf.Lerp(background.uvRect.yMin, background.uvRect.yMax,
+                (deckLocal.y - deck.yMin) / deck.height);
+            // The independently inspected paintings all have clear decking at
+            // source rows 61%-70% from the top, in both teams' standing areas.
+            Assert.That(sourceY, Is.InRange(.30f, .39f),
+                figure.name + " on " + background.texture.name + " must stand on painted deck below the railing.");
+        }
+
+        private static Vector2 VisibleFoot(Texture texture, Rect uv)
+        {
+            if (!VisibleFeet.TryGetValue(texture, out Dictionary<Rect, Vector2> cells))
+            {
+                cells = new Dictionary<Rect, Vector2>();
+                VisibleFeet.Add(texture, cells);
+            }
+            if (cells.TryGetValue(uv, out Vector2 cached)) return cached;
+            RenderTexture previous = RenderTexture.active;
+            RenderTexture copy = RenderTexture.GetTemporary(texture.width, texture.height, 0, RenderTextureFormat.ARGB32);
+            var readable = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false);
+            try
+            {
+                Graphics.Blit(texture, copy);
+                RenderTexture.active = copy;
+                readable.ReadPixels(new Rect(0f, 0f, texture.width, texture.height), 0, 0);
+                readable.Apply();
+                Color32[] pixels = readable.GetPixels32();
+                int left = Mathf.Clamp(Mathf.CeilToInt(uv.xMin * texture.width - .5f), 0, texture.width - 1);
+                int right = Mathf.Clamp(Mathf.CeilToInt(uv.xMax * texture.width - .5f), left + 1, texture.width);
+                int bottom = Mathf.Clamp(Mathf.CeilToInt(uv.yMin * texture.height - .5f), 0, texture.height - 1);
+                int top = Mathf.Clamp(Mathf.CeilToInt(uv.yMax * texture.height - .5f), bottom + 1, texture.height);
+                for (int y = bottom; y < top - 2; y++)
+                {
+                    int first = -1, last = -1;
+                    int count = 0, run = 0, longest = 0;
+                    for (int x = left; x < right; x++)
+                    {
+                        if (pixels[y * texture.width + x].a < 64) { run = 0; continue; }
+                        if (first < 0) first = x;
+                        last = x;
+                        count++;
+                        longest = Mathf.Max(longest, ++run);
+                    }
+                    // Tiny disconnected alpha flecks below boots are not body
+                    // contact. Require a supported footprint across three rows.
+                    if (count < 8 || longest < 6 || !HasBootRow(pixels, texture.width, left, right, y + 1) ||
+                        !HasBootRow(pixels, texture.width, left, right, y + 2)) continue;
+                    var foot = new Vector2(((first + last + 1f) * .5f / texture.width - uv.xMin) / uv.width,
+                        ((y + .5f) / texture.height - uv.yMin) / uv.height);
+                    cells.Add(uv, foot);
+                    return foot;
+                }
+                Assert.Fail(texture.name + " contains no visible feet within " + uv);
+                return Vector2.zero;
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(copy);
+                Object.DestroyImmediate(readable);
+            }
+        }
+
+        private static bool HasBootRow(Color32[] pixels, int width, int left, int right, int y)
+        {
+            int count = 0, run = 0, longest = 0;
+            for (int x = left; x < right; x++)
+            {
+                if (pixels[y * width + x].a < 64) { run = 0; continue; }
+                count++;
+                longest = Mathf.Max(longest, ++run);
+            }
+            return count >= 8 && longest >= 6;
         }
 
         private static T Required<T>(string name) where T : Component

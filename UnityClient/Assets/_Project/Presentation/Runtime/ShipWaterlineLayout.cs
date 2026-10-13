@@ -6,11 +6,11 @@ namespace ShatteredSail.Presentation
     /// <summary>Authored keel contacts, independent of atlas padding and painted wakes.</summary>
     public static class ShipWaterlineLayout
     {
-        // Measured at each source cell's horizontal midpoint, from its bottom.
-        // These points sit in the lower hull timber (or the ghost hull itself),
-        // above the white foam/green glow already painted into some ships.
-        private static readonly float[] RosterContacts = { 0.19f, 0.17f, 0.21f, 0.23f };
-        private static readonly float[] RegionalContacts = { 0.085f, 0.095f, 0.095f, 0.10f, 0.255f, 0.22f, 0.225f, 0.255f };
+        // Measured at each redrawn source cell's central keel, from its bottom.
+        // Contact sits 1.5% above the median central hull edge, independently
+        // of the 6% packing margin. See ShipArtRedraw20261012/contacts.json.
+        private static readonly float[] RosterContacts = { 0.1039f, 0.1048f, 0.1039f, 0.1039f };
+        private static readonly float[] RegionalContacts = { 0.1400f, 0.1273f, 0.1224f, 0.1146f, 0.1576f, 0.1136f, 0.2298f, 0.1839f };
 
         public static Vector2 HullContactLocal(RawImage hull)
         {

@@ -38,6 +38,8 @@ namespace ShatteredSail.Editor
 
         public static void SyncBoardingCinematicFromCommandLine()
         {
+            throw new System.NotSupportedException("UIPreviewsForMe was retired on 2026-10-13; saved-preview generation, refresh and copy-back are disabled.");
+#if false // Historical implementation; this target is retired.
             if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stopped editor required.");
             string project = Path.GetFullPath(Directory.GetParent(Application.dataPath).FullName).TrimEnd('/', '\\');
@@ -89,6 +91,8 @@ namespace ShatteredSail.Editor
             if (report.scenes.Count != 3 || report.scenes.Any(item => !item.retainedIdentityVerified || !string.IsNullOrEmpty(item.error)))
                 throw new InvalidOperationException("Boarding scene synchronization failed.");
             Debug.Log("BOARDING_CINEMATIC_SYNC_OK: three scoped scenes; report " + reportPath);
+
+#endif
         }
 
         private static void SyncBoardingCinematicScene(BoardingSyncScene item, string backupRoot)

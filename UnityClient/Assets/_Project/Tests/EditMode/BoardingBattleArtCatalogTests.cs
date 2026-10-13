@@ -202,7 +202,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(uv.yMin, Is.GreaterThanOrEqualTo(0f));
                 Assert.That(uv.xMax, Is.LessThanOrEqualTo(1f));
                 Assert.That(uv.yMax, Is.LessThanOrEqualTo(1f));
-                Assert.That(uv.center, Is.EqualTo(new Vector2(.5f, .5f)));
+                Assert.That(uv.center.x, Is.EqualTo(.5f));
+                Assert.That(uv.yMin, Is.Zero, "The deck foreground must stay in frame when the painting is cropped.");
                 Assert.That(texture.width * uv.width / (texture.height * uv.height), Is.EqualTo(width / (float)height).Within(.0001f));
             }
             finally { Object.DestroyImmediate(texture); }

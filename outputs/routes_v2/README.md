@@ -2,6 +2,18 @@
 
 本目录保留三条常规航线和藏宝图海域的源配置、美术图集及映射。它们是 Unity 内容维护所需的共享资料。
 
+## 2026-10-13 旧素材清理
+
+经审核按 I03 清理以下 6 张第一版旧图，保留对应 `map_v2`、`sheet_v2`、`expansion_v3`、`unique_v4` 图及全部 CSV。
+
+| 航线 | 已清理旧图 |
+| --- | --- |
+| 黄金潮汐商路 | `golden_tide_route_map.png`、`golden_tide_event_sheet.png` |
+| 月潮遗迹海 | `moon_tide_route_map.png`、`moon_tide_event_sheet.png` |
+| 碎帆礁海 | `shattered_sail_route_map.png`、`shattered_sail_event_sheet.png` |
+
+已经退役的 `outputs/route_event_assets/` 黑雾航线素材包及旧说明、映射按 I01 清理。本目录的 `treasure_hunt_route_map.png` 和 `treasure_hunt_event_sheet.png` 仍保留供源表与生成器使用；A03 仅清理 Unity 资源目录中的旧寻宝路线底图副本。详见[旧素材清理记录](../../Artifacts/UnusedAssetAudit20261013/index.html)。
+
 ## 主要文件
 
 | 文件 | 内容 |

@@ -108,12 +108,19 @@ namespace ShatteredSail.Presentation.Tests
             controller.Session.ConfigureCrewCapabilities(true, true, false, true, false, false);
             ActiveButton("Port Hotspot CardWorkshop").onClick.Invoke();
             yield return null;
-            ActiveButton("Open Deck Chest 1").onClick.Invoke();
+            ActiveButton("Workshop Preview Stage Naval").onClick.Invoke();
+            yield return null;
+            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Not.Null);
-            Assert.That(GameObject.Find("Battle Upgrade Parchment").GetComponent<Image>().sprite, Is.Not.Null);
+            Assert.That(GameObject.Find("Battle Card Upgrade Panel Texture").GetComponent<RawImage>().texture, Is.Not.Null);
             ActiveButton("Select Upgrade Card 0").onClick.Invoke();
             yield return null;
+            AssertForgePage(controller, 0);
+            AssertForgeComparison(controller, 0);
+            yield return new WaitForSecondsRealtime(.7f);
+            NavalBattleVisualCapture.Capture(controller, "18_Card_Forge_Rank0_To1.png",
+                "完整卡面对比零阶到一阶：相同卡图、名称与费用，伤害升级", "Battle Card Upgrade Panel");
             decimal initialGold = controller.Session.ProfileGold;
             int paid = 0;
             for (int level = 1; level <= 3; level++)
@@ -127,15 +134,24 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(initialGold - paid));
                 Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey), Does.Contain("card_chain_shot=" + level));
                 Assert.That(GameObject.Find("Upgrade Selected Name").GetComponent<Text>().text, Does.Contain("+" + level));
+                AssertForgeComparison(controller, 0);
+                if (level == 2)
+                {
+                    yield return new WaitForSecondsRealtime(.7f);
+                    NavalBattleVisualCapture.Capture(controller, "19_Card_Forge_Rank2_To3.png",
+                        "完整卡面对比二阶到三阶：原始费用不变，伤害由1.5倍提升至2倍", "Battle Card Upgrade Panel");
+                }
             }
             Assert.That(ActiveButton("Confirm Battle Card Upgrade").interactable, Is.False);
             ActiveButton("Confirm Battle Card Upgrade").onClick.Invoke();
             yield return null;
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(initialGold - paid));
             CoreBattleCard card = controller.Session.GetBattleCard(0);
-            Assert.That(card.Energy, Is.Zero);
-            Assert.That(card.Draw, Is.EqualTo(CoreVoyageSession.CardLibrary[0].Draw + 1));
-            RectTransform bounds = GameObject.Find("Battle Upgrade Parchment").GetComponent<RectTransform>();
+            Assert.That(card.Energy, Is.EqualTo(CoreVoyageSession.CardLibrary[0].Energy));
+            Assert.That(card.Draw, Is.Zero, "Chain shot never gains an unauthored draw effect.");
+            Assert.That(GameObject.Find("Upgrade Rules"), Is.Null,
+                "The forge compares the actual card faces without the removed explanatory paragraph.");
+            RectTransform bounds = GameObject.Find("Battle Card Upgrade Panel").GetComponent<RectTransform>();
             foreach (Button button in GameObject.Find("Battle Card Upgrade Panel").GetComponentsInChildren<Button>())
             {
                 Vector3[] corners = new Vector3[4];
@@ -143,16 +159,33 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (Vector3 corner in corners)
                     Assert.That(bounds.rect.Contains(bounds.InverseTransformPoint(corner)), Is.True, button.name + " must remain on parchment");
             }
-            NavalBattleVisualCapture.Capture(controller, "20_Card_Forge_Rank3.png", "三阶强化：效果、减费、抽牌与持久化", "Battle Card Upgrade Panel");
+            yield return new WaitForSecondsRealtime(.7f);
+            NavalBattleVisualCapture.Capture(controller, "20_Card_Forge_Rank3.png", "完整三阶卡面与满阶提示，重复点击不再扣费", "Battle Card Upgrade Panel");
             HashSet<int> seen = new HashSet<int>();
-            for (int page = 0; page < 10; page++)
+            int pageCount = Mathf.Max(1, (controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count + 7) / 8);
+            for (int page = 0; page < pageCount; page++)
             {
-                foreach (Button button in GameObject.Find("Battle Card Upgrade Panel").GetComponentsInChildren<Button>())
-                    if (button.name.StartsWith("Select Upgrade Card ")) seen.Add(int.Parse(button.name.Substring("Select Upgrade Card ".Length)));
+                Button[] choices = AssertForgePage(controller, page);
+                foreach (Button choice in choices) seen.Add(ForgeCardIndex(choice));
+                Button selected = choices.FirstOrDefault(item => controller.Session.GetBattleCard(ForgeCardIndex(item)).PowderCost > 0) ?? choices.Last();
+                int selectedIndex = ForgeCardIndex(selected);
+                selected.onClick.Invoke();
+                yield return null;
+                AssertForgeComparison(controller, selectedIndex);
                 Button next = ActiveButton("Next Upgrade Cards");
-                if (!next.interactable) break;
+                Assert.That(next.interactable, Is.EqualTo(page + 1 < pageCount));
+                if (page + 1 == pageCount) break;
                 next.onClick.Invoke();
                 yield return null;
+            }
+            CollectionAssert.AreEquivalent(controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval), seen,
+                "Eight-card paging must preserve every available base card.");
+            if (pageCount > 1)
+            {
+                Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.True);
+                ActiveButton("Previous Upgrade Cards").onClick.Invoke();
+                yield return null;
+                AssertForgePage(controller, pageCount - 2);
             }
             foreach (int index in seen)
             {
@@ -165,11 +198,147 @@ namespace ShatteredSail.Presentation.Tests
             CoreVoyageSession restored = Object.FindFirstObjectByType<CoreGameplayDemoController>().Session;
             Assert.That(restored.GetCardUpgradeLevel("card_chain_shot"), Is.EqualTo(3));
             Assert.That(restored.ProfileGold, Is.EqualTo(initialGold - paid));
-            Assert.That(restored.GetBattleCard(0).Energy, Is.Zero);
+            Assert.That(restored.GetBattleCard(0).Energy, Is.EqualTo(CoreVoyageSession.CardLibrary[0].Energy), "Restoring rank 3 preserves the authored action cost.");
+        }
+
+        private static int ForgeCardIndex(Button button) => int.Parse(button.name.Substring("Select Upgrade Card ".Length));
+
+        private static Button[] AssertForgePage(CoreGameplayDemoController controller, int page)
+        {
+            Canvas.ForceUpdateCanvases();
+            RectTransform panel = GameObject.Find("Workshop Preview Collection").GetComponent<RectTransform>();
+            Button[] choices = panel.GetComponentsInChildren<Button>()
+                .Where(button => button.name.StartsWith("Select Upgrade Card ")).OrderBy(ForgeCardIndex).ToArray();
+            int[] expected = controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval).Skip(page * 8).Take(8).ToArray();
+            CollectionAssert.AreEqual(expected, choices.Select(ForgeCardIndex).ToArray());
+            Assert.That(choices.Length, Is.InRange(1, 8));
+            int pages = Mathf.Max(1, (controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count + 7) / 8);
+            Assert.That(GameObject.Find("Upgrade Collection Page").GetComponent<Text>().text.Replace(" ", string.Empty), Does.Contain((page + 1) + "/" + pages));
+            Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.EqualTo(page > 0));
+            Assert.That(GameObject.Find("Upgrade Comparison Name Current").GetComponent<Text>().text,
+                Is.EqualTo(CardFaceLayout.DisplayName(controller.Session.GetBattleCard(expected[0]))),
+                "Changing catalog page also selects its first visible card.");
+            List<Rect> placed = new List<Rect>();
+            foreach (Button choice in choices)
+            {
+                int index = ForgeCardIndex(choice);
+                RectTransform face = GameObject.Find("Upgrade Collection " + index + " Face").GetComponent<RectTransform>();
+                Assert.That(face.sizeDelta, Is.EqualTo(CardFaceLayout.CardSize));
+                Assert.That(face.localScale.x, Is.GreaterThan(0f));
+                Assert.That(face.localScale.y, Is.EqualTo(face.localScale.x));
+                CardSchoolFrameGraphic frame = face.GetComponentInChildren<CardSchoolFrameGraphic>();
+                Rect authored = CardSchoolArtCatalog.FrameBounds(controller.Session.GetBattleCard(index));
+                Assert.That(frame.rectTransform.sizeDelta, Is.EqualTo(authored.size));
+                Rect bounds = ForgeBoundsIn(panel, frame.rectTransform);
+                Assert.That(bounds.width / bounds.height, Is.EqualTo(authored.width / authored.height).Within(.001f));
+                Assert.That(placed.All(other => !other.Overlaps(bounds)), Is.True, "Full authored frames cannot overlap.");
+                placed.Add(bounds);
+            }
+            if (choices.Length == 8)
+            {
+                Assert.That(placed.Select(bounds => Mathf.Round(bounds.center.x)).Distinct().Count(), Is.EqualTo(4));
+                Assert.That(placed.Select(bounds => Mathf.Round(bounds.center.y)).Distinct().Count(), Is.EqualTo(2));
+            }
+            return choices;
+        }
+
+        private static void AssertForgeComparison(CoreGameplayDemoController controller, int index)
+        {
+            Canvas.ForceUpdateCanvases();
+            CoreBattleCard current = controller.Session.GetBattleCard(index);
+            foreach (string side in new[] { "Current", "Next" })
+            {
+                CoreBattleCard expected = side == "Current" ? current : controller.Session.GetBattleCardAtLevel(index, Mathf.Min(3, current.UpgradeLevel + 1));
+                RectTransform face = GameObject.Find("Upgrade Comparison " + side + " Face").GetComponent<RectTransform>();
+                Assert.That(face.sizeDelta, Is.EqualTo(CardFaceLayout.CardSize), side);
+                Assert.That(face.localScale, Is.EqualTo(Vector3.one), side);
+                RawImage picture = face.GetComponentInChildren<RawImage>();
+                Assert.That(picture, Is.Not.Null, side + " is a complete card face with its illustration");
+                Assert.That(picture.GetComponent<RectTransform>().sizeDelta, Is.EqualTo(CardFaceLayout.IllustrationLayout(picture.GetComponent<RawImage>()).size), side);
+                Text name = GameObject.Find("Upgrade Comparison Name " + side).GetComponent<Text>();
+                Text body = GameObject.Find("Upgrade Comparison Body " + side).GetComponent<Text>();
+                Assert.That(name.transform.IsChildOf(face), Is.True, side);
+                Assert.That(body.transform.IsChildOf(face), Is.True, side);
+                Assert.That(name.text, Is.EqualTo(CardFaceLayout.DisplayName(expected)), side);
+                Assert.That(ForgeVisibleText(body.text),
+                    Is.EqualTo(ForgeVisibleText(CardDescriptionText.Compact(
+                        controller.Session.BattleCardFaceDescription(expected, NavalBattleStage.Naval)))), side);
+                Assert.That(body.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize), side);
+                Assert.That(body.preferredHeight, Is.LessThanOrEqualTo(body.rectTransform.rect.height + .5f), side);
+                CardOrnamentGraphic[] ornaments = face.GetComponentsInChildren<CardOrnamentGraphic>();
+                CardOrnamentGraphic energy = ornaments.Single(item => item.Kind == CardOrnamentKind.Energy);
+                Assert.That(energy.GetComponentInChildren<Text>().text, Is.EqualTo(expected.Energy.ToString()), side);
+                CardOrnamentGraphic[] powder = ornaments.Where(item => item.Kind == CardOrnamentKind.Gunpowder).ToArray();
+                Assert.That(powder.Length, Is.EqualTo(expected.PowderCost > 0 ? 1 : 0), side);
+                if (powder.Length > 0) Assert.That(powder[0].GetComponentInChildren<Text>().text, Is.EqualTo(expected.PowderCost.ToString()), side);
+            }
+            Assert.That(ActiveButton("Confirm Battle Card Upgrade").interactable,
+                Is.EqualTo(current.UpgradeLevel < 3 && controller.Session.ProfileGold >= controller.Session.GetCardUpgradeCost(index)));
+            Assert.That(GameObject.Find("Upgrade Comparison Heading Current").GetComponent<Text>().text, Does.Contain("强化前"));
+            Assert.That(GameObject.Find("Upgrade Comparison Heading Next").GetComponent<Text>().text,
+                Does.Contain(current.UpgradeLevel == 3 ? "已达三阶" : "强化后"));
+        }
+
+        private static string ForgeVisibleText(string text) => System.Text.RegularExpressions.Regex.Replace(text, @"</?(?:b|i|size|color)(?:=[^>]*)?>", string.Empty)
+            .Replace('\u00a0', ' ').Replace("\n", string.Empty).Replace("\r", string.Empty);
+
+        private static string DossierTextWithoutWhitespace(string text) =>
+            new string(text.Where(character => !char.IsWhiteSpace(character)).ToArray());
+
+        private static Rect ForgeBoundsIn(Transform parent, RectTransform child)
+        {
+            Vector3[] corners = new Vector3[4];
+            child.GetWorldCorners(corners);
+            Vector3[] local = corners.Select(parent.InverseTransformPoint).ToArray();
+            return Rect.MinMaxRect(local.Min(point => point.x), local.Min(point => point.y),
+                local.Max(point => point.x), local.Max(point => point.y));
+        }
+
+        private static void AssertDossierCardFace(CoreGameplayDemoController controller, string prefix, CoreSpecialCardDefinition definition)
+        {
+            Assert.That(definition, Is.Not.Null);
+            int index = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
+                .Single(candidate => CoreVoyageSession.CardLibrary[candidate].Id == definition.Card.Id);
+            CoreBattleCard card = controller.Session.GetBattleCard(index);
+            RectTransform face = GameObject.Find(prefix + " Special Card Face").GetComponent<RectTransform>();
+            RawImage picture = GameObject.Find(prefix + " Special Card Art").GetComponent<RawImage>();
+            Text title = GameObject.Find(prefix + " Special Card Name").GetComponent<Text>();
+            Text effect = GameObject.Find(prefix + " Special Card Effect").GetComponent<Text>();
+            Assert.That(face.sizeDelta, Is.EqualTo(CardFaceLayout.CardSize));
+            RectTransform page = face.parent.GetComponent<RectTransform>();
+            bool reviewedSheet = prefix == "Tavern" || prefix == "Component";
+            float frameVerticalReserve = reviewedSheet ? 36f : 12f;
+            Assert.That(face.localScale.x, Is.EqualTo(Mathf.Min(.86f, (page.rect.height - frameVerticalReserve) / CardFaceLayout.FrameSize.y)).Within(.001f));
+            CardSchoolFrameGraphic fullFrame = face.GetComponentInChildren<CardSchoolFrameGraphic>();
+            Assert.That(fullFrame, Is.Not.Null);
+            Assert.That(fullFrame.rectTransform.sizeDelta, Is.EqualTo(CardSchoolArtCatalog.FrameBounds(card).size));
+            Assert.That(fullFrame.rectTransform.anchoredPosition, Is.EqualTo(CardSchoolArtCatalog.FrameBounds(card).center));
+            Rect frameBounds = ForgeBoundsIn(page, fullFrame.rectTransform);
+            Assert.That(frameBounds.xMin, Is.GreaterThanOrEqualTo(page.rect.xMin - .1f));
+            Assert.That(frameBounds.xMax, Is.LessThanOrEqualTo(page.rect.xMax + .1f));
+            Assert.That(frameBounds.yMin, Is.GreaterThanOrEqualTo(page.rect.yMin + 5.9f));
+            Assert.That(frameBounds.yMax, Is.LessThanOrEqualTo(page.rect.yMax - 5.9f));
+            Assert.That(frameBounds.center.y, Is.EqualTo(page.rect.center.y + (reviewedSheet ? 12f : 0f)).Within(.1f));
+            Assert.That(picture.GetComponent<RectTransform>().sizeDelta, Is.EqualTo(CardFaceLayout.IllustrationLayout(picture.GetComponent<RawImage>()).size));
+            Assert.That(title.text, Is.EqualTo(CardFaceLayout.DisplayName(card)));
+            NavalBattleStage previewStage = card.IsAllowedInStage(NavalBattleStage.Boarding) ? NavalBattleStage.Boarding :
+                card.IsAllowedInStage(NavalBattleStage.Naval) ? NavalBattleStage.Naval : NavalBattleStage.Preparation;
+            Assert.That(ForgeVisibleText(effect.text), Is.EqualTo(ForgeVisibleText(CardDescriptionText.Compact(
+                controller.Session.BattleCardFaceDescription(card, previewStage)))));
+            Assert.That(effect.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));
+            Assert.That(effect.preferredHeight, Is.LessThanOrEqualTo(effect.rectTransform.rect.height + .5f));
+            Assert.That(face.GetComponentsInChildren<Button>(), Is.Empty, "Reading the card cannot buy, equip or recruit its source.");
+            Assert.That(face.GetComponentsInChildren<ScrollRect>(), Is.Empty, "The complete card face uses its normal fixed description window.");
+            CardOrnamentGraphic energy = face.GetComponentsInChildren<CardOrnamentGraphic>()
+                .Single(item => item.Kind == CardOrnamentKind.Energy);
+            Assert.That(energy.GetComponentInChildren<Text>().text, Is.EqualTo(card.Energy.ToString()));
+            RectTransform details = GameObject.Find(prefix + " Special Card Details Viewport").GetComponent<RectTransform>();
+            Assert.That(details.IsChildOf(face), Is.False, "Lore and crew calculations remain in their separate details column.");
+            Assert.That(ForgeBoundsIn(face.parent, details).xMin, Is.GreaterThan(ForgeBoundsIn(face.parent, face).xMax));
         }
 
         [UnityTest]
-        public IEnumerator TreasureBoardClicksSelectAllThreeRoutesWithoutMovingTheMaps()
+        public IEnumerator TreasureBoardClicksInspectFragmentsWithoutChangingOrdinaryRoutes()
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             SceneManager.LoadScene("CoreGameplayDemo");
@@ -181,6 +350,7 @@ namespace ShatteredSail.Presentation.Tests
             ActiveButton("Port Hotspot Treasure").onClick.Invoke();
             yield return null;
             string seed = controller.Session.SelectedSeed;
+            int ordinaryRoute = controller.Session.SelectedRouteIndex;
             for (int index = 0; index < 3; index++)
             {
                 Button route = ActiveButton("Treasure Route " + index);
@@ -195,14 +365,17 @@ namespace ShatteredSail.Presentation.Tests
                 trigger.triggers.Single(item => item.eventID == EventTriggerType.PointerExit).callback.Invoke(new BaseEventData(null));
                 route.onClick.Invoke();
                 yield return null;
-                Assert.That(controller.Session.SelectedRouteIndex, Is.EqualTo(index));
+                Assert.That(controller.Session.SelectedRouteIndex, Is.EqualTo(ordinaryRoute));
                 Assert.That(controller.Session.SelectedSeed, Is.EqualTo(seed));
                 Text[] labels = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Where(item => item.name.StartsWith("Treasure Route Name ")).ToArray();
                 Assert.That(labels.Length, Is.EqualTo(3));
-                Assert.That(labels.Count(item => item.text.Contains("已选")), Is.EqualTo(1));
-                Assert.That(labels.Single(item => item.name == "Treasure Route Name " + index).text, Does.Contain("已选"));
-                Assert.That(Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(item => item.name == "Treasure Selected Route").text,
-                    Does.Contain(CoreVoyageSession.Routes[index].Name));
+                Assert.That(labels.All(item => item.text.Contains("藏宝图")), Is.True);
+                Assert.That(labels.Single(item => item.name == "Treasure Route Name " + index).text,
+                    Is.EqualTo(CoreTreasureHuntCatalog.Ranks[index].Name + "藏宝图"));
+                Assert.That(GameObject.Find("Treasure Route Progress " + index).GetComponent<Text>().text, Does.Contain("/4"));
+                Assert.That(GameObject.Find("Treasure Route Reading Desk"), Is.Null);
+                Assert.That(GameObject.Find("Treasure Selected Route"), Is.Null);
+                Assert.That(GameObject.Find("Treasure Route Detail"), Is.Null);
             }
         }
 
@@ -491,12 +664,18 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(crewHover, Is.Not.Null);
             Assert.That(crewHover.triggers.Any(entry => entry.eventID == EventTriggerType.PointerEnter), Is.True);
             Assert.That(crewHover.triggers.Any(entry => entry.eventID == EventTriggerType.PointerExit), Is.True);
+            Button tavernReturn = ActiveButton("Return To Port Hub");
+            Assert.That(tavernReturn.GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
             firstCrew.onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Tavern Crew Detail"), Is.Not.Null);
+            Assert.That(ActiveButton("Return To Port Hub"), Is.SameAs(tavernReturn), "Opening a dossier reuses the facility header return button.");
+            Assert.That(tavernReturn.GetComponentInChildren<Text>().text, Is.EqualTo("返回酒馆"));
+            Assert.That(GameObject.Find("Back To Tavern Crew Lineup"), Is.Null, "The dossier must not duplicate its header return button.");
             Assert.That(GameObject.Find("Tavern Dossier Parchment").GetComponent<RawImage>().texture.name,
-                Is.EqualTo("tavern_crew_dossier_parchment_v1"));
-            Assert.That(GameObject.Find("Tavern Crew Detail Full Body"), Is.Not.Null);
+                Is.EqualTo(regionalNavigator.Id + "_dossier_v1"));
+            Assert.That(GameObject.Find("Tavern Crew Detail Full Body"), Is.Null,
+                "Crew portraits are painted directly into their detail parchment.");
             Assert.That(GameObject.Find("Tavern Crew Detail Name").GetComponent<Text>().text, Is.EqualTo(regionalNavigator.DisplayName));
             Text crewBiography = GameObject.Find("Tavern Crew Biography").GetComponent<Text>();
             Assert.That(crewBiography.text.Replace("\r", string.Empty).Replace("\n", string.Empty),
@@ -512,15 +691,18 @@ namespace ShatteredSail.Presentation.Tests
             ActiveButton("DossierPageStory").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Tavern Crew Story Heading").GetComponent<Text>().text, Does.Contain("航海异闻"));
-            Assert.That(GameObject.Find("Tavern Crew Story").GetComponent<Text>().text, Is.EqualTo(CrewNarrativeCatalog.StoryFor(regionalNavigator).Body));
+            Assert.That(GameObject.Find("Tavern Crew Story").GetComponent<Text>().text.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                Is.EqualTo(CrewNarrativeCatalog.StoryFor(regionalNavigator).Body.Replace("\r", string.Empty).Replace("\n", string.Empty)));
             ActiveButton("DossierPageSkills").onClick.Invoke();
             yield return null;
-            Assert.That(GameObject.Find("Tavern Crew Skill").GetComponent<Text>().text, Is.EqualTo(regionalNavigator.SkillDescription));
-            Assert.That(GameObject.Find("Tavern Crew Stats").GetComponent<Text>().text, Is.EqualTo(regionalNavigator.Stats));
+            Assert.That(GameObject.Find("Tavern Crew Skill").GetComponent<Text>().text.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                Is.EqualTo(regionalNavigator.SkillDescription.Replace("\r", string.Empty).Replace("\n", string.Empty)));
             ActiveButton("DossierPageSpecialCards").onClick.Invoke();
             yield return null;
             CoreSpecialCardDefinition personalTactic = CoreSpecialCardCatalog.ForCrew(regionalNavigator.Id);
-            Assert.That(GameObject.Find("Tavern Special Card Lore").GetComponent<Text>().text, Is.EqualTo(personalTactic.Lore));
+            AssertDossierCardFace(controller, "Tavern", personalTactic);
+            Assert.That(GameObject.Find("Tavern Special Card Lore").GetComponent<Text>().text.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                Is.EqualTo(personalTactic.Lore.Replace("\r", string.Empty).Replace("\n", string.Empty)));
             Assert.That(GameObject.Find("Tavern Special Card Growth").GetComponent<Text>().text, Does.Contain("尚未获得"));
             Assert.That(GameObject.Find("Tavern Dossier Page Counter").GetComponent<Text>().text, Is.EqualTo("第 4 / 4 页"));
             NavalBattleVisualCapture.Capture(controller, "03_Crew_Special_Card_Dossier.png",
@@ -536,11 +718,15 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforeRecruitment - regionalNavigator.ContractCost));
             Assert.That(controller.Session.HasNavigator, Is.True);
             Assert.That(ActiveButton("Recruit Tavern Crew 0").interactable, Is.False);
-            ActiveButton("Back To Tavern Crew Lineup").onClick.Invoke();
+            tavernReturn.onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Tavern Crew Stage"), Is.Not.Null);
-            ActiveButton("Return To Port Hub").onClick.Invoke();
+            Assert.That(GameObject.Find("Tavern Crew Detail"), Is.Null);
+            Assert.That(ActiveButton("Return To Port Hub"), Is.SameAs(tavernReturn));
+            Assert.That(tavernReturn.GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
+            tavernReturn.onClick.Invoke();
             yield return null;
+            Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
 
             Button componentHotspot = ActiveButton("Port Hotspot ComponentShop");
             Assert.That(componentHotspot, Is.Not.Null);
@@ -553,7 +739,7 @@ namespace ShatteredSail.Presentation.Tests
                 // BuildStock is the separate deterministic editor-preview batch.
                 IReadOnlyList<PortComponentShopStockItem> candidateStock = PortComponentShopCatalog.BuildExpandedStock(componentArt, marketPort, controller.Session.GameDateTime);
                 PortComponentShopStockItem candidate = candidateStock.FirstOrDefault(offer =>
-                    controller.EquippedComponent(offer.Entry.Slot).Id != offer.Entry.Id);
+                    offer.Entry.Rarity >= ComponentRarity.Rare && controller.EquippedComponent(offer.Entry.Slot)?.Id != offer.Entry.Id);
                 if (candidate != null)
                 {
                     regionalStock = candidateStock;
@@ -562,7 +748,7 @@ namespace ShatteredSail.Presentation.Tests
                     break;
                 }
             }
-            Assert.That(purchasedOffer, Is.Not.Null, "At least one regional market should contain a non-starter component this month.");
+            Assert.That(purchasedOffer, Is.Not.Null, "At least one regional market should contain a rare-or-better unequipped component with a special card this month.");
             componentHotspot.onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Component Shop Panel"), Is.Not.Null);
@@ -580,95 +766,39 @@ namespace ShatteredSail.Presentation.Tests
             Text regionalRule = GameObject.Find("Component Shop Regional Rule").GetComponent<Text>();
             Assert.That(regionalRule.text, Does.Contain(PortComponentShopCatalog.PreferredSlotLabel(controller.Session.CurrentPort)));
             Assert.That(Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                .Count(button => button.name.StartsWith("Component Shop Offer ")),
-                Is.EqualTo(Mathf.Min(ComponentShopShowroomLayout.PageSize, regionalStock.Count)));
-            Assert.That(GameObject.Find("Previous Component Category"), Is.Null);
-            Assert.That(GameObject.Find("Next Component Category"), Is.Null);
-            for (int offerIndex = 0; offerIndex < regionalStock.Count; offerIndex++)
+                .Count(button => button.name.StartsWith("Component Shop Category ")), Is.EqualTo(5));
+            foreach (ComponentSlot slot in System.Enum.GetValues(typeof(ComponentSlot)))
             {
-                if (offerIndex > 0 && offerIndex % ComponentShopShowroomLayout.PageSize == 0)
-                {
-                    Button nextDisplay = ActiveButton("Component Shop Next Display");
-                    Assert.That(nextDisplay.interactable, Is.True);
-                    decimal goldBeforePage = controller.Session.ProfileGold;
-                    nextDisplay.onClick.Invoke();
-                    yield return null;
-                    Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforePage));
-                    Assert.That(Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                        .Count(button => button.name.StartsWith("Component Shop Offer ")),
-                        Is.EqualTo(Mathf.Min(ComponentShopShowroomLayout.PageSize, regionalStock.Count - offerIndex)));
-                }
-                PortComponentShopStockItem offer = regionalStock[offerIndex];
-                Assert.That(GameObject.Find("Component Shop Offer " + offer.Id), Is.Not.Null);
-                Button sceneOffer = ActiveButton("Component Shop Offer " + offer.Id);
-                Transform modelObject = sceneOffer.GetComponentsInChildren<Transform>(true)
-                    .FirstOrDefault(item => item.name == "Component Shop Model " + offer.Entry.Id);
-                Transform mountObject = sceneOffer.GetComponentsInChildren<Transform>(true)
-                    .FirstOrDefault(item => item.name == "Component Shop Mount " + offer.Entry.Id);
-                Transform auraObject = sceneOffer.GetComponentsInChildren<Transform>(true)
-                    .FirstOrDefault(item => item.name == "Component Shop Rarity Aura " + offer.Entry.Id);
-                Transform plaqueObject = sceneOffer.GetComponentsInChildren<Transform>(true)
-                    .FirstOrDefault(item => item.name == "Component Shop Plaque " + offer.Entry.Id);
-                Assert.That(modelObject, Is.Not.Null, offer.Entry.Name + " should use a freestanding showroom model.");
-                Assert.That(mountObject, Is.Null, offer.Entry.Name + " must not recreate a retired display mount.");
-                Assert.That(auraObject, Is.Not.Null, offer.Entry.Name + " should have a separate rarity aura.");
-                Assert.That(plaqueObject, Is.Not.Null, offer.Entry.Name + " should have a foreground name plaque.");
-
-                RawImage model = modelObject.GetComponent<RawImage>();
-                Graphic aura = auraObject.GetComponent<Graphic>();
-                Graphic plaque = plaqueObject.GetComponent<Graphic>();
-                Assert.That(model, Is.Not.Null);
-                Assert.That(model.texture, Is.SameAs(offer.Entry.ShipLayer),
-                    "The showroom must use the transparent planar component model.");
-                Assert.That(model.texture, Is.Not.SameAs(offer.Entry.Texture),
-                    "The old square rarity-framed inventory icon must not be reused as the showroom model.");
-                Assert.That(model.rectTransform.rect.width, Is.GreaterThan(158f),
-                    "Showroom models should be larger than the retired 158px inventory icons.");
-                Assert.That(model.raycastTarget, Is.True, "Clicking the component model should open its details.");
-                Assert.That(plaque, Is.Not.Null);
-                if (offer.Id.StartsWith("mystery|", System.StringComparison.Ordinal))
-                {
-                    Image offerSurface = sceneOffer.GetComponent<Image>();
-                    Assert.That(offerSurface, Is.Not.Null);
-                    Assert.That(offerSurface.sprite, Is.Null, "Mystery offer roots must not retain a source texture.");
-                    Assert.That(offerSurface.color.a, Is.EqualTo(0f), "Mystery offer roots must remain transparent.");
-                    Assert.That(plaque.color.a, Is.EqualTo(0f), "Every mystery offer plaque surface must be transparent.");
-                }
-                Assert.That(model.rectTransform.anchoredPosition.y - model.rectTransform.sizeDelta.y * 0.5f,
-                    Is.GreaterThan(plaque.rectTransform.anchoredPosition.y + plaque.rectTransform.sizeDelta.y * 0.5f + 19f),
-                    "Leave a visible gap between the complete component and its foreground name sign.");
-                Assert.That(plaque.raycastTarget, Is.True, "Clicking the name plaque should open the same details.");
-                Assert.That(plaqueObject.GetComponentInChildren<Text>().text, Does.Contain(offer.Entry.Name));
-                Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(model.gameObject), Is.SameAs(sceneOffer.gameObject));
-                Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(plaque.gameObject), Is.SameAs(sceneOffer.gameObject));
-
-                Assert.That(aura, Is.Not.Null);
-                Assert.That(aura.color, Is.EqualTo(Color.clear),
-                    "Rarity must not render a persistent coloured aura behind the component.");
-
-                EventTrigger hover = sceneOffer.GetComponent<EventTrigger>();
-                Assert.That(hover, Is.Not.Null);
-                Assert.That(hover.triggers.Any(entry => entry.eventID == EventTriggerType.PointerEnter), Is.True);
-                Assert.That(hover.triggers.Any(entry => entry.eventID == EventTriggerType.PointerExit), Is.True);
-            }
-            ComponentArtEntry unavailable = componentArt.Entries.First(entry =>
-                !PortComponentShopCatalog.PreferredSlots(controller.Session.CurrentPort).Contains(entry.Slot));
-            Assert.That(GameObject.Find("Component Shop Model " + unavailable.Id), Is.Null,
-                "The shop must not expose components outside the current port pool.");
-
-            // Inspection ends on the last group. Return to the group containing
-            // the chosen offer before exercising the real detail/purchase flow.
-            for (int page = 1; page < ComponentShopShowroomLayout.PageCount(regionalStock.Count) &&
-                GameObject.Find("Component Shop Offer " + purchasedOffer.Id) == null; page++)
-            {
-                Button previousDisplay = ActiveButton("Component Shop Previous Display");
-                Assert.That(previousDisplay.interactable, Is.True);
-                previousDisplay.onClick.Invoke();
+                ActiveButton("Component Shop Category " + slot).onClick.Invoke();
                 yield return null;
+                var category = regionalStock.Where(item => item.Entry.Slot == slot).ToArray();
+                for (int page = 0; page < ComponentShopShowroomLayout.PageCount(category.Length); page++)
+                {
+                    var visible = category.Skip(page * 5).Take(5).ToArray();
+                    CollectionAssert.AreEquivalent(visible.Select(item => "Component Shop Offer " + item.Id),
+                        Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                            .Where(item => item.name.StartsWith("Component Shop Offer ")).Select(item => item.name));
+                    foreach (var offer in visible)
+                    {
+                        ActiveButton("Component Shop Offer " + offer.Id).onClick.Invoke();
+                        yield return null;
+                        RawImage model = GameObject.Find("Component Detail Model").GetComponent<RawImage>();
+                        Assert.That(model.texture, Is.SameAs(offer.Entry.ShipLayer));
+                        Assert.That(GameObject.Find("Component Detail Name").GetComponent<Text>().text, Is.EqualTo(offer.Entry.Name));
+                        Assert.That(GameObject.Find("Component Dossier Overview Page"), Is.Not.Null);
+                        ActiveButton("Return To Port Hub").onClick.Invoke();
+                        yield return null;
+                    }
+                    if (page + 1 < ComponentShopShowroomLayout.PageCount(category.Length))
+                    {
+                        ActiveButton("Component Shop Next Display").onClick.Invoke();
+                        yield return null;
+                    }
+                }
             }
-
+            yield return FindComponentPurchaseOffer(purchasedOffer);
             decimal goldBeforePurchase = controller.Session.ProfileGold;
-            string equippedBeforePurchase = controller.EquippedComponent(purchasedOffer.Entry.Slot).Id;
+            string equippedBeforePurchase = controller.EquippedComponent(purchasedOffer.Entry.Slot)?.Id;
             int hullBeforeComponent = controller.Session.MaxHull;
             int armorBeforeComponent = controller.Session.Armor;
             int firepowerBeforeComponent = controller.Session.Firepower;
@@ -676,31 +806,21 @@ namespace ShatteredSail.Presentation.Tests
             float visionBeforeComponent = controller.Session.VisionBonusNm;
             string purchaseKey = CoreGameplayDemoController.ComponentShopPurchaseKey(purchasedOffer.Id);
             Button purchasedSceneOffer = ActiveButton("Component Shop Offer " + purchasedOffer.Id);
-            Graphic purchasedAura = purchasedSceneOffer.GetComponentsInChildren<Graphic>(true)
-                .First(item => item.name == "Component Shop Rarity Aura " + purchasedOffer.Entry.Id);
-            float restingAuraAlpha = purchasedAura.color.a;
-            Vector3 restingOfferScale = purchasedSceneOffer.transform.localScale;
-            Vector3 restingOfferPosition = purchasedSceneOffer.transform.localPosition;
-            PointerEventData pointer = new PointerEventData(EventSystem.current);
-            ExecuteEvents.Execute(purchasedSceneOffer.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
-            Assert.That(purchasedAura.color.a, Is.EqualTo(restingAuraAlpha).Within(0.001f),
-                "PointerEnter must not reveal a rarity glow.");
-            Assert.That(purchasedSceneOffer.transform.localScale, Is.EqualTo(restingOfferScale),
-                "Hover should brighten the model without changing its safe separation from the sign.");
-            Assert.That(purchasedSceneOffer.transform.localPosition, Is.EqualTo(restingOfferPosition));
-            ExecuteEvents.Execute(purchasedSceneOffer.gameObject, pointer, ExecuteEvents.pointerExitHandler);
-            Assert.That(purchasedAura.color.a, Is.EqualTo(restingAuraAlpha).Within(0.001f));
-            Assert.That(purchasedSceneOffer.transform.localScale.x, Is.EqualTo(restingOfferScale.x).Within(0.001f));
-
+            Button componentReturn = ActiveButton("Return To Port Hub");
+            Assert.That(componentReturn.GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
             purchasedSceneOffer.onClick.Invoke();
             yield return null;
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforePurchase),
                 "Opening component details must not spend currency.");
-            Assert.That(controller.EquippedComponent(purchasedOffer.Entry.Slot).Id, Is.EqualTo(equippedBeforePurchase),
+            Assert.That(controller.EquippedComponent(purchasedOffer.Entry.Slot)?.Id, Is.EqualTo(equippedBeforePurchase),
                 "Opening component details must not equip the inspected item.");
             Assert.That(PlayerPrefs.GetInt(purchaseKey, 0), Is.Zero,
                 "Opening component details must not mark the offer as purchased.");
             Assert.That(GameObject.Find("Component Shop Detail"), Is.Not.Null);
+            ActiveButton("ComponentDossierPageOverview").onClick.Invoke();
+            Assert.That(ActiveButton("Return To Port Hub"), Is.SameAs(componentReturn));
+            Assert.That(componentReturn.GetComponentInChildren<Text>().text, Is.EqualTo("返回部件陈列"));
+            Assert.That(GameObject.Find("Back To Component Shop"), Is.Null, "The component dossier must not duplicate its header return button.");
             RawImage detailParchment = GameObject.Find("Component Detail Parchment").GetComponent<RawImage>();
             Assert.That(detailParchment.texture, Is.Not.Null);
             Assert.That(detailParchment.texture.name.ToLowerInvariant(), Does.Contain("parchment"));
@@ -712,34 +832,42 @@ namespace ShatteredSail.Presentation.Tests
                 Does.Contain(Mathf.RoundToInt(purchasedOffer.Quality * 100f).ToString()));
             Assert.That(GameObject.Find("Component Detail Specialization").GetComponent<Text>().text,
                 Does.Contain(purchasedOffer.Entry.Specialization));
-            Assert.That(GameObject.Find("Component Detail Description").GetComponent<Text>().text, Does.Contain(purchasedOffer.Entry.Description));
+            Assert.That(DossierTextWithoutWhitespace(GameObject.Find("Component Detail Description").GetComponent<Text>().text),
+                Is.EqualTo(DossierTextWithoutWhitespace(purchasedOffer.Entry.Description)));
             ActiveButton("ComponentDossierPageEffects").onClick.Invoke();
-            Assert.That(GameObject.Find("Component Detail Effect").GetComponent<Text>().text, Does.Contain(purchasedOffer.Entry.Effect));
+            Assert.That(DossierTextWithoutWhitespace(GameObject.Find("Component Detail Effect").GetComponent<Text>().text),
+                Does.Contain(DossierTextWithoutWhitespace(purchasedOffer.Entry.Effect)));
             ActiveButton("ComponentDossierPageStory").onClick.Invoke();
             Assert.That(GameObject.Find("Component Detail Story Chapter").GetComponent<Text>().text,
                 Is.EqualTo(purchasedOffer.Entry.StoryTitle));
-            Assert.That(GameObject.Find("Component Detail Story Body").GetComponent<Text>().text,
-                Is.EqualTo(purchasedOffer.Entry.StoryBody));
+            Assert.That(DossierTextWithoutWhitespace(GameObject.Find("Component Detail Story Body").GetComponent<Text>().text),
+                Is.EqualTo(DossierTextWithoutWhitespace(purchasedOffer.Entry.StoryBody)));
             NavalBattleVisualCapture.Capture(controller, "04_Component_Story_Tab.png",
                 "部件档案独立故事标签，购买操作始终留在页底", "Component Shop Detail");
             ActiveButton("ComponentDossierPageSpecialCards").onClick.Invoke();
             yield return null;
             CoreSpecialCardDefinition partTactic = CoreSpecialCardCatalog.ForComponent(purchasedOffer.Entry.Id);
             if (purchasedOffer.Entry.Rarity >= ComponentRarity.Rare)
-                Assert.That(GameObject.Find("Component Special Card Lore").GetComponent<Text>().text, Is.EqualTo(partTactic.Lore));
+            {
+                Assert.That(DossierTextWithoutWhitespace(GameObject.Find("Component Special Card Lore").GetComponent<Text>().text),
+                    Is.EqualTo(DossierTextWithoutWhitespace(partTactic.Lore)));
+                AssertDossierCardFace(controller, "Component", partTactic);
+            }
             else
-                Assert.That(GameObject.Find("Component Special Card Empty").GetComponent<Text>().text, Does.Contain("蓝色"));
+                Assert.That(GameObject.Find("Component Dossier SpecialCards Page")
+                    .GetComponentsInChildren<Text>(true).Select(text => text.text),
+                    Is.EqualTo(new[] { "没有专属卡牌" }));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforePurchase));
             NavalBattleVisualCapture.Capture(controller, "05_Component_Special_Card_Tab.png",
                 "部件第四页：蓝色及以上具有专属战术，白绿部件明确说明无卡", "Component Shop Detail");
             ActiveButton("ComponentDossierPageOverview").onClick.Invoke();
-            Assert.That(GameObject.Find("Component Detail Description").GetComponent<Text>().text,
-                Is.EqualTo(purchasedOffer.Entry.Description));
+            Assert.That(DossierTextWithoutWhitespace(GameObject.Find("Component Detail Description").GetComponent<Text>().text),
+                Is.EqualTo(DossierTextWithoutWhitespace(purchasedOffer.Entry.Description)));
             Assert.That(GameObject.Find("Component Detail Price"), Is.Null,
                 "The authored component dossier preview removes the separate price text lane; purchase remains in the fixed button.");
             Assert.That(GameObject.Find("Component Shop Ship Preview"), Is.Null);
 
-            Button purchase = ActiveButton("Purchase Component " + purchasedOffer.Id);
+            Button purchase = ActiveButton("Purchase And Equip Component " + purchasedOffer.Id);
             Assert.That(purchase, Is.Not.Null);
             Assert.That(purchase.interactable, Is.True);
             purchase.onClick.Invoke();
@@ -749,7 +877,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(PlayerPrefs.GetInt(purchaseKey, 0), Is.EqualTo(1));
             Assert.That(GameObject.Find("Component Shop Detail"), Is.Not.Null,
                 "The purchased detail sheet should remain visible until the player returns.");
-            Assert.That(ActiveButton("Purchase Component " + purchasedOffer.Id).interactable, Is.False);
+            Assert.That(ActiveButton("Purchase And Equip Component " + purchasedOffer.Id).interactable, Is.False);
             Assert.That(
                 controller.Session.MaxHull != hullBeforeComponent ||
                 controller.Session.Armor != armorBeforeComponent ||
@@ -759,15 +887,19 @@ namespace ShatteredSail.Presentation.Tests
                 Is.True,
                 "Equipping a purchased component must change at least one real ship statistic.");
 
-            ActiveButton("Back To Component Shop").onClick.Invoke();
+            componentReturn.onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Component Shop Panel"), Is.Not.Null);
             Assert.That(GameObject.Find("Component Shop Detail"), Is.Null);
-            Assert.That(ActiveButton("Component Shop Offer " + purchasedOffer.Id).interactable, Is.False);
-            int purchasedPageStart = regionalStock.ToList().FindIndex(offer => offer.Id == purchasedOffer.Id) /
+            Assert.That(ActiveButton("Return To Port Hub"), Is.SameAs(componentReturn));
+            Assert.That(componentReturn.GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
+            Assert.That(ActiveButton("Component Shop Offer " + purchasedOffer.Id).interactable, Is.True);
+            Assert.That(ActiveButton("Purchase Component " + purchasedOffer.Id), Is.Null);
+            var purchasedCategory = regionalStock.Where(offer => offer.Entry.Slot == purchasedOffer.Entry.Slot).ToList();
+            int purchasedPageStart = purchasedCategory.FindIndex(offer => offer.Id == purchasedOffer.Id) /
                 ComponentShopShowroomLayout.PageSize * ComponentShopShowroomLayout.PageSize;
             CollectionAssert.AreEquivalent(
-                regionalStock.Skip(purchasedPageStart).Take(ComponentShopShowroomLayout.PageSize)
+                purchasedCategory.Skip(purchasedPageStart).Take(ComponentShopShowroomLayout.PageSize)
                     .Select(offer => "Component Shop Offer " + offer.Id).ToArray(),
                 Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
                     .Where(button => button.name.StartsWith("Component Shop Offer "))
@@ -775,8 +907,9 @@ namespace ShatteredSail.Presentation.Tests
                     .ToArray(),
                 "Returning from details must preserve the chosen stock group, including its sold offer.");
             Assert.That(GameObject.Find("Component Shop Ship Preview"), Is.Null);
-            ActiveButton("Return To Port Hub").onClick.Invoke();
+            componentReturn.onClick.Invoke();
             yield return null;
+            Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
 
             Button cardWorkshopHotspot = ActiveButton("Port Hotspot CardWorkshop");
             Assert.That(cardWorkshopHotspot, Is.Not.Null);
@@ -787,68 +920,53 @@ namespace ShatteredSail.Presentation.Tests
             cardWorkshopHotspot.onClick.Invoke();
             yield return null;
 
-            GameObject chestStage = GameObject.Find("Card Workshop Chest Stage");
-            Assert.That(chestStage, Is.Not.Null, "Entering the card workshop should first show the physical deck chests.");
-            Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null, "The deck builder should remain closed until a chest is selected.");
-            EventSystem eventSystem = Object.FindFirstObjectByType<EventSystem>();
-            Assert.That(eventSystem, Is.Not.Null);
-            PointerEventData chestPointer = new PointerEventData(eventSystem);
-            for (int chestIndex = 0; chestIndex < 4; chestIndex += 1)
-            {
-                Button chest = ActiveButton("Open Deck Chest " + chestIndex);
-                Assert.That(chest, Is.Not.Null, "All four deck chests should be selectable from the workshop floor.");
-                Assert.That(chest.transform.IsChildOf(chestStage.transform), Is.True);
-                Assert.That(chest.targetGraphic, Is.TypeOf<RawImage>(), "A chest hotspot should highlight the illustrated chest itself.");
-                RawImage chestArt = (RawImage)chest.targetGraphic;
-                Assert.That(chestArt.texture, Is.Not.Null);
-                Assert.That(chest.transition, Is.EqualTo(Selectable.Transition.None));
-                Image chestGlow = GameObject.Find("Card Workshop Chest Glow " + chestIndex).GetComponent<Image>();
-                Image floorContact = GameObject.Find("Card Workshop Chest Contact " + chestIndex + " 0").GetComponent<Image>();
-                Vector3 restingPosition = chest.transform.position;
-                Vector3 restingContact = floorContact.transform.position;
-                Vector3 restingScale = chest.transform.localScale;
-                Color restingArtColor = chestArt.color;
-                ExecuteEvents.Execute(chest.gameObject, chestPointer, ExecuteEvents.pointerEnterHandler);
-                Assert.That(chestGlow.color.a, Is.Zero, "Hovering a chest must not reveal a floor glow.");
-                Assert.That(chest.transform.localScale, Is.EqualTo(restingScale), "Chest feet must stay planted on the rug while highlighted.");
-                Assert.That(chest.transform.position, Is.EqualTo(restingPosition));
-                Assert.That(floorContact.transform.position, Is.EqualTo(restingContact));
-                Assert.That(chestArt.color, Is.EqualTo(restingArtColor), "The illustrated chest must keep its authored brightness.");
-                ExecuteEvents.Execute(chest.gameObject, chestPointer, ExecuteEvents.pointerExitHandler);
-                Assert.That(chestGlow.color.a, Is.EqualTo(0f));
-                Assert.That(chest.transform.localScale, Is.EqualTo(restingScale));
-                Assert.That(chest.transform.position, Is.EqualTo(restingPosition));
-                Assert.That(chestArt.color, Is.EqualTo(restingArtColor));
-            }
+            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Card Workshop Chest Stage"), Is.Null);
+            Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null, "Opening the preview does not edit a deck.");
+            foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
+                Assert.That(ActiveButton("Edit Stage Deck " + stage), Is.Not.Null);
+            Assert.That(ActiveButton("Open Battle Card Upgrades"), Is.Not.Null);
+            Assert.That(ActiveButton("Open Special Card Collection"), Is.Not.Null);
             CollectionAssert.AreEqual(deckBeforeChestEntry, controller.Session.BattleDeck.ToArray(),
                 "Opening the workshop entrance must not change the configured deck.");
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.BattleDeckKey, string.Empty),
-                Is.EqualTo(savedDeckBeforeChestEntry), "Showing the chest room must not write a new deck save.");
+                Is.EqualTo(savedDeckBeforeChestEntry), "Showing the card preview must not write a new deck save.");
 
-            ActiveButton("Open Deck Chest 0").onClick.Invoke();
+            ActiveButton("Workshop Preview Stage Preparation").onClick.Invoke();
+            yield return null;
+            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Card Workshop Chest Stage"), Is.Null);
             Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Not.Null);
-            ActiveButton("Edit Deck From Card Upgrades").onClick.Invoke();
-            yield return null;
+            yield return ReturnFromWorkshopForgeToSelectedDeck();
             Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
-            RawImage parchment = GameObject.Find("Deck Builder Parchment")?.GetComponent<RawImage>();
-            RawImage pirateFrame = GameObject.Find("Deck Builder Pirate Frame")?.GetComponent<RawImage>();
+            RectTransform parchment = GameObject.Find("Deck Builder Parchment")?.GetComponent<RectTransform>();
+            RectTransform deckRail = GameObject.Find("Deck Builder Deck Rail")?.GetComponent<RectTransform>();
+            RawImage collectionPaper = GameObject.Find("Deck Builder Parchment Texture")?.GetComponent<RawImage>();
+            RawImage deckPaper = GameObject.Find("Deck Builder Deck Rail Texture")?.GetComponent<RawImage>();
             Assert.That(parchment, Is.Not.Null, "The available-card collection should sit on a parchment surface.");
-            Assert.That(parchment.texture, Is.Not.Null);
-            Assert.That(parchment.rectTransform.anchoredPosition.x, Is.LessThan(0f));
-            Assert.That(pirateFrame, Is.Not.Null, "The selected deck should use a dedicated pirate-themed frame.");
-            Assert.That(pirateFrame.texture, Is.Not.Null);
-            Assert.That(pirateFrame.rectTransform.anchoredPosition.x, Is.GreaterThan(0f));
-            Assert.That(parchment.rectTransform.sizeDelta.x, Is.GreaterThan(pirateFrame.rectTransform.sizeDelta.x));
-            Assert.That(pirateFrame.rectTransform.sizeDelta.y, Is.GreaterThan(pirateFrame.rectTransform.sizeDelta.x));
+            Assert.That(collectionPaper, Is.Not.Null);
+            Assert.That(collectionPaper.texture, Is.Not.Null);
+            Assert.That(parchment.anchoredPosition.x, Is.LessThan(0f));
+            Assert.That(deckRail, Is.Not.Null, "The selected cards should occupy a full-height parchment rail.");
+            Assert.That(deckPaper, Is.Not.Null);
+            Assert.That(deckPaper.texture, Is.SameAs(collectionPaper.texture));
+            Assert.That(deckRail.anchoredPosition.x, Is.GreaterThan(0f));
+            Assert.That(parchment.sizeDelta.x, Is.GreaterThan(deckRail.sizeDelta.x));
+            Assert.That(deckRail.sizeDelta.y, Is.EqualTo(parchment.sizeDelta.y));
+            Assert.That(GameObject.Find("Deck Builder Pirate Frame"), Is.Null);
             Assert.That(ActiveButton("Back To Card Workshop Chests"), Is.Not.Null);
 
-            RawImage workshopArt = GameObject.Find("Workshop Card Art " + controller.Session.GetAvailableBattleCards(NavalBattleStage.Preparation)[0]).GetComponent<RawImage>();
+            int workshopIndex = controller.Session.GetAvailableBattleCards(NavalBattleStage.Preparation)[0];
+            CoreBattleCard workshopCard = controller.Session.GetBattleCard(workshopIndex);
+            RawImage workshopArt = GameObject.Find("Workshop Card Art " + workshopIndex).GetComponent<RawImage>();
             Assert.That(workshopArt, Is.Not.Null);
-            Assert.That(workshopArt.uvRect.width, Is.LessThan(0.24f));
-            Assert.That(workshopArt.uvRect.height, Is.LessThan(0.24f));
-            Assert.That(workshopArt.rectTransform.sizeDelta.x, Is.EqualTo(workshopArt.rectTransform.sizeDelta.y));
+            Assert.That(CardSchoolArtCatalog.HasDedicatedArt(workshopCard), Is.True);
+            Assert.That(workshopArt.texture, Is.SameAs(Resources.Load<Texture2D>(CardSchoolArtCatalog.DedicatedIllustrationPath(workshopCard))));
+            Assert.That(workshopArt.uvRect, Is.EqualTo(CardSchoolArtCatalog.IllustrationUv(workshopCard, null)),
+                "The collection resolves the complete individual card image with full UVs.");
+            Assert.That(workshopArt.GetComponent<RectTransform>().sizeDelta, Is.EqualTo(CardFaceLayout.IllustrationLayout(workshopArt.GetComponent<RawImage>()).size),
+                "Collection and dossier cards share the battle card's fixed illustration window.");
             foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
             {
                 ActiveButton("Battle Deck Stage Tab " + stage).onClick.Invoke();
@@ -876,7 +994,7 @@ namespace ShatteredSail.Presentation.Tests
             }
             ActiveButton("Battle Deck Stage Tab " + NavalBattleStage.Preparation).onClick.Invoke();
             yield return null;
-            ActiveButton("Remove Deck Card 8").onClick.Invoke();
+            ActiveDeckCardCopyButton(8).onClick.Invoke();
             yield return null;
             Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Preparation).Count, Is.EqualTo(9));
             ActiveButton("Add Deck Card 2").onClick.Invoke();
@@ -892,23 +1010,29 @@ namespace ShatteredSail.Presentation.Tests
             int[] editedDeck = controller.Session.GetBattleDeck(NavalBattleStage.Preparation).ToArray();
             ActiveButton("Back To Card Workshop Chests").onClick.Invoke();
             yield return null;
-            Assert.That(GameObject.Find("Card Workshop Chest Stage"), Is.Not.Null);
+            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
             Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null);
             CollectionAssert.AreEqual(editedDeck, controller.Session.GetBattleDeck(NavalBattleStage.Preparation).ToArray(),
-                "Returning to the chest room must retain deck edits.");
-            ActiveButton("Open Deck Chest 1").onClick.Invoke();
+                "Returning to the card preview must retain deck edits.");
+            ActiveButton("Workshop Preview Stage Naval").onClick.Invoke();
             yield return null;
-            ActiveButton("Edit Deck From Card Upgrades").onClick.Invoke();
+            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
             yield return null;
+            yield return ReturnFromWorkshopForgeToSelectedDeck();
             Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
             CollectionAssert.AreEqual(editedDeck, controller.Session.GetBattleDeck(NavalBattleStage.Preparation).ToArray(),
-                "Selecting another chest must not reset the configured deck.");
+                "Selecting another stage must not reset the configured deck.");
             CollectionAssert.AreEqual(deckBeforeChestEntry, controller.Session.GetBattleDeck(NavalBattleStage.Naval));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.StageBattleDeckKey(NavalBattleStage.Preparation), string.Empty), Is.EqualTo(expectedSavedDeck));
             ActiveButton("Return To Port Hub").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
 
+            // The component market fixture can finish in any port. This part
+            // tests the original 800-gold merchant, sold at Broken Anchor;
+            // White Shell instead stocks hulls 0, 5 and 6.
+            controller.Session.RestoreProfile(controller.Session.ProfileGold, "断锚港");
+            Assert.That(CoreShipMarketCatalog.IsSoldAtPort(0, 1), Is.True);
             Button shipyardHotspot = ActiveButton("Port Hotspot Shipyard");
             Assert.That(shipyardHotspot, Is.Not.Null);
             shipyardHotspot.onClick.Invoke();
@@ -921,7 +1045,10 @@ namespace ShatteredSail.Presentation.Tests
             ActiveButton("Shipyard Next Vessel").onClick.Invoke();
             yield return null;
             Button shipBerth = ActiveButton("Shipyard Ship 1");
-            Image shipBerthGlow = GameObject.Find("Shipyard Berth Glow 1").GetComponent<Image>();
+            Assert.That(shipBerth, Is.Not.Null, "The fixture must browse the merchant in its actual regional stock.");
+            GameObject berthGlow = GameObject.Find("Shipyard Berth Glow 1");
+            Assert.That(berthGlow, Is.Not.Null, "The currently browsed merchant retains its authored water contact.");
+            Image shipBerthGlow = berthGlow.GetComponent<Image>();
             Vector3 restingBerthScale = shipBerth.transform.localScale;
             ExecuteEvents.Execute(shipBerth.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
             Assert.That(shipBerthGlow.color.a, Is.Zero);
@@ -980,170 +1107,7 @@ namespace ShatteredSail.Presentation.Tests
             // The showroom fixture switches ports directly above; explicitly
             // move its recruited navigator with it, as a real voyage would.
             PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(regionalNavigator.Id), controller.Session.CurrentPort);
-            Button dispatchHotspot = ActiveButton("Port Hotspot Dispatch");
-            Assert.That(dispatchHotspot, Is.Not.Null);
-            decimal goldBeforeDispatch = controller.Session.ProfileGold;
-            int woodBeforeDispatch = controller.Session.Cargo.Wood;
-            dispatchHotspot.onClick.Invoke();
-            yield return null;
-
-            GameObject dispatchPanel = GameObject.Find("Dispatch Panel");
-            Assert.That(dispatchPanel, Is.Not.Null);
-            Assert.That(dispatchPanel.GetComponent<Image>().color.a, Is.LessThan(0.2f),
-                "Dispatch choices should be integrated into the furnished room instead of opaque blue cards.");
-            GameObject dispatchTableStage = GameObject.Find("Dispatch Table Stage");
-            Assert.That(dispatchTableStage, Is.Not.Null,
-                "Entering dispatch should first show the physical planning table and its three charts.");
-            RawImage dispatchRoom = GameObject.Find("Dispatch Background")?.GetComponent<RawImage>();
-            Assert.That(dispatchRoom, Is.Not.Null);
-            Assert.That(dispatchRoom.texture.name, Is.EqualTo("dispatch_room_integrated_v3"));
-            Assert.That(GameObject.Find("Dispatch Command Table"), Is.Null,
-                "Do not overlay a second table or its legs over the room's miniature ships.");
-
-            PointerEventData dispatchPointer = new PointerEventData(EventSystem.current);
-            for (int missionIndex = 0; missionIndex < 3; missionIndex += 1)
-            {
-                Button chart = ActiveButton("Dispatch Mission Chart " + missionIndex);
-                RawImage chartArt = GameObject.Find("Dispatch Mission Chart Art " + missionIndex)?.GetComponent<RawImage>();
-                Image chartGlow = GameObject.Find("Dispatch Mission Chart Glow " + missionIndex)?.GetComponent<Image>();
-                Assert.That(chart, Is.Not.Null, "Every dispatch option should be represented by a chart on the table.");
-                Assert.That(chart.transform.IsChildOf(dispatchTableStage.transform), Is.True);
-                Assert.That(chart.targetGraphic, Is.TypeOf<RawImage>(), "The chart illustration itself should be the selectable target.");
-                Assert.That(chartArt, Is.Not.Null);
-                Assert.That(chartArt.texture, Is.Not.Null);
-                Assert.That(chartGlow, Is.Not.Null);
-                Assert.That(chart.transition, Is.EqualTo(Selectable.Transition.None));
-                TabletopQuadProjection chartProjection = chartArt.GetComponent<TabletopQuadProjection>();
-                Assert.That(chartProjection, Is.Not.Null);
-                Canvas.ForceUpdateCanvases();
-                Rect paperRect = chartArt.rectTransform.rect;
-                Vector2 paperCenter = chartProjection.Project(new Vector2(0.5f, 0.5f));
-                Vector3 paperLocal = new Vector3(paperRect.xMin + paperCenter.x * paperRect.width,
-                    paperRect.yMin + paperCenter.y * paperRect.height, 0f);
-                dispatchPointer.position = RectTransformUtility.WorldToScreenPoint(null, chartArt.transform.TransformPoint(paperLocal));
-                List<RaycastResult> chartHits = new List<RaycastResult>();
-                EventSystem.current.RaycastAll(dispatchPointer, chartHits);
-                Assert.That(chartHits.Count, Is.GreaterThan(0));
-                Assert.That(chartHits[0].gameObject.GetComponentInParent<Button>(), Is.EqualTo(chart),
-                    "The projected map's visible centre must select its own dispatch, not an overlapping rectangular hotspot.");
-            }
-
-            Button firstDispatchChart = ActiveButton("Dispatch Mission Chart 0");
-            RawImage firstDispatchChartArt = (RawImage)firstDispatchChart.targetGraphic;
-            Image firstDispatchGlow = GameObject.Find("Dispatch Mission Chart Glow 0").GetComponent<Image>();
-            Vector3 chartRestingScale = firstDispatchChart.transform.localScale;
-            Vector3 chartRestingPosition = firstDispatchChartArt.transform.position;
-            Quaternion chartRestingRotation = firstDispatchChartArt.transform.rotation;
-            Color chartRestingColor = firstDispatchChartArt.color;
-            float chartRestingGlowAlpha = firstDispatchGlow.color.a;
-            ExecuteEvents.Execute(firstDispatchChart.gameObject, dispatchPointer, ExecuteEvents.pointerEnterHandler);
-            Assert.That(firstDispatchGlow.color.a, Is.EqualTo(chartRestingGlowAlpha).Within(0.001f),
-                "Hovering a dispatch chart must not reveal a tabletop glow.");
-            Assert.That(firstDispatchChart.transform.localScale, Is.EqualTo(chartRestingScale), "The chart must stay on the tabletop during hover.");
-            Assert.That(firstDispatchChartArt.transform.position, Is.EqualTo(chartRestingPosition));
-            Assert.That(firstDispatchChartArt.transform.rotation, Is.EqualTo(chartRestingRotation));
-            Assert.That(firstDispatchChartArt.color, Is.EqualTo(chartRestingColor));
-            ExecuteEvents.Execute(firstDispatchChart.gameObject, dispatchPointer, ExecuteEvents.pointerExitHandler);
-            Assert.That(firstDispatchGlow.color.a, Is.EqualTo(chartRestingGlowAlpha).Within(0.001f));
-            Assert.That(firstDispatchChart.transform.localScale, Is.EqualTo(chartRestingScale));
-            Assert.That(firstDispatchChartArt.color, Is.EqualTo(chartRestingColor));
-
-            HashSet<Texture> dispatchFrames = new HashSet<Texture>();
-            for (int missionIndex = 0; missionIndex < 3; missionIndex += 1)
-            {
-                decimal goldBeforeOpeningChart = controller.Session.ProfileGold;
-                ActiveButton("Dispatch Mission Chart " + missionIndex).onClick.Invoke();
-                yield return null;
-
-                Assert.That(GameObject.Find("Dispatch Table Stage"), Is.Null);
-                Assert.That(GameObject.Find("Dispatch Deployment Panel"), Is.Not.Null);
-                Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforeOpeningChart),
-                    "Inspecting a dispatch chart must not spend its deployment cost.");
-                Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchMissionKey), Is.False,
-                    "Inspecting a chart must not create an active mission.");
-                RawImage deploymentParchment = GameObject.Find("Dispatch Deployment Parchment")?.GetComponent<RawImage>();
-                RawImage deploymentFrame = GameObject.Find("Dispatch Deployment Frame " + missionIndex)?.GetComponent<RawImage>();
-                Assert.That(deploymentParchment, Is.Not.Null,
-                    "Dispatch preparation controls should be presented on parchment.");
-                Assert.That(deploymentParchment.texture, Is.Not.Null);
-                Assert.That(deploymentParchment.texture.name.ToLowerInvariant(), Does.Contain("parchment"));
-                Assert.That(deploymentFrame, Is.Not.Null,
-                    "Each dispatch type needs its own themed deployment frame.");
-                Assert.That(deploymentFrame.texture, Is.Not.Null);
-                dispatchFrames.Add(deploymentFrame.texture);
-                Assert.That(GameObject.Find("Dispatch Duration Slider"), Is.Not.Null);
-                Assert.That(GameObject.Find("Dispatch Duration Value"), Is.Not.Null);
-                for (int crewIndex = 0; crewIndex < 6; crewIndex += 1)
-                {
-                    Assert.That(ActiveButton("Dispatch Crew Toggle " + crewIndex), Is.Not.Null,
-                        "The deployment sheet should expose every special-crew slot.");
-                }
-                Button confirmDispatch = ActiveButton("Confirm Dispatch Deployment");
-            Assert.That(confirmDispatch, Is.Not.Null);
-            Assert.That(confirmDispatch.interactable, Is.True);
-            Assert.That(confirmDispatch.GetComponentInChildren<Text>().text, Does.Contain("无需投入"));
-                Assert.That(ActiveButton("Back To Dispatch Table"), Is.Not.Null);
-
-                ActiveButton("Back To Dispatch Table").onClick.Invoke();
-                yield return null;
-                Assert.That(GameObject.Find("Dispatch Table Stage"), Is.Not.Null);
-                Assert.That(GameObject.Find("Dispatch Deployment Panel"), Is.Null);
-            }
-            Assert.That(dispatchFrames.Count, Is.EqualTo(3),
-                "Salvage, escort, and survey deployments should not reuse the same decorative frame.");
-
-            ActiveButton("Dispatch Mission Chart 0").onClick.Invoke();
-            yield return null;
-            Slider dispatchDuration = GameObject.Find("Dispatch Duration Slider").GetComponent<Slider>();
-            Assert.That(dispatchDuration.wholeNumbers, Is.True);
-            Assert.That(dispatchDuration.maxValue, Is.GreaterThan(dispatchDuration.minValue),
-                "Dispatch duration must be selectable rather than fixed.");
-            float baseDispatchDuration = dispatchDuration.value;
-            float adjustedDispatchDuration = Mathf.Min(dispatchDuration.maxValue, baseDispatchDuration + 1f);
-            dispatchDuration.value = adjustedDispatchDuration;
-            Assert.That(GameObject.Find("Dispatch Duration Value").GetComponent<Text>().text,
-                Does.Contain(Mathf.RoundToInt(adjustedDispatchDuration).ToString()));
-            dispatchDuration.value = baseDispatchDuration;
-
-            Button recruitedCrew = ActiveButton("Dispatch Crew Toggle 0");
-            Assert.That(recruitedCrew.interactable, Is.True,
-                "The navigator recruited earlier in the flow should be available for deployment.");
-            recruitedCrew.onClick.Invoke();
-            yield return null;
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchCrewKey), Is.False,
-                "Editing the deployment sheet should not persist until the assignment is confirmed.");
-            ActiveButton("Dispatch Crew Toggle 0").onClick.Invoke();
-            yield return null;
-
-            ActiveButton("Confirm Dispatch Deployment").onClick.Invoke();
-            yield return null;
-            Assert.That(GameObject.Find("Active Dispatch Job"), Is.Not.Null);
-            Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforeDispatch), "派遣确认不应扣除金币。");
-            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.DispatchMissionKey, -1), Is.EqualTo(0));
-            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.DispatchDurationKey, -1),
-                Is.EqualTo(Mathf.RoundToInt(baseDispatchDuration)));
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchCrewKey), Is.True);
-            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.DispatchCrewKey, "missing"), Is.Empty,
-                "Deselecting the crew member before confirmation should persist an empty crew manifest.");
-            Assert.That(long.TryParse(PlayerPrefs.GetString(CoreGameplayDemoController.DispatchEndsAtKey, string.Empty), out long dispatchEndsAt), Is.True);
-            Assert.That(dispatchEndsAt, Is.InRange(System.DateTime.UtcNow.AddHours(baseDispatchDuration).AddSeconds(-15).Ticks,
-                System.DateTime.UtcNow.AddHours(baseDispatchDuration).AddSeconds(1).Ticks));
-            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.DispatchRealClockKey, 0), Is.EqualTo(1));
-            PlayerPrefs.SetString(CoreGameplayDemoController.DispatchEndsAtKey, (System.DateTime.UtcNow.Ticks - 1).ToString());
-            ActiveButton("Return To Port Hub").onClick.Invoke();
-            yield return null;
-            ActiveButton("Port Hotspot Dispatch").onClick.Invoke();
-            yield return null;
-            ActiveButton("Claim Dispatch Reward").onClick.Invoke();
-            yield return null;
-            Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforeDispatch + 35), "派遣收益应在零投入基础上完整增加。");
-            Assert.That(controller.Session.Cargo.Wood, Is.EqualTo(woodBeforeDispatch + GameplayBalance.DispatchWood(0)));
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchMissionKey), Is.False);
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchEndsAtKey), Is.False);
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchDurationKey), Is.False);
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchCrewKey), Is.False);
-            ActiveButton("Return To Port Hub").onClick.Invoke();
-            yield return null;
+            Assert.That(ActiveButton("Port Hotspot Dispatch"), Is.Null);
 
             Button investmentHotspot = ActiveButton("Port Hotspot Maintenance");
             Assert.That(investmentHotspot, Is.Not.Null);
@@ -1168,8 +1132,31 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(GameObject.Find("Port Briefing"), Is.Not.Null);
             Assert.That(GameObject.Find("Route Preview 0"), Is.Not.Null);
-            Assert.That(GameObject.Find("Starter Modular Ship Layer " + purchasedOffer.Entry.Id), Is.Not.Null);
-            Assert.That(GameObject.Find("Cargo").GetComponent<Text>().text, Does.Contain("淡水 " + waterBeforePurchase));
+            RawImage[] departureShipImages = GameObject.Find("Starter Modular Ship").GetComponentsInChildren<RawImage>(true);
+            Assert.That(departureShipImages.Any(image => image.name.Contains(" Layer ")), Is.False,
+                "Purchased equipment must not add overlays to the starting ship.");
+            Assert.That(departureShipImages.Single().texture,
+                Is.SameAs(Resources.Load<Texture2D>("ModularShip/light_sloop_base")),
+                "The starting ship retains its base hull after a component purchase and refit.");
+            // The retired Cargo summary is replaced by the actual nine-item
+            // provisioning panel. Opening it displays inventory without buying.
+            decimal goldBeforeSupplyInspection = controller.Session.ProfileGold;
+            Button inspectSupplies = ActiveButton("Departure Buy Provisions");
+            Assert.That(inspectSupplies, Is.Not.Null);
+            Assert.That(inspectSupplies.interactable, Is.True);
+            inspectSupplies.onClick.Invoke();
+            yield return null;
+            GameObject waterName = GameObject.Find("Departure Basic Supply Name water");
+            GameObject waterHeld = GameObject.Find("Departure Basic Supply Held water");
+            Assert.That(waterName, Is.Not.Null, "The real departure supply panel must show fresh water.");
+            Assert.That(waterHeld, Is.Not.Null);
+            Assert.That(waterName.GetComponent<Text>().text, Is.EqualTo("淡水"));
+            Assert.That(waterHeld.GetComponent<Text>().text, Is.EqualTo("船舱中 " + waterBeforePurchase));
+            Assert.That(GameObject.Find("Departure Basic Supply Quantity water").GetComponent<Text>().text, Is.EqualTo("0"));
+            Assert.That(controller.Session.Cargo.Water, Is.EqualTo(waterBeforePurchase));
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforeSupplyInspection), "Inspecting supplies cannot charge the player.");
+            ActiveButton("Departure Basic Supplies Close").onClick.Invoke();
+            yield return null;
             Assert.That(ActiveButton("Adjust Voyage Supplies"), Is.Not.Null);
 
             Button start = ActiveButton("Start Voyage");
@@ -1217,12 +1204,13 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Map.Nodes.Select(node => node.Encounter.Id).Distinct().Count(), Is.EqualTo(controller.Session.Map.Nodes.Count));
             Assert.That(controller.Session.Map.ExploredCells.Length, Is.EqualTo(1536));
             Assert.That(GameObject.Find("Chart Fog Tiles").GetComponent<VoyageMapTileLayerGraphic>().TileCount,
-                Is.EqualTo(1536), "The chart should render every cell of the denser 48 by 32 fog grid.");
+                Is.EqualTo(CoreVoyageMap.ChartColumns * CoreVoyageMap.ChartRows),
+                "The visual fog renders the complete chart grid while logical exploration retains its separate grid.");
             Assert.That(GameObject.Find("Current Field Arrow 0"), Is.Not.Null);
             Assert.That(GameObject.Find("Current Direction Arrow"), Is.Null, "Oversized ship-local current arrows were removed.");
             Assert.That(GameObject.Find("Wind Direction Arrow"), Is.Null, "Wind is now one global voyage direction.");
-            Assert.That(GameObject.Find("Global Wind Direction Arrow"), Is.Not.Null);
-            Assert.That(GameObject.Find("Sea Conditions Legend"), Is.Not.Null);
+            Assert.That(GameObject.Find("Global Wind Direction Arrow"), Is.Null);
+            Assert.That(GameObject.Find("Sea Conditions Legend"), Is.Null);
             Assert.That(GameObject.Find("Departure Port").GetComponent<RawImage>().texture, Is.Not.Null);
             Assert.That(GameObject.Find("Destination Port").GetComponent<RawImage>().texture, Is.Not.Null);
             Text forecastText = GameObject.Find("Forecast").GetComponent<Text>();
@@ -1310,8 +1298,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(controller.Session.DirectCourseTarget.X, Is.EqualTo(snappedNode.Position.X).Within(0.001f));
             Assert.That(controller.Session.DirectCourseTarget.Y, Is.EqualTo(snappedNode.Position.Y).Within(0.001f));
-            Text snapLabel = GameObject.Find("Course Target Label").GetComponent<Text>();
-            Assert.That(snapLabel.text, Does.Contain("已吸附"));
+            Assert.That(GameObject.Find("Course Target Label"), Is.Null);
 
             Button returnButton = ActiveButton("Safe Return");
             Assert.That(returnButton, Is.Not.Null);
@@ -1329,7 +1316,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator FirstLaunch_UsesNormalDepartureAndDoesNotOfferBypass()
+        public IEnumerator FirstLaunch_StartsAtPortHubAndReloadRequiresDockEntryBeforeDeparture()
         {
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
@@ -1341,10 +1328,55 @@ namespace ShatteredSail.Presentation.Tests
 
             Assert.That(controller.CurrentGuidedTutorialStep, Is.EqualTo(GuidedTutorialStep.FirstDeparture));
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
-            Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
-            Assert.That(ActiveButton("Start Voyage").interactable, Is.True);
+            Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
+            Assert.That(GameObject.Find("Voyage Setup"), Is.Null);
+            Assert.That(ActiveButton("Start Voyage"), Is.Null);
+            Assert.That(typeof(CoreGameplayDemoController).GetMethod("PrepareGuidedTutorialDeparture",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(controller, null), Is.EqualTo(false), "A direct departure callback cannot bypass dock entry.");
+            Assert.That(controller.Session.GuidedTutorialLeg, Is.Zero);
+            Assert.That(RequireGuidedButton("Port Hotspot Voyage").IsInteractable(), Is.True);
+            AssertGuidedFocusTarget("Port Hotspot Voyage");
+            foreach (string facility in new[] { "Warehouse", "Shipyard", "Tavern", "ComponentShop", "Maintenance", "CardWorkshop" })
+                Assert.That(RequireGuidedButton("Port Hotspot " + facility).IsInteractable(), Is.False,
+                    "The first lesson must guide entry to the dock before unlocking other facilities.");
             Assert.That(ActiveButton("Tutorial Primary"), Is.Null);
             Assert.That(ActiveButton("Skip Tutorial"), Is.Null);
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey, 0), Is.Zero);
+
+            NavalBattleVisualCapture.Capture(controller, "01_New_Save_Port_Hub.png",
+                "新存档从港口总览开始，红框引导点击出航码头。", "Port Hub");
+
+            ClickGuidedButton("Port Hotspot Voyage");
+            yield return null;
+            Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
+            Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
+            Assert.That(RequireGuidedButton("Start Voyage").IsInteractable(), Is.True);
+            AssertGuidedFocusTarget("Start Voyage");
+            NavalBattleVisualCapture.Capture(controller, "02_New_Save_Departure.png",
+                "点击出航码头后，继续目的地、海图与扬帆教学。", "Voyage Setup");
+
+            // An unfinished initial save must reopen the harbor, including if
+            // the player had entered the dock but had not started the voyage.
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            Assert.That(controller.CurrentGuidedTutorialStep, Is.EqualTo(GuidedTutorialStep.FirstDeparture));
+            Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
+            Assert.That(GameObject.Find("Voyage Setup"), Is.Null);
+            Assert.That(RequireGuidedButton("Port Hotspot Voyage").IsInteractable(), Is.True);
+            AssertGuidedFocusTarget("Port Hotspot Voyage");
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GuidedTutorialCheckpointKey, 0), Is.Zero);
+
+            ClickGuidedButton("Port Hotspot Voyage");
+            yield return null;
+            ClickGuidedButton("Start Voyage");
+            yield return null;
+            Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            Assert.That(controller.CurrentGuidedTutorialNavigationInputStep,
+                Is.EqualTo(GuidedTutorialNavigationInputStep.Heading));
+            AssertGuidedFocusTarget("Heading East");
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey, 0), Is.Zero);
             LogAssert.NoUnexpectedReceived();
         }
@@ -1353,6 +1385,38 @@ namespace ShatteredSail.Presentation.Tests
         {
             return Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
                 .FirstOrDefault(button => button.name == name);
+        }
+
+        private static Button ActiveDeckCardCopyButton(int cardIndex)
+        {
+            string prefix = "Remove Deck Card " + cardIndex + " Copy ";
+            Button button = Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .Where(candidate => candidate.name.StartsWith(prefix, System.StringComparison.Ordinal))
+                .OrderBy(candidate => candidate.transform.GetSiblingIndex())
+                .FirstOrDefault();
+            Assert.That(button, Is.Not.Null, "Every selected base-card copy must have an individual remove control: " + cardIndex);
+            return button;
+        }
+
+        private static IEnumerator RevealDeckCardCopy(Button button)
+        {
+            ScrollRect scroll = button.GetComponentInParent<ScrollRect>();
+            Assert.That(scroll, Is.Not.Null, "Selected deck cards must live in the scrollable rail.");
+            Canvas.ForceUpdateCanvases();
+            RectTransform viewport = scroll.viewport;
+            Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(viewport, button.transform);
+            float range = scroll.content.rect.height - viewport.rect.height;
+            if (range > 0f)
+            {
+                float delta = bounds.max.y > viewport.rect.yMax ? bounds.max.y - viewport.rect.yMax
+                    : bounds.min.y < viewport.rect.yMin ? bounds.min.y - viewport.rect.yMin : 0f;
+                if (Mathf.Abs(delta) > .1f)
+                {
+                    scroll.verticalNormalizedPosition = Mathf.Clamp01(scroll.verticalNormalizedPosition + delta / range);
+                    yield return null;
+                    Canvas.ForceUpdateCanvases();
+                }
+            }
         }
 
         [UnityTest]
@@ -1376,30 +1440,32 @@ namespace ShatteredSail.Presentation.Tests
             foreach (NavalBattleStage stage in stages)
             {
                 int[] deck = controller.Session.GetBattleDeck(stage).ToArray();
-                Assert.That(deck.Length, Is.InRange(8, 10));
+                Assert.That(deck.Length, Is.EqualTo(10));
                 Assert.That(deck.All(index => CoreVoyageSession.CardLibrary[index].IsAllowedInStage(stage)), Is.True);
-                Assert.That(deck.GroupBy(index => index).All(group => group.Count() <= 3), Is.True);
-                if (stage == NavalBattleStage.Boarding) CollectionAssert.AreEqual(boarding, deck);
+                Assert.That(deck.GroupBy(index => index).All(group => group.Count() <= 2), Is.True);
+                if (stage == NavalBattleStage.Boarding) CollectionAssert.AreEqual(boarding, deck.Take(boarding.Length));
                 else
                     foreach (IGrouping<int, int> retained in legacy.Where(index => CoreVoyageSession.CardLibrary[index].IsAllowedInStage(stage)).GroupBy(index => index))
-                        Assert.That(deck.Count(index => index == retained.Key), Is.GreaterThanOrEqualTo(retained.Count()),
-                            "Migration must preserve every valid original copy before filling the stage deck.");
+                        Assert.That(deck.Count(index => index == retained.Key), Is.GreaterThanOrEqualTo(System.Math.Min(2, retained.Count())),
+                            "Migration preserves the two owned copies before filling the stage deck.");
                 expected[stage] = deck;
                 Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.StageBattleDeckKey(stage)), Is.EqualTo(string.Join(",", deck)));
             }
 
             ActiveButton("Port Hotspot CardWorkshop").onClick.Invoke();
             yield return null;
-            ActiveButton("Open Deck Chest 0").onClick.Invoke();
+            ActiveButton("Workshop Preview Stage Preparation").onClick.Invoke();
             yield return null;
-            ActiveButton("Edit Deck From Card Upgrades").onClick.Invoke();
+            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
             yield return null;
+            yield return ReturnFromWorkshopForgeToSelectedDeck();
             foreach (NavalBattleStage stage in stages)
             {
                 ActiveButton("Battle Deck Stage Tab " + stage).onClick.Invoke();
                 yield return null;
                 Button add = Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                    .First(button => button.name.StartsWith("Add Deck Card ") && button.interactable);
+                    .First(button => button.name.StartsWith("Add Deck Card ") && button.interactable &&
+                        controller.Session.GetBattleDeck(stage).Count(index => index == int.Parse(button.name.Substring("Add Deck Card ".Length))) < 2);
                 int cardIndex = int.Parse(add.name.Substring("Add Deck Card ".Length));
                 int countBefore = expected[stage].Count(index => index == cardIndex);
                 add.onClick.Invoke();
@@ -1426,62 +1492,6 @@ namespace ShatteredSail.Presentation.Tests
             foreach (NavalBattleStage stage in stages)
                 CollectionAssert.AreEqual(expected[stage], controller.Session.GetBattleDeck(stage),
                     "Once migrated, each v2 stage must reload its own saved edits independently of the old combined deck.");
-            LogAssert.NoUnexpectedReceived();
-        }
-
-        [UnityTest]
-        public IEnumerator Achievements_DispatchStartRecallAndRewardClaimPersistWithoutFalseCompletion()
-        {
-            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
-            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
-            yield return null; yield return null;
-            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            Assert.That(AchievementUnlocked("dispatch_prepare"), Is.False);
-            Assert.That(AchievementUnlocked("dispatch_long"), Is.False);
-            Assert.That(AchievementUnlocked("dispatch_resolved"), Is.False);
-
-            ActiveButton("Port Hotspot Dispatch").onClick.Invoke(); yield return null;
-            ActiveButton("Dispatch Mission Chart 1").onClick.Invoke(); yield return null;
-            Slider duration = GameObject.Find("Dispatch Duration Slider").GetComponent<Slider>();
-            Assert.That(duration.maxValue, Is.GreaterThanOrEqualTo(AchievementCatalog.LongDispatchHours));
-            duration.value = AchievementCatalog.LongDispatchHours;
-            ActiveButton("Confirm Dispatch Deployment").onClick.Invoke(); yield return null;
-            Assert.That(AchievementUnlocked("dispatch_prepare"), Is.True);
-            Assert.That(AchievementUnlocked("dispatch_long"), Is.True);
-            Assert.That(AchievementUnlocked("dispatch_resolved"), Is.False,
-                "Starting a job must not unlock successful settlement.");
-
-            decimal beforeRecall = controller.Session.ProfileGold;
-            ActiveButton("Recall Dispatch Job").onClick.Invoke(); yield return null;
-            Assert.That(controller.Session.ProfileGold, Is.EqualTo(beforeRecall));
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchMissionKey), Is.False);
-            Assert.That(AchievementUnlocked("dispatch_prepare"), Is.True);
-            Assert.That(AchievementUnlocked("dispatch_long"), Is.True);
-            Assert.That(AchievementUnlocked("dispatch_resolved"), Is.False);
-
-            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
-            yield return null; yield return null;
-            controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            Assert.That(AchievementUnlocked("dispatch_prepare"), Is.True);
-            Assert.That(AchievementUnlocked("dispatch_long"), Is.True);
-            Assert.That(AchievementUnlocked("dispatch_resolved"), Is.False);
-            ActiveButton("Port Hotspot Dispatch").onClick.Invoke(); yield return null;
-            ActiveButton("Dispatch Mission Chart 0").onClick.Invoke(); yield return null;
-            ActiveButton("Confirm Dispatch Deployment").onClick.Invoke(); yield return null;
-            Button.ButtonClickedEvent staleRecall = ActiveButton("Recall Dispatch Job").onClick;
-            PlayerPrefs.SetString(CoreGameplayDemoController.DispatchEndsAtKey,
-                System.DateTime.UtcNow.AddSeconds(-1).Ticks.ToString());
-            decimal beforeClaim = controller.Session.ProfileGold;
-            staleRecall.Invoke(); yield return null;
-            Assert.That(controller.Session.ProfileGold, Is.EqualTo(beforeClaim + GameplayBalance.DispatchGold(0)));
-            Assert.That(AchievementUnlocked("dispatch_resolved"), Is.True,
-                "A job becoming ready while the page is open must record the successful reward claim.");
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchMissionKey), Is.False);
-            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
-            yield return null; yield return null;
-            Assert.That(AchievementUnlocked("dispatch_prepare"), Is.True);
-            Assert.That(AchievementUnlocked("dispatch_long"), Is.True);
-            Assert.That(AchievementUnlocked("dispatch_resolved"), Is.True);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -1620,7 +1630,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator DispatchedCrew_ExcludesOnlyTheAwayIdentityFromStageBonusCards()
+        public IEnumerator LegacyDispatchData_DoesNotBlockLocalCrewCardsAndStillRespectsTheirLocation()
         {
             CrewVariantDefinition away = CrewNarrativeCatalog.LegacyForProfession(0);
             CrewVariantDefinition aboard = CrewNarrativeCatalog.ForPortAndProfession("白贝港", 0);
@@ -1630,22 +1640,26 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(away.Id), 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(aboard.Id), 1);
             PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "断锚港");
+            PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(away.Id), "断锚港");
             PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(aboard.Id), "白贝港");
             PlayerPrefs.SetString(CoreGameplayDemoController.ActiveCrewVariantKey(0), away.Id);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchMissionKey, 0);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchBalanceVersionKey, GameplayBalance.Version);
-            PlayerPrefs.SetString(CoreGameplayDemoController.DispatchCrewKey, "0");
-            PlayerPrefs.SetString(CoreGameplayDemoController.DispatchCrewIdentityKey, away.Id);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchRealClockKey, 1);
-            PlayerPrefs.SetString(CoreGameplayDemoController.DispatchEndsAtKey, System.DateTime.UtcNow.AddDays(1).Ticks.ToString());
+            PlayerPrefs.SetInt("ShatteredSail.Dispatch.Mission.v1", 0);
+            PlayerPrefs.SetInt("ShatteredSail.Dispatch.BalanceVersion", 1);
+            PlayerPrefs.SetString("ShatteredSail.Dispatch.CrewCsv.v1", "0");
+            PlayerPrefs.SetString("ShatteredSail.Dispatch.CrewIdentities.v2", away.Id);
+            PlayerPrefs.SetInt("ShatteredSail.Dispatch.RealClock.v1", 1);
+            PlayerPrefs.SetString("ShatteredSail.Dispatch.EndsAt.v1", System.DateTime.UtcNow.AddDays(1).Ticks.ToString());
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
             yield return null;
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            Assert.That(controller.Session.HasNavigator, Is.False);
+            Assert.That(controller.Session.HasNavigator, Is.True, "Retired assignment data must not reserve a local crew member.");
+            CoreSpecialCardDefinition localCard = CoreSpecialCardCatalog.ForCrew(away.Id);
             foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
-                Assert.That(controller.Session.GetCrewBattleCards(stage).Any(index => CoreVoyageSession.CardLibrary[index].RequiredCrew == away.Id), Is.False);
+                Assert.That(controller.Session.GetCrewBattleCards(stage).Count(index => CoreVoyageSession.CardLibrary[index].RequiredCrew == away.Id),
+                    Is.EqualTo(localCard.Card.IsAllowedInStage(stage) ? 1 : 0));
 
+            PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(away.Id), "白贝港");
             PlayerPrefs.SetString(CoreGameplayDemoController.ActiveCrewVariantKey(0), aboard.Id);
             PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(aboard.Id), "断锚港");
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
@@ -1660,7 +1674,7 @@ namespace ShatteredSail.Presentation.Tests
                     Is.EqualTo(aboardCard.Card.IsAllowedInStage(stage) ? 1 : 0));
                 Assert.That(controller.Session.GetCrewBattleCards(stage).Any(index => CoreVoyageSession.CardLibrary[index].RequiredCrew == away.Id), Is.False);
             }
-            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.DispatchCrewIdentityKey), Is.EqualTo(away.Id));
+            Assert.That(PlayerPrefs.GetString("ShatteredSail.Dispatch.CrewIdentities.v2"), Is.EqualTo(away.Id));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -1714,11 +1728,12 @@ namespace ShatteredSail.Presentation.Tests
             yield return CoreGameplayDemoController.GuidedTutorialWarehousePendingKey;
             yield return CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey;
             yield return CoreGameplayDemoController.SelectedShipKey;
-            yield return CoreGameplayDemoController.DispatchMissionKey;
-            yield return CoreGameplayDemoController.DispatchDurationKey;
-            yield return CoreGameplayDemoController.DispatchBalanceVersionKey;
-            yield return CoreGameplayDemoController.DispatchGameClockKey;
-            yield return CoreGameplayDemoController.DispatchRealClockKey;
+            yield return "ShatteredSail.Dispatch.Mission.v1";
+            yield return "ShatteredSail.Dispatch.DurationHours.v1";
+            yield return "ShatteredSail.Dispatch.BalanceVersion";
+            yield return "ShatteredSail.Dispatch.GameClock.v1";
+            yield return "ShatteredSail.Dispatch.RealClock.v1";
+            yield return CoreGameplayDemoController.BattleDeckEditedKey;
             yield return CoreGameplayDemoController.LegacyWitchRecruitedKey;
             foreach (string port in new[] { "断锚港", "白贝港", "铜钟港", "盐冠港", "暮潮港", "灰鸥港" })
             {
@@ -1762,9 +1777,9 @@ namespace ShatteredSail.Presentation.Tests
             yield return CoreGameplayDemoController.AcquiredSpecialCardsKey;
             foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
                 yield return CoreGameplayDemoController.StageBattleDeckKey(stage);
-            yield return CoreGameplayDemoController.DispatchEndsAtKey;
-            yield return CoreGameplayDemoController.DispatchCrewKey;
-            yield return CoreGameplayDemoController.DispatchCrewIdentityKey;
+            yield return "ShatteredSail.Dispatch.EndsAt.v1";
+            yield return "ShatteredSail.Dispatch.CrewCsv.v1";
+            yield return "ShatteredSail.Dispatch.CrewIdentities.v2";
             yield return CoreGameplayDemoController.CrewAtSeaKey;
             for (int index = 0; index < 6; index += 1) yield return CoreGameplayDemoController.ActiveCrewVariantKey(index);
             foreach (CrewVariantDefinition crew in CrewNarrativeCatalog.AllCrew)

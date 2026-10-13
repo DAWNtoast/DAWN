@@ -6,6 +6,7 @@ Shader "Shattered Sail/UI/Battle Ship Cutout"
         _Color ("Tint", Color) = (1,1,1,1)
         _KeyGamma ("Atlas Background In sRGB", Vector) = (0.001960784,0.049019608,0.125490196,0)
         _KeyTolerance ("sRGB Channel Tolerance", Vector) = (0.005882353,0.005882353,0.007843137,1.75)
+        _UseColorKey ("Use Legacy Navy Color Key", Float) = 1
         _AtlasGrid ("Cell Count XY / Separator Margin In Texels ZW", Vector) = (0,0,0,0)
         _SmoothCutout ("Alpha-aware Bilinear Filtering", Float) = 0
         _StencilComp ("Stencil Comparison", Float) = 8
@@ -61,7 +62,7 @@ Shader "Shattered Sail/UI/Battle Ship Cutout"
             float4 _Color, _ClipRect, _KeyGamma, _KeyTolerance;
             float4 _TextureSampleAdd;
             float4 _MainTex_TexelSize, _AtlasGrid;
-            float _SmoothCutout;
+            float _SmoothCutout, _UseColorKey;
 
             v2f vert(appdata input)
             {
@@ -88,6 +89,19 @@ Shader "Shattered Sail/UI/Battle Ship Cutout"
                 return lerp(gammaColor / 12.92, upper, step(0.04045, gammaColor));
             }
 
+            float CellCoverage(float2 uv)
+            {
+                if (_AtlasGrid.x > 0.0 && _AtlasGrid.y > 0.0)
+                {
+                    float2 cellSize = _MainTex_TexelSize.zw / _AtlasGrid.xy;
+                    float2 inCell = frac(uv * _AtlasGrid.xy) * cellSize;
+                    float2 edge = min(inCell, cellSize - inCell);
+                    float2 safe = step(_AtlasGrid.zw, edge);
+                    return safe.x * safe.y;
+                }
+                return 1.0;
+            }
+
             // Key each source texel BEFORE filtering. Filtering opaque navy
             // into a sail/rope first makes the mixed color miss the narrow key
             // and leaves an opaque dark fringe when the image is turned or
@@ -96,39 +110,43 @@ Shader "Shattered Sail/UI/Battle Ship Cutout"
             float4 KeyedTexel(float2 uv)
             {
                 float4 sampled = tex2Dlod(_MainTex, float4(uv, 0.0, 0.0)) + _TextureSampleAdd;
-                float3 encoded = sampled.rgb;
-                float3 keyInWorkingSpace = _KeyGamma.rgb;
-                #ifndef UNITY_COLORSPACE_GAMMA
-                encoded = ToGammaExact(sampled.rgb);
-                keyInWorkingSpace = ToLinearExact(_KeyGamma.rgb);
-                #endif
-
-                // This is a narrow three-channel navy color key, NOT a dark-
-                // pixel/luminance threshold. Black canvas seams, purple sails,
-                // shadowed timber and green ghost wakes remain opaque.
-                float3 channels = abs(encoded - _KeyGamma.rgb) / max(_KeyTolerance.rgb, 0.00001);
-                float distance = max(channels.r, max(channels.g, channels.b));
-                float coverage = smoothstep(1.0, _KeyTolerance.a, distance);
-
-                // Undo just the keyed navy contribution at the antialiased
-                // silhouette; leave fully opaque authored pixels unchanged.
-                float3 foreground = max(0.0, (sampled.rgb - keyInWorkingSpace * (1.0 - coverage)) / max(coverage, 0.01));
-                float alpha = sampled.a * coverage;
-                if (_AtlasGrid.x > 0.0 && _AtlasGrid.y > 0.0)
+                float coverage = 1.0;
+                float3 foreground = sampled.rgb;
+                if (_UseColorKey > 0.5)
                 {
-                    float2 cellSize = _MainTex_TexelSize.zw / _AtlasGrid.xy;
-                    float2 inCell = frac(uv * _AtlasGrid.xy) * cellSize;
-                    float2 edge = min(inCell, cellSize - inCell);
-                    float2 safe = step(_AtlasGrid.zw, edge);
-                    alpha *= safe.x * safe.y;
+                    float3 encoded = sampled.rgb;
+                    float3 keyInWorkingSpace = _KeyGamma.rgb;
+                    #ifndef UNITY_COLORSPACE_GAMMA
+                    encoded = ToGammaExact(sampled.rgb);
+                    keyInWorkingSpace = ToLinearExact(_KeyGamma.rgb);
+                    #endif
+
+                    // This narrow three-channel legacy key leaves black sails,
+                    // purple cloth, shadowed timber and green wakes opaque.
+                    float3 channels = abs(encoded - _KeyGamma.rgb) / max(_KeyTolerance.rgb, 0.00001);
+                    float distance = max(channels.r, max(channels.g, channels.b));
+                    coverage = smoothstep(1.0, _KeyTolerance.a, distance);
+
+                    // Undo only the old matte contribution at silhouette edges.
+                    foreground = max(0.0, (sampled.rgb - keyInWorkingSpace * (1.0 - coverage)) / max(coverage, 0.01));
                 }
+                // Alpha-authored ships retain every RGB color, including navy.
+                float alpha = sampled.a * coverage * CellCoverage(uv);
                 return float4(foreground * alpha, alpha);
             }
 
             float4 frag(v2f input) : SV_Target
             {
                 float4 filtered;
-                if (_SmoothCutout > 0.5)
+                if (_UseColorKey < 0.5)
+                {
+                    // Authored RGB and alpha use the same native sampling as
+                    // the starter ship and a standard UI RawImage.
+                    float4 sampled = tex2D(_MainTex, input.uv) + _TextureSampleAdd;
+                    float alpha = sampled.a * CellCoverage(input.uv);
+                    filtered = float4(sampled.rgb * alpha, alpha);
+                }
+                else if (_SmoothCutout > 0.5)
                 {
                     float2 texel = input.uv * _MainTex_TexelSize.zw - 0.5;
                     float2 origin = (floor(texel) + 0.5) * _MainTex_TexelSize.xy;

@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
@@ -27,7 +27,7 @@ namespace ShatteredSail.Core.Tests
         public void Departure_RequiresAnAvailableNavigatorToShowAndEditTheSeed()
         {
             CreatePortPreview();
-            WriteField(controller, "activePortFacility", 8);
+            WriteField(controller, "activePortFacility", 7);
             controller.Session.SetSeed(PrivateSeed);
 
             foreach (bool navigatorAboard in new[] { false, true, false })
@@ -44,13 +44,14 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(input.interactable, Is.False, "Random departure is the initial mode; explicit selection enables entry.");
                     Assert.That(Find<Toggle>("Use Chart Seed").isOn, Is.False);
                     Assert.That(input.text, Is.Empty, "Random mode must not silently copy the hidden seed into a chart selection.");
-                    Assert.That(Find<Text>("Seed Label").text, Does.Contain("海图种子"));
+                    Assert.That(Find<Text>("Seed Label").text, Does.Contain("普通海图"));
                 }
                 else
                 {
                     Assert.That(input, Is.Null, "An unavailable seed must not remain in a disabled or hidden input.");
-                    Assert.That(Find<Text>("Seed Label").text, Does.Contain("待绘制"));
-                    Assert.That(Find<Text>("Seed Locked Hint").text, Does.Contain("航海士"));
+                    Assert.That(Find<Text>("Seed Label").text, Does.Contain("航海士"));
+                    Assert.That(Find<Button>("Departure Treasure Seed Picker").IsInteractable(), Is.True,
+                        "Treasure seeds remain available without a navigator.");
                     AssertNoVisibleValue(PrivateSeed);
                 }
 
@@ -65,7 +66,7 @@ namespace ShatteredSail.Core.Tests
         public void Departure_OffersDestinationPickerAndUsesItForTheMapEndpoint()
         {
             CreatePortPreview();
-            WriteField(controller, "activePortFacility", 8);
+            WriteField(controller, "activePortFacility", 7);
             Rebuild("BuildPort");
 
             string initial = controller.Session.SelectedDestinationPort;
@@ -95,12 +96,8 @@ namespace ShatteredSail.Core.Tests
             Toggle toggle = Find<Toggle>("Use Chart Seed");
             RectTransform selection = Find<RectTransform>("Departure Chart Selection");
             Assert.That(toggle.transform.parent, Is.SameAs(routes));
-            RectTransform switchRect = toggle.GetComponent<RectTransform>();
-            Assert.That(switchRect.anchoredPosition.y + switchRect.rect.height * .5f,
-                Is.LessThanOrEqualTo(((RectTransform)routes).rect.yMax), "The switch belongs inside the enlarged left frame.");
-            RectTransform firstPort = Find<Button>("Departure Destination 0").GetComponent<RectTransform>();
-            Assert.That(switchRect.anchoredPosition.y - switchRect.rect.height * .5f,
-                Is.GreaterThan(firstPort.anchoredPosition.y + firstPort.rect.height * .5f), "The fixed port row stays below the switch.");
+            Assert.That(toggle.GetComponent<RectTransform>().anchoredPosition.y,
+                Is.GreaterThan(((RectTransform)routes).rect.yMax), "The switch belongs above the left frame.");
             Assert.That(setup.GetComponentsInChildren<Toggle>(true).Any(item => item.name == "Use Chart Seed"), Is.False);
             Assert.That(setup.GetComponentsInChildren<InputField>(true), Is.Empty);
             Assert.That(selection.gameObject.activeSelf, Is.False);
@@ -152,12 +149,12 @@ namespace ShatteredSail.Core.Tests
             for (int route = 0; route < CoreVoyageSession.Routes.Count; route++)
                 Assert.That(Find<Button>("Route " + route).gameObject.activeSelf, Is.EqualTo(visible));
             for (int port = 0; port < CoreVoyageSession.DestinationPorts.Count; port++)
-                Assert.That(Find<Button>("Departure Destination " + port).gameObject.activeInHierarchy, Is.True,
-                    "All six named port plaques remain visible in both departure modes.");
+                Assert.That(Find<Button>("Departure Destination " + port).gameObject.activeInHierarchy, Is.EqualTo(visible),
+                    "Manual destination plaques are replaced by the selected chart's endpoints in chart mode.");
         }
 
         [Test]
-        public void RouteArchive_HidesTheSeedAgainWhenTheNavigatorIsUnavailable()
+        public void TreasureTable_DoesNotExposeTheOrdinaryRouteSeed()
         {
             // This fixture exercises the current undrawn chart, independently
             // of a player's previously recorded archive.
@@ -167,21 +164,17 @@ namespace ShatteredSail.Core.Tests
             try
             {
                 CreatePortPreview();
-                WriteField(controller, "activePortFacility", 6);
+                WriteField(controller, "activePortFacility", 5);
                 controller.Session.SetSeed(PrivateSeed);
 
                 foreach (bool navigatorAboard in new[] { false, true, false })
                 {
                     SetNavigator(navigatorAboard);
                     Rebuild("BuildPort");
-                    string detail = Find<Text>("Treasure Route Detail").text;
-                    if (navigatorAboard)
-                        Assert.That(detail, Does.Contain(PrivateSeed));
-                    else
-                    {
-                        Assert.That(detail, Does.Contain("航海士"));
-                        AssertNoVisibleValue(PrivateSeed);
-                    }
+                    Assert.That(Find<Button>("Treasure Identify Fragment").GetComponentInChildren<Text>().text, Does.Contain("鉴定碎片"));
+                    Assert.That(Find<Text>("Treasure Workbench Status").text, Does.Contain("未鉴定碎片"));
+                    Assert.That(host.GetComponentsInChildren<Text>(true).Any(label => label.name == "Treasure Route Detail"), Is.False);
+                    AssertNoVisibleValue(PrivateSeed);
                 }
             }
             finally
@@ -193,7 +186,7 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void Navigation_GatesSeedAndHashByDrawingAbility_AndNeverPutsThemInTheJournal(bool navigatorAboard)
+        public void Navigation_KeepsSeedAndHashHiddenRegardlessOfDrawingAbility(bool navigatorAboard)
         {
             CreatePortPreview();
             SetNavigator(navigatorAboard);
@@ -202,24 +195,10 @@ namespace ShatteredSail.Core.Tests
             Rebuild("BuildNavigationDashboard");
 
             string hash = controller.Session.Map.Hash.ToString("X8");
-            string mapCaption = Find<Text>("Map Seed").text;
-            if (navigatorAboard)
-            {
-                Assert.That(mapCaption, Does.Contain(PrivateSeed));
-                Assert.That(mapCaption, Does.Contain(hash));
-                Assert.That(controller.Session.Settlement, Is.Null,
-                    "The navigator can reveal a chart seed before a successful settlement saves the chart.");
-            }
-            else
-            {
-                Assert.That(mapCaption, Does.Contain("尚未绘制"));
-                Assert.That(mapCaption, Does.Contain("航海士"));
-                AssertNoVisibleValue(PrivateSeed, hash);
-            }
+            Assert.That(host.GetComponentsInChildren<Text>(true).Any(label => label.name == "Map Seed"), Is.False);
+            AssertNoVisibleValue(PrivateSeed, hash);
 
-            string journal = Find<Text>("Voyage Log").text;
-            Assert.That(journal, Does.Not.Contain(PrivateSeed));
-            Assert.That(journal, Does.Not.Contain(hash));
+            Assert.That(host.GetComponentsInChildren<Text>(true).Any(label => label.name == "Voyage Log"), Is.False);
             Assert.That(controller.Session.Map.Seed, Is.EqualTo(PrivateSeed));
             Assert.That(Find<MapCourseInputSurface>("Map Course Input"), Is.Not.Null);
         }
@@ -252,35 +231,41 @@ namespace ShatteredSail.Core.Tests
 
             Rebuild("BuildNavigationDashboard");
             AssertNoEventVisual(leak.Id);
-            Assert.That(Find<Text>("Event Label " + sighted.Id).text, Is.EqualTo(sighted.Encounter.Name));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Event Label " + sighted.Id), Is.False);
             Assert.That(Find<RawImage>("Event Icon " + sighted.Id).texture, Is.Not.Null);
-            Assert.That(Find<Text>("Event Label " + hidden.Id).text, Is.EqualTo("情报：未知信号"));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Event Label " + hidden.Id), Is.False);
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Event Icon " + hidden.Id), Is.False,
                 "Intelligence may reveal a location without showing its undiscovered artwork.");
             AssertNoVisibleValue(leak.Encounter.Name, hidden.Encounter.Name);
 
             SailingDirection headingBefore = controller.Session.Heading;
             int distanceBefore = controller.Session.PlannedDistanceNm;
-            string noticeBefore = ReadField<string>(controller, "courseTargetNotice");
             Invoke(controller, "SelectCourseToEvent", 0);
             Assert.That(controller.Session.HasDirectCourseTarget, Is.False);
             Assert.That(controller.Session.Heading, Is.EqualTo(headingBefore));
             Assert.That(controller.Session.PlannedDistanceNm, Is.EqualTo(distanceBefore));
-            Assert.That(ReadField<string>(controller, "courseTargetNotice"), Is.EqualTo(noticeBefore));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Course Target Label"), Is.False);
 
             Button visibleMarker = Find<Button>("Event Node " + sighted.Id);
             Assert.That(visibleMarker.interactable, Is.True);
             visibleMarker.onClick.Invoke();
             Assert.That(controller.Session.HasDirectCourseTarget, Is.True);
-            Assert.That(ReadField<string>(controller, "courseTargetNotice"), Does.Contain(sighted.Encounter.Name));
+            Assert.That(controller.Session.DirectCourseTarget.X, Is.EqualTo(sighted.Position.X).Within(0.001f));
+            Assert.That(controller.Session.DirectCourseTarget.Y, Is.EqualTo(sighted.Position.Y).Within(0.001f));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Course Target Label"), Is.False);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Event Label " + sighted.Id), Is.False);
+            AssertNoVisibleValue(leak.Encounter.Name, hidden.Encounter.Name);
 
             controller.Session.SetHeading(SailingDirection.North);
             Button intelMarker = Find<Button>("Event Node " + hidden.Id);
             Assert.That(intelMarker.interactable, Is.True);
             intelMarker.onClick.Invoke();
             Assert.That(controller.Session.HasDirectCourseTarget, Is.True);
-            Assert.That(ReadField<string>(controller, "courseTargetNotice"), Does.Contain("未知信号"));
-            Assert.That(ReadField<string>(controller, "courseTargetNotice"), Does.Not.Contain(hidden.Encounter.Name));
+            Assert.That(controller.Session.DirectCourseTarget.X, Is.EqualTo(hidden.Position.X).Within(0.001f));
+            Assert.That(controller.Session.DirectCourseTarget.Y, Is.EqualTo(hidden.Position.Y).Within(0.001f));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Course Target Label"), Is.False);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Event Label " + hidden.Id), Is.False);
+            AssertNoVisibleValue(leak.Encounter.Name, hidden.Encounter.Name);
             AssertNoEventVisual(leak.Id);
             Assert.That(controller.Session.ActiveEncounter, Is.Null, "Selecting chart markers must not trigger a shipboard incident.");
         }

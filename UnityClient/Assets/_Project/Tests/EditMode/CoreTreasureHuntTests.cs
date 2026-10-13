@@ -42,38 +42,44 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void Crafting_EnforcesLevelFragmentsLimitAndUniqueSeedsWithoutSpendingOnFailure()
         {
-            var session = Profile(99, 4);
+            var session = Profile(99, 28);
             Assert.That(session.TryCraftTreasureMap("ONE", out string reason), Is.False);
             Assert.That(reason, Does.Contain("等级"));
-            Assert.That(session.TreasureFragments, Is.EqualTo(4));
-            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 100, fragments = 3 });
-            Assert.That(session.TryCraftTreasureMap("ONE", out reason), Is.False);
-            Assert.That(reason, Does.Contain("还缺 1"));
+            Assert.That(session.TryIdentifyTreasureFragment(out _), Is.False);
+            Assert.That(session.TreasureFragments, Is.EqualTo(28));
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 100, fragments = 28 });
+            Assert.That(session.TryCraftTreasureMap("ONE", out reason), Is.False);
+            Assert.That(reason, Does.Contain("鉴定"));
+            IdentifyAll(session);
+            Assert.That(session.TryCraftTreasureMapForRank("weathered", new string('X', 65), out _), Is.False);
+            Assert.That(session.GetIdentifiedTreasureFragments("weathered"), Is.EqualTo(28));
             Assert.That(session.TryCraftTreasureMap("ONE", out reason), Is.True, reason);
-            Assert.That(session.SelectedTreasureMap.RankId, Is.EqualTo("weathered"));
+            Assert.That(session.TreasureMaps.Single().RankId, Is.EqualTo("weathered"));
+            Assert.That(session.SelectedTreasureMap, Is.Null, "Crafting only creates a seed; departure remains an explicit choice.");
             Assert.That(session.TryCraftTreasureMap(" ONE ", out _), Is.False);
-            Assert.That(session.TreasureFragments, Is.EqualTo(24));
+            Assert.That(session.GetIdentifiedTreasureFragments("weathered"), Is.EqualTo(24));
             for (int i = 1; i < 6; i++) Assert.That(session.TryCraftTreasureMap("HELD-" + i, out reason), Is.True, reason);
             Assert.That(session.TryCraftTreasureMap("SEVENTH", out reason), Is.False);
             Assert.That(reason, Does.Contain("6"));
             Assert.That(session.TreasureMaps.Count, Is.EqualTo(6));
-            Assert.That(session.TreasureFragments, Is.EqualTo(4));
+            Assert.That(session.TreasureFragments, Is.Zero);
+            Assert.That(session.GetIdentifiedTreasureFragments("weathered"), Is.EqualTo(4));
         }
 
         [Test]
-        public void MoonlitPity_IncreasesAfterEligibleNonMoonlitCraftsAndResetsOnMoonlit()
+        public void MoonlitPity_IncreasesAfterEligibleIdentificationsAndResetsOnMoonlit()
         {
-            var session = Profile(1400, 4);
+            var session = Profile(1400, 10);
             Assert.That(session.MoonlitPityCount, Is.Zero);
             Assert.That(session.MoonlitCraftChance, Is.EqualTo(.15d).Within(.000001d));
 
             for (int attempt = 0; attempt < CoreTreasureHuntCatalog.MoonlitPityCap; attempt++)
             {
-                ResetCraftInventory(session);
-                string seed = FindSeedWithRankRollBelow(.01d, "PITY-" + attempt + "-");
-                Assert.That(session.TryCraftTreasureMap(seed, out string reason), Is.True, reason);
-                Assert.That(session.SelectedTreasureMap.RankId, Is.Not.EqualTo("moonlit"));
+                CoreTreasureProgress before = session.CaptureTreasureProgress();
+                before.identificationSeed = FindIdentificationSeedWithRollBelow(.01d, before.identificationSequence, "PITY-" + attempt + "-");
+                session.RestoreTreasureProgress(before);
+                Assert.That(session.TryIdentifyTreasureFragment(out string reason), Is.True, reason);
+                Assert.That(session.GetIdentifiedTreasureFragments("moonlit"), Is.Zero);
                 Assert.That(session.MoonlitPityCount, Is.EqualTo(attempt + 1));
                 Assert.That(session.MoonlitCraftChance, Is.EqualTo(System.Math.Min(1d, .15d * (attempt + 2))).Within(.000001d));
             }
@@ -84,18 +90,19 @@ namespace ShatteredSail.Core.Tests
             Assert.That(restored.MoonlitPityCount, Is.EqualTo(CoreTreasureHuntCatalog.MoonlitPityCap));
             Assert.That(restored.MoonlitCraftChance, Is.EqualTo(1d).Within(.000001d));
 
-            ResetCraftInventory(restored);
-            Assert.That(restored.TryCraftTreasureMap("PITY-GUARANTEED", out string guaranteedReason), Is.True, guaranteedReason);
-            Assert.That(restored.SelectedTreasureMap.RankId, Is.EqualTo("moonlit"));
+            Assert.That(restored.TryIdentifyTreasureFragment(out string guaranteedReason), Is.True, guaranteedReason);
+            Assert.That(restored.GetIdentifiedTreasureFragments("moonlit"), Is.EqualTo(1));
             Assert.That(restored.MoonlitPityCount, Is.Zero);
             Assert.That(restored.MoonlitCraftChance, Is.EqualTo(.15d).Within(.000001d));
+            Assert.That(restored.TryCraftTreasureMapForRank("weathered", "CRAFT-KEEPS-PITY", out _), Is.True);
+            Assert.That(restored.MoonlitPityCount, Is.Zero, "Pity changes during identification only.");
         }
 
         [Test]
         public void MoonlitPity_DoesNotAdvanceBeforeMoonlitUnlock()
         {
             var session = Profile(260, 4);
-            Assert.That(session.TryCraftTreasureMap("PRE-MOONLIT", out string reason), Is.True, reason);
+            Assert.That(session.TryIdentifyTreasureFragment(out string reason), Is.True, reason);
             Assert.That(session.MoonlitPityCount, Is.Zero);
             Assert.That(session.MoonlitCraftChance, Is.Zero);
         }
@@ -103,26 +110,84 @@ namespace ShatteredSail.Core.Tests
         [TestCase(100, "weathered")]
         [TestCase(260, "weathered,gilded")]
         [TestCase(900, "weathered,gilded,moonlit")]
-        public void CraftRank_IsSeedBoundAndNeverExceedsUnlockedLevel(int xp, string allowed)
+        public void Identification_AssignsOneFragmentToOneUnlockedMapAndReloadDoesNotReroll(int xp, string allowed)
         {
             var seen = new HashSet<string>();
+            var left = Profile(xp, 80);
             for (int i = 0; i < 80; i++)
             {
-                var left = Profile(xp, 4); var right = Profile(xp, 4);
-                Assert.That(left.TryCraftTreasureMap("RANK-" + i, out _), Is.True);
-                Assert.That(right.TryCraftTreasureMap("RANK-" + i, out _), Is.True);
-                Assert.That(left.SelectedTreasureMap.RankId, Is.EqualTo(right.SelectedTreasureMap.RankId));
-                seen.Add(left.SelectedTreasureMap.RankId);
+                var right = new CoreVoyageSession();
+                right.RestoreTreasureProgress(UnityEngine.JsonUtility.FromJson<CoreTreasureProgress>(
+                    UnityEngine.JsonUtility.ToJson(left.CaptureTreasureProgress())));
+                var before = CoreTreasureHuntCatalog.Ranks.ToDictionary(rank => rank.Id, rank => left.GetIdentifiedTreasureFragments(rank.Id));
+                Assert.That(left.TryIdentifyTreasureFragment(out string reason), Is.True, reason);
+                Assert.That(right.TryIdentifyTreasureFragment(out string restoredReason), Is.True, restoredReason);
+                Assert.That(restoredReason, Is.EqualTo(reason));
+                string assigned = CoreTreasureHuntCatalog.Ranks.Single(rank => left.GetIdentifiedTreasureFragments(rank.Id) == before[rank.Id] + 1).Id;
+                seen.Add(assigned);
+                foreach (CoreTreasureMapRank rank in CoreTreasureHuntCatalog.Ranks)
+                    Assert.That(left.GetIdentifiedTreasureFragments(rank.Id), Is.EqualTo(right.GetIdentifiedTreasureFragments(rank.Id)));
+                Assert.That(CoreTreasureHuntCatalog.Ranks.Sum(rank => left.GetIdentifiedTreasureFragments(rank.Id)), Is.EqualTo(i + 1));
+                Assert.That(left.TreasureFragments, Is.EqualTo(79 - i));
             }
             Assert.That(seen, Is.EquivalentTo(allowed.Split(',')));
+            Assert.That(left.TryIdentifyTreasureFragment(out _), Is.False);
+            Assert.That(left.TreasureMaps, Is.Empty, "Identification never creates a complete map or seed.");
+        }
+
+        [Test]
+        public void Crafting_RequiresFourOfTheChosenMapAndKeepsOtherFragmentsAndExistingSelection()
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 1400, fragments = 8,
+                identifiedWeatheredFragments = 3, identifiedGildedFragments = 3, identifiedMoonlitFragments = 2 });
+            Assert.That(session.TryCraftTreasureMap("MIXED", out _), Is.False);
+            foreach (CoreTreasureMapRank rank in CoreTreasureHuntCatalog.Ranks)
+                Assert.That(session.TryCraftTreasureMapForRank(rank.Id, "MIXED", out _), Is.False);
+            CoreTreasureProgress progress = session.CaptureTreasureProgress();
+            progress.identifiedGildedFragments = 9;
+            session.RestoreTreasureProgress(progress);
+            Assert.That(session.TryCraftTreasureMapForRank("gilded", "GOLD-ONE", out _), Is.True);
+            Assert.That(session.TreasureMaps.Single().RankId, Is.EqualTo("gilded"));
+            Assert.That(session.GetIdentifiedTreasureFragments("gilded"), Is.EqualTo(5));
+            Assert.That(session.TrySelectTreasureSeed(" GOLD-ONE ", out _), Is.True);
+            Assert.That(session.TryCraftTreasureMapForRank("gilded", "GOLD-TWO", out _), Is.True);
+            Assert.That(session.SelectedTreasureMap.Seed, Is.EqualTo("GOLD-ONE"));
+            Assert.That(session.GetIdentifiedTreasureFragments("gilded"), Is.EqualTo(1));
+            Assert.That(session.GetIdentifiedTreasureFragments("weathered"), Is.EqualTo(3));
+            Assert.That(session.GetIdentifiedTreasureFragments("moonlit"), Is.EqualTo(2));
+            Assert.That(session.TreasureFragments, Is.EqualTo(8));
+            Assert.That(session.TrySelectTreasureSeed("OTHER-CAPTAINS-SEED", out _), Is.False);
+            Assert.That(session.TrySelectTreasureSeed(null, out _), Is.False);
+            Assert.That(session.SelectedTreasureMap.Seed, Is.EqualTo("GOLD-ONE"));
+        }
+
+        [Test]
+        public void FailedIdentificationOrRankCraft_DoesNotSpendFragmentsOrAdvanceRandomness()
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 100, fragments = 2,
+                identifiedWeatheredFragments = int.MaxValue, identifiedGildedFragments = 4 });
+            string before = UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress());
+            Assert.That(session.TryIdentifyTreasureFragment(out _), Is.False);
+            Assert.That(session.TryCraftTreasureMapForRank("gilded", "LOCKED", out _), Is.False);
+            Assert.That(session.TryCraftTreasureMapForRank("missing", "INVALID", out _), Is.False);
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
+            session.StartVoyage();
+            before = UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress());
+            Assert.That(session.TryIdentifyTreasureFragment(out _), Is.False);
+            Assert.That(session.TryCraftTreasureMapForRank("weathered", "AT-SEA", out _), Is.False);
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
         }
 
         [Test]
         public void Persistence_RoundTripsOwnershipSelectionResourcesAndPermanentCompletion()
         {
             var session = Profile(100, 8);
+            IdentifyAll(session);
             Assert.That(session.TryCraftTreasureMap("SAVE-ONE", out _), Is.True);
             Assert.That(session.TryCraftTreasureMap("SAVE-TWO", out _), Is.True);
+            Assert.That(session.TrySelectTreasureSeed("SAVE-TWO", out _), Is.True);
             session.Cargo.Gem = 3; session.Cargo.AncientMaterial = 7; session.Cargo.BlackPearl = 1;
             CoreTreasureProgress saved = session.CaptureTreasureProgress();
             saved.completedSeeds = new[] { "OLD-COMPLETE", "OLD-COMPLETE" };
@@ -133,9 +198,59 @@ namespace ShatteredSail.Core.Tests
             Assert.That(restored.Cargo.AncientMaterial, Is.EqualTo(7));
             Assert.That(restored.Cargo.BlackPearl, Is.EqualTo(1));
             Assert.That(restored.CompletedTreasureSeeds, Is.EqualTo(new[] { "OLD-COMPLETE" }));
-            saved.fragments = 4; restored.RestoreTreasureProgress(saved);
+            saved.fragments = 4; saved.identifiedWeatheredFragments = 4; restored.RestoreTreasureProgress(saved);
             Assert.That(restored.TryCraftTreasureMap("OLD-COMPLETE", out _), Is.False);
             Assert.That(restored.TreasureFragments, Is.EqualTo(4));
+            Assert.That(restored.GetIdentifiedTreasureFragments("weathered"), Is.EqualTo(4));
+        }
+
+        [Test]
+        public void LegacySave_KeepsAllUnidentifiedFragmentsAndAlreadyCraftedMaps()
+        {
+            const string legacy = "{\"pirateExperience\":900,\"fragments\":17,\"moonlitPityCount\":2,\"selectedMapId\":\"old-map\",\"maps\":[{\"id\":\"old-map\",\"seed\":\"OLD-SEED\",\"rankId\":\"gilded\"}]}";
+            var first = new CoreVoyageSession(); var reload = new CoreVoyageSession();
+            first.RestoreTreasureProgress(UnityEngine.JsonUtility.FromJson<CoreTreasureProgress>(legacy));
+            reload.RestoreTreasureProgress(UnityEngine.JsonUtility.FromJson<CoreTreasureProgress>(legacy));
+            Assert.That(first.TreasureFragments, Is.EqualTo(17));
+            Assert.That(CoreTreasureHuntCatalog.Ranks.Sum(rank => first.GetIdentifiedTreasureFragments(rank.Id)), Is.Zero);
+            Assert.That(first.SelectedTreasureMap.Seed, Is.EqualTo("OLD-SEED"));
+            Assert.That(first.MoonlitPityCount, Is.EqualTo(2));
+            Assert.That(first.TryCraftTreasureMap("CANNOT-BYPASS-IDENTIFICATION", out _), Is.False);
+            Assert.That(first.TryIdentifyTreasureFragment(out string result), Is.True);
+            Assert.That(reload.TryIdentifyTreasureFragment(out string reloadedResult), Is.True);
+            Assert.That(reloadedResult, Is.EqualTo(result), "Even the first identification from an old save cannot be rerolled by reloading.");
+            Assert.That(first.TreasureFragments, Is.EqualTo(16));
+            Assert.That(first.TreasureMaps.Single().Seed, Is.EqualTo("OLD-SEED"));
+            CoreTreasureProgress upgraded = first.CaptureTreasureProgress();
+            Assert.That(upgraded.identificationSequence, Is.EqualTo(1));
+            Assert.That(upgraded.identificationSeed, Is.Not.Empty);
+        }
+
+        [Test]
+        public void CraftedSeed_CanBeUsedFromEveryPortWithIdenticalGeography()
+        {
+            var crafter = Profile(100, 4); IdentifyAll(crafter);
+            Assert.That(crafter.TryCraftTreasureMapForRank("weathered", "ANY-PORT", out _), Is.True);
+            CoreTreasureProgress held = crafter.CaptureTreasureProgress();
+            CoreVoyageMap first = null;
+            foreach (string port in CoreVoyageSession.DestinationPorts)
+            {
+                var session = new CoreVoyageSession(); session.RestoreTreasureProgress(held); session.RestoreProfile(500, port);
+                session.SelectRoute(2);
+                Assert.That(session.TrySelectTreasureSeed("ANY-PORT", out string reason), Is.True, reason);
+                Assert.That(session.TryStartTreasureVoyage(out reason), Is.True, reason);
+                Assert.That(session.Map.DepartureName, Is.EqualTo(port));
+                Assert.That(session.Map.DestinationName, Is.EqualTo("秘藏核心"));
+                if (first == null) first = session.Map;
+                Assert.That(session.Map.Hash, Is.EqualTo(first.Hash));
+                Assert.That(session.Map.TerrainCells, Is.EqualTo(first.TerrainCells));
+                Assert.That(session.Map.Nodes.Select(node => node.Position), Is.EqualTo(first.Nodes.Select(node => node.Position)));
+                Assert.That(session.Map.Nodes.Select(node => node.Encounter.Id), Is.EqualTo(first.Nodes.Select(node => node.Encounter.Id)));
+                Assert.That(session.TreasureMaps, Is.Empty);
+                session.SafeReturn(); session.ReturnToPortAfterSettlement();
+                Assert.That(session.CurrentPort, Is.EqualTo(port));
+                Assert.That(session.TrySelectTreasureSeed("ANY-PORT", out _), Is.False, "An already used seed cannot open another voyage.");
+            }
         }
 
         [TestCase("water")]
@@ -216,8 +331,17 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(session.ResolveChoice(0), Is.True);
                     Assert.That(node.Visited, Is.True);
                 }
+                Assert.That(session.CompletedEventCount(), Is.EqualTo(2));
                 Assert.That(session.VoyageTreasureFragments, Is.EqualTo(2));
                 Assert.That(session.TreasureFragments, Is.EqualTo(trip * 2));
+                if (trip == 0)
+                {
+                    CoreVoyageCheckpoint checkpoint = session.CaptureVoyageCheckpoint();
+                    var resumed = new CoreVoyageSession();
+                    Assert.That(resumed.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
+                    session = resumed;
+                    Assert.That(session.CompletedEventCount(), Is.EqualTo(2));
+                }
                 Assert.That(session.SafeReturn(), Is.True);
                 Assert.That(session.Settlement.BankedFragments, Is.EqualTo(2), "Fragments are intangible and not rounded down by cargo protection.");
                 Assert.That(session.Settlement.BankedPirateExperience, Is.GreaterThan(0));
@@ -226,6 +350,10 @@ namespace ShatteredSail.Core.Tests
                 session.ReturnToPortAfterSettlement();
                 Assert.That(session.TreasureFragments, Is.EqualTo((trip + 1) * 2));
                 Assert.That(session.PirateExperience, Is.EqualTo(xp));
+                var restored = new CoreVoyageSession();
+                restored.RestoreTreasureProgress(session.CaptureTreasureProgress());
+                restored.ReturnToPortAfterSettlement();
+                Assert.That(restored.PirateExperience, Is.EqualTo(xp), "Loading confirmed progress must not credit the voyage again.");
             }
             Assert.That(session.TreasureFragments, Is.EqualTo(4));
         }
@@ -307,7 +435,7 @@ namespace ShatteredSail.Core.Tests
             session.ReturnToPortAfterSettlement();
             Assert.That(session.TreasureMaps, Is.Empty);
             Assert.That(session.CompletedTreasureSeeds, Is.Empty);
-            var saved = session.CaptureTreasureProgress(); saved.fragments = 4;
+            var saved = session.CaptureTreasureProgress(); saved.identifiedWeatheredFragments = 4;
             session.RestoreTreasureProgress(saved);
             Assert.That(session.TryCraftTreasureMap("EXIT-" + failure, out _), Is.False, "The consumed seed must not be reissued after an abandoned voyage.");
         }
@@ -328,9 +456,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.ActiveTreasureMap, Is.Null);
             Assert.That(session.CanDrawSeaChart, Is.True);
             Assert.That(session.SafeReturn(), Is.True); session.ReturnToPortAfterSettlement();
-            var progress = session.CaptureTreasureProgress(); progress.fragments = 4;
+            var progress = session.CaptureTreasureProgress(); progress.identifiedWeatheredFragments = 4;
             session.RestoreTreasureProgress(progress);
             Assert.That(session.TryCraftTreasureMap("SECOND", out string reason), Is.True, reason);
+            Assert.That(session.TrySelectTreasureSeed("SECOND", out reason), Is.True, reason);
             Assert.That(session.TryStartTreasureVoyage(out reason), Is.True, reason);
             Assert.That(session.IsTreasureVoyage, Is.True);
             Assert.That(session.ActiveTreasureMap.Seed, Is.EqualTo("SECOND"));
@@ -408,10 +537,13 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(0f, false, false, 0)]
         [TestCase(19.99f, false, false, 0)]
-        [TestCase(20f, false, false, 20)]
+        [TestCase(20f, false, false, 0)]
+        [TestCase(2700f, false, false, 0)]
         [TestCase(0f, true, false, 25)]
         [TestCase(0f, true, true, 0)]
-        public void VoyageExperience_UsesPhysicalEligibilityAndExcludesSkippedEvents(float distanceNm, bool visited, bool skipped, int expected)
+        [TestCase(20f, true, false, 26)]
+        [TestCase(2700f, true, true, 0)]
+        public void OrdinarySafeReturn_RequiresCompletedEventsAndExcludesSkippedEvents(float distanceNm, bool visited, bool skipped, int expected)
         {
             var session = new CoreVoyageSession(); session.StartVoyage();
             Set(session, "TotalDistanceNm", distanceNm);
@@ -428,8 +560,10 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession(); session.SelectRoute(routeIndex); session.StartVoyage();
             float distanceNm = 100f * session.Map.Route.NauticalMilesPerMapUnit;
             Set(session, "TotalDistanceNm", distanceNm); // Exactly 100 chart units at this route's physical scale.
+            session.Map.Nodes[0].Visited = true; // Settlement math fixture: one completed event keeps an ordinary return eligible.
+            Assert.That(session.CompletedEventCount(), Is.EqualTo(1));
             Assert.That(session.SafeReturn(), Is.True);
-            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(165));
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(175));
             Assert.That(session.Settlement.DistanceNm, Is.EqualTo(distanceNm), "The voyage report retains actual nautical miles.");
         }
 
@@ -473,6 +607,121 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(225));
         }
 
+        [Test]
+        public void ActualTwentyMileEmptyReturn_StaysZeroAfterVoyageResumeAndPortReload()
+        {
+            var session = ShortReturnProfile();
+            SailEmptyTwentyMiles(session);
+            Assert.That(session.TotalHours, Is.GreaterThan(0d));
+            CoreVoyageCheckpoint checkpoint = session.CaptureVoyageCheckpoint();
+            var resumed = new CoreVoyageSession();
+            Assert.That(resumed.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
+            Assert.That(resumed.TotalDistanceNm, Is.EqualTo(20f).Within(.001f));
+            Assert.That(resumed.CompletedEventCount(), Is.Zero);
+            Assert.That(resumed.SafeReturn(), Is.True);
+            Assert.That(resumed.Settlement.Outcome, Is.EqualTo(VoyageOutcome.SafeReturn));
+            Assert.That(resumed.Settlement.BankedPirateExperience, Is.Zero);
+            Assert.That(resumed.PirateExperience, Is.EqualTo(100), "Pending settlement must not mutate the profile.");
+            Assert.That(resumed.SafeReturn(), Is.False);
+            resumed.ReturnToPortAfterSettlement();
+            resumed.ReturnToPortAfterSettlement();
+            Assert.That(resumed.PirateExperience, Is.EqualTo(100));
+            Assert.That(resumed.PirateLevel, Is.EqualTo(2));
+
+            var restored = ShortReturnProfile();
+            restored.RestoreTreasureProgress(resumed.CaptureTreasureProgress());
+            restored.ReturnToPortAfterSettlement();
+            Assert.That(restored.PirateExperience, Is.EqualTo(100));
+            SailEmptyTwentyMiles(restored);
+            Assert.That(restored.SafeReturn(), Is.True);
+            Assert.That(restored.Settlement.BankedPirateExperience, Is.Zero);
+            restored.ReturnToPortAfterSettlement();
+            Assert.That(restored.PirateExperience, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void SixtyFiveActualEmptyShortReturns_DoNotLevelUpAndRetainPaidSupplyCosts()
+        {
+            var session = ShortReturnProfile();
+            int startingWater = session.Cargo.Water, startingFood = session.Cargo.Food;
+            int purchasedWater = 0, purchasedFood = 0;
+            decimal startingGold = session.ProfileGold + session.Cargo.Gold, supplyCost = 0m;
+            double sailedHours = 0d;
+            for (int trip = 0; trip < 65; trip++)
+            {
+                if (session.Cargo.Water < 6 || session.Cargo.Food < 6)
+                {
+                    var order = new VoyageSupplyOrder { Water = 60, Food = 60 };
+                    decimal cost = session.QuoteSupplyPurchase(order).Cost;
+                    Assert.That(session.TryPurchaseSupplies(order), Is.True, "Trip " + trip);
+                    purchasedWater += order.Water; purchasedFood += order.Food; supplyCost += cost;
+                }
+                SailEmptyTwentyMiles(session);
+                sailedHours += session.TotalHours;
+                Assert.That(session.SafeReturn(), Is.True, "Trip " + trip);
+                Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.SafeReturn));
+                Assert.That(session.Settlement.CompletedEvents, Is.Zero);
+                Assert.That(session.Settlement.BankedPirateExperience, Is.Zero);
+                session.ReturnToPortAfterSettlement();
+                session.ReturnToPortAfterSettlement();
+                Assert.That(session.PirateExperience, Is.EqualTo(100), "Trip " + trip);
+                Assert.That(session.PirateLevel, Is.EqualTo(2), "Trip " + trip);
+            }
+            Assert.That(sailedHours, Is.GreaterThan(0d));
+            Assert.That(startingWater + purchasedWater - session.Cargo.Water, Is.GreaterThanOrEqualTo(130));
+            Assert.That(startingFood + purchasedFood - session.Cargo.Food, Is.GreaterThanOrEqualTo(65));
+            Assert.That(session.ProfileGold + session.Cargo.Gold, Is.EqualTo(startingGold - supplyCost),
+                "Returning the departure purse is principal, not voyage profit.");
+        }
+
+        [TestCase(1, 20)]
+        [TestCase(CoreGuidedTutorialContent.NavigatorVoyageLeg, 20)]
+        [TestCase(CoreGuidedTutorialContent.BossVoyageLeg, 80)]
+        public void GuidedEmptyTwentyMileReturn_PreservesTutorialExperience(int leg, int expected)
+        {
+            var session = new CoreVoyageSession();
+            Assert.That(session.ConfigureGuidedTutorialVoyage(leg), Is.True);
+            session.StartVoyage(); session.SetHeading(SailingDirection.East); session.SetDistance(20);
+            Assert.That(session.Sail(), Is.True);
+            Assert.That(session.CompletedEventCount(), Is.Zero);
+            Assert.That(session.SafeReturn(), Is.True);
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void EmptyOrdinaryFailure_PreservesExistingDistanceExperience()
+        {
+            var session = ShortReturnProfile();
+            SailEmptyTwentyMiles(session);
+            session.Cargo.Water = 0;
+            Assert.That(session.SafeReturn(), Is.True);
+            Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(20));
+        }
+
+        private static CoreVoyageSession ShortReturnProfile()
+        {
+            var session = Profile(100, 0);
+            session.ConfigureCrewCapabilities(false, false, false, false, false, false);
+            session.ConfigureSpecialCardSources(Array.Empty<string>(), Array.Empty<string>());
+            // The first authored chart can be replayed as an ordinary shared sea chart.
+            Assert.That(session.TrySelectChartSeed("SS2.0.0.1.0.2.72533DBC.00000000.4858B60F", out string reason), Is.True, reason);
+            return session;
+        }
+
+        private static void SailEmptyTwentyMiles(CoreVoyageSession session)
+        {
+            session.StartVoyage();
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            Assert.That(session.GuidedTutorialLeg, Is.Zero);
+            Assert.That(session.IsTreasureVoyage, Is.False);
+            session.SetHeading(SailingDirection.East); session.SetDistance(20);
+            Assert.That(session.Sail(), Is.True);
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            Assert.That(session.TotalDistanceNm, Is.EqualTo(20f).Within(.001f));
+            Assert.That(session.CompletedEventCount(), Is.Zero);
+        }
+
         private static CoreVoyageSession Profile(int xp, int fragments)
         {
             var session = new CoreVoyageSession();
@@ -480,21 +729,19 @@ namespace ShatteredSail.Core.Tests
             return session;
         }
 
-        private static void ResetCraftInventory(CoreVoyageSession session)
+        private static void IdentifyAll(CoreVoyageSession session)
         {
-            CoreTreasureProgress progress = session.CaptureTreasureProgress();
-            progress.fragments = CoreTreasureHuntCatalog.FragmentCost;
-            progress.maps = new CoreTreasureMapSave[0];
-            progress.selectedMapId = string.Empty;
-            session.RestoreTreasureProgress(progress);
+            while (session.TreasureFragments > 0)
+                Assert.That(session.TryIdentifyTreasureFragment(out string reason), Is.True, reason);
         }
 
-        private static string FindSeedWithRankRollBelow(double upperBound, string prefix)
+        private static string FindIdentificationSeedWithRollBelow(double upperBound, long sequence, string prefix)
         {
             for (int index = 0; index < 100000; index++)
             {
                 string seed = prefix + index;
-                double roll = new Mulberry32Random(SeedHash.Compute("TREASURE-RANK::" + seed)).NextDouble();
+                double roll = new Mulberry32Random(SeedHash.Compute("TREASURE-FRAGMENT::" + seed + "::" +
+                    sequence.ToString(System.Globalization.CultureInfo.InvariantCulture))).NextDouble();
                 if (roll < upperBound) return seed;
             }
             Assert.Fail("Could not find a deterministic seed below the requested rank roll.");

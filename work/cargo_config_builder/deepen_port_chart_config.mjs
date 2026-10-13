@@ -23,7 +23,7 @@ const chartOffices = {
     chart_office: "航标工造署",
     chart_reward_multiplier: 1.05,
     chart_bonus: "wood:8|iron:4",
-    standing_focus: "维修与派遣",
+    standing_focus: "维修与建设",
   },
   "盐冠港": {
     chart_office: "黄金潮航务所",

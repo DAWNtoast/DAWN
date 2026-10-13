@@ -9,6 +9,7 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation.Tests
 {
+    [Ignore("UIPreviewsForMe was retired and cleared on 2026-10-13; these historical saved-scene fixtures are no longer maintained.")]
     public sealed class DepartureProvisionPreviewSceneTests
     {
         private const string Root = "Assets/_Project/Scenes/UIPreviewsForMe/";
@@ -32,25 +33,32 @@ namespace ShatteredSail.Presentation.Tests
                 Transform[] all = controller.GetComponentsInChildren<Transform>(true);
                 RectTransform panel = (RectTransform)all.Single(item => item.name == "Voyage Setup");
                 Button purchase = panel.Find("Departure Buy Provisions")?.GetComponent<Button>();
-                Text quote = panel.Find("Departure Provision Quote")?.GetComponent<Text>();
                 Assert.That(purchase, Is.Not.Null, relative);
-                Assert.That(quote, Is.Not.Null, relative);
-                Assert.That(purchase.GetComponentInChildren<Text>().text, Does.Contain("水粮"));
-                Assert.That(quote.text, Is.Not.Empty);
-                TextGenerationSettings quoteSettings = quote.GetGenerationSettings(new Vector2(quote.rectTransform.rect.width, 0f));
-                quoteSettings.resizeTextForBestFit = false;
-                quoteSettings.fontSize = quote.resizeTextForBestFit ? quote.resizeTextMinSize : quote.fontSize;
-                Assert.That(quoteSettings.fontSize, Is.GreaterThanOrEqualTo(14), "The quote must remain readable.");
-                using (var generator = new TextGenerator())
-                    Assert.That(generator.GetPreferredHeight(quote.text, quoteSettings) / quote.pixelsPerUnit,
-                        Is.LessThanOrEqualTo(quote.rectTransform.rect.height + 1f),
-                        relative + " must show the entire trip/quantity/price quote.");
+                Assert.That(purchase.GetComponentInChildren<Text>().text, Is.EqualTo("购买基础物资"));
+                Button market = panel.Find("Adjust Voyage Supplies")?.GetComponent<Button>();
+                Assert.That(market, Is.Not.Null, relative);
+                Assert.That(market.GetComponentInChildren<Text>().text, Is.EqualTo("前往市场"));
+                Assert.That(purchase.GetComponent<RectTransform>().rect.width,
+                    Is.EqualTo(market.GetComponent<RectTransform>().rect.width).Within(.1f),
+                    "The two short supply actions share a balanced row.");
+                string[] removed = { "Ship Stats", "Departure Ship Schematic Caption", "Departure Vessel Hint",
+                    "Destination Summary", "Cargo", "Departure Provision Quote",
+                    "Departure Provision Water Icon", "Departure Provision Food Icon" };
+                removed = removed.Concat(Enumerable.Range(0, ComponentArtCatalog.SlotCount)
+                    .SelectMany(slot => new[] { "Upgrade Part " + slot, "Upgrade Name " + slot })).ToArray();
+                foreach (string name in removed)
+                    Assert.That(all.Any(item => item.name == name), Is.False, relative + " / removed " + name);
                 string departureLabel = panel.Find("Start Voyage").GetComponentInChildren<Text>().text;
                 if (treasure) Assert.That(departureLabel, Does.Contain("消耗藏宝图"));
                 else Assert.That(departureLabel, Does.Not.Contain("消耗藏宝图"));
                 Assert.That(all.Any(item => item.name == "Treasure Departure Detail"), Is.EqualTo(treasure));
-                Assert.That(panel.Find("Departure Ship Schematic Caption"), Is.Not.Null,
-                    "Synchronizing supplies must retain the authored ship selector.");
+                RectTransform ship = panel.Find("Inspect Departure Vessel") as RectTransform;
+                Assert.That(ship, Is.Not.Null, "Synchronizing supplies must retain the authored ship selector.");
+                Assert.That(ship.sizeDelta.x, Is.GreaterThanOrEqualTo(367.9f));
+                Assert.That(ship.sizeDelta.y, Is.GreaterThanOrEqualTo(207.9f));
+                Assert.That(ship.anchoredPosition.x, Is.EqualTo(0f).Within(.1f));
+                Assert.That(ship.GetComponentsInChildren<RawImage>().Any(image => image.rectTransform.rect.width > 240f),
+                    Is.True, "The saved ship artwork must grow with the click area.");
                 InputField seedInput = panel.Find("Seed Input")?.GetComponent<InputField>();
                 if (seedInput != null && seedInput.transform.Find("Seed Input Dropdown") != null)
                 {
@@ -62,9 +70,20 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(seedInput.interactable, Is.False);
                 }
 
-                string[] names = { "Cargo", "Departure Provision Quote", "Departure Buy Provisions",
-                    "Adjust Voyage Supplies", "Configure Voyage Battle Decks", "Configure Voyage Crew", "Start Voyage" };
-                Rect[] bounds = names.Select(name => Bounds((RectTransform)panel.Find(name))).ToArray();
+                string[] names = { "Setup Title", "Departure Previous Vessel", "Inspect Departure Vessel", "Departure Next Vessel",
+                    "Departure Buy Provisions", "Adjust Voyage Supplies",
+                    "Configure Voyage Battle Decks", "Configure Voyage Crew", "Start Voyage" };
+                // Older authored previews do not contain the runtime crew controls.
+                // Keep validating their geometry when present without requiring new objects.
+                names = names.Concat(new[] { "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewCount",
+                    "DepartureOrdinaryCrewIncreaseButton", "DepartureCrewSpeedPreview" }
+                    .Where(name => panel.Find(name) != null)).ToArray();
+                Rect[] bounds = names.Select(name =>
+                {
+                    RectTransform item = panel.Find(name) as RectTransform;
+                    Assert.That(item, Is.Not.Null, relative + " / " + name);
+                    return Bounds(item);
+                }).ToArray();
                 for (int index = 0; index < bounds.Length; index++)
                 {
                     Rect item = bounds[index];
@@ -78,12 +97,6 @@ namespace ShatteredSail.Presentation.Tests
                 Rect start = Bounds((RectTransform)panel.Find("Start Voyage"));
                 Assert.That(start.yMin - panel.rect.yMin, Is.GreaterThanOrEqualTo(7.9f),
                     "The primary action needs padding above the frame edge.");
-                foreach (string name in new[] { "Cargo", "Departure Provision Quote" })
-                {
-                    Rect textBounds = Bounds((RectTransform)panel.Find(name));
-                    Assert.That(textBounds.xMin, Is.EqualTo(start.xMin).Within(.1f), name);
-                    Assert.That(textBounds.xMax, Is.EqualTo(start.xMax).Within(.1f), name);
-                }
                 foreach (string[] row in new[] {
                     new[] { "Departure Buy Provisions", "Adjust Voyage Supplies" },
                     new[] { "Configure Voyage Battle Decks", "Configure Voyage Crew" }
@@ -110,18 +123,48 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase("UIMarket/UIMarket_Buy.unity")]
         [TestCase("UIMarket/UIMarket_Sell.unity")]
         [TestCase("UIMarket/UIMarket_TransactionComplete.unity")]
-        public void SavedMarket_ExplainsMonthlyGameInventoryRefresh(string relative)
+        public void SavedMarket_ShowsFreeCargoAndOnePurchaseQuotePerItem(string relative)
         {
             Scene scene = EditorSceneManager.OpenScene(Root + relative, OpenSceneMode.Additive);
             try
             {
                 CoreGameplayDemoController controller = Controller(scene);
                 Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.Market));
-                Text summary = controller.GetComponentsInChildren<Text>(true).Single(item => item.name == "Market Summary");
-                Assert.That(summary.text, Does.Contain("下次补货"));
-                Assert.That(summary.text, Does.Contain("00:00"));
-                Assert.That(summary.text, Does.Not.Contain("每日"));
+                Text[] labels = controller.GetComponentsInChildren<Text>(true);
+                Text summary = labels.Single(item => item.name == "Market Summary");
+                // Inspect serialized labels without rebuilding the authored scene.
+                // Exact live quotes and earned discounts are covered by PortMarketPreviewTests.
+                Assert.That(summary.text, Does.Match(@"^货舱余量\s+\d+\.\d(　·　采购优惠 [1-9]\d?%)?$"));
+                Assert.That(summary.text, Does.Not.Contain("月行情").And.Not.Contain("投资")
+                    .And.Not.Contain("下次补货").And.Not.Contain("\n"));
+                Assert.That(summary.fontSize, Is.EqualTo(20));
+                Assert.That(summary.font, Is.SameAs(GameTypography.BodyFont));
+                Assert.That(summary.fontStyle, Is.EqualTo(FontStyle.Normal));
+                Assert.That(summary.alignment, Is.EqualTo(TextAnchor.MiddleCenter));
+                Assert.That(labels.Any(label => label.name == "Market Storage Mode Hint"), Is.False);
                 Assert.That(summary.preferredHeight, Is.LessThanOrEqualTo(summary.rectTransform.rect.height + 1f));
+                foreach (PortMarketItem item in PortMarketCatalog.AllItems)
+                {
+                    string key = PortMarketCatalog.Key(item);
+                    int buyLot = System.Math.Max(PortMarketCatalog.PurchaseStep(item), PortMarketCatalog.SaleStep(item));
+                    Text purchase = labels.Single(label => label.name == "Market Buy Price " + key);
+                    Text unit = labels.Single(label => label.name == "Market Buy Unit " + key);
+                    Assert.That(purchase.text, Does.Match(@"^\d+(\.\d{1,3})? 金$"), key);
+                    Assert.That(unit.text, Is.EqualTo("每" + buyLot + "单位"), key);
+                    Assert.That(purchase.fontSize, Is.EqualTo(26), key);
+                    Assert.That(purchase.font, Is.SameAs(GameTypography.InterfaceFont), key);
+                    Assert.That(unit.fontSize, Is.EqualTo(18), key);
+                    Assert.That(unit.font, Is.SameAs(GameTypography.BodyFont), key);
+                    Assert.That(labels.Any(label => label.name == "Market Buy Title " + key ||
+                        label.name == "Market Sell Title " + key || label.name == "Market Sell Price " + key), Is.False, key);
+                    foreach (Text label in new[] { purchase, unit })
+                    {
+                        Assert.That(label.text, Does.Not.Contain("\n"), label.name);
+                        Assert.That(label.fontStyle, Is.EqualTo(FontStyle.Normal), label.name);
+                        Assert.That(label.alignment, Is.EqualTo(TextAnchor.MiddleCenter), label.name);
+                        Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + 1f), label.name);
+                    }
+                }
             }
             finally
             {
@@ -134,5 +177,20 @@ namespace ShatteredSail.Presentation.Tests
 
         private static Rect Bounds(RectTransform item) => new Rect(
             item.anchoredPosition - Vector2.Scale(item.sizeDelta, item.pivot), item.sizeDelta);
+
+        private static Rect BoundsIn(Transform parent, RectTransform child)
+        {
+            Vector3[] corners = new Vector3[4];
+            child.GetWorldCorners(corners);
+            Vector2 min = parent.InverseTransformPoint(corners[0]);
+            Vector2 max = min;
+            foreach (Vector3 corner in corners)
+            {
+                Vector2 local = parent.InverseTransformPoint(corner);
+                min = Vector2.Min(min, local);
+                max = Vector2.Max(max, local);
+            }
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
     }
 }

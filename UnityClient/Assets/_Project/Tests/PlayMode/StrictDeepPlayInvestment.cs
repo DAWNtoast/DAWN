@@ -35,7 +35,7 @@ namespace ShatteredSail.Presentation.Tests
 
                 string port = Session.CurrentPort;
                 yield return Click("Market Open Investment");
-                Match displayedLevel = Regex.Match(PortText("Port Investment Level")?.text ?? string.Empty, @"Lv\.(\d+)");
+                Match displayedLevel = Regex.Match(PortText("Port Investment Current Level")?.text ?? string.Empty, @"Lv\.(\d+)");
                 Assert.That(displayedLevel.Success, Is.True, "Investment level must be visible to the player.");
                 int level = int.Parse(displayedLevel.Groups[1].Value);
                 if (level >= PortInvestmentCatalog.MaxLevel)
@@ -118,7 +118,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Session.ProfileGold, Is.EqualTo(beforeGold - cost.Gold));
                 foreach (var requirement in requirements)
                     Assert.That(Session.GetPortInvestmentMaterialAmount(requirement.Key), Is.EqualTo(beforeMaterials[requirement.Key] - requirement.Value));
-                Match updatedLevel = Regex.Match(PortText("Port Investment Level")?.text ?? string.Empty, @"Lv\.(\d+)");
+                Match updatedLevel = Regex.Match(PortText("Port Investment Current Level")?.text ?? string.Empty, @"Lv\.(\d+)");
                 Assert.That(updatedLevel.Success, Is.True);
                 Assert.That(int.Parse(updatedLevel.Groups[1].Value), Is.EqualTo(level + 1));
                 MustTradeAfterSupplyInvestment = true;

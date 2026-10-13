@@ -1,0 +1,494 @@
+{
+  "schemaVersion": 1,
+  "authorizationDate": "2026-10-13",
+  "authorization": "用户明确批准清理 A01–A04、B01、I01–I06；I07 和 D01–D06 先保留。",
+  "provenance": {
+    "reviewManifest": "Artifacts/UnusedAssetAudit20261013/review-manifest.json",
+    "executionRecord": "Artifacts/UnusedAssetAudit20261013/final-files-verification.json",
+    "note": "本文件是审核清单获批组号及精确路径的稳定副本。Artifacts 下历史审核/执行日志仅供追溯，不是脚本运行依赖；未增加任何清理授权。"
+  },
+  "approvedPathCount": 104,
+  "approvedMediaCount": 61,
+  "retainedGroups": [
+    "I07",
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05",
+    "D06"
+  ],
+  "groups": [
+    {
+      "id": "A01",
+      "files": [
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/bow_ship_layers_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/bow_ship_layers_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/cannon_ship_layers_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/cannon_ship_layers_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/instrument_ship_layers_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/instrument_ship_layers_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/plating_ship_layers_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/plating_ship_layers_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/sail_ship_layers_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/ModularShip/Atlases/sail_ship_layers_atlas.png.meta",
+          "kind": "meta"
+        }
+      ]
+    },
+    {
+      "id": "A02",
+      "files": [
+        {
+          "path": "UnityClient/Assets/_Project/Resources/PortFacilities/port_investment_background_v2.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/PortFacilities/port_investment_background_v2.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/PortFacilities/treasure_room_boards_v2.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/PortFacilities/treasure_room_boards_v2.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/PortFacilities/Market/market_background_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/PortFacilities/Market/market_background_v1.png.meta",
+          "kind": "meta"
+        }
+      ]
+    },
+    {
+      "id": "A03",
+      "files": [
+        {
+          "path": "UnityClient/Assets/_Project/Resources/TreasureHunt/treasure_hunt_route_map.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/TreasureHunt/treasure_hunt_route_map.png.meta",
+          "kind": "meta"
+        }
+      ]
+    },
+    {
+      "id": "A04",
+      "files": [
+        {
+          "path": "UnityClient/Assets/_Project/Resources/WarehouseV2/trophy_cabinet_v2_expanded.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Resources/WarehouseV2/trophy_cabinet_v2_expanded.png.meta",
+          "kind": "meta"
+        }
+      ]
+    },
+    {
+      "id": "B01",
+      "files": [
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/CardWorkshopV2/deck_builder_parchment_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/CardWorkshopV2/deck_builder_parchment_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/bow_components_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/bow_components_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/cannon_components_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/cannon_components_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/instrument_components_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/instrument_components_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/plating_components_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/plating_components_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/sail_components_atlas.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases/sail_components_atlas.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_bronze_bell.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_bronze_bell.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_gray_gull.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_gray_gull.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_landmarks_background.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_landmarks_background.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_landmarks_background_v2.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_landmarks_background_v2.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_salt_crown.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_salt_crown.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_twilight_tide.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_twilight_tide.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_white_shell.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_hub_white_shell.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_shipyard_background.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortArt/port_shipyard_background.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/component_shop_background.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/component_shop_background.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/facility_icon_sheet.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/facility_icon_sheet.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/maintenance_background.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/maintenance_background.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_broken_anchor_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_broken_anchor_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_bronze_bell_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_bronze_bell_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_gray_gull_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_gray_gull_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_salt_crown_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_salt_crown_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_twilight_tide_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_twilight_tide_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_white_shell_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/Regional/Maintenance/maintenance_white_shell_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/shipyard_background.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/shipyard_background.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/shipyard_grounded_v2.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/shipyard_grounded_v2.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/tavern_background.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/tavern_background.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/treasure_background.png",
+          "kind": "media"
+        },
+        {
+          "path": "UnityClient/Assets/_Project/Editor/ArchivedArt/PortFacilities/treasure_background.png.meta",
+          "kind": "meta"
+        }
+      ]
+    },
+    {
+      "id": "I01",
+      "files": [
+        {
+          "path": "outputs/route_event_assets/art_manifest.csv",
+          "kind": "support"
+        },
+        {
+          "path": "outputs/route_event_assets/black_fog_event_sheet.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/route_event_assets/black_fog_node_icon_sheet.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/route_event_assets/black_fog_route_map.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/route_event_assets/README.md",
+          "kind": "support"
+        }
+      ]
+    },
+    {
+      "id": "I02",
+      "files": [
+        {
+          "path": "outputs/narrative/rejected-art/crew_broken_anchor_seated_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/narrative/rejected-art/crew_broken_anchor_seated_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "outputs/narrative/rejected-art/crew_bronze_bell_seated_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/narrative/rejected-art/crew_bronze_bell_seated_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "outputs/narrative/rejected-art/crew_salt_crown_seated_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/narrative/rejected-art/crew_salt_crown_seated_v1.png.meta",
+          "kind": "meta"
+        },
+        {
+          "path": "outputs/narrative/rejected-art/crew_white_shell_seated_v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/narrative/rejected-art/crew_white_shell_seated_v1.png.meta",
+          "kind": "meta"
+        }
+      ]
+    },
+    {
+      "id": "I03",
+      "files": [
+        {
+          "path": "outputs/routes_v2/golden_tide_event_sheet.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/routes_v2/golden_tide_route_map.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/routes_v2/moon_tide_event_sheet.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/routes_v2/moon_tide_route_map.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/routes_v2/shattered_sail_event_sheet.png",
+          "kind": "media"
+        },
+        {
+          "path": "outputs/routes_v2/shattered_sail_route_map.png",
+          "kind": "media"
+        }
+      ]
+    },
+    {
+      "id": "I04",
+      "files": [
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/regional_0-v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/regional_1-v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/regional_2-v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/regional_3-v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/regional_4-v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/regional_5-v1.png",
+          "kind": "media"
+        },
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/roster_1-fortress-two-rows.png",
+          "kind": "media"
+        },
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/roster_1-v1-rejected.png",
+          "kind": "media"
+        },
+        {
+          "path": "Artifacts/ShipArtRedraw20261012/generated/roster_3-rejected-starter-hull.png",
+          "kind": "media"
+        }
+      ]
+    },
+    {
+      "id": "I05",
+      "files": [
+        {
+          "path": "Artifacts/TavernRedraw20261012/rejected-v2/tavern_bronze_bell_before_occlusion_fix.png",
+          "kind": "media"
+        }
+      ]
+    },
+    {
+      "id": "I06",
+      "files": [
+        {
+          "path": "_tmp_user_header.png",
+          "kind": "media"
+        }
+      ]
+    }
+  ]
+}

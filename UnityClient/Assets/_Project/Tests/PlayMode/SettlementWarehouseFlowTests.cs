@@ -231,10 +231,16 @@ namespace ShatteredSail.Presentation.Tests
             if (outcome == VoyageOutcome.ArrivedAtPort)
             {
                 // Ordinary departure UI intentionally clears the Core lesson
-                // fixture when controller tutorial is complete. Arrange this
-                // deterministic arrival with public Core APIs, then render its
-                // genuine state; do not assign phase, settlement or current port.
+                // fixture when controller tutorial is complete. This fixture
+                // verifies the supported legacy save's one-event arrival
+                // boundary; the current combined lesson continues to a boss.
+                // Match the legacy checkpoint test's layout before departure,
+                // then use real sailing/choice APIs for the arrival itself.
+                // Never assign phase, settlement or current port directly.
                 Assert.That(session.ConfigureGuidedTutorialVoyage(2), Is.True);
+                typeof(CoreVoyageSession).GetField("guidedTutorialLayoutVersion", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(session, 0);
+                Assert.That(session.UsesCombinedGuidedTutorialVoyage, Is.False);
                 session.ConfigureCrewCapabilities(true, false, false, false, false, false);
                 session.StartVoyage();
                 typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
@@ -253,9 +259,9 @@ namespace ShatteredSail.Presentation.Tests
                 "Settlement cargo fixtures must fit the real ship before sailing or resolving an event.");
             if (outcome == VoyageOutcome.ArrivedAtPort)
             {
-                // Public Core tutorial-map configuration provides a deterministic
-                // arrival boundary through the real navigator choice. Controller
-                // tutorial remains completed; no private outcome/port setters.
+                // The supported legacy itinerary reaches its destination through
+                // the real navigator choice. Controller tutorial remains completed;
+                // no private phase, settlement, outcome or port setters are used.
                 Assert.That(session.HasNavigator, Is.True);
                 CoreMapNode navigator = session.Map.Nodes.Single(node => node.Encounter.Id == CoreGuidedTutorialContent.NavigatorEventId);
                 for (int leg = 0; session.Phase == CoreDemoPhase.Sailing && leg < 4; leg++)
@@ -280,10 +286,11 @@ namespace ShatteredSail.Presentation.Tests
 
         private static IEnumerator WaitForWarehouseNavigationUi(CoreVoyageSession session)
         {
-            // Sail commits the encounter before its 0.78–1.45s presentation
+            // Sail commits the encounter before its brief automatic presentation
             // finishes. Wait for the real visible control rather than resolving
             // the Core encounter or clicking the obscured prior sailing UI.
             float deadline = Time.realtimeSinceStartup + 5f;
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             string diagnostic = "No next control has appeared.";
             do
             {
@@ -291,7 +298,7 @@ namespace ShatteredSail.Presentation.Tests
                 Button nextControl = session.Phase == CoreDemoPhase.Encounter
                     ? ActiveButton("Encounter Choice 0")
                     : session.Phase == CoreDemoPhase.Sailing ? ActiveButton("Execute Sail") : null;
-                if (ActiveButton("Skip Voyage Motion") == null && nextControl != null && nextControl.IsInteractable() &&
+                if (!NavigationMotionIsPlaying(controller) && nextControl != null && nextControl.IsInteractable() &&
                     WarehouseControlReceivesPointer(nextControl, out diagnostic))
                     yield break;
             } while (Time.realtimeSinceStartup < deadline);

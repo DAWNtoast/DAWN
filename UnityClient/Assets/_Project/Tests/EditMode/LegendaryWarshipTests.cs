@@ -53,7 +53,8 @@ namespace ShatteredSail.Core.Tests
                     Is.True, ship.Name + " needs an offensive specialty.");
                 Assert.That(profile.OrdinaryCrewCount, Is.GreaterThan(0), ship.Name);
                 Assert.That(profile.BoardingHealth,
-                    Is.EqualTo(CoreBattleBalance.BoardingHealthForOrdinaryCrew(profile.OrdinaryCrewCount)), ship.Name);
+                    Is.EqualTo((int)Math.Round(CoreBattleBalance.BoardingHealthForOrdinaryCrew(profile.OrdinaryCrewCount) *
+                        profile.BoardingHealthMultiplier, MidpointRounding.AwayFromZero)), ship.Name);
                 Assert.That(profile.RamChance, Is.InRange(0d, 1d), ship.Name);
                 Assert.That(profile.RamRangeMeters, Is.GreaterThan(0f), ship.Name);
             }

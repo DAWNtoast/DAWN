@@ -13,9 +13,17 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession();
             decimal gold = session.ProfileGold;
             int iron = session.Cargo.Iron;
+            float volume = session.Cargo.UsedVolume;
+            double ironVolume = CoreWarehouseItemCatalog.Find("iron").UnitVolume;
+            int quantity = (int)((session.CargoCapacityValue - volume) / ironVolume) + 1;
             // The caller quotes less than iron's actual two units of hold space.
-            Assert.That(session.TryPurchaseMarketCargo("iron", 10, 1m, quotedVolume), Is.False);
+            Assert.That(volume + quantity * quotedVolume, Is.LessThanOrEqualTo(session.CargoCapacityValue),
+                "The understated caller quote must appear to fit the remaining hold.");
+            Assert.That(volume + quantity * ironVolume, Is.GreaterThan(session.CargoCapacityValue + 0.001d),
+                "The actual cargo must exceed the hold, including its comparison tolerance.");
+            Assert.That(session.TryPurchaseMarketCargo("iron", quantity, 1m, quotedVolume), Is.False);
             Assert.That(session.Cargo.Iron, Is.EqualTo(iron));
+            Assert.That(session.Cargo.UsedVolume, Is.EqualTo(volume));
             Assert.That(session.ProfileGold, Is.EqualTo(gold));
         }
 

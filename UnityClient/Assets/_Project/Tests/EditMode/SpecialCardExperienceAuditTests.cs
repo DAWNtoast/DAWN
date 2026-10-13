@@ -149,11 +149,12 @@ namespace ShatteredSail.Core.Tests
                     .First(value => CoreVoyageSession.CardLibrary[value].Id == original.Id);
                 CoreBattleCard grown = session.GetBattleCard(index);
                 Assert.That(grown.UpgradeLevel, Is.EqualTo(level), original.Id);
-                Assert.That(grown.Damage, Is.EqualTo(original.Damage * 2), original.Id);
-                Assert.That(grown.Block, Is.EqualTo(original.Block * 2), original.Id);
-                Assert.That(grown.Repair, Is.EqualTo(original.Repair * 2), original.Id);
-                Assert.That(grown.Energy, Is.EqualTo(Math.Max(0, original.Energy - (level >= 2 ? 1 : 0))), original.Id);
-                Assert.That(grown.Draw, Is.EqualTo(original.Draw + (level >= 3 ? 1 : 0)), original.Id);
+                decimal multiplier = level == 1 ? 1.2m : level == 2 ? 1.5m : 2m;
+                Assert.That(grown.Damage, Is.EqualTo((int)Math.Round(original.Damage * multiplier, 0, MidpointRounding.AwayFromZero)), original.Id);
+                Assert.That(grown.Block, Is.EqualTo((int)Math.Round(original.Block * multiplier, 0, MidpointRounding.AwayFromZero)), original.Id);
+                Assert.That(grown.Repair, Is.EqualTo((int)Math.Round(original.Repair * multiplier, 0, MidpointRounding.AwayFromZero)), original.Id);
+                Assert.That(grown.Energy, Is.EqualTo(original.Energy), original.Id);
+                Assert.That(grown.Draw, Is.EqualTo(original.Draw + (level >= 3 && original.Draw > 0 ? 1 : 0)), original.Id);
                 Assert.That(session.TryUpgradeBattleCard(index, out _), Is.False, original.Id);
             }
             Assert.That(session.ProfileGold, Is.EqualTo(gold));

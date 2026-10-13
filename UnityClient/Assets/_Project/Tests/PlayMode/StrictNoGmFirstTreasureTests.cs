@@ -8,6 +8,7 @@ using ShatteredSail.Core.Gameplay;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace ShatteredSail.Presentation.Tests
@@ -114,8 +115,9 @@ namespace ShatteredSail.Presentation.Tests
                 // The starter's ranged build is paid before merchandise; the
                 // full-campaign boarding upgrades would consume this budget.
                 yield return driver.InvestForSuppliesIfNeeded();
+                yield return driver.IdentifyEarnedTreasureFragments();
                 if (driver.CrossPortTradeUnitsSold > 0 && driver.FirstCraftedMap == null &&
-                    session.TreasureFragments >= CoreTreasureHuntCatalog.FragmentCost && session.PirateLevel >= 2)
+                    AcceptanceReadyTreasureBoard(session) >= 0 && session.PirateLevel >= 2)
                 {
                     yield return driver.CraftFirstNoGmMap();
                     audit.firstMapId = driver.FirstCraftedMap.Id;
@@ -245,7 +247,7 @@ namespace ShatteredSail.Presentation.Tests
                     "; repair supplies=" + repairSupplies + "; departure cash reserve=60; actual gold=" + Session.ProfileGold);
                 Assert.That(Session.ProfileGold, Is.GreaterThanOrEqualTo(upgrades + ammunition + repairSupplies + 60m),
                     "Earned funds cannot cover the starter's legal ranged build and ordinary departure reserve.");
-                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Open Deck Chest 1");
+                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
                 yield return Click("Select Upgrade Card 0");
                 while (Session.GetBattleCard(0).UpgradeLevel < 2)
                 {
@@ -256,7 +258,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(Session.GetBattleCard(0).UpgradeLevel, Is.EqualTo(level + 1));
                     Assert.That(Session.ProfileGold, Is.EqualTo(before - cost));
                 }
-                yield return Click("Edit Deck From Card Upgrades");
+                yield return Click("Back From Card Upgrades"); yield return Click("Edit Stage Deck Naval");
                 yield return SetDeck(NavalBattleStage.Preparation, preparation);
                 yield return SetDeck(NavalBattleStage.Naval, naval);
                 CollectionAssert.AreEquivalent(preparation, Session.GetBattleDeck(NavalBattleStage.Preparation));
@@ -308,18 +310,22 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(FirstCraftedMap, Is.Null);
                 Assert.That(Session.TreasureMaps, Is.Empty);
                 yield return EnsureHub(); yield return Click("Port Hotspot Treasure");
-                int fragments = Session.TreasureFragments;
-                yield return Click("Treasure Craft Map");
+                int readyBoard = AcceptanceReadyTreasureBoard(Session);
+                Assert.That(readyBoard, Is.GreaterThanOrEqualTo(0), "The first map requires four identified fragments belonging to that same puzzle.");
+                string rankId = CoreTreasureHuntCatalog.Ranks[readyBoard].Id;
+                int fragments = Session.GetIdentifiedTreasureFragments(rankId), unidentified = Session.TreasureFragments;
+                yield return Click("Treasure Route " + readyBoard);
                 Assert.That(Session.TreasureMaps.Count, Is.EqualTo(1));
-                Assert.That(Session.TreasureFragments, Is.EqualTo(fragments - CoreTreasureHuntCatalog.FragmentCost));
+                Assert.That(Session.GetIdentifiedTreasureFragments(rankId), Is.EqualTo(fragments - CoreTreasureHuntCatalog.FragmentCost));
+                Assert.That(Session.TreasureFragments, Is.EqualTo(unidentified));
                 FirstCraftedMap = Session.TreasureMaps[0];
-                Assert.That(PortText("Treasure Map Details")?.text, Does.Contain(FirstCraftedMap.Seed)
-                    .And.Contain("建议航期  " + FirstCraftedMap.Rank.RecommendedVoyageDays + " 天"));
+                Assert.That(FirstCraftedMap.RankId, Is.EqualTo(rankId));
+                Assert.That(PortText("Treasure Map Details 0")?.text, Does.Contain(FirstCraftedMap.Seed)
+                    .And.Contain(FirstCraftedMap.Rank.Name).And.Contain("探索度"));
                 Record("FIRST REAL CRAFT fixed permanently: " + FirstCraftedMap.Id + "; rank=" + FirstCraftedMap.RankId +
-                    "; suggestedDays=" + FirstCraftedMap.Rank.RecommendedVoyageDays + "; fragmentsSpent=" + (fragments - Session.TreasureFragments));
-                // Crafting auto-equips. Keep the same owned map while allowing
-                // ordinary trade departures if its legal preparation is pending.
-                yield return Click("Treasure Unequip Map");
+                    "; suggestedDays=" + FirstCraftedMap.Rank.RecommendedVoyageDays + "; fragmentsSpent=" + (fragments - Session.GetIdentifiedTreasureFragments(rankId)));
+                // The completed puzzle creates a seed in inventory. Ordinary
+                // departures remain available while its preparation is pending.
                 Assert.That(Session.SelectedTreasureMap, Is.Null);
                 Assert.That(Session.TreasureMaps.Single().Id, Is.EqualTo(FirstCraftedMap.Id));
                 yield return Click("Treasure Close Folio"); yield return EnsureHub();
@@ -374,9 +380,11 @@ namespace ShatteredSail.Presentation.Tests
                 yield return EnsureHub(); yield return Click("Port Hotspot Treasure"); yield return Click("Treasure Open Folio");
                 Assert.That(Session.TreasureMaps.Count, Is.EqualTo(1));
                 Assert.That(Session.TreasureMaps[0].Id, Is.EqualTo(FirstCraftedMap.Id));
-                yield return Click("Treasure Map Select 0"); yield return Click("Treasure Equip And Depart");
+                yield return Click("Treasure Close Folio"); yield return EnsureHub(); yield return Click("Port Hotspot Voyage");
+                Assert.That(Session.SelectedTreasureMap, Is.Null);
+                yield return Click("Departure Treasure Seed Picker"); yield return Click("Departure Treasure Seed Option 0");
                 Assert.That(Session.SelectedTreasureMap.Id, Is.EqualTo(FirstCraftedMap.Id));
-                Record("FIRST TREASURE departure quote: " + PortText("Departure Provision Quote")?.text);
+                Record("FIRST TREASURE departure provision action: " + PortButton("Departure Buy Provisions")?.GetComponentInChildren<Text>()?.text);
                 Assert.That(PortButton("Start Voyage")?.IsInteractable(), Is.True, "Only an enabled, ordinarily provisioned departure may consume the first map.");
                 yield return Click("Start Voyage");
                 Assert.That(Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
@@ -393,7 +401,7 @@ namespace ShatteredSail.Presentation.Tests
             public string startedUtc, completedUtc, failure, firstMapId, firstMapSeed, firstMapRank;
             public int departures, crossPortArrivals, paidTradeUnitsBought, crossPortTradeUnitsSold, reloadsVerified, consecutiveFailedVoyages;
             public double elapsedSeconds;
-            public string method = "New Game and tutorial UI, ordinary paid trade/progression, exactly the first automatically ranked crafted treasure, real settlement and two save/continue reloads. No GM, external checkpoint, money/stock injection or seed/rank replacement. PlayMode simulated input; 40 actual departures including tutorial / 30 minutes.";
+            public string method = "New Game and tutorial UI, ordinary paid trade/progression, real fragment identification until four belong to one puzzle, exactly the first completed puzzle's crafted seed selected at departure, real settlement and two save/continue reloads. No GM, external checkpoint, money/stock injection or seed/rank replacement. PlayMode simulated input; 40 actual departures including tutorial / 30 minutes.";
         }
         [Serializable] private sealed class NoGmDeparture
         {

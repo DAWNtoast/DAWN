@@ -83,10 +83,10 @@ namespace ShatteredSail.Presentation
                     issuedSeeds = new[] { seed },
                 });
                 session.Cargo.Water = 180; session.Cargo.Food = 180;
-                session.Cargo.Wood = 8; session.Cargo.Iron = 0; session.Cargo.Powder = 8;
+                session.Cargo.Wood = 8; session.Cargo.Iron = 0; session.Cargo.Powder = 20;
                 if (editorPreviewFlowState == GameplayFlowPreviewState.TreasureDeparture)
                 {
-                    activePortFacility = 8;
+                    activePortFacility = PortFacilityArtCatalog.VoyageFacilityIndex;
                     BuildPort();
                 }
                 else

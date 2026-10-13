@@ -1,6 +1,6 @@
 # UI 场景预览
 
-共 21 个独立预览场景，覆盖 19 种功能页，以及三种派遣部署边框。双击场景后即可在 Game 或 Scene 视图检查，不需要点击 Play。
+共 18 个独立预览场景，覆盖港口经营、航海探索与海战等功能页。双击场景后即可在 Game 或 Scene 视图检查，不需要点击 Play。
 
 ## 打开与刷新
 
@@ -11,8 +11,6 @@
 - 需要重新生成整套场景文件时，使用 `Shattered Sail > Scenes > Create or Refresh All UI Preview Scenes`。此操作会重建下表中的场景，请先保存或备份自己的场景修改。
 
 ## 检查目录
-
-派遣时长滑块已更新为透明木质黄铜船舵，打捞／护航／测绘三个部署页共用。拖动时随时长转动，悬停高亮，小时范围和收益规则不变。验收目录：`D:/Game/UnityClient/Artifacts/Dispatch-Helm/`。
 
 | 场景 | 内容 | 默认港口 |
 | --- | --- | --- |
@@ -26,13 +24,10 @@
 | UI_ComponentDetail | 部件详情 | 铜钟港 |
 | UI_CardWorkshop | 四种地面卡箱 | 暮潮港 |
 | UI_DeckBuilder | 卡组构筑 | 暮潮港 |
-| UI_Dispatch | 桌面上的三张委托海图 | 白贝港 |
-| UI_DispatchDeployment | 近岸沉船打捞部署 | 白贝港 |
-| UI_DispatchDeployment_Escort | 商路护航部署 | 白贝港 |
-| UI_DispatchDeployment_Survey | 雾礁灯塔测绘部署 | 白贝港 |
 | UI_TreasureMap | 藏宝图桌 | 暮潮港 |
 | UI_Maintenance | 右舷侧视船坞、左右木板与采购 | 盐冠港 |
 | UI_VoyageDeparture | 出航准备 | 断锚港 |
+| UI_Market | 港口市场 | 白贝港 |
 | UI_Navigation | 航海探索 | 白贝港 |
 | UI_Encounter | 航海事件 | 铜钟港 |
 | UI_Battle | 海战 | 暮潮港 |
@@ -40,7 +35,7 @@
 
 ## 港口、海域与编辑方式
 
-选择 `UI Preview · …` 对象，通过 Inspector 中的 `Editor Preview Port` 切换六个港口。`Editor Preview Route Index` 控制海域；在派遣部署页中，0 / 1 / 2 对应打捞 / 护航 / 测绘。
+选择 `UI Preview · …` 对象，通过 Inspector 中的 `Editor Preview Port` 切换六个港口。`Editor Preview Route Index` 控制海域。
 
 船只档案新增 `Editor Preview Ship Page`：0 性能、1 背景、2 配件。配件页展示本船五槽和独立演示库存，编辑模式不执行装配或写入玩家存档。游戏中可卸下、替换，每艘船独立保存。三页实际界面与首胜装配引导见 `Artifacts/ShipyardEquipment20260916/UI/index.html`。
 
@@ -48,7 +43,7 @@
 
 预览与游戏共用布局和美术代码。场景文件保存入口及默认配置，打开时生成最新 UI；自动生成的 Canvas 不会写入场景，直接拖动它的子对象不会永久保存。长期布局调整应修改对应的共用布局代码，再刷新预览。
 
-预览使用演示数据，编辑模式下不执行采购、派遣或游戏存档操作。这些场景不加入正式游戏构建。
+预览使用演示数据，编辑模式下不执行采购或游戏存档操作。这些场景不加入正式游戏构建。
 
 ## 截图验收
 
@@ -94,11 +89,9 @@
 
 报告检查功能页覆盖、场景是否完整生成、Unity 错误以及源场景文件是否保持不变，适合后续集中检查。
 
-最新的整套预览图集位于项目根目录的 `Artifacts/UIPreviews-ShipyardGallery-review/index.html`，共 21 页，新增水上船坞与船只档案，包含六港后勤侧向船坞、派遣桌与房间的一体化背景、部件商店中央地面陈列／船匠工作台接地，以及此前的角色抠图白边精修、港口总览四项顶栏、三页船员档案及顶栏贴边／航海事件优化。后勤六港对照图集位于 `Artifacts/MaintenanceSide-review/index.html`。商店专项图集位于 `Artifacts/ShopFloor-v1-review/index.html`，覆盖六个港口、五类部件和一至五件库存的分组陈列；其中标注“固定验收样例”的页面不是实际月度库存。六港口总览与设施顶栏的对照图集位于 `Artifacts/PortHubHeaders-verified/index.html`。船员档案专项图集位于 `Artifacts/CrewDossier-Edges-v3-verified/index.html`：保存全部 36 位角色的背景页及七位代表角色的其余页面，共 50 张，同时检查完整 108 页。验收说明见同目录 `ACCEPTANCE.md`。三种海域、完整四项操作和整合教学事件的专项图集仍位于 `Artifacts/EncounterUI-verified/index.html`。
+最新的整套预览图集位于项目根目录的 `Artifacts/UIPreviews-ShipyardGallery-review/index.html`，共 21 页，新增水上船坞与船只档案，包含六港后勤侧向船坞、部件商店中央地面陈列／船匠工作台接地，以及此前的角色抠图白边精修、港口总览四项顶栏、三页船员档案及顶栏贴边／航海事件优化。后勤六港对照图集位于 `Artifacts/MaintenanceSide-review/index.html`。商店专项图集位于 `Artifacts/ShopFloor-v1-review/index.html`，覆盖六个港口、五类部件和一至五件库存的分组陈列；其中标注“固定验收样例”的页面不是实际月度库存。六港口总览与设施顶栏的对照图集位于 `Artifacts/PortHubHeaders-verified/index.html`。船员档案专项图集位于 `Artifacts/CrewDossier-Edges-v3-verified/index.html`：保存全部 36 位角色的背景页及七位代表角色的其余页面，共 50 张，同时检查完整 108 页。验收说明见同目录 `ACCEPTANCE.md`。三种海域、完整四项操作和整合教学事件的专项图集仍位于 `Artifacts/EncounterUI-verified/index.html`。
 
 港口投资建设采用六张独立重绘的 `Resources/PortFacilities/Regional/Maintenance/maintenance_<port>_side_v2.png`：从右侧码头看横向停泊的船，船艉在左，船艏向右侧出海口。水道、后墙和码头同步改为侧向透视，保留各港建筑身份而非换色。船体展示放大到原基础布局的 1.10 倍，保留模块化装备比例、透明船体与水线裁切；左右检查板与采购板按近侧码头地面重新测定支脚和阴影落点。六项检查、六种物资的纸内滚动采购及数量、费用逻辑保持不变。新背景由内置 imagegen 生成，完整提示词见 `Artifacts/MaintenanceSide-source/PROMPTS.md`；旧背景保留。
-
-派遣室现使用 `Resources/PortFacilities/dispatch_room_integrated_v3.png`：桌面、桌脚、地面阴影与房间作为同一幅背景绘制，右下五艘船模完整保留；不再生成独立的 `Dispatch Command Table` 和桌脚阴影图层。三张委托海图仍为独立可交互物件，投影和点击范围来自新背景中实测的桌面四角，保持高亮时不离开桌面。房间保留原色与精细纹理，不再叠加深色滤层。新素材由内置 imagegen 基于原房间和桌子参考生成，提示词见 `Artifacts/DispatchIntegrated-source/PROMPT.md`；旧素材保留但不再用于叠加桌子。
 
 部件商店将部件、支架、接触阴影与木牌作为整体布置在中央地板，左侧前景货架保持露出，右侧为船匠工作台。每组最多展示三件，更多库存通过“上一组／下一组”浏览，月度库存、价格、已售状态与详情／采购逻辑不变。船匠与工作台一同下移到前景地面，保留桶、木箱、靴子与桌脚各自的接地点；说明文字附在柜台正面，不再悬挂在脚下。
 
@@ -108,7 +101,7 @@
 
 港口功能顶栏现与场景左右边缘等宽、顶部齐平，消除原来左右各 16 像素、顶部 9 像素的深蓝露底。场景背景的尺寸、UV 与道具接地点未改变；六港口保留各自的九切边框素材及原有导航顺序。
 
-港口总览也复用当前港口的同一套特色边框，从左到右仅保留“时间、港口名称、总金币、设置”。原蓝色原型标题栏及“今日港务”横幅不再显示，操作提示保留在底部。总览与设施页共用实时读数和设置弹窗；进入设施时恢复八项导航，返回总览后恢复四项顶栏，不改变港口背景或九处设施的点击位置。
+港口总览也复用当前港口的同一套特色边框，从左到右仅保留“时间、港口名称、总金币、设置”。原蓝色原型标题栏及“今日港务”横幅不再显示，操作提示保留在底部。总览与设施页共用实时读数和设置弹窗；进入设施时恢复八项导航，返回总览后恢复四项顶栏，不改变港口背景或八处设施的点击位置。
 
 航海事件页改为左侧插画、右侧羊皮纸正文及木质选项，按海域使用不同边框，明确显示风险、耗时和不可选原因。正文、选项和页脚避开边框装饰；保留原有事件选择、略过与结算逻辑。已打开的场景请使用上方的刷新菜单，便可看到最新效果，无需重建场景文件。
 

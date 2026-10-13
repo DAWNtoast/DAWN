@@ -1,0 +1,5 @@
+Review v2. Name position unchanged. Other profile content shifted 88 UI pixels left. Footer shifted 88 left and 18 up. Paragraph wording retained; widths, paragraph breaks and line spacing revised. Temporary preview only.
+人物背景: 01_Background.png
+航海异闻: 02_Story.png
+职业技能: 03_Skills.png
+专属卡牌: 04_SpecialCards.png

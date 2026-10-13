@@ -13,8 +13,12 @@ namespace ShatteredSail.Presentation.Tests
             var phase = session.Phase;
             var encounter = session.ActiveEncounter;
             double hours = session.TotalHours;
-            ClickAcceptanceButton("Treasure Story Skip");
-            yield return null;
+            int pages = CoreTreasureStoryCatalog.FindChapter(session.ActiveTreasureMap.RankId).ImageResources.Count;
+            for (int i = 0; i < pages && GameObject.Find("Treasure Story Overlay") != null; i++)
+            {
+                ClickAcceptanceButton("Treasure Story Advance");
+                yield return null;
+            }
             Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null);
             Assert.That(session.Phase, Is.EqualTo(phase), "Dismissing narrative must not resolve or skip the encounter.");
             Assert.That(session.ActiveEncounter, Is.SameAs(encounter));

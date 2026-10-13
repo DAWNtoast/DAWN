@@ -223,7 +223,6 @@ namespace ShatteredSail.Editor
             yield return Page("部件档案 · 效果与背景", CoreGameplayPreviewScreen.ComponentShopDetail, CoreGameplayPreviewPort.BronzeBell);
             yield return Page("卡组工坊 · 箱子铭牌", CoreGameplayPreviewScreen.CardWorkshop, CoreGameplayPreviewPort.GrayGull);
             yield return Page("卡组构筑 · 卡牌说明", CoreGameplayPreviewScreen.DeckBuilder, CoreGameplayPreviewPort.GrayGull);
-            yield return Page("远航部署 · 船员与时间", CoreGameplayPreviewScreen.DispatchDeployment, CoreGameplayPreviewPort.WhiteShell);
             yield return Page("出航码头 · 输入框与航线", CoreGameplayPreviewScreen.VoyageDeparture, CoreGameplayPreviewPort.GrayGull);
             yield return Page("航海探索 · 地图标记", CoreGameplayPreviewScreen.Navigation, CoreGameplayPreviewPort.GrayGull);
             yield return Page("事件 · 说明与选择", CoreGameplayPreviewScreen.Encounter, CoreGameplayPreviewPort.TwilightTide);

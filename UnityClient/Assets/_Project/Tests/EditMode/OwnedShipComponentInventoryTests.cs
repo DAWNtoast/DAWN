@@ -11,6 +11,37 @@ namespace ShatteredSail.Presentation.Tests
         [SetUp] public void SetUp() => catalog = new ComponentArtCatalog();
 
         [Test]
+        public void BareStarterHullKeepsItsUnmodifiedPerformanceUntilAPartIsEquipped()
+        {
+            CoreVoyageSession session = new CoreVoyageSession();
+            CoreShipDefinition starter = session.SelectedShip;
+            OwnedShipComponentInventory inventory = new OwnedShipComponentInventory(catalog);
+
+            inventory.InitializeEmptyLoadout(0);
+            Assert.That(inventory.Items, Is.Empty, "The new-game starter hull has no free component inventory.");
+            foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
+                Assert.That(inventory.Installed(0, slot), Is.Null, slot.ToString());
+
+            // Empty slots do not contribute a negative baseline delta. The
+            // session therefore exposes the authored hull stats unchanged.
+            session.ConfigureComponentBonuses(0, 0, 0, 0f, 0f);
+            Assert.That(session.MaxHull, Is.EqualTo(starter.MaxHull));
+            Assert.That(session.Armor, Is.EqualTo(starter.Armor));
+            Assert.That(session.Firepower, Is.EqualTo(starter.Firepower));
+            Assert.That(session.SpeedKnots, Is.EqualTo(starter.SpeedKnots));
+            Assert.That(session.VisionBonusNm, Is.Zero);
+
+            // Re-running the normal loadout guard must keep the intentionally
+            // empty vessel empty instead of regenerating baseline fittings.
+            inventory.EnsureLoadout(0);
+            Assert.That(inventory.Items, Is.Empty);
+            OwnedShipComponentInventory restored = new OwnedShipComponentInventory(catalog);
+            Assert.That(restored.Import(inventory.Export(), index => index == 0), Is.True);
+            restored.EnsureLoadout(0);
+            Assert.That(restored.Items, Is.Empty, "The empty starter marker must survive a save/load cycle.");
+        }
+
+        [Test]
         public void EachVesselStartsWithFiveIndependentRemovableParts()
         {
             OwnedShipComponentInventory inventory = new OwnedShipComponentInventory(catalog);

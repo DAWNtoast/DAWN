@@ -68,12 +68,11 @@ namespace ShatteredSail.Presentation
                     BossStep = GuidedBossPresentationStep
                 };
                 guidedControlSnapshots.Add(snapshot);
-                string controlId = UiId.GetOrLegacyName(control);
-                bool permitted = GuidedTutorialAllowsControl(controlId);
+                bool permitted = GuidedTutorialAllowsControl(control.name);
                 // Only the two explicit failed-attempt lessons accept a click
                 // on an unplayable card; Core observes the real failure without
                 // playing it or consuming resources. All other rules stay intact.
-                if (permitted && IsGuidedBossBlockedCardControl(controlId)) control.interactable = true;
+                if (permitted && IsGuidedBossBlockedCardControl(control.name)) control.interactable = true;
                 if (!permitted)
                 {
                     // Teaching locks leave the original scene and button brightness intact.
@@ -157,6 +156,7 @@ namespace ShatteredSail.Presentation
             }
             BuildGuidedTutorialBanner();
             BuildGuidedTutorialFocus();
+            BringGuidedTutorialBannerToFront();
         }
 
         private bool GuidedControlCanInvoke(GuidedControlSnapshot snapshot, GuidedTutorialStep renderedStep)
@@ -167,7 +167,7 @@ namespace ShatteredSail.Presentation
             // Reject callbacks cached from a previous teaching screen, including
             // direct UnityEvent.Invoke calls which bypass Button.interactable.
             return !tutorialActive || guidedTutorialStep == GuidedTutorialStep.Complete ||
-                (renderedStep == guidedTutorialStep && GuidedTutorialAllowsControl(UiId.GetOrLegacyName(snapshot.Control)));
+                (renderedStep == guidedTutorialStep && GuidedTutorialAllowsControl(snapshot.Control.name));
         }
 
         private void AddGuidedInputGuard(Selectable control)
@@ -229,8 +229,7 @@ namespace ShatteredSail.Presentation
         {
             // Settings and safe suspension remain available even when a lesson
             // restricts ordinary navigation or requires an emergency return.
-            if (name == "Voyage Settings" || name == "Voyage Cargo" || name == "Port Hub Settings" || name == "Port Facility Settings" ||
-                name == "Departure Details Scrollbar") return true;
+            if (name == "Voyage Settings" || name == "Voyage Cargo" || name == "Port Hub Settings" || name == "Port Facility Settings") return true;
             GuidedTutorialStep step = guidedTutorialStep;
             if (step == GuidedTutorialStep.Complete) return true;
             if (session != null && session.CanRequestEmergencyTow())
@@ -244,6 +243,9 @@ namespace ShatteredSail.Presentation
             switch (step)
             {
                 case GuidedTutorialStep.FirstDeparture:
+                    if (activePortFacility != PortFacilityArtCatalog.VoyageFacilityIndex)
+                        return name == "Port Hotspot Voyage" || name == "Return To Port Hub";
+                    goto case GuidedTutorialStep.SecondRoute;
                 case GuidedTutorialStep.SecondRoute:
                 case GuidedTutorialStep.ThirdRoute:
                     return name == "Start Voyage" || name == "Route 0" ||
@@ -279,7 +281,7 @@ namespace ShatteredSail.Presentation
                     return name == "Port Hotspot Tavern" || name == "Return To Port Hub";
                 case GuidedTutorialStep.RecruitNavigator:
                     return name == "Tavern Crew 0" || name == "Recruit Tavern Crew 0" ||
-                        name == "Back To Tavern Crew Lineup" || name.StartsWith("DossierPage", StringComparison.Ordinal) ||
+                        (name == "Return To Port Hub" && IsTavernDossierOpen) || name.StartsWith("DossierPage", StringComparison.Ordinal) ||
                         name == "Previous Tavern Dossier Page" || name == "Next Tavern Dossier Page";
                 case GuidedTutorialStep.SecondPier:
                 case GuidedTutorialStep.ThirdPier:
@@ -320,14 +322,21 @@ namespace ShatteredSail.Presentation
             if (!GuidedTutorialRecoveryActive || session == null || session.Phase != CoreDemoPhase.Port) return false;
             if (name == "Port Hotspot Maintenance" || name == "Port Hotspot Warehouse" ||
                 name == "Port Hotspot Voyage" || name == "Return To Port Hub") return true;
-            if (activePortFacility == 7)
+            if (activePortFacility == PortFacilityArtCatalog.MaintenanceFacilityIndex)
                 return name == "Open Port Market";
             if (activePortFacility == PortFacilityArtCatalog.MarketFacilityIndex)
-                return name.StartsWith("Market Buy ", StringComparison.Ordinal) ||
+                return name.StartsWith("Market Shop ", StringComparison.Ordinal) ||
+                    name.StartsWith("Market Row ", StringComparison.Ordinal) ||
+                    name.StartsWith("Market Item Icon ", StringComparison.Ordinal) ||
+                    name.StartsWith("Market Buy ", StringComparison.Ordinal) ||
                     name.StartsWith("Market Sell ", StringComparison.Ordinal) ||
-                    name.StartsWith("Market Increase ", StringComparison.Ordinal) ||
-                    name.StartsWith("Market Decrease ", StringComparison.Ordinal) ||
+                    name.StartsWith("Market Quantity Slider ", StringComparison.Ordinal) ||
                     name.StartsWith("Market Quantity Input ", StringComparison.Ordinal) ||
+                    name == "Market Quantity Minus" || name == "Market Quantity Plus" || name == "Market Quantity Max" ||
+                    name == "Close Market Shop" || name == "Market Scene Empty Space" || name == "Market Inventory Toggle" ||
+                    name.StartsWith("Confirm Market Buy ", StringComparison.Ordinal) ||
+                    name.StartsWith("Confirm Market Sell ", StringComparison.Ordinal) ||
+                    name == "Market Detail Back" || name == "Cancel Market Trade" ||
                     name == "Return To Port Hub";
             if (activePortFacility == 0)
                 return name == "Warehouse Tab Storage" || name == "Warehouse Tab Valuables" ||
@@ -380,29 +389,22 @@ namespace ShatteredSail.Presentation
         private void BuildGuidedTutorialBanner()
         {
             bool inPort = session != null && session.Phase == CoreDemoPhase.Port;
-            Transform header = FindActiveGuidedContent(inPort
-                ? activePortFacility < 0 ? "Port Hub" : "Port Facility Header"
-                : "Voyage Header");
-            bool insideHeader = header != null;
-            // The regional header already reserves space above and below its
-            // central controls. Keep the lesson in those bands so raising the
-            // header cannot cover it or move it outside the 1080px canvas.
-            // The objective stays left of the battle range/alignment readouts.
-            RectTransform banner = CreateRect("Guided Tutorial Banner", insideHeader ? header : contentRoot,
-                insideHeader ? new Vector2(1820f, ((RectTransform)header).rect.height) : new Vector2(1560f, 54f),
-                insideHeader ? Vector2.zero : new Vector2(-110f, 507f));
+            // A separate reading surface keeps every lesson legible over both
+            // the carved headers and the illustrated scenes. Grow for long
+            // instructions instead of shrinking the teaching text.
+            const float width = 480f, padding = 40f, top = 24f, gap = 8f;
+            RectTransform banner = CreateRect("Guided Tutorial Banner", contentRoot,
+                new Vector2(width, 140f), Vector2.zero);
+            banner.anchorMin = banner.anchorMax = banner.pivot = new Vector2(0f, 1f);
+            banner.anchoredPosition = new Vector2(20f, -8f);
             guidedDecorations.Add(banner.gameObject);
-            if (!insideHeader)
-            {
-                // Settlement owns its presentation without a regional header.
-                // Its top-left margin is clear of the headline and skip button.
-                Image backing = banner.gameObject.AddComponent<Image>();
-                backing.color = Html("#382719");
-                backing.sprite = WoodButtonSkin.Face;
-                backing.type = Image.Type.Sliced;
-                backing.pixelsPerUnitMultiplier = 12f;
-                backing.raycastTarget = false;
-            }
+            Image backing = banner.gameObject.AddComponent<Image>();
+            backing.color = Html("#EBD5A7");
+            NauticalSurfaceSkin.ApplyReadingPanel(backing);
+            // Scale the painted border to this small note, keeping ornament
+            // outside the inset writing area instead of crossing the letters.
+            if (backing.sprite != null) backing.pixelsPerUnitMultiplier = backing.sprite.rect.width / width;
+            backing.raycastTarget = false;
 
             if (inPort)
             {
@@ -411,28 +413,53 @@ namespace ShatteredSail.Presentation
             }
             else HideGuidedOriginalLabel(headerTitle);
 
-            float readingScale = GameReadability.Scale;
-            float bandHeight = 28f * readingScale;
-            if (!insideHeader) banner.sizeDelta = new Vector2(1560f, 72f * readingScale);
             Text title = CreateText("Guided Tutorial Objective", banner,
-                insideHeader ? new Vector2(1500f, bandHeight) : new Vector2(1518f, bandHeight),
-                insideHeader ? new Vector2(-140f, banner.rect.height * .5f - 8f - bandHeight * .5f) : new Vector2(0f, 18f * readingScale),
-                22, FontStyle.Normal, TextAnchor.MiddleLeft, Gold);
-            GameReadability.Body(title, 22);
-            title.text = GuidedTutorialRecoveryActive && inPort && (activePortFacility == 0 || activePortFacility == 7)
+                new Vector2(width - padding * 2f, 32f), Vector2.zero,
+                24, FontStyle.Normal, TextAnchor.UpperLeft, Html("#684022"));
+            title.text = GuidedTutorialRecoveryActive && inPort && (activePortFacility == 0 || activePortFacility == PortFacilityArtCatalog.MaintenanceFacilityIndex)
                 ? "挑战后整备 · 为下一次航行做准备"
-                : HasGuidedBossPresentation ? GuidedBossObjective : GuidedTutorialObjective(guidedTutorialStep);
+                : HasGuidedBossPresentation ? GuidedBossObjective
+                : session.Phase == CoreDemoPhase.Sailing && GuidedIsSailingTarget(guidedTutorialStep) &&
+                    !GuidedTutorialNeedsSupplyReturn && !session.CanRequestEmergencyTow()
+                    ? CurrentGuidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Heading
+                        ? "航行指引 1 / 2 · 选择航向" : "航行指引 2 / 2 · 执行航行"
+                    : GuidedTutorialObjective(guidedTutorialStep);
             title.horizontalOverflow = HorizontalWrapMode.Wrap;
             title.verticalOverflow = VerticalWrapMode.Truncate;
+            title.resizeTextForBestFit = false;
+            float titleHeight = Mathf.Max(32f, Mathf.Ceil(title.preferredHeight));
+            PositionGuidedReadingText(title, padding, top, titleHeight);
             Text instruction = CreateText("Guided Tutorial Instruction", banner,
-                insideHeader ? new Vector2(1780f, 32f * readingScale) : new Vector2(1518f, 32f * readingScale),
-                insideHeader ? new Vector2(0f, -banner.rect.height * .5f + 6f + 16f * readingScale) : new Vector2(0f, -18f * readingScale),
-                18, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
+                new Vector2(width - padding * 2f, 68f), Vector2.zero,
+                26, FontStyle.Normal, TextAnchor.UpperLeft, Html("#302014"));
             instruction.text = GuidedTutorialInstruction(guidedTutorialStep);
             instruction.horizontalOverflow = HorizontalWrapMode.Wrap;
             instruction.verticalOverflow = VerticalWrapMode.Truncate;
             instruction.lineSpacing = 1.1f;
-            GameReadability.Body(instruction, 18);
+            instruction.resizeTextForBestFit = false;
+            float instructionHeight = Mathf.Max(68f, Mathf.Ceil(instruction.preferredHeight));
+            PositionGuidedReadingText(instruction, padding, top + titleHeight + gap, instructionHeight);
+            banner.sizeDelta = new Vector2(width, top + titleHeight + gap + instructionHeight + top);
+        }
+
+        private static void PositionGuidedReadingText(Text text, float left, float top, float height)
+        {
+            RectTransform rect = text.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(left, -top);
+            rect.sizeDelta = new Vector2(rect.sizeDelta.x, height);
+        }
+
+        private void BringGuidedTutorialBannerToFront()
+        {
+            // Previous steps can leave an inactive namesake until end-of-frame.
+            Transform banner = FindActiveGuidedContent("Guided Tutorial Banner");
+            if (banner == null) return;
+            banner.SetAsLastSibling();
+            // Render may have resized the voyage surface after creating the
+            // annotation; resolve against that final geometry before display.
+            GuidedTutorialBannerLayout layout = banner.GetComponent<GuidedTutorialBannerLayout>();
+            if (layout != null) layout.Apply();
         }
 
         private void HideGuidedOriginalLabel(Graphic graphic)
@@ -467,7 +494,7 @@ namespace ShatteredSail.Presentation
                 return "补给不足，主动返航或拖带救援后，回港采购重试。本次不完成教学。";
             if (GuidedTutorialRecoveryActive && session != null && session.Phase == CoreDemoPhase.Port)
             {
-                if (activePortFacility == 0 || activePortFacility == 7)
+                if (activePortFacility == 0 || activePortFacility == PortFacilityArtCatalog.MaintenanceFacilityIndex)
                     return guidedTutorialCheckpoint == 0
                         ? "按市场行情买卖物资，再到出航码头重试航行与事件教学。不会自动发放免费物资。"
                         : "按市场行情买卖物资，再到出航码头用默认卡组重试。不会自动发放免费物资。";
@@ -479,16 +506,18 @@ namespace ShatteredSail.Presentation
                 switch (CurrentGuidedTutorialNavigationInputStep)
                 {
                     case GuidedTutorialNavigationInputStep.Heading:
-                        return "① 选择红框「东」，沿固定教学航线前进。";
-                    case GuidedTutorialNavigationInputStep.Distance:
-                        return "② 将航程滑杆调至 120 海里后松开；键盘调整后按确认。";
+                        return "点击右侧罗盘中的「东」，确定教学航向。";
                     default:
-                        return "③ 核对用时与补给消耗，选择「执行航行」。";
+                        return "教学航程已设定。核对用时与补给，点击「执行航行」。";
                 }
             }
             switch (step)
             {
                 case GuidedTutorialStep.FirstDeparture:
+                    if (activePortFacility != PortFacilityArtCatalog.VoyageFacilityIndex)
+                        return activePortFacility < 0
+                            ? "进入红框中的「出航码头」，准备第一次航行。"
+                            : "先「返回港口」，再进入「出航码头」。";
                     if (!guidedDepartureDestinationSelected) return "先选择到达港口；置暗的是当前出发港。";
                     if (!guidedDepartureRouteSelected) return "选择第一张海图，确认本次航线难度。";
                     return "选择「扬帆出航」，开始第一段航程。";
@@ -571,3 +600,4 @@ namespace ShatteredSail.Presentation
         public void OnEndDrag(PointerEventData eventData) { }
     }
 }
+

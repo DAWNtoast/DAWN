@@ -2,9 +2,11 @@
 
 日期：2026-09-07
 
+2026-10-13 清理说明：以下为当时的制作记录。旧 `shipyard_grounded_v2.png` 与输入背景 `shipyard_background.png` 后来移入 `Editor/ArchivedArt/PortFacilities/`，其归档副本已按 B01 经审核清理。当前船坞使用 `UnityClient/Assets/_Project/Resources/PortFacilities/shipyard_water_gallery_v3.png`；下文旧路径与提示词保留为来源说明，不代表旧资源仍在项目中。详见[旧素材清理记录](../../Artifacts/UnusedAssetAudit20261013/index.html)。
+
 模式：内置 imagegen / compositing，未使用 CLI 或程序修改图片。
 
-最终资源：`D:/Game/UnityClient/Assets/_Project/Resources/PortFacilities/shipyard_grounded_v2.png`
+当时接入资源（已退役）：`D:/Game/UnityClient/Assets/_Project/Resources/PortFacilities/shipyard_grounded_v2.png`
 
 原始生成文件保留在：`C:/Users/Admin/.codex/generated_images/01a050de-d083-7010-bcc7-de18e62c64ab/exec-2f73dfda-f222-4f89-a8dd-cc05580aaff5.png`
 

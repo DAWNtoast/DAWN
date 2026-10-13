@@ -22,7 +22,8 @@ namespace ShatteredSail.Presentation
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (mapRect == null || eventData == null)
+            if (mapRect == null || eventData == null || eventData.dragging ||
+                (mapRect.GetComponent<NavigationMapViewport>()?.SuppressesClick ?? false))
             {
                 return;
             }

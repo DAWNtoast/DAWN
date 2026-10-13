@@ -82,7 +82,8 @@ namespace ShatteredSail.Presentation.Tests
             float distance = session.TotalDistanceNm;
             int water = session.Cargo.Water, food = session.Cargo.Food;
             VoyagePoint position = session.Position;
-            Transform oldMap = controller.transform.Find("Core Gameplay Canvas/Phase Content/Navigation Chart/Procedural Sea Chart Frame/Map Layer");
+            Canvas canvas = controller.transform.Find("Core Gameplay Canvas").GetComponent<Canvas>();
+            Transform oldMap = FixedGameViewport.Bounds(canvas).Find("Phase Content/Navigation Chart/Procedural Sea Chart Frame/Map Layer");
             Assert.That(oldMap, Is.Not.Null);
 
             if (disableGameObject) controller.gameObject.SetActive(false);
@@ -103,6 +104,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Position.X, Is.EqualTo(position.X));
             Assert.That(session.Position.Y, Is.EqualTo(position.Y));
             Assert.That(GameObject.Find("Navigation Motion Overlay"), Is.Null);
+            Assert.That(GameObject.Find("Navigation Motion Input Guard"), Is.Null);
             Assert.That(ActiveButton("Execute Sail").interactable, Is.True);
             Assert.That(oldMap == null, Is.True, "Recovery must reconcile the displayed ship with the committed position.");
             ActiveButton("Heading South").onClick.Invoke();

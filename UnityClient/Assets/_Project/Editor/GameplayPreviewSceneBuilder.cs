@@ -14,7 +14,22 @@ namespace ShatteredSail.Editor
     public static partial class GameplayPreviewSceneBuilder
     {
         public const string SceneFolder = "Assets/_Project/Scenes/UIPreviews";
+        // Retired on 2026-10-13. Keep the path readable for reports and exclusion checks.
         public const string EditableSceneFolder = "Assets/_Project/Scenes/UIPreviewsForMe";
+
+        public static void RejectRetiredEditablePreviews()
+        {
+            throw new NotSupportedException("UIPreviewsForMe was retired on 2026-10-13; its scenes must not be created, refreshed or saved. Use the maintained UIPreviews tools.");
+        }
+
+        public static bool IsRetiredEditablePreviewPath(string path)
+        {
+            string normalized = (path ?? string.Empty).Replace('\\', '/').TrimEnd('/');
+            return normalized.Equals(EditableSceneFolder, StringComparison.OrdinalIgnoreCase) ||
+                normalized.StartsWith(EditableSceneFolder + "/", StringComparison.OrdinalIgnoreCase) ||
+                normalized.EndsWith("/" + EditableSceneFolder, StringComparison.OrdinalIgnoreCase) ||
+                normalized.IndexOf("/" + EditableSceneFolder + "/", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
 
         private sealed class PreviewSceneSpec
         {
@@ -47,10 +62,6 @@ namespace ShatteredSail.Editor
             new PreviewSceneSpec("UI_ComponentDetail", "部件详情", CoreGameplayPreviewScreen.ComponentShopDetail, CoreGameplayPreviewPort.BronzeBell),
             new PreviewSceneSpec("UI_CardWorkshop", "卡组工坊", CoreGameplayPreviewScreen.CardWorkshop, CoreGameplayPreviewPort.TwilightTide),
             new PreviewSceneSpec("UI_DeckBuilder", "卡组构筑", CoreGameplayPreviewScreen.DeckBuilder, CoreGameplayPreviewPort.TwilightTide),
-            new PreviewSceneSpec("UI_Dispatch", "远航派遣台", CoreGameplayPreviewScreen.Dispatch, CoreGameplayPreviewPort.WhiteShell),
-            new PreviewSceneSpec("UI_DispatchDeployment", "派遣部署", CoreGameplayPreviewScreen.DispatchDeployment, CoreGameplayPreviewPort.WhiteShell),
-            new PreviewSceneSpec("UI_DispatchDeployment_Escort", "派遣部署 · 商路护航", CoreGameplayPreviewScreen.DispatchDeployment, CoreGameplayPreviewPort.WhiteShell, 1),
-            new PreviewSceneSpec("UI_DispatchDeployment_Survey", "派遣部署 · 雾礁测绘", CoreGameplayPreviewScreen.DispatchDeployment, CoreGameplayPreviewPort.WhiteShell, 2),
             new PreviewSceneSpec("UI_TreasureMap", "藏宝图桌", CoreGameplayPreviewScreen.TreasureMap, CoreGameplayPreviewPort.TwilightTide),
             new PreviewSceneSpec("UI_Maintenance", "港口投资建设", CoreGameplayPreviewScreen.Maintenance, CoreGameplayPreviewPort.SaltCrown),
             new PreviewSceneSpec("UI_VoyageDeparture", "出航码头", CoreGameplayPreviewScreen.VoyageDeparture, CoreGameplayPreviewPort.BrokenAnchor),
@@ -101,17 +112,17 @@ namespace ShatteredSail.Editor
             CreateOrRefreshAll(true);
         }
 
-        [MenuItem("Shattered Sail/Scenes/Create or Refresh Editable UI Preview Scenes")]
         public static void CreateOrRefreshEditableFromMenu()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             CreateOrRefreshEditableAll(true);
         }
 
-        [MenuItem("Shattered Sail/Scenes/Open Editable UI Preview Folder")]
         public static void SelectEditablePreviewFolder()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             UnityEngine.Object folder = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(EditableSceneFolder);
             if (folder == null)
             {
@@ -143,12 +154,13 @@ namespace ShatteredSail.Editor
         // Batch-mode entry point for the hand-editable scene set.
         public static void CreateEditableFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             CreateOrRefreshEditableAll(false);
         }
 
-        [MenuItem("Shattered Sail/Scenes/Synchronize voyage chart seed previews")]
         public static void AddSeedDropdownToEditableVoyageDeparture()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             // Retain the command name for integrations, but synchronize the
             // complete editable input, mode toggle and narrow history selector.
             SyncChartSeedStatesFromCommandLine();
@@ -164,45 +176,55 @@ namespace ShatteredSail.Editor
             Debug.Log("Warehouse UI preview scene refreshed: " + warehouse.Path + ".");
         }
 
-        // Add only the new treasure interaction layer to the authored room.
-        // Existing backgrounds, stand projections, route labels and other pages
-        // retain their saved layout; this is not a Canvas regeneration.
+        // The worktable background and its complete dynamic panel share one layout contract.
+        // The maintained treasure preview is updated; its Canvas and header remain authored.
+        public static void SyncTreasureWorktableFromCommandLine() => SyncTreasureStatesFromCommandLine();
+
         public static void SyncTreasureStatesFromCommandLine()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Treasure preview synchronization requires edit mode.");
+            for (int index = 0; index < SceneManager.sceneCount; index++)
+                if (SceneManager.GetSceneAt(index).isDirty)
+                    throw new InvalidOperationException("Save modified open scenes before synchronizing treasure previews.");
             PreviewSceneSpec spec = Array.Find(Specs, item => item.Screen == CoreGameplayPreviewScreen.TreasureMap);
             string[] paths =
             {
-                EditableSceneFolder + "/UI_TreasureMap.unity",
-                EditableSceneFolder + "/UITreasureMap/UITreasureMap_MapUnopened.unity",
-                EditableSceneFolder + "/UITreasureMap/UITreasureMap_FragmentsReady.unity",
-                EditableSceneFolder + "/UITreasureMap/UITreasureMap_MapDecoded.unity",
-                EditableSceneFolder + "/UITreasureMap/UITreasureMap_RewardClaim.unity",
+                SceneFolder + "/UI_TreasureMap.unity",
             };
             TreasureMapPreviewState[] states =
             {
-                TreasureMapPreviewState.MapUnopened, TreasureMapPreviewState.MapUnopened,
-                TreasureMapPreviewState.FragmentsReady, TreasureMapPreviewState.MapDecoded,
-                TreasureMapPreviewState.RewardClaim,
+                TreasureMapPreviewState.MapUnopened,
             };
-            string backupRoot = AbsolutePath("Artifacts/TreasureAdventure20260930/preview-backup");
+            string backupRoot = AbsolutePath("Artifacts/TreasureWorktable20261013/preview-backup/" +
+                DateTime.UtcNow.ToString("yyyyMMddTHHmmssfff"));
+            foreach (string path in paths)
+                if (!File.Exists(AbsolutePath(path)))
+                    throw new FileNotFoundException("Missing authored treasure preview", AbsolutePath(path));
+            foreach (string path in paths)
+            {
+                string backup = Path.Combine(backupRoot, path);
+                Directory.CreateDirectory(Path.GetDirectoryName(backup));
+                File.Copy(AbsolutePath(path), backup);
+            }
             for (int index = 0; index < paths.Length; index++)
             {
                 string absolute = AbsolutePath(paths[index]);
-                if (!File.Exists(absolute))
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(absolute));
-                    File.Copy(AbsolutePath(paths[0]), absolute);
-                    AssetDatabase.ImportAsset(paths[index]);
-                }
-                string backup = Path.Combine(backupRoot, paths[index]);
-                Directory.CreateDirectory(Path.GetDirectoryName(backup));
-                if (!File.Exists(backup)) File.Copy(absolute, backup);
+                string before = File.ReadAllText(absolute);
                 Scene scene = EditorSceneManager.OpenScene(paths[index], OpenSceneMode.Single);
                 CoreGameplayDemoController destination = scene.GetRootGameObjects()
                     .SelectMany(root => root.GetComponentsInChildren<CoreGameplayDemoController>(true)).Single();
-                Transform destinationRoom = destination.GetComponentsInChildren<Transform>(true).Single(item => item.name == "Treasure Panel");
+                if (destination.EditorPreviewScreen != CoreGameplayPreviewScreen.TreasureMap)
+                    throw new InvalidOperationException("Expected a treasure preview in " + paths[index]);
+                Transform destinationRoom = destination.GetComponentsInChildren<Transform>(true).SingleOrDefault(item => item.name == "Treasure Panel");
+                if (destinationRoom == null)
+                {
+                    // Older lightweight previews can contain only the controller.
+                    destination.ConfigureEditorPreview(CoreGameplayPreviewScreen.TreasureMap, spec.Port, spec.RouteIndex, true);
+                    destination.ConfigureEditorTreasureState(states[index]);
+                    PersistGeneratedSceneVisuals(destination.transform, spec);
+                    destinationRoom = destination.GetComponentsInChildren<Transform>(true).Single(item => item.name == "Treasure Panel");
+                }
                 Scene stagingScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
                 GameObject staging = new GameObject("__TreasureStateStaging");
                 SceneManager.MoveGameObjectToScene(staging, stagingScene);
@@ -211,13 +233,21 @@ namespace ShatteredSail.Editor
                     CoreGameplayDemoController source = staging.AddComponent<CoreGameplayDemoController>();
                     source.ConfigureEditorPreview(CoreGameplayPreviewScreen.TreasureMap, spec.Port, spec.RouteIndex, true);
                     source.ConfigureEditorTreasureState(states[index]);
+                    if (!source.HasCompleteEditorPreview)
+                        throw new InvalidOperationException("Incomplete treasure staging preview in " + paths[index]);
                     PersistGeneratedSceneVisuals(staging.transform, spec);
                     Transform sourceRoom = source.GetComponentsInChildren<Transform>(true).Single(item => item.name == "Treasure Panel");
+                    Transform destinationContent = destinationRoom.parent;
+                    Transform sourceBackground = sourceRoom.parent.Find("Treasure Background");
+                    RawImage backgroundArt = sourceBackground == null ? null : sourceBackground.GetComponent<RawImage>();
+                    if (backgroundArt == null || backgroundArt.texture == null)
+                        throw new InvalidOperationException("Missing generated treasure worktable background in " + paths[index]);
                     if (sourceRoom.parent.Find("Port Facility Description") == null)
-                        CopyTreasureLayer(null, destinationRoom.parent, "Port Facility Description");
+                        CopyTreasureLayer(null, destinationContent, "Port Facility Description");
                     SyncPreviewCanvasScaling(source, destination);
-                    CopyTreasureLayer(sourceRoom.Find("Treasure Workbench"), destinationRoom, "Treasure Workbench");
-                    CopyTreasureLayer(sourceRoom.parent.Find("Treasure Folio Overlay"), destinationRoom.parent, "Treasure Folio Overlay");
+                    ReplaceTreasureWorktableLayer(sourceBackground, destinationContent, "Treasure Background");
+                    ReplaceTreasureWorktableLayer(sourceRoom, destinationContent, "Treasure Panel");
+                    CopyTreasureLayer(sourceRoom.parent.Find("Treasure Folio Overlay"), destinationContent, "Treasure Folio Overlay");
                     var serialized = new SerializedObject(destination);
                     serialized.FindProperty("editorPreviewTreasureState").enumValueIndex = (int)states[index];
                     serialized.FindProperty("editorPreviewPersistGeneratedUi").boolValue = true;
@@ -229,13 +259,25 @@ namespace ShatteredSail.Editor
                     if (stagingScene.IsValid() && stagingScene.isLoaded) EditorSceneManager.CloseScene(stagingScene, true);
                     if (scene.IsValid() && scene.isLoaded) SceneManager.SetActiveScene(scene);
                 }
+                if (File.ReadAllText(absolute) != before)
+                    throw new IOException("Treasure scene changed during preview synchronization: " + paths[index]);
                 EditorSceneManager.MarkSceneDirty(scene);
                 if (!EditorSceneManager.SaveScene(scene, paths[index]))
                     throw new InvalidOperationException("Failed to save treasure preview " + paths[index]);
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("TREASURE_PREVIEW_SYNC: updated five treasure states; authored room geometry preserved. Backup: " + backupRoot);
+            Debug.Log("TREASURE_WORKTABLE_PREVIEW_SYNC: updated " + paths.Length +
+                " treasure backgrounds and dynamic panels; Canvas, header and unrelated pages preserved. Backup: " + backupRoot);
+        }
+
+        private static void ReplaceTreasureWorktableLayer(Transform source, Transform parent, string name)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            Transform previous = parent.Find(name);
+            int siblingIndex = previous == null ? source.GetSiblingIndex() : previous.GetSiblingIndex();
+            CopyTreasureLayer(source, parent, name);
+            parent.Find(name).SetSiblingIndex(siblingIndex);
         }
 
         private static void CopyTreasureLayer(Transform source, Transform parent, string name)
@@ -272,6 +314,7 @@ namespace ShatteredSail.Editor
 
         private static void CreateOrRefreshEditableAll(bool openFirstScene)
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             string absoluteFolder = AbsolutePath(EditableSceneFolder);
             if (!Directory.Exists(absoluteFolder)) Directory.CreateDirectory(absoluteFolder);
             string readmePath = Path.Combine(absoluteFolder, "README.md");
@@ -324,6 +367,7 @@ namespace ShatteredSail.Editor
 
         private static void CreateEditablePreviewScene(PreviewSceneSpec spec)
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = spec.FileName;
 

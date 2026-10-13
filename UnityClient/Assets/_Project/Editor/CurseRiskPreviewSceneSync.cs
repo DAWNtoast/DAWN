@@ -14,6 +14,7 @@ namespace ShatteredSail.Editor
     {
         public static void SyncAndCaptureCurseRiskFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Risk preview synchronization requires stopped edit mode.");
             string folder = AbsolutePath(EditableSceneFolder);
@@ -24,7 +25,7 @@ namespace ShatteredSail.Editor
                     return scene.Contains("m_Name: Warehouse Panel\n") ||
                         scene.Contains("m_Name: Treasure Workbench\n") || scene.Contains("m_Name: Battle Card\n");
                 }).Select(path => path.Substring(folder.Length + 1).Replace('\\', '/'))
-                .Concat(MonthlyDispatchReferences).Distinct().ToArray();
+                .Distinct().ToArray();
             foreach (string reference in references) SyncCurseRiskScene(reference);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -36,8 +37,7 @@ namespace ShatteredSail.Editor
                 BindingFlags.Static | BindingFlags.NonPublic, null,
                 new[] { typeof(string), typeof(string), typeof(string[]) }, null);
             string[] samples = { "UI_Warehouse.unity", "UIWarehouse/UIWarehouse_RareStorage.unity",
-                "UI_TreasureMap.unity", "UI_Battle.unity", "UIBattle/UIBattle_BoardingRam.unity",
-                "UI_DispatchDeployment.unity", "UI_DispatchDeployment_Escort.unity", "UI_DispatchDeployment_Survey.unity" };
+                "UI_TreasureMap.unity", "UI_Battle.unity", "UIBattle/UIBattle_BoardingRam.unity" };
             Debug.Log("CURSE_RISK_CAPTURE: " + capture.Invoke(null, new object[] { args[index + 1], EditableSceneFolder, samples }));
         }
 
@@ -80,7 +80,6 @@ namespace ShatteredSail.Editor
                         Copy(name, "Treasure Workbench");
                 if (MonthlyFind(target, "Battle Card") != null)
                     Copy("Battle Curse Panel", "Battle Card");
-                if (MonthlyDispatchReferences.Contains(reference)) SyncMonthlyDispatchText(source, target);
             }
             finally
             {

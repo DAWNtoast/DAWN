@@ -7,7 +7,8 @@ component IDs. The same table is packaged for builds at
 distinct name, effect, specialization, price, values, and narrative description.
 
 Runtime textures live in `Assets/_Project/Resources/ComponentArt`; the five
-untouched source atlases are kept in the `Atlases` subfolder. The `art_source_id`
+untouched source atlases are kept in
+`Assets/_Project/Editor/ArchivedArt/ComponentArt/Atlases`. The `art_source_id`
 column deliberately maps the four new gameplay variants in each slot/rarity group
 to its existing compatible art archetype. This keeps modular-ship anchors stable
 while allowing future unique textures to be introduced one row at a time.

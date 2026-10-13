@@ -90,6 +90,44 @@ namespace ShatteredSail.Core.Tests
             Assert.That(restored.Settlement.BankedWood, Is.EqualTo(source.Settlement.BankedWood));
         }
 
+        [Test]
+        public void WrappedCalendarCheckpoint_RestoresMidnightAndContinuesThroughSaveEpoch()
+        {
+            var source = new CoreVoyageSession();
+            var before = new DateTime(9999, 12, 31, 23, 30, 0);
+            Assert.That(source.RestoreGameClock((before - CoreVoyageSession.GameClockOrigin).TotalHours), Is.True);
+            source.StartVoyage();
+            Invoke(source, "ConsumeHours", 1d);
+            Assert.That(source.GameDateTime, Is.EqualTo(new DateTime(1, 1, 1, 0, 30, 0)));
+
+            CoreVoyageSession restored = RoundTrip(source);
+            Assert.That(restored.GameDateTime, Is.EqualTo(source.GameDateTime));
+            Assert.That(restored.ElapsedGameHours, Is.EqualTo(source.ElapsedGameHours));
+            Invoke(restored, "ConsumeHours", 8d);
+            Assert.That(restored.GameDateTime, Is.EqualTo(new DateTime(1, 1, 1, 8, 30, 0)));
+            Assert.That(restored.TotalHours, Is.EqualTo(9d));
+        }
+
+        [Test]
+        public void VoyageResumePreservesIdentifiedFragmentsAndNextIdentificationResult()
+        {
+            var source = new CoreVoyageSession();
+            source.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 1400, fragments = 8,
+                identifiedWeatheredFragments = 3, identifiedGildedFragments = 6, identifiedMoonlitFragments = 2,
+                identificationSeed = "CHECKPOINT-FRAGMENTS", identificationSequence = 19, moonlitPityCount = 2 });
+            Assert.That(source.TryIdentifyTreasureFragment(out _), Is.True);
+            string treasureBefore = JsonUtility.ToJson(source.CaptureTreasureProgress());
+            source.StartVoyage();
+            CoreVoyageSession restored = RoundTrip(source);
+            Assert.That(JsonUtility.ToJson(restored.CaptureTreasureProgress()), Is.EqualTo(treasureBefore));
+            source.SafeReturn(); restored.SafeReturn();
+            source.ReturnToPortAfterSettlement(); restored.ReturnToPortAfterSettlement();
+            Assert.That(source.TryIdentifyTreasureFragment(out string result), Is.True);
+            Assert.That(restored.TryIdentifyTreasureFragment(out string resumedResult), Is.True);
+            Assert.That(resumedResult, Is.EqualTo(result));
+            Assert.That(JsonUtility.ToJson(restored.CaptureTreasureProgress()), Is.EqualTo(JsonUtility.ToJson(source.CaptureTreasureProgress())));
+        }
+
         [TestCase(0)] [TestCase(1)] [TestCase(2)]
         public void StructuredChartRoundTripKeepsRandomSequenceAndBothSailingDirections(int route)
         {
@@ -97,6 +135,7 @@ namespace ShatteredSail.Core.Tests
             foreach (string port in new[] { "断锚港", "白贝港" })
             {
                 var source = new CoreVoyageSession(); source.RestoreProfile(2000, port);
+                source.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 1500 });
                 Assert.That(source.TrySelectChartSeed(seed, out string reason), Is.True, reason);
                 source.StartVoyage();
                 CoreVoyageSession restored = RoundTrip(source);
@@ -182,6 +221,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("version")] [TestCase("node")] [TestCase("fog")] [TestCase("cargo")] [TestCase("deck")] [TestCase("nan")]
+        [TestCase("identified-fragments")] [TestCase("identification-sequence")]
         public void InvalidCheckpointLeavesExistingProfileCompletelyUntouched(string corruption)
         {
             var source = ChartSession(); CoreVoyageCheckpoint checkpoint = source.CaptureVoyageCheckpoint();
@@ -192,6 +232,8 @@ namespace ShatteredSail.Core.Tests
                 case "fog": checkpoint.exploredCells = new bool[1]; break;
                 case "cargo": checkpoint.cargo.gold = -1; break;
                 case "deck": checkpoint.battleDecks[0].cards[0] = int.MaxValue; break;
+                case "identified-fragments": checkpoint.treasureProgress.identifiedWeatheredFragments = -1; break;
+                case "identification-sequence": checkpoint.treasureProgress.identificationSequence = -1; break;
                 default: checkpoint.x = float.NaN; break;
             }
             var target = new CoreVoyageSession(); target.RestoreProfile(987.6543m, "铜钟港"); target.Cargo.Wood = 37;

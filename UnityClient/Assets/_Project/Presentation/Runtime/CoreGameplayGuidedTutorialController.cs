@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
+    // Retain the retired Distance ordinal so suspended older lessons remain readable.
     public enum GuidedTutorialNavigationInputStep { Heading, Distance, Sail }
 
     public sealed partial class CoreGameplayDemoController
@@ -44,8 +45,7 @@ namespace ShatteredSail.Presentation
         public GuidedTutorialStep CurrentGuidedTutorialStep => guidedTutorialStep;
         public GuidedTutorialNavigationInputStep CurrentGuidedTutorialNavigationInputStep => guidedTutorialNavigationInputStep;
         private string GuidedTutorialNavigationTargetControl =>
-            guidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Heading ? "Heading East" :
-            guidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Distance ? "Distance Slider" : "Execute Sail";
+            guidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Heading ? "Heading East" : "Execute Sail";
         public bool GuidedTutorialRecoveryActive => tutorialActive && PlayerPrefs.GetInt(GuidedTutorialRecoveryKey, 0) == 1;
         public bool GuidedTutorialWarehousePending => tutorialActive && PlayerPrefs.GetInt(GuidedTutorialWarehousePendingKey, 0) == 1;
         public bool GuidedTutorialEquipmentPending => tutorialActive && PlayerPrefs.GetInt(GuidedTutorialEquipmentPendingKey, 0) == 1;
@@ -55,6 +55,7 @@ namespace ShatteredSail.Presentation
         private sealed class DrawnSeaChartRecord
         {
             public int version = 1;
+            public int mapGeometryVersion;
             public int routeIndex;
             public string routeName;
             public string seed;
@@ -65,6 +66,7 @@ namespace ShatteredSail.Presentation
             public float coverage;
             public bool tutorialWaters;
             public bool[] exploredCells;
+            public bool[] chartExploredCells;
             public int[] revealedLocationIds;
         }
 
@@ -119,7 +121,9 @@ namespace ShatteredSail.Presentation
                 guidedTutorialStep = GuidedTutorialStep.Shipyard;
                 return;
             }
-            activePortFacility = guidedTutorialCheckpoint == 0 ? 8 : -1;
+            // Every port checkpoint resumes at the harbor overview. The first
+            // departure lesson guides the player to the pier through its real hotspot.
+            activePortFacility = -1;
             switch (guidedTutorialCheckpoint)
             {
                 case 0: session.SelectRoute(0); guidedTutorialStep = GuidedTutorialStep.FirstDeparture; break;
@@ -179,11 +183,11 @@ namespace ShatteredSail.Presentation
                     else guidedTutorialStep = activePortFacility == 2 ? GuidedTutorialStep.RecruitNavigator : GuidedTutorialStep.Tavern;
                 }
                 if (guidedTutorialCheckpoint == 2)
-                    guidedTutorialStep = activePortFacility != 8 ? GuidedTutorialStep.SecondPier :
+                    guidedTutorialStep = activePortFacility != PortFacilityArtCatalog.VoyageFacilityIndex ? GuidedTutorialStep.SecondPier :
                         guidedTutorialStep == GuidedTutorialStep.SecondDeparture
                             ? GuidedTutorialStep.SecondDeparture : GuidedTutorialStep.SecondRoute;
                 if (guidedTutorialCheckpoint == 3)
-                    guidedTutorialStep = activePortFacility != 8 ? GuidedTutorialStep.ThirdPier :
+                    guidedTutorialStep = activePortFacility != PortFacilityArtCatalog.VoyageFacilityIndex ? GuidedTutorialStep.ThirdPier :
                         guidedTutorialStep == GuidedTutorialStep.ThirdDeparture
                             ? GuidedTutorialStep.ThirdDeparture : GuidedTutorialStep.ThirdRoute;
                 return;
@@ -223,11 +227,6 @@ namespace ShatteredSail.Presentation
             SailingForecast forecast = session.GetForecast();
             guidedTutorialSupplyReturnRequired = forecast == null || forecast.Blocked ||
                 session.Cargo.Water < forecast.WaterCost || session.Cargo.Food < forecast.FoodCost;
-            // A learner may drag past the lesson distance. Let them correct it,
-            // rather than interpreting that temporary value as a need to return.
-            if (guidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Distance &&
-                session.PlannedDistanceNm != CoreGuidedTutorialContent.PlannedDistanceNm)
-                guidedTutorialSupplyReturnRequired = false;
             int completed = session.GuidedTutorialCompletedEncounters;
             if (leg == 1)
                 guidedTutorialStep = completed >= 3 ? GuidedTutorialStep.FirstReturn : completed == 2 ? GuidedTutorialStep.FirstCrewEvent :
@@ -246,7 +245,15 @@ namespace ShatteredSail.Presentation
                 guidedNavigationCompletedEncounters != session.GuidedTutorialCompletedEncounters))
             {
                 guidedTutorialNavigationInputStep = GuidedTutorialNavigationInputStep.Heading;
+            }
+            if (session.Phase == CoreDemoPhase.Sailing)
+            {
+                // The lesson owns its fixed route distance. Old suspended
+                // sliders may contain an intermediate value; normalize it before
+                // forecast/supply checks and continue directly to execution.
                 session.SetDistance(CoreGuidedTutorialContent.PlannedDistanceNm);
+                if (guidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Distance)
+                    guidedTutorialNavigationInputStep = GuidedTutorialNavigationInputStep.Sail;
             }
             guidedNavigationInitialized = true;
             guidedNavigationMap = session.Map;
@@ -259,27 +266,13 @@ namespace ShatteredSail.Presentation
         {
             if (control == null || !control.isActiveAndEnabled || !control.IsInteractable() ||
                 navigationMotionPlaying || session == null || session.Phase != CoreDemoPhase.Sailing) return false;
-            return !tutorialActive || (GuidedIsSailingTarget(guidedTutorialStep) &&
+            return !tutorialActive || (input != GuidedTutorialNavigationInputStep.Distance && GuidedIsSailingTarget(guidedTutorialStep) &&
                 !GuidedTutorialNeedsSupplyReturn && guidedTutorialNavigationInputStep == input);
-        }
-
-        private void ConfirmGuidedNavigationDistance(Slider slider)
-        {
-            if (!tutorialActive || !CanApplyGuidedNavigationInput(slider, GuidedTutorialNavigationInputStep.Distance)) return;
-            // The regular slider remains the source of the actual voyage setting.
-            // Confirmation happens only on release/submit, never during its drag.
-            int requestedDistance = Mathf.RoundToInt(slider.value / 10f) * 10;
-            session.SetDistance(requestedDistance);
-            slider.SetValueWithoutNotify(session.PlannedDistanceNm);
-            if (requestedDistance == CoreGuidedTutorialContent.PlannedDistanceNm &&
-                session.PlannedDistanceNm == CoreGuidedTutorialContent.PlannedDistanceNm)
-                guidedTutorialNavigationInputStep = GuidedTutorialNavigationInputStep.Sail;
-            BuildGuidedTutorialOverlay();
         }
 
         private void OnGuidedTutorialRouteSelected(int index)
         {
-            if (!tutorialActive || index != 0 || session == null || session.Phase != CoreDemoPhase.Port || activePortFacility != 8) return;
+            if (!tutorialActive || index != 0 || session == null || session.Phase != CoreDemoPhase.Port || activePortFacility != PortFacilityArtCatalog.VoyageFacilityIndex) return;
             guidedDepartureRouteSelected = true;
             if (guidedTutorialCheckpoint == 2)
                 guidedTutorialStep = GuidedTutorialStep.SecondDeparture;
@@ -289,7 +282,7 @@ namespace ShatteredSail.Presentation
 
         private void OnGuidedTutorialDestinationSelected()
         {
-            if (!tutorialActive || session == null || session.Phase != CoreDemoPhase.Port || activePortFacility != 8) return;
+            if (!tutorialActive || session == null || session.Phase != CoreDemoPhase.Port || activePortFacility != PortFacilityArtCatalog.VoyageFacilityIndex) return;
             if (guidedTutorialStep != GuidedTutorialStep.FirstDeparture &&
                 guidedTutorialStep != GuidedTutorialStep.SecondRoute &&
                 guidedTutorialStep != GuidedTutorialStep.SecondDeparture &&
@@ -340,6 +333,7 @@ namespace ShatteredSail.Presentation
             pendingDrawnChart = null;
             if (!tutorialActive) return session.ConfigureGuidedTutorialVoyage(0);
             if (session.Phase != CoreDemoPhase.Port ||
+                activePortFacility != PortFacilityArtCatalog.VoyageFacilityIndex ||
                 (guidedTutorialStep != GuidedTutorialStep.FirstDeparture &&
                  guidedTutorialStep != GuidedTutorialStep.SecondDeparture &&
                  guidedTutorialStep != GuidedTutorialStep.ThirdDeparture)) return false;
@@ -399,9 +393,14 @@ namespace ShatteredSail.Presentation
 
         private Transform FindActiveGuidedContent(string name)
         {
-            // Semantic IDs survive layout regrouping; the explicit fallback
-            // supports authored previews created before IDs were introduced.
-            return UiId.FindOrLegacyName(contentRoot, name);
+            // ClearChildren deactivates old screens before Unity's deferred Destroy.
+            // Transform.Find alone can still return the retired view in this frame.
+            for (int i = contentRoot.childCount - 1; i >= 0; i--)
+            {
+                Transform child = contentRoot.GetChild(i);
+                if (child.name == name && child.gameObject.activeSelf) return child;
+            }
+            return null;
         }
 
         private void RetreatCurrentBattle()
@@ -423,14 +422,17 @@ namespace ShatteredSail.Presentation
             string chartSeed = session.CurrentChartSeed;
             if (!CoreVoyageSession.TryParseChartSeed(chartSeed, out _) &&
                 !session.TryImportLegacyChart(session.Map.Seed, session.SelectedRouteIndex, session.Map.DepartureName,
-                    session.Map.DestinationName, session.Map.Hash, session.GuidedTutorialLeg != 0, out chartSeed)) return;
+                    session.Map.DestinationName, session.Map.Hash, session.GuidedTutorialLeg != 0, out chartSeed,
+                    session.Map.GeometryVersion)) return;
             pendingDrawnChart = new DrawnSeaChartRecord
             {
                 routeIndex = session.SelectedRouteIndex, routeName = session.Map.Route.Name,
+                mapGeometryVersion = session.Map.GeometryVersion,
                 seed = chartSeed, hash = session.Map.Hash.ToString("X8"), port = session.CurrentPort,
                 departurePort = session.Map.DepartureName, destinationPort = session.Map.DestinationName,
                 coverage = session.Settlement.Coverage, tutorialWaters = CoreVoyageSession.TryParseChartSeed(chartSeed, out CoreSeaChartDefinition chartDefinition) && chartDefinition.TutorialWaters,
                 exploredCells = (bool[])session.Map.ExploredCells.Clone(), revealedLocationIds = locations.ToArray(),
+                chartExploredCells = session.Map.CaptureChartExploration(),
             };
             PlaySfx("chart_draw", 0.46f);
             RefreshSettlementChartState();
@@ -438,7 +440,7 @@ namespace ShatteredSail.Presentation
 
         private void ConfirmVoyageSettlement()
         {
-            if (session.Phase != CoreDemoPhase.Settlement) return;
+            if (profileSaveBlocked || session.Phase != CoreDemoPhase.Settlement) return;
             bool success = session.Settlement.Outcome != VoyageOutcome.Failure;
             int leg = session.GuidedTutorialLeg;
             bool bossLessonComplete = tutorialActive && success && leg >= CoreGuidedTutorialContent.NavigatorVoyageLeg &&
@@ -450,6 +452,12 @@ namespace ShatteredSail.Presentation
                 tutorialActive && success && leg == 1 && session.GuidedTutorialCompletedEncounters >= 3;
             if (bossLessonComplete && pendingDrawnChart == null) return;
             VoyageSettlement settledResult = session.Settlement;
+            bool voyageThreeEventsComplete = CoreAchievementCatalog.MeetsVoyageThreeEventsRequirement(
+                settledResult, tutorialActive || leg > 0, session.IsTreasureVoyage);
+            bool voyageHalfChartComplete = CoreAchievementCatalog.MeetsVoyageHalfChartRequirement(
+                settledResult, tutorialActive || leg > 0, session.IsTreasureVoyage);
+            bool voyageEventArrivalComplete = CoreAchievementCatalog.MeetsVoyageEventArrivalRequirement(
+                settledResult, tutorialActive || leg > 0, session.IsTreasureVoyage);
             bool returnedWithDamage = session.Hull < session.MaxHull;
             bool navigatorVoyageComplete = success && session.HasNavigator;
             session.ReturnToPortAfterSettlement();
@@ -528,6 +536,11 @@ namespace ShatteredSail.Presentation
             }
             if (!string.IsNullOrEmpty(storageNotice)) portNotice = storageNotice;
             activePortFacility = -1;
+            // Keep this evidence in memory until the return transaction begins.
+            // In particular, viewing or abandoning the settlement writes no unlock.
+            pendingVoyageThreeEventsAchievement = Application.isPlaying && !editorPreviewBuilding && voyageThreeEventsComplete;
+            pendingVoyageHalfChartAchievement = Application.isPlaying && !editorPreviewBuilding && voyageHalfChartComplete;
+            pendingVoyageEventArrivalAchievement = Application.isPlaying && !editorPreviewBuilding && voyageEventArrivalComplete;
             SaveProgress();
             if (tutorialActive) ResetGuidedTutorialPortStep();
             Render();

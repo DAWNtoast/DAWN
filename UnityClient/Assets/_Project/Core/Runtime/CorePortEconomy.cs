@@ -17,10 +17,10 @@ namespace ShatteredSail.Core.Gameplay
         {
             switch (item)
             {
-                case "water": return 0.04m;
-                case "food": return 0.12m;
+                case "water": return 0.032m;
+                case "food": return 0.096m;
                 case "beer": return 3m;
-                case "medicine": return 8m;
+                case "medicine": return 6.4m;
                 case "wood": return 5m;
                 case "iron": return 10m;
                 case "cloth": return 7m;

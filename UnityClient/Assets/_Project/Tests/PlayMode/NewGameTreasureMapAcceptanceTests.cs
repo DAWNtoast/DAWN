@@ -43,6 +43,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller, Is.Not.Null);
             Assert.That(controller.IsTutorialActive, Is.True);
             Assert.That(controller.CurrentGuidedTutorialStep, Is.EqualTo(GuidedTutorialStep.FirstDeparture));
+            yield return MainMenuSceneTests.ClickThroughOpeningComic(controller);
             AssertGuidedDefaultDecks(controller);
             var seen = new HashSet<string>();
             capture.Observe(controller);
@@ -109,45 +110,64 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
 
             Assert.That(GameObject.Find("Treasure Panel"), Is.Not.Null);
+            int ordinaryRoute = controller.Session.SelectedRouteIndex;
             for (int route = 0; route < 3; route++)
             {
                 Button button = RequireGuidedButton("Treasure Route " + route);
                 Assert.That(button.IsInteractable(), Is.True);
                 RawImage chart = button.GetComponentsInChildren<RawImage>()
                     .Single(item => item.name == "Treasure Route Art " + route);
-                Assert.That(chart.texture, Is.Not.Null, "A newly unlocked treasure route must display its chart artwork.");
+                Assert.That(chart.texture, Is.Not.Null, "Each treasure puzzle must display its own chart artwork.");
+                Assert.That(GameObject.Find("Treasure Route Name " + route).GetComponent<Text>().text,
+                    Is.EqualTo(CoreTreasureHuntCatalog.Ranks[route].Name + "藏宝图"));
+                Assert.That(GameObject.Find("Treasure Route Progress " + route).GetComponent<Text>().text, Does.Contain("0/4"));
+                for (int piece = 0; piece < 4; piece++)
+                    Assert.That(GameObject.Find("Treasure Fragment " + route + " " + piece).GetComponent<RawImage>().color.a, Is.Zero);
             }
-            Assert.That(GameObject.Find("Treasure Selected Route").GetComponent<Text>().text,
-                Does.Contain(CoreVoyageSession.Routes[controller.Session.SelectedRouteIndex].Name));
-            AssertTreasureRouteReading(0, true);
+            Assert.That(RequireGuidedButton("Treasure Identify Fragment").IsInteractable(), Is.EqualTo(controller.Session.CanIdentifyTreasureFragment(out _)));
+            AssertTreasurePuzzlePresentation(0);
             capture.Capture(controller, "First_TreasureMap", "Treasure Panel", "UI_TreasureMap");
             foreach (int route in new[] { 1, 2, 0 })
             {
                 ClickAcceptanceButton("Treasure Route " + route);
                 yield return null;
                 yield return null;
-                Assert.That(controller.Session.SelectedRouteIndex, Is.EqualTo(route));
-                AssertTreasureRouteReading(route, route == 0);
-                capture.Capture(controller, "TreasureMap_SelectedRoute_" + route, "Treasure Panel", "UI_TreasureMap");
+                Assert.That(controller.Session.SelectedRouteIndex, Is.EqualTo(ordinaryRoute), "Inspecting a treasure puzzle must preserve ordinary departure choices.");
+                Assert.That(controller.Session.TreasureMaps, Is.Empty, "An incomplete puzzle cannot create a seed.");
+                AssertTreasurePuzzlePresentation(route);
+                capture.Capture(controller, "TreasureMap_SelectedPuzzle_" + route, "Treasure Panel", "UI_TreasureMap");
             }
             LogAssert.NoUnexpectedReceived();
         }
 
-        private static void AssertTreasureRouteReading(int routeIndex, bool hasDrawnChart)
+        private static void AssertTreasurePuzzlePresentation(int rankIndex)
         {
-            CoreRouteDefinition route = CoreVoyageSession.Routes[routeIndex];
-            Text detail = GameObject.Find("Treasure Route Detail").GetComponent<Text>();
-            Assert.That(GameObject.Find("Treasure Selected Route").GetComponent<Text>().text, Does.Contain(route.Name));
-            Assert.That(detail.text, Does.Contain(route.Theme).And.Contain("推荐战力 " + route.RecommendedPower)
-                .And.Contain(route.BossName).And.Contain("选择展板切换航线"));
-            if (hasDrawnChart)
-                Assert.That(detail.text, Does.Contain("已绘海图：" + route.Name).And.Contain("近港教学水域"));
-            else
-                Assert.That(detail.text, Does.Not.Contain("已绘海图：").And.Not.Contain("近港教学水域"),
-                    "Selecting another route must not display the tutorial route's saved chart as its archive.");
-            Assert.That(detail.preferredHeight, Is.LessThanOrEqualTo(detail.rectTransform.rect.height + 1f),
-                "Route information, chart archive and switching hint must all fit the reading desk.");
+            CoreTreasureMapRank rank = CoreTreasureHuntCatalog.Ranks[rankIndex];
+            Text caption = GameObject.Find("Treasure Route Name " + rankIndex).GetComponent<Text>();
+            Assert.That(caption.text, Is.EqualTo(rank.Name + "藏宝图"));
+            Text progress = GameObject.Find("Treasure Route Progress " + rankIndex).GetComponent<Text>();
+            Assert.That(progress.text, Does.Contain("0/4"));
+            Assert.That(caption.text, Does.Not.Contain("已绘海图：").And.Not.Contain("近港教学水域").And.Not.Contain("选择展板切换航线"));
+            Assert.That(GameObject.Find("Treasure Route Reading Desk"), Is.Null);
+            Assert.That(GameObject.Find("Treasure Selected Route"), Is.Null);
+            Assert.That(GameObject.Find("Treasure Route Detail"), Is.Null);
+            Text status = GameObject.Find("Treasure Workbench Status").GetComponent<Text>();
+            Assert.That(status.text, Does.Contain("海盗等级").And.Contain("未鉴定碎片").And.Contain("藏宝种子").And.Not.Contain("月蚀"));
+            Assert.That(RequireGuidedButton("Treasure Identify Fragment").GetComponentInChildren<Text>().text, Does.Contain("鉴定碎片"));
+            foreach (string name in new[] { "Treasure Route Name " + rankIndex, "Treasure Route Progress " + rankIndex, "Treasure Workbench Status", "Treasure Workbench Notice" })
+            {
+                Text label = GameObject.Find(name).GetComponent<Text>();
+                Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + 1f),
+                    "The remaining workbench information must fit after reflow: " + name);
+            }
         }
+
+        private static int AcceptanceReadyTreasureBoard(CoreVoyageSession session) =>
+            Enumerable.Range(0, CoreTreasureHuntCatalog.Ranks.Count)
+                .Where(index => session.CanCraftTreasureMap(CoreTreasureHuntCatalog.Ranks[index].Id, out _)).DefaultIfEmpty(-1).First();
+
+        private static int AcceptanceIdentifiedFragments(CoreVoyageSession session) =>
+            CoreTreasureHuntCatalog.Ranks.Sum(rank => session.GetIdentifiedTreasureFragments(rank.Id));
 
         private static void ClickAcceptanceButton(string name)
         {
@@ -157,6 +177,8 @@ namespace ShatteredSail.Presentation.Tests
             Canvas canvas = button.GetComponentInParent<Canvas>().rootCanvas;
             Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
             RectTransform rect = (RectTransform)button.transform;
+            if (button.targetGraphic is NavigationCompassSectorGraphic)
+                rect = (RectTransform)button.transform.Find("Label");
             var pointer = new PointerEventData(EventSystem.current)
             {
                 button = PointerEventData.InputButton.Left,

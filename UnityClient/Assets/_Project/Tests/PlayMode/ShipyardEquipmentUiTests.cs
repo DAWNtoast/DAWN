@@ -25,6 +25,9 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             yield return null;
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            // This fixture covers replacement and cross-vessel retention, so
+            // make the starter's existing fittings an explicit precondition.
+            PopulateBareStarterForFixture(controller);
             ComponentArtCatalog catalog = new ComponentArtCatalog();
             ComponentArtEntry[] variants = catalog.Entries.Where(item => item.Slot == ComponentSlot.Bow && item.Rarity == ComponentRarity.Rare).Take(2).ToArray();
             OwnedShipComponent first = controller.GrantOwnedComponent(variants[0], 0.94f);
@@ -74,7 +77,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Bow), Is.Null);
             AssertShipyardTactic(controller, variants[1], false);
             int hullWithoutBow = controller.Session.MaxHull;
-            Assert.That(hullWithoutBow, Is.EqualTo(controller.Session.SelectedShip.MaxHull - catalog.Get(0).HullBonus));
+            Assert.That(hullWithoutBow, Is.EqualTo(controller.Session.SelectedShip.MaxHull),
+                "An empty slot leaves the hull at its authored base value; it does not subtract a catalogue baseline.");
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(itemCount), "Refitting must retain both the replaced and unloaded physical items.");
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold), "Already-owned fittings do not charge purchase or installation fees.");
 
@@ -106,6 +110,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
 
             NavalBattleVisualCapture.Capture(controller, "84_Shipyard_Equipment_NonFlagship.png", "船坞配件页：分别维护每艘船，卸下或替换不收费", "Shipyard Detail");
+            yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
             yield return ClickShipyardControl("Confirm Shipyard Vessel");
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(1));
             Assert.That(controller.Session.MaxHull, Is.EqualTo(controller.Session.SelectedShip.MaxHull + variants[1].HullBonus - catalog.Get(0).HullBonus));
@@ -175,6 +180,18 @@ namespace ShatteredSail.Presentation.Tests
                     Is.EqualTo(expected && tactic.Card.IsAllowedInStage(stage)), component.Id + " / " + stage);
         }
 
+        private static void PopulateBareStarterForFixture(CoreGameplayDemoController controller)
+        {
+            ComponentArtCatalog catalog = new ComponentArtCatalog();
+            foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
+            {
+                ComponentArtEntry entry = catalog.Get((int)slot * ComponentArtCatalog.EntriesPerSlot);
+                OwnedShipComponent item = controller.GrantOwnedComponent(entry, 1f);
+                Assert.That(item, Is.Not.Null, slot.ToString());
+                Assert.That(controller.TryEquipOwnedComponent(0, item.InstanceId), Is.True, slot.ToString());
+            }
+        }
+
         private static RawImage FindRenderedShipLayer(string parentName, Texture expectedTexture)
         {
             GameObject parent = GameObject.Find(parentName);
@@ -190,31 +207,15 @@ namespace ShatteredSail.Presentation.Tests
             Button button = ActiveButton(name);
             Assert.That(button, Is.Not.Null, name);
             Assert.That(button.interactable, Is.True, name);
-            ScrollRect scroll = button.GetComponentInParent<ScrollRect>();
-            if (scroll != null && scroll.vertical)
-            {
-                RectTransform buttonRect = button.GetComponent<RectTransform>();
-                Vector3[] corners = new Vector3[4];
-                buttonRect.GetWorldCorners(corners);
-                Vector3 lower = scroll.viewport.InverseTransformPoint(corners[0]);
-                Vector3 upper = scroll.viewport.InverseTransformPoint(corners[2]);
-                if (lower.y < scroll.viewport.rect.yMin + 4f || upper.y > scroll.viewport.rect.yMax - 4f)
-                {
-                    float hidden = scroll.content.rect.height - scroll.viewport.rect.height;
-                    Assert.That(hidden, Is.GreaterThan(0f), name + " needs a scrollable path into view.");
-                    float shift = scroll.viewport.rect.center.y - (lower.y + upper.y) * .5f;
-                    scroll.verticalNormalizedPosition = Mathf.Clamp01(scroll.verticalNormalizedPosition - shift / hidden);
-                    scroll.StopMovement();
-                    yield return null;
-                    Canvas.ForceUpdateCanvases();
-                }
-            }
             Canvas canvas = button.GetComponentInParent<Canvas>();
             Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            RectTransform rect = (RectTransform)button.transform;
+            if (button.targetGraphic is NavigationCompassSectorGraphic)
+                rect = (RectTransform)button.transform.Find("Label");
             PointerEventData pointer = new PointerEventData(EventSystem.current)
             {
                 button = PointerEventData.InputButton.Left,
-                position = RectTransformUtility.WorldToScreenPoint(camera, button.GetComponent<RectTransform>().TransformPoint(button.GetComponent<RectTransform>().rect.center)),
+                position = RectTransformUtility.WorldToScreenPoint(camera, rect.TransformPoint(rect.rect.center)),
             };
             List<RaycastResult> hits = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointer, hits);

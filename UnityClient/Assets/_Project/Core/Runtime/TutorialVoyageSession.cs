@@ -100,6 +100,9 @@ namespace ShatteredSail.Core.Tutorial
     /// </summary>
     public sealed class TutorialVoyageSession
     {
+        public const int MaxMorale = 20;
+        public const int DefaultStartingMorale = 10;
+
         public const string FirstLegSeed = "TUTOR-FIRST-SAIL-01";
         public const string AdvancedLegSeed = "TUTOR-NAVIGATOR-02";
         public const int CrewCount = 13;
@@ -194,7 +197,7 @@ namespace ShatteredSail.Core.Tutorial
                 false,
                 new TutorialChoice(
                     "进入卡牌对战",
-                    "挑战教学首领（战力 60）",
+                    "挑战教学首领",
                     1,
                     new TutorialEffect(),
                     startsBattle: true)),
@@ -253,7 +256,7 @@ namespace ShatteredSail.Core.Tutorial
             Hull = MaxHull;
             Water = 70;
             Food = 70;
-            Morale = 5;
+            Morale = DefaultStartingMorale;
             Gold = 100;
             Wood = 8;
             Beer = 4;
@@ -417,6 +420,7 @@ namespace ShatteredSail.Core.Tutorial
             {
                 case TutorialBattleAction.FireCannons:
                     BattleEnemyHull = Math.Max(0, BattleEnemyHull - 9);
+                    Morale = ClampMorale(Morale + 2);
                     LastBattleMessage = "火炮齐射造成 9 点伤害。";
                     break;
                 case TutorialBattleAction.Brace:
@@ -448,6 +452,8 @@ namespace ShatteredSail.Core.Tutorial
             int damage = incoming - absorbed;
             BattleBlock = 0;
             Hull = Math.Max(1, Hull - damage);
+            if (damage > 0)
+                Morale = ClampMorale(Morale - 1);
             battleTurn += 1;
             LastBattleMessage += " 敌舰反击 " + incoming + "，格挡 " + absorbed + "，船体损失 " + damage + "。";
             return true;
@@ -555,7 +561,7 @@ namespace ShatteredSail.Core.Tutorial
             Hull = Math.Max(0, Math.Min(MaxHull, Hull + effect.Hull));
             Water = Math.Max(0, Water + effect.Water);
             Food = Math.Max(0, Food + effect.Food);
-            Morale = Math.Max(0, Morale + effect.Morale);
+            Morale = ClampMorale((long)Morale + effect.Morale);
             Gold = Math.Max(0, Gold + effect.Gold);
             Wood = Math.Max(0, Wood + effect.Wood);
             Beer = Math.Max(0, Beer + effect.Beer);
@@ -571,6 +577,11 @@ namespace ShatteredSail.Core.Tutorial
                 speedBoost = effect.SpeedBoost;
                 speedBoostLegs = effect.SpeedBoostLegs;
             }
+        }
+
+        private static int ClampMorale(long value)
+        {
+            return (int)Math.Max(0L, Math.Min((long)MaxMorale, value));
         }
 
         private void StartBattle()

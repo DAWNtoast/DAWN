@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -80,20 +80,21 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
             foreach (Button button in detail.GetComponentsInChildren<Button>(true))
             {
-                ScrollRect scroll = button.GetComponentInParent<ScrollRect>();
-                RectTransform tested = scroll == null ? button.GetComponent<RectTransform>() : scroll.viewport;
                 Vector3[] corners = new Vector3[4];
-                tested.GetWorldCorners(corners);
+                button.GetComponent<RectTransform>().GetWorldCorners(corners);
                 foreach (Vector3 corner in corners)
                 {
                     Vector3 local = detail.InverseTransformPoint(corner);
-                    Assert.That(local.y, Is.GreaterThan(-365f), button.name + " must stay inside the expanded reading footer.");
+                    Assert.That(local.y, Is.InRange(-346f, 360f), button.name + " must stay inside the paper margins.");
                     Assert.That(local.x, Is.InRange(-735.99f, 735.99f), button.name + " must stay inside the paper sides.");
                 }
             }
             decimal gold = controller.Session.ProfileGold;
             int active = controller.Session.SelectedShipIndex;
-            Find<Button>("Confirm Shipyard Vessel").onClick.Invoke();
+            if (page == (int)ShipyardDossierTab.Equipment)
+                Assert.That(host.GetComponentsInChildren<Button>(true).Any(button => button.name == "Confirm Shipyard Vessel"), Is.False);
+            else
+                Find<Button>("Confirm Shipyard Vessel").onClick.Invoke();
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold), "Editor preview must not buy ships.");
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(active));
             controller.RefreshEditorPreview();
@@ -102,7 +103,7 @@ namespace ShatteredSail.Presentation.Tests
             AssertCurrentPage(page);
         }
         [TestCase(2)]
-        public void PerformancePageUsesFiveNormalizedBarsAndDedicatedDescription(int index)
+        public void PerformancePageUsesFiveNormalizedBars(int index)
         {
             Preview(index, true, 0);
             float[] maximums = {
@@ -123,11 +124,11 @@ namespace ShatteredSail.Presentation.Tests
                 Image track = Find<Image>("Shipyard Stat Bar " + stat);
                 Image fill = Find<Image>("Shipyard Stat Bar Fill " + stat);
                 bool full = values[stat] >= maximums[stat] - 0.001f;
-                if (full)
-                    Assert.That(fill.rectTransform.rect.width, Is.EqualTo(track.rectTransform.rect.width).Within(0.1f));
-                else
-                    Assert.That(track.rectTransform.rect.width, Is.GreaterThan(fill.rectTransform.rect.width),
-                        "The bar must retain an unfilled portion below the fleet maximum.");
+                float innerWidth = track.rectTransform.rect.width -
+                    (track.rectTransform.rect.height - fill.rectTransform.rect.height);
+                Assert.That(fill.rectTransform.rect.width / innerWidth,
+                    Is.EqualTo(Mathf.Clamp01(values[stat] / maximums[stat])).Within(0.001f),
+                    "Each stat must use the same fleet-wide scale within the bar's available width.");
                 if (full)
                     Assert.That(fill.color.g, Is.GreaterThan(fill.color.r), "A maximum stat uses the green fill.");
                 else
@@ -135,49 +136,6 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Find<Text>("Shipyard Stat Delta " + stat).text, Is.Empty,
                     "An unmodified vessel should not show a component delta.");
             }
-            RectTransform description = Find<RectTransform>("Shipyard Description Panel");
-            Assert.That(description.rect.width, Is.GreaterThan(200f));
-            Text descriptionText = Find<Text>("Shipyard Dossier Specialization");
-            Assert.That(descriptionText.transform.IsChildOf(description), Is.True);
-            Assert.That(descriptionText.text, Is.EqualTo(CoreShipMarketCatalog.Specialty(index)));
-            Assert.That(descriptionText.lineSpacing, Is.EqualTo(1.22f));
-        }
-
-        [TestCase(0, 29)]
-        [TestCase(1, 36)]
-        [TestCase(2, 44)]
-        public void ReadabilityModesKeepShipLoreAndSpecializationReadable(int level, int expectedStorySize)
-        {
-            int? previousLevel = GameReadability.OverrideLevel;
-            try
-            {
-                GameReadability.OverrideLevel = level;
-                Preview(2, true, 1);
-                Text story = Find<Text>("Shipyard Dossier Story");
-                Assert.That(story.font, Is.SameAs(GameTypography.BodyFont));
-                Assert.That(story.fontSize, Is.GreaterThanOrEqualTo(expectedStorySize));
-                Assert.That(story.resizeTextForBestFit, Is.False);
-                Assert.That(story.text, Is.Not.Empty);
-                Assert.That(story.verticalOverflow, Is.EqualTo(VerticalWrapMode.Overflow));
-                if (level > 0)
-                {
-                    ScrollRect scroll = story.GetComponentInParent<ScrollRect>();
-                    Assert.That(scroll, Is.Not.Null);
-                    Assert.That(scroll.viewport.name, Is.EqualTo("Shipyard Background Page"));
-                    Canvas.ForceUpdateCanvases();
-                    Assert.That(scroll.content.rect.height, Is.GreaterThanOrEqualTo(scroll.viewport.rect.height));
-                    scroll.verticalNormalizedPosition = 0f;
-                    Canvas.ForceUpdateCanvases();
-                    Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0f).Within(.01f));
-                }
-                Find<Button>("Shipyard Dossier Tab Performance").onClick.Invoke();
-                Text specialization = Find<Text>("Shipyard Dossier Specialization");
-                Assert.That(specialization.fontSize, Is.GreaterThanOrEqualTo(GameReadability.FontSize(24)));
-                Assert.That(specialization.text, Is.Not.Empty);
-                Assert.That(Find<Button>("Back To Shipyard Gallery").gameObject.activeInHierarchy, Is.True);
-                Assert.That(Find<Button>("Confirm Shipyard Vessel").gameObject.activeInHierarchy, Is.True);
-            }
-            finally { GameReadability.OverrideLevel = previousLevel; }
         }
 
         [Test]
@@ -226,9 +184,8 @@ namespace ShatteredSail.Presentation.Tests
             Text[] text = host.GetComponentsInChildren<Text>(true);
             Assert.That(text.Count(item => item.name.StartsWith("Shipyard Dossier Stat ")), Is.EqualTo(page == 0 ? 5 : 0),
                 "Performance figures must be isolated from the background and equipment pages.");
-            Assert.That(text.Any(item => item.name == "Shipyard Dossier Specialization"), Is.EqualTo(page == 0));
+            Assert.That(text.Any(item => item.name == "Shipyard Dossier Specialization"), Is.False);
             Assert.That(text.Any(item => item.name == "Shipyard Dossier Story"), Is.EqualTo(page == 1));
-            if (page == 0) AssertReadableParagraph(Find<Text>("Shipyard Dossier Specialization"));
             if (page == 1)
             {
                 Text story = Find<Text>("Shipyard Dossier Story");

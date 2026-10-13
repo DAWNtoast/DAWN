@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace ShatteredSail.Core.Gameplay
@@ -23,12 +24,42 @@ namespace ShatteredSail.Core.Gameplay
     public enum NavalBattleCardAction
     {
         Standard, Cannon, Turn, Polish, Load, Approach, Retreat, Circle, Parallel,
-        Navigator, PrecisionLoad, Sabotage, FireRounds,
+        Navigator, PrecisionLoad, Sabotage, FireRounds, Energize,
     }
 
     /// <summary>Semantic effect rows shared by card faces, dossiers and comparison previews.</summary>
     public static class CoreBattleCardText
     {
+        // Named effect values leave fixed rules (350 m range, 60 m boarding,
+        // duration, resource costs) independent of similarly-valued upgrades.
+        // Every rank renders the same authored wording and semantic line breaks.
+        internal static string RenderTemplate(string template, CoreBattleCard card)
+        {
+            if (string.IsNullOrEmpty(template)) return string.Empty;
+            if (template.IndexOf('{') < 0) return FormatEffects(template);
+            return FormatEffects(template
+                .Replace("{damage}", Number(card.Damage))
+                .Replace("{block}", Number(card.Block))
+                .Replace("{boardingBlock}", Number(card.BoardingBlock ?? card.Block))
+                .Replace("{repair}", Number(card.Repair))
+                .Replace("{draw}", Number(card.Draw))
+                .Replace("{movement}", Number(card.MovementMeters))
+                .Replace("{strategyAmount}", Number(card.StrategyAmount))
+                .Replace("{strategyLimit}", Number(card.StrategyLimit))
+                .Replace("{burnDuration}", Number(card.BurnDuration))
+                .Replace("{burnDamage}", Number(card.BurnDamage))
+                .Replace("{powder}", Number(card.PowderCost))
+                .Replace("{cannonballs}", Number(card.CannonballCost))
+                .Replace("{wood}", Number(card.SchoolEffect?.WoodCost ?? 0))
+                .Replace("{schoolPower}", Number(card.SchoolEffect?.Power ?? 0))
+                .Replace("{schoolSecondary}", Number(card.SchoolEffect?.Secondary ?? 0))
+                .Replace("{schoolThreshold}", Number(card.SchoolEffect?.Threshold ?? 0))
+                .Replace("{schoolDuration}", Number(card.SchoolEffect?.Duration ?? 0))
+                .Replace("{schoolLimit}", Number(card.SchoolEffect?.Limit ?? 0)));
+        }
+
+        private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
+
         private static readonly string[] EffectClauseStarts =
         {
             "格挡", "船员格挡", "抽 ", "恢复 ", "修复 ", "炮战修复 ", "白刃战恢复 ",
@@ -76,7 +107,8 @@ namespace ShatteredSail.Core.Gameplay
             NavalBattleStages allowedStages = NavalBattleStages.All,
             NavalBattleCardAction action = NavalBattleCardAction.Standard,
             string requiredCrew = "", string artId = "", int cannonballCost = 0,
-            string requiredComponent = "", int upgradeLevel = 0)
+            string requiredComponent = "", int upgradeLevel = 0, string schoolId = "", CoreSchoolCardEffect schoolEffect = null,
+            int? boardingBlock = null)
         {
             Id = id;
             Name = name;
@@ -84,10 +116,10 @@ namespace ShatteredSail.Core.Gameplay
             Energy = energy;
             Damage = damage;
             Block = block;
+            BoardingBlock = boardingBlock;
             Repair = repair;
             Draw = draw;
             PowderCost = powderCost;
-            Description = CoreBattleCardText.FormatEffects(description);
             AllowedStages = allowedStages;
             Action = action;
             RequiredCrew = requiredCrew ?? string.Empty;
@@ -95,6 +127,10 @@ namespace ShatteredSail.Core.Gameplay
             CannonballCost = cannonballCost;
             RequiredComponent = requiredComponent ?? string.Empty;
             UpgradeLevel = Math.Max(0, Math.Min(3, upgradeLevel));
+            SchoolId = schoolId ?? string.Empty;
+            SchoolEffect = schoolEffect;
+            DescriptionTemplate = description ?? string.Empty;
+            Description = CoreBattleCardText.RenderTemplate(DescriptionTemplate, this);
         }
 
         public string Id { get; }
@@ -103,21 +139,27 @@ namespace ShatteredSail.Core.Gameplay
         public int Energy { get; }
         public int Damage { get; }
         public int Block { get; }
+        // Optional authored crew guard; null keeps the shared value in every phase.
+        public int? BoardingBlock { get; }
         public int Repair { get; }
         public int Draw { get; }
         public int PowderCost { get; }
         public int CannonballCost { get; }
         public string Description { get; }
+        public string DescriptionTemplate { get; }
         public string RequiredCrew { get; }
         public string RequiredComponent { get; }
         public int UpgradeLevel { get; }
-        public int NumericalMultiplier => UpgradeLevel >= 1 ? CoreBattleUpgradeBalance.NumericalMultiplier : 1;
-        public int MovementMeters => BaseMovement(Action) * NumericalMultiplier;
-        public int StrategyAmount => (Action == NavalBattleCardAction.Polish ? 2 : Action == NavalBattleCardAction.PrecisionLoad ? 8 :
-            Action == NavalBattleCardAction.Load ? 4 : Action == NavalBattleCardAction.FireRounds ? 2 : 0) * NumericalMultiplier;
+        public string SchoolId { get; }
+        public CoreSchoolCardEffect SchoolEffect { get; }
+        public decimal NumericalMultiplier => CoreBattleUpgradeBalance.MultiplierForLevel(UpgradeLevel);
+        public int MovementMeters => SchoolEffect != null && SchoolEffect.Movement != 0 ? (int)Math.Min(int.MaxValue, Math.Abs((long)SchoolEffect.Movement)) : BaseMovement(Action);
+        public int StrategyAmount => Action == NavalBattleCardAction.FireRounds ? 2 :
+            CoreBattleUpgradeBalance.ScaleNumerical(Action == NavalBattleCardAction.Polish ? 2 :
+                Action == NavalBattleCardAction.PrecisionLoad || Action == NavalBattleCardAction.Load ? 5 : 0, UpgradeLevel);
         public int StrategyLimit => (Action == NavalBattleCardAction.Polish ? 6 : Action == NavalBattleCardAction.FireRounds ? 4 :
-            Action == NavalBattleCardAction.Load || Action == NavalBattleCardAction.PrecisionLoad ? 12 : 0) * NumericalMultiplier;
-        public int BurnDamage => 5 * NumericalMultiplier;
+            Action == NavalBattleCardAction.Load || Action == NavalBattleCardAction.PrecisionLoad ? 12 : 0);
+        public int BurnDamage => CoreBattleUpgradeBalance.ScaleNumerical(Action == NavalBattleCardAction.FireRounds ? 4 : 5, UpgradeLevel);
         public int BurnDuration => 2;
         public string ArtId { get; }
         public NavalBattleStages AllowedStages { get; }
@@ -169,12 +211,22 @@ namespace ShatteredSail.Core.Gameplay
         public bool EnemyMovingTowardPlayer { get; set; }
         public int PlayerBoardingHealth { get; set; }
         public int PlayerMaxBoardingHealth { get; set; }
+        // Only the explicit training-continuation overload preserves an existing crew wound.
+        public int? TrainingStartingCrewHealth { get; internal set; }
+        // Actual additional crew HP lost to this training battle's naval damage on boarding.
+        public int TrainingBoardingCarryover { get; internal set; }
+        // Hull values at the start of the naval stage. They are used to carry
+        // only this battle's ship damage into the boarding health snapshot.
+        public int NavalStartPlayerHull { get; internal set; }
+        public int NavalStartEnemyHull { get; internal set; }
         public int PlayerOrdinaryCrew { get; internal set; }
         public int EnemyOrdinaryCrew { get; internal set; }
         public bool BoardingInitiatedByEnemy { get; internal set; }
         public uint DecisionSeed { get; internal set; }
         public int EnemyBoardingHealth { get; set; }
         public int EnemyMaxBoardingHealth { get; set; }
+        // Authored loading damage. School overflow is stored separately; UI must
+        // use session.PlayerLoadedShotDamageBonus to display their combined total.
         public int PlayerLoadedShot { get; set; }
         public int PlayerFireRounds { get; set; }
         public int EnemyLoadedShot { get; set; }
@@ -191,6 +243,7 @@ namespace ShatteredSail.Core.Gameplay
         public List<int> DiscardPile => discardPiles[(int)Stage];
         public List<int> Hand { get; } = new List<int>();
         public string LastAction { get; set; }
+        public CoreSchoolBattleState Schools { get; } = new CoreSchoolBattleState();
         internal List<int> DrawPileFor(NavalBattleStage stage) => drawPiles[(int)stage];
         internal int SuccessfulCardUses(string id) => id != null && successfulCardUses.TryGetValue(id, out int count) ? count : 0;
         internal void RecordSuccessfulCardUse(string id)
@@ -198,7 +251,11 @@ namespace ShatteredSail.Core.Gameplay
             if (string.IsNullOrEmpty(id)) return;
             successfulCardUses[id] = (int)Math.Min(int.MaxValue, (long)SuccessfulCardUses(id) + 1);
         }
-        internal void BeginNewCardTurn() => successfulCardUses.Clear();
+        internal void BeginNewCardTurn()
+        {
+            successfulCardUses.Clear();
+            Schools.BeginWindow();
+        }
     }
 
     public sealed partial class CoreVoyageSession
@@ -209,38 +266,38 @@ namespace ShatteredSail.Core.Gameplay
         {
             List<CoreBattleCard> result = new List<CoreBattleCard>(new[]
         {
-            new CoreBattleCard("card_chain_shot", "链弹", "炮击", 1, 8, 0, 0, 0, 0, "350 米内：8 点船体伤害；消耗 1 炮弹。", NavalBattleStages.Naval, NavalBattleCardAction.Cannon, cannonballCost: 1),
-            new CoreBattleCard("card_full_sail_turn", "满帆转向", "机动", 1, 0, 4, 0, 1, 0, "转向敌舰侧舷，靠近 80 米并进入冲撞航行；格挡 +4；抽 1 张。", NavalBattleStages.Ship, NavalBattleCardAction.Turn),
-            new CoreBattleCard("card_evasive_maneuver", "规避机动", "机动", 1, 0, 8, 0, 0, 0, "格挡 +8；保留当前航向与距离。", NavalBattleStages.Ship),
-            new CoreBattleCard("card_boarding_hook", "钩索绊敌", "登船", 1, 6, 3, 0, 0, 0, "敌方船员 -6，格挡 +3。", NavalBattleStages.Boarding),
-            new CoreBattleCard("card_cutlass_raid", "弯刀突袭", "登船", 2, 16, 0, 0, 0, 0, "敌方船员 -16。", NavalBattleStages.Boarding),
-            new CoreBattleCard("card_emergency_repair", "紧急修理", "维修", 1, 0, 0, 6, 0, 0, "修复 6 点船体。", NavalBattleStages.Ship),
-            new CoreBattleCard("card_cannon_barrage", "炮火齐射", "炮击", 2, 18, 0, 0, 0, 1, "350 米内：18 点船体伤害；消耗 1 火药、1 炮弹。", NavalBattleStages.Naval, NavalBattleCardAction.Cannon, cannonballCost: 1),
-            new CoreBattleCard("card_brace", "稳固船身", "防御", 0, 0, 3, 0, 0, 0, "格挡 +3；准备阶段的格挡保留到首轮炮战。", NavalBattleStages.Ship),
-            new CoreBattleCard("card_deck_polish", "打磨甲板", "防御", 1, 0, 0, 0, 0, 0, "本场船体防御牌额外 +2 格挡，可叠至 +6。", NavalBattleStages.Ship, NavalBattleCardAction.Polish, artId: "card_brace"),
-            new CoreBattleCard("card_load_shot", "装填弹药", "策略", 1, 0, 0, 0, 0, 0, "下次炮击伤害 +4，可叠至 +12；发炮时消耗装填增益。", NavalBattleStages.Ship, NavalBattleCardAction.Load, artId: "card_cannon_barrage"),
-            new CoreBattleCard("card_approach", "迎敌推进", "机动", 1, 0, 0, 0, 0, 0, "朝敌舰靠近 150 米，进入冲撞航行状态。", NavalBattleStages.Ship, NavalBattleCardAction.Approach, artId: "card_full_sail_turn"),
-            new CoreBattleCard("card_retreat", "拉开距离", "机动", 1, 0, 5, 0, 0, 0, "远离 130 米，取消冲撞航行；格挡 +5。", NavalBattleStages.Ship, NavalBattleCardAction.Retreat, artId: "card_evasive_maneuver"),
-            new CoreBattleCard("card_circle_enemy", "绕至侧舷", "机动", 1, 0, 3, 0, 0, 0, "靠近 60 米，舰艏对准敌舰侧舷；须再次推进才能冲撞。", NavalBattleStages.Ship, NavalBattleCardAction.Circle, artId: "card_full_sail_turn"),
-            new CoreBattleCard("card_parallel_course", "并排行船", "机动", 1, 0, 0, 0, 0, 0, "靠近 60 米并转为平行；平行且距离不超过 60 米可接舷。", NavalBattleStages.Ship, NavalBattleCardAction.Parallel, artId: "card_boarding_hook"),
-            new CoreBattleCard("card_crew_thrust", "水手刺击", "登船", 1, 9, 0, 0, 0, 0, "敌方船员 -9。", NavalBattleStages.Boarding, artId: "card_cutlass_raid"),
-            new CoreBattleCard("card_crew_guard", "盾阵掩护", "防御", 1, 0, 9, 0, 0, 0, "船员格挡 +9。", NavalBattleStages.Boarding, artId: "card_brace"),
-            new CoreBattleCard("card_crew_rally", "集结队伍", "登船", 1, 0, 3, 0, 2, 0, "船员格挡 +3，抽 2 张白刃战牌。", NavalBattleStages.Boarding, artId: "card_full_sail_turn"),
-            new CoreBattleCard("card_crew_bandage", "战地包扎", "维修", 1, 0, 0, 8, 0, 0, "恢复 8 点己方船员生命。", NavalBattleStages.Boarding, artId: "card_emergency_repair"),
-            new CoreBattleCard("card_crew_pistol", "燧发手枪", "登船", 2, 15, 2, 0, 0, 0, "敌方船员 -15，船员格挡 +2。", NavalBattleStages.Boarding, artId: "card_chain_shot"),
-            new CoreBattleCard("card_navigator_course", "领航员 · 抢占航线", "机动", 1, 0, 3, 0, 1, 0, "靠近 180 米并调整至平行；格挡 +3，抽 1 张。", NavalBattleStages.Ship, NavalBattleCardAction.Navigator, "navigator", "card_full_sail_turn"),
-            new CoreBattleCard("card_carpenter_shoring", "木匠 · 加固舱壁", "维修", 1, 0, 6, 8, 0, 0, "修复 8 点船体，格挡 +6。", NavalBattleStages.Ship, requiredCrew: "carpenter", artId: "card_emergency_repair"),
-            new CoreBattleCard("card_doctor_sutures", "医生 · 紧急缝合", "维修", 1, 0, 4, 14, 0, 0, "恢复 14 点船员生命，船员格挡 +4。", NavalBattleStages.Boarding, requiredCrew: "doctor", artId: "card_emergency_repair"),
-            new CoreBattleCard("card_gunner_precision", "炮手 · 精密装填", "策略", 1, 0, 3, 0, 0, 0, "下次炮击伤害 +8，装填最多 +12；格挡 +3。", NavalBattleStages.Ship, NavalBattleCardAction.PrecisionLoad, "gunner", "card_cannon_barrage"),
-            new CoreBattleCard("card_cook_rations", "厨师 · 鼓舞口粮", "防御", 0, 0, 5, 3, 0, 0, "格挡 +5；炮战修复 3 船体，白刃战恢复 3 船员生命。", NavalBattleStages.All, requiredCrew: "cook", artId: "card_brace"),
-            new CoreBattleCard("card_diver_sabotage", "潜水员 · 水下破坏", "登船", 1, 10, 0, 0, 0, 0, "150 米内：敌舰船体 -10，无需弹药。", NavalBattleStages.Naval, NavalBattleCardAction.Sabotage, "diver", "card_boarding_hook"),
+            new CoreBattleCard("card_chain_shot", "链弹", "炮击", 1, 10, 0, 0, 0, 1, "350 米内：{damage} 点船体伤害；消耗 {powder} 火药、{cannonballs} 炮弹。", NavalBattleStages.Naval, NavalBattleCardAction.Cannon, cannonballCost: 1),
+            new CoreBattleCard("card_full_sail_turn", "满帆转向", "机动", 1, 0, 0, 0, 1, 0, "转向敌舰侧舷，靠近 {movement} 米并进入冲撞航行；格挡 +{block}；抽 {draw} 张。", NavalBattleStages.Ship, NavalBattleCardAction.Turn),
+            new CoreBattleCard("card_evasive_maneuver", "规避机动", "机动", 1, 0, 5, 0, 0, 0, "格挡 +{block}；保留当前航向与距离。", NavalBattleStages.Ship),
+            new CoreBattleCard("card_boarding_hook", "钩索绊敌", "登船", 1, 4, 2, 0, 0, 0, "敌方船员 -{damage}，格挡 +{block}。", NavalBattleStages.Boarding),
+            new CoreBattleCard("card_cutlass_raid", "弯刀突袭", "登船", 2, 16, 0, 0, 0, 0, "敌方船员 -{damage}。", NavalBattleStages.Boarding),
+            new CoreBattleCard("card_emergency_repair", "紧急修理", "维修", 1, 0, 0, 5, 0, 0, "修复 {repair} 点船体。", NavalBattleStages.Ship),
+            new CoreBattleCard("card_cannon_barrage", "炮火齐射", "炮击", 2, 20, 0, 0, 0, 1, "350 米内：{damage} 点船体伤害；消耗 {powder} 火药、{cannonballs} 炮弹。", NavalBattleStages.Naval, NavalBattleCardAction.Cannon, cannonballCost: 1),
+            new CoreBattleCard("card_brace", "稳固船身", "防御", 0, 0, 2, 0, 0, 0, "格挡 +{block}；准备阶段的格挡保留到首轮炮战。", NavalBattleStages.Ship),
+            new CoreBattleCard("card_deck_polish", "打磨甲板", "防御", 1, 0, 0, 0, 0, 0, "本场船体防御牌额外 +{strategyAmount} 格挡，可叠至 +{strategyLimit}。", NavalBattleStages.Ship, NavalBattleCardAction.Polish, artId: "card_brace"),
+            new CoreBattleCard("card_load_shot", "装填弹药", "策略", 1, 0, 0, 0, 1, 1, "额外装药：下次炮击 +{strategyAmount}，最多 +{strategyLimit}；抽 {draw} 张；消耗 {powder} 火药；开炮另付弹药并清空增益。", NavalBattleStages.Ship, NavalBattleCardAction.Load, artId: "card_cannon_barrage"),
+            new CoreBattleCard("card_approach", "迎敌推进", "机动", 1, 0, 0, 0, 0, 0, "朝敌舰靠近 {movement} 米，进入冲撞航行状态。", NavalBattleStages.Ship, NavalBattleCardAction.Approach, artId: "card_full_sail_turn"),
+            new CoreBattleCard("card_retreat", "拉开距离", "机动", 1, 0, 3, 0, 0, 0, "远离 {movement} 米，取消冲撞航行；格挡 +{block}。", NavalBattleStages.Ship, NavalBattleCardAction.Retreat, artId: "card_evasive_maneuver"),
+            new CoreBattleCard("card_circle_enemy", "绕至侧舷", "机动", 1, 0, 3, 0, 0, 0, "靠近 {movement} 米，舰艏对准敌舰侧舷；须再次推进才能冲撞；格挡 +{block}。", NavalBattleStages.Ship, NavalBattleCardAction.Circle, artId: "card_full_sail_turn"),
+            new CoreBattleCard("card_parallel_course", "并排行船", "机动", 1, 0, 0, 0, 0, 0, "靠近 {movement} 米并转为平行；平行且距离不超过 60 米可接舷。", NavalBattleStages.Ship, NavalBattleCardAction.Parallel, artId: "card_boarding_hook"),
+            new CoreBattleCard("card_crew_thrust", "水手刺击", "登船", 1, 8, 0, 0, 0, 0, "敌方船员 -{damage}。", NavalBattleStages.Boarding, artId: "card_cutlass_raid"),
+            new CoreBattleCard("card_crew_guard", "盾阵掩护", "防御", 1, 0, 4, 0, 0, 0, "船员格挡 +{block}。", NavalBattleStages.Boarding, artId: "card_brace"),
+            new CoreBattleCard("card_crew_rally", "集结队伍", "登船", 1, 0, 1, 0, 2, 0, "船员格挡 +{block}，抽 {draw} 张白刃战牌。", NavalBattleStages.Boarding, artId: "card_full_sail_turn"),
+            new CoreBattleCard("card_crew_bandage", "战地包扎", "维修", 1, 0, 0, 6, 0, 0, "恢复 {repair} 点己方船员生命。", NavalBattleStages.Boarding, artId: "card_emergency_repair"),
+            new CoreBattleCard("card_crew_pistol", "燧发手枪", "登船", 2, 12, 2, 0, 0, 0, "敌方船员 -{damage}，船员格挡 +{block}。", NavalBattleStages.Boarding, artId: "card_chain_shot"),
+            new CoreBattleCard("card_navigator_course", "领航员 · 抢占航线", "机动", 1, 0, 1, 0, 1, 0, "靠近 {movement} 米并调整至平行；格挡 +{block}，抽 {draw} 张。", NavalBattleStages.Ship, NavalBattleCardAction.Navigator, "navigator", "card_full_sail_turn"),
+            new CoreBattleCard("card_carpenter_shoring", "木匠 · 加固舱壁", "维修", 1, 0, 4, 6, 0, 0, "修复 {repair} 点船体，格挡 +{block}。", NavalBattleStages.Ship, requiredCrew: "carpenter", artId: "card_emergency_repair"),
+            new CoreBattleCard("card_doctor_sutures", "医生 · 紧急缝合", "维修", 1, 0, 1, 7, 0, 0, "恢复 {repair} 点船员生命，船员格挡 +{block}。", NavalBattleStages.Boarding, requiredCrew: "doctor", artId: "card_emergency_repair"),
+            new CoreBattleCard("card_gunner_precision", "炮手 · 精密装填", "策略", 1, 0, 1, 0, 0, 1, "额外装药：下次炮击 +{strategyAmount}，最多 +{strategyLimit}；格挡 +{block}；消耗 {powder} 火药；开炮另付弹药并清空增益。", NavalBattleStages.Ship, NavalBattleCardAction.PrecisionLoad, "gunner", "card_cannon_barrage"),
+            new CoreBattleCard("card_cook_rations", "厨师 · 鼓舞口粮", "防御", 0, 0, 4, 2, 0, 0, "格挡 +{block}；炮战修复 {repair} 船体，白刃战恢复 {repair} 船员生命。", NavalBattleStages.All, requiredCrew: "cook", artId: "card_brace"),
+            new CoreBattleCard("card_diver_sabotage", "潜水员 · 水下破坏", "登船", 1, 12, 0, 0, 0, 0, "150 米内：敌舰船体 -{damage}，无需弹药。", NavalBattleStages.Naval, NavalBattleCardAction.Sabotage, "diver", "card_boarding_hook"),
             ReservedBattleCardSlot(25),
             ReservedBattleCardSlot(26),
-            new CoreBattleCard("card_component_bow", "舰艏 · 破浪切入", "登船", 1, 8, 4, 0, 0, 0, "150 米内：敌舰船体 -8，格挡 +4，无需弹药。", NavalBattleStages.Naval, NavalBattleCardAction.Sabotage, artId: "card_boarding_hook", requiredComponent: "bow"),
-            new CoreBattleCard("card_component_sail", "风帆 · 借风转舵", "机动", 1, 0, 3, 0, 1, 0, "转向敌舰侧舷，靠近 80 米；格挡 +3，抽 1 张。", NavalBattleStages.Ship, NavalBattleCardAction.Turn, artId: "card_full_sail_turn", requiredComponent: "sail"),
-            new CoreBattleCard("card_component_cannon", "火炮 · 校准射击", "炮击", 1, 12, 0, 0, 0, 0, "350 米内：12 点船体伤害，消耗 1 炮弹。", NavalBattleStages.Naval, NavalBattleCardAction.Cannon, artId: "card_chain_shot", cannonballCost: 1, requiredComponent: "cannon"),
-            new CoreBattleCard("card_component_plating", "装甲 · 应急隔舱", "防御", 1, 0, 8, 3, 0, 0, "格挡 +8，修复 3 点船体。", NavalBattleStages.Ship, artId: "card_brace", requiredComponent: "plating"),
-            new CoreBattleCard("card_component_instrument", "仪器 · 火控解算", "策略", 1, 0, 0, 0, 1, 0, "下次炮击伤害 +4，可叠至 +12；抽 1 张。", NavalBattleStages.Ship, NavalBattleCardAction.Load, artId: "card_cannon_barrage", requiredComponent: "instrument"),
+            new CoreBattleCard("card_component_bow", "舰艏 · 破浪切入", "登船", 1, 8, 3, 0, 0, 0, "150 米内：敌舰船体 -{damage}，格挡 +{block}，无需弹药。", NavalBattleStages.Naval, NavalBattleCardAction.Sabotage, artId: "card_boarding_hook", requiredComponent: "bow"),
+            new CoreBattleCard("card_component_sail", "风帆 · 借风转舵", "机动", 1, 0, 1, 0, 1, 0, "转向敌舰侧舷，靠近 {movement} 米；格挡 +{block}，抽 {draw} 张。", NavalBattleStages.Ship, NavalBattleCardAction.Turn, artId: "card_full_sail_turn", requiredComponent: "sail"),
+            new CoreBattleCard("card_component_cannon", "火炮 · 校准射击", "炮击", 1, 12, 0, 0, 0, 1, "350 米内：{damage} 点船体伤害；消耗 {powder} 火药、{cannonballs} 炮弹。", NavalBattleStages.Naval, NavalBattleCardAction.Cannon, artId: "card_chain_shot", cannonballCost: 1, requiredComponent: "cannon"),
+            new CoreBattleCard("card_component_plating", "装甲 · 应急隔舱", "防御", 1, 0, 6, 3, 0, 0, "格挡 +{block}，修复 {repair} 点船体。", NavalBattleStages.Ship, artId: "card_brace", requiredComponent: "plating"),
+            new CoreBattleCard("card_component_instrument", "仪器 · 火控解算", "策略", 1, 0, 0, 0, 1, 0, "校准火控：下次炮击伤害 +{strategyAmount}，可叠至 +{strategyLimit}；抽 {draw} 张；开炮时消耗增益。", NavalBattleStages.Ship, NavalBattleCardAction.Load, artId: "card_cannon_barrage", requiredComponent: "instrument"),
             });
             // Saved decks use integer positions: all historic positions must remain unchanged.
             foreach (CoreSpecialCardDefinition definition in CoreSpecialCardCatalog.All)
@@ -249,10 +306,21 @@ namespace ShatteredSail.Core.Gameplay
                 if (result.Count == 56) result.Add(ReservedBattleCardSlot(56));
                 result.Add(definition.Card);
             }
+            // Source cards are inserted/replaced by their source catalog, preserving saved indices.
+            foreach (CoreBattleCard card in CoreSchoolCardCatalog.All)
+                if (card.RequiredCrew.Length == 0 && card.RequiredComponent.Length == 0) result.Add(card);
+            result.Add(new CoreBattleCard("card_energy_order", "整顿号令", "策略", 0, 0, 0, 0, 0, 0,
+                "恢复 1 点行动。同名牌本回合每成功使用一次，后续费用 +1。",
+                NavalBattleStages.All, NavalBattleCardAction.Energize, artId: "card_brace"));
+            result.Add(new CoreBattleCard("card_tactical_draw", "战术筹划", "策略", 1, 0, 0, 0, 2, 0,
+                "抽 {draw} 张。", NavalBattleStages.All, artId: "card_full_sail_turn"));
             return result.AsReadOnly();
         }
 
         public const int LegacyBattleCardSlotCount = 32;
+        public const int BaseBattleCardCopies = 2;
+        public const int MinimumBaseBattleDeckSize = 10;
+        public const int MaximumBaseBattleDeckSize = 20;
 
         private static CoreBattleCard ReservedBattleCardSlot(int index) =>
             new CoreBattleCard("retired_slot_" + index, string.Empty, string.Empty, 0, 0, 0, 0, 0, 0,
@@ -260,10 +328,17 @@ namespace ShatteredSail.Core.Gameplay
 
         private static readonly int[][] defaultBattleDecks =
         {
-            new[] { 8, 8, 9, 9, 10, 10, 11, 12, 13, 7 },
-            new[] { 0, 0, 6, 10, 11, 13, 12, 9, 2, 5 },
-            new[] { 3, 3, 4, 4, 14, 14, 15, 15, 16, 17 },
+            WithStarterSupport(new[] { 8, 8, 9, 9, 10, 10, 11, 12, 13, 7 }),
+            WithStarterSupport(new[] { 0, 0, 6, 10, 11, 13, 12, 9, 2, 5 }),
+            WithStarterSupport(new[] { 3, 3, 4, 4, 14, 14, 15, 15, 16, 17 }),
         };
+        private static int[] WithStarterSupport(int[] original)
+        {
+            var result = new List<int>(original);
+            for (int index = 0; index < cardLibrary.Count; index++)
+                if (cardLibrary[index].Id == "card_energy_order" || cardLibrary[index].Id == "card_tactical_draw") result.Add(index);
+            return result.ToArray();
+        }
         private readonly List<int>[] battleDecks =
         {
             new List<int>(defaultBattleDecks[0]), new List<int>(defaultBattleDecks[1]), new List<int>(defaultBattleDecks[2]),
@@ -284,11 +359,14 @@ namespace ShatteredSail.Core.Gameplay
         public IReadOnlyList<int> GetBattleDeck(NavalBattleStage stage) =>
             IsBattleStage(stage) ? battleDecks[(int)stage].AsReadOnly() : Array.Empty<int>();
 
+        public int GetBaseBattleCardOwnedCopies(int cardIndex) =>
+            IsBaseBattleCard(cardIndex) ? BaseBattleCardCopies : 0;
+
         public IReadOnlyList<int> GetAvailableBattleCards(NavalBattleStage stage)
         {
             List<int> result = new List<int>();
             for (int index = 0; index < cardLibrary.Count; index += 1)
-                if (cardLibrary[index].IsAllowedInStage(stage) && cardLibrary[index].RequiredCrew.Length == 0 && cardLibrary[index].RequiredComponent.Length == 0) result.Add(index);
+                if (cardLibrary[index].IsAllowedInStage(stage) && cardLibrary[index].RequiredCrew.Length == 0 && cardLibrary[index].RequiredComponent.Length == 0 && IsBattleCardUnlocked(cardLibrary[index])) result.Add(index);
             return result.AsReadOnly();
         }
 
@@ -321,6 +399,7 @@ namespace ShatteredSail.Core.Gameplay
         public bool SetBattleDeck(NavalBattleStage stage, IReadOnlyList<int> cardIndexes)
         {
             if (Phase != CoreDemoPhase.Port || !IsBattleStage(stage) || !IsValidBaseDeck(cardIndexes, stage)) return false;
+            foreach (int index in cardIndexes) if (!IsBattleCardUnlocked(cardLibrary[index])) return false;
             // Copy first: callers may pass the current read-only view of this very deck.
             List<int> copy = new List<int>(cardIndexes);
             battleDecks[(int)stage].Clear();
@@ -331,22 +410,50 @@ namespace ShatteredSail.Core.Gameplay
         public bool SetBattleDeck(IReadOnlyList<int> cardIndexes)
         {
             if (Phase != CoreDemoPhase.Port || !IsValidBaseDeck(cardIndexes, null)) return false;
+            foreach (int index in cardIndexes) if (!IsBattleCardUnlocked(cardLibrary[index])) return false;
             List<int> source = new List<int>(cardIndexes);
             for (int phase = 0; phase < 3; phase += 1)
             {
                 NavalBattleStage stage = (NavalBattleStage)phase;
-                List<int> migrated = new List<int>();
-                foreach (int index in source) if (cardLibrary[index].IsAllowedInStage(stage)) migrated.Add(index);
-                foreach (int index in defaultBattleDecks[phase])
-                {
-                    if (migrated.Count >= 10) break;
-                    int copies = 0;
-                    foreach (int existing in migrated) if (existing == index) copies += 1;
-                    if (copies < 3) migrated.Add(index);
-                }
-                SetBattleDeck(stage, migrated);
+                SetBattleDeck(stage, BuildRestoredBattleDeck(stage, source));
             }
             return true;
+        }
+
+        // Saved decks predate the current inventory and size limits. Preserve usable
+        // cards in order, trim extra copies, and fill only the missing minimum.
+        public bool RestoreBattleDeck(NavalBattleStage stage, IReadOnlyList<int> cardIndexes)
+        {
+            if (Phase != CoreDemoPhase.Port || !IsBattleStage(stage)) return false;
+            return SetBattleDeck(stage, BuildRestoredBattleDeck(stage, cardIndexes));
+        }
+
+        private List<int> BuildRestoredBattleDeck(NavalBattleStage stage, IReadOnlyList<int> cardIndexes)
+        {
+            List<int> restored = new List<int>();
+            Dictionary<int, int> copies = new Dictionary<int, int>();
+            void Append(int index)
+            {
+                if (restored.Count >= MaximumBaseBattleDeckSize || !IsBaseBattleCard(index) ||
+                    !cardLibrary[index].IsAllowedInStage(stage) || !IsBattleCardUnlocked(cardLibrary[index])) return;
+                copies.TryGetValue(index, out int count);
+                if (count >= BaseBattleCardCopies) return;
+                restored.Add(index);
+                copies[index] = count + 1;
+            }
+            if (cardIndexes != null) foreach (int index in cardIndexes) Append(index);
+            foreach (int index in defaultBattleDecks[(int)stage])
+            {
+                if (restored.Count >= MinimumBaseBattleDeckSize) break;
+                Append(index);
+            }
+            for (int copy = 0; copy < BaseBattleCardCopies && restored.Count < MinimumBaseBattleDeckSize; copy++)
+                foreach (int index in GetAvailableBattleCards(stage))
+                {
+                    if (restored.Count >= MinimumBaseBattleDeckSize) break;
+                    Append(index);
+                }
+            return restored;
         }
 
         public string GetBattleDeckSummary() =>
@@ -356,17 +463,22 @@ namespace ShatteredSail.Core.Gameplay
 
         private static bool IsBattleStage(NavalBattleStage stage) => (int)stage >= 0 && (int)stage <= 2;
 
-        private static bool IsValidBaseDeck(IReadOnlyList<int> indexes, NavalBattleStage? stage)
+        private static bool IsBaseBattleCard(int index) => index >= 0 && index < cardLibrary.Count &&
+            cardLibrary[index].AllowedStages != NavalBattleStages.None &&
+            cardLibrary[index].RequiredCrew.Length == 0 && cardLibrary[index].RequiredComponent.Length == 0;
+
+        private static bool IsValidBaseDeck(IReadOnlyList<int> indexes, NavalBattleStage? stage,
+            int minimum = MinimumBaseBattleDeckSize, int maximum = MaximumBaseBattleDeckSize, int maximumCopies = BaseBattleCardCopies)
         {
-            if (indexes == null || indexes.Count < 8 || indexes.Count > 10) return false;
+            if (indexes == null || indexes.Count < minimum || indexes.Count > maximum) return false;
             Dictionary<int, int> copies = new Dictionary<int, int>();
             foreach (int index in indexes)
             {
-                if (index < 0 || index >= cardLibrary.Count) return false;
+                if (!IsBaseBattleCard(index)) return false;
                 CoreBattleCard card = cardLibrary[index];
-                if (card.AllowedStages == NavalBattleStages.None || card.RequiredCrew.Length > 0 || card.RequiredComponent.Length > 0 || (stage.HasValue && !card.IsAllowedInStage(stage.Value))) return false;
+                if (stage.HasValue && !card.IsAllowedInStage(stage.Value)) return false;
                 copies.TryGetValue(index, out int count);
-                if (count >= 3) return false;
+                if (count >= maximumCopies) return false;
                 copies[index] = count + 1;
             }
             return true;

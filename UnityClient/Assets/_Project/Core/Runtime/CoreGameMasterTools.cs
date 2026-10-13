@@ -8,6 +8,15 @@ namespace ShatteredSail.Core.Gameplay
         // Leaves ample headroom for normal rewards and settlement arithmetic.
         public const int MaximumProfileGold = CoreEconomyBalance.MaximumProfileGold;
 
+        public static bool TryParseTreasureFragments(string input, out int fragments)
+        {
+            fragments = 0;
+            if (string.IsNullOrEmpty(input) || input.Length > 64) return false;
+            for (int index = 0; index < input.Length; index++)
+                if (input[index] < '0' || input[index] > '9') return false;
+            return int.TryParse(input, NumberStyles.None, CultureInfo.InvariantCulture, out fragments);
+        }
+
         public static bool TryParseProfileGold(string input, out decimal gold)
         {
             gold = 0m;
@@ -35,6 +44,14 @@ namespace ShatteredSail.Core.Gameplay
 
     public sealed partial class CoreVoyageSession
     {
+        public bool TryGameMasterSetTreasureFragments(int fragments)
+        {
+            if (Phase != CoreDemoPhase.Port || fragments < 0) return false;
+            TreasureFragments = fragments;
+            AddLog("GM 测试工具：未鉴定藏宝图碎片设置为 " + fragments + " 个。");
+            return true;
+        }
+
         public bool TryGameMasterSetProfileGold(decimal gold)
         {
             if (Phase != CoreDemoPhase.Port || !CoreEconomyBalance.IsValidGoldAmount(gold))

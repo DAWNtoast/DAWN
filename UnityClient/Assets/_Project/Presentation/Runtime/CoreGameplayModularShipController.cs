@@ -146,13 +146,36 @@ namespace ShatteredSail.Presentation
             }
             int previousFlagship = Mathf.Clamp(PlayerPrefs.GetInt(SelectedShipKey, 0), 0, CoreVoyageSession.Ships.Count - 1);
             if (!OwnsComponentVessel(previousFlagship)) previousFlagship = 0;
+
+            // A brand-new profile starts with the actual hull only. Legacy
+            // profiles that stored one or more explicit fittings still receive
+            // the old migration behaviour (missing slots are filled with the
+            // catalogue baseline), but a clean profile must not be handed a
+            // complete free loadout before the player has interacted with the
+            // shipyard.
+            ComponentArtEntry[] legacyFittings = new ComponentArtEntry[ComponentArtCatalog.SlotCount];
+            bool hasLegacyFittings = false;
+            if (!restored)
+            {
+                for (int index = 0; index < ComponentArtCatalog.SlotCount; index++)
+                {
+                    ComponentSlot slot = (ComponentSlot)index;
+                    ComponentArtEntry entry = componentArt.GetById(PlayerPrefs.GetString(ComponentLoadoutKey(slot), string.Empty));
+                    if (entry == null || entry.Slot != slot) continue;
+                    legacyFittings[index] = entry;
+                    hasLegacyFittings = true;
+                }
+            }
+
             for (int ship = 0; ship < CoreVoyageSession.Ships.Count; ship++)
             {
                 if (!OwnsComponentVessel(ship)) continue;
-                if (!restored && ship == previousFlagship)
+                if (!restored && ship == previousFlagship && hasLegacyFittings)
                     componentInventory.EnsureLoadout(ship,
-                        slot => componentArt.GetById(PlayerPrefs.GetString(ComponentLoadoutKey(slot), string.Empty)),
+                        slot => legacyFittings[(int)slot],
                         slot => Mathf.Clamp(PlayerPrefs.GetInt(ComponentConditionKey(slot), 100), 90, 110) / 100f);
+                else if (!restored && ship == previousFlagship)
+                    componentInventory.InitializeEmptyLoadout(ship);
                 else componentInventory.EnsureLoadout(ship);
             }
             SaveComponentInventory();
@@ -169,12 +192,13 @@ namespace ShatteredSail.Presentation
             for (int slotIndex = 0; slotIndex < ComponentArtCatalog.SlotCount; slotIndex += 1)
             {
                 ComponentArtEntry equipped = EquippedComponent((ComponentSlot)slotIndex);
+                if (equipped == null) continue;
                 ComponentArtEntry baseline = componentArt.Get(slotIndex * ComponentArtCatalog.EntriesPerSlot);
-                hull += (equipped?.HullBonus ?? 0) - baseline.HullBonus;
-                armor += (equipped?.ArmorBonus ?? 0) - baseline.ArmorBonus;
-                firepower += (equipped?.FirepowerBonus ?? 0) - baseline.FirepowerBonus;
-                speed += (equipped?.SpeedBonus ?? 0f) - baseline.SpeedBonus;
-                vision += (equipped?.VisionBonus ?? 0f) - baseline.VisionBonus;
+                hull += equipped.HullBonus - baseline.HullBonus;
+                armor += equipped.ArmorBonus - baseline.ArmorBonus;
+                firepower += equipped.FirepowerBonus - baseline.FirepowerBonus;
+                speed += equipped.SpeedBonus - baseline.SpeedBonus;
+                vision += equipped.VisionBonus - baseline.VisionBonus;
             }
             session.ConfigureComponentBonuses(
                 Mathf.RoundToInt(hull),
@@ -242,8 +266,7 @@ namespace ShatteredSail.Presentation
             string previewName,
             Transform parent,
             Vector2 availableSize,
-            Vector2 position,
-            int shipIndex = -1)
+            Vector2 position)
         {
             RectTransform root = CreateRect(previewName, parent, availableSize, position);
             Vector2 baseSize = UiImageAspect.FitSize(componentArt.BaseShipTexture, new Rect(0f, 0f, 1f, 1f), availableSize);
@@ -256,7 +279,6 @@ namespace ShatteredSail.Presentation
                 new Rect(0f, 0f, 1f, 1f));
             baseLayer.raycastTarget = false;
 
-            AddShipEquipmentLayers(previewName, root, baseSize, shipIndex);
             return root;
         }
 
@@ -274,7 +296,6 @@ namespace ShatteredSail.Presentation
             RectTransform root = CreateRect(previewName, parent, availableSize, position);
             Texture2D texture = portArt.ShipTexture(session.SelectedShipIndex);
             // Crop atlas gutters once, before measuring the visible source.
-            // Equipment and hull must share this same fitted coordinate frame.
             Rect uv = UiImageAspect.InsetUv(texture, portArt.ShipUv(session.SelectedShipIndex), 10f);
             Vector2 baseSize = UiImageAspect.FitSize(texture, uv, availableSize);
             RawImage ship = CreateRawImage(
@@ -287,27 +308,7 @@ namespace ShatteredSail.Presentation
             ship.color = portArt.ShipTint(session.SelectedShipIndex);
             BattleShipCutout.Attach(ship);
             ship.raycastTarget = false;
-            AddShipEquipmentLayers(previewName, root, baseSize, session.SelectedShipIndex);
             return root;
-        }
-
-        private void AddShipEquipmentLayers(string previewName, Transform parent, Vector2 baseSize, int shipIndex)
-        {
-            // Only the starter hull was authored as detachable artwork. Other
-            // vessels retain their complete illustration after a refit; their
-            // independent inventory, bonuses and tactics still use the loadout.
-            int renderedShip = shipIndex < 0 ? (session?.SelectedShipIndex ?? 0) : shipIndex;
-            if (renderedShip != 0) return;
-            AddShipEquipmentLayer(previewName, parent, ComponentSlot.Plating, baseSize.x * 0.72f,
-                new Vector2(0f, -baseSize.y * 0.19f), shipIndex);
-            AddShipEquipmentLayer(previewName, parent, ComponentSlot.Cannon, baseSize.x * 0.48f,
-                new Vector2(-baseSize.x * 0.02f, -baseSize.y * 0.11f), shipIndex);
-            AddShipEquipmentLayer(previewName, parent, ComponentSlot.Bow, baseSize.x * 0.30f,
-                new Vector2(baseSize.x * 0.36f, -baseSize.y * 0.08f), shipIndex);
-            AddShipEquipmentLayer(previewName, parent, ComponentSlot.Sail, baseSize.x * 0.46f,
-                new Vector2(baseSize.x * 0.01f, baseSize.y * 0.14f), shipIndex);
-            AddShipEquipmentLayer(previewName, parent, ComponentSlot.Instrument, baseSize.x * 0.15f,
-                new Vector2(-baseSize.x * 0.31f, -baseSize.y * 0.01f), shipIndex);
         }
 
         private static void AlignShipHullToWaterline(RectTransform ship, RawImage hull, float waterlineY)
@@ -315,33 +316,8 @@ namespace ShatteredSail.Presentation
             if (ship == null || hull == null || ship.parent == null) return;
             Vector3 contact = ship.parent.InverseTransformPoint(
                 hull.rectTransform.TransformPoint(ShipWaterlineLayout.HullContactLocal(hull)));
-            // Move the complete stack, preserving every fitted component's
-            // local attachment. Atlas padding must never become an air gap.
+            // Move the hull root so atlas padding never becomes an air gap.
             ship.anchoredPosition += new Vector2(0f, waterlineY - contact.y);
-        }
-
-        private void AddShipEquipmentLayer(
-            string previewName,
-            Transform parent,
-            ComponentSlot slot,
-            float squareSize,
-            Vector2 position,
-            int shipIndex = -1)
-        {
-            ComponentArtEntry entry = shipIndex < 0 ? EquippedComponent(slot) : ShipComponent(shipIndex, slot);
-            if (entry == null || entry.ShipLayer == null)
-            {
-                return;
-            }
-
-            RawImage layer = CreateRawImage(
-                previewName + " Layer " + entry.Id,
-                parent,
-                new Vector2(squareSize, squareSize),
-                position,
-                entry.ShipLayer,
-                new Rect(0f, 0f, 1f, 1f));
-            layer.raycastTarget = false;
         }
     }
 }

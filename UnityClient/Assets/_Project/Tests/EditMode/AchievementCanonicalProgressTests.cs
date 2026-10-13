@@ -8,10 +8,10 @@ namespace ShatteredSail.Presentation.Tests
 {
     public sealed partial class AchievementProgressTests
     {
-        [TestCase("gold_600", 600)]
-        [TestCase("gold_900", 900)]
-        [TestCase("gold_1200", 1200)]
-        [TestCase("gold_2000", 2000)]
+        [TestCase("gold_600", 1000)]
+        [TestCase("gold_900", 2500)]
+        [TestCase("gold_1200", 5000)]
+        [TestCase("gold_2000", 10000)]
         public void CanonicalGoldThresholdKeepsItsExactDecimalBoundary(string id, int expectedTarget)
         {
             Assert.That(CoreAchievementCatalog.Find(id).Target, Is.EqualTo(expectedTarget));
@@ -80,6 +80,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             NavalBattleStage[] stages = Enum.GetValues(typeof(NavalBattleStage)).Cast<NavalBattleStage>().ToArray();
             Assert.That(CoreAchievementCatalog.Find("battle_stages").Target, Is.EqualTo(stages.Length));
+            PlayerPrefs.SetInt(CoreGameplayDemoController.BattleDeckEditedKey, 1);
             foreach (NavalBattleStage stage in stages.Take(stages.Length - 1))
                 PlayerPrefs.SetString(CoreGameplayDemoController.StageBattleDeckKey(stage), "0,1");
             Assert.That(Unlocked("battle_stages"), Is.False);
@@ -88,26 +89,42 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void CanonicalSupplyConditionStillRequiresBothWaterAndFoodAtOneHundred()
+        public void CanonicalDefaultDecksDoNotCountUntilTheWorkshopRecordsAnEdit()
         {
-            Assert.That(CoreAchievementCatalog.Find("cargo_ready").Target, Is.EqualTo(100));
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 100);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 99);
+            var session = new CoreVoyageSession();
+            PlayerPrefs.SetString(CoreGameplayDemoController.BattleDeckKey, string.Join(",", session.BattleDeck));
+            foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
+                PlayerPrefs.SetString(CoreGameplayDemoController.StageBattleDeckKey(stage),
+                    string.Join(",", session.GetBattleDeck(stage)));
+
+            Assert.That(Unlocked("battle_deck"), Is.False);
+            Assert.That(Unlocked("battle_stages"), Is.False);
+            AchievementCatalog.RecordDeckEdited();
+            Assert.That(Unlocked("battle_deck"), Is.True);
+            Assert.That(Unlocked("battle_stages"), Is.True);
+        }
+
+        [Test]
+        public void CanonicalSupplyConditionStillRequiresBothWaterAndFoodAtFiveHundred()
+        {
+            Assert.That(CoreAchievementCatalog.Find("cargo_ready").Target, Is.EqualTo(500));
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 500);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 499);
             Assert.That(Unlocked("cargo_ready"), Is.False);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 100);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 99);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Food"), 500);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 499);
             Assert.That(Unlocked("cargo_ready"), Is.False);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 100);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 500);
             Assert.That(Unlocked("cargo_ready"), Is.True);
         }
 
         [Test]
-        public void CanonicalFameThresholdRemainsTwenty()
+        public void CanonicalFameThresholdRequiresOneHundred()
         {
-            Assert.That(CoreAchievementCatalog.Find("fame").Target, Is.EqualTo(20));
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Fame"), 19);
+            Assert.That(CoreAchievementCatalog.Find("fame").Target, Is.EqualTo(100));
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Fame"), 99);
             Assert.That(Unlocked("fame"), Is.False);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Fame"), 20);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Fame"), 100);
             Assert.That(Unlocked("fame"), Is.True);
         }
 
@@ -123,28 +140,13 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void CanonicalDispatchDurationCannotUnlockWithoutAnActiveOrRecordedDispatch()
-        {
-            Assert.That(AchievementCatalog.LongDispatchHours, Is.EqualTo(CoreAchievementCatalog.Find("dispatch_long").Target));
-            Assert.That(AchievementCatalog.LongDispatchHours, Is.EqualTo(12));
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchDurationKey, 12);
-            Assert.That(Unlocked("dispatch_long"), Is.False);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchMissionKey, 0);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchDurationKey, 11);
-            Assert.That(Unlocked("dispatch_long"), Is.False);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchDurationKey, 12);
-            Assert.That(Unlocked("dispatch_long"), Is.True);
-            Assert.That(Unlocked("dispatch_resolved"), Is.False);
-        }
-
-        [Test]
         public void CallerConstructedMetadataCannotLowerTheCanonicalUnlockTarget()
         {
             var lowered = new CoreAchievementDefinition("gold_900", "Custom", "Custom", CoreAchievementCategory.Economy,
                 CoreAchievementRequirementKind.Counter, "profile_gold", 1);
             ProfileGoldPersistence.Save(1m);
             Assert.That(AchievementCatalog.IsUnlocked(lowered), Is.False);
-            ProfileGoldPersistence.Save(900m);
+            ProfileGoldPersistence.Save(2500m);
             Assert.That(AchievementCatalog.IsUnlocked(lowered), Is.True);
         }
 
@@ -158,7 +160,7 @@ namespace ShatteredSail.Presentation.Tests
                 Preserve(key, false);
                 PlayerPrefs.DeleteKey(key);
             }
-            ProfileGoldPersistence.Save(900m);
+            ProfileGoldPersistence.Save(2500m);
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "灰鸥港");
             foreach (string alias in aliases) Assert.That(AchievementCatalog.IsUnlocked(CoreAchievementCatalog.Find(alias)), Is.True, alias);

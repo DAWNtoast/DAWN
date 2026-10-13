@@ -274,26 +274,6 @@ const sounds = {
     addNoise(b, 0.03, 0.17, 0.14, 0.001, 0.12, 291, 0.5);
     return b;
   }],
-  dispatch_start: ['ui', () => {
-    const b = makeBuffer(0.42);
-    addNoise(b, 0, 0.08, 0.18, 0.001, 0.06, 301, 0.35);
-    addTone(b, 0.02, 0.24, 300, 520, 0.22, 'triangle', 0.004, 0.16);
-    addBell(b, 0.16, 760, 0.12, 0.2);
-    return b;
-  }],
-  dispatch_complete: ['world', () => {
-    const b = makeBuffer(0.76);
-    addTone(b, 0, 0.5, 196, 247, 0.22, 'sine', 0.02, 0.2);
-    addBell(b, 0.14, 520, 0.24, 0.46);
-    addBell(b, 0.31, 690, 0.18, 0.4);
-    return b;
-  }],
-  dispatch_recall: ['ui', () => {
-    const b = makeBuffer(0.42);
-    addTone(b, 0, 0.3, 480, 230, 0.22, 'triangle', 0.01, 0.2);
-    addNoise(b, 0.03, 0.1, 0.16, 0.001, 0.07, 311, 0.45);
-    return b;
-  }],
   investment_build: ['world', () => {
     const b = makeBuffer(0.68);
     addTone(b, 0, 0.12, 180, 110, 0.27, 'sine', 0.001, 0.1);

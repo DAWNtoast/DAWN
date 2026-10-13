@@ -44,14 +44,15 @@ namespace ShatteredSail.Presentation
                 rail.sprite = BattleDefenseHud.FillSprite;
                 rail.type = Image.Type.Filled; rail.fillMethod = Image.FillMethod.Horizontal; rail.raycastTarget = false;
             }
+            // Leave 15 units between the right-aligned value and the outer armor frame.
             Text hp = CreateText(side + " Hull Numeric", track, new Vector2(120f, 24f),
-                new Vector2(-size.x * .5f - 68f, 0f), 14, FontStyle.Bold, TextAnchor.MiddleRight, Color.white);
+                new Vector2(-size.x * .5f - 86f, 0f), 14, FontStyle.Bold, TextAnchor.MiddleRight, Color.white);
             hp.raycastTarget = false;
             hp.color = Color.white; // This label sits outside the track, directly over the scenery.
             AddSceneLabelOutline(hp);
             Text defense = CreateText(side + " Armor Numeric", track,
                 boarding ? new Vector2(140f, 24f) : new Vector2(310f, 24f),
-                boarding ? new Vector2(size.x * .5f + 78f, 0f) : new Vector2(0f, 34f),
+                boarding ? new Vector2(size.x * .5f + 96f, 0f) : new Vector2(0f, 34f),
                 boarding ? 14 : 16, FontStyle.Bold, boarding ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter, Color.white);
             defense.raycastTarget = false;
             AddSceneLabelOutline(defense);
@@ -218,7 +219,6 @@ namespace ShatteredSail.Presentation
             {
                 ropes[i] = CreateLine(stage, Vector2.zero, Vector2.one, new Color(0.83f, 0.69f, 0.40f), 3f);
                 ropes[i].name = "Boarding Approach Rope " + i;
-                UiId.Bind(ropes[i].gameObject, ropes[i].name);
                 ropes[i].raycastTarget = false;
             }
             for (float elapsed = 0f; elapsed < 0.85f; elapsed += Time.unscaledDeltaTime)

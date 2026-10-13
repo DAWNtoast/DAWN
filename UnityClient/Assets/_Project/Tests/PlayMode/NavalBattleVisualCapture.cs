@@ -51,6 +51,17 @@ namespace ShatteredSail.Presentation.Tests
             public float displayedEnemyHealth;
             public Rect backdropUv;
             public List<string> visibleEffects = new List<string>();
+            public List<TitleMetrics> cardTitles = new List<TitleMetrics>();
+        }
+
+        [Serializable]
+        private sealed class TitleMetrics
+        {
+            public string name, text;
+            public int fontSize, glyphs;
+            public float canvasScale, pixelsPerUnit;
+            public Rect renderedBounds;
+            public bool fits;
         }
 
         public static void Capture(CoreGameplayDemoController controller, string fileName, string caption, string rootName = "Battle Card")
@@ -113,6 +124,7 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     foreach (Text text in canvas.GetComponentsInChildren<Text>(true)) text.SetAllDirty();
                     Canvas.ForceUpdateCanvases();
+                    RefreshInspectedCards(canvas);
                     if (GraphicsSettings.currentRenderPipeline != null)
                         RenderPipeline.SubmitRenderRequest(camera, new RenderPipeline.StandardRequest { destination = target });
                     else camera.Render();
@@ -157,6 +169,16 @@ namespace ShatteredSail.Presentation.Tests
                 frame.visibleEffects.AddRange(descendants.Where(child => child.gameObject.activeInHierarchy &&
                         (child.name.Contains("FX") || child.name.Contains("Flash") || child.name.Contains("Smoke") || child.name.Contains("Impact") || child.name.Contains("Projectile")))
                     .Select(child => child.name).Distinct());
+                foreach (CardRibbonTitleEffect title in canvas.GetComponentsInChildren<CardRibbonTitleEffect>())
+                {
+                    Text label = title.GetComponent<Text>();
+                    if (!TitleIntersectsCapture(label, rect)) continue;
+                    if (label.fontSize < 15 || title.RenderedBounds.height < 16f || !title.FitsAuthoredRibbon)
+                        throw new InvalidOperationException("Unreadable or overflowing card title in actual capture: " + label.name + " / " + label.text + " / font " + label.fontSize + " / " + title.RenderedBounds);
+                    frame.cardTitles.Add(new TitleMetrics { name = label.name, text = label.text, fontSize = label.fontSize,
+                        glyphs = title.RenderedGlyphCount, canvasScale = label.canvas.scaleFactor, pixelsPerUnit = label.pixelsPerUnit,
+                        renderedBounds = title.RenderedBounds, fits = title.FitsAuthoredRibbon });
+                }
                 Report.frames.Add(frame);
                 WriteReport();
             }
@@ -174,9 +196,61 @@ namespace ShatteredSail.Presentation.Tests
                 rect.localScale = originalScale;
                 if (scaler != null) scaler.enabled = scalerEnabled;
                 Canvas.ForceUpdateCanvases();
+                RefreshInspectedCards(canvas);
                 if (pixels != null) Object.DestroyImmediate(pixels);
                 if (cameraHost != null) Object.DestroyImmediate(cameraHost);
                 if (target != null) { target.Release(); Object.DestroyImmediate(target); }
+            }
+        }
+
+        private static bool TitleIntersectsCapture(Text label, RectTransform canvasRect)
+        {
+            // Visibility comes from layout and effective masks, never the generated
+            // mesh or CanvasRenderer.cull: an on-screen blank title must still fail.
+            Rect visible = canvasRect.rect;
+            RectMask2D closestMask = label.maskable ? MaskUtilities.GetRectMaskForClippable(label) : null;
+            if (closestMask != null)
+            {
+                var masks = new List<RectMask2D>();
+                MaskUtilities.GetRectMasksForClip(closestMask, masks);
+                Rect clipped = Clipping.FindCullAndClipWorldRect(masks, out bool valid);
+                if (!valid) return false;
+                float xMin = Mathf.Max(visible.xMin, clipped.xMin);
+                float yMin = Mathf.Max(visible.yMin, clipped.yMin);
+                float xMax = Mathf.Min(visible.xMax, clipped.xMax);
+                float yMax = Mathf.Min(visible.yMax, clipped.yMax);
+                if (xMax <= xMin || yMax <= yMin) return false;
+                visible = Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+            }
+            Vector3[] corners = new Vector3[4];
+            label.rectTransform.GetWorldCorners(corners);
+            Vector3[] local = corners.Select(canvasRect.InverseTransformPoint).ToArray();
+            Rect bounds = Rect.MinMaxRect(local.Min(point => point.x), local.Min(point => point.y),
+                local.Max(point => point.x), local.Max(point => point.y));
+            return bounds.Overlaps(visible);
+        }
+
+        private static void RefreshInspectedCards(Canvas canvas)
+        {
+            foreach (MonoBehaviour behaviour in canvas.GetComponentsInChildren<MonoBehaviour>(true))
+                if (behaviour.GetType().Name == "BattleCardHoverFeedback")
+                    behaviour.SendMessage("RefreshInspectionLayoutImmediately", SendMessageOptions.RequireReceiver);
+            RectTransform canvasRect = canvas.GetComponent<RectTransform>();
+            foreach (Canvas layer in canvas.GetComponentsInChildren<Canvas>())
+            {
+                if (!layer.overrideSorting || layer.sortingOrder != 30) continue;
+                CardSchoolFrameGraphic frame = layer.GetComponentInChildren<CardSchoolFrameGraphic>();
+                if (frame == null) continue;
+                Vector3[] corners = new Vector3[4];
+                frame.rectTransform.GetWorldCorners(corners);
+                foreach (Vector3 corner in corners)
+                {
+                    Vector2 point = canvasRect.InverseTransformPoint(corner);
+                    Rect bounds = canvasRect.rect;
+                    if (point.x < bounds.xMin - .5f || point.x > bounds.xMax + .5f ||
+                        point.y < bounds.yMin - .5f || point.y > bounds.yMax + .5f)
+                        throw new InvalidOperationException("Inspected complete frame leaves the actual capture canvas: " + layer.name);
+                }
             }
         }
 

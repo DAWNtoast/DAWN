@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
-    public enum BattleCardSurfaceMaterial { Copper, Sailcloth, Leather, Timber, Steel }
+    public enum BattleCardSurfaceMaterial { Copper, Sailcloth, Leather, Timber, Steel, Chart }
 
     public readonly struct BattleCardPalette
     {
@@ -38,6 +38,7 @@ namespace ShatteredSail.Presentation
                 case "登船": return Make(BattleCardSurfaceMaterial.Leather, "#823D50", "#DEA291", "#ECD5BE", "#342129", "#732B3A");
                 case "维修": return Make(BattleCardSurfaceMaterial.Timber, "#737D42", "#C8C985", "#E4E3BC", "#2D321C", "#4C5424");
                 case "防御": return Make(BattleCardSurfaceMaterial.Steel, "#536E90", "#B3CDE0", "#DEE3DF", "#253143", "#344D75");
+                case "策略": return Make(BattleCardSurfaceMaterial.Chart, "#655078", "#DFC38C", "#E9DFC7", "#30273A", "#604377");
                 default: return Make(BattleCardSurfaceMaterial.Sailcloth, "#537F7B", "#C7D7BD", "#E7E0C6", "#253631", "#375B53");
             }
         }
@@ -68,12 +69,25 @@ namespace ShatteredSail.Presentation
     {
         [SerializeField] private string cardType = "炮击";
         [SerializeField] private bool available = true;
+        [SerializeField] private bool useSchoolFrame;
+        [SerializeField] private string schoolId;
         public string CardType => cardType;
 
         public void Configure(string type, bool canPlay)
         {
             cardType = type;
             available = canPlay;
+            useSchoolFrame = false;
+            raycastTarget = false;
+            SetVerticesDirty();
+        }
+
+        public void Configure(string type, bool canPlay, string school)
+        {
+            cardType = type;
+            available = canPlay;
+            schoolId = school;
+            useSchoolFrame = true;
             raycastTarget = false;
             SetVerticesDirty();
         }
@@ -81,9 +95,12 @@ namespace ShatteredSail.Presentation
         protected override void OnPopulateMesh(VertexHelper helper)
         {
             helper.Clear();
+            // Integrated school/wood artwork owns the entire rim. The old
+            // recessed wells and straight accent rails must not show through it.
+            if (useSchoolFrame) return;
             Rect rect = GetPixelAdjustedRect();
             if (rect.width <= 0f || rect.height <= 0f) return;
-            BattleCardPalette palette = BattleCardStylePalette.ForType(cardType);
+            BattleCardPalette palette = useSchoolFrame ? CardSchoolArtCatalog.Palette(schoolId) : BattleCardStylePalette.ForType(cardType);
             Color light = Color.Lerp(palette.Accent, palette.Surface, 0.24f);
             Color shadow = Color.Lerp(palette.Surface, palette.Ink, 0.36f);
             Quad(helper, rect, 0f, 0f, 1f, 1f, shadow);
@@ -91,8 +108,6 @@ namespace ShatteredSail.Presentation
             Quad(helper, rect, 0.012f, 0.984f, 0.976f, 0.006f, light);
             Quad(helper, rect, 0.012f, 0.012f, 0.009f, 0.972f, palette.Accent);
             Quad(helper, rect, 0.975f, 0.012f, 0.009f, 0.972f, shadow);
-
-            DrawMaterial(helper, rect, palette, light, shadow);
 
             // A recessed picture well also removes black gaps around the
             // square illustration if it has rounded or transparent corners.
@@ -103,11 +118,7 @@ namespace ShatteredSail.Presentation
             Quad(helper, rect, 0.07f, 0.342f, 0.86f, 0.006f, light);
             Quad(helper, rect, 0.07f, 0.031f, 0.86f, 0.004f, palette.Accent);
 
-            // Small brass corner studs are part of the border, never hit areas.
-            Color stud = Color.Lerp(palette.Accent, Color.white, 0.18f);
-            foreach (float x in new[] { 0.037f, 0.963f })
-                foreach (float y in new[] { 0.024f, 0.975f, 0.354f })
-                    Diamond(helper, rect, x, y, 0.016f, 0.011f, stud);
+            if (!useSchoolFrame) BattleCardFrameGeometry.Draw(helper, rect, palette, available, color);
         }
 
         private void DrawPaper(VertexHelper helper, Rect rect, Color paper)
@@ -128,50 +139,6 @@ namespace ShatteredSail.Presentation
             }
         }
 
-        private void DrawMaterial(VertexHelper helper, Rect rect, BattleCardPalette palette, Color light, Color shadow)
-        {
-            for (int side = 0; side < 2; side++)
-            {
-                float x = side == 0 ? 0.028f : 0.96f;
-                switch (palette.Material)
-                {
-                    case BattleCardSurfaceMaterial.Copper:
-                        for (int n = 0; n < 11; n++)
-                        {
-                            float y = 0.07f + n * 0.08f;
-                            Diamond(helper, rect, x + 0.004f, y, 0.008f, 0.006f, light);
-                            Quad(helper, rect, x - 0.004f, y + 0.02f, 0.016f, 0.003f, shadow);
-                        }
-                        break;
-                    case BattleCardSurfaceMaterial.Sailcloth:
-                    case BattleCardSurfaceMaterial.Leather:
-                        for (int n = 0; n < 36; n++)
-                        {
-                            float y = 0.05f + n * 0.025f;
-                            Diamond(helper, rect, x + 0.004f, y, 0.011f,
-                                palette.Material == BattleCardSurfaceMaterial.Sailcloth ? 0.010f : 0.004f, light);
-                        }
-                        break;
-                    case BattleCardSurfaceMaterial.Timber:
-                        for (int n = 0; n < 3; n++)
-                            Quad(helper, rect, x - 0.006f + n * 0.006f, 0.04f + n * 0.021f, 0.002f, 0.88f - n * 0.04f,
-                                n == 1 ? light : shadow);
-                        for (int n = 0; n < 5; n++)
-                            Diamond(helper, rect, x + 0.001f, 0.10f + n * 0.18f, 0.007f, 0.024f, shadow);
-                        break;
-                    case BattleCardSurfaceMaterial.Steel:
-                        for (int n = 0; n < 8; n++)
-                        {
-                            float y = 0.07f + n * 0.12f;
-                            Quad(helper, rect, x - 0.011f, y, 0.028f, 0.004f, shadow);
-                            Quad(helper, rect, x - 0.011f, y + 0.005f, 0.028f, 0.003f, light);
-                            Diamond(helper, rect, x + 0.003f, y + 0.057f, 0.009f, 0.006f, light);
-                        }
-                        break;
-                }
-            }
-        }
-
         private void Quad(VertexHelper helper, Rect rect, float x, float y, float width, float height, Color tint)
         {
             int first = helper.currentVertCount;
@@ -179,17 +146,6 @@ namespace ShatteredSail.Presentation
             AddVertex(helper, rect, x, y + height, tint);
             AddVertex(helper, rect, x + width, y + height, tint);
             AddVertex(helper, rect, x + width, y, tint);
-            helper.AddTriangle(first, first + 1, first + 2);
-            helper.AddTriangle(first, first + 2, first + 3);
-        }
-
-        private void Diamond(VertexHelper helper, Rect rect, float x, float y, float halfWidth, float halfHeight, Color tint)
-        {
-            int first = helper.currentVertCount;
-            AddVertex(helper, rect, x - halfWidth, y, tint);
-            AddVertex(helper, rect, x, y + halfHeight, tint);
-            AddVertex(helper, rect, x + halfWidth, y, tint);
-            AddVertex(helper, rect, x, y - halfHeight, tint);
             helper.AddTriangle(first, first + 1, first + 2);
             helper.AddTriangle(first, first + 2, first + 3);
         }

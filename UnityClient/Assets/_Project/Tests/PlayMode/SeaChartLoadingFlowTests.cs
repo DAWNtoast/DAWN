@@ -27,6 +27,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(initialInput.gameObject.activeInHierarchy, Is.False);
             Assert.That(initialInput.IsInteractable(), Is.False);
             yield return EnterDepartureChartSeed(CoreVoyageSession.CreateChartSeed(1, "白贝港", "铜钟港"));
+            AssertDeparturePortRowVisibility(controller, false);
             Assert.That(GameObject.Find("Chart Seed Warning"), Is.Not.Null);
             Assert.That(ActiveButton("Start Voyage").IsInteractable(), Is.False);
             InvestmentResourceSnapshot before = SnapshotInvestmentResources(session);
@@ -69,6 +70,22 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.IsChartSeedSelected, Is.True);
             Assert.That(session.SelectedRouteIndex, Is.EqualTo(1));
             Assert.That(session.SelectedDestinationPort, Is.EqualTo(destination));
+            Assert.That(GameObject.Find("Departure Route Summary").GetComponent<Text>().text,
+                Is.EqualTo("目标港口由海图确定，当前航线：" + origin + "——" + destination));
+            // Changing the chart's route recreates its quote while the previous
+            // objects await end-of-frame destruction. The replacements must
+            // receive the same separated layout as the initial departure view.
+            Canvas.ForceUpdateCanvases();
+            RectTransform provisionBuy = ActiveButton("Departure Buy Provisions").GetComponent<RectTransform>();
+            RectTransform marketBuy = ActiveButton("Adjust Voyage Supplies").GetComponent<RectTransform>();
+            Assert.That(provisionBuy.anchoredPosition.y, Is.EqualTo(marketBuy.anchoredPosition.y).Within(.1f));
+            Assert.That(provisionBuy.anchoredPosition.x + provisionBuy.rect.xMax,
+                Is.LessThanOrEqualTo(marketBuy.anchoredPosition.x + marketBuy.rect.xMin - 7.9f),
+                "Requoting a different chart must leave a clear gap between the supply buttons.");
+            Assert.That(GameObject.Find("Departure Provision Quote"), Is.Null,
+                "Requoting a chart must not recreate the removed detailed provisioning summary.");
+            Assert.That(provisionBuy.rect.height, Is.GreaterThanOrEqualTo(57.9f),
+                "The replacement purchase action keeps the larger shared layout.");
             foreach (int route in new[] { 0, 1, 2 })
             {
                 Button routeButton = controller.GetComponentsInChildren<Button>(true).Single(button => button.name == "Route " + route);
@@ -79,8 +96,8 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Button destinationButton = controller.GetComponentsInChildren<Button>(true)
                     .Single(button => button.name == "Departure Destination " + port);
-                Assert.That(destinationButton.gameObject.activeInHierarchy, Is.True,
-                    "A loaded chart locks the fixed port row without hiding its names.");
+                Assert.That(destinationButton.gameObject.activeInHierarchy, Is.False,
+                    "A loaded chart hides the manual port row because its endpoints are already fixed.");
                 Assert.That(destinationButton.IsInteractable(), Is.False,
                     "A loaded chart owns its destination, including the selected port button.");
             }
@@ -89,10 +106,12 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Departure Chart Preview").GetComponentInChildren<VoyageChartSurfaceGraphic>(), Is.Not.Null);
             CaptureSeaChartFlow(controller, "03_Seed_Route_Locked", "真实输入完整海图种子后自动选择航线并显示地图与端点", "Route Selection");
             ClickAcceptanceButton("Adjust Voyage Supplies"); yield return null;
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航界面"));
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
-            ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
+            Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
             Assert.That(GameObject.Find("Use Chart Seed").GetComponent<Toggle>().isOn, Is.True);
             Assert.That(GameObject.Find("Seed Input").GetComponent<InputField>().text, Is.EqualTo(seed));
+            AssertDeparturePortRowVisibility(controller, false);
             ClickAcceptanceButton("Start Voyage"); yield return null;
             CoreVoyageMap first = session.Map;
             var terrain = first.TerrainCells.ToArray();
@@ -278,6 +297,21 @@ namespace ShatteredSail.Presentation.Tests
             if (toggle.isOn != useChart)
                 yield return ClickDestinationTestGraphic(toggle.gameObject, Vector2.zero);
             Assert.That(GameObject.Find("Use Chart Seed").GetComponent<Toggle>().isOn, Is.EqualTo(useChart));
+            AssertDeparturePortRowVisibility(Object.FindFirstObjectByType<CoreGameplayDemoController>(), !useChart);
+        }
+
+        private static void AssertDeparturePortRowVisibility(CoreGameplayDemoController controller, bool visible)
+        {
+            for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
+            {
+                Button button = controller.GetComponentsInChildren<Button>(true)
+                    .Single(item => item.name == "Departure Destination " + index);
+                Assert.That(button.gameObject.activeInHierarchy, Is.EqualTo(visible),
+                    "Manual destinations are shown only outside chart-selection mode.");
+                Assert.That(button.IsInteractable(),
+                    Is.EqualTo(visible && CoreVoyageSession.DestinationPorts[index] != controller.Session.CurrentPort),
+                    "Restoring manual selection must keep the current port unavailable.");
+            }
         }
 
         private static IEnumerator EnterDepartureChartSeed(string seed, bool endEdit = true)

@@ -37,8 +37,6 @@ namespace ShatteredSail.Editor
             CoreGameplayPreviewScreen.ComponentShopDetail,
             CoreGameplayPreviewScreen.CardWorkshop,
             CoreGameplayPreviewScreen.DeckBuilder,
-            CoreGameplayPreviewScreen.Dispatch,
-            CoreGameplayPreviewScreen.DispatchDeployment,
             CoreGameplayPreviewScreen.TreasureMap,
             CoreGameplayPreviewScreen.Maintenance,
             CoreGameplayPreviewScreen.VoyageDeparture,
@@ -136,7 +134,7 @@ namespace ShatteredSail.Editor
                 report.fixtureNote = "Temporary editor preview with 572 demo gold; hover callbacks only. No purchase, flagship change, or PlayerPrefs writes.";
             }
             if (cases.Select(item => item.screen).Distinct().Count() == 1)
-                report.scope = "Focused six-port review: " + cases[0].screen + "; all dispatch deployment frames and shop stock-count fixtures when applicable.";
+                report.scope = "Focused six-port review: " + cases[0].screen + "; shop stock-count fixtures when applicable.";
             Scene previewScene = EditorSceneManager.NewPreviewScene();
             RenderTexture previousActive = RenderTexture.active;
             GameObject host = null;
@@ -188,7 +186,6 @@ namespace ShatteredSail.Editor
                         file = item.port + "_" + item.screen +
                             ((item.screen == CoreGameplayPreviewScreen.Shipyard || item.screen == CoreGameplayPreviewScreen.ShipyardDetail) ? "_Ship" + item.shipIndex : string.Empty) +
                             (item.hoveredShip ? "_Hover" : string.Empty) +
-                            (item.screen == CoreGameplayPreviewScreen.DispatchDeployment ? "_Mission" + item.routeIndex : string.Empty) +
                             (item.sampleSlot.HasValue ? "_Fixture_" + item.sampleSlot.Value :
                                 item.sampleStockCount > 0 ? "_Fixture_Count" + item.sampleStockCount : string.Empty) +
                             (item.sampleStockCount > 3 ? "_Page" + (item.displayPage + 1) : string.Empty) + ".png",
@@ -289,8 +286,7 @@ namespace ShatteredSail.Editor
                         new CaptureCase { port = CoreGameplayPreviewPort.GrayGull, screen = CoreGameplayPreviewScreen.ShipyardDetail, shipIndex = ship, group = "船只档案 · 四种船型" },
                     });
                 IEnumerable<CaptureCase> regionalCases = Enum.GetValues(typeof(CoreGameplayPreviewPort)).Cast<CoreGameplayPreviewPort>()
-                    .SelectMany(port => Enumerable.Range(0, screen == CoreGameplayPreviewScreen.DispatchDeployment ? 3 : 1)
-                        .Select(route => new CaptureCase { port = port, screen = screen, routeIndex = route, group = "六港 · " + screen }));
+                    .Select(port => new CaptureCase { port = port, screen = screen, group = "六港 · " + screen });
                 return screen == CoreGameplayPreviewScreen.ComponentShop
                     ? regionalCases.Concat(StockCountCases()).Concat(RegionalFurnitureCases()) : regionalCases;
             }
@@ -477,7 +473,7 @@ namespace ShatteredSail.Editor
         {
             StringBuilder md = new StringBuilder("# 港口场景融合 · 人工视觉验收\n\n");
             md.Append("捕获成功 ").Append(report.successfulCaptureCount).Append(" / ").Append(report.expectedCaptureCount).Append("。截图成功并不等于视觉检查通过，下列检查由人工看图完成。\n\n");
-            md.Append("- [ ] 灰鸥港全部功能：物品/桌椅/船体与场景比例自然，不浮空。\n- [ ] 六港商店：仅保留部件与区域立牌，没有商人、展示架及其残留阴影；立牌不遮挡部件主体。\n- [ ] 五种部件样例：船首、风帆、火炮、覆板、仪器完整可见；保留原始形状方向；环绕光不形成方框。\n- [ ] 一至五件库存样例：部件与立牌居中分组陈列，避开两侧背景杂物；彼此不重叠，立牌文字在木板范围内。\n- [ ] 六港后勤：左侧检查板已移除；左侧放大的船体与水线连贯；右侧放大的采购板落在前景码头，六种物资全部可见，不需滚动。\n- [ ] 酒馆：人物头顶名称准确，桌面遮挡自然；档案羊皮纸与肖像融合。\n- [ ] 卡组/派遣/藏宝图：入口摆件融入地面或桌面；详细页面排版清晰。\n- [ ] 所有顶部标题与按钮无互相遮挡；低对比背景上的文字仍可辨认。\n\n## 捕获文件\n\n");
+            md.Append("- [ ] 灰鸥港全部功能：物品/桌椅/船体与场景比例自然，不浮空。\n- [ ] 六港商店：仅保留部件与区域立牌，没有商人、展示架及其残留阴影；立牌不遮挡部件主体。\n- [ ] 五种部件样例：船首、风帆、火炮、覆板、仪器完整可见；保留原始形状方向；环绕光不形成方框。\n- [ ] 一至五件库存样例：部件与立牌居中分组陈列，避开两侧背景杂物；彼此不重叠，立牌文字在木板范围内。\n- [ ] 六港后勤：左侧检查板已移除；左侧放大的船体与水线连贯；右侧放大的采购板落在前景码头，六种物资全部可见，不需滚动。\n- [ ] 酒馆：人物头顶名称准确，桌面遮挡自然；档案羊皮纸与肖像融合。\n- [ ] 卡组/藏宝图：入口摆件融入地面或桌面；详细页面排版清晰。\n- [ ] 所有顶部标题与按钮无互相遮挡；低对比背景上的文字仍可辨认。\n\n## 捕获文件\n\n");
             foreach (Record record in report.captures)
                 md.Append("- [").Append(record.port).Append(" · ").Append(record.screen).Append(record.syntheticInventory
                     ? " · 样例 " + (string.IsNullOrEmpty(record.sampleSlot) ? record.sampleStockCount + " 件库存" : record.sampleSlot) + " · 第 " + (record.displayPage + 1) + " 页" : string.Empty)

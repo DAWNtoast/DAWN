@@ -5,10 +5,10 @@ using UnityEngine.UI;
 namespace ShatteredSail.Presentation
 {
     /// <summary>
-    /// Removes only the known navy backgrounds of the two ship atlases at
-    /// draw time. The source texture, atlas UVs and shared materials are never
-    /// edited. Known atlas separators are removed independently of the narrow
-    /// color key so mirrored/turning ships cannot reveal the black cell frame.
+    /// Uses authored alpha for the two ship atlases, retaining the narrow navy
+    /// key for older opaque artwork. The source texture, atlas UVs and shared
+    /// materials are never edited. Atlas cell isolation prevents mirrored or
+    /// turning ships from borrowing pixels from a neighbouring cell.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
@@ -78,16 +78,20 @@ namespace ShatteredSail.Presentation
             if (target == null || ownedMaterial == null) return;
             configuredTexture = target.texture;
             configuredFilterMode = configuredTexture == null ? FilterMode.Point : configuredTexture.filterMode;
-            // ship_roster_sheet is a 2x2 atlas with opaque black separators and
-            // compression bleed. Keep the same safe ten-texel margin as the
-            // battle's inset UVs, without changing the requested UV rectangle.
+            // Retain the safe ten-texel cell margin used by the battle's inset
+            // UVs, without changing the requested UV rectangle.
             bool roster = configuredTexture != null && configuredTexture.name == "ship_roster_sheet";
             bool legacy = configuredTexture != null && configuredTexture.name == "ship_sprite_sheet";
+            bool authoredAlpha = (roster || legacy) &&
+                UnityEngine.Experimental.Rendering.GraphicsFormatUtility.HasAlphaChannel(configuredTexture.graphicsFormat);
             // Editable previews persist materials by name. Keep the two atlas
             // keys in separate assets instead of reusing the old navy material.
             ownedMaterial.name = legacy ? "Regional Ship Navy Cutout (Instance)" : "Battle Ship Navy Cutout (Instance)";
             ownedMaterial.SetVector("_KeyGamma", legacy ? LegacyKeyGamma : KeyGamma);
             ownedMaterial.SetVector("_KeyTolerance", legacy ? LegacyKeyTolerance : KeyTolerance);
+            // The repainted atlases contain real transparency and navy detail.
+            // Only opaque atlas formats and other legacy artwork need a key.
+            ownedMaterial.SetFloat("_UseColorKey", authoredAlpha ? 0f : 1f);
             // Legacy artwork also reaches across a cell boundary (the ghost
             // flag enters the sloop cell). Isolate cells before interpolation
             // so mirrored turns cannot borrow the neighbouring ship's pixels.

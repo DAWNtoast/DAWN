@@ -132,7 +132,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Hull, Is.EqualTo(ship.MaxHull));
             Assert.That(session.EffectiveFirepower, Is.EqualTo(ship.Firepower));
             Assert.That(session.EffectiveArmor, Is.EqualTo(ship.Armor));
-            Assert.That(session.EffectiveSpeedKnots, Is.EqualTo(ship.SpeedKnots));
+            Assert.That(session.CrewSpeedBonus, Is.EqualTo(ship.SpeedKnots * 0.1f).Within(0.00001f));
+            Assert.That(session.EffectiveSpeedKnots, Is.EqualTo(ship.SpeedKnots * 1.1f).Within(0.00001f));
             Assert.That(session.WaterSupplyHours, Is.GreaterThanOrEqualTo(8d * 24d));
             Assert.That(session.GetForecast().WaterCost, Is.GreaterThan(0));
         }

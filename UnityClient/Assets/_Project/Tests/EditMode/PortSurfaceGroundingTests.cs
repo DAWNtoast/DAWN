@@ -45,35 +45,18 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void CardChestsStayOnRugDuringHover()
+        public void CardWorkshopOpensThePreviewWithoutChestOrRoomArt()
         {
             Transform preview = Preview(CoreGameplayPreviewScreen.CardWorkshop);
-            for (int index = 0; index < 4; index++)
-            {
-                Button button = Find<Button>(preview, "Open Deck Chest " + index);
-                Assert.That(button.GetComponent<RectTransform>().anchoredPosition.y, Is.LessThan(-100f));
-                RawImage art = Find<RawImage>(preview, "Card Workshop Chest " + index);
-                Image shadow = Find<Image>(preview, "Card Workshop Chest Contact " + index + " 0");
-                Vector3 shadowPosition = shadow.transform.position;
-                Assert.That(shadow.transform.parent.name, Is.EqualTo("Card Workshop Chest Stage"));
-                Assert.That(shadow.raycastTarget, Is.False);
-                Assert.That(art.rectTransform.rect.width / art.rectTransform.rect.height,
-                    Is.EqualTo((float)art.texture.width / art.texture.height).Within(0.001f));
-                for (int foot = 0; foot < 2; foot++)
-                {
-                    Vector2 uv = CardWorkshopChestPlacement.FootUv(index, foot == 1);
-                    Rect rect = art.rectTransform.rect;
-                    Vector3 paintedFoot = art.transform.TransformPoint(new Vector3(
-                        Mathf.Lerp(rect.xMin, rect.xMax, uv.x), Mathf.Lerp(rect.yMin, rect.yMax, uv.y), 0f));
-                    Image footShadow = Find<Image>(preview, "Card Workshop Chest Foot " + index + " " + foot);
-                    Assert.That(Vector3.Distance(paintedFoot, footShadow.transform.position), Is.LessThan(0.01f),
-                        "Painted feet, not transparent sprite bounds, must touch the floor shadow.");
-                }
-                Text label = Find<Text>(preview, "Card Workshop Chest Name " + index);
-                Assert.That(label.transform.position.y, Is.LessThan(shadowPosition.y), "Names belong below the chest, not on its front.");
-                AssertNoHoverGlow(button, Find<Image>(preview, "Card Workshop Chest Glow " + index));
-                Assert.That(shadow.transform.position, Is.EqualTo(shadowPosition));
-            }
+            Find<RectTransform>(preview, "Card Workshop Preview Panel");
+            Find<RectTransform>(preview, "Workshop Preview Collection");
+            RawImage background = Find<RawImage>(preview, "CardWorkshop Background");
+            Assert.That(background.texture, Is.Null, "The workshop room illustration is no longer displayed.");
+            Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item =>
+                item.name.StartsWith("Card Workshop Chest") || item.name.StartsWith("Open Deck Chest")), Is.False);
+            Assert.That(Find<Button>(preview, "Open Battle Card Upgrades").interactable, Is.True);
+            foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
+                Assert.That(Find<Button>(preview, "Edit Stage Deck " + stage).interactable, Is.True);
         }
 
         [Test]
@@ -119,53 +102,45 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void CardChestsUseTheClearFloorAndForegroundDepth()
+        public void WorkshopCollectionHasEightCardsWithCompleteUniformlyScaledFrames()
         {
             Transform preview = Preview(CoreGameplayPreviewScreen.CardWorkshop);
-            for (int index = 0; index < 4; index++)
+            Button[] choices = Find<RectTransform>(preview, "Workshop Preview Collection").GetComponentsInChildren<Button>()
+                .Where(button => button.name.StartsWith("Select Upgrade Card ")).ToArray();
+            Assert.That(choices, Has.Length.EqualTo(8));
+            foreach (Button choice in choices)
             {
-                RectTransform contact = Find<Image>(preview, "Card Workshop Chest Contact " + index + " 0").rectTransform;
-                Assert.That(Mathf.Abs(contact.anchoredPosition.x) + contact.rect.width * 0.5f, Is.LessThan(660f),
-                    "Keep chests inside the rug, away from painted side shelves.");
-                Assert.That(contact.anchoredPosition.y, Is.InRange(-300f, -190f));
+                CardSchoolFrameGraphic frame = choice.GetComponentInChildren<CardSchoolFrameGraphic>();
+                Assert.That(frame, Is.Not.Null);
+                Assert.That(frame.HasAuthoredTexture, Is.True);
+                RectTransform face = frame.transform.parent.GetComponent<RectTransform>();
+                Assert.That(face.localScale.x, Is.GreaterThan(0f));
+                Assert.That(face.localScale.y, Is.EqualTo(face.localScale.x));
+                Vector3[] corners = new Vector3[4];
+                frame.rectTransform.GetWorldCorners(corners);
+                RectTransform click = choice.GetComponent<RectTransform>();
+                Rect hitBounds = Rect.MinMaxRect(click.rect.xMin - .5f, click.rect.yMin - .5f,
+                    click.rect.xMax + .5f, click.rect.yMax + .5f);
+                foreach (Vector3 corner in corners)
+                    Assert.That(hitBounds.Contains(click.InverseTransformPoint(corner)), Is.True,
+                        "The entire authored card, including its outer frame, remains clickable.");
             }
-            RectTransform front = Find<RawImage>(preview, "Card Workshop Chest 0").rectTransform;
-            RectTransform rear = Find<RawImage>(preview, "Card Workshop Chest 1").rectTransform;
-            Assert.That(front.parent.GetSiblingIndex(), Is.GreaterThan(rear.parent.GetSiblingIndex()));
         }
 
         [Test]
-        public void CardChestsHaveEqualPaintedWidthsAndSeparateLabelsAndHitTargets()
+        public void WorkshopUpgradeMergesBothRightSectionsAndCanReturnToEntrances()
         {
             Transform preview = Preview(CoreGameplayPreviewScreen.CardWorkshop);
-            float previousRight = float.NegativeInfinity;
-            for (int index = 0; index < 4; index++)
-            {
-                RawImage art = Find<RawImage>(preview, "Card Workshop Chest " + index);
-                Rect uv = CardWorkshopChestPlacement.PaintedBoundsUv(index);
-                Rect rect = art.rectTransform.rect;
-                Assert.That(uv.width * rect.width, Is.EqualTo(280f).Within(0.01f),
-                    "All four entrances must use the same painted width, not the PNG canvas width.");
-                Assert.That(rect.width / rect.height,
-                    Is.EqualTo((float)art.texture.width / art.texture.height).Within(0.001f),
-                    "Normalize size without stretching the chest illustration.");
-                RectTransform button = Find<Button>(preview, "Open Deck Chest " + index).GetComponent<RectTransform>();
-                Assert.That(button.anchoredPosition.x - button.rect.width * 0.5f, Is.GreaterThan(previousRight),
-                    "Neighbouring invisible click rectangles must not overlap.");
-                previousRight = button.anchoredPosition.x + button.rect.width * 0.5f;
-                Vector3 bottomLeft = art.transform.TransformPoint(new Vector2(
-                    Mathf.Lerp(rect.xMin, rect.xMax, uv.xMin), Mathf.Lerp(rect.yMin, rect.yMax, uv.yMin)));
-                Vector3 topRight = art.transform.TransformPoint(new Vector2(
-                    Mathf.Lerp(rect.xMin, rect.xMax, uv.xMax), Mathf.Lerp(rect.yMin, rect.yMax, uv.yMax)));
-                Assert.That(button.rect.Contains(button.InverseTransformPoint(bottomLeft)), Is.True);
-                Assert.That(button.rect.Contains(button.InverseTransformPoint(topRight)), Is.True,
-                    "Enlarged painted art must remain clickable all the way to the lid.");
-                RectTransform label = Find<Text>(preview, "Card Workshop Chest Name " + index).rectTransform;
-                float labelTop = label.TransformPoint(new Vector2(0f, label.rect.yMax)).y;
-                Assert.That(labelTop, Is.LessThan(bottomLeft.y), "Labels must remain below the painted feet.");
-                Assert.That(Find<Image>(preview, "Card Workshop Chest Glow " + index).rectTransform.rect.width,
-                    Is.EqualTo(280f).Within(0.01f), "Hover feedback should follow the painted size, not transparent padding.");
-            }
+            Find<Button>(preview, "Open Battle Card Upgrades").onClick.Invoke();
+            preview = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName);
+            Find<RectTransform>(preview, "Battle Card Upgrade Panel");
+            Assert.That(Find<Text>(preview, "Card Upgrade Heading").text, Is.EqualTo("卡牌强化"));
+            Assert.That(preview.GetComponentsInChildren<Button>(true).Any(button => button.name.StartsWith("Edit Stage Deck ")), Is.False);
+            Find<Button>(preview, "Back From Card Upgrades").onClick.Invoke();
+            preview = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName);
+            Find<Button>(preview, "Open Battle Card Upgrades");
+            Find<Button>(preview, "Edit Stage Deck Preparation");
+            Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Card Upgrade Panel"), Is.False);
         }
 
         [TestCase(0, "deck_chest_standard_v1")]
@@ -204,44 +179,19 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void DispatchUsesOneIntegratedRoomLayerAndStationaryPaper()
-        {
-            Transform preview = Preview(CoreGameplayPreviewScreen.Dispatch);
-            RawImage room = Find<RawImage>(preview, "Dispatch Background");
-            Assert.That(room.texture.name, Is.EqualTo("dispatch_room_integrated_v3"));
-            Assert.That(room.color, Is.EqualTo(Color.white), "Preserve the unified room/table illumination.");
-            Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item =>
-                item.name == "Dispatch Command Table" || item.name.StartsWith("Dispatch Table Foot Contact")), Is.False,
-                "The table and shadows are painted into the room; a second furniture layer must not return.");
-            for (int index = 0; index < 3; index++)
-            {
-                Button button = Find<Button>(preview, "Dispatch Mission Chart " + index);
-                RawImage chart = Find<RawImage>(preview, "Dispatch Mission Chart Art " + index);
-                Assert.That(chart.rectTransform.sizeDelta.y / chart.rectTransform.sizeDelta.x, Is.LessThan(0.6f));
-                Assert.That(chart.GetComponent<TabletopQuadProjection>(), Is.Not.Null);
-                RawImage contact = Find<RawImage>(preview, "Dispatch Chart Paper Contact " + index);
-                Assert.That(contact.texture, Is.EqualTo(chart.texture), "The contact shadow must follow the paper silhouette.");
-                Assert.That(contact.rectTransform.anchoredPosition, Is.EqualTo(new Vector2(0f, -2f)));
-                Vector3 chartPosition = chart.transform.position;
-                Quaternion chartRotation = chart.transform.rotation;
-                AssertNoHoverGlow(button, Find<Image>(preview, "Dispatch Mission Chart Glow " + index));
-                Assert.That(chart.transform.position, Is.EqualTo(chartPosition));
-                Assert.That(chart.transform.rotation, Is.EqualTo(chartRotation));
-            }
-        }
-
-        [Test]
         public void TreasureMapsStayOnSeparateFrontFacingBoardsDuringHover()
         {
             Transform preview = Preview(CoreGameplayPreviewScreen.TreasureMap);
-            Assert.That(Find<RawImage>(preview, "Treasure Background").texture.name, Is.EqualTo("treasure_room_boards_v2"));
+            Assert.That(Find<RawImage>(preview, "Treasure Background").texture.name, Is.EqualTo("treasure_worktable_background_v3"));
             Assert.That(Find<RawImage>(preview, "Treasure Background").color, Is.EqualTo(Color.white));
             Assert.That(preview.GetComponentsInChildren<SceneTabletopProjection>(true), Is.Empty,
                 "Front-facing charts must not use the old steep tabletop projection.");
-            RectTransform reading = Find<Image>(preview, "Treasure Route Reading Desk").rectTransform;
-            Assert.That(reading.GetComponent<Image>().sprite, Is.EqualTo(WoodButtonSkin.Face));
-            Assert.That(reading.anchoredPosition.y + PhaseSurfaceLayout.StagePositionY - reading.rect.height * 0.5f,
-                Is.GreaterThanOrEqualTo(-524f), "Keep at least 16px below the route dossier at the screen edge.");
+            foreach (string name in new[] { "Treasure Route Reading Desk", "Treasure Selected Route", "Treasure Route Detail" })
+                Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False,
+                    "The lower reading desk and its information have been removed.");
+            Text status = Find<Text>(preview, "Treasure Workbench Status");
+            Assert.That(status.text, Does.Not.Contain("月蚀"));
+            Assert.That(status.preferredHeight, Is.LessThanOrEqualTo(status.rectTransform.rect.height + 1f));
             float previousRight = float.NegativeInfinity;
             for (int index = 0; index < 3; index++)
             {
@@ -256,11 +206,12 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(button.interactable, Is.True);
                 Assert.That(button.GetComponent<Image>().raycastTarget, Is.False, "Do not let an invisible rectangular hit target bridge the tilted edges.");
                 Assert.That(button.GetComponent<RectTransform>().anchoredPosition, Is.EqualTo(layout.Position));
-                Assert.That(layout.Position.x - layout.Size.x * 0.5f, Is.GreaterThan(previousRight + 80f));
+                Assert.That(layout.Position.x - layout.Size.x * 0.5f, Is.GreaterThan(previousRight + 50f),
+                    "The separate tabletop frames must retain a visible, non-interactive gap.");
                 previousRight = layout.Position.x + layout.Size.x * 0.5f;
                 Assert.That(projection.Project(Vector2.up).y, Is.EqualTo(projection.Project(Vector2.one).y).Within(0.001f));
-                Assert.That(projection.Project(Vector2.up).x, Is.LessThan(0.07f));
-                Assert.That(projection.Project(Vector2.one).x, Is.GreaterThan(0.93f), "Only the shallow painted face perspective is retained.");
+                Assert.That(projection.Project(Vector2.up).x, Is.InRange(0f, 0.2f));
+                Assert.That(projection.Project(Vector2.one).x, Is.InRange(0.8f, 1f), "Only the shallow painted face perspective is retained.");
                 Assert.That(projection.Contains(new Vector2(0.5f, 0.5f)), Is.True);
                 Image edge = Find<Image>(preview, "Treasure Chart Paper Edge " + index);
                 foreach (Vector2 corner in new[] { Vector2.zero, Vector2.right, Vector2.up, Vector2.one })
@@ -274,13 +225,17 @@ namespace ShatteredSail.Presentation.Tests
                         "The entire sea chart belongs inside the board's paper border.");
                 }
                 Text label = Find<Text>(preview, "Treasure Route Name " + index);
+                Text progress = Find<Text>(preview, "Treasure Route Progress " + index);
                 Assert.That(label.resizeTextForBestFit, Is.True);
                 Assert.That(label.verticalOverflow, Is.EqualTo(VerticalWrapMode.Truncate));
+                Assert.That(label.text, Is.EqualTo(CoreTreasureHuntCatalog.Ranks[index].Name + "藏宝图"));
+                Assert.That(progress.text, Does.Contain("/4"));
+                Assert.That(label.rectTransform.anchoredPosition, Is.EqualTo(layout.NamePosition - layout.Position));
+                Assert.That(progress.rectTransform.anchoredPosition, Is.EqualTo(layout.LabelPosition - layout.Position));
+                Assert.That(layout.NamePosition.y + layout.NameSize.y * 0.5f,
+                    Is.LessThan(layout.Position.y - layout.Size.y * 0.5f), "The painted name plate must stay below the map.");
                 Assert.That(layout.LabelPosition.y + layout.LabelSize.y * 0.5f,
-                    Is.LessThan(layout.Position.y - layout.Size.y * 0.5f), "The name rail must never cover the map.");
-                Assert.That(reading.anchoredPosition.y + reading.rect.height * 0.5f,
-                    Is.LessThan(TreasureChartDisplayLayout.PixelToPanel(new Vector2(832f, 714f)).y - 40f),
-                    "Keep 40px below the stand feet as well as the 16px screen-bottom margin checked above.");
+                    Is.LessThan(layout.NamePosition.y - layout.NameSize.y * 0.5f), "Progress uses its own painted plate below the name.");
                 Vector3 paperPosition = chart.transform.position;
                 AssertNoHoverGlow(button, Find<Image>(preview, "Treasure Route Hover " + index));
                 Assert.That(chart.transform.position, Is.EqualTo(paperPosition));
@@ -299,13 +254,13 @@ namespace ShatteredSail.Presentation.Tests
             CoreGameplayDemoController controller = host.AddComponent<CoreGameplayDemoController>();
             controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.TreasureMap, port, 2);
             Transform preview = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName);
-            Assert.That(Find<RawImage>(preview, "Treasure Background").texture.name, Is.EqualTo("treasure_room_boards_v2"));
+            Assert.That(Find<RawImage>(preview, "Treasure Background").texture.name, Is.EqualTo("treasure_worktable_background_v3"));
             RawImage[] maps = preview.GetComponentsInChildren<RawImage>(true).Where(item => item.name.StartsWith("Treasure Route Art ")).ToArray();
             Assert.That(maps.Length, Is.EqualTo(3));
             Assert.That(maps.Select(item => item.texture).Distinct().Count(), Is.EqualTo(3));
-            Assert.That(Find<Text>(preview, "Treasure Route Name 2").text, Does.Contain("已选"));
-            Assert.That(Find<Text>(preview, "Treasure Route Name 0").text, Does.Not.Contain("已选"));
-            Assert.That(Find<Text>(preview, "Treasure Route Name 1").text, Does.Not.Contain("已选"));
+            Assert.That(Find<Text>(preview, "Treasure Route Name 2").text, Does.Contain("月蚀藏宝图"));
+            Assert.That(Find<Text>(preview, "Treasure Route Name 0").text, Does.Contain("残旧藏宝图"));
+            Assert.That(Find<Text>(preview, "Treasure Route Name 1").text, Does.Contain("鎏金藏宝图"));
         }
 
         [Test]

@@ -1,6 +1,8 @@
 param([ValidateSet('Edit','Play','References')][string]$Stage = 'Edit', [string]$Version = 'v1', [string]$EditFilter = '',
-    [string]$Filter = 'MonthlyCalendar_;Dispatch_;DepartureProvisions_;MarketStorage_;MarketQuantity_;PortWarehouseTrading_;RareWarehouseSale_;TradeMarket_;PortInvestment_;GameMasterRuntimeTests;MainMenuSceneTests;RegionalComponentShopStock_;ComponentShopShowroomPaginationTests;GuidedTutorial_')
+    [string]$Filter = 'MonthlyCalendar_;DepartureProvisions_;MarketStorage_;MarketQuantity_;PortWarehouseTrading_;RareWarehouseSale_;TradeMarket_;PortInvestment_;GameMasterRuntimeTests;MainMenuSceneTests;RegionalComponentShopStock_;ComponentShopShowroomPaginationTests;GuidedTutorial_')
 $ErrorActionPreference = 'Stop'
+# Retired by user request; exit before filesystem or Unity actions.
+if (@('References') -contains $Stage) { throw 'UIPreviewsForMe was retired on 2026-10-13; saved-preview generation, refresh and copy-back are disabled.' }
 if (Get-Process Unity -ErrorAction SilentlyContinue) { throw 'Close Unity before isolated QA.' }
 $project = 'D:\Game\UnityClient'
 $output = Join-Path $project ('Artifacts\MonthlyCalendar20261003\' + $Stage + '-' + $Version)

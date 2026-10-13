@@ -8,6 +8,7 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation.Tests
 {
+    [Ignore("UIPreviewsForMe was retired and cleared on 2026-10-13; these historical saved-scene fixtures are no longer maintained.")]
     public sealed class BossTreasureDropPreviewSceneTests
     {
         private const string Root = "Assets/_Project/Scenes/UIPreviewsForMe/";
@@ -42,17 +43,14 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void SavedTutorialReturnLogsFragmentAndPreservesRationDuration()
+        public void SavedTutorialReturnPreservesRationDurationAndRewardWithoutJournal()
         {
             CheckScene("TutorialVoyage/26_ThirdReturn.unity", controller =>
             {
-                Text log = Find(controller, "Voyage Log");
-                Assert.That(log.text, Does.Contain("新手首领必定掉落：藏宝图碎片 +1（返航后入账）"));
-                Assert.That(log.preferredHeight, Is.LessThanOrEqualTo(log.rectTransform.rect.height + 1f));
                 Assert.That(Find(controller, "Water Food Endurance"), Is.Not.Null);
-                foreach (string name in new[] { "Voyage Supply Endurance", "Voyage Journal Scroll", "Lookout Report Plaque", "Lookout Heading Plaque" })
+                foreach (string name in new[] { "Voyage Supply Endurance", "Navigation Controls", "Lookout Report Plaque", "Lookout Heading Plaque" })
                     AssertRewardDoesNotOverlap(controller, name);
-                Assert.That(controller.GetComponentsInChildren<ScrollRect>(true).Single(item => item.name == "Voyage Journal Scroll").vertical, Is.True);
+                Assert.That(controller.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Navigation Journal"), Is.False);
             });
         }
 

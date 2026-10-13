@@ -19,6 +19,8 @@ namespace ShatteredSail.Editor
     {
         public static void SyncVoyageHeaderFromCommandLine()
         {
+            throw new System.NotSupportedException("UIPreviewsForMe was retired on 2026-10-13; saved-preview generation, refresh and copy-back are disabled.");
+#if false // Historical implementation; this target is retired.
             if (Application.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stopped Editor required for voyage header migration.");
             string backupRoot = VoyageHeaderAuditArgument("-voyageHeaderBackupPath");
@@ -47,6 +49,8 @@ namespace ShatteredSail.Editor
                 File.WriteAllText(reportPath, JsonUtility.ToJson(report, true), new UTF8Encoding(false));
             }
             Debug.Log("VOYAGE_HEADER_PREVIEW_SYNC_OK: " + report.scenes.Count + " scoped previews; report=" + reportPath);
+
+#endif
         }
 
         private static VoyageHeaderSceneRecord MigrateVoyageHeader(string reference, string backupRoot)

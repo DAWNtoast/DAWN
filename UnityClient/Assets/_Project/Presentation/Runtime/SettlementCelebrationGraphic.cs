@@ -4,6 +4,7 @@ using UnityEngine.UI;
 namespace ShatteredSail.Presentation
 {
     /// <summary>Small UI glints and a finite radial burst. No texture edits or global random state.</summary>
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class SettlementCelebrationGraphic : MaskableGraphic
     {
         private float elapsed = 2.8f;

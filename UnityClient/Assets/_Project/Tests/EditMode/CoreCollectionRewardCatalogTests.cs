@@ -55,8 +55,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(collection.OwnedIds.Count, Is.EqualTo(28));
 
             facts.recruitedCrewIds = RequiredCrewIds();
+            facts.crewCardLevels = RequiredCrewCardLevels();
             Assert.That(facts.recruitedCrewIds.All(id => CrewNarrativeCatalog.FindById(id) != null), Is.True);
-            // Ten recruit gifts, the thirty-keepsake reward, and the final beacon finish the collection.
+            Assert.That(facts.recruitedCrewIds.All(id => CoreSpecialCardCatalog.ForCrew(id) != null), Is.True,
+                "Every recruitment keepsake must have an obtainable character card.");
+            // Ten fully trained crew gifts, the thirty-keepsake reward, and the final beacon finish the collection.
             Assert.That(Reconcile(progress, facts, collection), Is.EqualTo(12));
             Assert.That(collection.OwnedIds.Count, Is.EqualTo(40));
             Assert.That(collection.Owns(Beacon), Is.True);
@@ -136,10 +139,53 @@ namespace ShatteredSail.Core.Tests
         [TestCase("noya_drowned_diver_lens", "crew_treasure_diver")]
         public void RecruitmentReward_UsesMigratedCanonicalIdentityNotAnotherPersonWithTheSameProfession(string treasure, string legacyId)
         {
-            var facts = new CoreCollectionFacts { recruitedCrewIds = new[] { "crew_broken_anchor_navigator_lorne" } };
+            string canonicalId = CrewNarrativeCatalog.FindById(legacyId).Id;
+            var facts = new CoreCollectionFacts
+            {
+                recruitedCrewIds = new[] { "crew_broken_anchor_navigator_lorne" },
+                crewCardLevels = new Dictionary<string, int> { [canonicalId] = 3, ["crew_broken_anchor_navigator_lorne"] = 3 },
+            };
             Assert.That(CoreCollectionRewardCatalog.Find(treasure).IsSatisfied(null, facts, null), Is.False);
-            facts.recruitedCrewIds = new[] { CrewNarrativeCatalog.FindById(legacyId).Id };
+            facts.recruitedCrewIds = new[] { canonicalId };
             Assert.That(CoreCollectionRewardCatalog.Find(treasure).IsSatisfied(null, facts, null), Is.True);
+        }
+
+        [TestCase("evelyn_six_port_ruler", "crew_gray_gull_navigator_evelyn")]
+        [TestCase("barlow_living_hull_plane", "crew_gray_gull_carpenter_barlow")]
+        [TestCase("moer_storm_suture_kit", "crew_gray_gull_doctor_moer")]
+        [TestCase("leisa_free_flag_badge", "crew_gray_gull_gunner_leisa")]
+        [TestCase("pepe_shared_pot_lid", "crew_gray_gull_cook_pepe")]
+        [TestCase("lorne_first_berth_token", "crew_broken_anchor_navigator_lorne")]
+        [TestCase("atang_white_shell_button", "crew_white_shell_carpenter_atang")]
+        [TestCase("ada_bronze_bell_bandage", "crew_bronze_bell_doctor_ada")]
+        [TestCase("helen_thirteenth_cannon_coin", "crew_bronze_bell_gunner_helen")]
+        [TestCase("noya_drowned_diver_lens", "crew_gray_gull_diver_noya")]
+        public void RecruitmentReward_RequiresTheRecruitedCharactersOwnCardAtLevelThree(string treasure, string crewId)
+        {
+            CoreCollectionRewardRule rule = CoreCollectionRewardCatalog.Find(treasure);
+            var facts = new CoreCollectionFacts { recruitedCrewIds = new[] { crewId } };
+            Assert.That(rule.Source, Does.Contain("角色卡牌升至 3 级"));
+            Assert.That(rule.IsSatisfied(null, facts, null), Is.False, "Recruitment alone is insufficient.");
+            facts.crewCardLevels = null;
+            Assert.That(rule.IsSatisfied(null, facts, null), Is.False, "Missing card progress cannot prove the requirement.");
+            facts.crewCardLevels = new Dictionary<string, int> { ["another_crew"] = 3 };
+            Assert.That(rule.IsSatisfied(null, facts, null), Is.False, "Another character's trained card cannot qualify.");
+            for (int level = 0; level <= 4; level++)
+            {
+                facts.crewCardLevels = new Dictionary<string, int> { [crewId] = level };
+                Assert.That(rule.IsSatisfied(null, facts, null), Is.EqualTo(level >= 3), "Card level " + level);
+            }
+            facts.recruitedCrewIds = Array.Empty<string>();
+            Assert.That(rule.IsSatisfied(null, facts, null), Is.False, "Card progress cannot replace recruitment.");
+        }
+
+        [Test]
+        public void PreviouslyOwnedRecruitmentReward_RemainsOwnedWithoutTheNewCardRequirement()
+        {
+            var collection = new CoreWarehouseCollection();
+            collection.Import("evelyn_six_port_ruler", string.Empty);
+            Assert.That(Reconcile(new CoreCollectionProgress(), new CoreCollectionFacts(), collection), Is.Zero);
+            Assert.That(collection.Owns("evelyn_six_port_ruler"), Is.True);
         }
 
         [Test]
@@ -154,7 +200,11 @@ namespace ShatteredSail.Core.Tests
                 completedTreasureSeeds = DistinctSeeds("treasure", 8),
                 completedTreasureRanks = new[] { "weathered", "gilded", "moonlit" }
             };
-            var facts = new CoreCollectionFacts { recruitedCrewIds = RequiredCrewIds() };
+            var facts = new CoreCollectionFacts
+            {
+                recruitedCrewIds = RequiredCrewIds(),
+                crewCardLevels = RequiredCrewCardLevels(),
+            };
             var owned = new[] { CoreWarehouseCollection.TutorialTreasureId };
             string before = Snapshot(progress, facts, owned);
             foreach (CoreCollectionRewardRule rule in CoreCollectionRewardCatalog.All)
@@ -168,7 +218,8 @@ namespace ShatteredSail.Core.Tests
         private static string Snapshot(CoreCollectionProgress p, CoreCollectionFacts f, string[] owned) =>
             string.Join("|", p.defeatedBossIds.Concat(p.completedChartSeeds).Concat(p.completedRouteIds)
                 .Concat(p.visitedPorts).Concat(p.completedTreasureSeeds).Concat(p.completedTreasureRanks)
-                .Concat(f.recruitedCrewIds).Concat(owned));
+                .Concat(f.recruitedCrewIds).Concat(f.crewCardLevels.OrderBy(pair => pair.Key).Select(pair => pair.Key + "=" + pair.Value))
+                .Concat(owned));
 
         private static void AssertSatisfied(string id, CoreCollectionProgress progress, bool expected) =>
             Assert.That(CoreCollectionRewardCatalog.Find(id).IsSatisfied(progress, null, null), Is.EqualTo(expected), id);
@@ -200,5 +251,8 @@ namespace ShatteredSail.Core.Tests
             "crew_white_shell_carpenter_atang", "crew_bronze_bell_doctor_ada", "crew_bronze_bell_gunner_helen",
             "crew_gray_gull_diver_noya"
         };
+
+        private static IReadOnlyDictionary<string, int> RequiredCrewCardLevels() => RequiredCrewIds()
+            .Where(id => CoreSpecialCardCatalog.ForCrew(id) != null).ToDictionary(id => id, id => 3);
     }
 }

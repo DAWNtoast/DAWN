@@ -25,5 +25,16 @@ namespace ShatteredSail.Editor
             Debug.Log("MARKET_QUANTITY_PREVIEW_SYNC: updated four existing market ledgers; authored backgrounds retained.");
             UIPreviewSceneAcceptance.CaptureMarketQuantityFromCommandLine();
         }
+
+        public static void SyncMarketLayoutFromCommandLine()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("Market layout previews require edit mode.");
+            foreach (string reference in MarketQuantityReferencePaths)
+                SyncDepartureProvisionScene(reference, "Artifacts/MarketCalm20261011/preview-backup");
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("MARKET_LAYOUT_PREVIEW_SYNC: updated four existing market previews.");
+        }
     }
 }

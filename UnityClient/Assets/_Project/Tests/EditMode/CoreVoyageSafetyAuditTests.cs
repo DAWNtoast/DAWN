@@ -215,7 +215,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.ResolveChoice(0), Is.True);
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(session.Hull, Is.EqualTo(session.MaxHull));
-            Assert.That(session.Morale, Is.EqualTo(5));
+            Assert.That(session.Morale, Is.EqualTo(CoreVoyageSession.MaxMorale));
         }
 
         private static CoreVoyageSession Voyage(bool cook = true, string requiredShip = "")
@@ -253,7 +253,12 @@ namespace ShatteredSail.Core.Tests
             for (int route = 0; route < CoreVoyageSession.Routes.Count; route++)
             {
                 var session = new CoreVoyageSession();
+                session.RestoreTreasureProgress(new CoreTreasureProgress {
+                    pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[route].UnlockLevel),
+                });
+                Assert.That(session.CanSelectRoute(route, out string reason), Is.True, reason);
                 session.SelectRoute(route); session.SetSeed("COMPLETE-EVENT-CATALOG-AUDIT"); session.StartVoyage();
+                Assert.That(session.SelectedRouteIndex, Is.EqualTo(route), "The audit must sample every authored route.");
                 // Generation places the complete authored pool, without replacement,
                 // plus each route boss and all six optional third-chart bosses.
                 foreach (CoreMapNode node in session.Map.Nodes) authored[node.Encounter.Id] = node.Encounter;

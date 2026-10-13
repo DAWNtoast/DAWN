@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace ShatteredSail.Core.Gameplay
 {
@@ -8,10 +9,17 @@ namespace ShatteredSail.Core.Gameplay
         // Only a new campaign derives its starting date from the local system;
         // subsequent time is campaign state advanced by gameplay.
         public static DateTime GameClockOrigin { get; } = new DateTime(1, 1, 1, 8, 0, 0, DateTimeKind.Unspecified);
-        public static double MaximumElapsedGameHours { get; } =
-            (DateTime.MaxValue.Ticks - GameClockOrigin.Ticks) / (double)TimeSpan.TicksPerHour;
+        private static readonly long GameCalendarCycleTicks = DateTime.MaxValue.Ticks + 1L;
+        public static double GameCalendarCycleHours { get; } =
+            GameCalendarCycleTicks / (double)TimeSpan.TicksPerHour;
 
+        // Offset from the existing 08:00 save epoch, modulo one calendar cycle.
+        // The last eight hours of this range represent year 1, January 1, 00:00–08:00.
         public double ElapsedGameHours { get; private set; }
+
+        public static string FormatGameDate(DateTime date, bool includeTime = false) =>
+            date.Year.ToString(CultureInfo.InvariantCulture) +
+            date.ToString(includeTime ? "-MM-dd HH:mm" : "-MM-dd", CultureInfo.InvariantCulture);
 
         public static DateTime NewCampaignStartDate(DateTime systemDate)
         {
@@ -25,12 +33,8 @@ namespace ShatteredSail.Core.Gameplay
         {
             get
             {
-                if (ElapsedGameHours >= MaximumElapsedGameHours) return DateTime.MaxValue;
                 long elapsedTicks = (long)Math.Round(ElapsedGameHours * TimeSpan.TicksPerHour);
-                // The double-to-ticks conversion can round a few ticks above
-                // the supported calendar range at extremely large save values.
-                long ticks = GameClockOrigin.Ticks + Math.Min(
-                    DateTime.MaxValue.Ticks - GameClockOrigin.Ticks, Math.Max(0L, elapsedTicks));
+                long ticks = (GameClockOrigin.Ticks + elapsedTicks) % GameCalendarCycleTicks;
                 return new DateTime(ticks, DateTimeKind.Unspecified);
             }
         }
@@ -39,7 +43,7 @@ namespace ShatteredSail.Core.Gameplay
         public bool RestoreGameClock(double elapsedHours)
         {
             if (Phase != CoreDemoPhase.Port || !IsValidGameDuration(elapsedHours)) return false;
-            ElapsedGameHours = Math.Min(MaximumElapsedGameHours, elapsedHours);
+            ElapsedGameHours = elapsedHours % GameCalendarCycleHours;
             return true;
         }
 
@@ -49,11 +53,9 @@ namespace ShatteredSail.Core.Gameplay
         private void AdvanceGameClock(double hours)
         {
             if (!IsValidGameDuration(hours)) throw new ArgumentOutOfRangeException(nameof(hours));
-            // Compare before adding so even a finite but oversized duration
-            // cannot overflow or wrap the clock back to the first month.
-            ElapsedGameHours = hours >= MaximumElapsedGameHours - ElapsedGameHours
-                ? MaximumElapsedGameHours
-                : ElapsedGameHours + hours;
+            // Reduce first so even an oversized finite duration cannot overflow.
+            // The date wraps at midnight after 9999-12-31, retaining any extra time.
+            ElapsedGameHours = (ElapsedGameHours + hours % GameCalendarCycleHours) % GameCalendarCycleHours;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,10 +40,10 @@ namespace ShatteredSail.Presentation.Tests
                     PlayerPrefs.SetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(id), 1);
             }
             ClickAcceptanceButton("Port Hotspot Market"); yield return null;
-            yield return EnsureMarketItemVisible("water");
+            yield return OpenMarketItem("water");
             Assert.That(ActiveButton("Market Buy water").IsInteractable(), Is.False);
-            yield return EnsureMarketItemVisible("wood");
-            Assert.That(GameObject.Find("Market Quota wood").GetComponent<Text>().text, Does.Contain("已购 200"));
+            yield return OpenMarketItem("wood");
+            Assert.That(MarketInfoLabel("Market Quota wood").text, Does.Contain("已购 200"));
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
             yield return StartCalendarVoyageAndSail(controller);
             Assert.That(session.GameDateTime.Month, Is.EqualTo(2));
@@ -71,10 +71,12 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(next.All(offer => PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(offer.Id)) == 0), Is.True, port);
             }
             ClickAcceptanceButton("Port Hotspot Market"); yield return null;
-            yield return EnsureMarketItemVisible("water");
+            yield return OpenMarketItem("water");
             Assert.That(ActiveButton("Market Buy water").IsInteractable(), Is.True);
-            Assert.That(GameObject.Find("Market Summary").GetComponent<Text>().text,
-                Does.Contain(PortMarketCatalog.MonthKey(savedDate)).And.Contain("下次补货"));
+            AssertCalendarMarketDisplayedMonth(controller, savedDate);
+            Assert.That(MarketInfoLabel("Market Quota water").text,
+                Does.Contain("当前可购 " + CalendarMarketRemaining(controller, session.CurrentPort, PortMarketItem.Water))
+                    .And.Contain("已购 0").And.Not.Contain("下次补货"));
             NavalBattleVisualCapture.Capture(controller, "MonthlyCalendar_01_NewMonthMarket.png",
                 "月底夹具通过真实航行进入二月；所有港口月库存恢复，历史采购记录保留", "Market Panel");
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
@@ -82,7 +84,7 @@ namespace ShatteredSail.Presentation.Tests
             session = controller.Session;
             Assert.That(session.ElapsedGameHours, Is.EqualTo(savedHours));
             Assert.That(session.GameDateTime, Is.EqualTo(savedDate));
-            Assert.That(GameObject.Find("Port Hub Time").GetComponent<Text>().text, Does.Contain(savedDate.ToString("yyyy-MM-dd HH:mm")));
+            Assert.That(GameObject.Find("Port Hub Time").GetComponent<Text>().text, Does.Contain(CoreVoyageSession.FormatGameDate(savedDate, true)));
             yield return StartCalendarVoyageAndSail(controller, savedHours);
             Assert.That(session.ElapsedGameHours, Is.EqualTo(savedHours + session.TotalHours).Within(.000001d),
                 "Only this voyage's duration resets; the campaign calendar must continue.");
@@ -106,10 +108,10 @@ namespace ShatteredSail.Presentation.Tests
                 .GetValue(controller), Is.Null, "Use the campaign calendar, not a test-only market clock.");
             ClickAcceptanceButton("Port Hotspot Market"); yield return null;
             yield return SelectMarketStorageMode(controller, MarketPurchaseStorageMode.Ask);
-            yield return EnsureMarketItemVisible("wood");
             decimal originalGold = session.ProfileGold;
             decimal cost = PortMarketCatalog.CalculateBuyCost(session.CurrentPort, PortMarketItem.Wood, firstDay, 1);
-            ClickAcceptanceButton("Market Buy wood"); yield return null;
+            yield return OpenMarketTrade("wood");
+            ClickAcceptanceButton("Confirm Market Buy wood"); yield return null;
             Button.ButtonClickedEvent sameMonth = ActiveButton("Market Buy To Warehouse").onClick;
             Assert.That(session.RestoreGameClock(firstDayHours + 24d), Is.True); // Next day in the same campaign month.
             sameMonth.Invoke(); yield return null;
@@ -117,13 +119,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.PortWarehouse.GetAmount(session.CurrentPort, "wood"), Is.EqualTo(1));
             Assert.That(CoreGameplayDemoController.MarketPurchaseKey(session.CurrentPort, firstDay, PortMarketItem.Wood),
                 Is.EqualTo(CoreGameplayDemoController.MarketPurchaseKey(session.CurrentPort, session.GameDateTime, PortMarketItem.Wood)));
-            ClickAcceptanceButton("Market Buy wood"); yield return null;
+            yield return OpenMarketTrade("wood");
+            ClickAcceptanceButton("Confirm Market Buy wood"); yield return null;
             Button.ButtonClickedEvent oldMonth = ActiveButton("Market Buy To Warehouse").onClick;
             decimal before = session.ProfileGold;
             DateTime nextMonth = firstDay.AddMonths(1);
             Assert.That(session.RestoreGameClock((nextMonth - CoreVoyageSession.GameClockOrigin).TotalHours), Is.True);
             yield return null; // The visible market must notice the rollover itself.
-            Assert.That(GameObject.Find("Market Summary").GetComponent<Text>().text, Does.Contain(PortMarketCatalog.MonthKey(nextMonth)));
+            AssertCalendarMarketDisplayedMonth(controller, nextMonth);
+            Assert.That(MarketInfoLabel("Market Quota wood").text,
+                Does.Contain("当前可购 " + CalendarMarketRemaining(controller, session.CurrentPort, PortMarketItem.Wood))
+                    .And.Contain("已购 0"));
             oldMonth.Invoke(); yield return null;
             Assert.That(session.ProfileGold, Is.EqualTo(before));
             Assert.That(session.PortWarehouse.GetAmount(session.CurrentPort, "wood"), Is.EqualTo(1));
@@ -161,8 +167,8 @@ namespace ShatteredSail.Presentation.Tests
                 "An upgrade adds offers without making already sold components purchasable again.");
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(oldOffers[0])), Is.EqualTo(1));
             ClickAcceptanceButton("Open Port Market"); yield return null;
-            yield return EnsureMarketItemVisible("wood");
-            Assert.That(GameObject.Find("Market Quota wood").GetComponent<Text>().text, Does.Contain("已购 37"));
+            yield return OpenMarketItem("wood");
+            Assert.That(MarketInfoLabel("Market Quota wood").text, Does.Contain("已购 37"));
             NavalBattleVisualCapture.Capture(controller, "MonthlyCalendar_02_InvestmentStock.png",
                 "真实投资按钮增加当月库存和额度；既有采购记录与售出部件状态不重置", "Market Panel");
             LogAssert.NoUnexpectedReceived();
@@ -172,6 +178,14 @@ namespace ShatteredSail.Presentation.Tests
             (int)typeof(CoreGameplayDemoController).GetMethod("MarketRemaining", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(controller, new object[] { port, item, controller.Session.GameDateTime,
                     PlayerPrefs.GetInt(CoreGameplayDemoController.PortInvestmentKey(port), 0) });
+
+        private static void AssertCalendarMarketDisplayedMonth(CoreGameplayDemoController controller, DateTime date)
+        {
+            Assert.That(typeof(CoreGameplayDemoController).GetField("marketDisplayedDate",
+                BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller),
+                Is.EqualTo(new DateTime(date.Year, date.Month, 1)),
+                "The market must refresh monthly quotes and quotas after the detail date label is removed.");
+        }
 
         private static IEnumerator StartCalendarVoyageAndSail(CoreGameplayDemoController controller, double? expectedHours = null)
         {

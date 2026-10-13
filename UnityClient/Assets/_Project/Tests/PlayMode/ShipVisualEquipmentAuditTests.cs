@@ -14,7 +14,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest, Timeout(240000)]
-        public IEnumerator ShipVisuals_AllTwelveOwnedShipsRenderStockRefittedAndDepartureLayers()
+        public IEnumerator ShipVisuals_AllTwelveOwnedShipsRetainBaseHullAfterRefitsAndAtDeparture()
         {
             // Explicit inventory fixture: no player purchases or player saves are used.
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
@@ -24,6 +24,9 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             yield return null;
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            // Populate the starter loadout so the audit verifies that installed
+            // components leave the vessel's base illustration unchanged.
+            PopulateBareStarterForFixture(controller);
             var catalog = new ComponentArtCatalog();
             VoyageCargo cargo = controller.Session.Cargo;
             cargo.Water = cargo.Food = cargo.Beer = cargo.Medicine = cargo.Wood = cargo.Iron =
@@ -33,11 +36,11 @@ namespace ShatteredSail.Presentation.Tests
             for (int ship = 0; ship < CoreVoyageSession.Ships.Count; ship++)
             {
                 yield return BrowseShipMarketTo(ship);
-                AssertVisibleEquipmentLayers(controller, ship, "Shipyard Ship " + ship);
+                AssertBaseShipVisualWithInstalledComponents(controller, ship, "Shipyard Ship " + ship);
                 AssertGalleryHullWaterContact(ship);
                 yield return new WaitForSecondsRealtime(0.35f);
                 NavalBattleVisualCapture.Capture(controller, "ShipVisual_Gallery_" + ship.ToString("00") + "_Stock.png",
-                    CoreVoyageSession.Ships[ship].Name + " · 原装船坞水线与配件", "Shipyard Panel");
+                    CoreVoyageSession.Ships[ship].Name + " · 装有部件时的基础船图与船坞水线", "Shipyard Panel");
                 foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
                 {
                     ComponentArtEntry replacement = catalog.Entries.First(entry => entry.Slot == slot && entry.Rarity == ComponentRarity.Rare);
@@ -46,11 +49,11 @@ namespace ShatteredSail.Presentation.Tests
                 }
                 yield return ClickShipyardControl("Shipyard Ship " + ship);
                 yield return ClickShipyardControl("Back To Shipyard Gallery");
-                AssertVisibleEquipmentLayers(controller, ship, "Shipyard Ship " + ship);
+                AssertBaseShipVisualWithInstalledComponents(controller, ship, "Shipyard Ship " + ship);
                 AssertGalleryHullWaterContact(ship);
                 yield return new WaitForSecondsRealtime(0.35f);
                 NavalBattleVisualCapture.Capture(controller, "ShipVisual_Gallery_" + ship.ToString("00") + "_Refit.png",
-                    CoreVoyageSession.Ships[ship].Name + (ship == 0 ? " · 五槽换件后的模块贴图与水线" : " · 五槽换件生效并保留原船外观与水线"), "Shipyard Panel");
+                    CoreVoyageSession.Ships[ship].Name + " · 五槽换件生效并保留基础船图与水线", "Shipyard Panel");
             }
 
             yield return ClickShipyardControl("Return To Port Hub");
@@ -58,39 +61,33 @@ namespace ShatteredSail.Presentation.Tests
             for (int ship = 0; ship < CoreVoyageSession.Ships.Count; ship++)
             {
                 Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(ship));
-                AssertVisibleEquipmentLayers(controller, ship, "Starter Modular Ship");
+                AssertBaseShipVisualWithInstalledComponents(controller, ship, "Starter Modular Ship");
                 yield return new WaitForSecondsRealtime(0.35f);
                 NavalBattleVisualCapture.Capture(controller, "ShipVisual_Departure_" + ship.ToString("00") + ".png",
-                    CoreVoyageSession.Ships[ship].Name + " · 改装后的出航小图", "Voyage Setup");
+                    CoreVoyageSession.Ships[ship].Name + " · 改装后维持基础外观的出航小图", "Voyage Setup");
                 if (ship + 1 < CoreVoyageSession.Ships.Count)
                     yield return ClickShipyardControl("Departure Next Vessel");
             }
             LogAssert.NoUnexpectedReceived();
         }
 
-        private static void AssertVisibleEquipmentLayers(CoreGameplayDemoController controller, int ship, string rootName)
+        private static void AssertBaseShipVisualWithInstalledComponents(CoreGameplayDemoController controller, int ship, string rootName)
         {
             GameObject root = GameObject.Find(rootName);
             Assert.That(root, Is.Not.Null, rootName);
-            RawImage[] layers = root.GetComponentsInChildren<RawImage>(true)
-                .Where(image => image.name.Contains(" Layer ")).ToArray();
-            Assert.That(layers.Length, Is.EqualTo(ship == 0 ? ComponentArtCatalog.SlotCount : 0), rootName);
-            if (ship != 0)
-            {
-                var art = new PortArtCatalog();
-                RawImage hull = root.GetComponentsInChildren<RawImage>(true).Single();
-                Assert.That(hull.texture, Is.SameAs(art.ShipTexture(ship)), "A refit keeps the non-starter vessel's original hull atlas.");
-                return;
-            }
+            RawImage[] images = root.GetComponentsInChildren<RawImage>(true);
+            Assert.That(images.Count(image => image.name.Contains(" Layer ")), Is.Zero,
+                "Equipping components must not add overlays to any vessel: " + rootName);
+            RawImage hull = images.Single();
+            Texture expectedHull = ship == 0 ? Resources.Load<Texture2D>("ModularShip/light_sloop_base")
+                : new PortArtCatalog().ShipTexture(ship);
+            Assert.That(hull.texture, Is.SameAs(expectedHull), "A refit keeps the vessel's base hull illustration.");
             foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
             {
                 ComponentArtEntry installed = controller.ShipComponent(ship, slot);
-                RawImage layer = layers.Single(image => image.name.EndsWith(" Layer " + installed.Id, StringComparison.Ordinal));
-                Assert.That(layer.texture, Is.SameAs(installed.ShipLayer), ship + " / " + slot);
-                Assert.That(layer.raycastTarget, Is.False, "Equipment must not intercept the vessel inspection hit.");
-                Assert.That(layer.rectTransform.rect.width, Is.GreaterThan(0f));
-                Assert.That(layer.rectTransform.rect.height, Is.GreaterThan(0f));
-                Assert.That(layer.color.a, Is.GreaterThan(0f));
+                Assert.That(installed, Is.Not.Null, ship + " / " + slot);
+                Assert.That(controller.InstalledShipComponent(ship, slot), Is.Not.Null,
+                    "Components remain installed while the vessel keeps its base illustration.");
             }
         }
 

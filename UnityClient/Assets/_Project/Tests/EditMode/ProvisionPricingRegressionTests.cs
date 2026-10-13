@@ -10,11 +10,12 @@ namespace ShatteredSail.Core.Tests
     {
         private static readonly string[] Ports = { "断锚港", "白贝港", "铜钟港", "盐冠港", "暮潮港", "灰鸥港" };
 
-        [TestCase(PortMarketItem.Water, 4)]
-        [TestCase(PortMarketItem.Food, 12)]
-        public void WaterAndFoodUseReducedSharedBasePrices(PortMarketItem item, int hundredUnitPrice)
+        [TestCase(PortMarketItem.Water, 32)]
+        [TestCase(PortMarketItem.Food, 96)]
+        [TestCase(PortMarketItem.Medicine, 6400)]
+        public void WaterFoodAndMedicineUseReducedSharedBasePrices(PortMarketItem item, int thousandUnitPrice)
         {
-            decimal expected = hundredUnitPrice / 100m;
+            decimal expected = thousandUnitPrice / 1000m;
             Assert.That(CorePortEconomy.BuyBasePrice(PortMarketCatalog.Key(item)), Is.EqualTo(expected));
             Assert.That(PortMarketCatalog.BaseBuyPrice(item), Is.EqualTo(expected));
             Assert.That(PortMarketCatalog.BaseSellPrice(item), Is.EqualTo(expected * .8m));
@@ -72,7 +73,8 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("断锚港", "白贝港", PortMarketItem.Wood, 40)]
-        [TestCase("暮潮港", "断锚港", PortMarketItem.Medicine, 30)]
+        // Cheaper medicine needs four sale batches to cover the fixed ammunition budget.
+        [TestCase("暮潮港", "断锚港", PortMarketItem.Medicine, 40)]
         [TestCase("灰鸥港", "盐冠港", PortMarketItem.Cloth, 40)]
         [TestCase("铜钟港", "灰鸥港", PortMarketItem.Iron, 30)]
         public void TradeRoute_WorstQuotesPayForEightDaysRationsAndDefensiveAmmunition(
@@ -127,7 +129,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase(1, "gold_convoy", 45, 12)]
         [TestCase(0, "event_reef_fisher_cache", 6, 2)]
         [TestCase(0, "common_floating_market", 24, 7)]
-        public void EmergencyFoodOffersChargeTheAuthoredModeratePremium(int route, string encounterId, int food, int price)
+        public void EmergencyFoodOffersChargeTheAuthoredPremium(int route, string encounterId, int food, int price)
         {
             var session = new CoreVoyageSession();
             session.SelectRoute(route);
@@ -137,8 +139,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(purchase.Effect.Food, Is.EqualTo(food));
             Assert.That(purchase.Effect.Gold, Is.EqualTo(-price));
             Assert.That(purchase.Detail, Does.Contain("金币 -" + price).And.Contain("食物 +" + food));
-            Assert.That(price / (food * CorePortEconomy.BuyBasePrice("food")), Is.InRange(2.2m, 2.8m),
-                "At-sea emergency supplies may cost more, but should remain within the intended premium.");
+            // Authored encounter payments stay fixed while port food is 20% cheaper.
+            Assert.That(price / (food * CorePortEconomy.BuyBasePrice("food")), Is.InRange(2.75m, 3.5m),
+                "The authored at-sea premium is measured against the reduced port food price.");
         }
 
         // Model the least favorable authored daily quotes at the shared unit precision

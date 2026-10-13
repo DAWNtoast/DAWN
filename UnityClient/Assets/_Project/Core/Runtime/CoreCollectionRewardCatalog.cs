@@ -20,6 +20,8 @@ namespace ShatteredSail.Core.Gameplay
     public sealed class CoreCollectionFacts
     {
         public string[] recruitedCrewIds = Array.Empty<string>();
+        // Keys are canonical crew identities; each level belongs to that character's own card.
+        public IReadOnlyDictionary<string, int> crewCardLevels = new Dictionary<string, int>(StringComparer.Ordinal);
     }
 
     public sealed class CoreCollectionRewardRule
@@ -140,7 +142,9 @@ namespace ShatteredSail.Core.Gameplay
             Rule(id, "首领 · 首次战胜" + name, (p, f, o) => Contains(p.defeatedBossIds, bossId));
 
         private static CoreCollectionRewardRule Crew(string id, string crewId, string port, string name) =>
-            Rule(id, "招募 · 在" + port + "酒馆招募“" + name + "”", (p, f, o) => HasCrew(f.recruitedCrewIds, crewId));
+            Rule(id, "招募 · 在" + port + "酒馆招募“" + name + "”并将其角色卡牌升至 3 级",
+                (p, f, o) => HasCrew(f.recruitedCrewIds, crewId) && f.crewCardLevels != null &&
+                    f.crewCardLevels.TryGetValue(crewId, out int level) && level >= 3);
 
         private static CoreCollectionRewardRule TreasureRank(string id, string rankId, string name) =>
             Rule(id, "藏宝图 · 完成 1 张" + name + "藏宝图" + TreasureCompletion,

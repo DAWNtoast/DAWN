@@ -33,7 +33,7 @@ namespace ShatteredSail.Core.Gameplay
                 ? GenerateGuidedTutorialMap(chart.ForwardDeparturePort, chart.ForwardDestinationPort,
                     CoreGuidedTutorialContent.BossVoyageLeg, chart.GeographyHash)
                 : GenerateMap(Routes[chart.RouteIndex], chart.Seed, chart.ForwardDeparturePort,
-                    chart.ForwardDestinationPort, chart.GeographyHash);
+                    chart.ForwardDestinationPort, chart.GeographyHash, chart.MapGeometryVersion);
             map.Seed = chart.Seed;
             // A chart has one world coordinate system. Returning from its other
             // endpoint swaps port roles, not coastlines, currents or event IDs.

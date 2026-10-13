@@ -26,13 +26,13 @@ namespace ShatteredSail.Presentation
         private static readonly IReadOnlyList<string> worldSoundEffectKeys = new[]
         {
             "sail_depart", "sail_step", "harbor_arrive", "encounter_enter",
-            "settlement_reward", "settlement_treasure", "settlement_failure", "dispatch_complete",
+            "settlement_reward", "settlement_treasure", "settlement_failure",
             "investment_build", "curse_purify", "milestone_unlock",
         };
         private static readonly IReadOnlyList<string> interfaceSoundEffectKeys = new[]
         {
             "course_plot", "encounter_choice", "trade_confirm", "shipyard_equip", "tavern_recruit",
-            "dispatch_start", "dispatch_recall", "treasure_craft", "treasure_equip", "chart_draw", "shop_refresh",
+            "treasure_craft", "treasure_equip", "chart_draw", "shop_refresh",
         };
         private static readonly IReadOnlyList<string> ambienceSoundEffectKeys = new[]
         {
@@ -269,13 +269,15 @@ namespace ShatteredSail.Presentation
 
         private void Update()
         {
-            UpdateUiViewHeader();
+            UpdatePortHeaderReadouts();
             if (!Application.isPlaying)
             {
                 UpdateEditorPreviewIfNeeded();
                 return;
             }
 
+            if (UnityEngine.InputSystem.Keyboard.current != null &&
+                UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame) TryHandleMarketEscape();
             RefreshMarketMonthIfNeeded();
             EnsureAudioListener();
             UpdateBattleEntryCue();
@@ -422,12 +424,11 @@ namespace ShatteredSail.Presentation
             {
                 case 1: return "shipyard_ambience";
                 case 2: return "tavern_ambience";
-                case 3:
+                case PortFacilityArtCatalog.ComponentShopFacilityIndex:
                 case 4:
-                case 5:
-                case 7:
-                case 9: return "market_ambience";
-                case 6: return "treasure_workbench_ambience";
+                case PortFacilityArtCatalog.MaintenanceFacilityIndex:
+                case PortFacilityArtCatalog.MarketFacilityIndex: return "market_ambience";
+                case PortFacilityArtCatalog.TreasureFacilityIndex: return "treasure_workbench_ambience";
                 default: return "harbor_ambience";
             }
         }
@@ -717,4 +718,5 @@ namespace ShatteredSail.Presentation
         }
     }
 }
+
 

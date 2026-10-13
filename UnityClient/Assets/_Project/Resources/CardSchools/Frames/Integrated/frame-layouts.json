@@ -1,0 +1,1516 @@
+{
+  "entries": [
+    {
+      "id": "frame-neutral-ap",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 182.83
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -110.14093,
+        "y": -38,
+        "width": 218,
+        "height": 218
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -48.0198
+      },
+      "titleCurve": {
+        "centerY": -2.0,
+        "slope": 0.004,
+        "edgeRise": 11.8,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-neutral-cannonball",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 182.83
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -110.14093,
+        "y": -38,
+        "width": 218,
+        "height": 218
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -48.0198
+      },
+      "titleCurve": {
+        "centerY": -2.0,
+        "slope": 0.004,
+        "edgeRise": 11.8,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-neutral-powder",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 182.83
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -110.14093,
+        "y": -38,
+        "width": 218,
+        "height": 218
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -48.0198
+      },
+      "titleCurve": {
+        "centerY": -2.0,
+        "slope": 0.004,
+        "edgeRise": 11.8,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-neutral-both",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 182.83
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -110.14093,
+        "y": -38,
+        "width": 218,
+        "height": 218
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -48.0198
+      },
+      "titleCurve": {
+        "centerY": -2.0,
+        "slope": 0.004,
+        "edgeRise": 11.8,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-fire-ap",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-fire-cannonball",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-fire-powder",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-fire-both",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-arcane-ap",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-arcane-cannonball",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-arcane-powder",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-arcane-both",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-curse-ap",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-curse-cannonball",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-curse-powder",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-curse-both",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-tide-ap",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-tide-cannonball",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-tide-powder",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-tide-both",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-thunder-ap",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-thunder-cannonball",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-thunder-powder",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-thunder-both",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-blood-ap",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -1.1,
+        "slope": 0.008,
+        "edgeRise": 13.7,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-blood-cannonball",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -1.1,
+        "slope": 0.008,
+        "edgeRise": 13.7,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-blood-powder",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -1.1,
+        "slope": 0.008,
+        "edgeRise": 13.7,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-blood-both",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -1.1,
+        "slope": 0.008,
+        "edgeRise": 13.7,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-arcane-ap-mana",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-arcane-both-mana",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-blood-ap-health",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-blood-both-health",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-curse-ap-curse",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-curse-both-curse",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-thunder-ap-chain",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    },
+    {
+      "id": "frame-thunder-both-chain",
+      "rect": {
+        "x": -137,
+        "y": -236.7202,
+        "width": 272,
+        "height": 459.4404
+      },
+      "energyPosition": {
+        "x": -102.75,
+        "y": 177.9
+      },
+      "powderPosition": {
+        "x": 102.59,
+        "y": -186
+      },
+      "cannonballPosition": {
+        "x": -102.89,
+        "y": -185.15
+      },
+      "specialPosition": {
+        "x": 101.46,
+        "y": 177.9
+      },
+      "illustrationRect": {
+        "x": -109.14093,
+        "y": -44,
+        "width": 216,
+        "height": 216
+      },
+      "namePlatePosition": {
+        "x": 0,
+        "y": -54.7798
+      },
+      "titleCurve": {
+        "centerY": -2.3,
+        "slope": 0.004,
+        "edgeRise": 13.0,
+        "halfWidth": 87.0,
+        "halfThickness": 11.0
+      }
+    }
+  ]
+}

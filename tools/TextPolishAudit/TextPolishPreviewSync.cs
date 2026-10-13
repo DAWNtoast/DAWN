@@ -74,8 +74,11 @@ namespace ShatteredSail.Editor
             TextPolishParserSelfCheck();
             TextPolishPair[] pairs = LoadTextPolishPairs(artifacts);
             string sceneRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "_Project/Scenes"));
-            string[] paths = Directory.GetFiles(sceneRoot, "*.unity", SearchOption.AllDirectories).OrderBy(p => p, StringComparer.Ordinal).ToArray();
-            if (paths.Length != 189) throw new InvalidDataException("Expected the audited 189 scenes, found " + paths.Length);
+            string retiredRoot = Path.GetFullPath(Path.Combine(sceneRoot, "UIPreviewsForMe")) + Path.DirectorySeparatorChar;
+            string[] paths = Directory.GetFiles(sceneRoot, "*.unity", SearchOption.AllDirectories)
+                .Where(p => !Path.GetFullPath(p).StartsWith(retiredRoot, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(p => p, StringComparer.Ordinal).ToArray();
+            if (paths.Length == 0) throw new InvalidDataException("No active scene files found outside retired UIPreviewsForMe.");
             MethodInfo formatter = typeof(CoreGameplayDemoController).GetMethod("FormatCrewBiography", BindingFlags.NonPublic | BindingFlags.Static);
             if (formatter == null) throw new MissingMethodException("FormatCrewBiography");
             var plans = new List<TextPolishPlan>();

@@ -28,6 +28,7 @@ namespace ShatteredSail.Presentation.Tests
         [SetUp]
         public void PreserveAndResetProgress()
         {
+            OpeningComicCatalog.ClearPlaybackRequest();
             IsolateVoyageCheckpointDirectory();
             hadTutorialCompleted = PlayerPrefs.HasKey(CoreGameplayDemoController.TutorialCompletedKey);
             hadTutorialReward = PlayerPrefs.HasKey(CoreGameplayDemoController.TutorialRewardGrantedKey);
@@ -45,6 +46,7 @@ namespace ShatteredSail.Presentation.Tests
         [TearDown]
         public void RestoreProgress()
         {
+            OpeningComicCatalog.ClearPlaybackRequest();
             ResetProgress();
             if (hadTutorialCompleted) PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, savedTutorialCompleted);
             if (hadTutorialReward) PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialRewardGrantedKey, savedTutorialReward);
@@ -66,6 +68,10 @@ namespace ShatteredSail.Presentation.Tests
 
             MainMenuController controller = Object.FindFirstObjectByType<MainMenuController>();
             Assert.That(controller, Is.Not.Null);
+            Assert.That(Camera.main, Is.Not.Null);
+            Assert.That(Camera.main.allowHDR, Is.False,
+                "Overlay-only menu should not request unused HDR camera attachments.");
+            Assert.That(controller.GetComponentInChildren<Canvas>().renderMode, Is.EqualTo(RenderMode.ScreenSpaceOverlay));
             RawImage background = GameObject.Find("Main Menu Background")?.GetComponent<RawImage>();
             Assert.That(background, Is.Not.Null);
             Assert.That(background.texture, Is.Not.Null, "The generated main-menu artwork should load from Resources.");
@@ -75,6 +81,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ActiveButton("Achievements"), Is.Not.Null);
             Assert.That(ActiveButton("Exit Game"), Is.Not.Null);
             Assert.That(controller.ContinueButton.interactable, Is.False);
+            Assert.That(controller.GetComponentsInChildren<Transform>(true).Any(child =>
+                child.name == "Settings Panel" || child.name == "New Game Confirmation"), Is.False,
+                "Optional dialogs should not allocate inactive UI during runtime startup.");
 
             ActiveButton("Settings").onClick.Invoke();
             yield return null;
@@ -87,6 +96,69 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(GameObject.Find("Achievements Panel"), Is.Not.Null);
             Assert.That(ActiveButton("Back From Achievements"), Is.Not.Null);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator MainMenu_OptionalPanelsAreCreatedOnFirstUseAndReused()
+        {
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            ProfileGoldPersistence.Save(900);
+            float savedMaster = PlayerPrefs.GetFloat(MainMenuController.MasterVolumeKey, 0.8f);
+
+            SceneManager.LoadScene("MainMenu", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+
+            MainMenuController controller = Object.FindFirstObjectByType<MainMenuController>();
+            Assert.That(controller, Is.Not.Null);
+            Assert.That(controller.HasSaveData, Is.True);
+            Assert.That(controller.GetComponentsInChildren<Transform>(true).Any(child =>
+                child.name == "Settings Panel" || child.name == "New Game Confirmation"), Is.False);
+
+            ActiveButton("Settings").onClick.Invoke();
+            Transform settings = controller.GetComponentsInChildren<Transform>(true)
+                .Single(child => child.name == "Settings Panel");
+            Assert.That(settings.gameObject.activeInHierarchy, Is.True,
+                "The first click must create and show the dialog synchronously.");
+            Slider master = settings.GetComponentsInChildren<Slider>(true)
+                .Single(slider => slider.name == "Master Volume");
+            Assert.That(master.value, Is.EqualTo(savedMaster).Within(0.001f));
+            Image settingsPaper = settings.Find("Settings Card").GetComponent<Image>();
+            Assert.That(settingsPaper.sprite, Is.SameAs(NauticalSurfaceSkin.ReadingPaper));
+            Assert.That(settingsPaper.type, Is.EqualTo(Image.Type.Sliced));
+            float draftMaster = savedMaster > 0.5f ? 0.2f : 0.8f;
+            master.value = draftMaster;
+            ActiveButton("Back From Settings").onClick.Invoke();
+            Assert.That(settings.gameObject.activeSelf, Is.False);
+
+            ActiveButton("Settings").onClick.Invoke();
+            Assert.That(controller.GetComponentsInChildren<Transform>(true)
+                .Single(child => child.name == "Settings Panel"), Is.SameAs(settings));
+            Assert.That(master.value, Is.EqualTo(draftMaster).Within(0.001f),
+                "Closing and reopening retains the existing draft controls.");
+            Assert.That(PlayerPrefs.GetFloat(MainMenuController.MasterVolumeKey, 0.8f), Is.EqualTo(savedMaster),
+                "Opening and closing does not apply settings.");
+            ActiveButton("Back From Settings").onClick.Invoke();
+
+            ActiveButton("New Game").onClick.Invoke();
+            Transform confirmation = controller.GetComponentsInChildren<Transform>(true)
+                .Single(child => child.name == "New Game Confirmation");
+            Assert.That(confirmation.gameObject.activeInHierarchy, Is.True);
+            Image confirmationPaper = confirmation.Find("Confirmation Card").GetComponent<Image>();
+            Assert.That(confirmationPaper.sprite, Is.SameAs(NauticalSurfaceSkin.ReadingPaper));
+            Assert.That(confirmationPaper.type, Is.EqualTo(Image.Type.Sliced));
+            ActiveButton("Cancel New Game").onClick.Invoke();
+            Assert.That(confirmation.gameObject.activeSelf, Is.False);
+            ActiveButton("New Game").onClick.Invoke();
+            Assert.That(controller.GetComponentsInChildren<Transform>(true)
+                .Single(child => child.name == "New Game Confirmation"), Is.SameAs(confirmation));
+            ActiveButton("Cancel New Game").onClick.Invoke();
+
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("MainMenu"));
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey), Is.EqualTo(1));
+            Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(900m),
+                "Creating and cancelling the confirmation must preserve existing progress.");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -118,6 +190,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller, Is.Not.Null);
             Assert.That(controller.HasSaveData, Is.True);
             Assert.That(controller.ContinueButton.interactable, Is.True);
+            OpeningComicCatalog.RequestPlayback(); // A stale new-game request must never replay on Continue.
             controller.ContinueButton.onClick.Invoke();
             yield return null;
             yield return null;
@@ -125,6 +198,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("CoreGameplayDemo"));
             CoreGameplayDemoController game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(game, Is.Not.Null);
+            Assert.That(game.IsOpeningComicPlaying, Is.False);
+            Assert.That(GameObject.Find("Opening Comic Overlay"), Is.Null);
+            Assert.That(OpeningComicCatalog.ConsumePlaybackRequest(), Is.False, "Continue clears the transient opening request.");
             Assert.That(game.IsTutorialActive, Is.False);
             Assert.That(game.Session.CurrentPort, Is.EqualTo("灰鸥港"));
             Assert.That(game.Session.ProfileGold, Is.EqualTo(675));
@@ -173,7 +249,6 @@ namespace ShatteredSail.Presentation.Tests
             CrewVariantDefinition regionalCrew = CrewNarrativeCatalog.ForPortAndProfession("白贝港", 0);
             PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(regionalCrew.Id), 1);
             PlayerPrefs.SetString(CoreGameplayDemoController.ActiveCrewVariantKey(0), regionalCrew.Id);
-            PlayerPrefs.SetString(CoreGameplayDemoController.DispatchCrewIdentityKey, regionalCrew.Id);
             PlayerPrefs.SetString(CoreGameplayDemoController.ComponentLoadoutKey(ComponentSlot.Bow), "bow_last_horizon");
             ComponentArtCatalog oldCatalog = new ComponentArtCatalog();
             OwnedShipComponentInventory oldInventory = new OwnedShipComponentInventory(oldCatalog);
@@ -181,7 +256,6 @@ namespace ShatteredSail.Presentation.Tests
             oldInventory.Grant(oldCatalog.GetById("bow_last_horizon"), 1.1f);
             PlayerPrefs.SetString(CoreGameplayDemoController.ComponentInventoryKey, oldInventory.Export());
             PlayerPrefs.SetInt(CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey, 1);
-            PlayerPrefs.SetInt(CoreGameplayDemoController.DispatchDurationKey, 7);
             PlayerPrefs.SetString(CoreGameplayDemoController.BattleDeckKey, "0,0,0,1,2,3,4,5");
             PlayerPrefs.SetString(CoreGameplayDemoController.StageBattleDeckKey(NavalBattleStage.Preparation), "8,8,9,9,10,10,11,12");
             PlayerPrefs.SetString(CoreGameplayDemoController.StageBattleDeckKey(NavalBattleStage.Naval), "0,0,0,1,2,5,6,7");
@@ -226,9 +300,12 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(game, Is.Not.Null);
             Assert.That(game.IsTutorialActive, Is.True);
             Assert.That(game.CurrentGuidedTutorialStep, Is.EqualTo(GuidedTutorialStep.FirstDeparture));
+            yield return ClickThroughOpeningComic(game);
             foreach (string key in AchievementCatalog.PersistenceKeys)
                 Assert.That(PlayerPrefs.HasKey(key), Is.False, "A new save clears the prior captain's achievement: " + key);
-            Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
+            Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
+            Assert.That(GameObject.Find("Voyage Setup"), Is.Null);
+            Assert.That(ActiveButton("Port Hotspot Voyage").IsInteractable(), Is.True);
             Assert.That(ActiveButton("Tutorial Primary"), Is.Null);
             Assert.That(game.Session.CurrentPort, Is.EqualTo("断锚港"));
             Assert.That(game.Session.ProfileGold, Is.EqualTo(500));
@@ -261,15 +338,13 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CrewRecruitmentKey(0)), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CrewVariantRecruitmentKey(regionalCrew.Id)), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ActiveCrewVariantKey(0)), Is.False);
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchCrewIdentityKey), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ComponentLoadoutKey(ComponentSlot.Bow)), Is.False);
-            Assert.That(game.EquippedComponent(ComponentSlot.Bow).Id, Is.EqualTo("bow_oak_ram"));
-            Assert.That(game.OwnedComponents.Count, Is.EqualTo(5));
-            Assert.That(game.OwnedComponents.All(item => item.ShipIndex == 0 && Mathf.Approximately(item.Quality, 1f)), Is.True);
+            Assert.That(game.EquippedComponent(ComponentSlot.Bow), Is.Null);
+            Assert.That(game.OwnedComponents, Is.Empty);
             Assert.That(game.OwnedComponents.Any(item => item.ComponentId == "bow_last_horizon"), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey), Is.False);
-            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.DispatchDurationKey), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.BattleDeckKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.BattleDeckEditedKey), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.LegacyWitchRecruitedKey), Is.False);
             Assert.That(CoreVoyageSession.CardLibrary.Any(card => card.Id.StartsWith("card_witch_") || card.RequiredCrew == "crew_witch_jinchao"), Is.False);
             CoreVoyageSession defaults = new CoreVoyageSession();
@@ -337,11 +412,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return CoreGameplayDemoController.GuidedTutorialWarehousePendingKey;
             yield return CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey;
             yield return CoreGameplayDemoController.SelectedShipKey;
-            yield return CoreGameplayDemoController.DispatchMissionKey;
-            yield return CoreGameplayDemoController.DispatchDurationKey;
-            yield return CoreGameplayDemoController.DispatchBalanceVersionKey;
-            yield return CoreGameplayDemoController.DispatchGameClockKey;
-            yield return CoreGameplayDemoController.DispatchRealClockKey;
+            yield return CoreGameplayDemoController.BattleDeckEditedKey;
             yield return CoreGameplayDemoController.LegacyWitchRecruitedKey;
             foreach (string port in CoreVoyageSession.DestinationPorts)
             {
@@ -387,9 +458,6 @@ namespace ShatteredSail.Presentation.Tests
             yield return CoreGameplayDemoController.AcquiredSpecialCardsKey;
             foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
                 yield return CoreGameplayDemoController.StageBattleDeckKey(stage);
-            yield return CoreGameplayDemoController.DispatchEndsAtKey;
-            yield return CoreGameplayDemoController.DispatchCrewKey;
-            yield return CoreGameplayDemoController.DispatchCrewIdentityKey;
             for (int index = 0; index < 6; index += 1) yield return CoreGameplayDemoController.ActiveCrewVariantKey(index);
             foreach (ComponentSlot slot in System.Enum.GetValues(typeof(ComponentSlot)))
                 yield return CoreGameplayDemoController.ComponentLoadoutKey(slot);

@@ -44,6 +44,8 @@ namespace ShatteredSail.Presentation
             departureChartValidation = null;
             departureChartWarning = null;
             departureChartWarningIdentity = null;
+            departureTreasureSeedPicker = null;
+            departureTreasureSeedPickerIdentity = null;
             if (!session.CanDrawSeaChart || tutorialActive || session.SelectedTreasureMap != null)
                 departureUseChartSeed = false;
             if (!DepartureChartModeActive) session.ClearChartSeedSelection();
@@ -55,7 +57,7 @@ namespace ShatteredSail.Presentation
                 ReferenceEquals(departureChartView, view) && revision == departureChartRevision &&
                 view != null && view.gameObject.activeInHierarchy && session.Phase == CoreDemoPhase.Port &&
                 session.CurrentPort == departureChartPort &&
-                (activePortFacility == 8 || !Application.isPlaying && editorPreviewScreen == CoreGameplayPreviewScreen.VoyageDeparture);
+                (activePortFacility == PortFacilityArtCatalog.VoyageFacilityIndex || !Application.isPlaying && editorPreviewScreen == CoreGameplayPreviewScreen.VoyageDeparture);
         }
 
         private void BuildDepartureChartControls(RectTransform routePanel, RectTransform panel)
@@ -63,16 +65,13 @@ namespace ShatteredSail.Presentation
             departureChartView = panel;
             CoreVoyageSession owner = session;
             int revision = departureChartRevision;
+            BuildDepartureTreasureSeedControl(routePanel, panel, owner, revision);
             if (session.SelectedTreasureMap != null)
             {
                 Text label = CreateText("Seed Label", routePanel, new Vector2(500f, 34f), new Vector2(-280f, 373f),
                     18, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
-                label.text = "藏宝图种子 · 拼合后固定";
+                label.text = "藏宝海图种子 · 任意港口可用";
                 UiLabelBacking.Apply(label, true);
-                Text treasureSeed = CreateText("Treasure Seed", routePanel, new Vector2(520f, 34f), new Vector2(290f, 373f),
-                    16, FontStyle.Bold, TextAnchor.MiddleRight, Ink);
-                treasureSeed.text = session.SelectedTreasureMap.Seed;
-                UiLabelBacking.Apply(treasureSeed, true);
                 return;
             }
             RectTransform toggleRoot = CreateRect("Use Chart Seed", routePanel, new Vector2(500f, 34f), new Vector2(-280f, 373f));
@@ -88,15 +87,21 @@ namespace ShatteredSail.Presentation
             check.raycastTarget = false;
             Text caption = CreateText("Seed Label", toggleRoot, new Vector2(450f, 34f), new Vector2(25f, 0f),
                 20, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
-            caption.text = session.CanDrawSeaChart ? "使用海图种子 · 选择已绘海图" : "海图种子 · 待绘制";
+            caption.text = session.CanDrawSeaChart ? "使用普通海图 · 选择已绘海图" : "普通海图 · 航海士随船可复用";
             caption.raycastTarget = false;
             UiLabelBacking.Apply(caption, true);
             departureChartToggle.graphic = check;
             departureChartToggle.SetIsOnWithoutNotify(DepartureChartModeActive);
+            // Toggle.OnEnable runs before its graphic is assigned. An initial
+            // false-to-false assignment otherwise leaves the new checkmark visible.
+            check.canvasRenderer.SetAlpha(departureChartToggle.isOn ? 1f : 0f);
             departureChartToggle.interactable = session.CanDrawSeaChart && !tutorialActive;
             departureChartToggle.onValueChanged.AddListener(value =>
             {
                 if (!DepartureChartViewCurrent(panel, owner, revision) || !session.CanDrawSeaChart || tutorialActive) return;
+                // Unity's editor Toggle rebuild also raises this event with its
+                // unchanged value. Do not rebuild graphics inside that canvas pass.
+                if (departureUseChartSeed == value) return;
                 departureUseChartSeed = value;
                 if (!value)
                 {
@@ -106,12 +111,6 @@ namespace ShatteredSail.Presentation
                 else ValidateDepartureChartDraft(false);
                 RefreshDepartureChartControls();
             });
-            Text hint = CreateText("Seed Locked Hint", routePanel, new Vector2(520f, 34f), new Vector2(290f, 373f),
-                14, FontStyle.Normal, TextAnchor.MiddleRight, MutedInk);
-            hint.text = tutorialActive ? "教学使用指定航程；结束后可选海图" : session.CanDrawSeaChart
-                ? "未勾选时可自选航线与目的港" : "航海士随船可复用海图";
-            hint.raycastTarget = false;
-            UiLabelBacking.Apply(hint, true);
             departureChartSelection = CreateRect("Departure Chart Selection", routePanel, new Vector2(1060f, 650f), Vector2.zero);
             if (session.CanDrawSeaChart)
             {
@@ -280,7 +279,8 @@ namespace ShatteredSail.Presentation
             if (departureChartValidation != null)
             {
                 bool empty = string.IsNullOrWhiteSpace(departureChartDraft);
-                departureChartValidation.color = mode && !departureChartValid && !empty ? Coral : MutedInk;
+                departureChartValidation.color = NauticalSurfaceSkin.ReadableTextColor(departureChartValidation.transform.parent,
+                    mode && !departureChartValid && !empty ? Coral : MutedInk);
                 departureChartValidation.text = tutorialActive ? "教学使用指定航程；结束后可选海图。" : mode
                     ? departureChartValid ? "海图已确认，备好补给后出航。"
                         : empty ? "选择已绘海图，或输入完整种子。" : "无法出航：" + departureChartFailure
@@ -296,10 +296,10 @@ namespace ShatteredSail.Presentation
                     Button route = routePanel.Find("Route " + index)?.GetComponent<Button>();
                     if (route != null)
                     {
-                        route.interactable = !mode && (!tutorialActive || index == 0);
+                        route.interactable = !mode && (!tutorialActive || index == 0) && session.CanSelectRoute(index, out _);
                         route.gameObject.SetActive(!mode);
                         bool selected = session.SelectedRouteIndex == index;
-                        WoodButtonSkin.SetSelected(route, selected);
+                        DepartureSkin.SetRouteSelected(route, selected);
                         Text routeText = route.GetComponentInChildren<Text>();
                         if (routeText != null && routeText.text.Length > 0)
                             routeText.text = (selected ? "◆" : "◇") + routeText.text.Substring(1);
@@ -308,27 +308,21 @@ namespace ShatteredSail.Presentation
             }
             RefreshDepartureDestinationSelection();
             RefreshDepartureChartPreview();
-            Text destinationSummary = DepartureLayout.Find(departureChartView, "Destination Summary")?.GetComponent<Text>();
-            if (destinationSummary != null && session.SelectedTreasureMap == null)
-                destinationSummary.text = "到达港口：" + session.SelectedDestinationPort + "　（当前港：" + session.CurrentPort + "）";
-            Text cargo = DepartureLayout.Find(departureChartView, "Cargo")?.GetComponent<Text>();
-            if (cargo != null && session.SelectedTreasureMap == null)
-            {
-                int routeLabel = cargo.text.LastIndexOf("航线：", StringComparison.Ordinal);
-                if (routeLabel >= 0) cargo.text = cargo.text.Substring(0, routeLabel) + "航线：" + CoreVoyageSession.Routes[session.SelectedRouteIndex].Name;
-            }
             Button start = departureChartView.Find("Start Voyage")?.GetComponent<Button>();
-            if (start != null) start.interactable = !mode || departureChartValid;
-            DepartureLayout.ApplySetup(departureChartView);
+            if (start != null) start.interactable = (!mode || departureChartValid) && session.CanStartOrdinaryVoyage(out _);
+            // Toggling a recorded chart does not rebuild the view. Expand the
+            // chart table here, and restore the dock when the toggle is cleared.
+            if (UsesDepartureDockScene)
+                ApplyDeparturePresentation(routePanel as RectTransform, departureChartView);
         }
 
         private void RefreshDepartureChartProvisionQuote()
         {
-            if (departureChartView == null || DepartureLayout.Find(departureChartView, "Departure Provision Quote") == null) return;
-            foreach (string name in new[] { "Departure Provision Quote", "Departure Buy Provisions" })
+            if (departureChartView == null || departureChartView.Find("Departure Buy Provisions") == null) return;
+            for (int index = departureChartView.childCount - 1; index >= 0; index--)
             {
-                Transform previous = DepartureLayout.Find(departureChartView, name);
-                if (previous == null) continue;
+                Transform previous = departureChartView.GetChild(index);
+                if (!previous.gameObject.activeSelf || previous.name != "Departure Buy Provisions") continue;
                 previous.gameObject.SetActive(false);
                 if (Application.isPlaying) Destroy(previous.gameObject);
                 else DestroyImmediate(previous.gameObject);
@@ -384,22 +378,19 @@ namespace ShatteredSail.Presentation
             shade.color = new Color(0f, 0f, 0f, .76f);
             shade.raycastTarget = true;
             departureChartWarning.SetAsLastSibling();
-            float readingScale = GameReadability.Scale;
             RectTransform card = CreateFixedPanel("Chart Seed Warning Card", departureChartWarning,
-                new Vector2(1000f, 360f * readingScale), Vector2.zero, PanelRaised);
-            Text title = CreateText("Chart Seed Warning Title", card, new Vector2(920f, 56f * readingScale), new Vector2(0f, 118f * readingScale),
-                32, FontStyle.Normal, TextAnchor.MiddleCenter, Html("#352415"));
-            GameReadability.Body(title, 32);
-            title.font = GameTypography.InterfaceFont;
-            title.text = "当前海图种子不可用";
-            Text description = CreateText("Chart Seed Warning Reason", card, new Vector2(910f, 146f * readingScale), new Vector2(0f, 12f * readingScale),
-                22, FontStyle.Normal, TextAnchor.MiddleCenter, Html("#49351F"));
+                new Vector2(800f, 340f), Vector2.zero, PanelRaised);
+            CreateText("Chart Seed Warning Title", card, new Vector2(730f, 48f), new Vector2(0f, 108f),
+                28, FontStyle.Bold, TextAnchor.MiddleCenter, Html("#352415")).text = "当前海图种子不可用";
+            Text description = CreateText("Chart Seed Warning Reason", card, new Vector2(710f, 120f), new Vector2(0f, 17f),
+                21, FontStyle.Normal, TextAnchor.MiddleCenter, Html("#49351F"));
             description.text = reason + "\n重新输入或选图，或取消勾选以随机出航。";
-            GameReadability.Body(description, 22);
-            Button close = CreateButton("Close Chart Seed Warning", card, new Vector2(400f, 56f * readingScale),
-                new Vector2(0f, -122f * readingScale), Gold, DeepSea, 22);
+            description.resizeTextForBestFit = true;
+            description.resizeTextMinSize = 17;
+            description.resizeTextMaxSize = 21;
+            Button close = CreateButton("Close Chart Seed Warning", card, new Vector2(340f, 56f),
+                new Vector2(0f, -101f), Gold, DeepSea, 22);
             close.GetComponentInChildren<Text>().text = "返回修改";
-            GameReadability.Body(close.GetComponentInChildren<Text>(), 22);
             close.onClick.AddListener(() =>
             {
                 if (!ReferenceEquals(identity, departureChartWarningIdentity)) return;
@@ -443,7 +434,7 @@ namespace ShatteredSail.Presentation
             departureUseChartSeed = state != 0;
             departureChartDraft = state == 2
                 ? CoreVoyageSession.CreateChartSeed(route, foreign[0], foreign[1]) : sample;
-            activePortFacility = 8;
+            activePortFacility = PortFacilityArtCatalog.VoyageFacilityIndex;
             departureCrewConfigurationOpen = false;
             Render();
             if (state == 2) ValidateDepartureChartDraft(true);

@@ -29,11 +29,13 @@ namespace ShatteredSail.Presentation
         {
             bool selected = warehouseCargoSortColumn == column;
             string suffix = column == 0 ? " ↺" : selected ? warehouseCargoSortAscending ? " ↑" : " ↓" : string.Empty;
-            Button button = CreateButton(name, parent, size, position,
-                selected ? new Color(.65f, .44f, .20f) : new Color(.32f, .22f, .12f), Ink, GameReadability.FontSize(18));
+            Button button = WarehouseButton(name, parent, size, position,
+                selected ? new Color(.65f, .44f, .20f) : new Color(.32f, .22f, .12f), WarehouseRoomTheme.Ink, 18);
             Text label = button.GetComponentInChildren<Text>();
             label.text = title + suffix;
-            GameReadability.Body(label, 18);
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = 14;
+            label.resizeTextMaxSize = 18;
             label.raycastTarget = false;
             button.interactable = Application.isPlaying && !editorPreviewBuilding;
             AddWarehouseAction(button, () =>

@@ -1,4 +1,3 @@
-using System;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,6 +9,9 @@ namespace ShatteredSail.Presentation
         private string componentDossierOfferId;
         private int componentDossierPage;
 
+        private bool IsComponentDossierOpen => activePortFacility == PortFacilityArtCatalog.ComponentShopFacilityIndex &&
+            !componentResaleOpen && !string.IsNullOrEmpty(selectedComponentShopOfferId);
+
         private void BuildComponentDossier(RectTransform panel, PortComponentShopStockItem offer)
         {
             ComponentArtEntry entry = offer.Entry;
@@ -19,86 +21,128 @@ namespace ShatteredSail.Presentation
                 componentDossierPage = 0;
             }
             Color rarity = ComponentArtCatalog.RarityColor(entry.Rarity);
-            Color ink = Html("#302116");
-            Color muted = Html("#71583A");
+            Color ink = Html("#352315");
+            Color muted = Html("#6C4A2C");
             Color rarityInk = Color.Lerp(rarity, ink, 0.58f);
+            Color buttonPaper = new Color(1f, 0.91f, 0.7f, 1f);
             bool sold = PlayerPrefs.GetInt(ComponentShopPurchaseKey(offer.Id), 0) != 0;
-            bool selected = EquippedComponent(entry.Slot)?.Id == entry.Id;
             bool affordable = session.ProfileGold >= offer.Price;
-            RectTransform detail = CreateRect("Component Shop Detail", panel, new Vector2(1640f, 640f), Vector2.zero);
-            RawImage paper = CreateRawImage("Component Detail Parchment", detail, new Vector2(1580f, 630f), Vector2.zero,
-                cardWorkshopArt == null ? null : cardWorkshopArt.CollectionParchment, new Rect(0f, 0.2f, 1f, 0.6f));
+            RectTransform detail = CreateRect("Component Shop Detail", panel, new Vector2(1820f, 650f), Vector2.zero);
+            RawImage paper = CreateRawImage("Component Detail Parchment", detail, new Vector2(1780f, 705f), new Vector2(0f, -4f),
+                portArt.TavernCrewDossierParchment, new Rect(0f, 0f, 1f, 1f));
             paper.raycastTarget = false;
 
-            DossierCardText("Component Detail Name", detail, 860f, 48f, new Vector2(300f, 248f), 34, ink, entry.Name, TextAnchor.MiddleLeft);
-            DossierCardText("Component Detail Meta", detail, 860f, 34f, new Vector2(300f, 204f), 22, rarityInk,
+            // Keep the established title position while sharing the reviewed
+            // crew sheet's writing column and safe space above the footer.
+            RectTransform profile = CreateRect("Component Detail Profile", detail, new Vector2(1060f, 615f), new Vector2(212f, -10f));
+            Text name = DossierCardText("Component Detail Name", profile, 390f, 52f, new Vector2(-182f, 220f), 36, ink, entry.Name, TextAnchor.MiddleLeft);
+            GameTypography.Apply(name, 36, FontStyle.Bold);
+            Text meta = DossierCardText("Component Detail Meta", profile, 450f, 52f, new Vector2(255f, 220f), 22, rarityInk,
                 ComponentArtCatalog.RarityName(entry.Rarity) + " · " + ComponentArtCatalog.SlotName(entry.Slot), TextAnchor.MiddleLeft);
+            GameTypography.Apply(meta, 22, FontStyle.Bold);
 
             string[] pageNames = { "Overview", "Effects", "Story", "SpecialCards" };
             string[] pageTitles = { "部件来历", "装配效果", "航海异闻", "专属卡牌" };
-            RectTransform[] pages = new RectTransform[4];
-            Button[] tabs = new Button[4];
+            RectTransform[] pages = new RectTransform[pageNames.Length];
+            Button[] tabs = new Button[pageNames.Length];
             for (int index = 0; index < pages.Length; index++)
             {
-                pages[index] = CreateRect("Component Dossier " + pageNames[index] + " Page", detail,
-                    new Vector2(860f, 300f), new Vector2(300f, -24f));
-                tabs[index] = CreateButton("ComponentDossierPage" + pageNames[index], detail,
-                    new Vector2(200f, 42f), new Vector2(-30f + index * 220f, 154f), Gold, Ink, 24);
+                pages[index] = CreateRect("Component Dossier " + pageNames[index] + " Page", profile,
+                    new Vector2(930f, index == 3 ? 368f : 326f), new Vector2(0f, index == 3 ? -52f : -42f));
+                tabs[index] = CreateButton("ComponentDossierPage" + pageNames[index], profile,
+                    new Vector2(216f, 42f), new Vector2((index - 1.5f) * 238f, 160f), new Color(0.42f, 0.27f, 0.14f, 0.12f), muted, 24);
                 tabs[index].GetComponentInChildren<Text>().text = pageTitles[index];
             }
-            DossierCardText("Component Detail Quality", pages[0], 860f, 34f, new Vector2(0f, 107f), 24, muted,
+            CreateTavernReadingText("Component Detail Quality", pages[0], new Vector2(20f, 8f), new Vector2(300f, 42f), 24, 1.1f, muted,
                 "本港鉴定品质　" + Mathf.RoundToInt(offer.Quality * 100f) + "%");
-            DossierCardText("Component Detail Specialization", pages[0], 860f, 36f, new Vector2(0f, 65f), 24, muted,
+            CreateTavernReadingText("Component Detail Specialization", pages[0], new Vector2(340f, 8f), new Vector2(540f, 42f), 24, 1.1f, muted,
                 "专精方向　" + entry.Specialization);
-            DossierCardText("Component Detail Description", pages[0], 860f, 174f, new Vector2(0f, -46f), 25, ink, entry.Description);
-            DossierCardText("Component Detail Effect", pages[1], 860f, 196f, new Vector2(0f, 36f), 25, ink,
-                "装配效果\n" + entry.Effect + "\n\n" + ComponentArtCatalog.EnvironmentSummary(entry));
-            DossierCardText("Component Detail Logistics", pages[1], 860f, 74f, new Vector2(0f, -111f), 21, muted,
-                "工艺参考　容积 " + entry.Volume + "　·　工时 " + entry.InstallHours + " 小时　·　木材 " + entry.InstallWood +
-                "\n购买即装配，旧件入库；在皇家船坞拆装。");
-            DossierCardText("Component Detail Story Chapter", pages[2], 860f, 40f, new Vector2(0f, 105f), 26, rarityInk, entry.StoryTitle);
-            DossierCardText("Component Detail Story Body", pages[2], 860f, 208f, new Vector2(0f, -28f), 25, ink, entry.StoryBody);
-            BuildDossierSpecialCard(pages[3], "Component", CoreSpecialCardCatalog.ForComponent(entry.Id), 860f,
-                "普通（白色）与精良（绿色）部件只提供装配属性。稀有（蓝色）及以上部件才带来与其来历相关的特殊卡牌。", ink, muted);
+            CreateTavernReadingText("Component Detail Description", pages[0], new Vector2(20f, 68f),
+                new Vector2(880f, 240f), 26, 1.25f, ink, TavernSentenceParagraphs(entry.Description));
+            CreateTavernReadingText("Component Detail Effect Heading", pages[1], new Vector2(20f, 8f),
+                new Vector2(880f, 38f), 26, 1.1f, rarityInk, "装配效果");
+            CreateTavernReadingText("Component Detail Effect", pages[1], new Vector2(20f, 56f),
+                new Vector2(880f, 250f), 26, 1.25f, ink,
+                entry.Effect + "\n\n" + ComponentArtCatalog.EnvironmentSummary(entry));
+            CreateTavernReadingText("Component Detail Story Chapter", pages[2], new Vector2(20f, 8f),
+                new Vector2(880f, 38f), 26, 1.1f, rarityInk, entry.StoryTitle);
+            CreateTavernReadingText("Component Detail Story Body", pages[2], new Vector2(20f, 56f),
+                new Vector2(880f, 250f), 26, 1.25f, ink, TavernSentenceParagraphs(entry.StoryBody));
+            BuildReadingDossierSpecialCard(pages[3], "Component", CoreSpecialCardCatalog.ForComponent(entry.Id),
+                string.Empty, ink, muted);
 
-            RectTransform assembly = CreateRect("Component Detail Display Assembly", detail, new Vector2(400f, 440f), new Vector2(-490f, -20f));
-            assembly.localScale = Vector3.one * 1.08f;
+            RectTransform assembly = CreateRect("Component Detail Display Assembly", detail, new Vector2(390f, 422f), new Vector2(-580f, -22f));
             BuildComponentShopDisplay(assembly, entry, "Component Detail ", string.Empty,
                 sold, true, false, false, false, out _, out _, out _);
-            Button chapter = CreateButton("Read Component Story Chapter", detail, new Vector2(340f, 48f), new Vector2(-490f, -257f), Gold, Ink, 20);
-            chapter.GetComponentInChildren<Text>().text = "阅读关联篇章 · 第" + entry.StoryChapter.ToString("00") + "篇";
-            chapter.onClick.AddListener(() => ShowComponentDossierPage(componentDossierPage == 2 ? 0 : 2, pages, tabs));
-            Button back = CreateButton("Back To Component Shop", detail, new Vector2(300f, 48f), new Vector2(20f, -257f), Gold, Ink, 22);
-            back.GetComponentInChildren<Text>().text = "返回部件陈列";
-            back.onClick.AddListener(() =>
-            {
-                componentDossierOfferId = null;
-                componentDossierPage = 0;
-                selectedComponentShopOfferId = null;
-                portNotice = "已返回" + session.CurrentPort + "部件商店陈列区。";
-                Render();
-            });
-            Button purchase = CreateButton("Purchase Component " + offer.Id, detail, new Vector2(530f, 48f), new Vector2(465f, -257f), rarity, Ink, 22);
-            purchase.GetComponentInChildren<Text>().text = sold ? "本月已售出" : affordable ?
-                (selected ? "购买并替换 · " : "购买并装配 · ") + offer.Price + " 金币" : "金币不足 · 还需 " + Math.Max(0, offer.Price - session.ProfileGold);
+            Button previous = CreateButton("Previous Component Dossier Page", detail, new Vector2(110f, 44f), new Vector2(-198f, -242f), new Color(0.42f, 0.27f, 0.14f, 0.18f), ink, 20);
+            previous.GetComponentInChildren<Text>().text = "← 上一页";
+            Text counter = CreateText("Component Dossier Page Counter", detail, new Vector2(110f, 44f), new Vector2(-68f, -242f), 20, FontStyle.Normal, TextAnchor.MiddleCenter, muted);
+            Button next = CreateButton("Next Component Dossier Page", detail, new Vector2(110f, 44f), new Vector2(62f, -242f), new Color(0.42f, 0.27f, 0.14f, 0.18f), ink, 20);
+            next.GetComponentInChildren<Text>().text = "下一页 →";
+            string purchaseStatus = sold ? "已售出" : affordable ? offer.Price + " 金币" : "金币不足";
+            Button purchase = CreateButton("Purchase Component " + offer.Id, detail, new Vector2(190f, 44f), new Vector2(232f, -242f), Gold, buttonPaper, 20);
+            purchase.GetComponentInChildren<Text>().text = "购买 · " + purchaseStatus;
             purchase.interactable = !sold && affordable;
-            purchase.onClick.AddListener(() => PurchaseComponentOffer(offer));
+            purchase.onClick.AddListener(() => PurchaseComponentOffer(offer, false));
+            Button purchaseAndEquip = CreateButton("Purchase And Equip Component " + offer.Id, detail, new Vector2(240f, 44f), new Vector2(472f, -242f), rarity, buttonPaper, 20);
+            purchaseAndEquip.GetComponentInChildren<Text>().text = "购买后装配 · " + purchaseStatus;
+            purchaseAndEquip.interactable = !sold && affordable &&
+                (!Application.isPlaying || editorPreviewBuilding || CanRefitShip(session.SelectedShipIndex));
+            purchaseAndEquip.onClick.AddListener(() => PurchaseComponentOffer(offer, true));
             for (int index = 0; index < pages.Length; index++)
             {
                 int captured = index;
-                tabs[index].onClick.AddListener(() => ShowComponentDossierPage(captured, pages, tabs));
+                tabs[index].onClick.AddListener(() => ShowComponentDossierPage(captured, pages, tabs, previous, next, counter));
             }
-            ApplyComponentDossierReadingLayout(detail, pages, tabs);
-            ShowComponentDossierPage(componentDossierPage, pages, tabs);
+            previous.onClick.AddListener(() => ShowComponentDossierPage(componentDossierPage - 1, pages, tabs, previous, next, counter));
+            next.onClick.AddListener(() => ShowComponentDossierPage(componentDossierPage + 1, pages, tabs, previous, next, counter));
+            ShowComponentDossierPage(componentDossierPage, pages, tabs, previous, next, counter);
         }
 
-        private void ShowComponentDossierPage(int selected, RectTransform[] pages, Button[] tabs)
+        private void ShowComponentDossierPage(int selected, RectTransform[] pages, Button[] tabs, Button previous, Button next, Text counter)
         {
             componentDossierPage = Mathf.Clamp(selected, 0, pages.Length - 1);
             for (int index = 0; index < pages.Length; index++)
             {
                 pages[index].gameObject.SetActive(index == componentDossierPage);
                 WoodButtonSkin.SetSelected(tabs[index], index == componentDossierPage);
+            }
+            previous.interactable = componentDossierPage > 0;
+            next.interactable = componentDossierPage < pages.Length - 1;
+            counter.text = "第 " + (componentDossierPage + 1) + " / " + pages.Length + " 页";
+        }
+
+        private static void KeepComponentPunctuationWithSentence(Text label)
+        {
+            if (label.name != "Component Detail Description" && label.name != "Component Detail Story Body" &&
+                label.name != "Component Special Card Lore") return;
+            // Legacy UI Text wraps Chinese punctuation as ordinary characters.
+            // Move the preceding character with a stranded closing mark; only
+            // add line breaks, preserving the authored narrative verbatim.
+            const string closing = "，。；：！？、）】》”’」』";
+            TextGenerationSettings settings = label.GetGenerationSettings(label.rectTransform.rect.size);
+            settings.scaleFactor = 1f;
+            settings.verticalOverflow = VerticalWrapMode.Overflow;
+            settings.generateOutOfBounds = true;
+            using (TextGenerator generator = new TextGenerator())
+            {
+                for (int pass = 0; pass < 16; pass++)
+                {
+                    generator.Populate(label.text, settings);
+                    int insert = -1;
+                    foreach (UILineInfo line in generator.lines)
+                    {
+                        int start = line.startCharIdx;
+                        if (start <= 0 || start >= label.text.Length || closing.IndexOf(label.text[start]) < 0) continue;
+                        insert = start - 1;
+                        while (insert > 0 && closing.IndexOf(label.text[insert]) >= 0) insert--;
+                        if (insert == 0 || char.IsWhiteSpace(label.text[insert]) || label.text[insert - 1] == '\n') { insert = -1; continue; }
+                        if (char.IsLowSurrogate(label.text[insert])) insert--;
+                        break;
+                    }
+                    if (insert < 0) break;
+                    label.text = label.text.Insert(insert, "\n");
+                }
             }
         }
     }

@@ -100,9 +100,10 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Transform runtimeCanvas = controller.transform.Find("Core Gameplay Canvas");
             Assert.That(runtimeCanvas, Is.Not.Null);
-            Assert.That(runtimeCanvas.Find("Header"), Is.Null,
+            RectTransform viewport = FixedGameViewport.Bounds(runtimeCanvas.GetComponent<Canvas>());
+            Assert.That(viewport.Find("Header"), Is.Null,
                 "Battle runtime should remove the obsolete generic Header.");
-            Assert.That(runtimeCanvas.Find("Ocean Backdrop"), Is.Null,
+            Assert.That(viewport.Find("Ocean Backdrop"), Is.Null,
                 "Battle runtime should remove the obsolete Ocean Backdrop.");            CoreBattleCard card = CoreVoyageSession.CardLibrary[session.Battle.Hand[0]];
             BattleDefenseHud enemyHud = Find<BattleDefenseHud>("Enemy Battle Hull Bar Track");
             BattleDefenseHud playerHud = Find<BattleDefenseHud>("Player Battle Hull Bar Track");
@@ -126,7 +127,8 @@ namespace ShatteredSail.Presentation.Tests
             int maxHull = session.Battle.EnemyMaxHull;
             int ammoBefore = session.Cargo.Cannonballs;
             int energyBefore = session.Battle.Energy;
-            int expectedDamage = Mathf.Max(0, card.Damage + Mathf.Max(0, (session.Firepower - 8) / 2) - 6);
+            int enemyBlockBefore = session.Battle.EnemyBlock;
+            int expectedDamage = Mathf.Max(0, session.GetBattleCardDamage(card, session.Battle.Stage) - enemyBlockBefore);
             Assert.That(expectedDamage, Is.GreaterThan(0), "Fixture must break guard and visibly damage the hull.");
             NavalBattleVisualCapture.Capture(controller, "07_Cannon_GuardBefore.png", "炮击前：白色外围护甲条、格挡数值与船体生命");
 
@@ -406,10 +408,10 @@ namespace ShatteredSail.Presentation.Tests
                     ? Resources.Load<Texture2D>("ModularShip/light_sloop_base") : catalog.ShipTexture(shipIndex)),
                     "The active flagship must carry its own hull into battle: " + session.SelectedShip.Name);
                 Assert.That(Find<BattleShipWaterGraphic>("Player Ship Water Contact").raycastTarget, Is.False);
-                AssertInstalledBattleLayers(controller, shipIndex);
+                AssertInstalledBattleComponentsWithoutOverlays(controller, shipIndex);
                 AssertMeasuredKeelContact(shipIndex, 0.6f);
                 NavalBattleVisualCapture.Capture(controller, "ShipAudit_Naval_" + shipIndex.ToString("00") + ".png",
-                    session.SelectedShip.Name + "：60米近景，检查船底与水线接触、部件及敌舰朝向");
+                    session.SelectedShip.Name + "：60米近景，检查装有部件时的基础船图、船底水线接触及敌舰朝向");
             }
             LogAssert.NoUnexpectedReceived();
         }
@@ -427,7 +429,7 @@ namespace ShatteredSail.Presentation.Tests
                 if (action.StartsWith("card_")) SetSingleCard(session, action);
                 Render(controller);
                 yield return null;
-                AssertInstalledBattleLayers(controller, 8);
+                AssertInstalledBattleComponentsWithoutOverlays(controller, 8);
                 AssertMeasuredKeelContact(8, 0.6f);
                 RectTransform player = Find<RectTransform>("Player Ship Art");
                 RectTransform enemy = Find<RectTransform>("Enemy Ship Art");
@@ -447,9 +449,12 @@ namespace ShatteredSail.Presentation.Tests
                     GameObject comic = action == "ram" ? GameObject.Find("Battle Ram Comic Page") : null;
                     if (comic != null)
                     {
+                        int pageIndex = (int)typeof(CoreGameplayDemoController).GetField("ramComicPanelIndex",
+                            BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
                         Assert.That(comic.GetComponent<RawImage>().texture,
-                            Is.SameAs(Resources.Load<Texture2D>("BattleComics/ram_player_head_on_v1")));
+                            Is.SameAs(Resources.Load<Texture2D>(RamComicCatalog.ImageResource(false, NavalBattleAlignment.HeadOn, pageIndex))));
                         sawRamComic = true;
+                        CoreGameplayDemoSceneTests.AdvanceRamComicIfWaiting(controller);
                     }
                     if (player != null && enemy != null && GameObject.Find("Player Ship Water Contact") != null)
                     {
@@ -468,7 +473,7 @@ namespace ShatteredSail.Presentation.Tests
                 }
                 Assert.That(controller.IsBattleAnimationPlaying, Is.False, action);
                 Assert.That(checkedFrames, Is.GreaterThan(1), action + " must render intermediate frames.");
-                if (action == "ram" && Resources.Load<Texture2D>("BattleComics/ram_player_head_on_v1") != null)
+                if (action == "ram" && Resources.Load<Texture2D>(RamComicCatalog.ImageResource(false, NavalBattleAlignment.HeadOn, 0)) != null)
                     Assert.That(sawRamComic, Is.True, "With installed art, ram feedback must display its authored comic.");
                 else Assert.That(sawMotion, Is.True, action + " must move an actual ship transform, including missing-art ram fallback.");
                 if (action == "enemy_fire") Assert.That(session.Hull, Is.LessThan(hullBefore));
@@ -508,27 +513,17 @@ namespace ShatteredSail.Presentation.Tests
                 .SetValue(controller, new OwnedShipComponentInventory(new ComponentArtCatalog()));
         }
 
-        private static void AssertInstalledBattleLayers(CoreGameplayDemoController controller, int shipIndex)
+        private static void AssertInstalledBattleComponentsWithoutOverlays(CoreGameplayDemoController controller, int shipIndex)
         {
-            RawImage[] layers = Find<RectTransform>("Player Ship Art").GetComponentsInChildren<RawImage>();
-            Assert.That(layers.Count(image => image.name.StartsWith("Player Ship Art Layer ")),
-                Is.EqualTo(shipIndex == 0 ? ComponentArtCatalog.SlotCount : 0),
-                "Only the starting sloop uses equipment overlays; all other ships retain their authored hull appearance.");
+            RawImage[] images = Find<RectTransform>("Player Ship Art").GetComponentsInChildren<RawImage>(true);
+            Assert.That(images.Count(image => image.name.StartsWith("Player Ship Art Layer ")), Is.Zero,
+                "All ships retain their base hull appearance when equipped, including the starting sloop.");
             for (int slot = 0; slot < ComponentArtCatalog.SlotCount; slot++)
             {
                 ComponentArtEntry installed = controller.ShipComponent(shipIndex, (ComponentSlot)slot);
                 Assert.That(installed, Is.Not.Null, "Missing installed slot " + slot + " on ship " + shipIndex);
                 Assert.That(controller.InstalledShipComponent(shipIndex, (ComponentSlot)slot), Is.Not.Null,
                     "Equipment remains installed even when its visual layer is omitted.");
-                RawImage layer = layers.SingleOrDefault(image => image.name == "Player Ship Art Layer " + installed.Id);
-                if (shipIndex != 0)
-                {
-                    Assert.That(layer, Is.Null);
-                    continue;
-                }
-                Assert.That(layer, Is.Not.Null, "Installed equipment must remain attached in battle.");
-                Assert.That(layer.texture, Is.SameAs(installed.ShipLayer));
-                Assert.That(layer.raycastTarget, Is.False);
             }
         }
 

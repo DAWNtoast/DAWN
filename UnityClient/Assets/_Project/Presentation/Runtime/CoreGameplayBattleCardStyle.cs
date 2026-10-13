@@ -7,10 +7,10 @@ namespace ShatteredSail.Presentation
     public sealed partial class CoreGameplayDemoController
     {
         // Call before ConfigureBattleCardPresentation so hover feedback captures
-        // the category's actual resting color instead of the old dark panel.
+        // the school's actual resting color instead of the old dark panel.
         private void ApplyBattleCardStyle(Button play, CoreBattleCard data, bool available, int index)
         {
-            BattleCardPalette palette = BattleCardStylePalette.ForType(data.Type);
+            BattleCardPalette palette = CardSchoolArtCatalog.Palette(data.SchoolId);
             Image backing = play.GetComponent<Image>();
             backing.color = palette.Surface;
             backing.sprite = null;
@@ -42,17 +42,25 @@ namespace ShatteredSail.Presentation
             face.offsetMax = new Vector2(-2f, -2f);
             face.SetAsFirstSibling();
             BattleCardSurfaceGraphic surface = face.gameObject.AddComponent<BattleCardSurfaceGraphic>();
-            surface.Configure(data.Type, available);
+            surface.Configure(data.Type, available, data.SchoolId);
 
-            // Preserve each category's authored border, but use real paper fibers
-            // beneath the description instead of a nearly uniform procedural fill.
+            // Keep a readable paper surface beneath the live description. The
+            // independent school frame is added above the content afterward.
             Image paper = CreateImage("Card Description Parchment " + index, play.transform,
-                new Vector2(178f, 96f), new Vector2(0f, -93f),
+                CardFaceLayout.EffectPaperSize, CardFaceLayout.EffectPaperPosition,
                 Color.Lerp(Color.white, palette.Parchment, 0.35f), NauticalSurfaceSkin.Paper);
             paper.type = Image.Type.Tiled;
             paper.pixelsPerUnitMultiplier = NauticalSurfaceSkin.Paper == null ? 1f : NauticalSurfaceSkin.Paper.rect.width / 280f;
             paper.raycastTarget = false;
             paper.transform.SetSiblingIndex(face.GetSiblingIndex() + 1);
+
+            RectTransform namePlate = CreateCardOrnament("Card Name Plate " + index, play.transform,
+                CardFaceLayout.NamePlateSize, CardFaceLayout.NamePlatePosition, CardOrnamentKind.NameRibbon, data.Type, data.SchoolId);
+            Text name = CreateText("Card Name " + index, namePlate, CardFaceLayout.NameSize,
+                CardFaceLayout.NamePosition, 20, FontStyle.Bold, TextAnchor.MiddleCenter, palette.TitleInk);
+            name.text = CardFaceLayout.DisplayName(data);
+            name.color = palette.TitleInk;
+            name.raycastTarget = false;
 
             Transform labelTransform = play.transform.Find("Label");
             if (labelTransform != null)
@@ -63,49 +71,23 @@ namespace ShatteredSail.Presentation
                 label.rectTransform.sizeDelta = new Vector2(176f, 96f);
                 label.rectTransform.anchoredPosition = new Vector2(0f, -94f);
                 label.font = GameTypography.BodyFont;
-                label.fontSize = GameReadability.FontSize(22);
+                label.fontStyle = FontStyle.Normal;
+                label.fontSize = 15;
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
                 label.verticalOverflow = VerticalWrapMode.Truncate;
                 label.resizeTextForBestFit = false;
                 label.resizeTextMinSize = 15;
                 label.resizeTextMaxSize = 15;
-                label.text = BattleCardDisplayTextForCurrentStage(data, palette);
+                label.text = BattleCardEffectTextForCurrentStage(data);
                 RefreshBattleCardTextLayout(label);
             }
-
-            Transform accent = play.transform.Find("Card Accent " + index);
-            if (accent != null) accent.GetComponent<Image>().color = palette.Accent;
-            Transform energy = play.transform.Find("Card Energy Cost " + index);
-            if (energy != null)
-            {
-                Image badge = energy.GetComponent<Image>();
-                badge.sprite = NauticalSurfaceSkin.Paper;
-                badge.type = Image.Type.Tiled;
-                badge.color = Color.Lerp(palette.Parchment, palette.Accent, 0.3f);
-                Text cost = energy.GetComponentInChildren<Text>();
-                if (cost != null)
-                {
-                    cost.color = palette.Ink;
-                    GameReadability.Body(cost, 22);
-                    float side = 40f * GameReadability.Scale;
-                    badge.rectTransform.sizeDelta = new Vector2(side, side);
-                    badge.rectTransform.anchoredPosition = new Vector2(-98f + side * .5f, 144f - side * .5f);
-                    cost.rectTransform.sizeDelta = new Vector2(side - 4f, side - 4f);
-                }
-            }
-
-            // The small ammunition label also needs an opaque light plate when
-            // drawn over a busy illustration rather than over the old black UI.
-            Transform powder = play.transform.Find("Card Powder Cost " + index);
-            if (powder != null)
-            {
-                RectTransform plate = CreateFixedPanel("Card Powder Plate " + index, play.transform,
-                    new Vector2(74f, 62f), new Vector2(57f, 114f), palette.Parchment);
-                plate.GetComponent<Image>().raycastTarget = false;
-                plate.SetSiblingIndex(powder.GetSiblingIndex());
-                powder.GetComponent<Text>().color = palette.TitleInk;
-                powder.GetComponent<Text>().raycastTarget = false;
-            }
+            AddCardSchoolFrame(play.transform, data, available);
+            // Resource symbols sit over the illustration and outer rim.
+            play.transform.Find("Card Energy Cost " + index)?.SetAsLastSibling();
+            play.transform.Find("Card Powder Plate " + index)?.SetAsLastSibling();
+            play.transform.Find("Card Cannonball Plate " + index)?.SetAsLastSibling();
+            play.transform.Find("Card Special Resource Plate " + index)?.SetAsLastSibling();
+            play.transform.Find("Card Repeat Cost Plate " + index)?.SetAsLastSibling();
         }
 
         private static string BattleHandSummary(CoreBattleCard data)
@@ -116,102 +98,88 @@ namespace ShatteredSail.Presentation
 
         private string BattleCardDisplayTextForCurrentStage(CoreBattleCard data, BattleCardPalette palette)
         {
-            if (data == null || session == null || session.Battle == null || session.Battle.Stage != NavalBattleStage.Boarding)
-                return BattleCardDisplayText(data, palette);
-            // The immutable library card remains the upgraded base definition.
-            // Only this display copy receives the same actual effects as PlayCard.
-            string summary = session.BattleCardEffectDescription(data, NavalBattleStage.Boarding);
-            if (data.Repair > 0)
-            {
-                CoreBattleCardEffects healing = session.GetBattleCardEffects(data, NavalBattleStage.Boarding);
-                summary = summary.Replace("恢复船员 " + healing.Repair, "本次恢复 " + healing.ActualRepair);
-                summary += "\n" + (healing.ActualRepair == 0 ?
-                    (session.Battle.PlayerBoardingHealth >= session.Battle.PlayerMaxBoardingHealth ? "满血不耗药；" : "未恢复，不耗药；") +
-                    (healing.HasMedicineBoost ? "有药上限 " + healing.Repair + "，" : string.Empty) + "无药 " + healing.BaseRepair + "。"
-                    : (healing.MedicineCost > 0 ? "药品 -1" : "不耗药") + "；无药基础 " + healing.BaseRepair + "。");
-            }
+            return BattleCardDisplayText(BattleCardForCurrentStage(data), palette);
+        }
+
+        private string BattleCardEffectTextForCurrentStage(CoreBattleCard data)
+        {
+            return FormatBattleCardDescription(BattleCardForCurrentStage(data)?.Description);
+        }
+
+        private CoreBattleCard BattleCardForCurrentStage(CoreBattleCard data)
+        {
+            if (data == null || session == null || session.Battle == null)
+                return data;
+            // Keep one authored face in every context. Its numeric slots receive
+            // the current quote; calculation details belong in the side tooltip.
+            NavalBattleStage stage = session.Battle.Stage;
+            string summary = session.BattleCardFaceDescription(data, stage);
             var display = new CoreBattleCard(data.Id, data.Name, data.Type, data.Energy,
                 data.Damage, data.Block, data.Repair, data.Draw, data.PowderCost,
-                "实际：" + summary,
+                summary,
                 data.AllowedStages, data.Action, data.RequiredCrew, data.ArtId, data.CannonballCost,
-                data.RequiredComponent, data.UpgradeLevel);
-            return BattleCardDisplayText(display, palette);
+                data.RequiredComponent, data.UpgradeLevel, data.SchoolId, data.SchoolEffect);
+            return display;
         }
 
         private static string BattleCardDisplayText(CoreBattleCard data, BattleCardPalette palette)
         {
             if (data == null) return string.Empty;
             string title = data.Name + (data.UpgradeLevel > 0 ? " +" + data.UpgradeLevel : string.Empty);
-            // Keep the card's three semantic fields on separate visual rows. A non-breaking
-            // space keeps ranges such as "60 米" together when the paper panel is narrow.
+            // Keep the title, category and compact effect paragraphs separate.
+            // Card-face layout binds numeric ranges and units when wrapping.
             string effect = FormatBattleCardDescription(BattleHandSummary(data));
-            return "<color=#" + ColorUtility.ToHtmlStringRGB(palette.TitleInk) + "><size=" + GameReadability.FontSize(32) + ">" + title +
-                "</size></color>\n<size=" + GameReadability.FontSize(18) + ">" + data.Type + "</size>\n" + effect;
-        }
-
-        private static string KeepCardUnitTogether(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return string.Empty;
-            return value.Replace(" 米", "\u00A0米");
+            return "<color=#" + ColorUtility.ToHtmlStringRGB(palette.TitleInk) + "><size=20>" + title +
+                "</size></color>\n<size=13>" + data.Type + "</size>\n" + effect;
         }
 
         private static string FormatBattleCardDescription(string value)
         {
-            return KeepCardUnitTogether(CoreBattleCardText.FormatEffects(value));
+            return CardFaceLayout.FormatDescription(value);
         }
 
         /// <summary>
-        /// Keep every effect readable at the same font size. Longer descriptions
-        /// borrow space from the illustration instead of clipping or shrinking.
-        /// Also used when an existing hand card's live healing/cost text changes.
+        /// All cards keep identical regions. Only a field that exceeds its
+        /// shared font size shrinks; longer effects never move or resize the art.
         /// </summary>
         private static void RefreshBattleCardTextLayout(Text label)
         {
             if (label == null || label.transform.parent == null) return;
-            Button button = label.GetComponentInParent<Button>();
-            if (button == null) return;
-            Transform card = button.transform;
-            RectTransform paper = null, art = null, repeat = null;
+            Transform card = label.transform.parent;
+            RectTransform paper = null, art = null, repeat = null, namePlate = null;
             foreach (Transform child in card)
             {
                 if (child.name.StartsWith("Card Description Parchment ")) paper = child as RectTransform;
                 else if (child.name.StartsWith("Card Art ")) art = child as RectTransform;
                 else if (child.name.StartsWith("Card Repeat Cost Plate ")) repeat = child as RectTransform;
+                else if (child.name.StartsWith("Card Name Plate ")) namePlate = child as RectTransform;
             }
-            float repeatHeight = 0f;
-            if (repeat != null)
-            {
-                Text repeated = repeat.GetComponentInChildren<Text>();
-                GameReadability.Body(repeated, 18);
-                repeated.rectTransform.sizeDelta = new Vector2(176f, 100f);
-                repeatHeight = repeat.gameObject.activeSelf ? Mathf.Min(106f, MeasureCardTextHeight(repeated) + 4f) : 0f;
-                repeat.sizeDelta = new Vector2(182f, Mathf.Max(28f, repeatHeight));
-                repeat.anchoredPosition = new Vector2(0f, -142f + repeat.rect.height * .5f);
-                repeated.rectTransform.sizeDelta = new Vector2(176f, repeat.rect.height);
-            }
-            float bottom = -142f + repeatHeight;
-            float height = 222f - repeatHeight;
-            ReadableParagraph(label, card, new Vector2(184f, height), new Vector2(0f, bottom + height * .5f), 22, false).transform.SetSiblingIndex(3);
+            label.rectTransform.sizeDelta = CardFaceLayout.EffectSize;
+            label.rectTransform.anchoredPosition = CardFaceLayout.EffectPosition;
+            label.alignment = TextAnchor.MiddleCenter;
+            CardFaceLayout.FitEffect(label);
             if (paper != null)
             {
-                paper.sizeDelta = new Vector2(190f, 226f);
-                paper.anchoredPosition = new Vector2(0f, -31f);
+                paper.sizeDelta = CardFaceLayout.EffectPaperSize;
+                paper.anchoredPosition = CardFaceLayout.EffectPaperPosition;
+            }
+            if (repeat != null) repeat.anchoredPosition = CardFaceLayout.RepeatCostPosition;
+            if (namePlate != null)
+            {
+                Text name = namePlate.GetComponentInChildren<Text>();
+                namePlate.sizeDelta = CardFaceLayout.NamePlateSize;
+                namePlate.anchoredPosition = CardFaceLayout.NamePlateLayout(namePlate);
+                if (name != null)
+                {
+                    name.rectTransform.sizeDelta = CardFaceLayout.NameSize;
+                    name.rectTransform.anchoredPosition = CardFaceLayout.NamePosition;
+                    CardFaceLayout.FitName(name);
+                }
             }
             if (art != null)
             {
-                art.sizeDelta = new Vector2(38f, 38f);
-                art.anchoredPosition = new Vector2(0f, 113f);
+                CardFaceLayout.FitIllustration(art.GetComponent<RawImage>());
             }
-            foreach (Transform child in card)
-                if (child.name.StartsWith("Card Powder Cost "))
-                {
-                    Text powder = child.GetComponent<Text>();
-                    GameReadability.Body(powder, 18);
-                    powder.text = powder.text.Replace("火药 ", "火药\n");
-                    powder.rectTransform.sizeDelta = new Vector2(74f, 62f);
-                    powder.rectTransform.anchoredPosition = new Vector2(57f, 114f);
-                }
-
         }
     }
 }

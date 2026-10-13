@@ -43,7 +43,7 @@ namespace ShatteredSail.Presentation
                 !source.gameObject.activeInHierarchy || !source.IsInteractable() ||
                 retainedBattleRoot == null || !source.transform.IsChildOf(retainedBattleRoot) ||
                 handIndex < 0 || handIndex >= session.Battle.Hand.Count || battleCard == null ||
-                battleCard.Id != session.GuidedBossExpectedCardId || UiId.GetOrLegacyName(source) != GuidedBossTargetControl ||
+                battleCard.Id != session.GuidedBossExpectedCardId || source.name != GuidedBossTargetControl ||
                 session.GetBattleCard(session.Battle.Hand[handIndex]).Id != battleCard.Id)
                 return true;
             if (session.TryObserveGuidedBossBlockedCard(handIndex, out _)) Render();
@@ -74,31 +74,31 @@ namespace ShatteredSail.Presentation
                 switch (session.GuidedBossStep)
                 {
                     case GuidedBossBattleStep.NavalRetreat:
-                        return "打出「拉开距离」：远离敌舰，并获得格挡。";
+                        return "悬停可放大查看卡牌。点击红框中的「拉开距离」，远离敌舰并获得格挡。";
                     case GuidedBossBattleStep.NavalLoad:
-                        return "打出「装填弹药」：消耗火药，为下一次炮击增加伤害。";
+                        return "打出「装填弹药」：消耗 1 火药额外装药，使下一炮增伤；开炮另需 1 火药和 1 炮弹。";
                     case GuidedBossBattleStep.NavalGuard:
                         return "打出「稳固船身」，为敌方回合准备格挡。";
                     case GuidedBossBattleStep.NavalEndTurn1:
                         return "选择「结束回合」，观察首领获得格挡并靠近。";
                     case GuidedBossBattleStep.NavalRangeAttempt:
-                        return "尝试打出「链弹」，亲自确认当前距离是否在炮击射程内。";
+                        return "点击红框中的「链弹」，查看射程限制；本次尝试不会消耗卡牌或弹药。";
                     case GuidedBossBattleStep.NavalApproach2:
                         return "刚才距离过远，炮击未发出，也未消耗卡牌或弹药。打出「迎敌推进」进入射程。";
                     case GuidedBossBattleStep.NavalFire:
-                        return "现在已进入射程。打出「链弹」，观察装填增伤与敌方格挡。";
+                        return "打出「链弹」：消耗 1 火药和 1 炮弹。观察装填增伤与敌方格挡。";
                     case GuidedBossBattleStep.NavalGuard2:
                         return "打出「稳固船身」，准备抵挡首领接下来的炮击。";
                     case GuidedBossBattleStep.NavalEndTurn2:
                         return "选择「结束回合」，观察首领靠近后开炮，以及格挡如何抵消伤害。";
                     case GuidedBossBattleStep.NavalLoadAttempt:
-                        return "再次尝试「装填弹药」，查看火药不足时的提示。";
+                        return "点击红框中的「装填弹药」，查看火药不足的提示；本次尝试不消耗行动点。";
                     case GuidedBossBattleStep.NavalCircle:
                         return "火药不足，装填未执行，也未消耗行动点。打出「绕至侧舷」，对准敌舰侧面。";
                     case GuidedBossBattleStep.NavalApproach3:
-                        return "侧翼已对准。再打出「迎敌推进」，驶入冲撞距离。";
+                        return "打出「迎敌推进」。\n在 30 米处准备冲撞。";
                     case GuidedBossBattleStep.NavalRam:
-                        return "选择「冲撞并接舷」，撞击后登上敌舰，切换至船员近战。";
+                        return "相距 30 米，保留冲撞空间。\n点击「冲撞并接舷」。";
                     case GuidedBossBattleStep.BoardingAttack1:
                         return "打出「水手刺击」攻击守备队。接舷阶段扣除的是船员生命。";
                     case GuidedBossBattleStep.BoardingGuard1:

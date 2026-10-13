@@ -265,7 +265,7 @@ namespace ShatteredSail.Content
             bool formerOldCaptain = false)
         {
             return new CrewVariantDefinition(id, port, professionIndex, professionIds[professionIndex], name, role, specialty,
-                GameplaySkillForProfession(professionIndex), "同职业能力不叠加 · 每名派遣领队 +10%，推荐职业额外 +15%", cost, appearance,
+                GameplaySkillForProfession(professionIndex), "同职业能力不叠加", cost, appearance,
                 biography, storyId, asset, legacy, formerOldCaptain);
         }
 

@@ -110,6 +110,19 @@ namespace ShatteredSail.Presentation
             }
         }
 
+        /// <summary>
+        /// Marks a vessel as initialized while leaving every component slot empty.
+        ///
+        /// A new player's starter hull is deliberately bare.  Keeping the
+        /// initialized marker means a later load/refresh cannot repopulate the
+        /// slots with the catalogue's free baseline fittings.
+        /// </summary>
+        public void InitializeEmptyLoadout(int ship)
+        {
+            if (ship < 0) return;
+            initializedShips.Add(ship);
+        }
+
         public OwnedShipComponent Grant(ComponentArtEntry entry, float quality)
         {
             if (entry == null || catalog.GetById(entry.Id) == null) return null;

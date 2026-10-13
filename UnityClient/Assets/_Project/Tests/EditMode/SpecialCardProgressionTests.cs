@@ -15,7 +15,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(CoreVoyageSession.CardLibrary[0].Id, Is.EqualTo("card_chain_shot"));
             Assert.That(CoreVoyageSession.CardLibrary[27].Id, Is.EqualTo("card_component_bow"));
             Assert.That(CoreVoyageSession.CardLibrary[31].Id, Is.EqualTo("card_component_instrument"));
-            Assert.That(CoreVoyageSession.CardLibrary.Count, Is.EqualTo(CoreVoyageSession.LegacyBattleCardSlotCount + 1 + CoreSpecialCardCatalog.All.Count));
+            Assert.That(CoreVoyageSession.CardLibrary.Count, Is.EqualTo(CoreVoyageSession.LegacyBattleCardSlotCount + 1 + CoreSpecialCardCatalog.All.Count + 60 + 2));
             Assert.That(CoreVoyageSession.CardLibrary.Select(card => card.Id).Distinct().Count(), Is.EqualTo(CoreVoyageSession.CardLibrary.Count));
             Assert.That(CoreSpecialCardCatalog.All.All(definition => CoreVoyageSession.IsSpecialBattleCard(definition.Card.Id)), Is.True);
         }
@@ -117,14 +117,92 @@ namespace ShatteredSail.Core.Tests
             session.ConfigureSpecialCardSources(new[] { crew.SourceId, crew.SourceId, "doctor", "cook", "missing_crew" },
                 new[] { part.SourceId, part.SourceId, "bow", "cannon", "missing_component" });
             string doctorCardId = CoreSpecialCardCatalog.ForCrew("doctor").Card.Id;
+            string cookCardId = CoreSpecialCardCatalog.ForCrew("cook").Card.Id;
             Assert.That(AllBonus(session).Select(index => CoreVoyageSession.CardLibrary[index].Id),
-                Is.EquivalentTo(new[] { crew.Card.Id, part.Card.Id, doctorCardId }));
+                Is.EquivalentTo(new[] { crew.Card.Id, part.Card.Id, doctorCardId, cookCardId }));
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
                 foreach (int index in session.GetBonusBattleCards(stage))
                     Assert.That(session.GetAvailableBattleCards(stage), Has.No.Member(index));
             session.ConfigureSpecialCardSources(null, null);
             Assert.That(AllBonus(session), Is.Empty);
-            Assert.That(session.AcquiredSpecialCardIds, Is.EquivalentTo(new[] { crew.Card.Id, part.Card.Id, doctorCardId }));
+            Assert.That(session.AcquiredSpecialCardIds, Is.EquivalentTo(new[] { crew.Card.Id, part.Card.Id, doctorCardId, cookCardId }));
+        }
+
+        [Test]
+        public void Pepe_LevelsWithActualSailingOnceAcrossThreeStagesAndRetainsProgressOnStandby()
+        {
+            CoreSpecialCardDefinition pepe = CoreSpecialCardCatalog.ForCrew("crew_gray_gull_cook_pepe");
+            int index = Find(pepe.Card.Id);
+            var session = new CoreVoyageSession();
+            session.ConfigureSpecialCardSources(new[] { pepe.SourceId, pepe.SourceId }, null);
+            foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
+                Assert.That(session.GetBonusBattleCards(stage), Has.Member(index));
+            Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.Zero);
+            session.RestoreSpecialCardExperience(new Dictionary<string, int> { { pepe.Card.Id, 839 } });
+            session.SetSeed("PEPE-SUPPORT-XP-REGRESSION");
+            session.StartVoyage();
+            foreach (CoreMapNode node in session.Map.Nodes) node.Visited = true;
+            typeof(CoreVoyageSession).GetField("randomAmbushOccurred", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(session, true);
+            Assert.That(session.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(839), "Departure alone grants no XP.");
+            Assert.That(SailSomewhere(session), Is.True);
+            int earned = (int)Math.Floor(session.TotalDistanceNm * CoreVoyageSession.SpecialCardExperiencePerNauticalMile);
+            Assert.That(earned, Is.GreaterThan(0));
+            Assert.That(session.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(839 + earned),
+                "The same card in three stage decks receives the sailed distance only once.");
+            Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(3));
+            Assert.That(session.SafeReturn(), Is.True);
+            session.ReturnToPortAfterSettlement();
+            session.ConfigureSpecialCardSources(new[] { "crew_white_shell_cook_flora" }, null);
+            Assert.That(AllBonus(session), Is.EqualTo(new[] { Find("card_special_crew_white_shell_cook_flora") }));
+            Assert.That(session.GetSpecialCardExperience("card_special_crew_white_shell_cook_flora"), Is.Zero);
+            Assert.That(session.AcquiredSpecialCardIds, Has.Member(pepe.Card.Id));
+            Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(3));
+
+            var restored = new CoreVoyageSession();
+            restored.RestoreSpecialCardExperience(session.SpecialCardExperience);
+            restored.RestoreAcquiredSpecialCards(session.AcquiredSpecialCardIds);
+            Assert.That(restored.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(839 + earned));
+            Assert.That(restored.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(3));
+        }
+
+        [TestCase(NavalBattleStage.Preparation)]
+        [TestCase(NavalBattleStage.Naval)]
+        [TestCase(NavalBattleStage.Boarding)]
+        public void Pepe_MatureCardActuallyBlocksDrawsAndUsesExistingRepeatedPlayCost(NavalBattleStage stage)
+        {
+            CoreSpecialCardDefinition pepe = CoreSpecialCardCatalog.ForCrew("crew_gray_gull_cook_pepe");
+            int index = Find(pepe.Card.Id);
+            var session = new CoreVoyageSession();
+            session.ConfigureSpecialCardSources(new[] { pepe.SourceId }, null);
+            session.RestoreSpecialCardExperience(new Dictionary<string, int> { { pepe.Card.Id, 840 } });
+            session.StartVoyage();
+            typeof(CoreVoyageSession).GetMethod("StartBattle", BindingFlags.NonPublic | BindingFlags.Instance)
+                .Invoke(session, new object[] { new CoreEncounter("pepe_fixture", "隔离敌舰", "海战", "热汤支援回归", true, false, 1, 500), false });
+            session.Battle.Stage = stage;
+            typeof(CoreBattleState).GetProperty(nameof(CoreBattleState.PlayerOrdinaryCrew))
+                .SetValue(session.Battle, CoreBattleCardEffects.ReferenceOrdinaryCrew);
+            session.Battle.Hand.Clear();
+            session.Battle.Hand.Add(index);
+            session.Battle.DrawPile.Clear();
+            int filler = session.GetBattleDeck(stage)[0];
+            session.Battle.DrawPile.Add(filler);
+            session.Battle.DrawPile.Add(filler);
+            session.Battle.Energy = 1;
+            int hull = session.Hull, crewHealth = session.Battle.PlayerBoardingHealth;
+            int food = session.Cargo.Food, water = session.Cargo.Water, medicine = session.Cargo.Medicine;
+            int powder = session.Cargo.Powder, cannonballs = session.Cargo.Cannonballs;
+            int expectedBlock = (stage == NavalBattleStage.Boarding ? 3 : 5) * 2; // The phase-specific authored shield retains the common rank-three multiplier.
+            Assert.That(session.PlayCard(0), Is.True);
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(expectedBlock));
+            Assert.That(session.Battle.Hand, Is.EqualTo(new[] { filler, filler }));
+            Assert.That(session.Hull, Is.EqualTo(hull));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(crewHealth));
+            Assert.That(new[] { session.Cargo.Food, session.Cargo.Water, session.Cargo.Medicine, session.Cargo.Powder, session.Cargo.Cannonballs },
+                Is.EqualTo(new[] { food, water, medicine, powder, cannonballs }));
+            Assert.That(session.GetBattleCardEnergyCost(index), Is.EqualTo(2));
+            session.Battle.Hand.Add(index);
+            Assert.That(session.PlayCard(2), Is.False, "A mastered card keeps its base cost and also pays the next same-turn use fee.");
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(expectedBlock));
         }
 
         [Test]
@@ -164,9 +242,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetSpecialCardNextThreshold(definition.Card.Id), Is.EqualTo(threshold));
             Assert.That(session.GetCardUpgradeLevel(definition.Card.Id), Is.EqualTo(level));
             Assert.That(session.GetBattleCard(index).UpgradeLevel, Is.EqualTo(level));
-            Assert.That(session.GetBattleCard(index).Damage, Is.EqualTo(definition.Card.Damage * (level > 0 ? 2 : 1)));
-            Assert.That(session.GetBattleCard(index).Energy, Is.EqualTo(Math.Max(0, definition.Card.Energy - (level >= 2 ? 1 : 0))));
-            Assert.That(session.GetBattleCard(index).Draw, Is.EqualTo(definition.Card.Draw + (level >= 3 ? 1 : 0)));
+            decimal multiplier = level == 0 ? 1m : level == 1 ? 1.2m : level == 2 ? 1.5m : 2m;
+            Assert.That(session.GetBattleCard(index).Damage, Is.EqualTo((int)Math.Round(definition.Card.Damage * multiplier, 0, MidpointRounding.AwayFromZero)));
+            Assert.That(session.GetBattleCard(index).Energy, Is.EqualTo(definition.Card.Energy));
+            Assert.That(session.GetBattleCard(index).Draw, Is.EqualTo(definition.Card.Draw + (level >= 3 && definition.Card.Draw > 0 ? 1 : 0)));
             session.GetBattleCardAtLevel(index, 3);
             Assert.That(session.GetCardUpgradeLevel(definition.Card.Id), Is.EqualTo(level), "Preview never grants experience.");
         }
@@ -307,6 +386,78 @@ namespace ShatteredSail.Core.Tests
             Award(session, float.MaxValue);
             Assert.That(session.GetSpecialCardExperience(id), Is.EqualTo(int.MaxValue));
             Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(3));
+        }
+
+        [Test]
+        public void HistoricalSourceSequence_PreservesAll106OriginalIDsAndTheirLibraryPositions()
+        {
+            string[] originalSourceIds =
+            {
+                "crew_broken_anchor_navigator_lorne", "crew_broken_anchor_carpenter_kia", "crew_broken_anchor_gunner_mira",
+                "crew_broken_anchor_diver_udo", "crew_white_shell_navigator_saina", "crew_white_shell_carpenter_atang",
+                "crew_white_shell_gunner_gallo", "crew_white_shell_diver_kela", "crew_bronze_bell_navigator_vick",
+                "crew_bronze_bell_carpenter_osser", "crew_bronze_bell_gunner_helen", "crew_bronze_bell_diver_duke",
+                "crew_salt_crown_navigator_ashir", "crew_salt_crown_carpenter_saf", "crew_salt_crown_gunner_rokan",
+                "crew_salt_crown_diver_isha", "crew_twilight_tide_navigator_selene", "crew_twilight_tide_carpenter_orlan",
+                "crew_twilight_tide_gunner_yilan", "crew_twilight_tide_diver_naive", "crew_gray_gull_navigator_evelyn",
+                "crew_gray_gull_carpenter_barlow", "crew_gray_gull_gunner_leisa", "crew_gray_gull_diver_noya",
+                "bow_gilded_mermaid", "bow_sunlion_figurehead", "bow_pearl_siren",
+                "bow_guildbreaker_crest", "bow_amber_albatross", "bow_abyssal_fang",
+                "bow_nightkraken_tusk", "bow_gravecurrent_spur", "bow_blackreef_hammer",
+                "bow_voidray_edge", "bow_leviathan_ram", "bow_crownless_colossus",
+                "bow_worldsplitter", "bow_dragonwake_ram", "bow_last_horizon",
+                "sail_guild_silk", "sail_emerald_trade_wing", "sail_sunthread_spinnaker",
+                "sail_redroute_broadsail", "sail_whisperveil", "sail_moonweave",
+                "sail_eclipse_shroud", "sail_starshear_rig", "sail_ghostcurrent_canvas",
+                "sail_aurora_fan", "sail_tempest_wing", "sail_skybreaker_array",
+                "sail_crown_of_gales", "sail_thunderphoenix", "sail_last_free_wind",
+                "cannon_chain_repeater", "cannon_anchorbreaker", "cannon_redwake_repeater",
+                "cannon_stormnail_array", "cannon_echochamber", "cannon_starfire_battery",
+                "cannon_cometfall_battery", "cannon_blueflare_organ", "cannon_voidbell_mortar",
+                "cannon_sunforge_salvo", "cannon_queens_broadside", "cannon_krakens_thunder",
+                "cannon_worlds_end_volley", "cannon_dragonbreath_battery", "cannon_liberty_salute",
+                "plating_gilded_bulwark", "plating_suncoin_rampart", "plating_coralsteel_hide",
+                "plating_redbanner_wall", "plating_merchants_oath", "plating_moonsilver_skin",
+                "plating_eclipse_mail", "plating_starseal_panels", "plating_ghostreef_carapace",
+                "plating_aurora_laminate", "plating_living_hull", "plating_leviathan_scales",
+                "plating_worldtree_bark", "plating_dragonwake_armor", "plating_freedom_ark",
+                "instrument_guild_engine", "instrument_starledger", "instrument_corsair_decoder",
+                "instrument_deepwater_abacus", "instrument_trade_wind_oracle", "instrument_lunar_astrolabe",
+                "instrument_eclipse_orrery", "instrument_whalestar_receiver", "instrument_ghostmap_projector",
+                "instrument_aurora_calculator", "instrument_allseeing_sextant", "instrument_eye_of_depths",
+                "instrument_worldcompass", "instrument_celestial_engine", "instrument_last_horizon_lens",
+                "crew_broken_anchor_doctor_hector", "crew_white_shell_doctor_mirei", "crew_bronze_bell_doctor_ada",
+                "crew_salt_crown_doctor_naji", "crew_twilight_tide_doctor_viya", "crew_gray_gull_doctor_moer",
+                "crew_gray_gull_cook_pepe",
+            };
+            Assert.That(CoreSpecialCardCatalog.All.Take(106).Select(value => value.SourceId), Is.EqualTo(originalSourceIds));
+            int libraryIndex = CoreVoyageSession.LegacyBattleCardSlotCount;
+            foreach (string sourceId in originalSourceIds)
+            {
+                if (libraryIndex == 56) libraryIndex++;
+                Assert.That(CoreVoyageSession.CardLibrary[libraryIndex++].Id, Is.EqualTo("card_special_" + sourceId));
+            }
+        }
+
+        [Test]
+        public void HistoricalIdentityExperience_RestoresWithoutRedistributionOrExtraPrimaryCards()
+        {
+            CoreSpecialCardDefinition[] original = CoreSpecialCardCatalog.All.Take(106).ToArray();
+            var experience = original.Select((value, index) => new { value.Card.Id, Experience = 17 * (index + 1) })
+                .ToDictionary(value => value.Id, value => value.Experience);
+            var session = new CoreVoyageSession();
+            session.RestoreSpecialCardExperience(experience);
+            session.ConfigureSpecialCardSources(original.Where(value => value.SourceKind == CoreSpecialCardSourceKind.Crew)
+                .Select(value => value.SourceId).ToArray(), original.Where(value => value.SourceKind == CoreSpecialCardSourceKind.Component)
+                .Select(value => value.SourceId).ToArray());
+            Assert.That(session.SpecialCardExperience.Count, Is.EqualTo(106));
+            foreach (CoreSpecialCardDefinition source in original)
+            {
+                Assert.That(session.GetSpecialCardExperience(source.Card.Id), Is.EqualTo(experience[source.Card.Id]), source.SourceId);
+                Assert.That(CoreSpecialCardCatalog.All.Count(value => value.SourceId == source.SourceId), Is.EqualTo(1), source.SourceId);
+            }
+            foreach (CoreSpecialCardDefinition added in CoreSpecialCardCatalog.All.Skip(106))
+                Assert.That(session.GetSpecialCardExperience(added.Card.Id), Is.Zero, added.SourceId);
         }
 
         private static CoreSpecialCardDefinition Crew() => CoreSpecialCardCatalog.All.First(item => item.SourceKind == CoreSpecialCardSourceKind.Crew && item.LegacySourceKey == "navigator");

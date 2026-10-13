@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation.Tests
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
             {
                 string key = PortMarketCatalog.Key(item);
-                RawImage icon = AssertItemIcon("Warehouse Storage Icon " + key, ItemIconCatalog.ForCargo(key), 32f);
+                RawImage icon = AssertItemIcon("Warehouse Storage Icon " + key, ItemIconCatalog.ForCargo(key), 42f);
                 AssertIconDoesNotCoverRowText(icon);
                 AssertIconPointerReachesButton(icon, "Warehouse Storage Row " + key, false);
             }
@@ -57,7 +57,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitForItemIconView(controller);
             foreach (CoreWarehouseItemDefinition item in CoreWarehouseItemCatalog.RareItems)
             {
-                RawImage icon = AssertItemIcon("Warehouse Rare Icon " + item.Key, ItemIconCatalog.ForCargo(item.Key), 32f);
+                RawImage icon = AssertItemIcon("Warehouse Rare Icon " + item.Key, ItemIconCatalog.ForCargo(item.Key), 56f);
                 AssertIconDoesNotCoverRowText(icon);
                 AssertIconPointerReachesButton(icon, "Warehouse Rare Row " + item.Key, false);
             }
@@ -86,10 +86,10 @@ namespace ShatteredSail.Presentation.Tests
             for (int i = 0; i < CoreWarehouseCollection.DisplaySlotCount; i++)
             {
                 CoreWarehouseTreasureDefinition definition = CoreWarehouseCollection.Catalog[i];
-                RawImage displayed = AssertItemIcon("Warehouse Displayed Art " + i, ItemIconCatalog.ForTreasure(definition), 176f);
+                RawImage displayed = AssertItemIcon("Warehouse Displayed Art " + i, ItemIconCatalog.ForTreasure(definition), 186f);
                 Assert.That(displayed.rectTransform.anchoredPosition.y - displayed.rectTransform.rect.height * .5f,
-                    Is.EqualTo(-89f).Within(.01f), "Treasures stay grounded on the original shelf.");
-                if (i < 3) AssertItemIcon("Warehouse Inventory Art " + definition.Id, ItemIconCatalog.ForTreasure(definition), 126f);
+                    Is.EqualTo(-93f).Within(.01f), "Treasures stay grounded on the regional shelf.");
+                if (i < 3) AssertItemIcon("Warehouse Inventory Art " + definition.Id, ItemIconCatalog.ForTreasure(definition), 130f);
             }
             NavalBattleVisualCapture.Capture(controller, "ItemIcons_06_Treasure_Collection.png",
                 "六件藏品为隔离美术夹具，右侧列表与实际陈列共用每件物品的独立图标", "Warehouse Panel");
@@ -112,26 +112,29 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (PortMarketItem item in PortMarketCatalog.AllItems)
                 {
                     string key = PortMarketCatalog.Key(item);
-                    yield return EnsureMarketItemVisible(key);
-                    RawImage icon = AssertItemIcon("Market Item Icon " + key, ItemIconCatalog.ForCargo(key), 36f);
+                    RawImage icon = AssertItemIcon("Market Item Icon " + key, ItemIconCatalog.ForCargo(key), 80f);
                     AssertIconDoesNotCoverRowText(icon);
                     Assert.That(GameObject.Find("Market Item Name " + key).GetComponent<Text>().text,
                         Does.Contain(PortMarketCatalog.Name(item)));
                     foreach (Selectable control in icon.transform.parent.GetComponentsInChildren<Selectable>())
+                    {
+                        if (control.gameObject == icon.gameObject) continue;
                         Assert.That(ItemIconBounds(icon.rectTransform, icon.transform.parent)
                             .Overlaps(ItemIconBounds((RectTransform)control.transform, icon.transform.parent)),
                             Is.False, key + " icon must leave the quantity and transaction controls clear.");
+                    }
                 }
                 NavalBattleVisualCapture.Capture(controller, "ItemIcons_04_Market.png",
-                    "分页商品36像素图标，不覆盖数量输入及交易按钮", "Market Panel");
-                yield return EnsureMarketItemVisible("wood");
+                    "九种商品80像素可点击图标，三列各三件，价格直接显示在羊皮纸上", "Market Panel");
                 decimal gold = session.ProfileGold;
                 decimal buy = PortMarketCatalog.CalculateBuyCost(session.CurrentPort, PortMarketItem.Wood, now, 1);
                 decimal sell = PortMarketCatalog.CalculateSellRevenue(session.CurrentPort, PortMarketItem.Wood, now, 1);
-                ClickAcceptanceButton("Market Buy wood"); yield return null;
+                yield return OpenMarketTrade("wood");
+                ClickAcceptanceButton("Confirm Market Buy wood"); yield return null;
                 Assert.That(session.Cargo.Wood, Is.EqualTo(1));
                 Assert.That(session.ProfileGold, Is.EqualTo(gold - buy));
-                ClickAcceptanceButton("Market Sell wood"); yield return null;
+                yield return OpenMarketTrade("wood", false);
+                ClickAcceptanceButton("Confirm Market Sell wood"); yield return null;
                 Assert.That(session.Cargo.Wood, Is.Zero);
                 Assert.That(session.ProfileGold, Is.EqualTo(gold - buy + sell));
                 Assert.That(session.PortWarehouse.GetAmount(session.CurrentPort, "wood"), Is.Zero);
@@ -139,18 +142,18 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton("Return To Port Hub"); yield return null;
                 ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
                 yield return WaitForItemIconView(controller);
-                RawImage water = AssertItemIcon("Departure Provision Water Icon", ItemIconCatalog.ForCargo("water"), 32f);
-                RawImage food = AssertItemIcon("Departure Provision Food Icon", ItemIconCatalog.ForCargo("food"), 32f);
-                RectTransform quote = GameObject.Find("Departure Provision Quote").GetComponent<RectTransform>();
-                Assert.That(ItemIconBounds(water.rectTransform, quote.parent).Overlaps(ItemIconBounds(quote, quote.parent)), Is.False);
-                Assert.That(ItemIconBounds(food.rectTransform, quote.parent).Overlaps(ItemIconBounds(quote, quote.parent)), Is.False);
+                Assert.That(GameObject.Find("Departure Provision Water Icon"), Is.Null);
+                Assert.That(GameObject.Find("Departure Provision Food Icon"), Is.Null);
+                Assert.That(GameObject.Find("Departure Provision Quote"), Is.Null);
+                Assert.That(ActiveButton("Departure Buy Provisions"), Is.Not.Null);
                 ClickAcceptanceButton("Route 1"); yield return null;
                 yield return WaitForItemIconView(controller);
                 RawImage[] visibleImages = Object.FindObjectsByType<RawImage>(FindObjectsSortMode.None);
-                Assert.That(Array.FindAll(visibleImages, icon => icon.name == "Departure Provision Water Icon").Length, Is.EqualTo(1));
-                Assert.That(Array.FindAll(visibleImages, icon => icon.name == "Departure Provision Food Icon").Length, Is.EqualTo(1));
+                Assert.That(Array.FindAll(visibleImages, icon => icon.name == "Departure Provision Water Icon").Length, Is.Zero);
+                Assert.That(Array.FindAll(visibleImages, icon => icon.name == "Departure Provision Food Icon").Length, Is.Zero);
+                Assert.That(GameObject.Find("Departure Provision Quote"), Is.Null);
                 NavalBattleVisualCapture.Capture(controller, "ItemIcons_05_Departure.png",
-                    "出航水粮报价加入两个小图标，保留完整文字报价", "Voyage Setup");
+                    "出航界面保留基础物资入口，切换航线不会重建已删除的报价图标", "Voyage Setup");
                 LogAssert.NoUnexpectedReceived();
             }
             finally { RestoreProvisionLedger(ledger); }
@@ -176,7 +179,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(icon.enabled, Is.True, name);
             Assert.That(icon.texture, Is.SameAs(expected.Texture), name);
             Assert.That(icon.uvRect, Is.EqualTo(expected.Uv), name);
-            Assert.That(icon.raycastTarget, Is.False, name + " must not consume pointer hits");
+            Assert.That(icon.raycastTarget, Is.EqualTo(icon.GetComponent<Button>() != null),
+                name + " only interactive item icons consume pointer hits");
             Assert.That(icon.rectTransform.rect.width, Is.GreaterThan(0f).And.LessThanOrEqualTo(size + .01f), name);
             Assert.That(icon.rectTransform.rect.height, Is.GreaterThan(0f).And.LessThanOrEqualTo(size + .01f), name);
             float aspect = icon.texture.width * icon.uvRect.width / (icon.texture.height * icon.uvRect.height);

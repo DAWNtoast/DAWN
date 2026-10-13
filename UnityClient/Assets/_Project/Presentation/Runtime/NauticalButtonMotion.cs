@@ -62,6 +62,8 @@ namespace ShatteredSail.Presentation
             rect.localScale = Vector3.Lerp(currentScale, desiredScale, blend);
         }
 
+        public void SetBaseScale(Vector3 scale) => baseScale = scale;
+
         public void OnPointerEnter(PointerEventData eventData) => pointerInside = true;
         public void OnPointerExit(PointerEventData eventData)
         {

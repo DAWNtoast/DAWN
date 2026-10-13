@@ -86,8 +86,9 @@ namespace ShatteredSail.Presentation.Tests
                 yield return driver.RecruitTreasureCrew();
                 yield return driver.InvestForSuppliesIfNeeded();
                 yield return driver.UpgradeBuild();
+                yield return driver.IdentifyEarnedTreasureFragments();
                 driver.Checkpoint();
-                bool treasure = !driver.MustTradeAfterSupplyInvestment && (session.TreasureFragments >= 4 || session.TreasureMaps.Count > 0) && session.PirateLevel >= 2;
+                bool treasure = !driver.MustTradeAfterSupplyInvestment && (AcceptanceReadyTreasureBoard(session) >= 0 || session.TreasureMaps.Count > 0) && session.PirateLevel >= 2;
                 if (treasure)
                 {
                     yield return driver.CraftAndDepartTreasure();
@@ -162,6 +163,8 @@ namespace ShatteredSail.Presentation.Tests
                     water = Session.Cargo.Water, food = Session.Cargo.Food, powder = Session.Cargo.Powder, cannonballs = Session.Cargo.Cannonballs,
                     hull = Session.Hull, maxHull = Session.MaxHull, ship = Session.SelectedShipIndex, experience = Session.PirateExperience,
                     level = Session.PirateLevel, fragments = Session.TreasureFragments, pendingFragments = Session.VoyageTreasureFragments,
+                    weatheredFragments = Session.GetIdentifiedTreasureFragments("weathered"), gildedFragments = Session.GetIdentifiedTreasureFragments("gilded"),
+                    moonlitFragments = Session.GetIdentifiedTreasureFragments("moonlit"),
                     maps = Session.TreasureMaps.Count, seed = Session.Map?.Seed ?? "", encounter = Session.ActiveEncounter?.Id ?? "",
                     shipPurchases = shipsPurchased, shipPlan = IsShipAudit ? string.Join(",", shipPurchasePlan) : "unrestricted",
                     x = Session.Position.X, y = Session.Position.Y, distance = Session.TotalDistanceNm,
@@ -207,7 +210,11 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton(name);
                 yield return null;
                 float limit = Time.realtimeSinceStartup + 20;
-                while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < limit) yield return null;
+                while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < limit)
+                {
+                    AdvanceRamComicIfWaiting(controller);
+                    yield return null;
+                }
                 Assert.That(controller.IsBattleAnimationPlaying, Is.False, "Battle animation timeout");
                 if (NoGmFirstTreasure)
                 {
@@ -215,7 +222,7 @@ namespace ShatteredSail.Presentation.Tests
                     if (GameObject.Find("Treasure Story Overlay") != null)
                     {
                         yield return DismissTreasureStoryIfPresent(controller);
-                        Record("After ordinary Treasure Story Skip; no encounter resolved or game time advanced.");
+                        Record("After ordinary Treasure Story Advance clicks through all pages; no encounter resolved or game time advanced.");
                     }
                 }
                 yield return null;
@@ -265,12 +272,12 @@ namespace ShatteredSail.Presentation.Tests
                 yield return EnsureHub();
                 if (Session.ProfileGold < 450 || AuditUpgradeCards.All(i => Session.GetBattleCard(i).UpgradeLevel == 3)) yield break;
                 int targetUpgrade = AuditUpgradeCards.All(i => Session.GetBattleCard(i).UpgradeLevel >= 2) ? 3 : 2;
-                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Open Deck Chest 1");
+                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
                 foreach (int index in AuditUpgradeCards)
                 {
                     var card = Session.GetBattleCard(index);
                     NavalBattleStage stage = card.IsAllowedInStage(NavalBattleStage.Boarding) ? NavalBattleStage.Boarding : card.IsAllowedInStage(NavalBattleStage.Naval) ? NavalBattleStage.Naval : NavalBattleStage.Preparation;
-                    yield return Click("Upgrade Stage " + stage);
+                    yield return Click("Workshop Preview Stage " + stage);
                     for (int page = 0; ActiveButton("Select Upgrade Card " + index) == null && page < 10; page++)
                     { if (ActiveButton("Next Upgrade Cards")?.IsInteractable() != true) break; yield return Click("Next Upgrade Cards"); }
                     if (ActiveButton("Select Upgrade Card " + index) == null) continue;
@@ -281,10 +288,10 @@ namespace ShatteredSail.Presentation.Tests
                 Shot("Paid_Card_Upgrades", "Battle Card Upgrade Panel");
                 if (Session.GetBattleCard(16).UpgradeLevel >= 1)
                 {
-                    yield return Click("Upgrade Stage Boarding"); yield return Click("Edit Deck From Card Upgrades");
-                    yield return SetDeck(NavalBattleStage.Boarding, new[] { 14, 14, 15, 15, 16, 16, 17, 17 });
-                    yield return SetDeck(NavalBattleStage.Preparation, new[] { 1, 1, 1, 13, 13, 13, 7, 7 });
-                    yield return SetDeck(NavalBattleStage.Naval, new[] { 1, 1, 1, 13, 13, 13, 7, 7 });
+                    yield return Click("Workshop Preview Stage Boarding"); yield return Click("Back From Card Upgrades"); yield return Click("Edit Stage Deck Boarding");
+                    yield return SetDeck(NavalBattleStage.Boarding, new[] { 14, 14, 15, 15, 16, 16, 17, 17, 3, 3 });
+                    yield return SetDeck(NavalBattleStage.Preparation, new[] { 1, 1, 13, 13, 7, 7, 10, 10, 12, 12 });
+                    yield return SetDeck(NavalBattleStage.Naval, new[] { 1, 1, 13, 13, 7, 7, 10, 10, 12, 12 });
                     yield return Click("Back To Card Workshop Chests");
                 }
                 else yield return Click("Back From Card Upgrades");
@@ -302,7 +309,9 @@ namespace ShatteredSail.Presentation.Tests
                     Shot("Treasure_Crew_Offer_" + profession, "Tavern Crew Detail");
                     if (ActiveButton("Recruit Tavern Crew " + profession)?.IsInteractable() == true) yield return Click("Recruit Tavern Crew " + profession);
                     Record("Normal crew recruitment for treasure: " + crew.DisplayName + " / cost=" + crew.ContractCost);
-                    yield return Click("Back To Tavern Crew Lineup"); yield return EnsureHub();
+                    yield return Click("Return To Port Hub");
+                    Assert.That(GameObject.Find("Tavern Crew Stage"), Is.Not.Null);
+                    yield return EnsureHub();
                 }
             }
             public IEnumerator BuyLargerLocalShip()
@@ -339,15 +348,13 @@ namespace ShatteredSail.Presentation.Tests
                     int extra = current.Where(i => current.Count(v => v == i) > desired.Count(v => v == i)).DefaultIfEmpty(-1).First();
                     int missing = desired.Where(i => desired.Count(v => v == i) > current.Count(v => v == i)).DefaultIfEmpty(-1).First();
                     if (extra == -1 && missing == -1) break;
-                    if (extra >= 0 && current.Count > 8)
+                    if (extra >= 0 && current.Count > CoreVoyageSession.MinimumBaseBattleDeckSize)
                     {
-                        // Scroll only the public deck list if its visible row is clipped.
-                        var row = ActiveButton("Remove Deck Card " + extra);
-                        var scroll = row?.GetComponentInParent<ScrollRect>();
-                        if (scroll != null) { Canvas.ForceUpdateCanvases(); yield return null; }
-                        yield return Click("Remove Deck Card " + extra);
+                        Button copy = ActiveDeckCardCopyButton(extra);
+                        yield return RevealDeckCardCopy(copy);
+                        yield return Click(copy.name);
                     }
-                    else if (missing >= 0 && current.Count < 10)
+                    else if (missing >= 0 && current.Count < CoreVoyageSession.MaximumBaseBattleDeckSize)
                     {
                         for (int p = 0; ActiveButton("Add Deck Card " + missing) == null && p < 10; p++)
                         { if (ActiveButton("Next Battle Card Collection Page")?.IsInteractable() == true) yield return Click("Next Battle Card Collection Page"); else yield return Click("Previous Battle Card Collection Page"); }
@@ -358,25 +365,60 @@ namespace ShatteredSail.Presentation.Tests
                 Record("Configured legal deck " + stage + ":" + string.Join(",", Session.GetBattleDeck(stage)));
                 Shot("Configured_" + stage);
             }
+            public IEnumerator IdentifyEarnedTreasureFragments()
+            {
+                if (Session.TreasureFragments == 0 || Session.PirateLevel < 2) yield break;
+                yield return EnsureHub(); yield return Click("Port Hotspot Treasure");
+                while (Session.TreasureFragments > 0)
+                {
+                    int unidentified = Session.TreasureFragments, identified = AcceptanceIdentifiedFragments(Session), maps = Session.TreasureMaps.Count;
+                    yield return Click("Treasure Identify Fragment");
+                    Assert.That(Session.TreasureFragments, Is.EqualTo(unidentified - 1));
+                    Assert.That(AcceptanceIdentifiedFragments(Session), Is.EqualTo(identified + 1));
+                    Assert.That(Session.TreasureMaps.Count, Is.EqualTo(maps));
+                }
+                Record("IDENTIFIED ALL EARNED FRAGMENTS; weathered=" + Session.GetIdentifiedTreasureFragments("weathered") +
+                    "; gilded=" + Session.GetIdentifiedTreasureFragments("gilded") + "; moonlit=" + Session.GetIdentifiedTreasureFragments("moonlit"));
+                yield return EnsureHub();
+            }
+
             public IEnumerator CraftAndDepartTreasure()
             {
                 yield return EnsureHub();
                 yield return BuyResource("powder", 3); yield return BuyResource("cannonballs", 2);
                 yield return BuyPairedRations((int)Math.Ceiling(Session.EstimateDailyRationConsumption(Session.CrewCountValue, Session.HasCook) * 26));
                 yield return EnsureHub(); yield return Click("Port Hotspot Treasure");
-                if (Session.TreasureFragments >= 4 && Session.TreasureMaps.Count < 6)
+                int readyBoard = Enumerable.Range(0, CoreTreasureHuntCatalog.Ranks.Count)
+                    .Where(i => Session.CanCraftTreasureMap(CoreTreasureHuntCatalog.Ranks[i].Id, out _))
+                    .OrderBy(i => completedRanks.Contains(CoreTreasureHuntCatalog.Ranks[i].Id) ? 1 : 0).DefaultIfEmpty(-1).First();
+                if (readyBoard >= 0)
                 {
-                    yield return Click("Treasure Craft Map");
+                    string rankId = CoreTreasureHuntCatalog.Ranks[readyBoard].Id;
+                    int fragments = Session.GetIdentifiedTreasureFragments(rankId);
+                    yield return Click("Treasure Route " + readyBoard);
                     var map = Session.TreasureMaps.Last();
+                    Assert.That(map.RankId, Is.EqualTo(rankId));
+                    Assert.That(Session.GetIdentifiedTreasureFragments(rankId), Is.EqualTo(fragments - CoreTreasureHuntCatalog.FragmentCost));
                     crafted.Add(new StrictDeepCraft { rank = map.RankId, seed = map.Seed });
                     Record("CRAFT RESULT " + map.RankId + " " + map.Seed); Shot("Craft_" + map.RankId, "Treasure Folio");
                 }
                 else yield return Click("Treasure Open Folio");
                 int index = Enumerable.Range(0, Session.TreasureMaps.Count).OrderBy(i => completedRanks.Contains(Session.TreasureMaps[i].RankId) ? 1 : 0).First();
-                yield return Click("Treasure Map Select " + index);
                 Record("Treasure actual chosen rank=" + Session.TreasureMaps[index].RankId);
-                yield return Click("Treasure Equip And Depart"); Shot("Treasure_Departure", "Voyage Setup");
-                if (ActiveButton("Departure Buy Provisions")?.IsInteractable() == true) yield return Click("Departure Buy Provisions");
+                yield return Click("Treasure Close Folio");
+                yield return Click("Return To Port Hub");
+                yield return Click("Port Hotspot Voyage");
+                yield return Click("Departure Treasure Seed Picker"); yield return Click("Departure Treasure Seed Option " + index);
+                Assert.That(Session.SelectedTreasureMap.Id, Is.EqualTo(Session.TreasureMaps[index].Id));
+                Shot("Treasure_Departure", "Voyage Setup");
+                if (ActiveButton("Departure Buy Provisions")?.IsInteractable() == true)
+                {
+                    yield return Click("Departure Buy Provisions");
+                    yield return Click("Departure Basic Supplies Recommend");
+                    if (ActiveButton("Departure Basic Supplies Purchase")?.IsInteractable() == true)
+                        yield return Click("Departure Basic Supplies Purchase");
+                    yield return Click("Departure Basic Supplies Close");
+                }
                 if (ActiveButton("Start Voyage")?.IsInteractable() == true) yield return Click("Start Voyage");
             }
         }
@@ -384,7 +426,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             // JSON audit display only; Core and balance assertions use decimal.
             public double gold;
-            public int sequence, cycle, shipPurchases, voyageGold, water, food, powder, cannonballs, hull, maxHull, ship, experience, level, fragments, pendingFragments, maps, turn, enemyHull, enemyCrew, playerCrew, energy, playerBlock;
+            public int sequence, cycle, shipPurchases, voyageGold, water, food, powder, cannonballs, hull, maxHull, ship, experience, level, fragments, weatheredFragments, gildedFragments, moonlitFragments, pendingFragments, maps, turn, enemyHull, enemyCrew, playerCrew, energy, playerBlock;
             public float realtime, x, y, distance; public string utc, action, phase, port, seed, encounter, stage, hand, shipPlan; public string[] legendWins, completedRanks;
         }
         [Serializable] private sealed class StrictDeepCheckpoint { public string phase; public int cycles, shipsPurchased; public string[] completedRanks; public StrictDeepCraft[] crafted; public List<StrictDeepInt> ints = new List<StrictDeepInt>(); public List<StrictDeepString> strings = new List<StrictDeepString>(); }

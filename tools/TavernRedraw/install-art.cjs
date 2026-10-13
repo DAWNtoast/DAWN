@@ -1,0 +1,36 @@
+'use strict';
+const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
+const root = 'D:/Game', out = root + '/Artifacts/TavernRedraw20261012';
+const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const baseline = JSON.parse(fs.readFileSync(out + '/source-baseline.json','utf8').replace(/^\uFEFF/,''));
+const layout = JSON.parse(fs.readFileSync(out + '/layout-v2.json','utf8'));
+const apply = process.argv.includes('--apply');
+const prefix = root + '/UnityClient/Assets/_Project/Resources/PortFacilities/';
+const records = layout.ports.map(port => ({id:port.id,name:port.name,design:port.design,filename:'tavern_'+port.id+'_v1.png',directory:'generated-v2',target:prefix+'Regional/Tavern/tavern_'+port.id+'_v1.png'}));
+records.push({id:'fallback',name:'通用后备酒馆',design:'夜间圆桌酒馆',filename:'tavern_background_seated_v2.png',directory:'generated',target:prefix+'tavern_background_seated_v2.png'});
+for (const record of records) {
+  record.source = out+'/'+record.directory+'/'+record.filename;
+  const bytes = fs.readFileSync(record.source);
+  if (bytes.toString('hex',0,8)!=='89504e470d0a1a0a') throw new Error('Not PNG: '+record.source);
+  record.width = bytes.readUInt32BE(16); record.height = bytes.readUInt32BE(20);
+  if(record.width!==1672||record.height!==941) throw new Error('Unexpected native canvas: '+record.source);
+  record.sha256 = hash(record.source);
+  const entry = baseline.find(value=>value.source.replace(/\\/g,'/').toLowerCase()===record.target.toLowerCase());
+  if(!entry) throw new Error('Missing original backup: '+record.target);
+  record.originalSha256=entry.sha256.toLowerCase();
+  if(hash(record.target)!==record.originalSha256 && hash(record.target)!==record.sha256) throw new Error('Concurrent production edit: '+record.target);
+  const metaEntry=baseline.find(value=>value.source.replace(/\\/g,'/').toLowerCase()===(record.target+'.meta').toLowerCase());
+  if(!metaEntry||hash(record.target+'.meta')!==metaEntry.sha256.toLowerCase()) throw new Error('Meta changed: '+record.target);
+  if(record.sha256===record.originalSha256) throw new Error('Unchanged painting: '+record.target);
+  record.metaSha256=metaEntry.sha256.toLowerCase();
+}
+if(new Set(records.map(record=>record.sha256)).size!==7) throw new Error('Duplicate painting');
+if(apply) for(const record of records) fs.copyFileSync(record.source,record.target);
+const report={applied:apply,generator:'built-in image_gen',sourceResolution:'1672 x 941 native output; no interpolation enlargement',preserved:'PNG paths, all meta bytes/GUIDs/import settings',records};
+fs.writeFileSync(out+'/integration-report.json',JSON.stringify(report,null,2));
+const promptFiles=fs.readdirSync(out+'/prompts-v2').filter(file=>file.endsWith('.txt')).map(file=>({file:'prompts-v2/'+file,prompt:fs.readFileSync(out+'/prompts-v2/'+file,'utf8')}));
+promptFiles.push({file:'prompts/tavern_background_seated_v2.png.txt',prompt:fs.readFileSync(out+'/prompts/tavern_background_seated_v2.png.txt','utf8')});
+fs.writeFileSync(out+'/prompt-set.json',JSON.stringify({generator:'built-in image_gen',prompts:promptFiles},null,2));
+const cards=records.map(record=>`<section><h2>${record.name}</h2><p>${record.design}</p><div class="compare"><figure><figcaption>原图</figcaption><img loading="lazy" src="originals/${record.filename}"></figure><figure><figcaption>新图</figcaption><a href="${record.directory}/${record.filename}"><img loading="lazy" src="${record.directory}/${record.filename}"></a></figure></div></section>`).join('');
+fs.writeFileSync(out+'/index.html',`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>六港酒馆重绘</title><style>body{margin:32px;background:#111d23;color:#eddfc3;font:16px system-ui}h1{font-size:30px}p{color:#bac6c9}a{color:#edd79e}section{margin:36px 0}.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px}figure{margin:0}figcaption{margin:8px 0}img{width:100%;height:auto;border-radius:8px}@media(max-width:900px){.compare{grid-template-columns:1fr}}</style><h1>六港酒馆重绘</h1><p>六种空间布局、36名船员重新站位。点击新图查看原始大小。</p><p><a href="layout-v2.json">角色与姓名坐标</a> · <a href="prompts-v2/">重绘提示词</a> · <a href="integration-report.json">接入记录</a></p>${cards}</html>`);
+console.log(JSON.stringify({applied:apply,count:records.length,review:out+'/index.html'}));

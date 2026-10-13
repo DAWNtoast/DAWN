@@ -5,6 +5,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if (-not (Test-Path -LiteralPath $BuildDirectory -PathType Container)) {
+    throw 'BuildDirectory must be an existing directory.'
+}
 $releaseRoot = (Resolve-Path -LiteralPath $BuildDirectory).Path
 $releaseZip = [System.IO.Path]::GetFullPath($ZipPath)
 $executableLeaf = [System.IO.Path]::GetFileName($ExecutableName)
@@ -18,10 +21,21 @@ if ($releaseZip.StartsWith($releaseRoot.TrimEnd('\') + '\', [StringComparison]::
     throw 'The ZIP must be placed outside the build directory to avoid including itself.'
 }
 if (Test-Path -LiteralPath $releaseZip) { throw "Refusing to overwrite existing package: $releaseZip" }
-foreach ($required in @($executableLeaf, 'UnityPlayer.dll', $dataDirectoryLeaf, 'MonoBleedingEdge', 'build-report.txt')) {
-    if (-not (Test-Path -LiteralPath (Join-Path $releaseRoot $required))) { throw "Missing runtime dependency: $required" }
+foreach ($required in @($executableLeaf, 'UnityPlayer.dll', 'build-report.txt')) {
+    $requiredPath = Join-Path $releaseRoot $required
+    if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) { throw "Missing runtime file: $required" }
+    if ((Get-Item -LiteralPath $requiredPath).Length -eq 0) { throw "Runtime file is empty: $required" }
 }
-if ((Get-Content -LiteralPath (Join-Path $releaseRoot 'build-report.txt') -Raw) -notmatch 'Result: Succeeded') {
+foreach ($required in @($dataDirectoryLeaf, 'MonoBleedingEdge')) {
+    $requiredPath = Join-Path $releaseRoot $required
+    if (-not (Test-Path -LiteralPath $requiredPath -PathType Container)) { throw "Missing runtime directory: $required" }
+    if (@(Get-ChildItem -LiteralPath $requiredPath -File -Recurse -Force | Select-Object -First 1).Count -eq 0) {
+        throw "Runtime directory contains no files: $required"
+    }
+}
+$releaseReport = Get-Content -LiteralPath (Join-Path $releaseRoot 'build-report.txt') -Raw
+$releaseResults = [regex]::Matches($releaseReport, '(?m)^Result:[ \t]*([^\r\n]*)')
+if ($releaseResults.Count -ne 1 -or $releaseResults[0].Groups[1].Value.Trim() -cne 'Succeeded') {
     throw 'Unity build report is not successful.'
 }
 

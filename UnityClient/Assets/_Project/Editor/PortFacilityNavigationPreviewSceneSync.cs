@@ -27,6 +27,7 @@ namespace ShatteredSail.Editor
             string[] names = (string[])namesField.GetValue(null);
             string directory = AbsolutePath("Assets/_Project/Scenes");
             var changes = Directory.GetFiles(directory, "*.unity", SearchOption.AllDirectories)
+                .Where(path => !GameplayPreviewSceneBuilder.IsRetiredEditablePreviewPath(path))
                 .OrderBy(path => path, StringComparer.Ordinal)
                 .Select(path => PrepareFacilityNavigationPatch(path, names)).Where(item => item != null).ToArray();
 

@@ -29,6 +29,7 @@ namespace ShatteredSail.Presentation.Tests
                 while (controller.Session.GuidedBossStep != GuidedBossBattleStep.NavalRam && actions++ < 16)
                     yield return PlayGuidedScriptAction(controller, false, null);
                 Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.NavalRam));
+                AssertGuidedBossHandAndTurn(controller.Session);
                 Assert.That(controller.Session.CanCaptureVoyageCheckpoint, Is.False,
                     "The scripted battle retains the ordinary no-mid-battle-save boundary.");
                 int hull = controller.Session.Hull;
@@ -97,14 +98,15 @@ namespace ShatteredSail.Presentation.Tests
             }
             if (capture && captured != null &&
                 (step == GuidedBossBattleStep.NavalRetreat || step == GuidedBossBattleStep.NavalRangeAttempt ||
-                 step == GuidedBossBattleStep.NavalLoadAttempt || step == GuidedBossBattleStep.BoardingHeal) &&
+                 step == GuidedBossBattleStep.NavalLoadAttempt || step == GuidedBossBattleStep.NavalRam ||
+                 step == GuidedBossBattleStep.BoardingGuard1 || step == GuidedBossBattleStep.BoardingHeal) &&
                 captured.Add("boss-" + step))
             {
                 yield return WaitForGuidedCaptureScreenReveal(controller);
                 NavalBattleVisualCapture.Capture(controller, "GuidedBoss_" + step + ".png",
                     "真实教学动作：" + step, "Battle Scene Art");
             }
-            var before = new GuidedBossUiState(session);
+            var before = new GuidedBossUiState(session, expectedCard);
             var oldClick = button.onClick;
             if (action == GuidedBossActionKind.BlockedCard)
             {
@@ -142,7 +144,11 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator WaitGuidedBossAnimation(CoreGameplayDemoController controller)
         {
             float deadline = Time.realtimeSinceStartup + 12f;
-            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline) yield return null;
+            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                AdvanceRamComicIfWaiting(controller);
+                yield return null;
+            }
             Assert.That(controller.IsBattleAnimationPlaying, Is.False, "The real battle animation must finish within the existing watchdog.");
             yield return null; // A newly created canvas needs one rendered frame before pointer raycasts.
         }
@@ -223,7 +229,7 @@ namespace ShatteredSail.Presentation.Tests
                 case GuidedBossBattleStep.NavalRetreat:
                     hand = new[] { "card_retreat", "card_load_shot", "card_brace" };
                     Assert.That(battle.DistanceMeters, Is.EqualTo(400));
-                    Assert.That(session.Cargo.Powder, Is.EqualTo(1));
+                    Assert.That(session.Cargo.Powder, Is.EqualTo(2));
                     Assert.That(session.Cargo.Cannonballs, Is.EqualTo(1));
                     Assert.That(session.Cargo.Medicine, Is.EqualTo(1));
                     break;
@@ -237,21 +243,35 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(battle.DistanceMeters, Is.EqualTo(100));
                     Assert.That(session.Cargo.Powder, Is.Zero);
                     break;
+                case GuidedBossBattleStep.NavalRam:
+                    Assert.That(battle.DistanceMeters, Is.EqualTo(30));
+                    Assert.That(battle.PlayerMovingTowardEnemy, Is.True);
+                    Assert.That(battle.Alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside));
+                    Assert.That(battle.Energy, Is.EqualTo(1));
+                    Assert.That(session.CanRam(out string ramReason), Is.True, ramReason);
+                    break;
                 case GuidedBossBattleStep.BoardingAttack1:
                     hand = new[] { "card_crew_thrust", "card_crew_guard" };
                     Assert.That(battle.PlayerOrdinaryCrew, Is.EqualTo(10));
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(60));
-                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(9));
+                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(InitialBoardingHealth(battle.PlayerMaxBoardingHealth,
+                        battle.NavalStartPlayerHull, session.Hull, session.MaxHull)));
+                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(InitialBoardingHealth(battle.EnemyMaxBoardingHealth,
+                        battle.NavalStartEnemyHull, battle.EnemyHull, battle.EnemyMaxHull)));
                     break;
                 case GuidedBossBattleStep.BoardingHeal:
                     hand = new[] { "card_crew_bandage", "card_crew_thrust", "card_crew_guard" };
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(56));
-                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(6));
+                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(InitialBoardingHealth(battle.PlayerMaxBoardingHealth,
+                        battle.NavalStartPlayerHull, session.Hull, session.MaxHull) - 1));
+                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(InitialBoardingHealth(battle.EnemyMaxBoardingHealth,
+                        battle.NavalStartEnemyHull, battle.EnemyHull, battle.EnemyMaxHull) - 10));
                     break;
                 case GuidedBossBattleStep.BoardingAttack3:
                     hand = new[] { "card_crew_thrust" };
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(60));
-                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(3));
+                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(Math.Min(battle.PlayerMaxBoardingHealth,
+                        InitialBoardingHealth(battle.PlayerMaxBoardingHealth, battle.NavalStartPlayerHull,
+                            session.Hull, session.MaxHull) - 1 + 8)), "The fixed enemy attacks remain 7 and 3; the authored guard is 6 and medicine enables the full 8-point bandage.");
+                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(InitialBoardingHealth(battle.EnemyMaxBoardingHealth,
+                        battle.NavalStartEnemyHull, battle.EnemyHull, battle.EnemyMaxHull) - 20));
                     break;
             }
             if (hand != null)
@@ -266,12 +286,19 @@ namespace ShatteredSail.Presentation.Tests
         private sealed class GuidedBossUiState
         {
             internal readonly int Hull, EnemyHull, PlayerHp, EnemyHp, Energy, Played, Hand, Powder, Balls, Medicine, Guard, Turn;
-            internal GuidedBossUiState(CoreVoyageSession session)
+            internal readonly int CardBlock;
+            internal GuidedBossUiState(CoreVoyageSession session, string expectedCard)
             {
                 CoreBattleState b = session.Battle;
                 Hull = session.Hull; EnemyHull = b.EnemyHull; PlayerHp = b.PlayerBoardingHealth; EnemyHp = b.EnemyBoardingHealth;
                 Energy = b.Energy; Played = b.CardsPlayedThisTurn; Hand = b.Hand.Count; Guard = b.PlayerBlock; Turn = b.Turn;
                 Powder = session.Cargo.Powder; Balls = session.Cargo.Cannonballs; Medicine = session.Cargo.Medicine;
+                CoreBattleCard card = b.Hand.Select(session.GetBattleCard).FirstOrDefault(item => item.Id == expectedCard);
+                if (card != null)
+                {
+                    int block = session.GetBattleCardEffects(card, b.Stage).Block;
+                    CardBlock = block + (block > 0 && b.Stage != NavalBattleStage.Boarding ? b.PlayerDeckBuff : 0);
+                }
             }
         }
 
@@ -283,10 +310,12 @@ namespace ShatteredSail.Presentation.Tests
                 int cost = step == GuidedBossBattleStep.NavalGuard || step == GuidedBossBattleStep.NavalGuard2 ? 0 : 1;
                 Assert.That(battle.Energy, Is.EqualTo(before.Energy - cost));
                 Assert.That(battle.CardsPlayedThisTurn, Is.EqualTo(before.Played + 1));
-                Assert.That(battle.Hand.Count, Is.EqualTo(before.Hand - 1));
+                Assert.That(battle.Hand.Count, Is.EqualTo(before.Hand - 1 + (step == GuidedBossBattleStep.NavalLoad ? 1 : 0)),
+                    "The authored loading card draws one card after paying its powder.");
                 if (session.Phase == CoreDemoPhase.Battle)
                 {
-                    Assert.That(session.Cargo.Powder, Is.EqualTo(before.Powder - (step == GuidedBossBattleStep.NavalLoad ? 1 : 0)));
+                    Assert.That(session.Cargo.Powder, Is.EqualTo(before.Powder -
+                        (step == GuidedBossBattleStep.NavalLoad || step == GuidedBossBattleStep.NavalFire ? 1 : 0)));
                     Assert.That(session.Cargo.Cannonballs, Is.EqualTo(before.Balls - (step == GuidedBossBattleStep.NavalFire ? 1 : 0)));
                     Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine - (step == GuidedBossBattleStep.BoardingHeal ? 1 : 0)));
                 }
@@ -294,29 +323,37 @@ namespace ShatteredSail.Presentation.Tests
             switch (step)
             {
                 case GuidedBossBattleStep.NavalRetreat:
-                    Assert.That(battle.DistanceMeters, Is.EqualTo(530)); Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard + 5)); break;
+                    Assert.That(battle.DistanceMeters, Is.EqualTo(530));
+                    Assert.That(before.CardBlock, Is.GreaterThan(0), "The taught retreat must also grant defensive cover.");
+                    Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard + before.CardBlock),
+                        "The real click must apply the retreat card's effects quoted before the action.");
+                    break;
                 case GuidedBossBattleStep.NavalLoad:
-                    Assert.That(battle.PlayerLoadedShot, Is.EqualTo(4)); break;
+                    Assert.That(battle.PlayerLoadedShot, Is.EqualTo(8)); break;
                 case GuidedBossBattleStep.NavalGuard:
                 case GuidedBossBattleStep.NavalGuard2:
+                    Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard + 2)); break;
                 case GuidedBossBattleStep.BoardingGuard1:
                 case GuidedBossBattleStep.BoardingGuard2:
-                    Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard + 3)); break;
+                    Assert.That(before.CardBlock, Is.GreaterThan(0), "The taught boarding guard must add defensive cover.");
+                    Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard + before.CardBlock),
+                        "The real click must apply the guard card's effects quoted before the action.");
+                    break;
                 case GuidedBossBattleStep.NavalEndTurn1:
                     Assert.That(battle.DistanceMeters, Is.EqualTo(430)); Assert.That(battle.EnemyBlock, Is.EqualTo(3));
                     Assert.That(session.Hull, Is.EqualTo(before.Hull)); break;
                 case GuidedBossBattleStep.NavalApproach2:
                     Assert.That(battle.DistanceMeters, Is.EqualTo(280)); break;
                 case GuidedBossBattleStep.NavalFire:
-                    Assert.That(battle.EnemyHull, Is.EqualTo(before.EnemyHull - 9));
+                    Assert.That(battle.EnemyHull, Is.EqualTo(before.EnemyHull - 13));
                     Assert.That(battle.EnemyBlock, Is.Zero); Assert.That(battle.PlayerLoadedShot, Is.Zero); break;
                 case GuidedBossBattleStep.NavalEndTurn2:
-                    Assert.That(battle.DistanceMeters, Is.EqualTo(100)); Assert.That(session.Hull, Is.EqualTo(before.Hull));
-                    Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(3)); break;
+                    Assert.That(battle.DistanceMeters, Is.EqualTo(100)); Assert.That(session.Hull, Is.EqualTo(before.Hull - 1));
+                    Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(2)); break;
                 case GuidedBossBattleStep.NavalCircle:
                     Assert.That(battle.DistanceMeters, Is.EqualTo(40)); Assert.That(battle.Alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside)); break;
                 case GuidedBossBattleStep.NavalApproach3:
-                    Assert.That(battle.DistanceMeters, Is.Zero); break;
+                    Assert.That(battle.DistanceMeters, Is.EqualTo(30), "The real pointer approach leaves room before ramming."); break;
                 case GuidedBossBattleStep.NavalRam:
                     Assert.That(session.Hull, Is.EqualTo(Math.Max(0, before.Hull - 9)));
                     Assert.That(battle.EnemyHull, Is.EqualTo(before.EnemyHull - 13));
@@ -331,18 +368,21 @@ namespace ShatteredSail.Presentation.Tests
                 case GuidedBossBattleStep.BoardingAttack1:
                 case GuidedBossBattleStep.BoardingAttack2:
                 case GuidedBossBattleStep.BoardingAttack3:
-                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(before.EnemyHp - 3)); break;
+                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(Math.Max(0, before.EnemyHp - 10)),
+                        "The authored thrust deals its full 10 damage regardless of the ten-sailor tutorial roster."); break;
                 case GuidedBossBattleStep.BoardingEndTurn1:
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp - 4));
-                    Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(3)); break;
+                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp - Math.Max(0, 7 - before.Guard)));
+                    Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(Math.Min(7, before.Guard))); break;
                 case GuidedBossBattleStep.BoardingHeal:
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp + 4)); break;
+                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(Math.Min(battle.PlayerMaxBoardingHealth, before.PlayerHp + 8)),
+                        "Medicine enables the authored 8-point bandage; crew count no longer reduces its value."); break;
                 case GuidedBossBattleStep.BoardingEndTurn2:
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp));
-                    Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(3)); break;
+                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp - Math.Max(0, 3 - before.Guard)));
+                    Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(Math.Min(3, before.Guard))); break;
             }
             if (action == GuidedBossActionKind.EndTurn) Assert.That(battle.Turn, Is.EqualTo(before.Turn + 1));
-            if (step == GuidedBossBattleStep.BoardingAttack3)
+            if (session.Phase == CoreDemoPhase.Sailing &&
+                (step == GuidedBossBattleStep.BoardingAttack1 || step == GuidedBossBattleStep.BoardingAttack2 || step == GuidedBossBattleStep.BoardingAttack3))
             {
                 Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
                 Assert.That(session.GuidedTutorialBossDefeated, Is.True);
@@ -351,6 +391,11 @@ namespace ShatteredSail.Presentation.Tests
             }
             else if (session.Phase == CoreDemoPhase.Battle)
                 Assert.That(session.GuidedBossStep, Is.EqualTo(step + 1), "One UI action advances exactly one authored step.");
+        }
+
+        private static int InitialBoardingHealth(int maxBoardingHealth, int startHull, int currentHull, int maxHull)
+        {
+            return (int)Math.Ceiling(maxBoardingHealth * (1d - Math.Max(0, startHull - currentHull) / (2d * maxHull)));
         }
 
         private static string GuidedBossFingerprint(CoreVoyageSession session, bool includeStep = true)

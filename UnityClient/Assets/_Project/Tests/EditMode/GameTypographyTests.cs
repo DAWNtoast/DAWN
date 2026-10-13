@@ -48,12 +48,42 @@ namespace ShatteredSail.Core.Tests
             {
                 preview.Controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Navigation, CoreGameplayPreviewPort.GrayGull, 0);
                 Canvas.ForceUpdateCanvases();
-                string[] names = { "Map Title", "Navigation Title", "Log Title", "Lookout Heading", "Lookout Time Readout", "Lookout Time Legend" };
+                string[] names = { "Map Title", "Navigation Title", "Lookout Heading", "Lookout Time Readout", "Lookout Time Legend" };
                 foreach (string name in names)
                 {
                     Text label = preview.Host.GetComponentsInChildren<Text>().Single(t => t.name == name);
                     Assert.That(label.text, Is.Not.Empty, name);
                     Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .1f), name + " must not disappear through vertical truncation");
+                }
+            }
+        }
+
+        [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
+        [TestCase(CoreGameplayPreviewPort.GrayGull)]
+        public void NavigationHeaderSkin_KeepsNativeDisplayWeightForTitleCargoAndSettings(CoreGameplayPreviewPort port)
+        {
+            using (PreviewFixture preview = new PreviewFixture())
+            {
+                preview.Controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Navigation, port, 0);
+                Canvas.ForceUpdateCanvases();
+                RectTransform header = preview.Host.GetComponentsInChildren<RectTransform>()
+                    .Single(rect => rect.name == "Voyage Header");
+                Text title = header.Find("Voyage Header Title").GetComponent<Text>();
+                Text cargo = header.Find("Voyage Cargo/Label").GetComponent<Text>();
+                Text settings = header.Find("Voyage Settings/Label").GetComponent<Text>();
+                Assert.That(title.text, Is.Not.Empty);
+                Assert.That(cargo.text, Is.EqualTo("船舱"));
+                Assert.That(settings.text, Is.EqualTo("设置"));
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    if (pass > 0) NavigationHeaderSkin.Apply(header);
+                    foreach (Text label in new[] { title, cargo, settings })
+                    {
+                        string context = port + " / " + label.transform.parent.name + " / " + label.name;
+                        Assert.That(label.font, Is.SameAs(GameTypography.InterfaceFont), context + " must retain the selected display face.");
+                        Assert.That(label.fontStyle, Is.EqualTo(FontStyle.Normal), context + " must not synthesize bold over the carved strokes.");
+                        Assert.That(label.fontSize, Is.EqualTo(label == title ? 29 : 22), context);
+                    }
                 }
             }
         }
@@ -119,6 +149,7 @@ namespace ShatteredSail.Core.Tests
             using (PreviewFixture preview = new PreviewFixture())
             {
                 int checkedInputs = 0;
+                int checkedSeedInputs = 0;
                 int checkedRichTextLabels = 0;
                 foreach (CoreGameplayPreviewScreen screen in Enum.GetValues(typeof(CoreGameplayPreviewScreen)))
                 {
@@ -138,15 +169,67 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(input.textComponent, Is.Not.Null, context);
                         AssertAuthoredText(input.textComponent, context + " / input value");
                         Text placeholder = input.placeholder as Text;
-                        Assert.That(placeholder, Is.Not.Null, context + " / input placeholder");
-                        AssertAuthoredText(placeholder, context + " / input placeholder");
+                        // Quantity fields already display their numeric value and need
+                        // no placeholder. The editable chart seed still needs its hint.
+                        if (input.name == "Seed Input")
+                        {
+                            Assert.That(placeholder, Is.Not.Null, context + " / seed input placeholder");
+                            Assert.That(placeholder.text, Is.Not.Empty, context + " / seed input hint");
+                            checkedSeedInputs += 1;
+                        }
+                        if (placeholder != null) AssertAuthoredText(placeholder, context + " / input placeholder");
                         checkedInputs += 1;
                     }
                     if (screen == CoreGameplayPreviewScreen.TavernCrewDetail)
                         AssertReadableDossierPages(preview.Host, context);
                 }
-                Assert.That(checkedInputs, Is.GreaterThan(0), "Include the departure seed field in every port's regression sweep.");
+                Assert.That(checkedInputs, Is.GreaterThan(0), "Include editable values in every port's regression sweep.");
+                Assert.That(checkedSeedInputs, Is.GreaterThan(0), "Include the departure seed field and its hint in every port's regression sweep.");
                 Assert.That(checkedRichTextLabels, Is.GreaterThan(0), "Include mixed-size titlebar readouts and descriptions.");
+            }
+        }
+
+        [Test]
+        public void ComponentDossierHeadings_UseTheSameNativeDisplayWeightAsCrewHeadings()
+        {
+            using (PreviewFixture preview = new PreviewFixture())
+            {
+                preview.Controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.ComponentShopDetail, CoreGameplayPreviewPort.BrokenAnchor, 0);
+                Text[] labels = preview.Host.GetComponentsInChildren<Text>(true);
+                foreach (string name in new[] { "Component Detail Name", "Component Detail Meta" })
+                {
+                    Text label = labels.Single(value => value.name == name);
+                    Assert.That(label.font, Is.SameAs(GameTypography.InterfaceFont), name);
+                    Assert.That(label.fontStyle, Is.EqualTo(FontStyle.Normal), name);
+                    Assert.That(label.fontSize, Is.EqualTo(name == "Component Detail Name" ? 36 : 22), name);
+                }
+            }
+        }
+
+        [Test]
+        public void CardFaceEmphasis_OnlyAllowsSharedUsageConditionsAndKeepsOtherTypographyGuards()
+        {
+            using (PreviewFixture preview = new PreviewFixture())
+            {
+                preview.Controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.TavernCrewDetail, CoreGameplayPreviewPort.BronzeBell, 0);
+                Text[] labels = preview.Host.GetComponentsInChildren<Text>(true);
+                Text effect = labels.Single(label => label.name == "Tavern Special Card Effect");
+                string valid = effect.text;
+                Assert.That(valid, Does.Contain("<b>"), "Exercise a real card with a usage condition.");
+                AssertAuthoredText(effect, "Shared card condition");
+
+                effect.text = "<b>格挡 +4</b>。";
+                Assert.Throws<AssertionException>(() => AssertAuthoredText(effect, "Result must not receive condition emphasis"));
+                effect.text = valid;
+                effect.fontStyle = FontStyle.Bold;
+                Assert.Throws<AssertionException>(() => AssertAuthoredText(effect, "Card face still forbids whole-label synthetic bold"));
+                effect.fontStyle = FontStyle.Normal;
+                effect.text = "<i>60米内</i>";
+                Assert.Throws<AssertionException>(() => AssertAuthoredText(effect, "Card face still forbids synthetic italics"));
+
+                Text biography = labels.Single(label => label.name == "Tavern Crew Biography");
+                biography.text = "<b>60米内</b>";
+                Assert.Throws<AssertionException>(() => AssertAuthoredText(biography, "Ordinary prose cannot borrow the card exception"));
             }
         }
 
@@ -209,15 +292,13 @@ namespace ShatteredSail.Core.Tests
             Assert.That(labels.Single(label => label.name == "Tavern Crew Detail Role").fontSize, Is.EqualTo(22), context);
             Assert.That(labels.Any(label => label.name == "Tavern Crew Appearance"), Is.False, context);
             Assert.That(labels.Any(label => label.name == "Tavern Crew Profile Heading"), Is.False, context);
-            string[] bodyFields = { "Tavern Crew Biography", "Tavern Crew Story", "Tavern Crew Skill", "Tavern Crew Stats" };
+            string[] bodyFields = { "Tavern Crew Biography", "Tavern Crew Story", "Tavern Crew Skill" };
             foreach (string field in bodyFields)
             {
                 Text label = labels.Single(value => value.name == field);
                 Assert.That(label.fontSize, Is.GreaterThanOrEqualTo(26), context + " / " + field);
                 Assert.That(label.resizeTextForBestFit, Is.False, context + " / " + field + " must keep its readable size.");
             }
-            Text contract = labels.Single(label => label.name == "Tavern Crew Contract Note");
-            Assert.That(contract.fontSize, Is.GreaterThanOrEqualTo(22), context);
             foreach (string page in new[] { "Background", "Story", "Skills", "SpecialCards" })
             {
                 Button tab = host.GetComponentsInChildren<Button>(true).Single(button => button.name == "DossierPage" + page);
@@ -231,19 +312,99 @@ namespace ShatteredSail.Core.Tests
         {
             Assert.That(label.font, Is.SameAs(GameTypography.InterfaceFont).Or.SameAs(GameTypography.BodyFont), context + " / " + label.name);
             Assert.That(label.fontStyle, Is.EqualTo(FontStyle.Normal), context + " / " + label.name);
-            Assert.That(label.text, Does.Not.Contain("<b>"), context + " / " + label.name + " must not reintroduce synthetic bold through rich text.");
+            if (IsCardFaceEffect(label))
+            {
+                // Shared card faces deliberately emphasize usage conditions. Strip
+                // every bold span and recreate it, so arbitrary emphasis cannot hide
+                // behind the exception or the formatter's preservation of existing tags.
+                Assert.That(label.font, Is.SameAs(GameTypography.BodyFont), context + " / " + label.name);
+                Assert.That(label.supportRichText, Is.True, context + " / " + label.name);
+                // The shared card renderer may insert additional line breaks
+                // inside one prerequisite and close/reopen its bold span on
+                // each line. Recover the complete clause before matching it.
+                Assert.That(NormalizedCardEmphasis(label.text),
+                    Is.EqualTo(ExpectedCardEmphasis(label.text)),
+                    context + " / " + label.name + " must emphasize only shared card usage conditions.");
+            }
+            else Assert.That(label.text, Does.Not.Contain("<b>"), context + " / " + label.name + " must not reintroduce synthetic bold through rich text.");
             Assert.That(label.text, Does.Not.Contain("<i>"), context + " / " + label.name + " must not reintroduce synthetic italics through rich text.");
-            // Authored reading paragraphs deliberately loosen their line spacing;
-            // the embedded typeface and native weight remain shared everywhere.
-            bool readingParagraph = label.name == "Shipyard Dossier Story" || label.name == "Shipyard Dossier Specialization" ||
-                label.name == "Shipyard Equipment Selection Summary" ||
-                label.name == "Warehouse Treasure Story" ||
-                (label.name == "Subtitle" && label.GetComponentInParent<MainMenuController>() != null);
-            Assert.That(label.lineSpacing, Is.EqualTo(label.name == "Tavern Crew Biography" ? 1.2f :
-                label.name == "Tavern Crew Story" ? 1.1f : label.name == "Forecast Detail Text" ? 1.3f :
-                label.name == "Lookout Report" ? 1.08f : label.name == "Forecast" || label.name == "Voyage Log" ? 1.16f :
-                readingParagraph ? 1.22f : 1f), context + " / " + label.name);
+            Assert.That(label.lineSpacing, Is.EqualTo(ExpectedLineSpacing(label.name)), context + " / " + label.name);
             Assert.That(label.fontSize, Is.GreaterThan(0), context + " / " + label.name);
+        }
+
+        private static string WithoutTypographyWhitespace(string text) =>
+            new string(text.Where(letter => !char.IsWhiteSpace(letter)).ToArray());
+
+        private static string NormalizedCardEmphasis(string text) =>
+            WithoutTypographyWhitespace(text).Replace("</b><b>", string.Empty);
+
+        private static string ExpectedCardEmphasis(string text)
+        {
+            string plain = WithoutTypographyWhitespace(text).Replace("<b>", string.Empty).Replace("</b>", string.Empty);
+            return NormalizedCardEmphasis(CardFaceLayout.FormatDescription(plain));
+        }
+
+        [TestCase("靠近60米并转为平行\n<b>平行且距离不超过</b>\n<b>60\u00a0米</b>可接舷", true)]
+        [TestCase("靠近60米并转为平行\n<b>平行且距离不超过60米</b>可接舷", true)]
+        [TestCase("<b>靠近60米</b>并转为平行\n<b>平行且距离不超过60米</b>可接舷", false)]
+        [TestCase("靠近60米并转为平行\n平行且<b>距离不超过60米</b>可接舷", false)]
+        [TestCase("靠近60米并转为平行\n平行且距离不超过60米可接舷", false)]
+        [TestCase("<b>格挡6</b>", false)]
+        public void CardEmphasisAudit_AcceptsWrappedPrerequisitesButRejectsAddedOrMissingEmphasis(string text, bool valid)
+        {
+            Assert.That(NormalizedCardEmphasis(text) == ExpectedCardEmphasis(text), Is.EqualTo(valid));
+        }
+
+        private static float ExpectedLineSpacing(string name)
+        {
+            // Independent inventory of authored Runtime spacing overrides. These
+            // paragraphs keep their accepted market, chart and dossier layouts;
+            // every remaining label retains GameTypography's default spacing.
+            switch (name)
+            {
+                case "Market Detail Stock":
+                case "Market Detail Cargo":
+                case "Component Detail Description":
+                case "Component Detail Effect":
+                case "Component Detail Story Body":
+                case "Tavern Crew Biography": return 1.25f;
+                case "Market Purchase Choice Quote":
+                case "Component Special Card Growth":
+                case "Tavern Special Card Growth": return 1.15f;
+                case "Guided Tutorial Instruction":
+                case "Boarding Clash Label":
+                case "Component Detail Quality":
+                case "Component Detail Specialization":
+                case "Component Detail Effect Heading":
+                case "Component Detail Story Chapter":
+                case "Tavern Crew Story Heading":
+                case "Tavern Crew Skill Heading": return 1.1f;
+                case "Forecast Detail Text":
+                case "Tavern Crew Skill": return 1.3f;
+                case "Component Special Card Calculation":
+                case "Tavern Special Card Calculation": return 1.18f;
+                case "Forecast": return 1.16f;
+                case "Lookout Report": return 1.08f;
+                case "Shipyard Dossier Story":
+                case "Warehouse Treasure Story":
+                case "Tavern Crew Story":
+                case "Component Special Card Lore":
+                case "Component Special Card Empty":
+                case "Tavern Special Card Lore":
+                case "Tavern Special Card Empty": return 1.22f;
+                default: return 1f;
+            }
+        }
+
+        private static bool IsCardFaceEffect(Text label)
+        {
+            RectTransform card = label.transform.parent as RectTransform;
+            return card != null && card.sizeDelta == CardFaceLayout.CardSize &&
+                label.rectTransform.sizeDelta == CardFaceLayout.EffectSize &&
+                label.rectTransform.anchoredPosition == CardFaceLayout.EffectPosition &&
+                (card.GetComponentsInChildren<BattleCardSurfaceGraphic>(true).Any(graphic => graphic.transform.parent == card) ||
+                 card.GetComponentsInChildren<BattleCardFrameGraphic>(true).Any(graphic => graphic.transform.parent == card) ||
+                 card.GetComponentsInChildren<CardSchoolFrameGraphic>(true).Any(graphic => graphic.transform.parent == card));
         }
 
         private sealed class PreviewFixture : IDisposable

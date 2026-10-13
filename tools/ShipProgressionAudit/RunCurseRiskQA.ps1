@@ -1,6 +1,8 @@
 param([ValidateSet('Edit','Play','References')][string]$Stage = 'Edit', [string]$Version = 'v1', [string]$EditFilter = '',
-    [string]$Filter = 'CurseRisk_;Dispatch_;DispatchedCrew_;DepartureCrew_;MonthlyCalendar_;MainMenuSceneTests;RareWarehouse_;TreasureMap_;BattleTactics_;CoreGameplayScene_PortFacilities')
+    [string]$Filter = 'CurseRisk_;DepartureCrew_;MonthlyCalendar_;MainMenuSceneTests;RareWarehouse_;TreasureMap_;BattleTactics_;CoreGameplayScene_PortFacilities')
 $ErrorActionPreference = 'Stop'
+# Retired by user request; exit before filesystem or Unity actions.
+if (@('References') -contains $Stage) { throw 'UIPreviewsForMe was retired on 2026-10-13; saved-preview generation, refresh and copy-back are disabled.' }
 if (Get-Process Unity -ErrorAction SilentlyContinue) { throw 'Close Unity before isolated QA.' }
 $project = 'D:\Game\UnityClient'
 $output = Join-Path $project ('Artifacts\CurseRisk20261003\' + $Stage + '-' + $Version)

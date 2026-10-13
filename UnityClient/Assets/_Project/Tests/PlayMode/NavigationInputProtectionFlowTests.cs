@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -45,8 +47,10 @@ namespace ShatteredSail.Presentation.Tests
             Button.ButtonClickedEvent retiredReturn = back.onClick;
             GameObject map = GameObject.Find("Map Layer");
             GameObject ship = GameObject.Find("Player Ship");
+            Assert.That(GameObject.Find("Ship Heading"), Is.Null);
 
             sail.onClick.Invoke();
+            float motionStarted = Time.realtimeSinceStartup;
             Assert.That((bool)motion.GetValue(controller), Is.True, "Exercise a real in-flight animation.");
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(session.TotalDistanceNm, Is.GreaterThan(0f));
@@ -55,7 +59,18 @@ namespace ShatteredSail.Presentation.Tests
             int committedWater = session.Cargo.Water, committedFood = session.Cargo.Food;
             VoyagePoint committedPosition = session.Position;
 
-            // A raycast-blocking shade does not suppress keyboard navigation or
+            Assert.That(GameObject.Find("Navigation Motion Overlay"), Is.Null);
+            Assert.That(GameObject.Find("Voyage Motion Status"), Is.Null);
+            Assert.That(GameObject.Find("Voyage Motion Hint"), Is.Null);
+            Assert.That(ActiveButton("Skip Voyage Motion"), Is.Null);
+            GameObject guardObject = GameObject.Find("Navigation Motion Input Guard");
+            Assert.That(guardObject, Is.Not.Null);
+            Image guard = guardObject.GetComponent<Image>();
+            Assert.That(guard.color.a, Is.Zero, "The automatic movement must not dim the chart.");
+            Assert.That(guard.raycastTarget, Is.True);
+            Assert.That(guardObject.GetComponentsInChildren<Text>(true), Is.Empty);
+            Assert.That(guardObject.GetComponentsInChildren<Button>(true), Is.Empty);
+            // A raycast guard does not suppress keyboard navigation or
             // already queued callbacks on the controls beneath it.
             south.onClick.Invoke();
             distance.value = 170f;
@@ -74,13 +89,41 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Player Ship"), Is.SameAs(ship));
             Assert.That((bool)motion.GetValue(controller), Is.True);
 
-            ActiveButton("Skip Voyage Motion").onClick.Invoke();
-            float deadline = Time.realtimeSinceStartup + 5f;
-            while ((bool)motion.GetValue(controller) && Time.realtimeSinceStartup < deadline) yield return null;
-            Assert.That((bool)motion.GetValue(controller), Is.False);
+            // A newly created Graphic receives its native raycast depth on the
+            // next render pass. Immediate queued callbacks are checked above;
+            // the next pointer input must be blocked once that pass completes.
             yield return null;
+            Canvas.ForceUpdateCanvases();
+            Assert.That((bool)motion.GetValue(controller), Is.True);
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                position = RectTransformUtility.WorldToScreenPoint(null,
+                    guard.rectTransform.TransformPoint(guard.rectTransform.rect.center))
+            };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits, Is.Not.Empty);
+            Assert.That(hits[0].gameObject, Is.SameAs(guardObject),
+                "The invisible guard must still block repeat pointer input. Depth=" + guard.depth +
+                ", culled=" + guard.canvasRenderer.cull + ", bounds=" + guard.rectTransform.rect);
+
+            // Finish automatically without a skip/confirmation click. Allow
+            // frame scheduling overhead beyond the half-second animation cap.
+            float deadline = motionStarted + 0.75f;
+            while ((bool)motion.GetValue(controller) && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That((bool)motion.GetValue(controller), Is.False,
+                "The short sailing move must finish automatically within 0.75 seconds.");
+            yield return null;
+            Assert.That(GameObject.Find("Navigation Motion Input Guard"), Is.Null);
+            Assert.That(GameObject.Find("Ship Heading"), Is.Null);
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(GameObject.Find("Distance Slider").GetComponent<Slider>().value, Is.EqualTo(20f));
+            Assert.That(session.TotalDistanceNm, Is.EqualTo(committedDistance));
+            Assert.That(session.TotalHours, Is.EqualTo(committedHours));
+            Assert.That(session.Cargo.Water, Is.EqualTo(committedWater));
+            Assert.That(session.Cargo.Food, Is.EqualTo(committedFood));
+            Assert.That(session.Position.X, Is.EqualTo(committedPosition.X));
+            Assert.That(session.Position.Y, Is.EqualTo(committedPosition.Y));
 
             retiredHeading.Invoke();
             retiredDistance.Invoke(170f);
@@ -98,6 +141,12 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
             Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.SafeReturn));
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static bool NavigationMotionIsPlaying(CoreGameplayDemoController controller)
+        {
+            return (bool)typeof(CoreGameplayDemoController).GetField("navigationMotionPlaying",
+                BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
         }
     }
 }

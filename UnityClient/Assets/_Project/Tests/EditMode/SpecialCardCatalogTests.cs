@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
+using ShatteredSail.Presentation;
 using UnityEngine;
 
 namespace ShatteredSail.Core.Tests
@@ -15,9 +16,11 @@ namespace ShatteredSail.Core.Tests
         public void Catalog_HasOneStableCardPerSourceAndImmutableCollections()
         {
             var all = CoreSpecialCardCatalog.All;
-            Assert.That(all.Count, Is.EqualTo(105));
-            Assert.That(all.Count(value => value.SourceKind == CoreSpecialCardSourceKind.Crew), Is.EqualTo(30));
-            Assert.That(all.Count(value => value.SourceKind == CoreSpecialCardSourceKind.Component), Is.EqualTo(75));
+            Assert.That(all.Count, Is.EqualTo(126));
+            Assert.That(all.Count(value => value.SourceKind == CoreSpecialCardSourceKind.Crew), Is.EqualTo(36));
+            Assert.That(all.Count(value => value.SourceKind == CoreSpecialCardSourceKind.Component), Is.EqualTo(90));
+            Assert.That(all.Count(value => value.Card.SchoolId.Length > 0), Is.EqualTo(72));
+            Assert.That(all.Count(value => value.Card.SchoolId.Length == 0), Is.EqualTo(54));
             Assert.That(all.Select(value => value.SourceId).Distinct().Count(), Is.EqualTo(all.Count));
             Assert.That(all.Select(value => value.Card.Id).Distinct().Count(), Is.EqualTo(all.Count));
             Assert.That(all.Select(value => value.Card.Name).Distinct().Count(), Is.EqualTo(all.Count));
@@ -47,20 +50,15 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void EquipmentCoverage_MatchesEveryBlueOrHigherCsvIdentityAndItsExistingStory()
+        public void EquipmentCoverage_MatchesEveryBlueOrHigherExpandedIdentityAndItsExistingStory()
         {
-            string[] lines = File.ReadAllLines(Path.Combine(Application.dataPath, "_Project/Resources/Data/component_catalog_v2.csv"));
-            string[] headers = lines[0].Split(',');
-            int idColumn = Array.IndexOf(headers, "component_id");
-            int nameColumn = Array.IndexOf(headers, "name");
-            int rarityColumn = Array.IndexOf(headers, "rarity");
-            int storyColumn = Array.IndexOf(headers, "story_id");
+            ComponentArtCatalog catalog = new ComponentArtCatalog();
+            Assert.That(catalog.ExpandedEntries.Count, Is.EqualTo(150));
             var expected = new HashSet<string>();
-            foreach (string line in lines.Skip(1).Where(value => !string.IsNullOrWhiteSpace(value)))
+            foreach (ComponentArtEntry item in catalog.ExpandedEntries)
             {
-                string[] fields = line.Split(',');
-                string id = fields[idColumn];
-                bool eligible = fields[rarityColumn] == "rare" || fields[rarityColumn] == "epic" || fields[rarityColumn] == "legendary";
+                string id = item.Id;
+                bool eligible = item.Rarity >= ComponentRarity.Rare;
                 CoreSpecialCardDefinition definition = CoreSpecialCardCatalog.ForComponent(id);
                 if (!eligible)
                 {
@@ -69,11 +67,32 @@ namespace ShatteredSail.Core.Tests
                 }
                 expected.Add(id);
                 Assert.That(definition, Is.Not.Null, id);
-                Assert.That(definition.SourceName, Is.EqualTo(fields[nameColumn]), id);
-                Assert.That(definition.StoryId, Is.EqualTo(fields[storyColumn]), id);
+                Assert.That(definition.SourceName, Is.EqualTo(item.Name), id);
+                Assert.That(definition.StoryId, Is.EqualTo(item.StoryId), id);
+                Assert.That(definition.Card.SchoolId.Length > 0, Is.EqualTo(item.Rarity >= ComponentRarity.Epic), id);
             }
+            Assert.That(expected.Count, Is.EqualTo(90));
+            Assert.That(catalog.ExpandedEntries.Count(item => item.Rarity == ComponentRarity.Rare), Is.EqualTo(30));
             CollectionAssert.AreEquivalent(expected, CoreSpecialCardCatalog.All
                 .Where(value => value.SourceKind == CoreSpecialCardSourceKind.Component).Select(value => value.SourceId));
+        }
+
+        [Test]
+        public void EachSchool_UsesTwoActualCrewAndOneEpicAndLegendaryPerEquipmentSlot()
+        {
+            ComponentArtCatalog equipment = new ComponentArtCatalog();
+            foreach (CoreSchoolUnlockDefinition school in CoreSchoolUnlockCatalog.All)
+            {
+                CoreSpecialCardDefinition[] sources = CoreSpecialCardCatalog.All
+                    .Where(value => value.Card.SchoolId == school.Id).ToArray();
+                Assert.That(sources.Length, Is.EqualTo(12), school.Id);
+                Assert.That(sources.Count(value => value.SourceKind == CoreSpecialCardSourceKind.Crew), Is.EqualTo(2), school.Id);
+                foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
+                    foreach (ComponentRarity rarity in new[] { ComponentRarity.Epic, ComponentRarity.Legendary })
+                        Assert.That(sources.Count(value => value.SourceKind == CoreSpecialCardSourceKind.Component &&
+                            equipment.GetById(value.SourceId)?.Slot == slot && equipment.GetById(value.SourceId)?.Rarity == rarity),
+                            Is.EqualTo(1), school.Id + " / " + slot + " / " + rarity);
+            }
         }
 
         [Test]
@@ -87,13 +106,7 @@ namespace ShatteredSail.Core.Tests
             foreach (Match match in matches)
             {
                 string id = match.Groups["id"].Value;
-                int profession = int.Parse(match.Groups["profession"].Value);
                 CoreSpecialCardDefinition definition = CoreSpecialCardCatalog.ForCrew(id);
-                if (profession == 4)
-                {
-                    Assert.That(definition, Is.Null, "Cooking remains a voyage passive, not an automatic combat card: " + id);
-                    continue;
-                }
                 expected.Add(id);
                 Assert.That(definition, Is.Not.Null, id);
                 Assert.That(definition.SourceName, Is.EqualTo(match.Groups["name"].Value), id);
@@ -118,12 +131,13 @@ namespace ShatteredSail.Core.Tests
         [TestCase("instrument", "rare")]
         [TestCase("instrument", "epic")]
         [TestCase("instrument", "legendary")]
-        public void EveryEligibleSlotRarity_HasFiveDistinctCollectibleCards(string slot, string rarity)
+        public void EveryEligibleSlotRarity_HasSixDistinctCollectibleCards(string slot, string rarity)
         {
-            string[] lines = File.ReadAllLines(Path.Combine(Application.dataPath, "_Project/Resources/Data/component_catalog_v2.csv"));
-            var ids = lines.Skip(1).Select(line => line.Split(','))
-                .Where(fields => fields.Length > 3 && fields[2] == slot && fields[3] == rarity).Select(fields => fields[0]).ToArray();
-            Assert.That(ids.Length, Is.EqualTo(5));
+            ComponentSlot targetSlot = (ComponentSlot)Enum.Parse(typeof(ComponentSlot), slot, true);
+            ComponentRarity targetRarity = (ComponentRarity)Enum.Parse(typeof(ComponentRarity), rarity, true);
+            var ids = new ComponentArtCatalog().ExpandedEntries
+                .Where(item => item.Slot == targetSlot && item.Rarity == targetRarity).Select(item => item.Id).ToArray();
+            Assert.That(ids.Length, Is.EqualTo(6));
             Assert.That(ids.All(id => CoreSpecialCardCatalog.ForComponent(id) != null), Is.True);
             Assert.That(ids.Select(id => Signature(CoreSpecialCardCatalog.ForComponent(id).Card)).Distinct().Count(), Is.GreaterThanOrEqualTo(4));
         }
@@ -132,6 +146,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("carpenter")]
         [TestCase("doctor")]
         [TestCase("gunner")]
+        [TestCase("cook")]
         [TestCase("diver")]
         public void SameProfessionAcrossSixPorts_HasDistinctMechanicsNotRenamedCopies(string profession)
         {
@@ -150,8 +165,8 @@ namespace ShatteredSail.Core.Tests
             foreach (CoreSpecialCardDefinition definition in CoreSpecialCardCatalog.All)
             {
                 CoreBattleCard card = definition.Card;
-                Assert.That(knownArt.Contains(card.ArtId), Is.True, card.Id);
-                Assert.That(card.Energy, Is.InRange(1, 2), card.Id);
+                Assert.That(knownArt.Contains(card.ArtId) || card.ArtId.StartsWith("card_school_", StringComparison.Ordinal), Is.True, card.Id);
+                Assert.That(card.Energy, Is.InRange(0, 3), card.Id);
                 Assert.That(card.UpgradeLevel, Is.Zero, card.Id);
                 Assert.That(card.Damage, Is.GreaterThanOrEqualTo(0), card.Id);
                 Assert.That(card.Block, Is.GreaterThanOrEqualTo(0), card.Id);
@@ -163,13 +178,15 @@ namespace ShatteredSail.Core.Tests
                 if (card.Action == NavalBattleCardAction.Cannon)
                 {
                     Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.Naval), card.Id);
+                    Assert.That(card.PowderCost, Is.EqualTo(card.Id == "card_special_cannon_dragonbreath_battery" ? 2 : 1), card.Id);
                     Assert.That(card.CannonballCost, Is.EqualTo(1), card.Id);
                     StringAssert.Contains("350 米", card.Description);
                 }
                 else
                 {
                     Assert.That(card.CannonballCost, Is.Zero, card.Id);
-                    Assert.That(card.PowderCost, Is.Zero, card.Id);
+                    Assert.That(card.PowderCost, Is.EqualTo(card.Action == NavalBattleCardAction.Load ||
+                        card.Action == NavalBattleCardAction.PrecisionLoad ? 1 : 0), card.Id);
                 }
                 if (card.Action == NavalBattleCardAction.Sabotage)
                 {
@@ -187,10 +204,13 @@ namespace ShatteredSail.Core.Tests
         {
             CoreSpecialCardDefinition yilan = CoreSpecialCardCatalog.ForCrew("crew_twilight_tide_gunner_yilan");
             Assert.That(yilan.SourceName, Is.EqualTo("蓝火炮巫 伊岚"));
-            Assert.That(yilan.Card.Action, Is.EqualTo(NavalBattleCardAction.FireRounds));
+            Assert.That(yilan.Card.Action, Is.EqualTo(NavalBattleCardAction.Standard));
             Assert.That(yilan.Card.AllowedStages, Is.EqualTo(NavalBattleStages.Ship));
-            Assert.That(yilan.Card.StrategyAmount, Is.EqualTo(2));
-            Assert.That(yilan.Card.BurnDamage, Is.EqualTo(5));
+            Assert.That(yilan.Card.SchoolId, Is.EqualTo("fire"));
+            Assert.That(yilan.Card, Is.SameAs(CoreSchoolCardCatalog.ForSource(yilan.SourceId)));
+            Assert.That(yilan.Card.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.FireLoad));
+            Assert.That(yilan.Card.SchoolEffect.Secondary, Is.EqualTo(2));
+            Assert.That(yilan.Card.SchoolEffect.Power, Is.EqualTo(12));
             Assert.That(yilan.LegacySourceKey, Is.EqualTo("gunner"));
             Assert.That(yilan.StoryId, Is.EqualTo("seventh_berth_05"));
             StringAssert.Contains("命中", yilan.Lore);
@@ -212,26 +232,38 @@ namespace ShatteredSail.Core.Tests
             session.ConfigureSpecialCardSources(new[] { crewId }, null);
 
             Assert.That(definition.LegacySourceKey, Is.EqualTo("doctor"));
-            Assert.That(card.Action, Is.EqualTo(NavalBattleCardAction.Standard));
-            Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.Boarding));
-            Assert.That(card.Damage, Is.Zero);
-            Assert.That(card.Repair, Is.GreaterThan(0));
+            if (card.SchoolId.Length == 0)
+            {
+                Assert.That(card.Action, Is.EqualTo(NavalBattleCardAction.Standard));
+                Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.Boarding));
+                Assert.That(card.Damage, Is.Zero);
+                Assert.That(card.Repair, Is.GreaterThan(0));
+                StringAssert.Contains("船员生命", card.Description);
+                StringAssert.DoesNotContain("船体", card.Description);
+            }
+            else
+            {
+                Assert.That(card, Is.SameAs(CoreSchoolCardCatalog.ForSource(crewId)));
+                Assert.That(card.SchoolEffect, Is.Not.Null);
+            }
             Assert.That(card.CannonballCost + card.PowderCost, Is.Zero);
-            StringAssert.Contains("船员生命", card.Description);
-            StringAssert.DoesNotContain("船体", card.Description);
-            Assert.That(session.GetBonusBattleCards(NavalBattleStage.Preparation), Has.No.Member(index));
-            Assert.That(session.GetBonusBattleCards(NavalBattleStage.Naval), Has.No.Member(index));
-            Assert.That(session.GetBonusBattleCards(NavalBattleStage.Boarding), Has.Member(index));
+            foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
+                Assert.That(session.GetBonusBattleCards(stage).Contains(index), Is.EqualTo(card.IsAllowedInStage(stage)));
 
             // These cards share the existing upgrade path, including a useful but bounded third rank.
             CoreBattleCard ranked = session.GetBattleCardAtLevel(index, 3);
             Assert.That(ranked.Repair, Is.EqualTo(card.Repair * 2));
             Assert.That(ranked.Block, Is.EqualTo(card.Block * 2));
-            Assert.That(ranked.Energy, Is.EqualTo(card.Energy - 1));
+            Assert.That(ranked.Energy, Is.EqualTo(Math.Max(0, card.Energy - 1)));
             Assert.That(ranked.Draw, Is.EqualTo(card.Draw + 1));
-            Assert.That(ranked.Damage, Is.Zero);
-            StringAssert.Contains("恢复船员", ranked.Description);
-            StringAssert.DoesNotContain("船体", ranked.Description);
+            Assert.That(ranked.Damage, Is.EqualTo(card.Damage * 2));
+            Assert.That(ranked.SchoolId, Is.EqualTo(card.SchoolId));
+            if (card.SchoolId.Length == 0)
+            {
+                StringAssert.Contains("恢复 " + ranked.Repair + " 点船员生命", ranked.Description);
+                StringAssert.DoesNotContain("船体", ranked.Description);
+            }
+            else Assert.That(ranked.SchoolEffect.Mechanic, Is.EqualTo(card.SchoolEffect.Mechanic));
 
             session.ConfigureSpecialCardSources(Array.Empty<string>(), null);
             Assert.That(session.GetBonusBattleCards(NavalBattleStage.Boarding), Has.No.Member(index));
@@ -242,10 +274,59 @@ namespace ShatteredSail.Core.Tests
         public void DoctorCards_AreAppendedAfterExistingCardsWithoutMovingSavedIndexes()
         {
             Assert.That(CoreSpecialCardCatalog.All.Take(99).Any(value => value.SourceId.Contains("_doctor_")), Is.False);
-            Assert.That(CoreSpecialCardCatalog.All.Skip(99).All(value => value.SourceId.Contains("_doctor_")), Is.True);
+            Assert.That(CoreSpecialCardCatalog.All.Skip(99).Take(6).All(value => value.SourceId.Contains("_doctor_")), Is.True);
             Assert.That(CoreVoyageSession.CardLibrary[131].Id, Is.EqualTo("card_special_instrument_last_horizon_lens"));
             Assert.That(CoreVoyageSession.CardLibrary[132].Id, Is.EqualTo("card_special_crew_broken_anchor_doctor_hector"));
             Assert.That(CoreVoyageSession.CardLibrary[137].Id, Is.EqualTo("card_special_crew_gray_gull_doctor_moer"));
+        }
+
+        [Test]
+        public void PepeCard_KeepsItsSavedPositionAndExistingDefenseDrawProgression()
+        {
+            CoreSpecialCardDefinition definition = CoreSpecialCardCatalog.ForCrew("crew_gray_gull_cook_pepe");
+            Assert.That(CoreSpecialCardCatalog.All[105], Is.SameAs(definition));
+            Assert.That(CoreVoyageSession.CardLibrary[138].Id, Is.EqualTo(definition.Card.Id),
+                "The new cook card follows all surviving saved library positions.");
+            Assert.That(definition.SourceName, Is.EqualTo("厨师 佩佩"));
+            Assert.That(definition.StoryId, Is.EqualTo("seventh_berth_10"));
+            Assert.That(definition.LegacySourceKey, Is.EqualTo("cook"));
+            CoreBattleCard card = definition.Card;
+            Assert.That(card.Action, Is.EqualTo(NavalBattleCardAction.Standard));
+            Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.All));
+            Assert.That(card.ArtId, Is.EqualTo("card_brace"));
+            Assert.That(card.Energy, Is.EqualTo(1));
+            Assert.That(card.Block, Is.EqualTo(4));
+            Assert.That(card.Draw, Is.EqualTo(1));
+            Assert.That(card.Damage + card.Repair + card.PowderCost + card.CannonballCost, Is.Zero);
+            Assert.That(CoreSpecialCardCatalog.All.Count(value => value.SourceId.Contains("_cook_")), Is.EqualTo(6));
+
+            var session = new CoreVoyageSession();
+            for (int rank = 0; rank <= 3; rank++)
+            {
+                CoreBattleCard ranked = session.GetBattleCardAtLevel(138, rank);
+                Assert.That(ranked.Block, Is.EqualTo(new[] { 4, 5, 6, 8 }[rank]));
+                Assert.That(ranked.Energy, Is.EqualTo(1));
+                Assert.That(ranked.Draw, Is.EqualTo(rank < 3 ? 1 : 2));
+                Assert.That(ranked.Damage + ranked.Repair, Is.Zero);
+                StringAssert.Contains("格挡 +" + ranked.Block, ranked.Description);
+                StringAssert.Contains("抽 " + ranked.Draw + " 张牌", ranked.Description);
+            }
+        }
+
+        [TestCase("cook")]
+        [TestCase("crew_salt_pot_cook")]
+        [TestCase("crew_cook_pepe")]
+        [TestCase("tavern_crew_4")]
+        public void PepeAliases_PreserveOldCookExperienceOnTheOneCookCard(string alias)
+        {
+            CoreSpecialCardDefinition pepe = CoreSpecialCardCatalog.ForCrew("crew_gray_gull_cook_pepe");
+            Assert.That(CoreSpecialCardCatalog.ForCrew(alias), Is.SameAs(pepe));
+            var session = new CoreVoyageSession();
+            session.RestoreSpecialCardExperience(new Dictionary<string, int> { { "card_cook_rations", 840 } });
+            session.ConfigureSpecialCardSources(new[] { alias }, null);
+            Assert.That(session.AcquiredSpecialCardIds, Has.Member(pepe.Card.Id));
+            Assert.That(session.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(840));
+            Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(3));
         }
 
         [TestCase("doctor")]
@@ -274,6 +355,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("carpenter", "crew_gray_gull_carpenter_barlow")]
         [TestCase("doctor", "crew_gray_gull_doctor_moer")]
         [TestCase("gunner", "crew_gray_gull_gunner_leisa")]
+        [TestCase("cook", "crew_gray_gull_cook_pepe")]
         [TestCase("diver", "crew_gray_gull_diver_noya")]
         public void LegacyAliases_ResolveOneGrayGullIdentityWithoutDuplicateRecords(string alias, string expected)
         {
@@ -285,7 +367,7 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void UnknownOrIneligibleSources_DoNotInventSpecialCards()
         {
-            foreach (string id in new[] { null, "", "unknown", "cook", "bow", "cannon", "instrument", "sail", "plating" })
+            foreach (string id in new[] { null, "", "unknown", "crew_white_shell_cook_missing", "bow", "cannon", "instrument", "sail", "plating" })
             {
                 Assert.That(CoreSpecialCardCatalog.ForCrew(id), Is.Null);
                 Assert.That(CoreSpecialCardCatalog.ForComponent(id), Is.Null);
@@ -297,6 +379,9 @@ namespace ShatteredSail.Core.Tests
         {
             card.Action, card.AllowedStages, card.Energy, card.Damage, card.Block,
             card.Repair, card.Draw, card.PowderCost, card.CannonballCost,
+            card.SchoolId, card.SchoolEffect?.Mechanic, card.SchoolEffect?.Power,
+            card.SchoolEffect?.Secondary, card.SchoolEffect?.Threshold, card.SchoolEffect?.Duration,
+            card.SchoolEffect?.Limit, card.SchoolEffect?.Movement,
         });
     }
 }

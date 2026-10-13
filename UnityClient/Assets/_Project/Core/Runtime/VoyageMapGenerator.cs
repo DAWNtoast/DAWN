@@ -103,6 +103,8 @@ namespace ShatteredSail.Core.Gameplay
     {
         private readonly int[] cellIndices;
         private readonly int[] reservedCellIndices;
+        private readonly int columns;
+        private readonly int rows;
 
         internal CoreEventFootprint(
             int nodeId,
@@ -114,7 +116,9 @@ namespace ShatteredSail.Core.Gameplay
             int minimumColumn,
             int maximumColumn,
             int minimumRow,
-            int maximumRow)
+            int maximumRow,
+            int columns = CoreVoyageMap.GridColumns,
+            int rows = CoreVoyageMap.GridRows)
         {
             NodeId = nodeId;
             TerrainConstraint = terrainConstraint;
@@ -126,6 +130,8 @@ namespace ShatteredSail.Core.Gameplay
             MaxColumn = maximumColumn;
             MinRow = minimumRow;
             MaxRow = maximumRow;
+            this.columns = columns;
+            this.rows = rows;
         }
 
         public int NodeId { get; }
@@ -146,18 +152,18 @@ namespace ShatteredSail.Core.Gameplay
                 return false;
             }
 
-            int index = row * CoreVoyageMap.GridColumns + column;
+            int index = row * columns + column;
             return Array.BinarySearch(cellIndices, index) >= 0;
         }
 
         public bool ReservesCell(int column, int row)
         {
-            if (column < 0 || column >= CoreVoyageMap.GridColumns || row < 0 || row >= CoreVoyageMap.GridRows)
+            if (column < 0 || column >= columns || row < 0 || row >= rows)
             {
                 return false;
             }
 
-            int index = row * CoreVoyageMap.GridColumns + column;
+            int index = row * columns + column;
             return Array.BinarySearch(reservedCellIndices, index) >= 0;
         }
     }
@@ -376,7 +382,7 @@ namespace ShatteredSail.Core.Gameplay
                     for (int y = -1; y <= 1; y++)
                     for (int x = -1; x <= 1; x++)
                         if (map.IsInBounds(cell.Column + x, cell.Row + y))
-                            protectedRoute[(cell.Row + y) * CoreVoyageMap.GridColumns + cell.Column + x] = true;
+                            protectedRoute[(cell.Row + y) * map.Columns + cell.Column + x] = true;
                 }
                 from = to;
             }
@@ -463,8 +469,8 @@ namespace ShatteredSail.Core.Gameplay
                     FootprintPlan plan = orientationPlans[orientation] ??
                         (orientationPlans[orientation] = BuildPlan(node.TerrainConstraint, orientation, nodeShapeSeed));
                     VoyageGridCoordinate anchor = new VoyageGridCoordinate(
-                        1 + NextInt(random, CoreVoyageMap.GridColumns - 2),
-                        1 + NextInt(random, CoreVoyageMap.GridRows - 2));
+                        1 + NextInt(random, map.Columns - 2),
+                        1 + NextInt(random, map.Rows - 2));
                     if (!IsValidPlacement(
                         map,
                         node,
@@ -492,9 +498,9 @@ namespace ShatteredSail.Core.Gameplay
                 {
                     // Exhaustive deterministic fallback protects generation from a
                     // rare unlucky random sequence without weakening any spacing rule.
-                    for (int row = 1; row < CoreVoyageMap.GridRows - 1; row += 1)
+                    for (int row = 1; row < map.Rows - 1; row += 1)
                     {
-                        for (int column = 1; column < CoreVoyageMap.GridColumns - 1; column += 1)
+                        for (int column = 1; column < map.Columns - 1; column += 1)
                         {
                             for (int orientationOffset = 0; orientationOffset < orientationCount; orientationOffset += 1)
                             {
@@ -602,7 +608,7 @@ namespace ShatteredSail.Core.Gameplay
                     return false;
                 }
 
-                int cellIndex = row * CoreVoyageMap.GridColumns + column;
+                int cellIndex = row * map.Columns + column;
                 if (reservationOwners[cellIndex] >= 0 || portReserved[cellIndex])
                 {
                     return false;
@@ -614,8 +620,8 @@ namespace ShatteredSail.Core.Gameplay
             float destinationDistance = Distance(point, map.Destination);
             if (node.IsBoss)
             {
-                if (point.X < bossBorderMargin || point.X > CoreVoyageMap.Width - bossBorderMargin ||
-                    point.Y < bossBorderMargin || point.Y > CoreVoyageMap.Height - bossBorderMargin ||
+                if (point.X < bossBorderMargin || point.X > map.WorldWidth - bossBorderMargin ||
+                    point.Y < bossBorderMargin || point.Y > map.WorldHeight - bossBorderMargin ||
                     departureDistance < bossDepartureClearance || destinationDistance < bossDestinationClearance || (bossDestinationApproachRadius > bossDestinationClearance && destinationDistance > bossDestinationApproachRadius))
                 {
                     return false;
@@ -645,16 +651,16 @@ namespace ShatteredSail.Core.Gameplay
         {
             List<int> footprintIndices = new List<int>(placement.Plan.Stamps.Length);
             List<int> reservedIndices = new List<int>(placement.Plan.ReservedOffsets.Length);
-            int minColumn = CoreVoyageMap.GridColumns;
+            int minColumn = map.Columns;
             int maxColumn = 0;
-            int minRow = CoreVoyageMap.GridRows;
+            int minRow = map.Rows;
             int maxRow = 0;
 
             for (int index = 0; index < placement.Plan.ReservedOffsets.Length; index += 1)
             {
                 int column = placement.Anchor.Column + placement.Plan.ReservedOffsets[index].Column;
                 int row = placement.Anchor.Row + placement.Plan.ReservedOffsets[index].Row;
-                int cellIndex = row * CoreVoyageMap.GridColumns + column;
+                int cellIndex = row * map.Columns + column;
                 reservationOwners[cellIndex] = placement.Node.Id;
                 map.EventReservedCells[cellIndex] = true;
                 reservedIndices.Add(cellIndex);
@@ -664,7 +670,7 @@ namespace ShatteredSail.Core.Gameplay
             {
                 int column = placement.Anchor.Column + placement.Plan.Stamps[index].ColumnOffset;
                 int row = placement.Anchor.Row + placement.Plan.Stamps[index].RowOffset;
-                int cellIndex = row * CoreVoyageMap.GridColumns + column;
+                int cellIndex = row * map.Columns + column;
                 footprintIndices.Add(cellIndex);
                 minColumn = Math.Min(minColumn, column);
                 maxColumn = Math.Max(maxColumn, column);
@@ -684,7 +690,9 @@ namespace ShatteredSail.Core.Gameplay
                 minColumn,
                 maxColumn,
                 minRow,
-                maxRow);
+                maxRow,
+                map.Columns,
+                map.Rows);
             placement.Node.Footprint = footprint;
             map.MutableEventFootprints.Add(footprint);
         }
@@ -700,13 +708,13 @@ namespace ShatteredSail.Core.Gameplay
                     TerrainStamp stamp = placement.Plan.Stamps[stampIndex];
                     int column = placement.Anchor.Column + stamp.ColumnOffset;
                     int row = placement.Anchor.Row + stamp.RowOffset;
-                    int cellIndex = row * CoreVoyageMap.GridColumns + column;
+                    int cellIndex = row * map.Columns + column;
                     map.TerrainCells[cellIndex] = stamp.Terrain;
                     map.TerrainFeatureIds[cellIndex] = featureId;
                     map.AnchorNodeIds[cellIndex] = placement.Node.Id;
                 }
 
-                int anchorIndex = placement.Anchor.Row * CoreVoyageMap.GridColumns + placement.Anchor.Column;
+                int anchorIndex = placement.Anchor.Row * map.Columns + placement.Anchor.Column;
                 map.EventAnchorCells[anchorIndex] = true;
                 map.AnchorNodeIds[anchorIndex] = placement.Node.Id;
                 for (int islandIndex = 0; islandIndex < placement.Plan.IslandCenters.Length; islandIndex += 1)
@@ -943,7 +951,7 @@ namespace ShatteredSail.Core.Gameplay
                     int y = row - center.Row;
                     if (x * x + y * y <= radius * radius + 1)
                     {
-                        cells[row * CoreVoyageMap.GridColumns + column] = true;
+                        cells[row * map.Columns + column] = true;
                     }
                 }
             }
@@ -955,8 +963,8 @@ namespace ShatteredSail.Core.Gameplay
             VoyageGridCoordinate goal = map.PointToCell(map.Destination);
             List<int> path = FindWeightedPath(
                 map,
-                start.Row * CoreVoyageMap.GridColumns + start.Column,
-                goal.Row * CoreVoyageMap.GridColumns + goal.Column,
+                start.Row * map.Columns + start.Column,
+                goal.Row * map.Columns + goal.Column,
                 map.Hash ^ 0x4CF5AD43u,
                 false);
             if (path.Count == 0)
@@ -967,8 +975,8 @@ namespace ShatteredSail.Core.Gameplay
             bool[] protectedRoute = new bool[map.CellCount];
             for (int index = 0; index < path.Count; index += 1)
             {
-                int column = path[index] % CoreVoyageMap.GridColumns;
-                int row = path[index] / CoreVoyageMap.GridColumns;
+                int column = path[index] % map.Columns;
+                int row = path[index] / map.Columns;
                 for (int y = -1; y <= 1; y += 1)
                 {
                     for (int x = -1; x <= 1; x += 1)
@@ -976,7 +984,7 @@ namespace ShatteredSail.Core.Gameplay
                         int neighborColumn = column + x;
                         int neighborRow = row + y;
                         if (!map.IsInBounds(neighborColumn, neighborRow)) continue;
-                        int neighbor = neighborRow * CoreVoyageMap.GridColumns + neighborColumn;
+                        int neighbor = neighborRow * map.Columns + neighborColumn;
                         if (map.TerrainCells[neighbor] != SeaTerrainType.Island)
                         {
                             protectedRoute[neighbor] = true;
@@ -998,17 +1006,17 @@ namespace ShatteredSail.Core.Gameplay
                 int goal;
                 if (horizontal)
                 {
-                    int startRow = 2 + NextInt(random, CoreVoyageMap.GridRows - 4);
-                    int goalRow = 2 + NextInt(random, CoreVoyageMap.GridRows - 4);
-                    start = startRow * CoreVoyageMap.GridColumns;
-                    goal = goalRow * CoreVoyageMap.GridColumns + CoreVoyageMap.GridColumns - 1;
+                    int startRow = 2 + NextInt(random, map.Rows - 4);
+                    int goalRow = 2 + NextInt(random, map.Rows - 4);
+                    start = startRow * map.Columns;
+                    goal = goalRow * map.Columns + map.Columns - 1;
                 }
                 else
                 {
-                    int startColumn = 2 + NextInt(random, CoreVoyageMap.GridColumns - 4);
-                    int goalColumn = 2 + NextInt(random, CoreVoyageMap.GridColumns - 4);
+                    int startColumn = 2 + NextInt(random, map.Columns - 4);
+                    int goalColumn = 2 + NextInt(random, map.Columns - 4);
                     start = startColumn;
-                    goal = (CoreVoyageMap.GridRows - 1) * CoreVoyageMap.GridColumns + goalColumn;
+                    goal = (map.Rows - 1) * map.Columns + goalColumn;
                 }
 
                 List<int> path = FindWeightedPath(map, start, goal, map.Hash ^ StraitStream ^ (uint)(channel * 977), true);
@@ -1023,7 +1031,7 @@ namespace ShatteredSail.Core.Gameplay
 
                     map.TerrainCells[cell] = SeaTerrainType.Strait;
                     guaranteedRoute[cell] = true;
-                    if ((HashCell(map.Hash ^ StraitStream, cell % CoreVoyageMap.GridColumns, cell / CoreVoyageMap.GridColumns) & 7u) == 0u)
+                    if ((HashCell(map.Hash ^ StraitStream, cell % map.Columns, cell / map.Columns) & 7u) == 0u)
                     {
                         PaintPassableNeighbor(map, cell, guaranteedRoute);
                     }
@@ -1035,13 +1043,13 @@ namespace ShatteredSail.Core.Gameplay
 
         private static void PaintPassableNeighbor(CoreVoyageMap map, int cell, bool[] guaranteedRoute)
         {
-            int column = cell % CoreVoyageMap.GridColumns;
-            int row = cell / CoreVoyageMap.GridColumns;
+            int column = cell % map.Columns;
+            int row = cell / map.Columns;
             int selector = (int)(HashCell(map.Hash ^ 0xC2B2AE35u, column, row) & 3u);
             int neighborColumn = column + (selector == 0 ? -1 : selector == 1 ? 1 : 0);
             int neighborRow = row + (selector == 2 ? -1 : selector == 3 ? 1 : 0);
             if (!map.IsInBounds(neighborColumn, neighborRow)) return;
-            int neighbor = neighborRow * CoreVoyageMap.GridColumns + neighborColumn;
+            int neighbor = neighborRow * map.Columns + neighborColumn;
             if (map.AnchorNodeIds[neighbor] >= 0 || map.EventReservedCells[neighbor] || map.TerrainCells[neighbor] == SeaTerrainType.Island) return;
             map.TerrainCells[neighbor] = SeaTerrainType.Strait;
             guaranteedRoute[neighbor] = true;
@@ -1060,9 +1068,9 @@ namespace ShatteredSail.Core.Gameplay
                 int seedCell = -1;
                 for (int attempt = 0; attempt < IslandPlacementAttempts; attempt += 1)
                 {
-                    int column = 2 + NextInt(random, CoreVoyageMap.GridColumns - 4);
-                    int row = 2 + NextInt(random, CoreVoyageMap.GridRows - 4);
-                    int candidate = row * CoreVoyageMap.GridColumns + column;
+                    int column = 2 + NextInt(random, map.Columns - 4);
+                    int row = 2 + NextInt(random, map.Rows - 4);
+                    int candidate = row * map.Columns + column;
                     if (CanGrowIslandAt(map, candidate, portReserved, guaranteedRoute))
                     {
                         seedCell = candidate;
@@ -1087,7 +1095,7 @@ namespace ShatteredSail.Core.Gameplay
                     int cell = cells[index];
                     map.TerrainCells[cell] = SeaTerrainType.Island;
                     map.TerrainFeatureIds[cell] = featureId;
-                    VoyagePoint center = map.CellCenter(cell % CoreVoyageMap.GridColumns, cell / CoreVoyageMap.GridColumns);
+                    VoyagePoint center = map.CellCenter(cell % map.Columns, cell / map.Columns);
                     totalX += center.X;
                     totalY += center.Y;
                 }
@@ -1113,17 +1121,17 @@ namespace ShatteredSail.Core.Gameplay
             while (cells.Count < targetSize && guard-- > 0)
             {
                 int parent = cells[NextInt(random, cells.Count)];
-                int parentColumn = parent % CoreVoyageMap.GridColumns;
-                int parentRow = parent / CoreVoyageMap.GridColumns;
+                int parentColumn = parent % map.Columns;
+                int parentRow = parent / map.Columns;
                 int direction = NextInt(random, 4);
                 int x = direction == 0 ? -1 : direction == 1 ? 1 : 0;
                 int y = direction == 2 ? -1 : direction == 3 ? 1 : 0;
                 int column = parentColumn + x;
                 int row = parentRow + y;
                 if (!map.IsInBounds(column, row)) continue;
-                int candidate = row * CoreVoyageMap.GridColumns + column;
+                int candidate = row * map.Columns + column;
                 if (included.Contains(candidate) || !CanGrowIslandAt(map, candidate, portReserved, guaranteedRoute)) continue;
-                if (DistanceSquaredCells(seedCell, candidate) > targetSize * 0.78f) continue;
+                if (DistanceSquaredCells(map, seedCell, candidate) > targetSize * 0.78f) continue;
                 included.Add(candidate);
                 cells.Add(candidate);
             }
@@ -1141,9 +1149,9 @@ namespace ShatteredSail.Core.Gameplay
                 return false;
             }
 
-            int column = cell % CoreVoyageMap.GridColumns;
-            int row = cell / CoreVoyageMap.GridColumns;
-            if (column < 2 || column >= CoreVoyageMap.GridColumns - 2 || row < 2 || row >= CoreVoyageMap.GridRows - 2)
+            int column = cell % map.Columns;
+            int row = cell / map.Columns;
+            if (column < 2 || column >= map.Columns - 2 || row < 2 || row >= map.Rows - 2)
             {
                 return false;
             }
@@ -1156,7 +1164,7 @@ namespace ShatteredSail.Core.Gameplay
                     int neighborColumn = column + x;
                     int neighborRow = row + y;
                     if (!map.IsInBounds(neighborColumn, neighborRow)) continue;
-                    int neighbor = neighborRow * CoreVoyageMap.GridColumns + neighborColumn;
+                    int neighbor = neighborRow * map.Columns + neighborColumn;
                     if (map.TerrainCells[neighbor] == SeaTerrainType.Island && map.AnchorNodeIds[neighbor] < 0)
                     {
                         return false;
@@ -1170,11 +1178,11 @@ namespace ShatteredSail.Core.Gameplay
         {
             int best = -1;
             uint bestHash = uint.MaxValue;
-            for (int row = 2; row < CoreVoyageMap.GridRows - 2; row += 1)
+            for (int row = 2; row < map.Rows - 2; row += 1)
             {
-                for (int column = 2; column < CoreVoyageMap.GridColumns - 2; column += 1)
+                for (int column = 2; column < map.Columns - 2; column += 1)
                 {
-                    int cell = row * CoreVoyageMap.GridColumns + column;
+                    int cell = row * map.Columns + column;
                     if (!CanGrowIslandAt(map, cell, portReserved, guaranteedRoute)) continue;
                     uint hash = HashCell(seed, column, row);
                     if (hash < bestHash)
@@ -1193,8 +1201,8 @@ namespace ShatteredSail.Core.Gameplay
             HashSet<int> shoals = new HashSet<int>();
             for (int index = 0; index < islands.Count; index += 1)
             {
-                int column = islands[index] % CoreVoyageMap.GridColumns;
-                int row = islands[index] / CoreVoyageMap.GridColumns;
+                int column = islands[index] % map.Columns;
+                int row = islands[index] / map.Columns;
                 for (int y = -1; y <= 1; y += 1)
                 {
                     for (int x = -1; x <= 1; x += 1)
@@ -1202,7 +1210,7 @@ namespace ShatteredSail.Core.Gameplay
                         int neighborColumn = column + x;
                         int neighborRow = row + y;
                         if (!map.IsInBounds(neighborColumn, neighborRow)) continue;
-                        int neighbor = neighborRow * CoreVoyageMap.GridColumns + neighborColumn;
+                        int neighbor = neighborRow * map.Columns + neighborColumn;
                         if (!land.Contains(neighbor)) shoals.Add(neighbor);
                     }
                 }
@@ -1227,11 +1235,11 @@ namespace ShatteredSail.Core.Gameplay
             // additional cells, but every cell left over is true open water. The
             // presentation layer uses the seed-bound TerrainVariants to break the
             // ocean into broad visual regions without changing navigation rules.
-            for (int row = 0; row < CoreVoyageMap.GridRows; row += 1)
+            for (int row = 0; row < map.Rows; row += 1)
             {
-                for (int column = 0; column < CoreVoyageMap.GridColumns; column += 1)
+                for (int column = 0; column < map.Columns; column += 1)
                 {
-                    int index = row * CoreVoyageMap.GridColumns + column;
+                    int index = row * map.Columns + column;
                     if (map.TerrainFeatureIds[index] >= 0 || map.EventReservedCells[index]) continue;
                     map.TerrainCells[index] = SeaTerrainType.OpenWater;
                 }
@@ -1261,8 +1269,8 @@ namespace ShatteredSail.Core.Gameplay
                 while (queue.Count > 0)
                 {
                     int cell = queue.Dequeue();
-                    int column = cell % CoreVoyageMap.GridColumns;
-                    int row = cell / CoreVoyageMap.GridColumns;
+                    int column = cell % map.Columns;
+                    int row = cell / map.Columns;
                     TryAssignFeatureNeighbor(map, column - 1, row, terrain, featureId, queue);
                     TryAssignFeatureNeighbor(map, column + 1, row, terrain, featureId, queue);
                     TryAssignFeatureNeighbor(map, column, row - 1, terrain, featureId, queue);
@@ -1280,7 +1288,7 @@ namespace ShatteredSail.Core.Gameplay
             Queue<int> queue)
         {
             if (!map.IsInBounds(column, row)) return;
-            int index = row * CoreVoyageMap.GridColumns + column;
+            int index = row * map.Columns + column;
             if (map.TerrainFeatureIds[index] >= 0 || map.TerrainCells[index] != terrain) return;
             map.TerrainFeatureIds[index] = featureId;
             queue.Enqueue(index);
@@ -1288,11 +1296,11 @@ namespace ShatteredSail.Core.Gameplay
 
         private static void AssignTerrainVariants(CoreVoyageMap map)
         {
-            for (int row = 0; row < CoreVoyageMap.GridRows; row += 1)
+            for (int row = 0; row < map.Rows; row += 1)
             {
-                for (int column = 0; column < CoreVoyageMap.GridColumns; column += 1)
+                for (int column = 0; column < map.Columns; column += 1)
                 {
-                    int index = row * CoreVoyageMap.GridColumns + column;
+                    int index = row * map.Columns + column;
                     uint value = HashCell(
                         map.Hash ^ VariantStream ^ (uint)((int)map.TerrainCells[index] * 0x45D9F3B),
                         column,
@@ -1335,8 +1343,8 @@ namespace ShatteredSail.Core.Gameplay
                 if (current < 0) break;
                 if (current == goal) break;
                 closed[current] = true;
-                int column = current % CoreVoyageMap.GridColumns;
-                int row = current / CoreVoyageMap.GridColumns;
+                int column = current % map.Columns;
+                int row = current / map.Columns;
                 RelaxPathNeighbor(map, current, column - 1, row, goal, seed, avoidEventSafetyBands, costs, previous, closed);
                 RelaxPathNeighbor(map, current, column + 1, row, goal, seed, avoidEventSafetyBands, costs, previous, closed);
                 RelaxPathNeighbor(map, current, column, row - 1, goal, seed, avoidEventSafetyBands, costs, previous, closed);
@@ -1374,7 +1382,7 @@ namespace ShatteredSail.Core.Gameplay
             bool[] closed)
         {
             if (!map.IsInBounds(column, row)) return;
-            int neighbor = row * CoreVoyageMap.GridColumns + column;
+            int neighbor = row * map.Columns + column;
             if (closed[neighbor] || map.TerrainCells[neighbor] == SeaTerrainType.Island) return;
             if (avoidEventSafetyBands && neighbor != goal && map.EventReservedCells[neighbor]) return;
             float noise = (HashCell(seed, column, row) & 1023u) / 1023f;
@@ -1430,12 +1438,12 @@ namespace ShatteredSail.Core.Gameplay
             return (float)Math.Sqrt(x * x + y * y);
         }
 
-        private static float DistanceSquaredCells(int left, int right)
+        private static float DistanceSquaredCells(CoreVoyageMap map, int left, int right)
         {
-            int leftColumn = left % CoreVoyageMap.GridColumns;
-            int leftRow = left / CoreVoyageMap.GridColumns;
-            int rightColumn = right % CoreVoyageMap.GridColumns;
-            int rightRow = right / CoreVoyageMap.GridColumns;
+            int leftColumn = left % map.Columns;
+            int leftRow = left / map.Columns;
+            int rightColumn = right % map.Columns;
+            int rightRow = right / map.Columns;
             int x = leftColumn - rightColumn;
             int y = leftRow - rightRow;
             return x * x + y * y;

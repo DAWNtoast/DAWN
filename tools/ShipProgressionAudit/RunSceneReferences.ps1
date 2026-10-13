@@ -1,5 +1,7 @@
 param([string]$Version = 'v1', [ValidateRange(0, 3)][int]$StartAt = 0)
 $ErrorActionPreference = 'Stop'
+# Retired by user request; exit before filesystem or Unity actions.
+throw 'UIPreviewsForMe was retired on 2026-10-13; saved-preview generation, refresh and copy-back are disabled.'
 if (Get-Process Unity -ErrorAction SilentlyContinue) { throw 'Unity must be closed before syncing scene references.' }
 $project = 'D:\Game\UnityClient'
 $editor = 'D:\Unity\Hub\Editor\6000.3.23f1\Editor\Unity.exe'

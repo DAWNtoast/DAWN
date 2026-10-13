@@ -1,4 +1,5 @@
 using System;
+using ShatteredSail.Core.Gameplay;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,6 +22,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildPortHubHeader()
         {
+            if (TryBuildPrefabPortHeader(true)) return;
             // Keep the hub's established root name for previews and navigation.
             // There is no facility to return from or cycle while on this page.
             RectTransform header = CreateRegionalPortHeader("Port Hub", "Port Hub Frame", out PortHeaderTheme theme);
@@ -70,10 +72,9 @@ namespace ShatteredSail.Presentation
             frame.raycastTarget = false;
 
             Text voyageTitle = CreateText(headerName + " Title", header,
-                new Vector2(300f, 60f), new Vector2(-710f, 0f), 32,
+                new Vector2(234.8733f, 60f), new Vector2(-734f, 0f), 29,
                 FontStyle.Bold, TextAnchor.MiddleLeft, theme.Accent);
             voyageTitle.text = title;
-            GameReadability.Heading(voyageTitle);
             voyageTitle.raycastTarget = false;
 
             Text voyageStatus = CreateText(headerName + " Status", header,
@@ -84,7 +85,9 @@ namespace ShatteredSail.Presentation
                 FontStyle.Normal, TextAnchor.MiddleRight, Ink);
             voyageStatus.text = BuildHeaderStatus();
             voyageStatus.raycastTarget = false;
-            GameReadability.Body(voyageStatus, 18);
+            voyageStatus.resizeTextForBestFit = true;
+            voyageStatus.resizeTextMinSize = 13;
+            voyageStatus.resizeTextMaxSize = 18;
             return header;
         }
 
@@ -103,6 +106,9 @@ namespace ShatteredSail.Presentation
             Button settings = CreatePortHeaderButton("Voyage Settings", header, new Vector2(128f, 64f),
                 Vector2.zero, "设置", 22, theme.Accent);
             settings.onClick.AddListener(OpenPortSettings);
+            // Only sailing and encounters use the new navigation dashboard skin.
+            // Battle still shares CreateVoyageHeader and keeps its regional frame.
+            NavigationHeaderSkin.Apply(header);
         }
 
         private void BringVoyageHeaderToFront()
@@ -156,68 +162,25 @@ namespace ShatteredSail.Presentation
             foreach (Text readout in new[] { portHeaderTime, portHeaderPort, portHeaderGold })
             {
                 readout.raycastTarget = false;
-                GameReadability.Body(readout, 22);
-                readout.rectTransform.sizeDelta = new Vector2(readout.rectTransform.sizeDelta.x, 74f);
+                readout.resizeTextForBestFit = true;
+                readout.resizeTextMinSize = 16;
+                readout.resizeTextMaxSize = readout.fontSize;
             }
             Button settings = CreatePortHeaderButton(prefix + "Settings", header, new Vector2(138f, 58f),
                 new Vector2(hub ? 780f : 826f, 0f), "设置", 22, theme.Accent);
             settings.onClick.AddListener(OpenPortSettings);
-            if (!hub)
-            {
-                Text title = header.Find("Port Facility Title")?.GetComponent<Text>();
-                GameReadability.Heading(title);
-                if (GameReadability.Level > 0)
-                {
-                    SetHeaderReadingBox(header, "Return To Port Hub", new Vector2(184f, 58f + 60f * (GameReadability.Scale - 1f)), -838f);
-                    SetHeaderReadingBox(header, "Previous Port Facility", new Vector2(228f, 58f + 60f * (GameReadability.Scale - 1f)), -622f);
-                    SetHeaderReadingBox(header, "Port Facility Title", new Vector2(300f, 96f), -348f);
-                    SetHeaderReadingBox(header, "Next Port Facility", new Vector2(228f, 58f + 60f * (GameReadability.Scale - 1f)), -74f);
-                    SetHeaderReadingBox(header, prefix + "Time", new Vector2(304f, 74f), 202f);
-                    SetHeaderReadingBox(header, prefix + "Port", new Vector2(174f, 74f), 451f);
-                    SetHeaderReadingBox(header, prefix + "Gold", new Vector2(234f, 74f), 665f);
-                    SetHeaderReadingBox(header, prefix + "Settings", settings.GetComponent<RectTransform>().sizeDelta, 861f);
-                }
-            }
-            if (tutorialActive) FitPortReadoutsBetweenTutorialBands(header);
             UpdatePortHeaderReadouts(true);
-        }
-
-        private static void FitPortReadoutsBetweenTutorialBands(RectTransform header)
-        {
-            float bottom = -header.rect.height * .5f + 6f + 32f * GameReadability.Scale + 2f;
-            float top = header.rect.height * .5f - 8f - 28f * GameReadability.Scale - 2f;
-            float center = (top + bottom) * .5f;
-            foreach (Transform child in header)
-            {
-                RectTransform rect = child as RectTransform;
-                if (rect == null || (child.GetComponent<Text>() == null && child.GetComponent<Button>() == null)) continue;
-                rect.sizeDelta = new Vector2(rect.sizeDelta.x, Mathf.Min(rect.rect.height, top - bottom));
-                rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, center);
-                Text caption = child.GetComponent<Button>()?.GetComponentInChildren<Text>();
-                if (caption != null) caption.rectTransform.sizeDelta = rect.sizeDelta - new Vector2(20f, 10f);
-            }
-        }
-
-        private static void SetHeaderReadingBox(Transform header, string name, Vector2 size, float x)
-        {
-            RectTransform rect = header.Find(name) as RectTransform;
-            if (rect == null) return;
-            rect.sizeDelta = size; rect.anchoredPosition = new Vector2(x, 0f);
-            Text caption = rect.GetComponent<Button>()?.GetComponentInChildren<Text>();
-            if (caption != null) caption.rectTransform.sizeDelta = size - new Vector2(20f, 10f);
         }
 
         private Button CreatePortHeaderButton(string name, Transform parent, Vector2 size,
             Vector2 position, string caption, int fontSize, Color accent)
         {
             Color resting = new Color(0.09f, 0.055f, 0.026f, 0.22f);
-            size.y = Mathf.Max(size.y, Mathf.Max(64f, 58f + 60f * (GameReadability.Scale - 1f)));
             Button button = CreateButton(name, parent, size, position, resting, Ink, fontSize);
             Image face = button.GetComponent<Image>();
             WoodButtonSkin.Apply(button, resting);
             Text label = button.GetComponentInChildren<Text>();
             label.text = caption;
-            GameReadability.Body(label, Mathf.Max(22, fontSize));
             label.raycastTarget = false;
             Outline edge = face.gameObject.AddComponent<Outline>();
             edge.effectColor = new Color(accent.r, accent.g, accent.b, 0.18f);
@@ -232,7 +195,9 @@ namespace ShatteredSail.Presentation
             long minute = now.Ticks / TimeSpan.TicksPerMinute;
             if (force || minute != displayedPortMinute)
             {
-                portHeaderTime.text = "<size=" + GameReadability.FontSize(18) + ">游戏日期</size>\n" + now.ToString("yyyy-MM-dd HH:mm");
+                portHeaderTime.text = activePortFacility == PortFacilityArtCatalog.ComponentShopFacilityIndex
+                    ? CoreVoyageSession.FormatGameDate(now, true)
+                    : "<size=13>游戏日期</size>\n" + CoreVoyageSession.FormatGameDate(now, true);
                 displayedPortMinute = minute;
             }
             if (force || displayedHeaderPort != session.CurrentPort)
@@ -242,7 +207,9 @@ namespace ShatteredSail.Presentation
             }
             if (force || displayedPortGold != session.ProfileGold)
             {
-                portHeaderGold.text = "<size=" + GameReadability.FontSize(18) + ">总金币</size>\n" + PortMarketCatalog.FormatPrice(session.ProfileGold);
+                portHeaderGold.text = activePortFacility == PortFacilityArtCatalog.ComponentShopFacilityIndex
+                    ? "金币  " + PortMarketCatalog.FormatPrice(session.ProfileGold)
+                    : "<size=13>总金币</size>\n" + PortMarketCatalog.FormatPrice(session.ProfileGold);
                 displayedPortGold = session.ProfileGold;
             }
         }

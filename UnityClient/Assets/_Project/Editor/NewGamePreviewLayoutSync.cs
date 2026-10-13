@@ -47,6 +47,7 @@ namespace ShatteredSail.Editor
 
         private static void Run(bool apply)
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Preview layout synchronization requires stopped edit mode.");
             string project = Directory.GetParent(Application.dataPath).FullName;

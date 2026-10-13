@@ -25,6 +25,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureRareWarehouseFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Rare warehouse previews require stopped edit mode.");
             // Retain authored cabinets, exhibit placements and backgrounds.

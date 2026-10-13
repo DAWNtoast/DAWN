@@ -32,16 +32,23 @@ namespace ShatteredSail.Editor
 
         private static readonly string[] DepartureChartControlNames =
         {
-            "Use Chart Seed", "Seed Locked Hint", "Departure Chart Selection", "Seed Label", "Treasure Seed",
+            "Use Chart Seed", "Departure Chart Selection", "Seed Label", "Departure Treasure Seed Picker",
+        };
+
+        private static readonly string[] ObsoleteRouteChartControlNames =
+        {
+            "Seed Locked Hint", "Treasure Seed",
         };
 
         private static readonly string[] ObsoleteSetupChartControlNames =
         {
             "Seed Label", "Use Chart Seed", "Seed Input", "Chart Seed Validation", "Seed Locked Hint", "Treasure Seed",
+            "Departure Treasure Seed Picker",
         };
 
         public static void SyncChartSeedStatesFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Chart seed previews require stopped edit mode.");
             string[] references = ChartSeedReferencePaths;
@@ -58,12 +65,14 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureChartSeedsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncChartSeedStatesFromCommandLine();
             UIPreviewSceneAcceptance.CaptureChartSeedsFromCommandLine();
         }
 
         public static void SyncAndCaptureDepartureChartSelectionFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncChartSeedStatesFromCommandLine();
             UIPreviewSceneAcceptance.CaptureDepartureChartSelectionFromCommandLine();
         }
@@ -79,8 +88,12 @@ namespace ShatteredSail.Editor
             // chart selection belongs to the route column, never the ship setup.
             foreach (string name in ObsoleteSetupChartControlNames)
                 CopyTreasureLayer(null, targetSetup, name);
+            foreach (string name in ObsoleteRouteChartControlNames)
+                CopyTreasureLayer(null, targetRoutes, name);
             foreach (string name in DepartureChartControlNames)
                 CopyTreasureLayer(sourceRoutes.Find(name), targetRoutes, name);
+            if (targetRoutes.Find("Departure Treasure Seed Picker")?.GetComponent<Button>() == null)
+                throw new InvalidOperationException("Chart controls must retain the owned treasure seed picker in the route column.");
             InputField input = targetRoutes.Find("Departure Chart Selection/Seed Input")?.GetComponent<InputField>();
             if (input != null && (!input.enabled || input.textComponent == null || !input.textComponent.gameObject.activeSelf ||
                 targetRoutes.Find("Use Chart Seed") == null))
@@ -149,8 +162,9 @@ namespace ShatteredSail.Editor
                         selection.gameObject.activeSelf != (state > 0))
                         throw new InvalidOperationException("The left-column chart mode was not synchronized: " + reference);
                 }
-                else if (targetRoutes.Find("Treasure Seed") == null)
-                    throw new InvalidOperationException("The treasure seed must remain visible above the left panel: " + reference);
+                else if (targetRoutes.Find("Seed Label")?.GetComponent<Text>() == null ||
+                    targetRoutes.Find("Departure Treasure Seed Picker")?.GetComponent<Button>() == null)
+                    throw new InvalidOperationException("Treasure departures must retain their seed heading and switchable owned-seed picker: " + reference);
                 if (targetSetup.Find("Departure Crew Configuration Title") == null)
                 {
                     Button targetStart = targetSetup.Find("Start Voyage")?.GetComponent<Button>();
@@ -274,11 +288,15 @@ namespace ShatteredSail.Editor
                 }
             }
             Text label = routes.Find("Use Chart Seed/Seed Label")?.GetComponent<Text>();
-            if (label != null) label.text = "海图种子 · 教学指定航程";
+            if (label != null) label.text = "普通海图 · 教学指定航程";
             Text validation = selection?.Find("Chart Seed Validation")?.GetComponent<Text>();
             if (validation != null) validation.text = "教学使用固定海图；完成引导后开放随机与已绘海图。";
-            Text locked = routes.Find("Seed Locked Hint")?.GetComponent<Text>();
-            if (locked != null) locked.text = "教学指定航程 · 完成引导后可选择已绘海图";
+            Button treasurePicker = routes.Find("Departure Treasure Seed Picker")?.GetComponent<Button>();
+            if (treasurePicker != null)
+            {
+                treasurePicker.interactable = false;
+                treasurePicker.GetComponentInChildren<Text>(true).text = "藏宝海图种子 · 教学结束后可选";
+            }
         }
     }
 }

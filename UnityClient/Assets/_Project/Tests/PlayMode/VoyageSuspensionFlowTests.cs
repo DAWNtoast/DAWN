@@ -113,9 +113,10 @@ namespace ShatteredSail.Presentation.Tests
             profile.AssertUnchanged();
         }
 
+        [TestCase(GuidedTutorialNavigationInputStep.Heading)]
         [TestCase(GuidedTutorialNavigationInputStep.Distance)]
         [TestCase(GuidedTutorialNavigationInputStep.Sail)]
-        public void TutorialResumePreservesNavigationInputAndCrewSelection(GuidedTutorialNavigationInputStep step)
+        public void TutorialResumeMigratesRetiredDistanceStepAndPreservesCrewSelection(GuidedTutorialNavigationInputStep step)
         {
             CoreGameplayDemoController source = CreateInactiveController(CreateVoyage(true));
             WriteField(source, "tutorialActive", true);
@@ -131,7 +132,15 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Restore(restored, record, out reason), Is.True, reason);
 
             Assert.That(restored.IsTutorialActive, Is.True);
-            Assert.That(restored.CurrentGuidedTutorialNavigationInputStep, Is.EqualTo(step));
+            GuidedTutorialNavigationInputStep expected = step == GuidedTutorialNavigationInputStep.Distance
+                ? GuidedTutorialNavigationInputStep.Sail : step;
+            Assert.That(restored.CurrentGuidedTutorialNavigationInputStep, Is.EqualTo(expected));
+            Assert.That(restored.Session.PlannedDistanceNm, Is.EqualTo(CoreGuidedTutorialContent.PlannedDistanceNm),
+                "A suspended legacy slider value must normalize to the fixed teaching route before forecasting.");
+            Assert.That(restored.Session.TotalDistanceNm, Is.EqualTo(source.Session.TotalDistanceNm),
+                "Migrating the retired distance lesson must not execute a voyage action.");
+            Assert.That(restored.Session.Cargo.Water, Is.EqualTo(source.Session.Cargo.Water));
+            Assert.That(restored.Session.Cargo.Food, Is.EqualTo(source.Session.Cargo.Food));
             Assert.That(restored.Session.GuidedTutorialLeg, Is.EqualTo(source.Session.GuidedTutorialLeg));
             Assert.That(ReadField<int>(restored, "guidedTutorialCheckpoint"), Is.Zero);
             Assert.That(ReadField<int>(restored, "selectedDepartureOrdinaryCrew"), Is.EqualTo(source.Session.SelectedOrdinaryCrew));

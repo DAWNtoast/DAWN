@@ -6,100 +6,130 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
+        private const float BattleDecisionColumnX = 735f;
+        private const float BattleDecisionPanelWidth = 230f;
+        private const float BattleDecisionInfoHeight = 120f;
+        private const float BattleDecisionButtonHeight = 44f;
+        private const float BattleDecisionGap = 8f;
+        private const int BattleDecisionFontSize = 18;
+
         // Apply after construction and retained refresh, never during an animation.
         // Keep the stable direct-child paths used by card callbacks and defense FX.
         private void ApplyBattleDecisionLayout(RectTransform root, CoreBattleState battle)
         {
             if (root == null || battle == null) return;
+            RefreshBattleSchoolHud(root, battle);
+            // The hand scales within its own region; fixed decision columns
+            // must not jump as drawing or playing cards changes that scale.
+            const float cardTop = -136f;
+            float infoTopY = cardTop - BattleDecisionInfoHeight * .5f;
+            float infoBottomY = infoTopY - BattleDecisionInfoHeight - BattleDecisionGap;
+            float buttonY = infoBottomY - BattleDecisionInfoHeight * .5f - BattleDecisionGap - BattleDecisionButtonHeight * .5f;
             RectTransform resources = root.Find("Player Resource HUD") as RectTransform;
             if (resources != null)
             {
-                float height = 132f + 48f * (GameReadability.Scale - 1f);
-                resources.sizeDelta = new Vector2(230f, height);
-                resources.anchoredPosition = new Vector2(-735f, -200f);
-                SetBattleDecisionText(resources, "Player Resource Title", new Vector2(212f, 42f),
-                    new Vector2(0f, height * .5f - 28f), 18);
-                Text heading = resources.Find("Player Resource Title")?.GetComponent<Text>();
-                if (heading != null) heading.text = heading.text.Replace("旗舰资源", "资源");
-                Text reserve = FindBattleDecisionText(resources, "Player Ammunition");
-                if (reserve != null) ReadableParagraph(reserve, resources, new Vector2(216f, 34f), new Vector2(0f, -height * .5f + 20f), 18, true);
+                SetBattleDecisionPanel(resources, true, infoTopY, BattleDecisionInfoHeight);
+                SetBattleDecisionText(resources, "Player Resource Title", new Vector2(212f, 26f),
+                    new Vector2(0f, 36f), BattleDecisionFontSize);
+                SetBattleDecisionText(resources, "Player Ammunition", new Vector2(212f, 40f),
+                    new Vector2(0f, -35f), BattleDecisionFontSize);
                 foreach (string glyph in new[] { "能", "药" })
                 {
                     Text value = resources.Find("Resource " + glyph + " Value")?.GetComponent<Text>();
                     if (value != null)
                     {
-                        GameReadability.Body(value, 22);
-                        value.rectTransform.sizeDelta = new Vector2(glyph == "能" ? 68f : 80f, 36f * GameReadability.Scale);
-                        value.rectTransform.anchoredPosition = new Vector2(glyph == "能" ? -42f : 72f, -5f);
+                        value.fontSize = BattleDecisionFontSize;
+                        value.rectTransform.sizeDelta = new Vector2(glyph == "能" ? 56f : 52f, 38f);
+                        value.rectTransform.anchoredPosition = new Vector2(glyph == "能" ? -24f : 84f, -4f);
                     }
-                    RectTransform icon = resources.Find("Resource " + glyph + " Icon") as RectTransform;
-                    if (icon != null) { icon.sizeDelta = new Vector2(28f, 28f); icon.anchoredPosition = new Vector2(glyph == "能" ? -94f : 14f, -5f); GameReadability.Body(icon.GetComponentInChildren<Text>(), 18); }
                 }
-                Text ammunitionGlyph = resources.Find("Resource 药 Icon/Resource 药 Glyph")?.GetComponent<Text>();
-                if (ammunitionGlyph != null) ammunitionGlyph.text = battle.Stage == NavalBattleStage.Boarding ? "药" : "火";
+                // Resource symbols are set when the stage view is built. A
+                // retained refresh keeps this stage and only changes numbers.
             }
 
             RectTransform buffs = root.Find("Battle Buff Panel") as RectTransform;
             if (buffs != null)
             {
-                buffs.sizeDelta = new Vector2(230f, 88f);
-                buffs.anchoredPosition = new Vector2(-735f, -331f);
-                Text body = FindBattleDecisionText(buffs, "Battle Active Buffs");
-                if (body != null) ReadableParagraph(body, buffs, new Vector2(216f, 80f), Vector2.zero, 18, true);
+                SetBattleDecisionPanel(buffs, true, infoBottomY, BattleDecisionInfoHeight);
+                SetBattleDecisionText(buffs, "Battle Active Buffs", new Vector2(212f, 104f), Vector2.zero, BattleDecisionFontSize);
             }
             RectTransform retreat = root.Find("Retreat Battle") as RectTransform ?? root.Find("Emergency Battle Return") as RectTransform;
-            if (retreat != null)
-            {
-                retreat.anchoredPosition = new Vector2(-735f, -417f);
-                retreat.sizeDelta = new Vector2(230f, 44f * GameReadability.Scale);
-                Text caption = retreat.GetComponentInChildren<Text>(); GameReadability.Body(caption, 22);
-                caption.rectTransform.sizeDelta = retreat.sizeDelta - new Vector2(16f, 8f);
-                caption.text = session.CanRequestEmergencyTow() ? "应急撤离 · 35%" : session.CanRetreatBattle ? "撤回港口" : session.IsGuidedBossBattle ? "完成战斗教学" : "接舷无法撤退";
-            }
+            if (retreat != null) SetBattleDecisionPanel(retreat, true, buttonY, BattleDecisionButtonHeight);
+            foreach (RectTransform panel in new[] { resources, buffs, retreat })
+                SetBattleDecisionTypography(panel);
 
+            RectTransform intent = root.Find("Enemy Intent HUD") as RectTransform;
+            if (intent != null) SetBattleDecisionPanel(intent, false, infoTopY, BattleDecisionInfoHeight);
             RectTransform enemyResources = root.Find("Enemy Resource HUD") as RectTransform;
             if (enemyResources != null)
             {
-                float height = 108f + 36f * (GameReadability.Scale - 1f);
-                enemyResources.sizeDelta = new Vector2(230f, height); enemyResources.anchoredPosition = new Vector2(735f, -384f);
-                SetBattleDecisionText(enemyResources, "Enemy Resource Title", new Vector2(212f, 36f), new Vector2(0f, height * .5f - 22f), 18);
-                SetBattleDecisionText(enemyResources, "Enemy Burning", new Vector2(212f, 36f), new Vector2(0f, -height * .5f + 22f), 18);
-                foreach (string glyph in new[] { "回", "盾" })
-                {
-                    Text value = enemyResources.Find("Resource " + glyph + " Value")?.GetComponent<Text>();
-                    if (value != null) { GameReadability.Body(value, 22); value.rectTransform.sizeDelta = new Vector2(68f, 42f); value.rectTransform.anchoredPosition = new Vector2(glyph == "回" ? -42f : 66f, 0f); }
-                    RectTransform icon = enemyResources.Find("Resource " + glyph + " Icon") as RectTransform;
-                    if (icon != null) { icon.sizeDelta = new Vector2(28f, 28f); icon.anchoredPosition = new Vector2(glyph == "回" ? -94f : 14f, 0f); GameReadability.Body(icon.GetComponentInChildren<Text>(), 18); }
-                }
+                SetBattleDecisionPanel(enemyResources, false, infoBottomY, BattleDecisionInfoHeight);
+                SetBattleDecisionText(enemyResources, "Enemy Resource Title", new Vector2(212f, 26f), new Vector2(0f, 36f), BattleDecisionFontSize);
+                SetBattleDecisionText(enemyResources, "Enemy Burning", new Vector2(212f, 26f), new Vector2(0f, -36f), BattleDecisionFontSize);
+                SetBattleDecisionTypography(enemyResources);
             }
             RectTransform endTurn = root.Find("End Battle Turn") as RectTransform;
             if (endTurn != null)
             {
-                endTurn.anchoredPosition = new Vector2(735f, -278f);
-                endTurn.sizeDelta = new Vector2(230f, 44f * GameReadability.Scale);
-                Text caption = endTurn.GetComponentInChildren<Text>(); GameReadability.Body(caption, 22);
-                caption.rectTransform.sizeDelta = endTurn.sizeDelta - new Vector2(16f, 8f);
-                caption.text = battle.Stage == NavalBattleStage.Preparation ? "进入炮战" : "结束回合";
+                SetBattleDecisionPanel(endTurn, false, buttonY, BattleDecisionButtonHeight);
+                SetBattleDecisionTypography(endTurn);
             }
+            // Stack the naval actions above the right-hand panels. The inset
+            // leaves the distant enemy's hull bar clear on their left.
+            SetBattleSpecialAction(root, "Battle Ram", "Battle Ram Condition", 6f);
+            SetBattleSpecialAction(root, "Battle Board", "Battle Board Condition", -68f);
             RectTransform curse = root.Find("Battle Curse Panel") as RectTransform;
             if (curse != null) curse.gameObject.SetActive(session.CurseCount > 0);
         }
 
+        private static void SetBattleDecisionPanel(RectTransform panel, bool player, float y, float height)
+        {
+            panel.sizeDelta = new Vector2(BattleDecisionPanelWidth, height);
+            panel.anchoredPosition = new Vector2(player ? -BattleDecisionColumnX : BattleDecisionColumnX, y);
+            Text buttonLabel = panel.Find("Label")?.GetComponent<Text>();
+            if (buttonLabel != null)
+            {
+                buttonLabel.rectTransform.sizeDelta = panel.sizeDelta - new Vector2(24f, 10f);
+                buttonLabel.rectTransform.anchoredPosition = Vector2.zero;
+            }
+        }
+
+        private static void SetBattleDecisionTypography(RectTransform panel)
+        {
+            if (panel == null) return;
+            foreach (Text label in panel.GetComponentsInChildren<Text>(true))
+            {
+                label.fontSize = BattleDecisionFontSize;
+                label.resizeTextForBestFit = false;
+            }
+        }
+
+        private static void SetBattleSpecialAction(RectTransform root, string buttonName, string hintName, float y)
+        {
+            RectTransform button = root.Find(buttonName) as RectTransform;
+            if (button == null) return;
+            button.sizeDelta = new Vector2(176f, 44f);
+            button.anchoredPosition = new Vector2(762f, y);
+            Text label = button.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.fontSize = 16;
+                label.resizeTextForBestFit = false;
+                label.rectTransform.sizeDelta = button.sizeDelta - new Vector2(24f, 10f);
+                label.rectTransform.anchoredPosition = Vector2.zero;
+            }
+            SetBattleDecisionText(root, hintName, new Vector2(176f, 28f), new Vector2(762f, y - 37f), 12);
+        }
+
         private static void SetBattleDecisionText(Transform parent, string name, Vector2 size, Vector2 position, int fontSize)
         {
-            Text label = FindBattleDecisionText(parent, name);
+            Text label = parent.Find(name)?.GetComponent<Text>();
             if (label == null) return;
             label.rectTransform.sizeDelta = size;
             label.rectTransform.anchoredPosition = position;
-            GameReadability.Body(label, fontSize);
+            label.fontSize = fontSize;
             label.color = Ink;
             label.raycastTarget = false;
-        }
-
-        private static Text FindBattleDecisionText(Transform parent, string name)
-        {
-            foreach (Text label in parent.GetComponentsInChildren<Text>(true)) if (label.name == name) return label;
-            return null;
         }
     }
 }

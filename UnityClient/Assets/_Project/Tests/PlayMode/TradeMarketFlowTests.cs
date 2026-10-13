@@ -30,14 +30,10 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.Session.Cargo.Wood, Is.Zero);
                 Assert.That(controller.Session.Cargo.Gold, Is.Zero);
                 ClickAcceptanceButton("Port Hotspot Market"); yield return null;
-                yield return EnsureMarketItemVisible("wood");
 
-                Assert.That(GameObject.Find("Market Quantity wood").GetComponent<Text>().text, Is.EqualTo("1"));
-                for (int quantity = 1; quantity < 40; quantity++)
-                {
-                    ClickAcceptanceButton("Market Increase wood");
-                    yield return null;
-                }
+                yield return OpenMarketTrade("wood");
+                Assert.That(MarketQuantityField("wood").value, Is.EqualTo(1));
+                yield return EnterMarketQuantity("wood", "40");
                 decimal initialGold = controller.Session.ProfileGold;
                 decimal buyCost = PortMarketCatalog.CalculateBuyCost(sourcePort, PortMarketItem.Wood, now, 40);
                 decimal localSale = PortMarketCatalog.CalculateSellRevenue(sourcePort, PortMarketItem.Wood, now, 10);
@@ -47,21 +43,21 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(importedSale, Is.GreaterThan(PortMarketCatalog.CalculateBuyCost(sourcePort, PortMarketItem.Wood, now, 10)),
                     "The importing port must pay more than this producing port charges.");
                 Assert.That(GameObject.Find("Market Quantity wood").GetComponent<Text>().text, Is.EqualTo("40"));
-                Assert.That(ActiveButton("Market Buy wood").GetComponentInChildren<Text>().text,
-                    Is.EqualTo("<size=22>购入 40</size>\n<size=22>−" + PortMarketCatalog.FormatPrice(buyCost) + " 金</size>"));
+                Assert.That(GameObject.Find("Market Trade Total").GetComponent<Text>().text,
+                    Does.Contain(PortMarketCatalog.FormatPrice(buyCost)));
                 CaptureTradeMarket(controller, "01_Source_Quote", "断锚港木材 40 单位的实际购买报价");
 
-                ClickAcceptanceButton("Market Buy wood"); yield return null;
+                ClickAcceptanceButton("Confirm Market Buy wood"); yield return null;
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(initialGold - buyCost));
                 Assert.That(controller.Session.Cargo.Wood, Is.EqualTo(40));
                 Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.MarketPurchaseKey(sourcePort, now, PortMarketItem.Wood)), Is.EqualTo(40));
-                Assert.That(GameObject.Find("Market Quota wood").GetComponent<Text>().text, Does.Contain("已购 40"));
+                Assert.That(MarketInfoLabel("Market Quota wood").text, Does.Contain("已购 40"));
                 CaptureTradeMarket(controller, "02_Source_Purchase", "实际按钮购入木材 40，扣款并计入当月额度");
 
-                yield return EnterMarketQuantity("wood", "10");
-                Assert.That(ActiveButton("Market Sell wood").GetComponentInChildren<Text>().text,
-                    Is.EqualTo("<size=22>出售 10</size>\n<size=22>+" + PortMarketCatalog.FormatPrice(localSale) + " 金</size>"));
-                ClickAcceptanceButton("Market Sell wood"); yield return null;
+                yield return EnterMarketQuantity("wood", "10", purchase: false);
+                Assert.That(GameObject.Find("Market Trade Total").GetComponent<Text>().text,
+                    Does.Contain(PortMarketCatalog.FormatPrice(localSale)));
+                ClickAcceptanceButton("Confirm Market Sell wood"); yield return null;
                 decimal afterLocalSale = initialGold - buyCost + localSale;
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(afterLocalSale));
                 Assert.That(controller.Session.Cargo.Wood, Is.EqualTo(30));
@@ -74,16 +70,17 @@ namespace ShatteredSail.Presentation.Tests
                 // or traversal/arrival claim is made by this transaction test.
                 controller.Session.RestoreProfile(afterLocalSale, destinationPort);
                 ClickAcceptanceButton("Port Hotspot Market"); yield return null;
-                yield return EnsureMarketItemVisible("wood");
-                Assert.That(GameObject.Find("Market Title").GetComponent<Text>().text, Does.Contain(destinationPort));
-                Assert.That(ActiveButton("Market Sell wood").GetComponentInChildren<Text>().text,
-                    Is.EqualTo("<size=22>出售 10</size>\n<size=22>+" + PortMarketCatalog.FormatPrice(importedSale) + " 金</size>"));
+                Assert.That(GameObject.Find("Port Facility Port").GetComponent<Text>().text, Does.Contain(destinationPort));
+                yield return EnterMarketQuantity("wood", "10", purchase: false);
+                Assert.That(GameObject.Find("Market Trade Total").GetComponent<Text>().text,
+                    Does.Contain(PortMarketCatalog.FormatPrice(importedSale)));
                 CaptureTradeMarket(controller, "04_Import_Quote", "夹具切换至白贝港后的高价收购报价；未模拟航路");
 
                 for (int sale = 1; sale <= 3; sale++)
                 {
                     decimal goldBefore = controller.Session.ProfileGold;
-                    ClickAcceptanceButton("Market Sell wood"); yield return null;
+                    yield return EnterMarketQuantity("wood", "10", purchase: false);
+                    ClickAcceptanceButton("Confirm Market Sell wood"); yield return null;
                     Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBefore + importedSale),
                         "Market proceeds go directly to the profile at the displayed price; do not apply voyage's 95% protection.");
                     Assert.That(controller.Session.Cargo.Wood, Is.EqualTo(30 - sale * 10));
@@ -94,7 +91,9 @@ namespace ShatteredSail.Presentation.Tests
                 }
                 decimal finalGold = afterLocalSale + 3 * importedSale;
                 Assert.That(finalGold, Is.GreaterThan(initialGold), "Exporting the remaining wood must offset the deliberate local-resale loss.");
-                Assert.That(ActiveButton("Market Sell wood").IsInteractable(), Is.False);
+                yield return OpenMarketItem("wood");
+                yield return OpenMarketTrade("wood", false);
+                Assert.That(ActiveButton("Confirm Market Sell wood").IsInteractable(), Is.False);
                 AssertTradeMarketLedgers(now);
                 CaptureTradeMarket(controller, "05_Imported_Sale", "白贝港卖出余下 30 单位，三笔足额即时入金且货物清零");
 
@@ -109,8 +108,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                 AssertTradeMarketLedgers(now);
                 ClickAcceptanceButton("Port Hotspot Market"); yield return null;
-                yield return EnsureMarketItemVisible("wood");
-                Assert.That(ActiveButton("Market Sell wood").IsInteractable(), Is.False);
+                yield return OpenMarketItem("wood");
+                yield return OpenMarketTrade("wood", false);
+                Assert.That(ActiveButton("Confirm Market Sell wood").IsInteractable(), Is.False);
                 CaptureTradeMarket(controller, "06_Reload_Persistence", "重载保留白贝港、全部交易金币、空木材库存及两港采购记录");
                 LogAssert.NoUnexpectedReceived();
             }

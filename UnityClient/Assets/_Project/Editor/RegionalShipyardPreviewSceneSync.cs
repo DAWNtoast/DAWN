@@ -28,6 +28,7 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureRegionalShipyardsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Regional shipyard previews require stopped edit mode.");
             foreach (string reference in ExistingRegionalShipyardReferences) SyncRegionalShipyard(reference, -1, -1);

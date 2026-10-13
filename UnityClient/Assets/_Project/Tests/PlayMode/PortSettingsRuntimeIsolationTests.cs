@@ -87,10 +87,6 @@ namespace ShatteredSail.Presentation.Tests
             order.Water = 70;
             List<int> deck = ReadField<List<int>>("configuredBattleDeck");
             int[] deckBefore = deck.ToArray();
-            List<int> dispatchCrew = ReadField<List<int>>("selectedDispatchCrew");
-            dispatchCrew.Add(1);
-            dispatchCrew.Add(5);
-            WriteField("selectedDispatchDurationHours", 7);
             int originalPageChildCount = page.childCount;
 
             Invoke("OpenPortSettings");
@@ -118,8 +114,6 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(page.childCount, Is.EqualTo(originalPageChildCount));
             Assert.That(order.Water, Is.EqualTo(70));
             Assert.That(deck, Is.EqualTo(deckBefore));
-            Assert.That(dispatchCrew, Is.EqualTo(new[] { 1, 5 }));
-            Assert.That(ReadField<int>("selectedDispatchDurationHours"), Is.EqualTo(7));
             Assert.That(controller.Session, Is.Null);
             settingsBefore.AssertUnchanged();
         }

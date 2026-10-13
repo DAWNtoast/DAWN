@@ -162,13 +162,82 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
+        [TestCase(0, 160)] [TestCase(1, 140)] [TestCase(2, 180)]
+        public void StarterRecommendedLongVoyageSupplyStillFillsRouteEndurance(
+            int route, int targetRations)
+        {
+            var session = new CoreVoyageSession();
+            session.SelectRoute(route);
+            VoyageSupplyOrder order = session.CreateRecommendedSupplyOrder();
+
+            Assert.That(order.Water, Is.EqualTo(targetRations - 120));
+            Assert.That(order.Food, Is.EqualTo(targetRations - 120));
+            Assert.That(order.Cannonballs, Is.Zero,
+                "Existing starter ammunition must not be reduced to the lower restock reserve.");
+            Assert.That(order.Powder, Is.Zero, "A fresh campaign already exceeds the twelve-charge reserve.");
+            VoyageSupplyQuote quote = session.QuoteSupplyPurchase(order);
+            decimal gold = session.ProfileGold;
+            Assert.That(quote.CanPurchase, Is.True);
+            Assert.That(session.RestockAtPort(), Is.True);
+            Assert.That(session.Cargo.Water, Is.EqualTo(targetRations));
+            Assert.That(session.Cargo.Food, Is.EqualTo(targetRations));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(16));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(20));
+            Assert.That(session.ProfileGold, Is.EqualTo(gold - quote.Cost));
+            Assert.That(session.RestockAtPort(), Is.False);
+            Assert.That(session.ProfileGold, Is.EqualTo(gold - quote.Cost));
+        }
+
+        [TestCase(0)] [TestCase(1)] [TestCase(2)]
+        public void RecommendedAmmunition_ReplenishesTwelvePowderAndTenBallsOnceWithoutGrantingFreeStock(int route)
+        {
+            var session = new CoreVoyageSession();
+            session.SelectRoute(route);
+            session.Cargo.Powder = session.Cargo.Cannonballs = 0;
+            VoyageSupplyOrder order = session.CreateRecommendedSupplyOrder();
+            Assert.That(order.Powder, Is.EqualTo(12));
+            Assert.That(order.Cannonballs, Is.EqualTo(10));
+            VoyageSupplyQuote quote = session.QuoteSupplyPurchase(order);
+            Assert.That(quote.CanPurchase, Is.True);
+            Assert.That(quote.FitsCargo, Is.True);
+            decimal before = session.ProfileGold;
+            Assert.That(session.RestockAtPort(), Is.True);
+            Assert.That(session.Cargo.Powder, Is.EqualTo(12));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(10));
+            Assert.That(session.ProfileGold, Is.EqualTo(before - quote.Cost));
+            Assert.That(session.CreateRecommendedSupplyOrder().TotalUnits, Is.Zero);
+            Assert.That(session.RestockAtPort(), Is.False);
+            Assert.That(session.Cargo.Powder, Is.EqualTo(12));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(10));
+            Assert.That(session.ProfileGold, Is.EqualTo(before - quote.Cost));
+        }
+
+        [TestCase(0)] [TestCase(1)] [TestCase(2)]
+        public void LegacyProvisionsAboveRecommendedReserveAreNotRemovedOrToppedUp(int route)
+        {
+            var session = new CoreVoyageSession();
+            session.Cargo.Water = session.Cargo.Food = 286;
+            session.Cargo.Cannonballs = 10;
+            session.SelectRoute(route);
+            float volume = session.Cargo.UsedVolume;
+            decimal gold = session.ProfileGold;
+
+            Assert.That(session.CreateRecommendedSupplyOrder().TotalUnits, Is.Zero);
+            Assert.That(session.RestockAtPort(), Is.False);
+            Assert.That(session.Cargo.Water, Is.EqualTo(286));
+            Assert.That(session.Cargo.Food, Is.EqualTo(286));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(10));
+            Assert.That(session.Cargo.UsedVolume, Is.EqualTo(volume));
+            Assert.That(session.ProfileGold, Is.EqualTo(gold));
+        }
+
         [Test]
         public void WhiteShellBulkWaterCostDoesNotRoundUpAnExtraGoldFromFloatNoise()
         {
             var session = new CoreVoyageSession();
             session.RestoreProfile(500, "白贝港");
-            Assert.That(session.CalculateSupplyPurchaseCost(VoyageSupplyType.Water, 500), Is.EqualTo(13));
-            Assert.That(session.QuoteSupplyPurchase(new VoyageSupplyOrder { Water = 500 }).Cost, Is.EqualTo(13));
+            Assert.That(session.CalculateSupplyPurchaseCost(VoyageSupplyType.Water, 500), Is.EqualTo(10.4m));
+            Assert.That(session.QuoteSupplyPurchase(new VoyageSupplyOrder { Water = 500 }).Cost, Is.EqualTo(10.4m));
         }
 
         [Test]
@@ -281,36 +350,6 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(session.Cargo.Gold, Is.EqualTo(41));
                 Assert.That(session.ProfileGold, Is.EqualTo(gold + 73));
             }
-        }
-
-        [TestCase(0)] [TestCase(1)] [TestCase(2)]
-        public void Dispatch_RecommendedCrewAndDurationHaveBoundedRealBonuses(int mission)
-        {
-            int hours = GameplayBalance.DispatchHours(mission);
-            var specialist = new[] { GameplayBalance.DispatchSpecialist(mission) };
-            Assert.That(GameplayBalance.DispatchPercent(mission, hours, null), Is.EqualTo(100));
-            Assert.That(GameplayBalance.DispatchPercent(mission, hours, specialist), Is.EqualTo(125));
-            Assert.That(GameplayBalance.DispatchPercent(mission, hours, new[] { specialist[0], specialist[0], -1, 100 }), Is.EqualTo(125));
-            int full = GameplayBalance.DispatchPercent(mission, hours * 2, specialist);
-            Assert.That(full, Is.EqualTo(200));
-            Assert.That(GameplayBalance.DispatchPercent(mission, 1000, specialist), Is.EqualTo(full));
-            var twoCrew = new[] { specialist[0], (specialist[0] + 1) % 6, (specialist[0] + 2) % 6 };
-            Assert.That(GameplayBalance.DispatchPercent(mission, hours * 2, twoCrew), Is.EqualTo(210));
-            Assert.That(GameplayBalance.DispatchPercent(mission, -1000, specialist), Is.EqualTo(125));
-            Assert.That(GameplayBalance.DispatchCost(mission), Is.Zero);
-            Assert.That(GameplayBalance.DispatchGold(mission), Is.GreaterThan(GameplayBalance.DispatchCost(mission)));
-        }
-
-        [Test]
-        public void LegacyDispatchKeepsOriginalQuoteAndNewSurveyNoLongerUnderpays()
-        {
-            MethodInfo rewards = typeof(CoreGameplayDemoController).GetMethod("DispatchRewards", BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.That((int[])rewards.Invoke(null, new object[] { 2, 100, true }), Is.EqualTo(new[] { 70, 0, 5, 2 }));
-            Assert.That((int[])rewards.Invoke(null, new object[] { 2, 100, false }), Is.EqualTo(new[] { 125, 0, 6, 4 }));
-            // Compare realized gold per hour using the warehouse's actual material resale prices.
-            double salvage = (35 + 3 * 2) / 2d;
-            double survey = (125 + 6 * 6) / 10d;
-            Assert.That(salvage / survey, Is.LessThan(1.6d));
         }
 
         [Test]

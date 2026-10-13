@@ -18,6 +18,7 @@ namespace ShatteredSail.Editor
 
         public static int RepairScene(Scene scene)
         {
+            if (GameplayPreviewSceneBuilder.IsRetiredEditablePreviewPath(scene.path)) return 0;
             int repaired = 0;
             foreach (var host in scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<CoreGameplayDemoController>(true)))
             {
@@ -92,6 +93,7 @@ namespace ShatteredSail.Editor
 
         public static void RepairSavedBoardingFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stopped editor required.");
             foreach (string suffix in new[] { "Hook", "Ladder", "Ram" })
             {

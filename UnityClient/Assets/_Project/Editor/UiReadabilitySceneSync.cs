@@ -15,6 +15,7 @@ namespace ShatteredSail.Editor
     {
         public static void SyncFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stopped editor required.");
             int changed = 0;
             foreach (string file in Directory.GetFiles("Assets/_Project/Scenes/UIPreviewsForMe", "*.unity", SearchOption.AllDirectories))
@@ -30,7 +31,7 @@ namespace ShatteredSail.Editor
                         { canvas.enabled = true; touched = true; }
                     foreach (RawImage image in host.GetComponentsInChildren<RawImage>(true))
                     {
-                        if (image.name.StartsWith("Route Preview ") || image.name == "Dispatch Deployment Chart" || image.name.StartsWith("Event Icon "))
+                        if (image.name.StartsWith("Route Preview ") || image.name.StartsWith("Event Icon "))
                         { UiImageAspect.Fit(image, image.rectTransform.sizeDelta); touched = true; }
                     }
                     foreach (Text label in host.GetComponentsInChildren<Text>(true))
@@ -41,7 +42,7 @@ namespace ShatteredSail.Editor
                         if (name.StartsWith("Port Label ") || name == "Port Hub Hint" || name.StartsWith("Tavern Crew Name ") ||
                             name.StartsWith("Tavern Crew Status ") || name.StartsWith("Card Workshop Chest Name "))
                         { UiLabelBacking.Apply(label, name.StartsWith("Tavern Crew Status ") || name.StartsWith("Card Workshop Chest Name ")); touched = true; }
-                        if (name == "Port Investment Level")
+                        if (name == "Port Investment Current Level" || name == "Port Investment Next Level")
                         { label.color = new Color32(0x24, 0x17, 0x0F, 255); foreach (Shadow shadow in label.GetComponents<Shadow>()) shadow.enabled = false; touched = true; }
                         if (name.StartsWith("Component Shop Plaque Name ")) { label.resizeTextMinSize = 18; UiLabelBacking.Apply(label, true); touched = true; }
                         if (name.StartsWith("Component Shop Plaque Status ")) { label.resizeTextMinSize = 14; UiLabelBacking.Apply(label, true); touched = true; }

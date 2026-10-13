@@ -160,13 +160,72 @@ namespace ShatteredSail.Core.Tests
         {
             Create(); Render(SettlementPreviewSamples.Create(scenario, "盐冠港"));
             var card = Find<RectTransform>("Settlement Card");
-            foreach (Text label in card.GetComponentsInChildren<Text>())
+            // Validate authored logical geometry independently of the batch
+            // Editor's Game View size. Production scaler behavior is covered by
+            // the separate renders with real target resolutions and scaling.
+            Canvas canvas = card.GetComponentInParent<Canvas>();
+            canvas.GetComponent<CanvasScaler>().enabled = false;
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.scaleFactor = 1f;
+            RectTransform canvasRect = canvas.GetComponent<RectTransform>();
+            canvasRect.sizeDelta = new Vector2(1920f, 1080f);
+            canvasRect.localScale = Vector3.one;
+            Find<SettlementRevealController>("Settlement Card").CompleteImmediately();
+            Text[] labels = card.GetComponentsInChildren<Text>()
+                .Where(label => label.isActiveAndEnabled && !string.IsNullOrEmpty(label.text)).ToArray();
+            // Font atlas rebuilds can dirty another label during the same pass.
+            for (int pass = 0; pass < 3; pass++)
             {
-                if (!label.gameObject.activeInHierarchy) continue;
-                var settings = label.GetGenerationSettings(label.rectTransform.rect.size);
-                float required = label.cachedTextGeneratorForLayout.GetPreferredHeight(label.text, settings) / label.pixelsPerUnit;
-                Assert.That(required, Is.LessThanOrEqualTo(label.rectTransform.rect.height + 2), label.name + " clips vertically");
+                foreach (Text label in labels) label.SetAllDirty();
+                Canvas.ForceUpdateCanvases();
             }
+            foreach (Text label in labels)
+            {
+                Vector3[] rendered = RenderedTextVertices(label);
+                int renderedGlyphs = VisibleGlyphBounds(rendered, out Rect visible);
+                Assert.That(renderedGlyphs, Is.GreaterThan(0), label.name + " renders no visible text");
+                Rect rect = label.rectTransform.rect;
+                Assert.That(visible.xMin, Is.GreaterThanOrEqualTo(rect.xMin - 1f), label.name + " clips on the left");
+                Assert.That(visible.xMax, Is.LessThanOrEqualTo(rect.xMax + 1f), label.name + " clips on the right");
+                Assert.That(visible.yMin, Is.GreaterThanOrEqualTo(rect.yMin - 1f), label.name + " clips below its rectangle");
+                Assert.That(visible.yMax, Is.LessThanOrEqualTo(rect.yMax + 1f), label.name + " clips above its rectangle");
+                if (label.alignment == TextAnchor.MiddleLeft || label.alignment == TextAnchor.MiddleCenter ||
+                    label.alignment == TextAnchor.MiddleRight)
+                    Assert.That(Mathf.Abs(visible.center.y - rect.center.y), Is.LessThan(1f), label.name + " is not vertically centered");
+                if (label.alignment == TextAnchor.MiddleCenter)
+                    Assert.That(Mathf.Abs(visible.center.x - rect.center.x), Is.LessThan(1f), label.name + " is not horizontally centered");
+                Transform row = label.transform.parent;
+                if (row.name == "Settlement Featured Reward" || row.name.StartsWith("Settlement Reward Tile "))
+                {
+                    Rect textInRow = BoundsRelativeTo(visible, label.transform, row);
+                    foreach (RawImage icon in row.GetComponentsInChildren<RawImage>()
+                        .Where(icon => icon.isActiveAndEnabled && icon.transform.parent == row))
+                    {
+                        Rect iconInRow = BoundsRelativeTo(icon.rectTransform.rect, icon.transform, row);
+                        Assert.That(textInRow.Overlaps(iconInRow), Is.False, label.name + " overlaps " + icon.name);
+                    }
+                }
+
+                // A truncated mesh can fit perfectly while silently dropping a line.
+                // Compare against unrestricted height at the same width and final
+                // best-fit font size, rather than comparing the font's line box.
+                var settings = label.GetGenerationSettings(rect.size);
+                if (label.resizeTextForBestFit)
+                    settings.fontSize = label.cachedTextGenerator.fontSizeUsedForBestFit;
+                settings.resizeTextForBestFit = false;
+                settings.verticalOverflow = VerticalWrapMode.Overflow;
+                using (var complete = new TextGenerator())
+                {
+                    Assert.That(complete.Populate(label.text, settings), Is.True, label.name + " cannot generate complete text");
+                    int completeGlyphs = VisibleGlyphBounds(complete.verts.Select(vertex => vertex.position).ToArray(), out _);
+                    Assert.That(renderedGlyphs, Is.EqualTo(completeGlyphs), label.name + " loses glyphs through truncation");
+                    Assert.That(label.cachedTextGenerator.characterCountVisible, Is.EqualTo(complete.characterCountVisible),
+                        label.name + " loses characters or a line through truncation");
+                }
+            }
+            Assert.That(labels.Any(label => label.text == "船体修缮" || label.text == "铸造储备" || label.text == "远航声名"),
+                Is.False, "Removed material/reputation hints must be absent, including when a material is the featured reward.");
+            Assert.That(labels.Count(label => label.text == "船长资金"), Is.EqualTo(1), "The gold detail remains in its featured or small card.");
             foreach (Button button in card.GetComponentsInChildren<Button>())
             {
                 Vector3[] corners = new Vector3[4]; button.GetComponent<RectTransform>().GetWorldCorners(corners);
@@ -177,6 +236,66 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(local.y, Is.InRange(-470f, 470f), button.name);
                 }
             }
+        }
+
+        private static Vector3[] RenderedTextVertices(Text label)
+        {
+            Mesh rendered = label.canvasRenderer.GetMesh();
+            if (rendered != null && rendered.vertexCount > 0) return rendered.vertices;
+            // A headless EditMode canvas may not reach PreRender. In that case
+            // exercise Text's real generation and attached mesh effects directly.
+            using (var vertices = new VertexHelper())
+            {
+                typeof(Text).GetMethod("OnPopulateMesh", BindingFlags.Instance | BindingFlags.NonPublic,
+                    null, new[] { typeof(VertexHelper) }, null).Invoke(label, new object[] { vertices });
+                foreach (IMeshModifier modifier in label.GetComponents<Component>().OfType<IMeshModifier>())
+                    modifier.ModifyMesh(vertices);
+                var mesh = new Mesh();
+                try
+                {
+                    vertices.FillMesh(mesh);
+                    return mesh.vertices;
+                }
+                finally { Object.DestroyImmediate(mesh); }
+            }
+        }
+
+        private static int VisibleGlyphBounds(Vector3[] vertices, out Rect bounds)
+        {
+            Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+            Vector2 max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            int glyphs = 0;
+            for (int start = 0; start + 3 < vertices.Length; start += 4)
+            {
+                Vector2 quadMin = vertices[start], quadMax = vertices[start];
+                for (int i = start + 1; i < start + 4; i++)
+                {
+                    quadMin = Vector2.Min(quadMin, vertices[i]);
+                    quadMax = Vector2.Max(quadMax, vertices[i]);
+                }
+                // Empty space/newline quads do not describe visible glyph bounds.
+                if (quadMax.x - quadMin.x <= .001f || quadMax.y - quadMin.y <= .001f) continue;
+                min = Vector2.Min(min, quadMin); max = Vector2.Max(max, quadMax); glyphs++;
+            }
+            bounds = glyphs == 0 ? default : Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+            return glyphs;
+        }
+
+        private static Rect BoundsRelativeTo(Rect bounds, Transform item, Transform relativeTo)
+        {
+            var corners = new[]
+            {
+                new Vector3(bounds.xMin, bounds.yMin), new Vector3(bounds.xMin, bounds.yMax),
+                new Vector3(bounds.xMax, bounds.yMin), new Vector3(bounds.xMax, bounds.yMax)
+            };
+            Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+            Vector2 max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            foreach (Vector3 corner in corners)
+            {
+                Vector2 point = relativeTo.InverseTransformPoint(item.TransformPoint(corner));
+                min = Vector2.Min(min, point); max = Vector2.Max(max, point);
+            }
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
     }
 }

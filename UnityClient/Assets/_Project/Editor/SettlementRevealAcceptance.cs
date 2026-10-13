@@ -45,7 +45,7 @@ namespace ShatteredSail.Editor
                 var controller = host.AddComponent<CoreGameplayDemoController>();
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Settlement, CoreGameplayPreviewPort.GrayGull, 0); host.SetActive(true);
                 Canvas canvas = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName).GetComponent<Canvas>();
-                RectTransform content = (RectTransform)canvas.transform.Find("Phase Content");
+                RectTransform content = (RectTransform)FixedGameViewport.Bounds(canvas).Find("Phase Content");
                 foreach (Transform child in content.Cast<Transform>().ToArray()) Object.DestroyImmediate(child.gameObject);
                 typeof(CoreGameplayDemoController).GetMethod("BuildSettlementPresentation", BindingFlags.Instance | BindingFlags.NonPublic)
                     .Invoke(controller, new object[] { SettlementPreviewSamples.Create(scenario), true });

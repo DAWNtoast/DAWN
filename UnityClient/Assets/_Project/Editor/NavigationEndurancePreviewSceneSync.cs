@@ -2,15 +2,10 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using ShatteredSail.Presentation;
-using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace ShatteredSail.Editor
 {
@@ -40,106 +35,24 @@ namespace ShatteredSail.Editor
             "TutorialVoyage/26_ThirdReturn.unity",
         };
 
-        public static void SyncNavigationEnduranceStatesFromCommandLine()
+        public static void SyncNavigationEnduranceStatesFromCommandLine() => SyncNavigationHudFromCommandLine();
+
+        /// <summary>Keep the legacy HUD entry point aligned with the current three-panel dashboard.</summary>
+        public static void SyncNavigationHudFromCommandLine()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode)
-                throw new InvalidOperationException("Navigation endurance previews require edit mode.");
-            foreach (string reference in NavigationEnduranceReferencePaths)
-                SyncNavigationEnduranceScene(reference);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-            Debug.Log("NAVIGATION_ENDURANCE_PREVIEW_SYNC: updated " + NavigationEnduranceReferencePaths.Length +
-                " authored navigation/event/tutorial scenes; existing maps, encounters, cargo and journal text retained.");
+            string artifactRoot = Path.GetFullPath(Path.Combine(Application.dataPath,
+                "../../Artifacts/NavigationThreePanel20261011"));
+            string backupRoot = DashboardCommandLinePath("-navigationHudBackupPath",
+                Path.Combine(artifactRoot, "scene-backup"));
+            string reportPath = DashboardCommandLinePath("-navigationHudReportPath",
+                Path.Combine(artifactRoot, "scene-sync.json"));
+            NavigationThreePanelPreviewSceneSync.Sync(backupRoot, reportPath);
         }
 
         public static void SyncAndCaptureNavigationEnduranceFromCommandLine()
         {
             SyncNavigationEnduranceStatesFromCommandLine();
             UIPreviewSceneAcceptance.CaptureNavigationEnduranceFromCommandLine();
-        }
-
-        private static void SyncNavigationEnduranceScene(string reference)
-        {
-            string path = EditableSceneFolder + "/" + reference;
-            string absolute = AbsolutePath(path);
-            if (!File.Exists(absolute)) throw new FileNotFoundException("Missing authored navigation preview", path);
-            string backup = AbsolutePath("Artifacts/NavigationEndurance20260930/preview-backup/" + path);
-            Directory.CreateDirectory(Path.GetDirectoryName(backup));
-            if (!File.Exists(backup)) File.Copy(absolute, backup);
-
-            Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
-            CoreGameplayDemoController destination = scene.GetRootGameObjects()
-                .SelectMany(root => root.GetComponentsInChildren<CoreGameplayDemoController>(true)).Single();
-            if (destination.EditorPreviewScreen != CoreGameplayPreviewScreen.Navigation &&
-                destination.EditorPreviewScreen != CoreGameplayPreviewScreen.Encounter)
-                throw new InvalidOperationException("Unexpected preview screen in " + path);
-            Transform targetJournal = destination.GetComponentsInChildren<Transform>(true)
-                .Single(item => item.name == "Navigation Journal");
-            Scene stagingScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
-            GameObject staging = null;
-            try
-            {
-                staging = new GameObject("__NavigationEnduranceStaging");
-                SceneManager.MoveGameObjectToScene(staging, stagingScene);
-                CoreGameplayDemoController source = staging.AddComponent<CoreGameplayDemoController>();
-                CopyProvisionPreviewSettings(destination, source);
-                source.RefreshEditorPreview();
-                if (!source.HasCompleteEditorPreview)
-                    throw new InvalidOperationException("Incomplete endurance source for " + path);
-                if (!destination.GetComponentsInChildren<Text>(true)
-                    .Any(label => label.text == source.Session.SelectedShip.Name))
-                    throw new InvalidOperationException("The saved ship does not match the endurance sample in " + path);
-
-                // Some authored tutorial/event pages contain hand-staged cargo
-                // figures. Derive the new sample from those retained figures,
-                // rather than silently displaying a different stock of rations.
-                Text cargo = targetJournal.Find("Cargo Status").GetComponent<Text>();
-                source.Session.Cargo.Water = ReadPreviewRations(cargo.text, "淡水", path);
-                source.Session.Cargo.Food = ReadPreviewRations(cargo.text, "食物", path);
-                MethodInfo render = typeof(CoreGameplayDemoController).GetMethod("Render",
-                    BindingFlags.Instance | BindingFlags.NonPublic)
-                    ?? throw new MissingMethodException(typeof(CoreGameplayDemoController).FullName, "Render");
-                render.Invoke(source, null);
-                PreviewSceneSpec artSpec = Array.Find(Specs, item => item.Screen == source.EditorPreviewScreen);
-                PersistGeneratedSceneVisuals(staging.transform, artSpec);
-                Transform sourceJournal = source.GetComponentsInChildren<Transform>(true)
-                    .Single(item => item.name == "Navigation Journal");
-                RectTransform sourceScroll = (RectTransform)sourceJournal.Find("Voyage Journal Scroll");
-                RectTransform targetScroll = (RectTransform)targetJournal.Find("Voyage Journal Scroll");
-                Transform sourceEndurance = sourceJournal.Find("Voyage Supply Endurance");
-                if (sourceScroll == null || targetScroll == null || sourceEndurance == null)
-                    throw new InvalidOperationException("Navigation endurance controls are missing in " + path);
-
-                // Only reserve the new footer space. The saved journal, its
-                // art, cargo numbers, event cards and map nodes stay authored.
-                targetScroll.sizeDelta = sourceScroll.sizeDelta;
-                targetScroll.anchoredPosition = sourceScroll.anchoredPosition;
-                Text log = targetScroll.Find("Voyage Log").GetComponent<Text>();
-                float minimumLogHeight = sourceScroll.sizeDelta.y - 2f;
-                log.rectTransform.sizeDelta = new Vector2(log.rectTransform.sizeDelta.x,
-                    Mathf.Max(minimumLogHeight, log.preferredHeight + 18f));
-                CopyTreasureLayer(sourceEndurance, targetJournal, "Voyage Supply Endurance");
-            }
-            finally
-            {
-                if (staging != null) UnityEngine.Object.DestroyImmediate(staging);
-                if (stagingScene.IsValid() && stagingScene.isLoaded) EditorSceneManager.CloseScene(stagingScene, true);
-                if (scene.IsValid() && scene.isLoaded) SceneManager.SetActiveScene(scene);
-            }
-            // In batch edit mode an overlay Canvas can receive zero scale from
-            // its unavailable Game view. Saving that transient value hides the
-            // authored page in Scene view; the screenshot path resets scale and
-            // would otherwise conceal the regression. Keep the scaler itself.
-            RectTransform canvasRect = destination.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName)
-                .GetComponent<RectTransform>();
-            Vector3 scale = canvasRect.localScale;
-            if (!ValidNavigationCanvasScale(scale.x) || !ValidNavigationCanvasScale(scale.y) ||
-                !ValidNavigationCanvasScale(scale.z))
-                canvasRect.localScale = Vector3.one;
-            EditorSceneManager.MarkSceneDirty(scene);
-            if (!EditorSceneManager.SaveScene(scene, path)) throw new InvalidOperationException("Failed to save " + path);
-            RepairSavedNavigationCanvasScale(absolute);
-            AssertSavedNavigationCanvasScale(absolute);
         }
 
         private static bool ValidNavigationCanvasScale(float value) =>
@@ -187,12 +100,5 @@ namespace ShatteredSail.Editor
             return scale;
         }
 
-        private static int ReadPreviewRations(string text, string label, string path)
-        {
-            Match match = Regex.Match(text, Regex.Escape(label) + @"\s+(\d+)");
-            if (!match.Success || !int.TryParse(match.Groups[1].Value, out int amount))
-                throw new InvalidOperationException("Cannot read the saved " + label + " sample in " + path);
-            return amount;
-        }
     }
 }

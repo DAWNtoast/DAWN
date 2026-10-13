@@ -92,7 +92,9 @@ namespace ShatteredSail.Presentation.Tests
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
 
             yield return OpenInvestmentThroughMarket();
-            Assert.That(GameObject.Find("Port Investment Resources").GetComponent<Text>().text, Does.Contain("航海灯 1"));
+            AssertInvestmentRequirement("lantern", "航海灯", "1/1");
+            Assert.That(session.GetPortInvestmentMaterialAmount("lantern"), Is.EqualTo(1L));
+            AssertInvestmentComparison(3);
             Assert.That(ActiveButton("Confirm Port Investment").IsInteractable(), Is.True);
             NavalBattleVisualCapture.Capture(controller, "LanternRecovery_03_Investment.png",
                 "航海灯从实际事件到港口四级投资的完整消耗链；金币和基础建材为测试夹具", "Port Investment Panel");
@@ -107,6 +109,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.PortWarehouse.GetAmount(port, "wood"), Is.Zero);
             Assert.That(session.PortWarehouse.GetAmount(port, "iron"), Is.Zero);
             Assert.That(session.PortWarehouse.GetAmount(port, PortMarketCatalog.Key(cost.RequiredItem)), Is.Zero);
+            AssertInvestmentComparison(4);
             string after = SnapshotRareInvestment(session);
             AssertRareWarehouseSavedSplit(session);
 

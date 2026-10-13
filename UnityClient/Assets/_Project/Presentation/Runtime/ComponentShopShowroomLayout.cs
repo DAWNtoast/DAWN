@@ -3,10 +3,10 @@ using UnityEngine;
 
 namespace ShatteredSail.Presentation
 {
-    /// <summary>Whole-object placements on the central showroom floor, not across the wall shelves.</summary>
+    /// <summary>Five catalogue entries aligned with the category buttons on the opposite side.</summary>
     public static class ComponentShopShowroomLayout
     {
-        public const int PageSize = 3;
+        public const int PageSize = 5;
 
         public readonly struct Spot
         {
@@ -26,10 +26,8 @@ namespace ShatteredSail.Presentation
         public static Spot GetDisplay(int visibleCount, int index)
         {
             if (visibleCount < 1 || visibleCount > PageSize || index < 0 || index >= visibleCount)
-                throw new ArgumentOutOfRangeException(nameof(index), "A showroom group contains one to three complete assemblies.");
-            if (visibleCount == 1) return new Spot(0f, -55f, 1f);
-            if (visibleCount == 2) return new Spot(index == 0 ? -250f : 250f, -55f, 0.96f);
-            return new Spot((index - 1) * 350f, -55f, 0.90f);
+                throw new ArgumentOutOfRangeException(nameof(index), "A catalogue page contains one to five component thumbnails.");
+            return new Spot(800f, 305f - index * 120f, 1f);
         }
     }
 }

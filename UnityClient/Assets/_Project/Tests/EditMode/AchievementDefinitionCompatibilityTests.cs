@@ -22,10 +22,10 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "tutorial_navigator", "听见潮声", "完成一次有航海士随行的航程", "航程进度" },
             new[] { "tutorial_warehouse", "留住纪念", "把第一件藏品收入仓库", "收藏" },
             new[] { "component_loadout", "船匠入门", "保存一套有效的部件装配", "整备" },
-            new[] { "gold_600", "海上生意", "船长资金达到 600 金币", "财富" },
-            new[] { "gold_900", "黄金船长", "船长资金达到 900 金币", "财富" },
-            new[] { "gold_1200", "满载而归", "船长资金达到 1,200 金币", "财富" },
-            new[] { "gold_2000", "七港富商", "船长资金达到 2,000 金币", "财富" },
+            new[] { "gold_600", "海上生意", "船长资金达到 1,000 金币", "财富" },
+            new[] { "gold_900", "黄金船长", "船长资金达到 2,500 金币", "财富" },
+            new[] { "gold_1200", "满载而归", "船长资金达到 5,000 金币", "财富" },
+            new[] { "gold_2000", "七港富商", "船长资金达到 10,000 金币", "财富" },
             new[] { "port_gray_gull", "陌生港口", "抵达灰鸥港，完成第一次跨港航行", "航程进度" },
             new[] { "port_white_shell", "白贝潮汐", "抵达白贝港", "航程进度" },
             new[] { "port_bronze_bell", "钟声入海", "抵达铜钟港", "航程进度" },
@@ -47,9 +47,9 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "crew_three", "小小船团", "招募三名船员", "船员" },
             new[] { "crew_six", "老船长旧部", "招募六名船员", "船员" },
             new[] { "crew_variants", "各港知己", "招募六名不同港口的船员", "船员" },
-            new[] { "dispatch_prepare", "远航派遣", "派遣船员执行一次任务", "派遣" },
-            new[] { "dispatch_long", "长航守望", "安排一次不少于 12 小时的派遣", "派遣" },
-            new[] { "dispatch_resolved", "带回消息", "完成一次派遣结算", "派遣" },
+            new[] { "voyage_three_events", "亲历远航", "在一次非教学普通航程中完成至少 3 个海图事件，并安全返港或抵达目标港口", "航程进度" },
+            new[] { "voyage_half_chart", "循图探海", "在一次非教学普通航程中探索至少 50% 的海图，并安全返港或抵达目标港口", "航程进度" },
+            new[] { "voyage_event_arrival", "跨海领航", "在一次非教学普通航程中完成至少 6 个海图事件，并抵达目标港口", "航程进度" },
             new[] { "warehouse_one", "第一件珍藏", "收藏一件可展览物品", "收藏" },
             new[] { "warehouse_three", "柜中三宝", "收藏三件可展览物品", "收藏" },
             new[] { "warehouse_ten", "船长展室", "收藏十件可展览物品", "收藏" },
@@ -59,9 +59,9 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "battle_stages", "三种战法", "为三种战斗阶段分别配置卡组", "战斗" },
             new[] { "card_upgrade", "磨亮牌面", "强化一张战斗卡牌", "战斗" },
             new[] { "special_card", "专属传承", "获得一张船员或部件专属卡", "战斗" },
-            new[] { "cargo_ready", "补给充足", "同时储备 100 单位水与食物", "补给" },
+            new[] { "cargo_ready", "补给充足", "同时储备 500 单位水与食物", "补给" },
             new[] { "cargo_all", "满舱远征", "让所有基础补给都不再为空", "补给" },
-            new[] { "fame", "自由之名", "声望达到 20", "传承" },
+            new[] { "fame", "自由之名", "声望达到 100", "传承" },
             new[] { "seventh_harbor", "第七港口", "完成引导、抵达六港并拥有一艘额外船只", "传承" },
         };
 
@@ -107,6 +107,9 @@ namespace ShatteredSail.Presentation.Tests
             "market_magnate",
             "captains_mark",
             "dispatch_first",
+            "dispatch_prepare",
+            "dispatch_long",
+            "dispatch_resolved",
             "dispatch_master",
             "rescue_mission",
             "free_harbor_builder",
@@ -150,9 +153,9 @@ namespace ShatteredSail.Presentation.Tests
             "ShatteredSail.Achievements.Unlocked.v1.crew_three",
             "ShatteredSail.Achievements.Unlocked.v1.crew_six",
             "ShatteredSail.Achievements.Unlocked.v1.crew_variants",
-            "ShatteredSail.Achievements.Unlocked.v1.dispatch_prepare",
-            "ShatteredSail.Achievements.Unlocked.v1.dispatch_long",
-            "ShatteredSail.Achievements.Unlocked.v1.dispatch_resolved",
+            "ShatteredSail.Achievements.Unlocked.v1.voyage_three_events",
+            "ShatteredSail.Achievements.Unlocked.v1.voyage_half_chart",
+            "ShatteredSail.Achievements.Unlocked.v1.voyage_event_arrival",
             "ShatteredSail.Achievements.Unlocked.v1.warehouse_one",
             "ShatteredSail.Achievements.Unlocked.v1.warehouse_three",
             "ShatteredSail.Achievements.Unlocked.v1.warehouse_ten",
@@ -193,9 +196,6 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "ShatteredSail.Achievements.Unlocked.v1.crew_six", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.crew_three", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.crew_variants", "int" },
-            new[] { "ShatteredSail.Achievements.Unlocked.v1.dispatch_long", "int" },
-            new[] { "ShatteredSail.Achievements.Unlocked.v1.dispatch_prepare", "int" },
-            new[] { "ShatteredSail.Achievements.Unlocked.v1.dispatch_resolved", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.fame", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.gold_1200", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.gold_2000", "int" },
@@ -222,6 +222,9 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "ShatteredSail.Achievements.Unlocked.v1.tutorial_recovery", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.tutorial_reward", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.tutorial_warehouse", "int" },
+            new[] { "ShatteredSail.Achievements.Unlocked.v1.voyage_event_arrival", "int" },
+            new[] { "ShatteredSail.Achievements.Unlocked.v1.voyage_half_chart", "int" },
+            new[] { "ShatteredSail.Achievements.Unlocked.v1.voyage_three_events", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.warehouse_display_six", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.warehouse_one", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.warehouse_ten", "int" },
@@ -233,6 +236,7 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "ShatteredSail.Achievements.Visited.v1.盐冠港", "int" },
             new[] { "ShatteredSail.Achievements.Visited.v1.铜钟港", "int" },
             new[] { "ShatteredSail.BattleCardUpgrades.v1", "string" },
+            new[] { "ShatteredSail.BattleDeck.Edited.v1", "int" },
             new[] { "ShatteredSail.BattleDeck.v1", "string" },
             new[] { "ShatteredSail.BattleDeck.v2.Boarding", "string" },
             new[] { "ShatteredSail.BattleDeck.v2.Naval", "string" },
@@ -252,6 +256,7 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "ShatteredSail.ComponentInventory.v2", "string" },
             new[] { "ShatteredSail.CurrentPort.v1", "string" },
             new[] { "ShatteredSail.GameClockHours.v1", "string" },
+            new[] { "ShatteredSail.LastVoyageExplorationCoverage.v1", "string" },
             new[] { "ShatteredSail.PortWarehouse.Cargo.v1", "string" },
             new[] { "ShatteredSail.ProfileGold.Decimal.v2", "string" },
             new[] { "ShatteredSail.ProfileGold.v1", "int" },
@@ -279,7 +284,7 @@ namespace ShatteredSail.Presentation.Tests
         };
 
         [Test]
-        public void CanonicalMetadata_PreservesAllFiftyUiDefinitionsAndTheirOrder()
+        public void CanonicalMetadata_MatchesAllFiftyUiDefinitionsAndTheirOrder()
         {
             Assert.That(MetadataBefore.Length, Is.EqualTo(50));
             Assert.That(MetadataBefore.Select(row => row[0]).Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(50));
@@ -321,8 +326,8 @@ namespace ShatteredSail.Presentation.Tests
         [Test]
         public void RetiredPrototypeIds_RemainUnknownAndNeverAcquirePersistenceKeys()
         {
-            Assert.That(RetiredPrototypeIds.Length, Is.EqualTo(45));
-            Assert.That(RetiredPrototypeIds.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(45));
+            Assert.That(RetiredPrototypeIds.Length, Is.EqualTo(48));
+            Assert.That(RetiredPrototypeIds.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(48));
             string[] persistenceKeys = AchievementCatalog.PersistenceKeys.ToArray();
             foreach (string id in RetiredPrototypeIds)
             {
@@ -333,7 +338,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void Persistence_PreservesExactFiftyUnlockAndSixVisitKeysWithoutAliases()
+        public void Persistence_UsesExactFiftyUnlockAndSixVisitKeysWithoutAliases()
         {
             Assert.That(AchievementKeysBefore.Length, Is.EqualTo(56));
             Assert.That(AchievementKeysBefore.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(56));
@@ -343,20 +348,20 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void PendingJournalCompatibility_PreservesAllOneHundredSortedKeysAndNativeTypes()
+        public void PendingJournalCompatibility_PreservesAllCurrentSortedKeysAndNativeTypes()
         {
-            Assert.That(JournalKeysBefore.Length, Is.EqualTo(100));
+            Assert.That(JournalKeysBefore.Length, Is.EqualTo(102));
             string[] expectedKeys = JournalKeysBefore.Select(row => row[0]).ToArray();
-            Assert.That(expectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(100));
+            Assert.That(expectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(102));
             Assert.That(expectedKeys, Is.EqualTo(expectedKeys.OrderBy(key => key, StringComparer.Ordinal)));
-            Assert.That(JournalKeysBefore.Count(row => row[1] == "string"), Is.EqualTo(29));
-            Assert.That(JournalKeysBefore.Count(row => row[1] == "int"), Is.EqualTo(71));
+            Assert.That(JournalKeysBefore.Count(row => row[1] == "string"), Is.EqualTo(30));
+            Assert.That(JournalKeysBefore.Count(row => row[1] == "int"), Is.EqualTo(72));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Is.EqualTo(expectedKeys));
 
             FieldInfo specsField = typeof(ProfileSaveJournal).GetField("Specs", BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(specsField, Is.Not.Null, "The actual journal schema must be compared, not just its exported key names.");
             Array specs = (Array)specsField.GetValue(null);
-            Assert.That(specs.Length, Is.EqualTo(100));
+            Assert.That(specs.Length, Is.EqualTo(102));
             for (int index = 0; index < specs.Length; index++)
             {
                 object spec = specs.GetValue(index);

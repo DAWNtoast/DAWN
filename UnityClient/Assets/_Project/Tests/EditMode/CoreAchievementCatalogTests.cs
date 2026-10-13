@@ -26,6 +26,15 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void RetainedCategoriesKeepTheirSerializedValues()
+        {
+            Assert.That((int)CoreAchievementCategory.Fleet, Is.EqualTo(9));
+            Assert.That((int)CoreAchievementCategory.Exploration, Is.EqualTo(11));
+            Assert.That((int)CoreAchievementCategory.Supplies, Is.EqualTo(12));
+            Assert.That(Enum.IsDefined(typeof(CoreAchievementCategory), 10), Is.False);
+        }
+
+        [Test]
         public void OriginalMainMenuAliases_ResolveCanonicalDefinitions()
         {
             CoreAchievementDefinition first = CoreAchievementCatalog.Find("first_sail");
@@ -38,9 +47,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(first.RequirementKey, Is.EqualTo("tutorial_completed"));
             Assert.That(port.Name, Is.EqualTo("陌生港口"));
             Assert.That(trade.Name, Is.EqualTo("海上生意"));
-            Assert.That(trade.Target, Is.EqualTo(600));
+            Assert.That(trade.Target, Is.EqualTo(1000));
             Assert.That(gold.Name, Is.EqualTo("黄金船长"));
-            Assert.That(gold.Target, Is.EqualTo(900));
+            Assert.That(gold.Target, Is.EqualTo(2500));
             Assert.That(CoreAchievementCatalog.Find("tutorial_departure"), Is.SameAs(first));
             Assert.That(CoreAchievementCatalog.Find("port_gray_gull"), Is.SameAs(port));
             Assert.That(CoreAchievementCatalog.Find("gold_600"), Is.SameAs(trade));
@@ -67,7 +76,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(progress.IsUnlocked(first), Is.True);
             progress.SetCounter(gold.RequirementKey, -20);
             Assert.That(progress.GetCounter(gold.RequirementKey), Is.Zero);
-            progress.Increment(gold.RequirementKey, 900);
+            progress.Increment(gold.RequirementKey, 2500);
             Assert.That(progress.IsUnlocked(gold), Is.True);
             Assert.That(progress.CountUnlocked(new[] { first, gold }), Is.EqualTo(2));
         }

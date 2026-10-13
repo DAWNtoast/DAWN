@@ -16,9 +16,9 @@ namespace ShatteredSail.Core.Gameplay
         Story,
         PortConstruction,
         Fleet,
-        Dispatch,
-        Exploration,
-        Supplies,
+        // Keep serialized category values stable after retiring a category.
+        Exploration = 11,
+        Supplies = 12,
     }
 
     /// <summary>How a game statistic completes an achievement.</summary>
@@ -137,7 +137,12 @@ namespace ShatteredSail.Core.Gameplay
     public static class CoreAchievementCatalog
     {
         public const int CatalogCount = 50;
-        public const int LongDispatchHours = 12;
+        public const string VoyageThreeEventsId = "voyage_three_events";
+        public const int VoyageThreeEventsTarget = 3;
+        public const string VoyageHalfChartId = "voyage_half_chart";
+        public const float VoyageHalfChartTarget = 50f;
+        public const string VoyageEventArrivalId = "voyage_event_arrival";
+        public const int VoyageEventArrivalTarget = 6;
 
         private static readonly IReadOnlyList<CoreAchievementDefinition> all = Array.AsReadOnly(new[]
         {
@@ -151,10 +156,14 @@ namespace ShatteredSail.Core.Gameplay
             A("tutorial_navigator", "听见潮声", "完成一次有航海士随行的航程", CoreAchievementCategory.Voyage, F, "navigator_voyage", 1, "", "航程进度"),
             A("tutorial_warehouse", "留住纪念", "把第一件藏品收入仓库", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 1, "", "收藏"),
             A("component_loadout", "船匠入门", "保存一套有效的部件装配", CoreAchievementCategory.Components, C, "components_equipped", 1, "", "整备"),
-            A("gold_600", "海上生意", "船长资金达到 600 金币", CoreAchievementCategory.Economy, C, "profile_gold", 600, "sea_trade", "财富"),
-            A("gold_900", "黄金船长", "船长资金达到 900 金币", CoreAchievementCategory.Economy, C, "profile_gold", 900, "golden_captain", "财富"),
-            A("gold_1200", "满载而归", "船长资金达到 1,200 金币", CoreAchievementCategory.Economy, C, "profile_gold", 1200, "", "财富"),
-            A("gold_2000", "七港富商", "船长资金达到 2,000 金币", CoreAchievementCategory.Economy, C, "profile_gold", 2000, "", "财富"),
+            // Wealth milestones are deliberately spaced beyond the 500-gold
+            // starting profile and the guaranteed tutorial stipend.  Keeping
+            // the stable IDs preserves existing save keys while the authored
+            // targets now represent sustained trading and voyage earnings.
+            A("gold_600", "海上生意", "船长资金达到 1,000 金币", CoreAchievementCategory.Economy, C, "profile_gold", 1000, "sea_trade", "财富"),
+            A("gold_900", "黄金船长", "船长资金达到 2,500 金币", CoreAchievementCategory.Economy, C, "profile_gold", 2500, "golden_captain", "财富"),
+            A("gold_1200", "满载而归", "船长资金达到 5,000 金币", CoreAchievementCategory.Economy, C, "profile_gold", 5000, "", "财富"),
+            A("gold_2000", "七港富商", "船长资金达到 10,000 金币", CoreAchievementCategory.Economy, C, "profile_gold", 10000, "", "财富"),
             A("port_gray_gull", "陌生港口", "抵达灰鸥港，完成第一次跨港航行", CoreAchievementCategory.Voyage, F, "reached_gray_gull", 1, "stranger_port", "航程进度"),
             A("port_white_shell", "白贝潮汐", "抵达白贝港", CoreAchievementCategory.Voyage, F, "reached_white_shell", 1, "", "航程进度"),
             A("port_bronze_bell", "钟声入海", "抵达铜钟港", CoreAchievementCategory.Voyage, F, "reached_bronze_bell", 1, "", "航程进度"),
@@ -176,9 +185,9 @@ namespace ShatteredSail.Core.Gameplay
             A("crew_three", "小小船团", "招募三名船员", CoreAchievementCategory.Crew, C, "crew_recruited", 3, "", "船员"),
             A("crew_six", "老船长旧部", "招募六名船员", CoreAchievementCategory.Crew, C, "crew_recruited", 6, "", "船员"),
             A("crew_variants", "各港知己", "招募六名不同港口的船员", CoreAchievementCategory.Crew, C, "crew_ports_recruited", 6, "", "船员"),
-            A("dispatch_prepare", "远航派遣", "派遣船员执行一次任务", CoreAchievementCategory.Dispatch, P, "dispatch_started", 1, "", "派遣"),
-            A("dispatch_long", "长航守望", "安排一次不少于 12 小时的派遣", CoreAchievementCategory.Dispatch, P, "dispatch_hours", LongDispatchHours, "", "派遣"),
-            A("dispatch_resolved", "带回消息", "完成一次派遣结算", CoreAchievementCategory.Dispatch, F, "dispatch_completed", 1, "", "派遣"),
+            A(VoyageThreeEventsId, "亲历远航", "在一次非教学普通航程中完成至少 3 个海图事件，并安全返港或抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageThreeEventsId, 1, "", "航程进度"),
+            A(VoyageHalfChartId, "循图探海", "在一次非教学普通航程中探索至少 50% 的海图，并安全返港或抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageHalfChartId, 1, "", "航程进度"),
+            A(VoyageEventArrivalId, "跨海领航", "在一次非教学普通航程中完成至少 6 个海图事件，并抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageEventArrivalId, 1, "", "航程进度"),
             A("warehouse_one", "第一件珍藏", "收藏一件可展览物品", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 1, "", "收藏"),
             A("warehouse_three", "柜中三宝", "收藏三件可展览物品", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 3, "", "收藏"),
             A("warehouse_ten", "船长展室", "收藏十件可展览物品", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 10, "", "收藏"),
@@ -188,9 +197,9 @@ namespace ShatteredSail.Core.Gameplay
             A("battle_stages", "三种战法", "为三种战斗阶段分别配置卡组", CoreAchievementCategory.Battle, C, "configured_deck_stages", Enum.GetValues(typeof(NavalBattleStage)).Length, "", "战斗"),
             A("card_upgrade", "磨亮牌面", "强化一张战斗卡牌", CoreAchievementCategory.Battle, P, "card_upgrade_record", 1, "", "战斗"),
             A("special_card", "专属传承", "获得一张船员或部件专属卡", CoreAchievementCategory.Battle, C, "special_cards_owned", 1, "", "战斗"),
-            A("cargo_ready", "补给充足", "同时储备 100 单位水与食物", CoreAchievementCategory.Supplies, P, "prepared_water_and_food", 100, "", "补给"),
+            A("cargo_ready", "补给充足", "同时储备 500 单位水与食物", CoreAchievementCategory.Supplies, P, "prepared_water_and_food", 500, "", "补给"),
             A("cargo_all", "满舱远征", "让所有基础补给都不再为空", CoreAchievementCategory.Supplies, P, "all_base_cargo_present", 1, "", "补给"),
-            A("fame", "自由之名", "声望达到 20", CoreAchievementCategory.Story, C, "profile_fame", 20, "", "传承"),
+            A("fame", "自由之名", "声望达到 100", CoreAchievementCategory.Story, C, "profile_fame", 100, "", "传承"),
             A("seventh_harbor", "第七港口", "完成引导、抵达六港并拥有一艘额外船只", CoreAchievementCategory.Story, P, "seventh_harbor_prerequisites", 2, "", "传承"),
         });
 
@@ -208,6 +217,41 @@ namespace ShatteredSail.Core.Gameplay
         public static bool IsKnown(string id)
         {
             return Find(id) != null;
+        }
+
+        /// <summary>
+        /// Evaluates one confirmed voyage's own map-event result. Historical chart
+        /// progress, tutorial voyages and treasure voyages cannot satisfy this task.
+        /// The caller records it only while committing the return to port.
+        /// </summary>
+        public static bool MeetsVoyageThreeEventsRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                settlement.CompletedEvents >= VoyageThreeEventsTarget;
+        }
+
+        public static bool MeetsVoyageHalfChartRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                !float.IsNaN(settlement.VoyageCoverage) && !float.IsInfinity(settlement.VoyageCoverage) &&
+                settlement.VoyageCoverage >= VoyageHalfChartTarget;
+        }
+
+        public static bool MeetsVoyageEventArrivalRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                settlement.Outcome == VoyageOutcome.ArrivedAtPort &&
+                settlement.CompletedEvents >= VoyageEventArrivalTarget;
+        }
+
+        private static bool IsSuccessfulOrdinaryVoyage(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage)
+        {
+            return settlement != null && !isTutorialVoyage && !isTreasureVoyage &&
+                (settlement.Outcome == VoyageOutcome.SafeReturn || settlement.Outcome == VoyageOutcome.ArrivedAtPort);
         }
 
         private static Dictionary<string, CoreAchievementDefinition> BuildIndex()

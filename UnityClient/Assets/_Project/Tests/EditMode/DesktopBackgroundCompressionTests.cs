@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
@@ -16,14 +19,31 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase("MainMenu/main_menu_background.png", true)]
         [TestCase("PortArt/port_hub_gray_gull_v3.png", true)]
         [TestCase("PortFacilities/shipyard_water_gallery_v3.png", true)]
+        [TestCase("PortFacilities/treasure_worktable_background_v3.png", true)]
         [TestCase("PortFacilities/Regional/Tavern/tavern_white_shell_v1.png", true)]
+        [TestCase("PortFacilities/Regional/Warehouse/warehouse_broken_anchor_v1.png", true)]
+        [TestCase("PortFacilities/Regional/Warehouse/warehouse_white_shell_v1.png", true)]
+        [TestCase("PortFacilities/Regional/Warehouse/warehouse_bronze_bell_v1.png", true)]
+        [TestCase("PortFacilities/Regional/Warehouse/warehouse_salt_crown_v1.png", true)]
+        [TestCase("PortFacilities/Regional/Warehouse/warehouse_twilight_tide_v1.png", true)]
+        [TestCase("PortFacilities/Regional/Warehouse/warehouse_gray_gull_v1.png", true)]
         [TestCase("BoardingBattle/Backgrounds/boarding_storm_night_v1.png", true)]
         [TestCase("BattleEnvironments/battle_open_ocean_v1.png", true)]
         [TestCase("NavigationLookout/Environments/lookout_storm_night_v2.png", true)]
         [TestCase("NavigationLookout/lookout_sea_v1.png", true)]
         [TestCase("PortFacilities/shipyard_background.png", false)]
         [TestCase("PortFacilities/facility_icon_sheet.png", false)]
-        [TestCase("PortHeaders/gray_gull_header_v1.png", false)]
+        [TestCase("PortHeaders/broken_anchor_header_v1.png", true)]
+        [TestCase("PortHeaders/white_shell_header_v1.png", true)]
+        [TestCase("PortHeaders/bronze_bell_header_v1.png", true)]
+        [TestCase("PortHeaders/salt_crown_header_v1.png", true)]
+        [TestCase("PortHeaders/twilight_tide_header_v1.png", true)]
+        [TestCase("PortHeaders/gray_gull_header_v1.png", true)]
+        [TestCase("UIWood/wood_button_face_v1.png", false)]
+        [TestCase("UISurfaces/journal_parchment_v1.png", true)]
+        [TestCase("UISurfaces/nautical_canvas_v1.png", true)]
+        [TestCase("UISurfaces/aged_reading_parchment_v1.png", false)]
+        [TestCase("PortIcons/port_gray_gull_marker_v1.png", false)]
         [TestCase("ComponentShopRegional/furniture_gray_gull_v1.png", false)]
         [TestCase("PortArt/crew_gray_gull_portraits_v2.png", false)]
         [TestCase("BoardingBattle/Characters/boarding_crew_gray_gull_v2.png", false)]
@@ -36,15 +56,24 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void ReadableSpritesNon2DAndNonDesktopTargetsStayExcluded()
+        public void OnlyListedDefaultOrSpriteSurfacesOnDesktopAreEligible()
         {
             string path = Prefix + "MainMenu/main_menu_background.png";
             foreach (BuildTarget target in new[] { BuildTarget.StandaloneWindows64, BuildTarget.StandaloneOSX })
+            {
                 Assert.That(Call("IsEligible", path, target, false, TextureImporterType.Default, TextureImporterShape.Texture2D), Is.True);
+                Assert.That(Call("IsEligible", path, target, false, TextureImporterType.Sprite, TextureImporterShape.Texture2D), Is.True);
+            }
             Assert.That(Call("IsEligible", path, BuildTarget.Android, false, TextureImporterType.Default, TextureImporterShape.Texture2D), Is.False);
             Assert.That(Call("IsEligible", path, BuildTarget.StandaloneWindows64, true, TextureImporterType.Default, TextureImporterShape.Texture2D), Is.False);
-            Assert.That(Call("IsEligible", path, BuildTarget.StandaloneWindows64, false, TextureImporterType.Sprite, TextureImporterShape.Texture2D), Is.False);
+            Assert.That(Call("IsEligible", path, BuildTarget.StandaloneWindows64, true, TextureImporterType.Sprite, TextureImporterShape.Texture2D), Is.False);
+            Assert.That(Call("IsEligible", path, BuildTarget.StandaloneWindows64, false, TextureImporterType.NormalMap, TextureImporterShape.Texture2D), Is.False);
             Assert.That(Call("IsEligible", path, BuildTarget.StandaloneWindows64, false, TextureImporterType.Default, TextureImporterShape.TextureCube), Is.False);
+            foreach (string unlisted in new[] { "PortIcons/port_gray_gull_marker_v1.png", "PortArt/CrewFullBody/crew_cook_pepe_fullbody.png",
+                "ModularShip/Layers/bow_oak_ram.png", "ComponentShopRegional/furniture_gray_gull_v1.png",
+                "UIWood/wood_button_face_v1.png" })
+                Assert.That(Call("IsEligible", Prefix + unlisted, BuildTarget.StandaloneWindows64, false,
+                    TextureImporterType.Sprite, TextureImporterShape.Texture2D), Is.False, unlisted);
         }
 
         [Test]
@@ -122,6 +151,90 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(texture.mipmapCount > 1, Is.EqualTo(mips));
             }
             finally { UnityEngine.Object.DestroyImmediate(texture); }
+        }
+
+        [TestCase(SpriteImportMode.Single, false)]
+        [TestCase(SpriteImportMode.Multiple, false)]
+        [TestCase(SpriteImportMode.Multiple, true)]
+        public void ListedSpriteBackgroundImportKeepsSourceSettingsAndGeneratedRectsInsideAlignedTexture(SpriteImportMode mode, bool mips)
+        {
+            if (!(bool)Call("SupportsTarget", EditorUserBuildSettings.activeBuildTarget))
+                Assert.Ignore("Real BC7 import regression requires a desktop active build target.");
+            string folderName = "__DesktopBackgroundCompressionTest_" + Guid.NewGuid().ToString("N");
+            string folder = "Assets/" + folderName;
+            string path = folder + "/background.png";
+            var listed = (HashSet<string>)Policy.GetField("pathSet", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+            var source = new Texture2D(7, 5, TextureFormat.RGBA32, false);
+            try
+            {
+                var pixels = new Color32[35];
+                for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color32((byte)(i * 5), 85, 165, 255);
+                source.SetPixels32(pixels); source.Apply(false, false);
+                byte[] png = source.EncodeToPNG();
+                AssetDatabase.CreateFolder("Assets", folderName);
+                File.WriteAllBytes(path, png);
+                // Register only this isolated fixture, not an existing production asset.
+                Assert.That(listed.Add(path), Is.True);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = mode;
+                importer.spritePixelsPerUnit = 100f;
+                var textureSettings = new TextureImporterSettings();
+                importer.ReadTextureSettings(textureSettings);
+                textureSettings.spriteMeshType = SpriteMeshType.FullRect;
+                importer.SetTextureSettings(textureSettings);
+                importer.isReadable = false;
+                importer.mipmapEnabled = mips;
+                importer.npotScale = TextureImporterNPOTScale.None;
+                importer.filterMode = FilterMode.Bilinear;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.maxTextureSize = 512;
+                var settings = importer.GetPlatformTextureSettings("Standalone");
+                settings.maxTextureSize = 512;
+                Call("ConfigureStandaloneSettings", settings);
+                importer.SetPlatformTextureSettings(settings);
+                if (mode == SpriteImportMode.Multiple)
+                {
+#pragma warning disable 0618
+                    importer.spritesheet = new[] { new SpriteMetaData { name = "Full Painted Background",
+                        rect = new Rect(0f, 0f, 7f, 5f), pivot = Vector2.one * .5f, alignment = (int)SpriteAlignment.Center } };
+#pragma warning restore 0618
+                }
+                importer.SaveAndReimport();
+                Texture2D texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                Assert.That(texture, Is.Not.Null);
+                Assert.That(texture.format, Is.EqualTo(TextureFormat.BC7));
+                Assert.That(texture.width, Is.EqualTo(8));
+                Assert.That(texture.height, Is.EqualTo(4));
+                Assert.That(texture.isReadable, Is.False);
+                Assert.That(texture.mipmapCount > 1, Is.EqualTo(mips));
+                CollectionAssert.AreEqual(png, File.ReadAllBytes(path), "The source PNG must remain byte-for-byte unchanged.");
+                Sprite[] sprites = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().ToArray();
+                Assert.That(sprites, Has.Length.EqualTo(1), "A successful texture import must preserve its Sprite subasset.");
+                foreach (Sprite sprite in sprites)
+                {
+                    Assert.That(sprite.texture, Is.SameAs(texture));
+                    Assert.That(sprite.rect.xMin, Is.GreaterThanOrEqualTo(0f));
+                    Assert.That(sprite.rect.yMin, Is.GreaterThanOrEqualTo(0f));
+                    Assert.That(sprite.rect.xMax, Is.LessThanOrEqualTo(texture.width));
+                    Assert.That(sprite.rect.yMax, Is.LessThanOrEqualTo(texture.height));
+                }
+                importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                Assert.That(importer.textureType, Is.EqualTo(TextureImporterType.Sprite));
+                Assert.That(importer.spriteImportMode, Is.EqualTo(mode));
+                Assert.That(importer.isReadable, Is.False);
+                Assert.That(importer.mipmapEnabled, Is.EqualTo(mips));
+                Assert.That(importer.filterMode, Is.EqualTo(FilterMode.Bilinear));
+                Assert.That(importer.wrapMode, Is.EqualTo(TextureWrapMode.Clamp));
+                Assert.That(importer.GetPlatformTextureSettings("Standalone").maxTextureSize, Is.EqualTo(512));
+            }
+            finally
+            {
+                listed.Remove(path);
+                AssetDatabase.DeleteAsset(folder);
+                UnityEngine.Object.DestroyImmediate(source);
+            }
         }
     }
 }

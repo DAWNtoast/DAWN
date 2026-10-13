@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -7,23 +8,30 @@ namespace ShatteredSail.Presentation
     /// <summary>Maps the active navigation cell to a local side-view battle environment.</summary>
     public sealed class BattleEnvironmentArtCatalog
     {
-        private readonly Dictionary<string, Texture2D> backgrounds = new Dictionary<string, Texture2D>();
-
-        public BattleEnvironmentArtCatalog()
+        private static readonly Dictionary<string, string> BackgroundNames = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            backgrounds["open"] = Load("battle_open_ocean_v1");
-            backgrounds["beach"] = Load("battle_beach_cove_v1");
-            backgrounds["strait"] = Load("battle_rocky_strait_v1");
-            backgrounds["reef"] = Load("battle_coral_reef_v1");
-            backgrounds["fog"] = Load("battle_misty_sea_v1");
-            backgrounds["storm"] = Load("battle_storm_sea_v1");
+            { "open", "battle_open_ocean_v1" }, { "beach", "battle_beach_cove_v1" },
+            { "strait", "battle_rocky_strait_v1" }, { "reef", "battle_coral_reef_v1" },
+            { "fog", "battle_misty_sea_v1" }, { "storm", "battle_storm_sea_v1" },
+        };
+        private readonly Dictionary<string, Texture2D> backgrounds = new Dictionary<string, Texture2D>(StringComparer.Ordinal);
+        private readonly Func<string, Texture2D> resourceLoader;
+
+        public BattleEnvironmentArtCatalog() : this(Resources.Load<Texture2D>) { }
+
+        internal BattleEnvironmentArtCatalog(Func<string, Texture2D> resourceLoader)
+        {
+            this.resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         }
 
-        public int Count => backgrounds.Count;
+        public int Count => BackgroundNames.Count;
+
+        /// <summary>Releases cached references without destroying textures used by the current battle.</summary>
+        public void ReleaseLoadedTextures() => backgrounds.Clear();
 
         public Texture2D ForTerrain(SeaTerrainType terrain)
         {
-            return backgrounds[KeyFor(terrain)];
+            return Load(BackgroundNames[KeyFor(terrain)]);
         }
 
         public static string LabelFor(SeaTerrainType terrain)
@@ -55,14 +63,16 @@ namespace ShatteredSail.Presentation
             }
         }
 
-        private static Texture2D Load(string fileName)
+        private Texture2D Load(string fileName)
         {
-            Texture2D texture = Resources.Load<Texture2D>("BattleEnvironments/" + fileName);
+            if (backgrounds.TryGetValue(fileName, out Texture2D texture)) return texture;
+            texture = resourceLoader("BattleEnvironments/" + fileName);
             if (texture != null)
             {
                 texture.filterMode = FilterMode.Bilinear;
                 texture.wrapMode = TextureWrapMode.Clamp;
             }
+            backgrounds.Add(fileName, texture);
             return texture;
         }
     }

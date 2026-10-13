@@ -131,7 +131,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(ship));
             Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow).InstanceId, Is.EqualTo(replacement.InstanceId));
-            Assert.That(GameObject.Find("Ship Label").GetComponent<Text>().text, Is.EqualTo(CoreVoyageSession.Ships[ship].Name));
+            Assert.That(GameObject.Find("Ship Label"), Is.Null);
             NavalBattleVisualCapture.Capture(controller, "ShipMarket_NewHull_Departure.png",
                 "新船出航 UI 夹具 · 已购外港船可切为旗舰并保留改装", "Navigation Chart");
             LogAssert.NoUnexpectedReceived();
@@ -242,12 +242,21 @@ namespace ShatteredSail.Presentation.Tests
                     Is.EqualTo(CoreVoyageSession.Ships[ship].Lore), context);
                 yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
                 Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null, context);
-                string bow = controller.InstalledShipComponent(ship, ComponentSlot.Bow).InstanceId;
-                yield return ClickShipyardControl("Shipyard Unequip Component Bow");
-                Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow), Is.Null, context);
-                yield return ClickShipyardControl("Shipyard Equipment Owned " + bow);
-                yield return ClickShipyardControl("Shipyard Equip Component");
-                Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow).InstanceId, Is.EqualTo(bow), context);
+                OwnedShipComponent installedBow = controller.InstalledShipComponent(ship, ComponentSlot.Bow);
+                if (installedBow == null)
+                {
+                    Assert.That(GameObject.Find("Shipyard Equipment Slot Bow"), Is.Not.Null, context);
+                    Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow), Is.Null, context);
+                }
+                else
+                {
+                    string bow = installedBow.InstanceId;
+                    yield return ClickShipyardControl("Shipyard Unequip Component Bow");
+                    Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow), Is.Null, context);
+                    yield return ClickShipyardControl("Shipyard Equipment Owned " + bow);
+                    yield return ClickShipyardControl("Shipyard Equip Component");
+                    Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow).InstanceId, Is.EqualTo(bow), context);
+                }
                 Assert.That(ActiveButton("Confirm Shipyard Vessel").GetComponentInChildren<Text>().text,
                     Is.EqualTo("设为旗舰"), context + " must offer free use, including foreign hulls.");
                 yield return ClickShipyardControl("Confirm Shipyard Vessel");

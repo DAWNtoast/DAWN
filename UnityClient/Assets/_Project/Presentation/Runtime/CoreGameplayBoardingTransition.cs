@@ -31,7 +31,7 @@ namespace ShatteredSail.Presentation
             boardingTransitionOverlay = CreateStretchPanel("Boarding Scene Transition", contentRoot.parent, Color.clear);
             Canvas canvas = boardingTransitionOverlay.gameObject.AddComponent<Canvas>();
             canvas.overrideSorting = true;
-            canvas.sortingOrder = 160;
+            canvas.sortingOrder = 1640;
             boardingTransitionOverlay.gameObject.AddComponent<GraphicRaycaster>();
             Image blocker = boardingTransitionOverlay.GetComponent<Image>();
             blocker.raycastTarget = true;

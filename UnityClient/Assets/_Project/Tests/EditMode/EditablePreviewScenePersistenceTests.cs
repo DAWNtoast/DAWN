@@ -10,6 +10,41 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation.Tests
 {
+    public sealed class RetiredEditablePreviewPolicyTests
+    {
+        private static System.Type Builder => System.Type.GetType(
+            "ShatteredSail.Editor.GameplayPreviewSceneBuilder, ShatteredSail.Editor", true);
+
+        [TestCase("Assets/_Project/Scenes/UIPreviewsForMe", true)]
+        [TestCase("D:/Game/UnityClient/Assets/_Project/Scenes/UIPreviewsForMe/UI_Battle.unity", true)]
+        [TestCase(@"D:\Game\UnityClient\Assets\_Project\Scenes\UIPreviewsForMe\UI_Battle.unity", true)]
+        [TestCase("Assets/_Project/Scenes/UIPreviews/UI_Battle.unity", false)]
+        [TestCase("Assets/_Project/Scenes/CoreGameplayDemo.unity", false)]
+        [TestCase("Assets/_Project/Scenes/UIPreviewsForMeExample/UI_Battle.unity", false)]
+        public void RetiredPathPolicy_ExcludesOnlyTheRetiredFolder(string path, bool retired)
+        {
+            Assert.That(Builder.GetMethod("IsRetiredEditablePreviewPath").Invoke(null, new object[] { path }),
+                Is.EqualTo(retired));
+        }
+
+        [TestCase("CreateEditableFromCommandLine")]
+        [TestCase("CreateOrRefreshEditableFromMenu")]
+        [TestCase("SelectEditablePreviewFolder")]
+        [TestCase("AddSeedDropdownToEditableVoyageDeparture")]
+        [TestCase("SyncChartSeedStatesFromCommandLine")]
+        [TestCase("SyncCardRibbonPreviewsFromCommandLine")]
+        [TestCase("SyncCrewBiographyFromCommandLine")]
+        [TestCase("SyncAndCaptureWarehouseCargoFromCommandLine")]
+        public void RetiredEntrypoints_RejectBeforeTouchingScenes(string method)
+        {
+            var failure = Assert.Throws<System.Reflection.TargetInvocationException>(() =>
+                Builder.GetMethod(method).Invoke(null, null));
+            Assert.That(failure.InnerException, Is.TypeOf<System.NotSupportedException>());
+            Assert.That(failure.InnerException.Message, Does.Contain("UIPreviewsForMe was retired"));
+        }
+    }
+
+    [Ignore("UIPreviewsForMe was retired and cleared on 2026-10-13; these historical saved-scene fixtures are no longer maintained.")]
     public sealed class EditablePreviewScenePersistenceTests
     {
         private const string BattlePath = "Assets/_Project/Scenes/UIPreviewsForMe/UI_Battle.unity";
@@ -57,15 +92,9 @@ namespace ShatteredSail.Presentation.Tests
         public void EditableBattlePreview_SerializesCanvasAndKeepsInspectorLayoutAfterReopen()
         {
             Assert.That(File.Exists(Path.Combine(Application.dataPath, "_Project/Scenes/UIPreviewsForMe/UI_Battle.unity")), Is.True);
-            // Save/reopen only a disposable copy: the authored scene can contain the
-            // developer's unsaved-to-Git layout edits, including when assertions fail.
-            string isolatedPath = AssetDatabase.GenerateUniqueAssetPath(
-                "Assets/__UIRefactorBattlePersistence_" + System.Guid.NewGuid().ToString("N") + ".unity");
-            Scene scene = default;
+            Scene scene = EditorSceneManager.OpenScene(BattlePath, OpenSceneMode.Additive);
             try
             {
-                Assert.That(AssetDatabase.CopyAsset(BattlePath, isolatedPath), Is.True);
-                scene = EditorSceneManager.OpenScene(isolatedPath, OpenSceneMode.Additive);
                 CoreGameplayDemoController controller = scene.GetRootGameObjects()
                     .Select(root => root.GetComponent<CoreGameplayDemoController>())
                     .FirstOrDefault(item => item != null);
@@ -76,7 +105,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(canvas.transform.localScale.x, Is.GreaterThan(0.001f), "Saved preview Canvas must remain visible.");
                 Assert.That(canvas.transform.localScale.y, Is.EqualTo(canvas.transform.localScale.x).Within(0.001f));
                 Assert.That(canvas.gameObject.hideFlags & HideFlags.DontSaveInEditor, Is.EqualTo(HideFlags.None));
-                RectTransform art = canvas.transform.Find("Battle Overlay/Battle Card/Battle Scene Art") as RectTransform;
+                RectTransform art = FixedGameViewport.Bounds(canvas).Find("Battle Overlay/Battle Card/Battle Scene Art") as RectTransform;
                 if (art == null) art = canvas.GetComponentsInChildren<RectTransform>(true).First(item => item.name == "Battle Scene Art");
                 Vector2 original = art.anchoredPosition;
                 Vector2 edited = original + new Vector2(17f, -9f);
@@ -84,26 +113,20 @@ namespace ShatteredSail.Presentation.Tests
                 EditorSceneManager.MarkSceneDirty(scene);
                 Assert.That(EditorSceneManager.SaveScene(scene), Is.True);
                 EditorSceneManager.CloseScene(scene, true);
-                scene = EditorSceneManager.OpenScene(isolatedPath, OpenSceneMode.Additive);
+                scene = EditorSceneManager.OpenScene(BattlePath, OpenSceneMode.Additive);
                 CoreGameplayDemoController reopened = scene.GetRootGameObjects()
                     .Select(root => root.GetComponent<CoreGameplayDemoController>())
                     .FirstOrDefault(item => item != null);
                 RectTransform reopenedArt = reopened.GetComponentInChildren<Canvas>(true)
                     .GetComponentsInChildren<RectTransform>(true).First(item => item.name == "Battle Scene Art");
                 Assert.That(reopenedArt.anchoredPosition, Is.EqualTo(edited));
+                reopenedArt.anchoredPosition = original;
+                EditorSceneManager.MarkSceneDirty(scene);
+                Assert.That(EditorSceneManager.SaveScene(scene), Is.True);
             }
             finally
             {
-                try
-                {
-                    if (scene.IsValid() && scene.isLoaded) EditorSceneManager.CloseScene(scene, true);
-                }
-                finally
-                {
-                    if (File.Exists(isolatedPath))
-                        Assert.That(AssetDatabase.DeleteAsset(isolatedPath), Is.True,
-                            "Remove only the disposable persistence-test scene.");
-                }
+                if (scene.IsValid() && scene.isLoaded) EditorSceneManager.CloseScene(scene, true);
             }
         }
         [Test]
@@ -119,7 +142,7 @@ namespace ShatteredSail.Presentation.Tests
 
                 RectTransform canvas = controller.GetComponentInChildren<Canvas>(true).transform as RectTransform;
                 Assert.That(canvas, Is.Not.Null);
-                RectTransform phaseContent = canvas.Find("Phase Content") as RectTransform;
+                RectTransform phaseContent = FixedGameViewport.Bounds(canvas.GetComponent<Canvas>()).Find("Phase Content") as RectTransform;
                 Assert.That(phaseContent, Is.Not.Null);
                 RectTransform voyageHeader = phaseContent.Find("Voyage Header") as RectTransform;
                 RectTransform readouts = phaseContent.Find("Battle Readouts Overlay") as RectTransform;

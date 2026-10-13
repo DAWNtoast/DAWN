@@ -103,7 +103,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildWarehouseCargoActions(WarehouseCargoQuote quote)
         {
-            RectTransform dialog = BeginWarehouseCargoDialog("Warehouse Item Actions", new Vector2(780f, 520f));
+            RectTransform dialog = BeginWarehouseCargoDialog("Warehouse Item Actions", new Vector2(780f, 560f));
             object identity = warehouseCargoDialogIdentity;
             CreateItemIcon("Warehouse Item Actions Icon", dialog, ItemIconCatalog.ForCargo(quote.Key), new Vector2(-325f, 201f), 40f);
             WarehouseDialogLabel("Warehouse Item Actions Title", dialog, new Vector2(648f, 52f),
@@ -163,27 +163,17 @@ namespace ShatteredSail.Presentation
         {
             Text label = WarehouseLabel(name, parent, size, position, fontSize, value, WarehouseInk);
             label.raycastTarget = false;
-            // Modal prose and live quote/status rows share one clipped paragraph
-            // path. Larger reading modes therefore scroll the complete value instead
-            // of shrinking it into the fixed dialog frame.
-            int standard = name.EndsWith("Title", StringComparison.Ordinal) ? Mathf.Max(32, fontSize) : Mathf.Max(22, fontSize);
-            return ReadableParagraph(label, parent, size, position, standard, true).content.GetComponentInChildren<Text>();
-        }
-
-        private static void SetWarehouseDialogText(Text label, string value)
-        {
-            if (label == null) return;
-            label.text = value;
-            RefreshReadableParagraph(label);
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = Math.Max(14, fontSize - 4);
+            label.resizeTextMaxSize = fontSize;
+            return label;
         }
 
         private Button WarehouseDialogButton(string name, Transform parent, Vector2 size,
             Vector2 position, string caption, Action action)
         {
-            size.y = Mathf.Max(size.y, 42f * GameReadability.Scale);
-            Button button = CreateButton(name, parent, size, position, Gold, DeepSea, GameReadability.FontSize(22));
+            Button button = CreateButton(name, parent, size, position, Gold, DeepSea, 22);
             button.GetComponentInChildren<Text>().text = caption;
-            GameReadability.Body(button.GetComponentInChildren<Text>(), 22);
             button.onClick.AddListener(() => action());
             return button;
         }
@@ -191,13 +181,32 @@ namespace ShatteredSail.Presentation
         private Slider WarehouseQuantitySlider(string name, Transform parent, Vector2 position,
             int minimum, int maximum, int initial)
         {
-            return UiKit.CreateQuantitySlider(name, parent, new Vector2(650f, 44f), position,
-                minimum, maximum, initial, Html("#071C24"), Gold, circleSprite);
+            Slider slider = CreateSlider(name, parent, new Vector2(650f, 44f), position,
+                minimum, maximum, initial);
+            slider.wholeNumbers = true;
+            slider.SetValueWithoutNotify(initial);
+            slider.interactable = maximum > minimum;
+            // The shared slider's zero-height handle is suitable for decorative
+            // previews; a cargo quantity control needs an actual pointer target.
+            // Slider.UpdateVisuals resets the handle's vertical anchors to stretch.
+            // A zero-height travel track keeps its visible height at 36 pixels.
+            RectTransform handleTrack = (RectTransform)slider.handleRect.parent;
+            handleTrack.sizeDelta = new Vector2(handleTrack.sizeDelta.x, 0f);
+            slider.handleRect.sizeDelta = new Vector2(28f, 36f);
+            Image trackTarget = slider.gameObject.AddComponent<Image>();
+            trackTarget.color = Color.clear;
+            trackTarget.raycastTarget = true;
+            return slider;
         }
 
         private static int WarehouseSliderQuantity(Slider slider, int minimum, int maximum)
         {
-            return UiKit.ReadQuantity(slider, minimum, maximum);
+            // Unity Slider stores float. Map endpoints before rounding, so an
+            // int.MaxValue stock is still selectable without float overflow.
+            if (slider.value <= slider.minValue) return minimum;
+            if (slider.value >= slider.maxValue) return maximum;
+            double rounded = Math.Round((double)slider.value, MidpointRounding.AwayFromZero);
+            return (int)Math.Max((double)minimum, Math.Min((double)maximum, rounded));
         }
 
         private bool WarehouseQuoteIdentityMatches(WarehouseCargoQuote quote, object identity)
@@ -246,7 +255,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildWarehouseCargoAdjustment(WarehouseCargoQuote quote, int initial)
         {
-            RectTransform dialog = BeginWarehouseCargoDialog("Warehouse Cargo Adjustment", new Vector2(860f, 600f));
+            RectTransform dialog = BeginWarehouseCargoDialog("Warehouse Cargo Adjustment", new Vector2(860f, 660f));
             object identity = warehouseCargoDialogIdentity;
             CreateItemIcon("Warehouse Cargo Adjustment Icon", dialog, ItemIconCatalog.ForCargo(quote.Key), new Vector2(-365f, 241f), 40f);
             WarehouseDialogLabel("Warehouse Cargo Adjustment Title", dialog, new Vector2(728f, 54f),
@@ -270,13 +279,13 @@ namespace ShatteredSail.Presentation
                 long storedAfter = (long)quote.Stored - delta;
                 double change = delta * (double)quote.UnitVolume;
                 double after = quote.UsedVolume + change;
-                SetWarehouseDialogText(preview,  (delta > 0 ? "装入船舱 " + delta : delta < 0 ? "存入本港 " + -(long)delta : "尚未调整") +
+                preview.text = (delta > 0 ? "装入船舱 " + delta : delta < 0 ? "存入本港 " + -(long)delta : "尚未调整") +
                     "\n随船 " + quote.Carried + " → " + shipAfter + "　　本港 " + quote.Stored + " → " + storedAfter +
                     "\n总船舱 " + WarehouseVolume(quote.UsedVolume) + " → " + WarehouseVolume(after) +
                     " / " + WarehouseVolume(quote.Capacity) +
-                    (change < 0 ? "　释放 " : "　增加 ") + WarehouseVolume(Math.Abs(change)) + " 舱位");
+                    (change < 0 ? "　释放 " : "　增加 ") + WarehouseVolume(Math.Abs(change)) + " 舱位";
                 string failure = WarehouseAdjustmentFailure(quote, delta);
-                SetWarehouseDialogText(status, failure.Length > 0 ? failure : "确认后立即转移；取消不会改变库存。");
+                status.text = failure.Length > 0 ? failure : "确认后立即转移；取消不会改变库存。";
                 if (confirm != null) confirm.interactable = !quote.Preview && Application.isPlaying && failure.Length == 0;
             };
             confirm = WarehouseDialogButton("Confirm Warehouse Cargo Adjustment", dialog,
@@ -315,13 +324,13 @@ namespace ShatteredSail.Presentation
 
         private void BuildWarehouseCargoSale(WarehouseCargoQuote quote, int initialStored, int initialShip)
         {
-            RectTransform dialog = BeginWarehouseCargoDialog("Warehouse Cargo Sale", new Vector2(900f, 760f));
+            RectTransform dialog = BeginWarehouseCargoDialog("Warehouse Cargo Sale", new Vector2(900f, 820f));
             object identity = warehouseCargoDialogIdentity;
             CreateItemIcon("Warehouse Cargo Sale Icon", dialog, ItemIconCatalog.ForCargo(quote.Key), new Vector2(-385f, 325f), 40f);
             WarehouseDialogLabel("Warehouse Cargo Sale Title", dialog, new Vector2(768f, 52f),
                 new Vector2(28f, 325f), 28, "出售 · " + quote.Definition.Name + " · " + quote.Port);
             WarehouseDialogLabel("Warehouse Cargo Sale Date", dialog, new Vector2(824f, 36f),
-                new Vector2(0f, 277f), 18, quote.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) +
+                new Vector2(0f, 277f), 18, CoreVoyageSession.FormatGameDate(quote.Date) +
                 (quote.Definition.IsRare ? "　各港固定回收价 " : "　卖价 ") +
                 quote.SellUnitPrice.ToString("0.####", CultureInfo.InvariantCulture) + " 金币 / 件");
             Text storedLabel = WarehouseDialogLabel("Warehouse Stored Sale Amount", dialog, new Vector2(824f, 36f),
@@ -343,18 +352,18 @@ namespace ShatteredSail.Presentation
                 int carried = WarehouseSliderQuantity(shipSlider, 0, quote.Carried);
                 long total = (long)stored + carried;
                 decimal revenue = quote.SellUnitPrice * total;
-                SetWarehouseDialogText(storedLabel, "本港出售 " + stored + " / " + quote.Stored);
-                SetWarehouseDialogText(shipLabel, "随船出售 " + carried + " / " + quote.Carried);
+                storedLabel.text = "本港出售 " + stored + " / " + quote.Stored;
+                shipLabel.text = "随船出售 " + carried + " / " + quote.Carried;
                 double freed = carried * (double)quote.UnitVolume;
-                SetWarehouseDialogText(summary,  "合计出售 " + total + " 件　获得 " + PortMarketCatalog.FormatPrice(revenue) + " 金币" +
+                summary.text = "合计出售 " + total + " 件　获得 " + PortMarketCatalog.FormatPrice(revenue) + " 金币" +
                     "\n剩余：本港 " + (quote.Stored - stored) + "　随船 " + (quote.Carried - carried) +
                     "\n总船舱 " + WarehouseVolume(quote.UsedVolume) + " → " + WarehouseVolume(quote.UsedVolume - freed) +
                     " / " + WarehouseVolume(quote.Capacity) + "　释放 " + WarehouseVolume(freed) + " 舱位" +
-                    "\n金币 " + PortMarketCatalog.FormatPrice(quote.Gold) + " → " + PortMarketCatalog.FormatPrice(quote.Gold + revenue));
+                    "\n金币 " + PortMarketCatalog.FormatPrice(quote.Gold) + " → " + PortMarketCatalog.FormatPrice(quote.Gold + revenue);
                 string failure = WarehouseSaleFailure(quote, stored, carried, revenue);
-                SetWarehouseDialogText(status,  failure.Length > 0 ? failure : quote.Definition.IsRare
+                status.text = failure.Length > 0 ? failure : quote.Definition.IsRare
                     ? "珍稀物品可用于高阶捐献与海上事件。"
-                    : "出售不占采购额度。");
+                    : "出售不占采购额度。";
                 if (confirm != null) confirm.interactable = !quote.Preview && Application.isPlaying && failure.Length == 0;
             };
             confirm = WarehouseDialogButton("Confirm Warehouse Cargo Sale", dialog, new Vector2(346f, 60f),

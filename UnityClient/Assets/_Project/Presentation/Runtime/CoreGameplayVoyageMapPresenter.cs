@@ -19,8 +19,9 @@ namespace ShatteredSail.Presentation
             public byte Variant;
         }
 
-        private const float ChartGridWidth = 1160f;
-        private const float ChartGridHeight = 630f;
+        private const float ChartCellSide = 1160f / 48f;
+        private float ChartGridWidth => session.Map.Columns * ChartCellSide;
+        private float ChartGridHeight => session.Map.Rows * ChartCellSide;
         private const int OceanPatchCellSpan = 8;
 
         private VoyageMapArtCatalog voyageMapArt;
@@ -49,8 +50,8 @@ namespace ShatteredSail.Presentation
             }
 
             CoreVoyageMap map = session.Map;
-            float cellWidth = ChartGridWidth / CoreVoyageMap.GridColumns;
-            float cellHeight = ChartGridHeight / CoreVoyageMap.GridRows;
+            float cellWidth = ChartGridWidth / session.Map.Columns;
+            float cellHeight = ChartGridHeight / session.Map.Rows;
             Vector2 tileSize = new Vector2(cellWidth + 0.7f, cellHeight + 0.7f);
 
             RectTransform waterLayer = CreateRect("Ocean Tile Layer", mapRoot, new Vector2(ChartGridWidth, ChartGridHeight), Vector2.zero);
@@ -68,9 +69,9 @@ namespace ShatteredSail.Presentation
             BuildOceanChartBase(waterLayer, map);
             BuildOceanPatches(waterLayer, map, cellWidth, cellHeight);
 
-            for (int row = 0; row < CoreVoyageMap.GridRows; row += 1)
+            for (int row = 0; row < session.Map.Rows; row += 1)
             {
-                for (int column = 0; column < CoreVoyageMap.GridColumns; column += 1)
+                for (int column = 0; column < session.Map.Columns; column += 1)
                 {
                     CoreVoyageMapCell cell = map.GetCell(column, row);
                     bool explored = cell.Explored;
@@ -107,20 +108,15 @@ namespace ShatteredSail.Presentation
                             visualHash);
                     }
 
-                    BuildVisibilityTile(
-                        fogTiles,
-                        cellPosition,
-                        tileSize,
-                        explored,
-                        visualHash);
-
                     if (explored && terrain == SeaTerrainType.OpenWater && visualHash % 13u == 0u)
                     {
                         BuildWaterInkDetail(detailLayer, cellPosition, cellWidth, cellHeight, column, row, visualHash);
                     }
                 }
             }
-            fogTiles.Complete();
+            float chartCellWidth = ChartGridWidth / session.Map.FineColumns;
+            float chartCellHeight = ChartGridHeight / session.Map.FineRows;
+            BuildChartVisibility(fogTiles, chartCellWidth, chartCellHeight);
 
             // Every solid coast is drawn from the complete logical grid. This
             // closes the outer ends of strait banks and preserves concave bays;
@@ -131,8 +127,8 @@ namespace ShatteredSail.Presentation
             coast.Initialize(map, VoyageMapArt, session.SelectedRouteIndex);
             BuildNaturalFeatureArtwork(terrainArtLayer, naturalFeatures, cellWidth, cellHeight);
             BuildEventFootprintArtwork(terrainArtLayer, cellWidth, cellHeight);
-            BuildChartGrid(gridLayer, cellWidth, cellHeight);
-            BuildVisibilityFrontier(visibilityLayer, cellWidth, cellHeight);
+            BuildChartGrid(gridLayer, chartCellWidth, chartCellHeight);
+            BuildVisibilityFrontier(visibilityLayer, chartCellWidth, chartCellHeight);
         }
 
         private void BuildOceanChartBase(RectTransform waterLayer, CoreVoyageMap map)
@@ -157,12 +153,12 @@ namespace ShatteredSail.Presentation
             int patchIndex = 0;
             int seedOffset = waterTextures.Count == 0 ? 0 : (int)(map.Hash % (uint)waterTextures.Count);
 
-            for (int startRow = 0; startRow < CoreVoyageMap.GridRows; startRow += OceanPatchCellSpan)
+            for (int startRow = 0; startRow < session.Map.Rows; startRow += OceanPatchCellSpan)
             {
-                int coveredRows = Mathf.Min(OceanPatchCellSpan, CoreVoyageMap.GridRows - startRow);
-                for (int startColumn = 0; startColumn < CoreVoyageMap.GridColumns; startColumn += OceanPatchCellSpan)
+                int coveredRows = Mathf.Min(OceanPatchCellSpan, session.Map.Rows - startRow);
+                for (int startColumn = 0; startColumn < session.Map.Columns; startColumn += OceanPatchCellSpan)
                 {
-                    int coveredColumns = Mathf.Min(OceanPatchCellSpan, CoreVoyageMap.GridColumns - startColumn);
+                    int coveredColumns = Mathf.Min(OceanPatchCellSpan, session.Map.Columns - startColumn);
                     int patchColumn = startColumn / OceanPatchCellSpan;
                     int patchRow = startRow / OceanPatchCellSpan;
                     uint visualHash = VoyageMapArtCatalog.VisualHash(map.Hash, patchColumn, patchRow, 0xC2B2AE35u);
@@ -506,18 +502,35 @@ namespace ShatteredSail.Presentation
             }
         }
 
+        private void BuildChartVisibility(VoyageMapTileLayerGraphic fogTiles, float cellWidth, float cellHeight)
+        {
+            CoreVoyageMap map = session.Map;
+            for (int row = 0; row < session.Map.FineRows; row += 1)
+            {
+                for (int column = 0; column < session.Map.FineColumns; column += 1)
+                {
+                    Vector2 minimum = new Vector2(-ChartGridWidth * 0.5f + column * cellWidth,
+                        -ChartGridHeight * 0.5f + row * cellHeight);
+                    Vector2 maximum = new Vector2(-ChartGridWidth * 0.5f + (column + 1) * cellWidth,
+                        -ChartGridHeight * 0.5f + (row + 1) * cellHeight);
+                    BuildVisibilityTile(fogTiles, minimum, maximum,
+                        map.IsChartCellExplored(column, row));
+                }
+            }
+            fogTiles.Complete();
+        }
+
         private void BuildVisibilityTile(
             VoyageMapTileLayerGraphic fogTiles,
-            Vector2 position,
-            Vector2 size,
-            bool explored,
-            uint visualHash)
+            Vector2 minimum,
+            Vector2 maximum,
+            bool explored)
         {
-            float hiddenVariation = ((visualHash >> 24) & 0x0Fu) / 600f;
+            // Undiscovered terrain must not show through the chart's dark mask.
             Color color = explored
                 ? new Color(Fog.r, Fog.g, Fog.b, 0.025f)
-                : new Color(Fog.r, Fog.g, Fog.b, 0.965f + hiddenVariation);
-            fogTiles.AddTile(position, size, color);
+                : new Color(Fog.r, Fog.g, Fog.b, 1f);
+            fogTiles.AddTileBounds(minimum, maximum, color);
         }
 
         private void BuildChartGrid(RectTransform parent, float cellWidth, float cellHeight)
@@ -525,9 +538,9 @@ namespace ShatteredSail.Presentation
             VoyageMapTileLayerGraphic lines = CreateChartQuadLayer("Chart Grid Lines", parent);
             Color minor = new Color(0.58f, 0.78f, 0.78f, 0.018f);
             Color major = new Color(0.72f, 0.87f, 0.82f, 0.044f);
-            for (int column = 0; column <= CoreVoyageMap.GridColumns; column += 1)
+            for (int column = 0; column <= session.Map.FineColumns; column += 1)
             {
-                bool isMajor = column % 8 == 0;
+                bool isMajor = column % 16 == 0;
                 float x = -ChartGridWidth * 0.5f + column * cellWidth;
                 lines.AddTile(
                     new Vector2(x, 0f),
@@ -535,9 +548,9 @@ namespace ShatteredSail.Presentation
                     isMajor ? major : minor);
             }
 
-            for (int row = 0; row <= CoreVoyageMap.GridRows; row += 1)
+            for (int row = 0; row <= session.Map.FineRows; row += 1)
             {
-                bool isMajor = row % 4 == 0;
+                bool isMajor = row % 8 == 0;
                 float y = -ChartGridHeight * 0.5f + row * cellHeight;
                 lines.AddTile(
                     new Vector2(0f, y),
@@ -579,38 +592,30 @@ namespace ShatteredSail.Presentation
 
         private void BuildVisibilityFrontier(RectTransform parent, float cellWidth, float cellHeight)
         {
-            // Keep the frontier after every fog tile, preserving their original
-            // alpha-compositing order while avoiding thousands of UI objects.
+            // The fine exploration grid is independent of terrain/pathfinding.
+            // Keep its crisp rim inside explored cells; horizontal strips own
+            // their corner pixels so translucent edges never double-blend.
             VoyageMapTileLayerGraphic lines = CreateChartQuadLayer("Chart Fog Frontier", parent);
             Color frontier = new Color(0.3f, 0.54f, 0.57f, 0.22f);
-            for (int row = 0; row < CoreVoyageMap.GridRows; row += 1)
+            const float thickness = 1.1f;
+            for (int row = 0; row < session.Map.FineRows; row += 1)
             {
-                for (int column = 0; column < CoreVoyageMap.GridColumns; column += 1)
+                for (int column = 0; column < session.Map.FineColumns; column += 1)
                 {
-                    if (!CellIsExplored(column, row)) continue;
-                    Vector2 position = MapPosition(session.Map.CellCenter(column, row));
-                    if (row + 1 < CoreVoyageMap.GridRows && !CellIsExplored(column, row + 1))
-                    {
-                        lines.AddTile(position + new Vector2(0f, cellHeight * 0.5f), new Vector2(cellWidth, 2.8f), frontier);
-                    }
-                    if (column + 1 < CoreVoyageMap.GridColumns && !CellIsExplored(column + 1, row))
-                    {
-                        lines.AddTile(position + new Vector2(cellWidth * 0.5f, 0f), new Vector2(2.8f, cellHeight), frontier);
-                    }
-                    if (row > 0 && !CellIsExplored(column, row - 1))
-                    {
-                        lines.AddTile(position - new Vector2(0f, cellHeight * 0.5f), new Vector2(cellWidth, 2.8f), frontier);
-                    }
-                    if (column > 0 && !CellIsExplored(column - 1, row))
-                    {
-                        lines.AddTile(position - new Vector2(cellWidth * 0.5f, 0f), new Vector2(2.8f, cellHeight), frontier);
-                    }
+                    if (!ChartCellIsExplored(column, row)) continue;
+                    Vector2 position = MapPosition(session.Map.ChartCellCenter(column, row));
+                    bool north = row + 1 < session.Map.FineRows && !ChartCellIsExplored(column, row + 1);
+                    bool east = column + 1 < session.Map.FineColumns && !ChartCellIsExplored(column + 1, row);
+                    bool south = row > 0 && !ChartCellIsExplored(column, row - 1);
+                    bool west = column > 0 && !ChartCellIsExplored(column - 1, row);
+                    lines.AddCellFrontier(position, new Vector2(cellWidth, cellHeight), thickness,
+                        frontier, north, east, south, west);
                 }
             }
             lines.Complete();
         }
 
-        private static VoyageMapTileLayerGraphic CreateChartQuadLayer(string name, RectTransform parent)
+        private VoyageMapTileLayerGraphic CreateChartQuadLayer(string name, RectTransform parent)
         {
             RectTransform rect = CreateRect(name, parent, new Vector2(ChartGridWidth, ChartGridHeight), Vector2.zero);
             VoyageMapTileLayerGraphic graphic = rect.gameObject.AddComponent<VoyageMapTileLayerGraphic>();
@@ -705,15 +710,6 @@ namespace ShatteredSail.Presentation
                 return;
             }
 
-            Image frame = marker.targetGraphic as Image;
-            if (frame != null)
-            {
-                Outline frameOutline = frame.gameObject.AddComponent<Outline>();
-                frameOutline.effectColor = new Color(0.03f, 0.08f, 0.09f, 0.9f);
-                frameOutline.effectDistance = new Vector2(2f, -2f);
-                frameOutline.useGraphicAlpha = true;
-            }
-
             Text glyph = marker.GetComponentInChildren<Text>();
             if (glyph != null)
             {
@@ -732,6 +728,13 @@ namespace ShatteredSail.Presentation
             if (eventSheet == null)
             {
                 return;
+            }
+
+            // Keep the full button hit area, but let the artwork's transparent
+            // edges show the sea instead of a dark, disabled-state button frame.
+            if (marker.targetGraphic is Image frame)
+            {
+                frame.color = Color.clear;
             }
 
             Vector2 markerSize = marker.GetComponent<RectTransform>().sizeDelta;
@@ -755,13 +758,13 @@ namespace ShatteredSail.Presentation
             return stroke;
         }
 
-        private bool CellIsExplored(int column, int row)
+        private bool ChartCellIsExplored(int column, int row)
         {
-            if (column < 0 || column >= CoreVoyageMap.GridColumns || row < 0 || row >= CoreVoyageMap.GridRows)
+            if (column < 0 || column >= session.Map.FineColumns || row < 0 || row >= session.Map.FineRows)
             {
                 return false;
             }
-            return session.Map.ExploredCells[row * CoreVoyageMap.GridColumns + column];
+            return session.Map.IsChartCellExplored(column, row);
         }
 
         private bool TerrainConnectsTo(int column, int row, SeaTerrainType terrain, int terrainFeatureId)

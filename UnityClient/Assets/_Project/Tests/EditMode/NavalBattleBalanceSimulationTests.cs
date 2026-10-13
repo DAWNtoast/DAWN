@@ -24,8 +24,8 @@ namespace ShatteredSail.Core.Tests
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
             {
                 var deck = session.GetBattleDeck(stage);
-                Assert.That(deck.Count, Is.InRange(8, 10));
-                Assert.That(deck.GroupBy(index => index).Max(group => group.Count()), Is.LessThanOrEqualTo(3));
+                Assert.That(deck.Count, Is.InRange(CoreVoyageSession.MinimumBaseBattleDeckSize, CoreVoyageSession.MaximumBaseBattleDeckSize));
+                Assert.That(deck.GroupBy(index => index).Max(group => group.Count()), Is.LessThanOrEqualTo(CoreVoyageSession.BaseBattleCardCopies));
                 Assert.That(deck.All(index => session.GetBattleCard(index).IsAllowedInStage(stage)), Is.True);
                 Assert.That(deck.All(index => session.GetBattleCard(index).UpgradeLevel == 2), Is.True);
             }

@@ -36,6 +36,7 @@ namespace ShatteredSail.Editor
                 if (outline == null || !outline.enabled)
                     throw new InvalidOperationException("Runtime scene-label styling did not supply an outline.");
                 changes = Directory.GetFiles(directory, "*.unity", SearchOption.AllDirectories)
+                .Where(path => !GameplayPreviewSceneBuilder.IsRetiredEditablePreviewPath(path))
                     .OrderBy(path => path, StringComparer.Ordinal)
                     .Select(path => PreparePatch(path, style.color, outline)).Where(patch => patch != null).ToArray();
             }

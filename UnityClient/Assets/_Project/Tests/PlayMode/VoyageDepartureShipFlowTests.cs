@@ -169,7 +169,7 @@ namespace ShatteredSail.Presentation.Tests
             ComponentArtCatalog catalog = new ComponentArtCatalog();
             ComponentArtEntry rareBow = catalog.Entries.First(entry => entry.Slot == ComponentSlot.Bow && entry.Rarity == ComponentRarity.Rare);
             OwnedShipComponent replacement = controller.GrantOwnedComponent(rareBow, 0.94f);
-            string otherShipBow = controller.InstalledShipComponent(0, ComponentSlot.Bow).InstanceId;
+            string otherShipBow = controller.InstalledShipComponent(0, ComponentSlot.Bow)?.InstanceId;
             string originalBow = controller.InstalledShipComponent(1, ComponentSlot.Bow).InstanceId;
             int itemCount = controller.OwnedComponents.Count;
             decimal gold = controller.Session.ProfileGold;
@@ -216,16 +216,19 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(departureShipImages[0].texture, Is.EqualTo(new PortArtCatalog().ShipTexture(1)));
             Assert.That(departureShipImages[0].isActiveAndEnabled, Is.True);
             Assert.That(departureShipImages[0].color.a, Is.GreaterThan(0f));
-            Assert.That(GameObject.Find("Upgrade Name 0").GetComponent<Text>().text, Is.EqualTo(rareBow.Name));
-            Assert.That(GameObject.Find("Upgrade Part 0").GetComponent<RawImage>().texture, Is.EqualTo(rareBow.Texture));
+            Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).InstanceId, Is.EqualTo(replacement.InstanceId));
+            Assert.That(GameObject.Find("Upgrade Name 0"), Is.Null);
+            Assert.That(GameObject.Find("Upgrade Part 0"), Is.Null);
             yield return ClickShipyardControl("Inspect Departure Vessel");
             yield return ClickShipyardControl("Shipyard Unequip Component Bow");
             Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow), Is.Null);
-            Assert.That(controller.Session.MaxHull, Is.EqualTo(CoreVoyageSession.Ships[1].MaxHull - catalog.Get(0).HullBonus));
+            Assert.That(controller.Session.MaxHull, Is.EqualTo(CoreVoyageSession.Ships[1].MaxHull),
+                "An empty slot leaves the selected hull at its authored base value.");
             AssertShipyardTactic(controller, rareBow, false);
             yield return ClickShipyardControl("Back To Voyage Departure");
-            Assert.That(GameObject.Find("Upgrade Name 0").GetComponent<Text>().text, Is.EqualTo("空槽"));
-            Assert.That(GameObject.Find("Upgrade Part 0"), Is.Null, "An unloaded slot must not show a fallback component illustration.");
+            Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow), Is.Null);
+            Assert.That(GameObject.Find("Upgrade Name 0"), Is.Null);
+            Assert.That(GameObject.Find("Upgrade Part 0"), Is.Null, "The departure summary no longer shows equipment slots.");
             yield return ClickShipyardControl("Inspect Departure Vessel");
             yield return ClickShipyardControl("Shipyard Equipment Owned " + replacement.InstanceId);
             yield return ClickShipyardControl("Shipyard Equip Component");
@@ -252,10 +255,12 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.SelectedRouteIndex, Is.EqualTo(2));
             Assert.That(controller.Session.SelectedSeed, Is.EqualTo(seed));
             Assert.That(GameObject.Find("Seed Input").GetComponent<InputField>().text, Is.EqualTo(seed));
-            Assert.That(GameObject.Find("Ship Stats").GetComponent<Text>().text, Does.Contain("船体 " + expectedHull));
-            Assert.That(GameObject.Find("Upgrade Name 0").GetComponent<Text>().text, Is.EqualTo(rareBow.Name));
-            Assert.That(GameObject.Find("Upgrade Part 0").GetComponent<RawImage>().texture, Is.EqualTo(rareBow.Texture));
-            Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Bow).InstanceId, Is.EqualTo(otherShipBow));
+            Assert.That(controller.Session.MaxHull, Is.EqualTo(expectedHull));
+            Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).InstanceId, Is.EqualTo(replacement.InstanceId));
+            Assert.That(GameObject.Find("Ship Stats"), Is.Null);
+            Assert.That(GameObject.Find("Upgrade Name 0"), Is.Null);
+            Assert.That(GameObject.Find("Upgrade Part 0"), Is.Null);
+            Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Bow)?.InstanceId, Is.EqualTo(otherShipBow));
             Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).Quality, Is.EqualTo(0.94f).Within(0.0001f));
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(itemCount));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
@@ -284,8 +289,13 @@ namespace ShatteredSail.Presentation.Tests
         {
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(expectedShip), "Departure arrows must change the actual flagship.");
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.SelectedShipKey, -1), Is.EqualTo(expectedShip));
-            Assert.That(GameObject.Find("Departure Ship Schematic Caption").GetComponent<Text>().text, Does.Contain(CoreVoyageSession.Ships[expectedShip].Name));
-            Assert.That(GameObject.Find("Ship Stats").GetComponent<Text>().text, Does.Contain("货舱 " + CoreVoyageSession.Ships[expectedShip].CargoCapacity.ToString("0")));
+            Assert.That(controller.Session.CargoCapacityValue, Is.EqualTo(CoreVoyageSession.Ships[expectedShip].CargoCapacity));
+            RectTransform ship = GameObject.Find("Starter Modular Ship").GetComponent<RectTransform>();
+            Assert.That(ship.rect.width, Is.GreaterThanOrEqualTo(367.9f));
+            Assert.That(ship.rect.height, Is.GreaterThanOrEqualTo(207.9f));
+            Assert.That(ship.GetComponentsInChildren<RawImage>(), Is.Not.Empty);
+            Assert.That(GameObject.Find("Departure Ship Schematic Caption"), Is.Null);
+            Assert.That(GameObject.Find("Ship Stats"), Is.Null);
         }
     }
 }

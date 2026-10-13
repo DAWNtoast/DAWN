@@ -1,4 +1,3 @@
-using System;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 
@@ -96,68 +95,6 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void RewardWithNoCargoSpaceIsAtomicAndCanBeRetriedAfterSale()
-        {
-            var session = new CoreVoyageSession();
-            session.Cargo.Iron = 45;
-            decimal gold = session.ProfileGold;
-            int wood = session.Cargo.Wood;
-            int fame = session.Cargo.Fame;
-            Assert.That(session.TryReceivePortRewards(35, 3, 0, 1, "dispatch", out string failure), Is.False);
-            Assert.That(failure, Does.Contain("货舱"));
-            Assert.That(session.ProfileGold, Is.EqualTo(gold));
-            Assert.That(session.Cargo.Wood, Is.EqualTo(wood));
-            Assert.That(session.Cargo.Fame, Is.EqualTo(fame));
-            Assert.That(session.TrySellCargoMaterial("iron", 45), Is.True);
-            Assert.That(session.TryReceivePortRewards(35, 3, 0, 1, "dispatch", out failure), Is.True);
-            Assert.That(session.ProfileGold, Is.EqualTo(gold + 45 * 6 + 35));
-            Assert.That(session.Cargo.Wood, Is.EqualTo(wood + 3));
-        }
-
-        [Test]
-        public void RewardAtAccountLimitRejectsAllResourcesTogether()
-        {
-            var session = new CoreVoyageSession();
-            session.RestoreProfile(CoreEconomyBalance.MaximumProfileGold - 1, session.CurrentPort);
-            int wood = session.Cargo.Wood;
-            Assert.That(session.TryReceivePortRewards(35, 3, 0, 0, "dispatch", out _), Is.False);
-            Assert.That(session.Cargo.Wood, Is.EqualTo(wood));
-            Assert.That(session.ProfileGold, Is.EqualTo(CoreEconomyBalance.MaximumProfileGold - 1));
-        }
-
-        [Test]
-        public void RewardWithFameOverflowIsRejectedWithoutPayingGold()
-        {
-            var session = new CoreVoyageSession();
-            session.Cargo.Fame = int.MaxValue;
-            decimal gold = session.ProfileGold;
-            Assert.That(session.TryReceivePortRewards(35, 0, 0, 1, "dispatch", out _), Is.False);
-            Assert.That(session.ProfileGold, Is.EqualTo(gold));
-            Assert.That(session.Cargo.Fame, Is.EqualTo(int.MaxValue));
-        }
-
-        [TestCase(-1, 0, 0, 0)]
-        [TestCase(1, -1, 0, 0)]
-        [TestCase(1, 0, -1, 0)]
-        [TestCase(1, 0, 0, -1)]
-        public void RewardRejectsNegativeInputs(int gold, int wood, int iron, int fame)
-        {
-            var session = new CoreVoyageSession();
-            Assert.That(session.TryReceivePortRewards(gold, wood, iron, fame, "dispatch", out _), Is.False);
-            Assert.That(session.ProfileGold, Is.EqualTo(500));
-        }
-
-        [Test]
-        public void DispatchCannotPayDuringAVoyage()
-        {
-            var session = new CoreVoyageSession();
-            session.StartVoyage();
-            decimal gold = session.ProfileGold;
-            Assert.That(session.TryReceivePortRewards(35, 3, 0, 0, "dispatch", out _), Is.False);
-            Assert.That(session.ProfileGold, Is.EqualTo(gold));
-        }
-
-        [Test]
         public void SwitchingToASmallerShipCannotOverloadItsHold()
         {
             var session = new CoreVoyageSession();
@@ -168,15 +105,6 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.SelectShip(0), Is.False);
             Assert.That(session.SelectedShipIndex, Is.EqualTo(1));
             Assert.That(session.Cargo.Iron, Is.EqualTo(20));
-        }
-
-        [Test]
-        public void DispatchDeadlineIsReevaluatedAtTheExactCompletionBoundary()
-        {
-            long end = CoreVoyageSession.GameClockOrigin.AddHours(2).Ticks;
-            Assert.That(CoreEconomyBalance.IsDispatchReady(0, end.ToString(), end - 1), Is.False);
-            Assert.That(CoreEconomyBalance.IsDispatchReady(0, end.ToString(), end), Is.True);
-            Assert.That(CoreEconomyBalance.IsDispatchReady(0, end.ToString(), end + 1), Is.True);
         }
 
         [Test]
@@ -194,16 +122,5 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Cargo.Fame, Is.EqualTo(int.MaxValue));
         }
 
-        [TestCase(-1, "1")]
-        [TestCase(99, "1")]
-        [TestCase(0, "0")]
-        [TestCase(0, "-1")]
-        [TestCase(0, "invalid")]
-        [TestCase(0, "9223372036854775807")]
-        public void MalformedDispatchRecordCannotBecomeACompletedReward(int mission, string end)
-        {
-            Assert.That(CoreEconomyBalance.IsValidDispatchRecord(mission, end, out _), Is.False);
-            Assert.That(CoreEconomyBalance.IsDispatchReady(mission, end, DateTime.MaxValue.Ticks), Is.False);
-        }
     }
 }

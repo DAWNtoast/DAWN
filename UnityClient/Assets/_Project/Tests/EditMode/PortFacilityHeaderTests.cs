@@ -8,6 +8,7 @@ using NUnit.Framework;
 using ShatteredSail.Presentation;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -19,7 +20,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreGameplayPreviewScreen.Warehouse, CoreGameplayPreviewScreen.Shipyard,
             CoreGameplayPreviewScreen.Tavern, CoreGameplayPreviewScreen.ComponentShop,
-            CoreGameplayPreviewScreen.CardWorkshop, CoreGameplayPreviewScreen.Dispatch,
+            CoreGameplayPreviewScreen.CardWorkshop,
             CoreGameplayPreviewScreen.TreasureMap, CoreGameplayPreviewScreen.Maintenance,
             CoreGameplayPreviewScreen.VoyageDeparture, CoreGameplayPreviewScreen.Market,
         };
@@ -27,13 +28,13 @@ namespace ShatteredSail.Core.Tests
         private static readonly string[] Titles =
         {
             "船长收藏室", "皇家船坞", "灰鸥酒馆", "部件商店", "卡组工坊",
-            "远航派遣台", "藏宝图桌", "港口投资建设", "出航码头", "港口市场",
+            "藏宝图桌", "港口投资建设", "出航码头", "港口市场",
         };
 
         private static readonly string[] BackgroundNames =
         {
             "Warehouse Background", "Shipyard Background", "Tavern Background", "ComponentShop Background",
-            "CardWorkshop Background", "Dispatch Background", "Treasure Background", "Maintenance Background",
+            "CardWorkshop Background", "Treasure Background", "Maintenance Background",
             "Voyage Background", "Market Background",
         };
 
@@ -51,40 +52,8 @@ namespace ShatteredSail.Core.Tests
         private static readonly string[] FacilityKeys =
         {
             "Warehouse", "Shipyard", "Tavern", "ComponentShop", "CardWorkshop",
-            "Dispatch", "Treasure", "Maintenance", "Voyage", "Market",
+            "Treasure", "Maintenance", "Voyage", "Market",
         };
-
-        [TestCase(0)]
-        [TestCase(1)]
-        [TestCase(2)]
-        public void TutorialHeader_LeavesBothInstructionBandsClearAtEveryReadingSize(int level)
-        {
-            int? previous = GameReadability.OverrideLevel;
-            GameReadability.OverrideLevel = level;
-            try
-            {
-                using (var preview = new PreviewFixture())
-                foreach (CoreGameplayPreviewScreen screen in new[] { CoreGameplayPreviewScreen.PortHub, CoreGameplayPreviewScreen.VoyageDeparture })
-                {
-                    preview.Configure(screen, CoreGameplayPreviewPort.GrayGull);
-                    typeof(CoreGameplayDemoController).GetField("tutorialActive", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(preview.Controller, true);
-                    typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(preview.Controller, null);
-                    Canvas.ForceUpdateCanvases();
-                    bool hub = screen == CoreGameplayPreviewScreen.PortHub;
-                    RectTransform header = preview.Require<RectTransform>(hub ? "Port Hub" : "Port Facility Header");
-                    foreach (string name in hub ? HubHeaderOrder : HeaderOrder)
-                    {
-                        RectTransform control = preview.Require<RectTransform>(name);
-                        Rect bounds = BoundsIn(control, header);
-                        foreach (string lesson in new[] { "Guided Tutorial Objective", "Guided Tutorial Instruction" })
-                            Assert.That(bounds.Overlaps(BoundsIn(preview.Require<RectTransform>(lesson), header)), Is.False, level + " " + name + " / " + lesson);
-                        foreach (Text label in control.GetComponentsInChildren<Text>())
-                            Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .1f), level + " " + name);
-                    }
-                }
-            }
-            finally { GameReadability.OverrideLevel = previous; }
-        }
 
         [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
         [TestCase(CoreGameplayPreviewPort.WhiteShell)]
@@ -191,7 +160,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void PortHub_HotspotsEnterAllTenFacilityHeadersAndReturnToFourControls()
+        public void PortHub_HotspotsEnterAllNineFacilityHeadersAndReturnToFourControls()
         {
             using (PreviewFixture preview = new PreviewFixture())
             {
@@ -254,7 +223,7 @@ namespace ShatteredSail.Core.Tests
                         "Phase Content must use the full 1920 x 1080 reference surface: " + context);
 
                     Rect? preceding = null;
-                    foreach (string objectName in HeaderOrder)
+                    foreach (string objectName in index == PortFacilityArtCatalog.ComponentShopFacilityIndex ? new[] { "Return To Port Hub", "Previous Port Facility", "Next Port Facility", "Port Facility Title", "Port Facility Port", "Port Facility Time", "Port Facility Gold", "Port Facility Settings" } : HeaderOrder)
                     {
                         RectTransform control = preview.Require<RectTransform>(objectName);
                         Assert.That(control.parent, Is.SameAs(header), objectName + " must belong to the facility bar.");
@@ -287,7 +256,7 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(frame.sprite, Is.Not.Null, context);
                     Assert.That(frame.sprite.texture, Is.Not.Null, context);
                     Assert.That(frame.sprite.border.x + frame.sprite.border.y + frame.sprite.border.z + frame.sprite.border.w,
-                        Is.GreaterThan(0f), "The authored corner border must be preserved during ten-facility nine-slice scaling: " + context);
+                        Is.GreaterThan(0f), "The authored corner border must be preserved during nine-facility nine-slice scaling: " + context);
                     Assert.That(frame.color, Is.EqualTo(Color.white), "Use the authored regional art rather than a tint variant: " + context);
                     Assert.That(frame.raycastTarget, Is.False, "Decorative frame must never intercept navigation clicks: " + context);
                     Image backing = header.GetComponent<Image>();
@@ -295,7 +264,7 @@ namespace ShatteredSail.Core.Tests
                         "Transparent authored frame corners need an opaque backing to conceal the old HUD: " + context);
                     Assert.That(backing.raycastTarget, Is.False, context);
                     if (regionalTexture == null) regionalTexture = frame.sprite.texture;
-                    else Assert.That(frame.sprite.texture, Is.SameAs(regionalTexture), "One port should keep its frame across all ten facilities.");
+                    else Assert.That(frame.sprite.texture, Is.SameAs(regionalTexture), "One port should keep its frame across all nine facilities.");
 
                     foreach (string buttonName in new[] { HeaderOrder[0], HeaderOrder[1], HeaderOrder[3], HeaderOrder[7] })
                     {
@@ -369,7 +338,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase(CoreGameplayPreviewPort.SaltCrown)]
         [TestCase(CoreGameplayPreviewPort.TwilightTide)]
         [TestCase(CoreGameplayPreviewPort.GrayGull)]
-        public void NavigationLabels_MatchAllTenDestinationsInBothDirections_AndReturnRestoresRegionalHubHeader(CoreGameplayPreviewPort port)
+        public void NavigationLabels_MatchAllNineDestinationsInBothDirections_AndReturnRestoresRegionalHubHeader(CoreGameplayPreviewPort port)
         {
             using (PreviewFixture preview = new PreviewFixture())
             {
@@ -501,27 +470,54 @@ namespace ShatteredSail.Core.Tests
                 "The header bottom must meet the cropped harbor background top without a seam.");
             Assert.That(bounds.yMin, Is.EqualTo(preview.Canvas.GetComponent<RectTransform>().rect.yMin).Within(0.01f));
 
-            Vector2[] positions =
-            {
-                new Vector2(-805f, 215f), new Vector2(660f, 115f), new Vector2(-815f, -90f),
-                new Vector2(-355f, -200f), new Vector2(-365f, 135f), new Vector2(-30f, -30f),
-                new Vector2(220f, 55f), new Vector2(635f, -275f), new Vector2(75f, -250f),
-                new Vector2(-560f, -340f),
-            };
-            Vector2[] sizes =
-            {
-                new Vector2(220f, 168f), new Vector2(260f, 188f), new Vector2(220f, 158f),
-                new Vector2(230f, 170f), new Vector2(240f, 178f), new Vector2(230f, 174f),
-                new Vector2(250f, 182f), new Vector2(250f, 176f), new Vector2(260f, 190f),
-                new Vector2(260f, 176f),
-            };
+            Assert.That(preview.Find("Port Hub Hint"), Is.Null,
+                "The removed departure preparation prompt must not cover the harbor scene.");
+            Assert.That(content.GetComponentsInChildren<Button>(true)
+                .Count(button => button.name.StartsWith("Port Hotspot ", StringComparison.Ordinal)),
+                Is.EqualTo(FacilityKeys.Length));
+            Rect backgroundBounds = BoundsIn(background.rectTransform, content);
+            var hotspotBounds = new List<Rect>();
             for (int index = 0; index < FacilityKeys.Length; index += 1)
             {
-                RectTransform hotspot = preview.Require<RectTransform>("Port Hotspot " + FacilityKeys[index]);
+                string key = FacilityKeys[index];
+                Button button = preview.Require<Button>("Port Hotspot " + key);
+                RectTransform hotspot = button.GetComponent<RectTransform>();
                 Assert.That(hotspot.parent, Is.SameAs(content));
-                Assert.That(hotspot.anchoredPosition, Is.EqualTo(positions[index]), FacilityKeys[index]);
-                Assert.That(hotspot.sizeDelta, Is.EqualTo(sizes[index]), FacilityKeys[index]);
+                Assert.That(button.IsInteractable(), Is.True, key);
+                Assert.That(button.targetGraphic.raycastTarget, Is.True, key);
+                Rect hotspotBoundsInContent = BoundsIn(hotspot, content);
+                AssertBoundsInside(hotspotBoundsInContent, backgroundBounds, key + " hit area inside harbor");
+                for (int previous = 0; previous < hotspotBounds.Count; previous += 1)
+                    Assert.That(hotspotBoundsInContent.Overlaps(hotspotBounds[previous]), Is.False,
+                        key + " must not intercept clicks intended for " + FacilityKeys[previous]);
+                hotspotBounds.Add(hotspotBoundsInContent);
+
+                Text label = preview.Require<Text>("Port Label " + key);
+                PortNameplateGraphic plaque = preview.Require<PortNameplateGraphic>("Port Sign " + key);
+                Assert.That(plaque.transform.parent, Is.SameAs(hotspot), key);
+                Assert.That(label.transform.parent, Is.SameAs(hotspot), key);
+                Assert.That(plaque.gameObject.activeInHierarchy && plaque.enabled && plaque.color.a > .01f, Is.True, key + " plaque is permanent");
+                Assert.That(label.gameObject.activeInHierarchy && label.enabled && label.color.a > .01f, Is.True, key + " name is permanent");
+                Assert.That(label.fontSize, Is.EqualTo(22), key);
+                Assert.That(plaque.raycastTarget, Is.False, key + " plaque preserves landmark pointer input");
+                Assert.That(label.raycastTarget, Is.False, key + " text preserves landmark pointer input");
+                AssertBoundsInside(BoundsIn(plaque.rectTransform, content), backgroundBounds, key + " nameplate inside harbor");
+                AssertBoundsInside(BoundsIn(plaque.rectTransform, hotspot), hotspot.rect, key + " nameplate inside hit area");
+                AssertBoundsInside(BoundsIn(label.rectTransform, plaque.transform), plaque.rectTransform.rect, key + " label inside nameplate");
+                foreach (Graphic graphic in new Graphic[] { plaque, label })
+                    Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(graphic.gameObject),
+                        Is.SameAs(button.gameObject), graphic.name + " belongs to its own facility");
             }
+        }
+
+        private static void AssertBoundsInside(Rect inner, Rect outer, string context)
+        {
+            Assert.That(inner.width, Is.GreaterThan(0f), context);
+            Assert.That(inner.height, Is.GreaterThan(0f), context);
+            Assert.That(inner.xMin, Is.GreaterThanOrEqualTo(outer.xMin - 0.01f), context);
+            Assert.That(inner.xMax, Is.LessThanOrEqualTo(outer.xMax + 0.01f), context);
+            Assert.That(inner.yMin, Is.GreaterThanOrEqualTo(outer.yMin - 0.01f), context);
+            Assert.That(inner.yMax, Is.LessThanOrEqualTo(outer.yMax + 0.01f), context);
         }
 
         private static void AssertTitle(PreviewFixture preview, int index)
@@ -532,6 +528,12 @@ namespace ShatteredSail.Core.Tests
 
         private static void AssertNavigationLabels(PreviewFixture preview, int index)
         {
+            if (index == PortFacilityArtCatalog.ComponentShopFacilityIndex)
+            {
+                AssertButtonText(preview, "Previous Port Facility", "酒馆");
+                AssertButtonText(preview, "Next Port Facility", "卡组工坊");
+                return;
+            }
             int previousIndex = (index + Screens.Length - 1) % Screens.Length;
             int nextIndex = (index + 1) % Screens.Length;
             string port = preview.Controller.Session.CurrentPort;
@@ -545,9 +547,8 @@ namespace ShatteredSail.Core.Tests
         {
             Button button = preview.Require<Button>(buttonName);
             string label = button.GetComponentInChildren<Text>().text;
-            string destinationTitle = buttonName == "Previous Port Facility"
-                ? label.Substring(2)
-                : label.Substring(0, label.Length - 2);
+            string destinationTitle = PortFacilityArtCatalog.RegionalFacilityTitle(destinationIndex,
+                preview.Controller.Session.CurrentPort, Titles[destinationIndex]);
             button.onClick.Invoke();
             Assert.That(preview.Require<Text>("Port Facility Title").text, Is.EqualTo(destinationTitle),
                 "Navigation must open the facility named on the button: " + preview.Controller.Session.CurrentPort + " / " + buttonName);
@@ -561,8 +562,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(background.rectTransform.rect.size, Is.EqualTo(PhaseSurfaceLayout.BackgroundSize),
                 "The room art must fill the 1920 x 972 surface below the compact header: " + context);
             Assert.That(background.rectTransform.anchoredPosition, Is.EqualTo(PhaseSurfaceLayout.BackgroundPosition), context);
-            Assert.That(background.uvRect, Is.EqualTo(PhaseSurfaceLayout.BackgroundUv(background.texture)),
-                "The room art must use the shared aspect-preserving crop: " + context);
+            if (Screens[index] == CoreGameplayPreviewScreen.CardWorkshop)
+                Assert.That(background.texture, Is.Null, "The card workshop is a direct parchment preview without room art.");
+            else
+                Assert.That(background.uvRect, Is.EqualTo(PhaseSurfaceLayout.BackgroundUv(background.texture)),
+                    "The room art must use the shared aspect-preserving crop: " + context);
             Rect bounds = BoundsIn(background.rectTransform, preview.Canvas.transform);
             Assert.That(header.xMin, Is.EqualTo(bounds.xMin).Within(0.01f), context + " / scene left");
             Assert.That(header.xMax, Is.EqualTo(bounds.xMax).Within(0.01f), context + " / scene right");
@@ -579,6 +583,11 @@ namespace ShatteredSail.Core.Tests
         private static void AssertGold(PreviewFixture preview, string name = "Port Facility Gold")
         {
             string label = Regex.Replace(preview.Require<Text>(name).text, "<[^>]*>", string.Empty);
+            if (label.StartsWith("金币  ", StringComparison.Ordinal))
+            {
+                Assert.That(label.Substring(4).Trim(), Is.EqualTo(PortMarketCatalog.FormatPrice(preview.Controller.Session.ProfileGold)));
+                return;
+            }
             Assert.That(label, Does.Contain("总金币"));
             Assert.That(label.Split('\n').Last().Trim(), Is.EqualTo(PortMarketCatalog.FormatPrice(preview.Controller.Session.ProfileGold)),
                 "The bar must show total profile gold, not voyage pocket gold or a cached preview constant.");
@@ -586,9 +595,9 @@ namespace ShatteredSail.Core.Tests
 
         private static void AssertGameMinute(string label, DateTime before, DateTime after)
         {
-            Match match = Regex.Match(label, @"\d{4}-\d{2}-\d{2} \d{2}:\d{2}");
-            Assert.That(match.Success, Is.True, "Show the game calendar as yyyy-MM-dd HH:mm.");
-            DateTime parsed = DateTime.ParseExact(match.Value, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            Match match = Regex.Match(label, @"(?<!\d)[1-9]\d{0,3}-\d{2}-\d{2} \d{2}:\d{2}");
+            Assert.That(match.Success, Is.True, "Show the game calendar with no leading zeros in the year.");
+            DateTime parsed = DateTime.ParseExact(match.Value.PadLeft(16, '0'), "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
             long minute = parsed.Ticks / TimeSpan.TicksPerMinute;
             Assert.That(minute, Is.InRange(before.Ticks / TimeSpan.TicksPerMinute, after.Ticks / TimeSpan.TicksPerMinute),
                 "Timestamp must use the shared saved game calendar.");

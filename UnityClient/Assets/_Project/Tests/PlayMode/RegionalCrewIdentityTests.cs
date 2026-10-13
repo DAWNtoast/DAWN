@@ -26,7 +26,6 @@ namespace ShatteredSail.Presentation.Tests
             }
             foreach (CrewVariantDefinition crew in CrewNarrativeCatalog.AllCrew)
                 intKeys.Add(CoreGameplayDemoController.CrewVariantRecruitmentKey(crew.Id));
-            stringKeys.Add(CoreGameplayDemoController.DispatchCrewIdentityKey);
             foreach (string key in intKeys)
             {
                 if (PlayerPrefs.HasKey(key)) intPrefs[key] = PlayerPrefs.GetInt(key);
@@ -72,30 +71,6 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(IsRecruited(legacy), Is.True);
             Assert.That(IsRecruited(regional), Is.True);
             Assert.That(IsRecruited(CrewNarrativeCatalog.ForPortAndProfession("盐冠港", 0)), Is.False);
-        }
-
-        [Test]
-        public void Dispatch_SnapshotsPersonalIdentityWhenRepresentativeChanges()
-        {
-            CrewVariantDefinition first = CrewNarrativeCatalog.ForPortAndProfession("铜钟港", 0);
-            CrewVariantDefinition second = CrewNarrativeCatalog.ForPortAndProfession("白贝港", 0);
-            RecruitIdentity(first);
-            List<int> professions = new List<int> { 0 };
-            string identities = (string)Invoke("BuildDispatchCrewIdentityCsv", new[] { typeof(IReadOnlyList<int>) }, professions);
-            Assert.That(identities, Is.EqualTo(first.Id));
-            PlayerPrefs.SetString(CoreGameplayDemoController.DispatchCrewIdentityKey, identities);
-            RecruitIdentity(second);
-            string names = (string)Invoke("PersistedDispatchCrewNames", new[] { typeof(IReadOnlyList<int>) }, professions);
-            Assert.That(names, Is.EqualTo(first.DisplayName));
-            Assert.That((string)Invoke("BuildDispatchCrewIdentityCsv", new[] { typeof(IReadOnlyList<int>) }, professions), Is.EqualTo(second.Id));
-        }
-
-        [Test]
-        public void LegacyDispatch_UsesOriginalCrewIdentityWithoutNewSnapshot()
-        {
-            RecruitIdentity(CrewNarrativeCatalog.ForPortAndProfession("盐冠港", 0));
-            string names = (string)Invoke("PersistedDispatchCrewNames", new[] { typeof(IReadOnlyList<int>) }, new List<int> { 0 });
-            Assert.That(names, Is.EqualTo(CrewNarrativeCatalog.LegacyForProfession(0).DisplayName));
         }
 
         [Test]

@@ -26,9 +26,11 @@ namespace ShatteredSail.Core.Tests
             CollectionAssert.AreEquivalent(
                 new[]
                 {
+                    PortFacilityArtCatalog.WarehouseFacilityIndex,
                     PortFacilityArtCatalog.TavernFacilityIndex,
                     PortFacilityArtCatalog.ComponentShopFacilityIndex,
                     PortFacilityArtCatalog.MaintenanceFacilityIndex,
+                    PortFacilityArtCatalog.VoyageFacilityIndex,
                 },
                 PortFacilityArtCatalog.SupportedRegionalFacilities);
 
@@ -49,18 +51,22 @@ namespace ShatteredSail.Core.Tests
                 Is.Empty,
                 "An unknown port must not silently display another port's composition.");
             Assert.That(
-                PortFacilityArtCatalog.RegionalBackgroundResourcePath(0, "断锚港"),
+                PortFacilityArtCatalog.RegionalBackgroundResourcePath(1, "断锚港"),
                 Is.Empty,
                 "Facilities outside the regional contract should retain their existing background lookup.");
+            Assert.That(PortFacilityArtCatalog.RegionalBackgroundResourcePath(
+                    PortFacilityArtCatalog.VoyageFacilityIndex, "断锚港"),
+                Is.EqualTo("PortFacilities/Regional/Voyage/voyage_broken_anchor_scene_v4"),
+                "The scene uses its empty berth painting so the active vessel remains an independent layer.");
         }
 
         [Test]
-        public void CommissionedRegionalArt_AllEighteenBackgroundsLoadAsDistinctTextures()
+        public void CommissionedRegionalArt_AllThirtyBackgroundsLoadAsDistinctTextures()
         {
             PortFacilityArtCatalog catalog = new PortFacilityArtCatalog();
             Assert.That(catalog.MissingRegionalBackgroundPaths(), Is.Empty,
                 "A generic scene fallback is not completion of a regional art commission.");
-            Assert.That(catalog.LoadedRegionalBackgroundCount, Is.EqualTo(18));
+            Assert.That(catalog.LoadedRegionalBackgroundCount, Is.EqualTo(30));
             Assert.That(catalog.AreAllRegionalBackgroundsAvailable, Is.True);
             HashSet<Texture2D> backgrounds = new HashSet<Texture2D>();
             foreach (int facility in PortFacilityArtCatalog.SupportedRegionalFacilities)
@@ -113,12 +119,16 @@ namespace ShatteredSail.Core.Tests
         {
             for (int port = 0; port < ExpectedPorts.Length; port += 1)
             {
+                yield return new TestCaseData(CoreGameplayPreviewScreen.Warehouse, (CoreGameplayPreviewPort)port,
+                    ExpectedPorts[port], PortFacilityArtCatalog.WarehouseFacilityIndex, "Warehouse Background");
                 yield return new TestCaseData(CoreGameplayPreviewScreen.Tavern, (CoreGameplayPreviewPort)port,
                     ExpectedPorts[port], PortFacilityArtCatalog.TavernFacilityIndex, "Tavern Background");
                 yield return new TestCaseData(CoreGameplayPreviewScreen.ComponentShop, (CoreGameplayPreviewPort)port,
                     ExpectedPorts[port], PortFacilityArtCatalog.ComponentShopFacilityIndex, "ComponentShop Background");
                 yield return new TestCaseData(CoreGameplayPreviewScreen.Maintenance, (CoreGameplayPreviewPort)port,
                     ExpectedPorts[port], PortFacilityArtCatalog.MaintenanceFacilityIndex, "Maintenance Background");
+                yield return new TestCaseData(CoreGameplayPreviewScreen.VoyageDeparture, (CoreGameplayPreviewPort)port,
+                    ExpectedPorts[port], PortFacilityArtCatalog.VoyageFacilityIndex, "Voyage Background");
             }
         }
 
@@ -147,6 +157,8 @@ namespace ShatteredSail.Core.Tests
                     ? catalog.Background(facilityIndex)
                     : catalog.RegionalBackground(facilityIndex, portName);
                 if (expected == null) expected = catalog.Background(facilityIndex);
+                if (screen == CoreGameplayPreviewScreen.ComponentShop)
+                    expected = Resources.Load<Texture2D>("ComponentShopV3/shipyard_hall") ?? expected;
 
                 RawImage background = backgroundObject.GetComponent<RawImage>();
                 Assert.That(background.texture, Is.SameAs(expected));
@@ -154,7 +166,16 @@ namespace ShatteredSail.Core.Tests
                     "Regional compositions must be presented in authored colors rather than per-port tinting.");
                 Image tint = FindDescendant(preview, "Facility Backdrop Tint").GetComponent<Image>();
                 Assert.That(tint.color.a, Is.Zero,
-                    "The three regional facility scenes should not be recolored by the legacy dark overlay.");
+                    "Regional facility scenes should not be recolored by the legacy dark overlay.");
+
+                if (screen == CoreGameplayPreviewScreen.Warehouse || screen == CoreGameplayPreviewScreen.Maintenance ||
+                    screen == CoreGameplayPreviewScreen.VoyageDeparture && port == CoreGameplayPreviewPort.BrokenAnchor)
+                {
+                    Assert.That(background.rectTransform.sizeDelta, Is.EqualTo(new Vector2(1920f, 1080f)));
+                    Assert.That(background.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero));
+                    Assert.That(background.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)),
+                        "Scene hit targets use the complete painting, without the legacy phase crop.");
+                }
 
                 if (screen == CoreGameplayPreviewScreen.Tavern)
                 {

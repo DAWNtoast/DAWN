@@ -102,12 +102,12 @@ namespace ShatteredSail.Core.Tests
                     "card_full_sail_turn", "card_full_sail_turn", "card_approach", "card_approach",
                     "card_brace", "card_parallel_course");
                 SetDeck(session, NavalBattleStage.Naval,
-                    "card_chain_shot", "card_chain_shot", "card_chain_shot",
-                    "card_cannon_barrage", "card_cannon_barrage", "card_cannon_barrage",
+                    "card_chain_shot", "card_chain_shot", "card_load_shot",
+                    "card_cannon_barrage", "card_cannon_barrage", "card_deck_polish",
                     "card_full_sail_turn", "card_retreat", "card_emergency_repair", "card_brace");
                 SetDeck(session, NavalBattleStage.Boarding,
                     "card_boarding_hook", "card_boarding_hook", "card_crew_thrust", "card_crew_thrust",
-                    "card_crew_thrust", "card_cutlass_raid", "card_cutlass_raid", "card_crew_guard",
+                    "card_crew_pistol", "card_cutlass_raid", "card_cutlass_raid", "card_crew_guard",
                     "card_crew_rally", "card_crew_bandage");
             }
             // Full, finite combat provisions. This fixture skips voyage attrition, not
@@ -139,7 +139,7 @@ namespace ShatteredSail.Core.Tests
             // The sole bypass skips navigation. Never rewrite hands, HP, RNG or enemy stats.
             StartBattle.Invoke(session, new object[] { node.Encounter, node.IsBoss });
             CoreBattleState battle = session.Battle;
-            CoreBattleProfile profile = CoreBattleBalance.Resolve(node.Encounter, scenario.Route, node.IsBoss);
+            CoreBattleProfile profile = CoreBattleBalance.Resolve(node.Encounter, scenario.Route, node.IsBoss, scenario.Tutorial);
             if (battle.EnemyMaxHull != profile.EnemyHull ||
                 battle.EnemyMaxBoardingHealth != (scenario.Tutorial ? 9 : profile.BoardingHealth))
                 throw new InvalidOperationException("Combat is not using its authored profile.");
@@ -344,8 +344,7 @@ namespace ShatteredSail.Core.Tests
             int block = Math.Min(defenseNeed, effect.Block + (card.Block > 0 && !boarding ? battle.PlayerDeckBuff : 0));
             double score = repair * (health < maxHealth * .55 ? 2.5 : .65) + block * (health <= attack * 2 ? 2 : .9);
             double divisor = session.GetBattleCardEnergyCost(cardIndex) + .65;
-            int damage = effect.Damage + (card.Action == NavalBattleCardAction.Cannon ?
-                Math.Max(0, (session.EffectiveFirepower - 8) / 2) + battle.PlayerLoadedShot : 0);
+            int damage = session.GetBattleCardDamage(card, battle.Stage);
             if (damage >= enemyHealth + battle.EnemyBlock) return 10000 / divisor;
             if (!preparing && (boarding || tactic == Tactic.Cannon)) score += damage * 1.7;
             if (card.Draw > 0 && battle.Hand.Count < 7) score += card.Draw * (battle.Hand.Count < 4 ? 6 : 2);

@@ -1,3 +1,4 @@
+using System.Text;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,20 +7,53 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
-        private const string BattleRepeatCostRule = "同名牌每次成功打出后费用 +1，副本共享；下回合或切换阶段恢复基础费用。";
-
         private string BattleCardTooltipText(CoreBattleCard card, int handIndex)
         {
-            int cardIndex = session.Battle.Hand[handIndex];
-            int actual = session.GetBattleCardEnergyCost(cardIndex);
-            int used = Mathf.Max(0, actual - card.Energy);
-            string unavailable = session.CardUnavailableReason(handIndex);
-            return (unavailable.Length > 0 ? "<color=#6B251C>" + FormatBattleCardDescription(unavailable) + "</color>\n\n" : string.Empty) +
-                FormatBattleCardDescription("当前能量 " + actual + "＝基础 " + card.Energy + "＋本回合已用 " + used + " 次") +
-                "\n" + FormatBattleCardDescription(BattleRepeatCostRule) + "\n\n" +
-                FormatBattleCardDescription(session.BattleCardDescription(card)) + "\n\n" + CardKeywordHelp(card) +
-                (session.Battle.Stage == NavalBattleStage.Boarding && card.Repair > 0 ?
-                    "\n" + FormatBattleCardDescription("药品：基础治疗 +50%（向上取整）；只在增疗有效时耗 1，满血或基础可补满不耗。") : string.Empty);
+            string text = CardKeywordHelp(card);
+            if (card?.SchoolEffect != null && session?.Battle != null && handIndex >= 0 && handIndex < session.Battle.Hand.Count)
+            {
+                string reason = session.CardUnavailableReason(handIndex);
+                if (!string.IsNullOrEmpty(reason)) text += "\n\n<color=#6B251C>当前不能使用</color>\n" + reason;
+            }
+            return text;
+        }
+
+        private string CardKeywordHelp(CoreBattleCard card)
+        {
+            if (card?.SchoolEffect != null) return SchoolCardKeywordHelp(card);
+            if (card == null || session?.Battle == null || session.Battle.Stage != NavalBattleStage.Boarding ||
+                !card.IsAllowedInStage(NavalBattleStage.Boarding) || card.Damage <= 0 && card.Repair <= 0)
+                return string.Empty;
+
+            CoreBattleCardEffects effects = session.GetBattleCardEffects(card, NavalBattleStage.Boarding);
+            var text = new StringBuilder();
+            text.Append("卡牌效果不受人数影响。\n")
+                .Append("当前士气 ").Append(session.Morale).Append(" · 接舷暴击率 ")
+                .Append(session.BoardingCriticalChancePercent).Append("%（暴击伤害 ×2）。");
+            if (card.Damage > 0)
+                text.Append("\n\n<color=#6B251C>白刃</color>\n船员伤害 ").Append(effects.Damage).Append("。");
+            if (card.Repair > 0)
+            {
+                text.Append("\n\n<color=#234921>治疗</color>\n有药完整 ").Append(effects.FullRepair).Append("。\n")
+                    .Append("无药保底 ").Append(effects.FallbackRepair).Append("，不随强化增加。\n");
+                if (effects.HasMedicineBoost)
+                    text.Append("随船药品可提供完整治疗。\n");
+                else text.Append("无随船药品。\n");
+                text.Append("治疗上限 ").Append(effects.Repair);
+                if (effects.IsRepairPreview)
+                    text.Append("；治疗预览不消耗药品。");
+                else
+                {
+                    int missing = Mathf.Max(0, session.Battle.PlayerMaxBoardingHealth - session.Battle.PlayerBoardingHealth);
+                    text.Append("，当前缺血 ").Append(missing).Append("；\n本次实际恢复 ").Append(effects.ActualRepair)
+                        .Append("（取治疗上限与缺血量的较小值）。\n")
+                        .Append(effects.MedicineCost > 0 ? "药品 -1。" : "不耗药。");
+                }
+                text.Append("\n仅完整治疗超出保底时消耗 1 药品；满血或保底可补满不耗药。");
+            }
+            // This wider calculation tooltip keeps the full explanatory prose;
+            // compact wording and card-face wrapping belong only to the card.
+            return CoreBattleCardText.FormatEffects(text.ToString());
         }
 
         private void RefreshBattleCardCost(Text badge, Text surcharge, int cardIndex, CoreBattleCard card)
@@ -27,7 +61,7 @@ namespace ShatteredSail.Presentation
             int actual = session.GetBattleCardEnergyCost(cardIndex);
             int increase = Mathf.Max(0, actual - card.Energy);
             badge.text = actual.ToString();
-            surcharge.text = "本回合同名已用 " + increase + " 次 · +" + increase + " 费";
+            surcharge.text = "+" + increase;
             surcharge.transform.parent.gameObject.SetActive(increase > 0);
         }
 
@@ -38,40 +72,38 @@ namespace ShatteredSail.Presentation
             int maximum = player ? battle.PlayerMaxBoardingHealth : battle.EnemyMaxBoardingHealth;
             bool attacking = player != battle.BoardingInitiatedByEnemy;
             string role = battle.Stage == NavalBattleStage.Boarding ? (attacking ? " · 登船队" : " · 守备队") : string.Empty;
-            return name + role + "\n<size=" + GameReadability.FontSize(18) + ">普通水手 " + ordinary + " 人 · 接舷生命上限 " + maximum + "</size>";
+            return name + role + "\n<size=15>普通水手 " + ordinary + " 人 · 接舷生命上限 " + maximum + "</size>";
         }
 
-        private static string BattleActiveBuffText(CoreBattleState battle)
+        private string BattleActiveBuffText(CoreBattleState battle)
         {
             string status = battle.Stage == NavalBattleStage.Boarding
-                ? "普通水手 " + battle.PlayerOrdinaryCrew + " 人 · 卡牌效果 " +
-                    (CoreBattleCardEffects.BoardingScaleFor(battle.PlayerOrdinaryCrew) * 100m).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) +
-                    "%\n船员生命 " + battle.PlayerBoardingHealth + "/" + battle.PlayerMaxBoardingHealth +
+                ? "普通水手 " + battle.PlayerOrdinaryCrew + " 人" +
+                    "\n船员生命 " + battle.PlayerBoardingHealth + "/" + battle.PlayerMaxBoardingHealth +
                     "\n当前船员格挡 " + battle.PlayerBlock
-                : "甲板强化 +" + battle.PlayerDeckBuff + "\n装填加伤 +" + battle.PlayerLoadedShot + "\n烈焰炮弹 " + battle.PlayerFireRounds + " 发";
+                : "甲板强化 +" + battle.PlayerDeckBuff +
+                    "\n装填加伤 +" + session.PlayerLoadedShotDamageBonus +
+                    "\n烈焰炮弹 " + battle.PlayerFireRounds + " 发";
             return status + "\n牌堆 " + battle.DrawPile.Count + " · 弃牌 " + battle.DiscardPile.Count;
         }
 
         private static void ConfigureEnemyIntentLayout(RectTransform battleRoot, RectTransform hud, Text label, Image icon, bool ram)
         {
             if (battleRoot == null || hud == null || label == null || icon == null) return;
-            CoreGameplayDemoController controller = battleRoot.GetComponentInParent<CoreGameplayDemoController>();
-            bool boarding = controller != null && controller.Session?.Battle?.Stage == NavalBattleStage.Boarding;
-            // Place intent beside the enemy defense band, away from the name
-            // board. Naval warnings grow upward; their bottom stays clear of
-            // ram/board actions and their left edge stays beyond the ship art.
-            GameReadability.Body(label, 22);
-            float width = boarding ? 230f : 210f;
-            float height = boarding ? 104f : 150f + 60f * (GameReadability.Scale - 1f);
-            hud.sizeDelta = new Vector2(width, height);
-            hud.anchoredPosition = boarding ? new Vector2(735f, -186f) : new Vector2(780f, -82f + height * .5f);
-            icon.rectTransform.sizeDelta = new Vector2(30f, 30f);
-            icon.rectTransform.anchoredPosition = new Vector2(-width * .5f + 21f, height * .5f - 21f);
+            // The body spans the full panel width; the small glyph occupies
+            // only the title line so longer ram plans keep a readable minimum.
+            label.fontSize = BattleDecisionFontSize;
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = 14;
+            label.resizeTextMaxSize = BattleDecisionFontSize;
+            hud.sizeDelta = new Vector2(BattleDecisionPanelWidth, BattleDecisionInfoHeight);
+            icon.rectTransform.sizeDelta = new Vector2(24f, 24f);
+            icon.rectTransform.anchoredPosition = new Vector2(-96f, 43f);
             Text glyph = icon.GetComponentInChildren<Text>();
-            if (glyph != null) { GameReadability.Body(glyph, 18); glyph.rectTransform.sizeDelta = new Vector2(30f, 30f); }
-            // The narrow side column stays clear of the ships and card fan.
-            // Keep the complete warning available through wheel/scrollbar input.
-            ReadableParagraph(label, hud, new Vector2(width - 12f, height - 44f), new Vector2(0f, -19f), 22, true);
+            if (glyph != null) { glyph.fontSize = 16; glyph.rectTransform.sizeDelta = new Vector2(24f, 24f); }
+            label.alignment = TextAnchor.MiddleCenter;
+            label.rectTransform.sizeDelta = new Vector2(212f, 104f);
+            label.rectTransform.anchoredPosition = Vector2.zero;
         }
 
     }

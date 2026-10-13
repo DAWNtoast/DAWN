@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -15,6 +16,25 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.ElapsedGameHours, Is.Zero);
             Assert.That(session.GameDateTime, Is.EqualTo(new DateTime(1, 1, 1, 8, 0, 0)));
             Assert.That(session.GameDateTime.Kind, Is.EqualTo(DateTimeKind.Unspecified));
+        }
+
+        [TestCase(1, "1-01-02")]
+        [TestCase(7, "7-01-02")]
+        [TestCase(77, "77-01-02")]
+        [TestCase(777, "777-01-02")]
+        [TestCase(2026, "2026-01-02")]
+        [TestCase(9999, "9999-01-02")]
+        public void DisplayDate_UsesFullYearWithoutLeadingZeroes(int year, string expected)
+        {
+            CultureInfo previousCulture = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("th-TH");
+                var date = new DateTime(year, 1, 2, 3, 4, 0);
+                Assert.That(CoreVoyageSession.FormatGameDate(date), Is.EqualTo(expected));
+                Assert.That(CoreVoyageSession.FormatGameDate(date, true), Is.EqualTo(expected + " 03:04"));
+            }
+            finally { CultureInfo.CurrentCulture = previousCulture; }
         }
 
         [TestCase(2026, 10, 7, 77, 10, 7)]
@@ -90,6 +110,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase(4, 2, 28, 4, 2, 29)]
         [TestCase(4, 2, 29, 4, 3, 1)]
         [TestCase(1, 12, 31, 2, 1, 1)]
+        [TestCase(9999, 12, 31, 1, 1, 1)]
         public void PaidEncounter_AdvancesAcrossGregorianMonthAndYearBoundaries(
             int year, int month, int day, int nextYear, int nextMonth, int nextDay)
         {
@@ -190,19 +211,60 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CalendarLimit_SaturatesWithoutOverflowOrWrapping()
+        public void CalendarLimit_WrapsAtMidnightAndPreservesSavedRemainder()
         {
             var session = new CoreVoyageSession();
-            Assert.That(session.RestoreGameClock(CoreVoyageSession.MaximumElapsedGameHours - 0.5d), Is.True);
+            DateTime before = new DateTime(9999, 12, 31, 23, 0, 0);
+            Assert.That(session.RestoreGameClock((before - CoreVoyageSession.GameClockOrigin).TotalHours), Is.True);
             StartTutorialVoyage(session);
             EnterAuthoredEncounter(session, CoreGuidedTutorialContent.FirstEventId);
             Assert.That(session.ResolveChoice(0), Is.True);
-            Assert.That(session.GameDateTime, Is.EqualTo(DateTime.MaxValue));
-            Assert.That(session.ElapsedGameHours, Is.EqualTo(CoreVoyageSession.MaximumElapsedGameHours));
+            Assert.That(session.GameDateTime, Is.EqualTo(new DateTime(1, 1, 1)));
+
+            EnterAuthoredEncounter(session, CoreGuidedTutorialContent.FirstEventId);
+            Assert.That(session.ResolveChoice(0), Is.True);
+            Assert.That(session.GameDateTime, Is.EqualTo(new DateTime(1, 1, 1, 1, 0, 0)));
+            Assert.That(session.TotalHours, Is.EqualTo(2d));
 
             var restored = new CoreVoyageSession();
+            Assert.That(restored.RestoreGameClock(session.ElapsedGameHours), Is.True);
+            Assert.That(restored.GameDateTime, Is.EqualTo(session.GameDateTime));
+        }
+
+        [Test]
+        public void WrappedCalendar_AdvancesPastSaveEpochWithoutJumpingDate()
+        {
+            var session = new CoreVoyageSession();
+            Assert.That(session.RestoreGameClock(CoreVoyageSession.GameCalendarCycleHours - 0.5d), Is.True);
+            Assert.That(session.GameDateTime, Is.EqualTo(new DateTime(1, 1, 1, 7, 30, 0)));
+            StartTutorialVoyage(session);
+            EnterAuthoredEncounter(session, CoreGuidedTutorialContent.FirstEventId);
+            Assert.That(session.ResolveChoice(0), Is.True);
+            Assert.That(session.GameDateTime, Is.EqualTo(new DateTime(1, 1, 1, 8, 30, 0)));
+            Assert.That(session.ElapsedGameHours, Is.EqualTo(0.5d));
+        }
+
+        [TestCase(1)]
+        [TestCase(3)]
+        public void RestoreGameClock_WrapsMultipleCalendarCycles(int cycles)
+        {
+            var restored = new CoreVoyageSession();
+            Assert.That(restored.RestoreGameClock(CoreVoyageSession.GameCalendarCycleHours * cycles + 16.5d), Is.True);
+            Assert.That(restored.GameDateTime, Is.EqualTo(new DateTime(1, 1, 2, 0, 30, 0)));
+            Assert.That(restored.ElapsedGameHours, Is.EqualTo(16.5d));
+        }
+
+        [Test]
+        public void OversizedFiniteClock_RemainsValidAndCanKeepAdvancing()
+        {
+            var restored = new CoreVoyageSession();
             Assert.That(restored.RestoreGameClock(double.MaxValue), Is.True);
-            Assert.That(restored.GameDateTime, Is.EqualTo(DateTime.MaxValue));
+            Assert.That(restored.ElapsedGameHours, Is.InRange(0d, CoreVoyageSession.GameCalendarCycleHours - 1d));
+            DateTime before = restored.GameDateTime;
+            StartTutorialVoyage(restored);
+            EnterAuthoredEncounter(restored, CoreGuidedTutorialContent.FirstEventId);
+            Assert.That(restored.ResolveChoice(0), Is.True);
+            Assert.That(restored.GameDateTime, Is.EqualTo(before.AddHours(1d)));
         }
 
         private static void StartTutorialVoyage(CoreVoyageSession session)

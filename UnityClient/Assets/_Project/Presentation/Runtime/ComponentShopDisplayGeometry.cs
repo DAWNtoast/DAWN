@@ -113,51 +113,163 @@ namespace ShatteredSail.Presentation
 
         private static Rect OpaquePixels(string id)
         {
-            // Top-left source pixels at alpha >= 220, ignoring the surrounding aura.
+            // Measured at alpha >= 8 from each normalized 1024 px sprite, expressed
+            // in the existing 512 px coordinate space. The caller adds 24 native
+            // pixels of clearance for translucent edges and fine rigging tips.
             switch (id)
             {
-                case "bow_oak_ram": return Rect.MinMaxRect(40f, 96f, 484f, 380f);
-                case "bow_reef_cutter": return Rect.MinMaxRect(20f, 90f, 496f, 390f);
-                case "bow_gilded_mermaid": return Rect.MinMaxRect(22f, 56f, 474f, 422f);
-                case "bow_abyssal_fang": return Rect.MinMaxRect(22f, 64f, 494f, 388f);
-                case "bow_leviathan_ram": return Rect.MinMaxRect(18f, 56f, 510f, 440f);
-                case "sail_patched_lateen": return Rect.MinMaxRect(46f, 14f, 478f, 496f);
-                case "sail_storm_canvas": return Rect.MinMaxRect(44f, 12f, 478f, 498f);
-                case "sail_guild_silk": return Rect.MinMaxRect(30f, 12f, 494f, 498f);
-                case "sail_moonweave": return Rect.MinMaxRect(80f, 10f, 450f, 496f);
-                case "sail_tempest_wing": return Rect.MinMaxRect(18f, 12f, 484f, 496f);
-                case "cannon_deck_swivel": return Rect.MinMaxRect(16f, 116f, 448f, 410f);
-                case "cannon_bronze_longgun": return Rect.MinMaxRect(8f, 132f, 504f, 370f);
-                case "cannon_chain_repeater": return Rect.MinMaxRect(24f, 140f, 498f, 398f);
-                case "cannon_starfire_battery": return Rect.MinMaxRect(14f, 98f, 494f, 372f);
-                case "cannon_queens_broadside": return Rect.MinMaxRect(10f, 56f, 504f, 404f);
-                case "plating_braced_ribs": return Rect.MinMaxRect(18f, 82f, 498f, 388f);
-                case "plating_iron_band": return Rect.MinMaxRect(16f, 80f, 494f, 388f);
-                case "plating_gilded_bulwark": return Rect.MinMaxRect(8f, 82f, 494f, 390f);
-                case "plating_moonsilver_skin": return Rect.MinMaxRect(16f, 66f, 500f, 390f);
-                case "plating_living_hull": return Rect.MinMaxRect(16f, 66f, 494f, 384f);
-                case "instrument_brass_compass": return Rect.MinMaxRect(66f, 12f, 452f, 500f);
-                case "instrument_tideglass": return Rect.MinMaxRect(88f, 14f, 434f, 500f);
-                case "instrument_guild_engine": return Rect.MinMaxRect(50f, 24f, 472f, 500f);
-                case "instrument_lunar_astrolabe": return Rect.MinMaxRect(70f, 24f, 462f, 500f);
-                case "instrument_allseeing_sextant": return Rect.MinMaxRect(36f, 8f, 476f, 502f);
-                // Expanded market sidegrades reuse the same component art family as
-                // the authored prototypes.  Keep their silhouette bounds stable so
-                // newly-added entries cannot fall back to a stretched 512 px square
-                // or disappear from the shop layout.  The family bounds intentionally
-                // match the closest existing prototype in each slot.
+                case "bow_oak_ram": return Rect.MinMaxRect(49.5f, 111.0f, 463.5f, 401.5f);
+                case "bow_ironwood_beak": return Rect.MinMaxRect(49.0f, 104.5f, 463.0f, 406.5f);
+                case "bow_ashwave_wedge": return Rect.MinMaxRect(48.5f, 134.5f, 463.0f, 377.5f);
+                case "bow_harborbreaker": return Rect.MinMaxRect(49.5f, 87.0f, 463.0f, 425.0f);
+                case "bow_sawtooth_drift": return Rect.MinMaxRect(49.0f, 119.5f, 463.5f, 392.0f);
+                case "bow_reef_cutter": return Rect.MinMaxRect(48.5f, 95.0f, 463.0f, 416.5f);
+                case "bow_coral_parting_blade": return Rect.MinMaxRect(49.0f, 71.0f, 463.0f, 440.5f);
+                case "bow_smuggler_needle": return Rect.MinMaxRect(49.5f, 167.5f, 463.0f, 345.0f);
+                case "bow_tidehook_ram": return Rect.MinMaxRect(51.0f, 49.0f, 460.0f, 463.5f);
+                case "bow_sprayfox_prow": return Rect.MinMaxRect(48.5f, 115.0f, 463.5f, 397.0f);
+                case "bow_gilded_mermaid": return Rect.MinMaxRect(100.5f, 49.0f, 411.5f, 463.0f);
+                case "bow_sunlion_figurehead": return Rect.MinMaxRect(51.0f, 49.0f, 460.5f, 463.5f);
+                case "bow_pearl_siren": return Rect.MinMaxRect(48.5f, 62.0f, 463.0f, 449.5f);
+                case "bow_guildbreaker_crest": return Rect.MinMaxRect(49.5f, 68.0f, 463.5f, 443.5f);
+                case "bow_amber_albatross": return Rect.MinMaxRect(48.5f, 50.5f, 463.0f, 461.0f);
+                case "bow_abyssal_fang": return Rect.MinMaxRect(49.0f, 149.0f, 463.5f, 363.0f);
+                case "bow_nightkraken_tusk": return Rect.MinMaxRect(48.5f, 116.0f, 463.5f, 396.0f);
+                case "bow_gravecurrent_spur": return Rect.MinMaxRect(48.5f, 136.5f, 463.0f, 375.5f);
+                case "bow_blackreef_hammer": return Rect.MinMaxRect(49.5f, 67.5f, 463.5f, 444.5f);
+                case "bow_voidray_edge": return Rect.MinMaxRect(60.5f, 49.0f, 452.5f, 463.5f);
+                case "bow_leviathan_ram": return Rect.MinMaxRect(49.0f, 119.5f, 463.5f, 392.0f);
+                case "bow_crownless_colossus": return Rect.MinMaxRect(49.5f, 53.5f, 463.0f, 459.0f);
+                case "bow_worldsplitter": return Rect.MinMaxRect(48.5f, 74.5f, 463.0f, 437.0f);
+                case "bow_dragonwake_ram": return Rect.MinMaxRect(49.0f, 58.5f, 463.5f, 453.0f);
+                case "bow_last_horizon": return Rect.MinMaxRect(49.0f, 52.0f, 465.5f, 460.0f);
+                case "sail_patched_lateen": return Rect.MinMaxRect(73.5f, 49.0f, 438.5f, 463.5f);
+                case "sail_coast_runner": return Rect.MinMaxRect(49.0f, 83.0f, 463.0f, 429.0f);
+                case "sail_tarred_square": return Rect.MinMaxRect(57.0f, 48.5f, 455.0f, 463.5f);
+                case "sail_gullwing_cloth": return Rect.MinMaxRect(48.5f, 74.0f, 463.5f, 438.0f);
+                case "sail_dawnstripe_canvas": return Rect.MinMaxRect(77.5f, 48.5f, 434.5f, 463.5f);
+                case "sail_storm_canvas": return Rect.MinMaxRect(54.0f, 48.5f, 458.0f, 463.5f);
+                case "sail_crosswind_lattice": return Rect.MinMaxRect(91.5f, 49.0f, 420.5f, 463.5f);
+                case "sail_rainheron_wing": return Rect.MinMaxRect(125.0f, 49.0f, 387.0f, 463.5f);
+                case "sail_saltfox_rig": return Rect.MinMaxRect(91.5f, 49.0f, 420.0f, 463.0f);
+                case "sail_bluebell_canvas": return Rect.MinMaxRect(58.5f, 48.5f, 453.5f, 463.0f);
+                case "sail_guild_silk": return Rect.MinMaxRect(49.0f, 55.5f, 463.0f, 453.0f);
+                case "sail_emerald_trade_wing": return Rect.MinMaxRect(48.0f, 117.0f, 464.0f, 394.5f);
+                case "sail_sunthread_spinnaker": return Rect.MinMaxRect(48.5f, 106.0f, 463.5f, 405.0f);
+                case "sail_redroute_broadsail": return Rect.MinMaxRect(47.5f, 118.5f, 464.0f, 393.0f);
+                case "sail_whisperveil": return Rect.MinMaxRect(48.5f, 94.0f, 463.5f, 418.0f);
+                case "sail_moonweave": return Rect.MinMaxRect(49.0f, 49.0f, 463.5f, 463.0f);
+                case "sail_eclipse_shroud": return Rect.MinMaxRect(56.0f, 48.0f, 456.0f, 463.5f);
+                case "sail_starshear_rig": return Rect.MinMaxRect(70.5f, 48.0f, 441.5f, 463.5f);
+                case "sail_ghostcurrent_canvas": return Rect.MinMaxRect(50.5f, 48.5f, 461.0f, 463.0f);
+                case "sail_aurora_fan": return Rect.MinMaxRect(68.0f, 48.5f, 443.5f, 463.5f);
+                case "sail_tempest_wing": return Rect.MinMaxRect(48.0f, 122.0f, 464.0f, 389.5f);
+                case "sail_skybreaker_array": return Rect.MinMaxRect(57.0f, 48.5f, 455.0f, 463.5f);
+                case "sail_crown_of_gales": return Rect.MinMaxRect(48.5f, 90.0f, 463.5f, 419.5f);
+                case "sail_thunderphoenix": return Rect.MinMaxRect(48.0f, 117.0f, 464.0f, 393.5f);
+                case "sail_last_free_wind": return Rect.MinMaxRect(48.0f, 108.0f, 463.5f, 404.0f);
+                case "cannon_deck_swivel": return Rect.MinMaxRect(48.5f, 71.5f, 463.5f, 440.5f);
+                case "cannon_harbor_popgun": return Rect.MinMaxRect(49.5f, 100.5f, 463.0f, 412.0f);
+                case "cannon_grapeshot_cup": return Rect.MinMaxRect(48.5f, 66.5f, 463.0f, 445.5f);
+                case "cannon_ropeguard_swivel": return Rect.MinMaxRect(48.5f, 59.5f, 463.5f, 452.5f);
+                case "cannon_sparksnout": return Rect.MinMaxRect(49.0f, 120.5f, 463.0f, 390.5f);
+                case "cannon_bronze_longgun": return Rect.MinMaxRect(48.5f, 112.5f, 462.5f, 399.5f);
+                case "cannon_gullcry_chaser": return Rect.MinMaxRect(49.0f, 108.5f, 463.0f, 403.5f);
+                case "cannon_breakwater_spear": return Rect.MinMaxRect(49.0f, 52.0f, 462.5f, 460.0f);
+                case "cannon_saltflash_tube": return Rect.MinMaxRect(49.5f, 71.5f, 463.0f, 440.5f);
+                case "cannon_twinwatch_gun": return Rect.MinMaxRect(49.5f, 61.0f, 462.5f, 451.0f);
+                case "cannon_chain_repeater": return Rect.MinMaxRect(49.0f, 99.0f, 463.0f, 412.0f);
+                case "cannon_anchorbreaker": return Rect.MinMaxRect(49.0f, 121.5f, 464.5f, 389.5f);
+                case "cannon_redwake_repeater": return Rect.MinMaxRect(49.0f, 97.0f, 463.5f, 414.5f);
+                case "cannon_stormnail_array": return Rect.MinMaxRect(48.5f, 139.0f, 463.5f, 373.5f);
+                case "cannon_echochamber": return Rect.MinMaxRect(49.5f, 101.0f, 463.0f, 411.5f);
+                case "cannon_starfire_battery": return Rect.MinMaxRect(53.0f, 48.5f, 458.5f, 463.5f);
+                case "cannon_cometfall_battery": return Rect.MinMaxRect(55.0f, 48.5f, 457.0f, 463.5f);
+                case "cannon_blueflare_organ": return Rect.MinMaxRect(48.5f, 116.5f, 463.0f, 395.0f);
+                case "cannon_voidbell_mortar": return Rect.MinMaxRect(48.5f, 54.5f, 463.0f, 456.5f);
+                case "cannon_sunforge_salvo": return Rect.MinMaxRect(48.5f, 112.0f, 463.5f, 399.0f);
+                case "cannon_queens_broadside": return Rect.MinMaxRect(48.5f, 94.5f, 463.5f, 417.5f);
+                case "cannon_krakens_thunder": return Rect.MinMaxRect(48.5f, 86.5f, 463.0f, 425.5f);
+                case "cannon_worlds_end_volley": return Rect.MinMaxRect(49.0f, 57.0f, 463.0f, 455.5f);
+                case "cannon_dragonbreath_battery": return Rect.MinMaxRect(49.5f, 78.5f, 462.5f, 433.5f);
+                case "cannon_liberty_salute": return Rect.MinMaxRect(48.5f, 105.5f, 463.5f, 406.5f);
+                case "plating_braced_ribs": return Rect.MinMaxRect(49.5f, 61.5f, 463.0f, 449.0f);
+                case "plating_ropebound_ribs": return Rect.MinMaxRect(48.5f, 58.5f, 463.0f, 453.0f);
+                case "plating_pinepatch_skin": return Rect.MinMaxRect(58.0f, 48.5f, 454.5f, 463.0f);
+                case "plating_harboroak_band": return Rect.MinMaxRect(49.0f, 152.0f, 463.0f, 360.0f);
+                case "plating_corkwave_liner": return Rect.MinMaxRect(49.0f, 49.0f, 463.0f, 463.0f);
+                case "plating_iron_band": return Rect.MinMaxRect(49.0f, 50.0f, 462.5f, 461.5f);
+                case "plating_riveted_scale": return Rect.MinMaxRect(49.5f, 55.0f, 462.5f, 457.0f);
+                case "plating_wavebreaker_belt": return Rect.MinMaxRect(49.0f, 120.0f, 463.5f, 392.5f);
+                case "plating_blacksmith_grid": return Rect.MinMaxRect(48.5f, 59.0f, 463.0f, 453.0f);
+                case "plating_saltbronze_shell": return Rect.MinMaxRect(50.0f, 49.5f, 461.5f, 463.0f);
+                case "plating_gilded_bulwark": return Rect.MinMaxRect(48.5f, 73.5f, 463.5f, 438.0f);
+                case "plating_suncoin_rampart": return Rect.MinMaxRect(49.0f, 70.0f, 463.0f, 441.5f);
+                case "plating_coralsteel_hide": return Rect.MinMaxRect(49.5f, 66.0f, 463.5f, 446.0f);
+                case "plating_redbanner_wall": return Rect.MinMaxRect(58.0f, 48.5f, 454.0f, 463.5f);
+                case "plating_merchants_oath": return Rect.MinMaxRect(48.5f, 93.5f, 463.5f, 418.0f);
+                case "plating_moonsilver_skin": return Rect.MinMaxRect(56.0f, 48.5f, 455.0f, 463.5f);
+                case "plating_eclipse_mail": return Rect.MinMaxRect(49.5f, 48.5f, 463.5f, 462.5f);
+                case "plating_starseal_panels": return Rect.MinMaxRect(49.5f, 55.0f, 463.5f, 457.0f);
+                case "plating_ghostreef_carapace": return Rect.MinMaxRect(60.0f, 49.0f, 451.5f, 463.0f);
+                case "plating_aurora_laminate": return Rect.MinMaxRect(48.5f, 66.5f, 463.5f, 445.0f);
+                case "plating_living_hull": return Rect.MinMaxRect(49.0f, 69.5f, 463.0f, 441.0f);
+                case "plating_leviathan_scales": return Rect.MinMaxRect(49.0f, 66.0f, 463.0f, 445.5f);
+                case "plating_worldtree_bark": return Rect.MinMaxRect(89.0f, 49.0f, 422.0f, 463.5f);
+                case "plating_dragonwake_armor": return Rect.MinMaxRect(49.0f, 79.0f, 463.5f, 433.0f);
+                case "plating_freedom_ark": return Rect.MinMaxRect(48.5f, 53.0f, 462.5f, 458.5f);
+                case "instrument_brass_compass": return Rect.MinMaxRect(48.5f, 61.0f, 463.5f, 451.0f);
+                case "instrument_harbor_dial": return Rect.MinMaxRect(63.0f, 48.5f, 449.0f, 465.5f);
+                case "instrument_gullbone_needle": return Rect.MinMaxRect(49.0f, 127.5f, 463.0f, 384.5f);
+                case "instrument_ropeknot_log": return Rect.MinMaxRect(49.0f, 72.0f, 463.0f, 439.5f);
+                case "instrument_lantern_bearing": return Rect.MinMaxRect(49.0f, 49.0f, 463.0f, 462.5f);
+                case "instrument_tideglass": return Rect.MinMaxRect(121.0f, 48.5f, 391.5f, 463.5f);
+                case "instrument_rainline_scope": return Rect.MinMaxRect(49.0f, 65.0f, 463.5f, 447.0f);
+                case "instrument_current_spoon": return Rect.MinMaxRect(52.0f, 49.0f, 460.0f, 463.5f);
+                case "instrument_fogbell_chart": return Rect.MinMaxRect(62.5f, 48.5f, 449.0f, 463.5f);
+                case "instrument_sunshadow_ring": return Rect.MinMaxRect(70.0f, 48.5f, 442.5f, 463.5f);
+                case "instrument_guild_engine": return Rect.MinMaxRect(48.5f, 105.0f, 463.5f, 406.5f);
+                case "instrument_starledger": return Rect.MinMaxRect(49.0f, 115.5f, 463.0f, 396.5f);
+                case "instrument_corsair_decoder": return Rect.MinMaxRect(65.5f, 48.5f, 446.5f, 463.0f);
+                case "instrument_deepwater_abacus": return Rect.MinMaxRect(98.5f, 49.0f, 412.5f, 463.0f);
+                case "instrument_trade_wind_oracle": return Rect.MinMaxRect(49.0f, 55.5f, 463.0f, 456.5f);
+                case "instrument_lunar_astrolabe": return Rect.MinMaxRect(84.5f, 49.0f, 428.0f, 463.5f);
+                case "instrument_eclipse_orrery": return Rect.MinMaxRect(90.0f, 48.5f, 422.0f, 463.0f);
+                case "instrument_whalestar_receiver": return Rect.MinMaxRect(48.5f, 55.0f, 463.0f, 456.5f);
+                case "instrument_ghostmap_projector": return Rect.MinMaxRect(70.0f, 49.0f, 442.0f, 463.0f);
+                case "instrument_aurora_calculator": return Rect.MinMaxRect(48.5f, 57.0f, 463.0f, 454.5f);
+                case "instrument_allseeing_sextant": return Rect.MinMaxRect(62.0f, 49.0f, 449.0f, 463.0f);
+                case "instrument_eye_of_depths": return Rect.MinMaxRect(81.5f, 49.0f, 430.0f, 463.5f);
+                case "instrument_worldcompass": return Rect.MinMaxRect(48.5f, 95.0f, 463.5f, 416.5f);
+                case "instrument_celestial_engine": return Rect.MinMaxRect(100.0f, 48.5f, 411.0f, 463.0f);
+                case "instrument_last_horizon_lens": return Rect.MinMaxRect(49.0f, 69.0f, 463.0f, 442.5f);
+                case "bow_mistglass_ram": return Rect.MinMaxRect(49.0f, 90.0f, 463.0f, 422.0f);
+                case "bow_tidehook_spur": return Rect.MinMaxRect(48.5f, 95.5f, 463.5f, 416.0f);
+                case "bow_sunwake_crest": return Rect.MinMaxRect(97.5f, 48.5f, 414.5f, 463.5f);
+                case "bow_deepcurrent_fang": return Rect.MinMaxRect(49.0f, 94.0f, 463.0f, 418.0f);
+                case "bow_freewake_lance": return Rect.MinMaxRect(48.5f, 90.0f, 463.5f, 421.5f);
+                case "sail_dawnkite": return Rect.MinMaxRect(65.0f, 49.0f, 447.0f, 463.5f);
+                case "sail_strait_lugger": return Rect.MinMaxRect(60.5f, 48.5f, 450.5f, 463.0f);
+                case "sail_evening_silk": return Rect.MinMaxRect(48.5f, 104.0f, 463.5f, 408.0f);
+                case "sail_fogshroud_wing": return Rect.MinMaxRect(48.5f, 48.5f, 463.5f, 463.0f);
+                case "sail_thunderreef_wing": return Rect.MinMaxRect(129.0f, 49.0f, 383.0f, 463.5f);
+                case "cannon_fogbell_saker": return Rect.MinMaxRect(49.0f, 78.0f, 463.0f, 433.5f);
+                case "cannon_crosswind_pivot": return Rect.MinMaxRect(48.5f, 104.0f, 463.5f, 407.5f);
+                case "cannon_tradeguard_battery": return Rect.MinMaxRect(48.5f, 98.5f, 463.5f, 413.5f);
+                case "cannon_deepstar_lance": return Rect.MinMaxRect(48.5f, 123.0f, 463.5f, 389.5f);
+                case "cannon_stormcrown_broadsides": return Rect.MinMaxRect(49.0f, 70.5f, 463.5f, 441.0f);
+                case "plating_saltfoam_skin": return Rect.MinMaxRect(49.5f, 98.5f, 462.5f, 413.0f);
+                case "plating_strait_laminate": return Rect.MinMaxRect(48.5f, 51.5f, 463.5f, 460.5f);
+                case "plating_trade_oathwall": return Rect.MinMaxRect(90.0f, 48.5f, 421.0f, 463.5f);
+                case "plating_fogiron_carapace": return Rect.MinMaxRect(48.5f, 95.5f, 463.0f, 416.0f);
+                case "plating_stormark_bulwark": return Rect.MinMaxRect(49.5f, 48.5f, 462.5f, 463.5f);
+                case "instrument_dawnseeker": return Rect.MinMaxRect(66.5f, 49.0f, 445.0f, 462.5f);
+                case "instrument_strait_echo": return Rect.MinMaxRect(53.5f, 48.5f, 459.0f, 463.5f);
+                case "instrument_tradeledger_oracle": return Rect.MinMaxRect(49.0f, 124.5f, 463.0f, 387.0f);
+                case "instrument_reefstar_astrolabe": return Rect.MinMaxRect(84.5f, 49.0f, 427.5f, 463.0f);
+                case "instrument_stormoracle": return Rect.MinMaxRect(128.5f, 48.5f, 383.0f, 463.0f);
                 default:
-                    if (id.StartsWith("bow_", StringComparison.Ordinal))
-                        return Rect.MinMaxRect(18f, 56f, 510f, 440f);
-                    if (id.StartsWith("sail_", StringComparison.Ordinal))
-                        return Rect.MinMaxRect(18f, 12f, 494f, 498f);
-                    if (id.StartsWith("cannon_", StringComparison.Ordinal))
-                        return Rect.MinMaxRect(10f, 56f, 504f, 410f);
-                    if (id.StartsWith("plating_", StringComparison.Ordinal))
-                        return Rect.MinMaxRect(8f, 66f, 500f, 390f);
-                    if (id.StartsWith("instrument_", StringComparison.Ordinal))
-                        return Rect.MinMaxRect(36f, 8f, 476f, 502f);
-                    throw new ArgumentException("Missing measured component prototype: " + id, nameof(id));
+                    throw new ArgumentException("Missing measured component art: " + id, nameof(id));
             }
         }
     }

@@ -25,7 +25,6 @@ namespace ShatteredSail.Core.Gameplay
         private bool guidedBossSuppliesHeld;
         private int guidedBossPowderReserve, guidedBossBallReserve, guidedBossMedicineReserve;
         private int guidedBossOwnedPowder, guidedBossOwnedBall, guidedBossOwnedMedicine;
-        private static CoreBattleCard guidedBossLoadCard;
 
         public GuidedBossActionKind GuidedBossExpectedAction
         {
@@ -105,15 +104,9 @@ namespace ShatteredSail.Core.Gameplay
         private CoreBattleCard GuidedBossCardDefinition(int index)
         {
             CoreBattleCard original = cardLibrary[index];
-            if (original.AllowedStages == NavalBattleStages.None) return null;
-            if (original.Id != "card_load_shot") return original;
-            // This lesson explicitly handles a single powder charge. The normal
-            // card, player upgrade levels and saved loadouts remain untouched.
-            if (guidedBossLoadCard == null)
-                guidedBossLoadCard = new CoreBattleCard(original.Id, original.Name, original.Type,
-                    original.Energy, 0, 0, 0, 0, 1, "教学装填：消耗 1 火药，下次炮击伤害 +4。",
-                    original.AllowedStages, original.Action, artId: original.ArtId);
-            return guidedBossLoadCard;
+            // Fixed base-level cards keep the lesson deterministic, while their
+            // resource rules are exactly the same as ordinary combat.
+            return original.AllowedStages == NavalBattleStages.None ? null : original;
         }
 
         private void InitializeGuidedBossScript(CoreEncounter encounter)
@@ -122,10 +115,11 @@ namespace ShatteredSail.Core.Gameplay
             if (GuidedTutorialLeg < CoreGuidedTutorialContent.NavigatorVoyageLeg || encounter.Id != CoreGuidedTutorialContent.BossEventId) return;
             GuidedBossStep = GuidedBossBattleStep.NavalRetreat;
             guidedBossSuppliesHeld = true;
-            guidedBossOwnedPowder = Math.Min(1, Cargo.Powder); guidedBossPowderReserve = Cargo.Powder - guidedBossOwnedPowder;
+            guidedBossOwnedPowder = Math.Min(2, Cargo.Powder); guidedBossPowderReserve = Cargo.Powder - guidedBossOwnedPowder;
             guidedBossOwnedBall = Math.Min(1, Cargo.Cannonballs); guidedBossBallReserve = Cargo.Cannonballs - guidedBossOwnedBall;
             guidedBossOwnedMedicine = Math.Min(1, Cargo.Medicine); guidedBossMedicineReserve = Cargo.Medicine - guidedBossOwnedMedicine;
-            Cargo.Powder = Cargo.Cannonballs = Cargo.Medicine = 1;
+            Cargo.Powder = 2; // One extra loading charge, then one firing charge.
+            Cargo.Cannonballs = Cargo.Medicine = 1;
             Hull = MaxHull;
             Battle.Stage = NavalBattleStage.Naval;
             Battle.Turn = Battle.PhaseTurn = 1;
@@ -137,10 +131,12 @@ namespace ShatteredSail.Core.Gameplay
             Battle.PlayerOrdinaryCrew = 10;
             Battle.PlayerBoardingHealth = Battle.PlayerMaxBoardingHealth = 60;
             Battle.EnemyOrdinaryCrew = 3;
-            Battle.EnemyBoardingHealth = Battle.EnemyMaxBoardingHealth = 9;
+            // Leave 10 crew health after the authored cannon/ram sequence, so the
+            // first 8-damage thrust still teaches guard and healing before victory.
+            Battle.EnemyBoardingHealth = Battle.EnemyMaxBoardingHealth = 12;
             SetGuidedBossHand("card_retreat", "card_load_shot", "card_brace");
             Battle.LastAction = "首领相距 400 米。先拉开距离，再装填并稳固船身。";
-            AddLog("近港首领教学：船体整备至全满，本场使用固定演练手牌与一份弹药、药品；额外随船储备暂存，结束后归还。");
+            AddLog("近港首领教学：船体整备至全满，本场使用固定演练手牌、2 火药、1 炮弹和 1 药品；额外随船储备暂存，结束后归还。");
         }
 
         private void SetGuidedBossHand(params string[] ids)

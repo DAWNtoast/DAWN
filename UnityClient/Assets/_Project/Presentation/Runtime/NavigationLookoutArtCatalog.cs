@@ -104,7 +104,10 @@ namespace ShatteredSail.Presentation
              (terrain == SeaTerrainType.StormFront && observation.Kind == LookoutSceneryKind.Storm));
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetCache()
+        private static void ResetCache() => ReleaseLoadedTextures();
+
+        /// <summary>Releases panorama references and missing-result flags without destroying art used by live UI.</summary>
+        public static void ReleaseLoadedTextures()
         {
             // Resources owns the textures. Reset references without destroying shared art.
             Array.Clear(textures, 0, textures.Length);

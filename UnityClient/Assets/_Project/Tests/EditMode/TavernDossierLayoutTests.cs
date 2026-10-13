@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -15,8 +15,8 @@ namespace ShatteredSail.Presentation.Tests
         {
             new[] { "Tavern Crew Biography" },
             new[] { "Tavern Crew Story Heading", "Tavern Crew Story" },
-            new[] { "Tavern Crew Skill Heading", "Tavern Crew Skill", "Tavern Crew Stats", "Tavern Crew Contract Note" },
-            new[] { "Tavern Special Card Name", "Tavern Special Card Growth" },
+            new[] { "Tavern Crew Skill Heading", "Tavern Crew Skill" },
+            new[] { "Tavern Special Card Name" },
         };
 
         private GameObject host;
@@ -40,23 +40,41 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform detail = Find<RectTransform>(root, "Tavern Crew Detail");
             Find<RawImage>(root, "Tavern Dossier Parchment");
 
-            // Measured from the painted inner rule and wax seals in
-            // tavern_crew_dossier_parchment_v1, not the rectangular PNG bounds.
-            Rect navigationPaper = Rect.MinMaxRect(-775f, 301f, -545f, 351f);
-            Rect portraitPaper = Rect.MinMaxRect(-780f, -235f, -393f, 153f);
-            Rect profilePaper = Rect.MinMaxRect(-165f, -181f, 765f, 237f);
-            Rect footerPaper = Rect.MinMaxRect(-200f, -237f, 688f, -181f);
-            Rect back = BoundsIn(detail, Find<Button>(root, "Back To Tavern Crew Lineup").GetComponent<RectTransform>());
-            Rect portrait = BoundsIn(detail, Find<RawImage>(root, "Tavern Crew Detail Full Body").rectTransform);
+            // The approved integrated painting retains the name location while
+            // moving the writing and footer away from the right-hand wax seal.
+            Rect portrait = Rect.MinMaxRect(-780f, -235f, -393f, 153f);
+            Rect profilePaper = Rect.MinMaxRect(-253f, -216f, 765f, 237f);
+            Rect footerPaper = Rect.MinMaxRect(-288f, -264f, 600f, -220f);
+            RectTransform header = Find<RectTransform>(root, "Port Facility Header");
+            Button back = Find<Button>(root, "Return To Port Hub");
             Rect recruit = BoundsIn(detail, Find<Button>(root, "Recruit Tavern Crew 0").GetComponent<RectTransform>());
 
-            AssertContained(navigationPaper, back, "Return button / top seal");
-            AssertContained(portraitPaper, portrait, "Portrait / carved portrait bay");
+            Assert.That(back.transform.parent, Is.SameAs(header), "The dossier uses the existing header return control.");
+            AssertContained(header.rect, BoundsIn(header, back.GetComponent<RectTransform>()), "Return button / facility header");
+            Assert.That(BoundsIn(detail, back.GetComponent<RectTransform>()).yMin, Is.GreaterThan(detail.rect.yMax),
+                "The return control stays above the dossier body.");
+            Assert.That(back.GetComponentInChildren<Text>().text, Is.EqualTo("返回酒馆"));
+            Assert.That(root.GetComponentsInChildren<Button>(true).Count(button =>
+                button.GetComponentInChildren<Text>(true)?.text.Contains("返回酒馆") == true), Is.EqualTo(1));
+            Assert.That(detail.GetComponentsInChildren<Button>(true).Any(button =>
+                button.name == "Back To Tavern Crew Lineup" ||
+                button.GetComponentInChildren<Text>(true)?.text.Contains("返回酒馆") == true), Is.False,
+                "The dossier body must not contain a second return button.");
+            Assert.That(detail.GetComponentsInChildren<Transform>(true).Any(item =>
+                item.name == "Tavern Crew Detail Full Body" || item.name == "Tavern Crew Detail Portrait Frame"), Is.False,
+                "The single integrated painting supplies the portrait without a separate cutout or mask.");
+            Rect nameBounds = BoundsIn(detail, Find<Text>(root, "Tavern Crew Detail Name").rectTransform);
+            Rect roleBounds = BoundsIn(detail, Find<Text>(root, "Tavern Crew Detail Role").rectTransform);
+            Assert.That(nameBounds.xMin, Is.EqualTo(-165f), "The name retains its original visible left edge.");
+            Assert.That(nameBounds.center.y, Is.EqualTo(210f), "The name retains its original baseline.");
+            Assert.That(roleBounds.center.y, Is.EqualTo(nameBounds.center.y), "The red role summary shares the name row.");
+            Assert.That(roleBounds.xMin - nameBounds.xMax, Is.GreaterThanOrEqualTo(16.9f));
+            Assert.That(Find<Button>(root, "DossierPageBackground").GetComponent<RectTransform>().anchoredPosition.y,
+                Is.EqualTo(160f), "Tabs rise one text line after the heading becomes a single row.");
             AssertContained(footerPaper, recruit, "Recruit button / bottom-right wax seal");
-            Assert.That(back.yMin - portrait.yMax, Is.GreaterThanOrEqualTo(20f));
             Assert.That(recruit.height, Is.GreaterThanOrEqualTo(43.9f));
             Assert.That(Find<Button>(root, "Recruit Tavern Crew 0").GetComponentInChildren<Text>().fontSize, Is.EqualTo(22));
-            Assert.That(Find<Button>(root, "Back To Tavern Crew Lineup").GetComponentInChildren<Text>().fontSize, Is.EqualTo(22));
+            Assert.That(back.GetComponentInChildren<Text>().fontSize, Is.EqualTo(22));
 
             string[] footerNames = { "Previous Tavern Dossier Page", "Tavern Dossier Page Counter", "Next Tavern Dossier Page", "Recruit Tavern Crew 0" };
             Rect previousFooter = default;
@@ -72,20 +90,46 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Find<Button>(root, "DossierPage" + PageKeys[page]).onClick.Invoke();
                 AssertPage(root, page);
-                string[] fields = new[] { "Tavern Crew Detail Name", "Tavern Crew Detail Role", "DossierPageBackground" }.Concat(PageFields[page]).ToArray();
+                string[] fields = new[] { "Tavern Crew Detail Name", "Tavern Crew Detail Role", "DossierPageBackground" }
+                    .Concat(page == 3 ? new string[0] : PageFields[page]).ToArray();
                 Rect previous = default;
                 for (int field = 0; field < fields.Length; field++)
                 {
-                    Rect current = BoundsIn(detail, Find<RectTransform>(root, fields[field]));
+                    RectTransform fieldRect = Find<RectTransform>(root, fields[field]);
+                    ScrollRect textScroll = fieldRect.GetComponentInParent<ScrollRect>();
+                    Rect current = BoundsIn(detail, textScroll != null ? textScroll.viewport : fieldRect);
                     AssertContained(profilePaper, current, fields[field]);
-                    Assert.That(current.xMin - portrait.xMax, Is.GreaterThanOrEqualTo(200f), fields[field]);
-                    if (field > 0) Assert.That(previous.yMin - current.yMax, Is.GreaterThanOrEqualTo(0.9f), fields[field]);
+                    Assert.That(current.xMin - portrait.xMax, Is.GreaterThanOrEqualTo(130f), fields[field]);
+                    if (field > 0 && fields[field] != "Tavern Crew Detail Role")
+                        Assert.That(previous.yMin - current.yMax, Is.GreaterThanOrEqualTo(0.9f), fields[field]);
                     previous = current;
                 }
-                Assert.That(previous.yMin - recruit.yMax, Is.GreaterThanOrEqualTo(9.9f));
+                Assert.That(previous.yMin - recruit.yMax, Is.GreaterThanOrEqualTo(4.9f));
+                if (page == 3)
+                {
+                    Rect face = BoundsIn(detail, Find<RectTransform>(root, "Tavern Special Card Face")
+                        .GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
+                    Rect stage = BoundsIn(detail, Find<Text>(root, "Tavern Special Card Stage").rectTransform);
+                    Rect details = BoundsIn(detail, Find<RectTransform>(root, "Tavern Special Card Details Viewport"));
+                    Rect growth = BoundsIn(detail, Find<Text>(root, "Tavern Special Card Growth").rectTransform);
+                    AssertContained(profilePaper, face, "Complete special card face / dossier bay");
+                    Assert.That(face.xMin - portrait.xMax, Is.GreaterThanOrEqualTo(130f));
+                    Assert.That(face.yMin - recruit.yMax, Is.GreaterThanOrEqualTo(3.9f));
+                    foreach (Rect region in new[] { stage, details, growth })
+                    {
+                        AssertContained(profilePaper, region, "Special card details / right column");
+                        Assert.That(region.xMin, Is.GreaterThan(face.xMax), "The details column stays beside the card.");
+                        Assert.That(region.Overlaps(face), Is.False);
+                    }
+                    Assert.That(stage.yMin - details.yMax, Is.GreaterThanOrEqualTo(.9f));
+                    Assert.That(details.yMin - growth.yMax, Is.GreaterThanOrEqualTo(.9f));
+                    Assert.That(growth.yMin - recruit.yMax, Is.GreaterThanOrEqualTo(5.9f));
+                }
                 foreach (Button tab in root.GetComponentsInChildren<Button>(true).Where(button => button.name.StartsWith("DossierPage")))
                     AssertContained(profilePaper, BoundsIn(detail, tab.GetComponent<RectTransform>()), tab.name);
-                Assert.That(Find<Button>(root, "Back To Tavern Crew Lineup").gameObject.activeInHierarchy, Is.True);
+                Assert.That(back.gameObject.activeInHierarchy, Is.True);
+                Assert.That(back.IsInteractable(), Is.True);
+                Assert.That(back.GetComponentInChildren<Text>().text, Is.EqualTo("返回酒馆"));
                 Assert.That(Find<Button>(root, "Recruit Tavern Crew 0").gameObject.activeInHierarchy, Is.True);
             }
 
@@ -126,19 +170,34 @@ namespace ShatteredSail.Presentation.Tests
                 if (Read(crew, "PortName") != controller.Session.CurrentPort) continue;
                 string crewId = Read(crew, "Id");
                 OpenCrew(int.Parse(Read(crew, "ProfessionIndex")));
+                RawImage parchment = Find<RawImage>(root, "Tavern Dossier Parchment");
+                Assert.That(parchment.texture, Is.Not.Null, crewId);
+                Assert.That(parchment.texture.name, Is.EqualTo(crewId + "_dossier_v1"),
+                    "Every crew member must resolve to their own integrated painting, without falling back to another identity.");
+                Assert.That(parchment.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)), crewId);
+                Assert.That(parchment.GetComponent<Mask>(), Is.Null, crewId);
+                Assert.That(Find<RectTransform>(root, "Tavern Crew Detail").GetComponentsInChildren<TavernPortraitPaperBlend>(true), Is.Empty, crewId);
                 object story = catalog.GetMethod("StoryFor").Invoke(null, new[] { crew });
                 AssertText(root, "Tavern Crew Detail Name", Read(crew, "DisplayName"), 36, crewId);
                 AssertText(root, "Tavern Crew Detail Role", Read(crew, "PortName") + "　·　" + Read(crew, "RoleSummary"), 22, crewId);
+                foreach (string heading in new[] { "Tavern Crew Detail Name", "Tavern Crew Detail Role" })
+                {
+                    Text label = Find<Text>(root, heading);
+                    Assert.That(label.preferredWidth, Is.LessThanOrEqualTo(label.rectTransform.rect.width),
+                        crewId + " / the longest names and roles must each fit on one header line.");
+                }
+                Assert.That(Find<RectTransform>(root, "Tavern Dossier Background Page").rect.height, Is.EqualTo(326f));
+                Assert.That(Find<RectTransform>(root, "Tavern Dossier Story Page").rect.height, Is.EqualTo(326f));
+                Assert.That(Find<RectTransform>(root, "Tavern Dossier SpecialCards Page").rect.height, Is.EqualTo(368f));
                 Assert.That(Find<Button>(root, "Recruit Tavern Crew " + Read(crew, "ProfessionIndex"))
                     .GetComponentInChildren<Text>().text,
                     Is.EqualTo("签署契约 · " + Read(crew, "ContractCost") + " 金币"), crewId + " / cost stays with confirmation");
                 AssertText(root, "Tavern Crew Biography", Read(crew, "Biography"), 26, crewId);
                 AssertBackgroundContainsOnlyBiography(root, crewId);
-                AssertText(root, "Tavern Crew Story Heading", Read(story, "ChapterLabel"), 28, crewId);
+                AssertText(root, "Tavern Crew Story Heading", Read(story, "ChapterLabel"), 25, crewId);
                 AssertText(root, "Tavern Crew Story", Read(story, "Body"), 26, crewId);
                 AssertText(root, "Tavern Crew Skill Heading", "专长 · " + Read(crew, "Specialty") + "　｜　职业能力", 28, crewId);
                 AssertText(root, "Tavern Crew Skill", Read(crew, "SkillDescription"), 26, crewId);
-                AssertText(root, "Tavern Crew Stats", Read(crew, "Stats"), 26, crewId);
                 for (int page = 0; page < PageKeys.Length; page++)
                 {
                     Find<Button>(root, "DossierPage" + PageKeys[page]).onClick.Invoke();
@@ -151,47 +210,46 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(checkedCrew, Is.EqualTo(6));
         }
 
-        [TestCase(0, 26)]
-        [TestCase(1, 33)]
-        [TestCase(2, 39)]
-        public void ReadabilityModesKeepDossierBodyCompleteAndControlsReachable(int level, int expectedBodySize)
+        [Test]
+        public void LongAccountsRemainCompleteAndScrollableWithoutShrinkingTheAuthoredType()
         {
-            int? previousLevel = GameReadability.OverrideLevel;
-            try
-            {
-                GameReadability.OverrideLevel = level;
-                Transform root = CreatePreview(CoreGameplayPreviewPort.WhiteShell);
-                Transform detail = root.Find("Tavern Crew Detail");
-                for (int page = 0; page < PageKeys.Length; page++)
-                {
-                    Find<Button>(root, "DossierPage" + PageKeys[page]).onClick.Invoke();
-                    RectTransform pageRect = Find<RectTransform>(root, "Tavern Dossier " + PageKeys[page] + " Page");
-                    ScrollRect scroll = pageRect.GetComponent<ScrollRect>();
-                    Assert.That(scroll != null, Is.EqualTo(level > 0), "Large text uses a real clipped reading viewport.");
-                    if (level > 0)
-                    {
-                        Canvas.ForceUpdateCanvases();
-                        Assert.That(scroll.content, Is.Not.Null);
-                        Assert.That(scroll.content.rect.height, Is.GreaterThanOrEqualTo(scroll.viewport.rect.height));
-                        scroll.verticalNormalizedPosition = 0f;
-                        Canvas.ForceUpdateCanvases();
-                        Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(0f).Within(.01f));
-                    }
-                    Text[] bodies = pageRect.GetComponentsInChildren<Text>(true).Where(text =>
-                        text.name.Contains("Biography") || text.name.Contains("Story") || text.name.Contains("Skill") || text.name.Contains("Stats") || text.name.Contains("Contract")).ToArray();
-                    foreach (Text body in bodies)
-                    {
-                        Assert.That(body.font, Is.SameAs(GameTypography.BodyFont), body.name);
-                        Assert.That(body.fontSize, Is.GreaterThanOrEqualTo(GameReadability.FontSize(body.name.Contains("Contract") ? 22 : 26)), body.name);
-                        Assert.That(body.resizeTextForBestFit, Is.False, body.name);
-                        Assert.That(body.text, Is.Not.Empty, body.name);
-                        if (level > 0) Assert.That(body.verticalOverflow, Is.EqualTo(VerticalWrapMode.Overflow), body.name);
-                    }
-                    Assert.That(Find<Button>(root, "Back To Tavern Crew Lineup").interactable, Is.True);
-                    Assert.That(Find<Button>(root, "Recruit Tavern Crew 0").gameObject.activeInHierarchy, Is.True);
-                }
-            }
-            finally { GameReadability.OverrideLevel = previousLevel; }
+            Transform root = CreatePreview(CoreGameplayPreviewPort.BrokenAnchor);
+            RectTransform page = Find<RectTransform>(root, "Tavern Dossier Background Page");
+            string value = string.Concat(Enumerable.Repeat("船员沿着旧航路航行，记下每一处潮汐与靠岸的故事。\n\n", 24));
+            Text label = (Text)typeof(CoreGameplayDemoController)
+                .GetMethod("CreateTavernReadingText", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, new object[] { "Long Account Audit", page, new Vector2(20f, 8f),
+                    new Vector2(820f, 264f), 27, 1.25f, Color.black, value });
+            Canvas.ForceUpdateCanvases();
+            Assert.That(WithoutLineBreaks(label.text), Is.EqualTo(WithoutLineBreaks(value)));
+            Assert.That(label.fontSize, Is.EqualTo(27));
+            Assert.That(label.resizeTextForBestFit, Is.False);
+            ScrollRect scroll = label.GetComponentInParent<ScrollRect>();
+            Assert.That(scroll, Is.Not.Null);
+            Assert.That(scroll.viewport.rect.size, Is.EqualTo(new Vector2(820f, 264f)));
+            AssertTextFits(label, "long account");
+            AssertContained(scroll.content.rect, BoundsIn(scroll.content, label.rectTransform), "Complete account / scroll content");
+            scroll.verticalNormalizedPosition = 0f;
+            Canvas.ForceUpdateCanvases();
+            Assert.That(BoundsIn(scroll.viewport, label.rectTransform).yMin,
+                Is.GreaterThanOrEqualTo(scroll.viewport.rect.yMin), "The last line must be reachable at the end of the scroll.");
+        }
+
+        [Test]
+        public void MissingPersonalCardKeepsItsExplanationAndPageControls()
+        {
+            Transform root = CreatePreview(CoreGameplayPreviewPort.BrokenAnchor);
+            RectTransform page = Find<RectTransform>(root, "Tavern Dossier SpecialCards Page");
+            foreach (Transform child in page.Cast<Transform>().ToArray()) Object.DestroyImmediate(child.gameObject);
+            const string explanation = "这位船员不提供战斗专属卡牌。职业专长仍然生效。";
+            typeof(CoreGameplayDemoController).GetMethod("BuildTavernDossierSpecialCard", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, new object[] { page, null, explanation, Color.black, Color.black });
+            Find<Button>(root, "DossierPageSpecialCards").onClick.Invoke();
+            AssertPage(root, 3);
+            Assert.That(WithoutLineBreaks(Find<Text>(root, "Tavern Special Card Empty").text), Is.EqualTo(explanation));
+            foreach (Text label in page.GetComponentsInChildren<Text>()) AssertTextFits(label, "no personal card");
+            Assert.That(page.GetComponentsInChildren<RawImage>(), Is.Empty);
+            Assert.That(Find<Button>(root, "Recruit Tavern Crew 0").gameObject.activeInHierarchy, Is.True);
         }
 
         [Test]
@@ -233,8 +291,14 @@ namespace ShatteredSail.Presentation.Tests
             OpenCrew(1);
             AssertPage(root, 0);
             Find<Button>(root, "DossierPageSkills").onClick.Invoke();
-            Find<Button>(root, "Back To Tavern Crew Lineup").onClick.Invoke();
+            Assert.That(Find<Button>(root, "Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回酒馆"));
+            Find<Button>(root, "Return To Port Hub").onClick.Invoke();
             Assert.That(root.GetComponentsInChildren<Transform>().Any(item => item.name == "Tavern Crew Stage"), Is.True);
+            Assert.That(root.GetComponentsInChildren<Transform>().Any(item => item.name == "Tavern Crew Detail"), Is.False);
+            Assert.That(Find<Button>(root, "Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
+            Find<Button>(root, "Return To Port Hub").onClick.Invoke();
+            Assert.That(root.GetComponentsInChildren<Transform>().Any(item => item.name == "Port Hub"), Is.True);
+            Find<Button>(root, "Port Hotspot Tavern").onClick.Invoke();
             Find<Button>(root, "Tavern Crew 1").onClick.Invoke();
             AssertPage(root, 0);
             Find<Button>(root, "DossierPageSkills").onClick.Invoke();
@@ -275,6 +339,17 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (string field in PageFields[page])
                     Assert.That(Find<Text>(root, field).gameObject.activeInHierarchy, Is.EqualTo(page == selectedPage), field);
             }
+            // A missing card definition keeps an explanation instead of
+            // offering acquisition or leaving an empty fourth tab.
+            Text[] specialCardFields = Find<RectTransform>(root, "Tavern Dossier SpecialCards Page")
+                .GetComponentsInChildren<Text>(true);
+            Text growth = specialCardFields.SingleOrDefault(field => field.name == "Tavern Special Card Growth");
+            Text empty = specialCardFields.SingleOrDefault(field => field.name == "Tavern Special Card Empty");
+            Assert.That((growth != null) != (empty != null), Is.True,
+                "The special-card page must show either card growth or the no-card explanation.");
+            Text status = growth != null ? growth : empty;
+            Assert.That(status.gameObject.activeInHierarchy, Is.EqualTo(selectedPage == 3), status.name);
+            if (empty != null) Assert.That(empty.text, Does.Contain("职业专长"));
             Assert.That(Find<Text>(root, "Tavern Dossier Page Counter").text, Is.EqualTo("第 " + (selectedPage + 1) + " / 4 页"));
             Assert.That(Find<Button>(root, "Previous Tavern Dossier Page").interactable, Is.EqualTo(selectedPage > 0));
             Assert.That(Find<Button>(root, "Next Tavern Dossier Page").interactable, Is.EqualTo(selectedPage < 3));
@@ -283,12 +358,8 @@ namespace ShatteredSail.Presentation.Tests
         private static void AssertText(Transform root, string name, string expected, int minimumSize, string crewId)
         {
             Text label = Find<Text>(root, name);
-            string actual = label.text;
-            if (name == "Tavern Crew Biography")
-            {
-                actual = WithoutLineBreaks(actual);
-                expected = WithoutLineBreaks(expected);
-            }
+            string actual = WithoutLineBreaks(label.text);
+            expected = WithoutLineBreaks(expected);
             Assert.That(actual, Is.EqualTo(expected), crewId + " / " + name);
             Assert.That(label.fontSize, Is.GreaterThanOrEqualTo(minimumSize), crewId + " / " + name);
             Assert.That(label.resizeTextForBestFit, Is.False, name + " must not shrink to fit.");
@@ -310,6 +381,23 @@ namespace ShatteredSail.Presentation.Tests
         private static void AssertTextFits(Text label, string crewId)
         {
             Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + 0.5f), crewId + " / " + label.transform.parent.name + " / " + label.name);
+            TextGenerationSettings settings = label.GetGenerationSettings(label.rectTransform.rect.size);
+            label.cachedTextGenerator.Populate(label.text, settings);
+            settings.verticalOverflow = VerticalWrapMode.Overflow;
+            settings.generateOutOfBounds = true;
+            using (TextGenerator complete = new TextGenerator())
+            {
+                complete.Populate(label.text, settings);
+                Assert.That(label.cachedTextGenerator.characterCountVisible, Is.EqualTo(complete.characterCountVisible),
+                    crewId + " / " + label.name + " must retain the final glyphs.");
+            }
+            ScrollRect scroll = label.GetComponentInParent<ScrollRect>();
+            if (scroll == null) return;
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height),
+                label.name + " must only scroll when its complete text exceeds the reading area.");
+            Assert.That(scroll.verticalScrollbar, Is.Not.Null);
+            Assert.That(scroll.horizontal, Is.False);
+            Assert.That(scroll.movementType, Is.EqualTo(ScrollRect.MovementType.Clamped));
         }
 
         private static System.Type NarrativeCatalog()

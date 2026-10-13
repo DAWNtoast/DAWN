@@ -1,0 +1,69 @@
+{
+    "generatedUtc": "2026-10-12T06:06:32.8307612Z",
+    "characters": 1,
+    "pages": 4,
+    "expectedPages": 4,
+    "captures": [
+        {
+            "id": "crew_broken_anchor_navigator_lorne",
+            "name": "测潮师 洛恩",
+            "port": "断锚港",
+            "page": "Background",
+            "image": "crew_broken_anchor_navigator_lorne_Background.png",
+            "texture": "Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_navigator_lorne_dossier_v1.png",
+            "textureWidth": 1983,
+            "textureHeight": 793,
+            "nameFixed": true,
+            "roleBesideName": true,
+            "textPreserved": true,
+            "noSeparatePortrait": true,
+            "oneIntegratedPainting": true
+        },
+        {
+            "id": "crew_broken_anchor_navigator_lorne",
+            "name": "测潮师 洛恩",
+            "port": "断锚港",
+            "page": "Story",
+            "image": "crew_broken_anchor_navigator_lorne_Story.png",
+            "texture": "Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_navigator_lorne_dossier_v1.png",
+            "textureWidth": 1983,
+            "textureHeight": 793,
+            "nameFixed": true,
+            "roleBesideName": true,
+            "textPreserved": true,
+            "noSeparatePortrait": true,
+            "oneIntegratedPainting": true
+        },
+        {
+            "id": "crew_broken_anchor_navigator_lorne",
+            "name": "测潮师 洛恩",
+            "port": "断锚港",
+            "page": "Skills",
+            "image": "crew_broken_anchor_navigator_lorne_Skills.png",
+            "texture": "Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_navigator_lorne_dossier_v1.png",
+            "textureWidth": 1983,
+            "textureHeight": 793,
+            "nameFixed": true,
+            "roleBesideName": true,
+            "textPreserved": true,
+            "noSeparatePortrait": true,
+            "oneIntegratedPainting": true
+        },
+        {
+            "id": "crew_broken_anchor_navigator_lorne",
+            "name": "测潮师 洛恩",
+            "port": "断锚港",
+            "page": "SpecialCards",
+            "image": "crew_broken_anchor_navigator_lorne_SpecialCards.png",
+            "texture": "Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_navigator_lorne_dossier_v1.png",
+            "textureWidth": 1983,
+            "textureHeight": 793,
+            "nameFixed": true,
+            "roleBesideName": true,
+            "textPreserved": true,
+            "noSeparatePortrait": true,
+            "oneIntegratedPainting": true
+        }
+    ],
+    "errors": []
+}

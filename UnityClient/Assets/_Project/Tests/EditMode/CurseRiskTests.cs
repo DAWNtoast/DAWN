@@ -93,7 +93,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
             Assert.That(hull - session.Hull, Is.EqualTo(hullLoss));
-            Assert.That(health - session.Battle.PlayerBoardingHealth, Is.EqualTo(crewLoss));
+            int expectedHealth = (int)System.Math.Ceiling(health *
+                (1d - System.Math.Max(0, hull - session.Hull) / (2d * session.MaxHull))) - crewLoss;
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(expectedHealth));
             Assert.That(enemy - session.Battle.EnemyHull, Is.EqualTo(9), "The captain's curse does not strengthen damage dealt to the enemy.");
         }
 
@@ -110,8 +112,9 @@ namespace ShatteredSail.Core.Tests
             int hull = session.Hull, health = session.Battle.PlayerBoardingHealth, enemy = session.Battle.EnemyHull;
             Assert.That(session.TryRam(), Is.True);
             Assert.That(hull - session.Hull, Is.EqualTo(loss));
-            Assert.That(enemy - session.Battle.EnemyHull, Is.EqualTo(13));
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health));
+            Assert.That(enemy - session.Battle.EnemyHull, Is.EqualTo(26));
+            int expectedHealth = (int)Math.Ceiling(health * (1d - loss / (2d * session.MaxHull)));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(expectedHealth));
             Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.False);
             Assert.That(session.Battle.LastAction, Does.Contain("己舰船体 -" + loss));
         }

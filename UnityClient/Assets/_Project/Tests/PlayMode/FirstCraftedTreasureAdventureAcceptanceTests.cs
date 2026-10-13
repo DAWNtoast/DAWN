@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -32,11 +32,12 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.TreasureFragments, Is.EqualTo(1), "The tutorial boss guarantees the first fragment, committed on return.");
                 int tutorialFragments = session.TreasureFragments;
                 Assert.That(session.TreasureMaps, Is.Empty);
-                Assert.That(RequireGuidedButton("Treasure Craft Map").IsInteractable(), Is.False);
+                Assert.That(AcceptanceReadyTreasureBoard(session), Is.EqualTo(-1));
                 driver.Shot("Workbench_BeforeFragments", "Treasure Panel", "UI_TreasureMap");
+                yield return driver.IdentifyFragments();
                 yield return driver.Click("Return To Port Hub");
                 yield return driver.PrepareCaptain();
-                for (int voyage = 0; session.TreasureFragments < CoreTreasureHuntCatalog.FragmentCost && voyage < 10; voyage++)
+                for (int voyage = 0; AcceptanceReadyTreasureBoard(session) < 0 && voyage < 10; voyage++)
                 {
                     yield return driver.PrepareSupplies(350);
                     yield return driver.Click("Port Hotspot Voyage");
@@ -46,23 +47,37 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(session.IsTreasureVoyage, Is.False);
                     yield return driver.Explore(false);
                     yield return driver.ConfirmSettlement(false);
+                    yield return driver.Click("Port Hotspot Treasure");
+                    yield return driver.IdentifyFragments();
+                    yield return driver.Click("Return To Port Hub");
                 }
-                Assert.That(session.TreasureFragments, Is.GreaterThanOrEqualTo(4), "Fragments must be earned through actual voyage choices and settlement.");
+                int readyBoard = AcceptanceReadyTreasureBoard(session);
+                Assert.That(readyBoard, Is.GreaterThanOrEqualTo(0), "Earn and identify more fragments until one map has four; fragments from different maps cannot be combined.");
+                string rankId = CoreTreasureHuntCatalog.Ranks[readyBoard].Id;
                 Assert.That(session.PirateLevel, Is.GreaterThanOrEqualTo(2));
                 Assert.That(driver.EarnedFragments, Is.GreaterThanOrEqualTo(CoreTreasureHuntCatalog.FragmentCost - tutorialFragments),
                     "The remaining fragments must come from verified real encounter choices or battle drops. " + driver.FragmentSources);
-                Assert.That(session.TreasureFragments, Is.EqualTo(tutorialFragments + driver.EarnedFragments),
+                Assert.That(session.TreasureFragments + AcceptanceIdentifiedFragments(session), Is.EqualTo(tutorialFragments + driver.EarnedFragments),
                     "Every held fragment must be accounted for by the tutorial and actual reward actions. " + driver.FragmentSources);
                 yield return driver.Click("Port Hotspot Treasure");
-                int fragments = session.TreasureFragments, maps = session.TreasureMaps.Count;
+                int fragments = session.GetIdentifiedTreasureFragments(rankId), maps = session.TreasureMaps.Count;
+                int unidentified = session.TreasureFragments;
                 driver.Shot("Fragments_Ready", "Treasure Panel", "UITreasureMap/UITreasureMap_FragmentsReady");
-                yield return driver.Click("Treasure Craft Map");
-                Assert.That(session.TreasureFragments, Is.EqualTo(fragments - 4));
+                yield return driver.Click("Treasure Route " + readyBoard);
+                Assert.That(session.GetIdentifiedTreasureFragments(rankId), Is.EqualTo(fragments - 4));
+                Assert.That(session.TreasureFragments, Is.EqualTo(unidentified));
                 Assert.That(session.TreasureMaps.Count, Is.EqualTo(maps + 1));
                 CoreTreasureMapRecord crafted = session.TreasureMaps.Last();
+                Assert.That(crafted.RankId, Is.EqualTo(rankId));
+                Assert.That(session.SelectedTreasureMap, Is.Null);
                 driver.Shot("First_Crafted_Map", "Treasure Folio", "UITreasureMap/UITreasureMap_MapDecoded");
                 yield return driver.PrepareTreasureSupplies(crafted);
-                yield return driver.Click("Treasure Equip And Depart");
+                yield return driver.Click("Treasure Close Folio");
+                yield return driver.Click("Return To Port Hub");
+                yield return driver.Click("Port Hotspot Voyage");
+                Assert.That(session.SelectedTreasureMap, Is.Null, "Opening departure must not silently equip a seed.");
+                yield return driver.Click("Departure Treasure Seed Picker");
+                yield return driver.Click("Departure Treasure Seed Option " + (session.TreasureMaps.Count - 1));
                 Assert.That(session.SelectedTreasureMap.Id, Is.EqualTo(crafted.Id));
                 Assert.That(session.TreasureMaps.Any(map => map.Id == crafted.Id), Is.True);
                 Assert.That(session.CanStartTreasureVoyage(out string reason), Is.True, reason);
@@ -85,9 +100,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Does.Contain(crafted.Seed));
                 yield return driver.Click("Port Hotspot Treasure");
                 yield return driver.Click("Treasure Open Folio");
-                yield return driver.Click("Treasure Open Completion");
-                Assert.That(GameObject.Find("Treasure Map Details").GetComponent<Text>().text, Does.Contain(crafted.Seed));
-                driver.Shot("Completed_Treasure_Receipt", "Treasure Folio", "UITreasureMap/UITreasureMap_RewardClaim");
+                yield return driver.Click("Treasure Browse Used");
+                Assert.That(GameObject.Find("Treasure Map Details 0").GetComponent<Text>().text, Does.Contain(crafted.Seed));
+                driver.Shot("Used_Treasure_Archive", "Treasure Folio", "UITreasureMap/UITreasureMap_RewardClaim");
                 driver.Record("Acceptance completed", string.Empty);
                 SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
                 yield return null; yield return null;
@@ -121,6 +136,8 @@ namespace ShatteredSail.Presentation.Tests
                 phase = Session.Phase.ToString(), gold = (double)Session.ProfileGold, voyageGold = Session.Cargo.Gold,
                 water = Session.Cargo.Water, food = Session.Cargo.Food, hull = Session.Hull,
                 experience = Session.PirateExperience, level = Session.PirateLevel, fragments = Session.TreasureFragments,
+                weatheredFragments = Session.GetIdentifiedTreasureFragments("weathered"), gildedFragments = Session.GetIdentifiedTreasureFragments("gilded"),
+                moonlitFragments = Session.GetIdentifiedTreasureFragments("moonlit"),
                 pendingFragments = Session.VoyageTreasureFragments, maps = Session.TreasureMaps.Count,
                 clues = Session.TreasureClues, requiredClues = Session.TreasureRequiredClues,
                 distance = Session.TotalDistanceNm, x = Session.Position.X, y = Session.Position.Y,
@@ -136,6 +153,17 @@ namespace ShatteredSail.Presentation.Tests
             }
             public void Shot(string name, string root, string reference) =>
                 capture.Capture(controller, "Adventure_" + (shot++).ToString("000") + "_" + name, root, reference);
+            public IEnumerator IdentifyFragments()
+            {
+                while (Session.TreasureFragments > 0 && Session.PirateLevel >= 2)
+                {
+                    int unidentified = Session.TreasureFragments, identified = AcceptanceIdentifiedFragments(Session);
+                    yield return Click("Treasure Identify Fragment");
+                    Assert.That(Session.TreasureFragments, Is.EqualTo(unidentified - 1));
+                    Assert.That(AcceptanceIdentifiedFragments(Session), Is.EqualTo(identified + 1));
+                    Assert.That(Session.TreasureMaps, Is.Empty, "Identifying the fourth piece still requires clicking its puzzle to create a seed.");
+                }
+            }
             public IEnumerator Click(string name)
             {
                 string before = State();
@@ -149,7 +177,11 @@ namespace ShatteredSail.Presentation.Tests
                 }
                 yield return null;
                 float deadline = Time.realtimeSinceStartup + 15;
-                while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline) yield return null;
+                while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+                {
+                    AdvanceRamComicIfWaiting(controller);
+                    yield return null;
+                }
                 Assert.That(controller.IsBattleAnimationPlaying, Is.False, name + " animation stalled.");
                 // Sailing commits the encounter before its marker animation
                 // renders the corresponding controls. Follow the presented UI.
@@ -160,7 +192,7 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     string storyBefore = State();
                     yield return DismissTreasureStoryIfPresent(controller);
-                    Record("Click: Treasure Story Skip", storyBefore);
+                    Record("Clicks: Treasure Story Advance through all comic pages", storyBefore);
                 }
             }
             private IEnumerator EnsureGold(int required, string reason)
@@ -230,7 +262,8 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(Session.ProfileGold, Is.EqualTo(gold - crew.ContractCost));
                     Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(crew.Id)), Is.EqualTo(1));
                     Shot("Contract_Signed_" + profession, "Tavern Crew Detail", "UITavern/UITavern_ContractSigned");
-                    yield return Click("Back To Tavern Crew Lineup");
+                    yield return Click("Return To Port Hub");
+                    Assert.That(GameObject.Find("Tavern Crew Stage"), Is.Not.Null);
                 }
                 yield return Click("Return To Port Hub");
                 yield return Click("Port Hotspot Shipyard");
@@ -245,7 +278,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return Click("Back To Shipyard Gallery");
                 yield return Click("Return To Port Hub");
                 yield return Click("Port Hotspot CardWorkshop");
-                yield return Click("Open Deck Chest 1");
+                yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
                 foreach (int index in new[] { 0, 5, 6 })
                 {
                     for (int page = 0; ActiveButton("Select Upgrade Card " + index) == null && page < 8; page++) yield return Click("Next Upgrade Cards");
@@ -267,8 +300,8 @@ namespace ShatteredSail.Presentation.Tests
             }
             public IEnumerator PrepareTreasureSupplies(CoreTreasureMapRecord crafted)
             {
-                Assert.That(GameObject.Find("Treasure Map Details").GetComponent<Text>().text,
-                    Does.Contain(crafted.Seed).And.Contain("建议航期  " + crafted.Rank.RecommendedVoyageDays + " 天"));
+                Assert.That(GameObject.Find("Treasure Map Details 0").GetComponent<Text>().text,
+                    Does.Contain(crafted.Seed).And.Contain(crafted.Rank.Name).And.Contain("探索度"));
                 // This driver searches unrevealed water instead of following a
                 // known trade lane. Budget a second suggested voyage duration
                 // for that search, using full crew before any cook discount.
@@ -283,13 +316,15 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Session.Cargo.Water, Is.GreaterThanOrEqualTo(rationTarget));
                 Assert.That(Session.Cargo.Food, Is.GreaterThanOrEqualTo(rationTarget));
                 Assert.That(Session.Cargo.UsedVolume, Is.LessThanOrEqualTo(Session.CargoCapacityValue + .001f));
-                Assert.That(Session.SelectedTreasureMap.Id, Is.EqualTo(crafted.Id), "Provisioning must preserve the actual crafted map.");
+                Assert.That(Session.TreasureMaps.Any(map => map.Id == crafted.Id), Is.True, "Provisioning must preserve the actual crafted map.");
+                Assert.That(Session.SelectedTreasureMap, Is.Null);
                 Record("Treasure supplies purchased: rank=" + crafted.RankId + "; suggestedDays=" +
                     crafted.Rank.RecommendedVoyageDays + "; targetEach=" + rationTarget + "; water=" + Session.Cargo.Water +
                     "; food=" + Session.Cargo.Food + "; volume=" + Session.Cargo.UsedVolume + "/" + Session.CargoCapacityValue, "");
                 yield return Click("Port Hotspot Treasure");
                 yield return Click("Treasure Open Folio");
-                Assert.That(GameObject.Find("Treasure Map Details").GetComponent<Text>().text, Does.Contain(crafted.Seed));
+                yield return Click("Treasure Browse Unused");
+                Assert.That(GameObject.Find("Treasure Map Details 0").GetComponent<Text>().text, Does.Contain(crafted.Seed));
             }
             public IEnumerator PrepareSupplies(int rationTarget, bool exactQuantities = false)
             {
@@ -301,10 +336,10 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (PortMarketItem item in new[] { PortMarketItem.Iron, PortMarketItem.Cloth })
                 {
                     string key = PortMarketCatalog.Key(item);
-                    yield return EnsureMarketItemVisible(key);
                     for (int n = 0; Session.GetMarketCargoAmount(key) > 0 && n < 100; n++)
                     {
-                        Button sell = ActiveButton("Market Sell " + key);
+                        yield return OpenMarketTrade(key, false);
+                        Button sell = ActiveButton("Confirm Market Sell " + key);
                         if (sell == null || !sell.IsInteractable()) break;
                         yield return Click(sell.name);
                     }
@@ -316,9 +351,12 @@ namespace ShatteredSail.Presentation.Tests
                     new KeyValuePair<PortMarketItem,int>(PortMarketItem.Cannonballs, 20) })
                 {
                     string key = PortMarketCatalog.Key(purchase.Key);
-                    yield return EnsureMarketItemVisible(key);
                     while (Session.GetMarketCargoAmount(key) < purchase.Value)
                     {
+                        yield return OpenMarketItem(key);
+                        Button direction = RequireGuidedButton("Market Buy " + key);
+                        if (!direction.IsInteractable()) { marketShortage = true; break; }
+                        yield return Click(direction.name);
                         if (exactQuantities)
                         {
                             int missing = purchase.Value - Session.GetMarketCargoAmount(key);
@@ -326,7 +364,7 @@ namespace ShatteredSail.Presentation.Tests
                                 Is.LessThanOrEqualTo(Session.CargoCapacityValue + .001d), "The legal exploration supplies must fit: " + key);
                             yield return EnterMarketQuantity(key, missing.ToString(CultureInfo.InvariantCulture));
                         }
-                        Button buy = RequireGuidedButton("Market Buy " + key);
+                        Button buy = RequireGuidedButton("Confirm Market Buy " + key);
                         if (exactQuantities) Assert.That(buy.IsInteractable(), Is.True,
                             "Cannot fund or load the actual treasure preparation quote: " + key + "; gold=" + Session.ProfileGold +
                             "; volume=" + Session.Cargo.UsedVolume + "/" + Session.CargoCapacityValue);
@@ -336,20 +374,16 @@ namespace ShatteredSail.Presentation.Tests
                             Record("Market purchase unavailable: " + key, State());
                             break;
                         }
-                        // InputField's rendered Text may be clipped while its
-                        // caret/layout settles. Its committed text is the quote
-                        // input, and must agree with the visible purchase offer.
-                        InputField quantityInput = MarketQuantityField(key);
-                        Assert.That(int.TryParse(quantityInput.text, NumberStyles.None, CultureInfo.InvariantCulture, out int amount),
-                            Is.True, "Invalid committed market quantity for " + key + ": '" + quantityInput.text + "'");
+                        Slider quantityInput = MarketQuantityField(key);
+                        int amount = Mathf.RoundToInt(quantityInput.value);
                         Assert.That(amount, Is.GreaterThan(0));
                         int oldAmount = Session.GetMarketCargoAmount(key);
                         if (exactQuantities) Assert.That(amount, Is.EqualTo(purchase.Value - oldAmount),
                             "The market must retain the exact requested supply shortfall.");
                         decimal gold = Session.ProfileGold;
                         decimal cost = PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, purchase.Key, Session.GameDateTime, amount);
-                        Assert.That(buy.GetComponentInChildren<Text>().text,
-                            Is.EqualTo("<size=18>购入 " + amount + "</size>\n<size=22>−" + PortMarketCatalog.FormatPrice(cost) + " 金</size>"));
+                        Assert.That(GameObject.Find("Market Trade Total").GetComponent<Text>().text,
+                            Does.Contain(PortMarketCatalog.FormatPrice(cost)));
                         yield return Click(buy.name);
                         Assert.That(Session.GetMarketCargoAmount(key), Is.EqualTo(oldAmount + amount));
                         Assert.That(Session.ProfileGold, Is.EqualTo(gold - cost));
@@ -368,9 +402,14 @@ namespace ShatteredSail.Presentation.Tests
                         new KeyValuePair<PortMarketItem,int>(investment.RequiredItem, investment.RequiredQuantity) })
                     {
                         string key = PortMarketCatalog.Key(purchase.Key);
-                        yield return EnsureMarketItemVisible(key);
-                        while (Session.GetMarketCargoAmount(key) < purchase.Value) yield return Click("Market Buy " + key);
+                        while (Session.GetMarketCargoAmount(key) < purchase.Value)
+                        {
+                            yield return OpenMarketTrade(key);
+                            yield return Click("Confirm Market Buy " + key);
+                        }
                     }
+                    if (GameObject.Find("Cancel Market Trade") != null) yield return Click("Cancel Market Trade");
+                    if (GameObject.Find("Market Detail Back") != null) yield return Click("Market Detail Back");
                     yield return Click("Market Open Investment");
                     decimal gold = Session.ProfileGold;
                     int wood = Session.Cargo.Wood;
@@ -387,8 +426,11 @@ namespace ShatteredSail.Presentation.Tests
                         new KeyValuePair<PortMarketItem,int>(PortMarketItem.Cannonballs, 20) })
                     {
                         string key = PortMarketCatalog.Key(purchase.Key);
-                        yield return EnsureMarketItemVisible(key);
-                        while (Session.GetMarketCargoAmount(key) < purchase.Value) yield return Click("Market Buy " + key);
+                        while (Session.GetMarketCargoAmount(key) < purchase.Value)
+                        {
+                            yield return OpenMarketTrade(key);
+                            yield return Click("Confirm Market Buy " + key);
+                        }
                     }
                     Shot("Supplies_After_Port_Investment", "Market Panel", "UI_Market");
                 }
@@ -412,7 +454,7 @@ namespace ShatteredSail.Presentation.Tests
                     }
                     Assert.That(Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
                     RememberChart();
-                    if (!treasure && (Session.VoyageTreasureFragments >= Math.Min(2, 4 - Session.TreasureFragments) ||
+                    if (!treasure && (Session.VoyageTreasureFragments >= 2 ||
                         Session.Cargo.Water < 35 || Session.Cargo.Food < 35 || Session.Hull < 20))
                     { yield return Click("Safe Return"); continue; }
                     AdventureGoal goal = ChooseGoal(treasure, rejected);
@@ -670,7 +712,7 @@ namespace ShatteredSail.Presentation.Tests
         [Serializable] private sealed class AdventureAction { public int sequence; public float realtime; public string action,before,after; }
         [Serializable] private sealed class AdventureState
         { public string phase,encounter,seed,rank; public double gold,gameHours; // JSON display only; actual balance assertions remain decimal.
-            public int voyageGold,water,food,hull,experience,level,fragments,pendingFragments,maps,clues,requiredClues,crew;
+            public int voyageGold,water,food,hull,experience,level,fragments,weatheredFragments,gildedFragments,moonlitFragments,pendingFragments,maps,clues,requiredClues,crew;
             public float distance,x,y,capacity,usedVolume; }
     }
 }

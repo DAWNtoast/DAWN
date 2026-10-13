@@ -104,7 +104,6 @@ namespace ShatteredSail.Presentation
             int[] rewards = { result.BankedGold, result.BankedWood, result.BankedIron, result.BankedFame };
             string[] ids = { "Gold", "Wood", "Iron", "Fame" };
             string[] names = { "金币", "木材", "铁矿", "声望" };
-            string[] details = { "船长资金", "船体修缮", "铸造储备", "远航声名" };
             int featured = Array.FindIndex(rewards, value => value > 0); if (featured < 0) featured = 0;
             var values = new List<Text>(); var targets = new List<int>(); var countDelays = new List<float>();
             RectTransform rewardRoot = CreateRect("Banked Rewards", card, new Vector2(880, 438), new Vector2(420, 12));
@@ -114,10 +113,11 @@ namespace ShatteredSail.Presentation
             ItemIconArt featuredIcon = SettlementItemIcon(ids[featured]);
             if (featuredIcon.IsAvailable)
                 CreateItemIcon("Settlement Featured Icon " + ids[featured], main, featuredIcon, new Vector2(-374, 76), 48f);
-            SettlementText("Settlement Featured Name", main, new Vector2(featuredIcon.IsAvailable ? 730 : 790, 48),
-                new Vector2(featuredIcon.IsAvailable ? 30 : 0, 76), 25, accent).text = names[featured];
-            Text mainValue = SettlementText("Settlement Reward " + ids[featured], main, new Vector2(790, 112), new Vector2(0, -4), 96, hasLoot ? accent : MutedInk);
-            SettlementText("Settlement Featured Detail", main, new Vector2(790, 30), new Vector2(0, -79), 18, MutedInk).text = details[featured] + "";
+            SettlementText("Settlement Featured Name", main, new Vector2(featuredIcon.IsAvailable ? 680 : 790, 48),
+                new Vector2(0, 76), 25, accent).text = names[featured];
+            Text mainValue = SettlementText("Settlement Reward " + ids[featured], main, new Vector2(790, 112), new Vector2(0, featured == 0 ? -4 : -19), 96, hasLoot ? accent : MutedInk);
+            if (featured == 0)
+                SettlementText("Settlement Featured Detail", main, new Vector2(790, 30), new Vector2(0, -79), 18, MutedInk).text = "船长资金";
             tracks.Add(main); delays.Add(0.55f); values.Add(mainValue); targets.Add(rewards[featured]); countDelays.Add(0.65f);
             int slot = 0;
             for (int i = 0; i < rewards.Length; i++)
@@ -127,10 +127,11 @@ namespace ShatteredSail.Presentation
                 ItemIconArt resourceIcon = SettlementItemIcon(ids[i]);
                 if (resourceIcon.IsAvailable)
                     CreateItemIcon("Settlement Resource Icon " + ids[i], tile, resourceIcon, new Vector2(-104, 46), 32f);
-                SettlementText("Settlement Resource " + ids[i], tile, new Vector2(resourceIcon.IsAvailable ? 198 : 246, 30),
-                    new Vector2(resourceIcon.IsAvailable ? 24 : 0, 46), 22, Ink).text = names[i];
-                Text number = SettlementText("Settlement Reward " + ids[i], tile, new Vector2(245, 59), new Vector2(0, 0), rewards[i] >= 1000000 ? 28 : 43, rewards[i] > 0 ? accent : MutedInk);
-                SettlementText("Settlement Resource Hint " + ids[i], tile, new Vector2(246, 26), new Vector2(0, -44), 16, MutedInk).text = details[i];
+                SettlementText("Settlement Resource " + ids[i], tile, new Vector2(resourceIcon.IsAvailable ? 168 : 246, 30),
+                    new Vector2(0, 46), 22, Ink).text = names[i];
+                Text number = SettlementText("Settlement Reward " + ids[i], tile, new Vector2(245, 59), new Vector2(0, i == 0 ? 0 : -10), rewards[i] >= 1000000 ? 28 : 43, rewards[i] > 0 ? accent : MutedInk);
+                if (i == 0)
+                    SettlementText("Settlement Resource Hint Gold", tile, new Vector2(246, 26), new Vector2(0, -44), 16, MutedInk).text = "船长资金";
                 tracks.Add(tile); delays.Add(0.90f + slot * 0.16f); values.Add(number); targets.Add(rewards[i]); countDelays.Add(1.0f + slot * 0.16f); slot++;
             }
 
@@ -141,13 +142,14 @@ namespace ShatteredSail.Presentation
             RectTransform metrics = CreateRect("Settlement Metrics", card, new Vector2(1590, 66), new Vector2(0, -315));
             SettlementText("Settlement Distance", metrics, new Vector2(480, 64), new Vector2(-525, 0), 23, Ink).text = "航程  " + result.DistanceNm.ToString("N0") + " 海里\n用时 " + result.Hours.ToString("0.0") + " 小时";
             SettlementText("Settlement Exploration", metrics, new Vector2(480, 64), Vector2.zero, 23, Ink).text = "探索  " + result.Coverage.ToString("0") + "%";
-            SettlementText("Settlement Events", metrics, new Vector2(480, 64), new Vector2(525, 0), 23, Ink).text = "已处理事件  " + result.CompletedEvents + " / " + result.TotalEvents + "\n" + (result.Outcome == VoyageOutcome.ArrivedAtPort ? "到港后可再次出航" : "");
+            SettlementText("Settlement Events", metrics, new Vector2(480, 64), new Vector2(525, 0), 23, Ink).text = "已处理事件  " + result.CompletedEvents + " / " + result.TotalEvents + (result.Outcome == VoyageOutcome.ArrivedAtPort ? "\n到港后可再次出航" : "");
             bool canDrawChart = !previewSample && !failure && session.CanDrawSeaChart;
             BuildSettlementStorageOption(card, result, previewSample);
             if (canDrawChart)
             {
                 Button draw = CreateButton("Draw Sea Chart", card, new Vector2(350, 72), new Vector2(-18, -410), PanelRaised, Ink, 23);
                 draw.GetComponentInChildren<Text>().text = pendingDrawnChart == null ? "航海士 · 绘制海图" : "海图已绘制";
+                CenterSettlementText(draw.GetComponentInChildren<Text>());
                 draw.interactable = pendingDrawnChart == null;
                 settlementDrawChartButton = draw;
                 draw.onClick.AddListener(() =>
@@ -159,6 +161,7 @@ namespace ShatteredSail.Presentation
             }
             Button finish = CreateButton("Return To Port", card, new Vector2(600, 80), new Vector2(510, -410), Gold, Ink, 28);
             finish.GetComponentInChildren<Text>().text = "确认结算 · 返回港口";
+            CenterSettlementText(finish.GetComponentInChildren<Text>());
             finish.onClick.AddListener(() =>
             {
                 if (previewSample || session.Phase != CoreDemoPhase.Settlement || !ReferenceEquals(session.Settlement, result)) return;
@@ -166,6 +169,7 @@ namespace ShatteredSail.Presentation
             });
             Button skip = CreateButton("Skip Settlement Reveal", card, new Vector2(185, 42), new Vector2(793, 426), PanelRaised, Ink, 17);
             skip.GetComponentInChildren<Text>().text = "跳过演出";
+            CenterSettlementText(skip.GetComponentInChildren<Text>());
             var reveal = card.gameObject.AddComponent<SettlementRevealController>();
             reveal.Configure(tracks.ToArray(), delays.ToArray(), values.ToArray(), targets.ToArray(), countDelays.ToArray(), sparks, skip,
                 celebrate, PlaySfx, Application.isPlaying && !previewSample,
@@ -212,9 +216,16 @@ namespace ShatteredSail.Presentation
         private Text SettlementText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, Color color, TextAnchor alignment = TextAnchor.MiddleCenter)
         {
             Text text = CreateText(name, parent, size, position, fontSize, FontStyle.Normal, alignment, color);
+            CenterSettlementText(text);
             text.horizontalOverflow = HorizontalWrapMode.Wrap; text.verticalOverflow = VerticalWrapMode.Truncate;
             text.resizeTextForBestFit = false; text.raycastTarget = false;
             return text;
+        }
+
+        private static void CenterSettlementText(Text text)
+        {
+            text.alignByGeometry = true;
+            text.gameObject.AddComponent<SettlementTextCentering>();
         }
     }
 }

@@ -6,8 +6,8 @@ namespace ShatteredSail.Presentation
 {
     /// <summary>
     /// Resolves each dedicated port-facility background on its first request;
-    /// construction does not preload images. The tavern,
-    /// component shop, and maintenance boathouse additionally support six true
+    /// construction does not preload images. The collection room, tavern,
+    /// component shop, maintenance boathouse, and departure dock support six true
     /// regional compositions; missing commissioned art falls back to the
     /// established generic scene without borrowing another port's identity.
     /// Regional images must preserve their facility's interaction anchors
@@ -17,13 +17,14 @@ namespace ShatteredSail.Presentation
     /// </summary>
     public sealed class PortFacilityArtCatalog
     {
+        public const int WarehouseFacilityIndex = 0;
         public const int TavernFacilityIndex = 2;
         public const int ComponentShopFacilityIndex = 3;
-        public const int DispatchFacilityIndex = 5;
-        public const int TreasureFacilityIndex = 6;
-        public const int MaintenanceFacilityIndex = 7;
-        public const int MarketFacilityIndex = 9;
-        public const int ExpectedRegionalBackgroundCount = 18;
+        public const int TreasureFacilityIndex = 5;
+        public const int MaintenanceFacilityIndex = 6;
+        public const int VoyageFacilityIndex = 7;
+        public const int MarketFacilityIndex = 8;
+        public const int ExpectedRegionalBackgroundCount = 30;
 
         private static readonly string[] RegionalPortNames =
         {
@@ -37,9 +38,11 @@ namespace ShatteredSail.Presentation
 
         private static readonly int[] RegionalFacilityIndices =
         {
+            WarehouseFacilityIndex,
             TavernFacilityIndex,
             ComponentShopFacilityIndex,
             MaintenanceFacilityIndex,
+            VoyageFacilityIndex,
         };
 
         private static readonly IReadOnlyList<string> RegionalPortContract = Array.AsReadOnly(RegionalPortNames);
@@ -62,11 +65,10 @@ namespace ShatteredSail.Presentation
             "PortFacilities/tavern_background_seated_v2",
             "PortFacilities/component_shop_background_v2",
             "PortFacilities/card_workshop_background",
-            "PortFacilities/dispatch_room_integrated_v3",
-            "PortFacilities/treasure_room_boards_v2",
-            "PortFacilities/port_investment_background_v2",
+            "PortFacilities/treasure_worktable_background_v3",
+            "PortFacilities/port_investment_scene_internal_v1",
             "PortFacilities/voyage_background",
-            "PortFacilities/Market/market_background_v1",
+            "PortFacilities/Market/market_scene_background_v2",
         };
 
         private readonly Texture2D[] backgrounds = new Texture2D[BackgroundResourcePaths.Length];
@@ -100,6 +102,15 @@ namespace ShatteredSail.Presentation
 
         /// <summary>Successfully loaded regional textures; reading this count never loads art.</summary>
         public int LoadedRegionalBackgroundCount => loadedRegionalBackgroundCount;
+
+        /// <summary>Releases cached references and missing-result flags; live UI still owns borrowed art.</summary>
+        public void ReleaseLoadedTextures()
+        {
+            Array.Clear(backgrounds, 0, backgrounds.Length);
+            Array.Clear(backgroundLoadAttempted, 0, backgroundLoadAttempted.Length);
+            foreach (Dictionary<string, Texture2D> variants in regionalBackgrounds.Values) variants.Clear();
+            loadedRegionalBackgroundCount = 0;
+        }
 
         /// <summary>Explicit full resource validation; normal scene lookup remains lazy.</summary>
         public bool AreAllRegionalBackgroundsAvailable
@@ -225,12 +236,17 @@ namespace ShatteredSail.Presentation
 
             switch (facilityIndex)
             {
+                case WarehouseFacilityIndex:
+                    return "PortFacilities/Regional/Warehouse/warehouse_" + portSlug + "_v1";
                 case TavernFacilityIndex:
                     return "PortFacilities/Regional/Tavern/tavern_" + portSlug + "_v1";
                 case ComponentShopFacilityIndex:
                     return "PortFacilities/Regional/ComponentShop/component_shop_" + portSlug + "_v1";
                 case MaintenanceFacilityIndex:
                     return "PortFacilities/Regional/Maintenance/maintenance_" + portSlug + "_side_v2";
+                case VoyageFacilityIndex:
+                    if (portName == "断锚港") return "PortFacilities/Regional/Voyage/voyage_broken_anchor_scene_v4";
+                    return "PortFacilities/Regional/Voyage/voyage_" + portSlug + "_v1";
                 default:
                     return string.Empty;
             }

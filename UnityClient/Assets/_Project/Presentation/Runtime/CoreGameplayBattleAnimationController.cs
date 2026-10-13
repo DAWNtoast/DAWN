@@ -43,6 +43,10 @@ namespace ShatteredSail.Presentation
 
         private void ConfigureBattleCardPresentation(Button button, Color accent, RectTransform keywordTooltip = null)
         {
+            // A hand card has its own scale and full-size inspection animation.
+            // The general button tween otherwise pulls every small card back to 1x.
+            NauticalButtonMotion ordinaryMotion = button.GetComponent<NauticalButtonMotion>();
+            if (ordinaryMotion != null) ordinaryMotion.enabled = false;
             BattleCardHoverFeedback feedback = button.gameObject.AddComponent<BattleCardHoverFeedback>();
             feedback.Configure(accent, keywordTooltip);
         }
@@ -56,13 +60,20 @@ namespace ShatteredSail.Presentation
         private Image CreateBattleHullBar(string name, Transform parent, Vector2 size, Vector2 position, int current, int maximum, Color color)
         {
             size.y = Mathf.Max(20f, size.y);
-            RectTransform track = CreateFixedPanel(name + " Track", parent, size + new Vector2(8f, 8f), position, new Color(0.015f, 0.025f, 0.03f, 0.92f));
-            track.GetComponent<Image>().raycastTarget = false;
+            // Health is a solid meter, so its empty track must bypass panel paper skins.
+            Image backing = CreateImage(name + " Track", parent, size + new Vector2(8f, 8f), position, new Color(0.015f, 0.025f, 0.03f, 0.92f));
+            backing.raycastTarget = false;
+            RectTransform track = backing.rectTransform;
             Outline outline = track.gameObject.AddComponent<Outline>();
             outline.effectColor = new Color(color.r, color.g, color.b, 0.8f);
             outline.effectDistance = new Vector2(2f, -2f);
-            Image fill = UiKit.CreateProgressFill(name, track, size, Vector2.zero, color,
-                BattleDefenseHud.FillSprite, current / (float)Mathf.Max(1, maximum));
+            Image fill = CreateImage(name, track, size, Vector2.zero, color);
+            fill.sprite = BattleDefenseHud.FillSprite;
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillOrigin = 0;
+            fill.fillAmount = Mathf.Clamp01(current / (float)Mathf.Max(1, maximum));
+            fill.raycastTarget = false;
             BattleHealthSegmentsGraphic.Attach(fill, maximum);
             return fill;
         }
@@ -313,7 +324,8 @@ namespace ShatteredSail.Presentation
                     // reapply the current red-frame guidance after ordinary UI state.
                     RestoreGuidedTutorialControls(false);
                     UpdateGuidedTutorialProgress();
-                    if (RequestUiViewRefresh(UiRefreshRegion.Battle))
+                    if (!TryRefreshRetainedBattleView()) Render();
+                    else
                     {
                         BuildGuidedTutorialActions();
                         BuildGuidedTutorialOverlay();
@@ -406,11 +418,11 @@ namespace ShatteredSail.Presentation
             wake.Progress = 0.04f;
             return wake;
         }
-        private static string BattleCardBuffChange(BattleAnimationSnapshot before, BattleAnimationSnapshot after)
+        private string BattleCardBuffChange(BattleAnimationSnapshot before, BattleAnimationSnapshot after)
         {
             string result = string.Empty;
-            if (after.PlayerLoadedShot > before.PlayerLoadedShot)
-                result = "装填 +" + (after.PlayerLoadedShot - before.PlayerLoadedShot);
+            if (after.PlayerLoadedShotDamageBonus > before.PlayerLoadedShotDamageBonus)
+                result = "装填加伤 +" + ((long)after.PlayerLoadedShotDamageBonus - before.PlayerLoadedShotDamageBonus);
             if (after.PlayerDeckBuff > before.PlayerDeckBuff)
                 result += (result.Length == 0 ? string.Empty : "\n") + "甲板强化 +" + (after.PlayerDeckBuff - before.PlayerDeckBuff);
             if (after.PlayerFireRounds > before.PlayerFireRounds)
@@ -439,7 +451,7 @@ namespace ShatteredSail.Presentation
             public readonly float Distance;
             public readonly int PlayerHull, PlayerMaxHull, EnemyHull, EnemyMaxHull;
             public readonly int PlayerCrew, PlayerMaxCrew, EnemyCrew, EnemyMaxCrew;
-            public readonly int PlayerBlock, EnemyBlock, PlayerLoadedShot, EnemyLoadedShot, PlayerDeckBuff, PlayerFireRounds, EnemyBurnTurns, EnemyBurnDamage, HandCount;
+            public readonly int PlayerBlock, EnemyBlock, PlayerLoadedShotDamageBonus, EnemyLoadedShot, PlayerDeckBuff, PlayerFireRounds, EnemyBurnTurns, EnemyBurnDamage, HandCount;
             public readonly int EnemyGuardAbsorbed;
             public readonly int TreasureFragments;
 
@@ -459,7 +471,7 @@ namespace ShatteredSail.Presentation
                 PlayerBlock = battle.PlayerBlock;
                 EnemyGuardAbsorbed = battle.LastEnemyGuardAbsorbed;
                 EnemyBlock = battle.EnemyBlock;
-                PlayerLoadedShot = battle.PlayerLoadedShot;
+                PlayerLoadedShotDamageBonus = current.PlayerLoadedShotDamageBonus;
                 EnemyLoadedShot = battle.EnemyLoadedShot;
                 PlayerDeckBuff = battle.PlayerDeckBuff;
                 PlayerFireRounds = battle.PlayerFireRounds;
@@ -556,10 +568,12 @@ namespace ShatteredSail.Presentation
 
         private IEnumerator RaiseCardToCenter(RectTransform card, RectTransform stage, Color color)
         {
+            Vector3 worldStart = card.position;
+            Vector3 worldScale = card.lossyScale;
             BattleCardHoverFeedback hover = card.GetComponent<BattleCardHoverFeedback>();
             if (hover != null) hover.enabled = false;
-            Vector3 worldStart = card.position;
             card.SetParent(stage, true);
+            float startScale = worldScale.x / stage.lossyScale.x;
             card.anchorMin = card.anchorMax = Vector2.one * 0.5f;
             card.pivot = Vector2.one * 0.5f;
             card.SetAsLastSibling();
@@ -585,7 +599,7 @@ namespace ShatteredSail.Presentation
                 {
                     float press = t / 0.16f;
                     card.anchoredPosition = start + Vector2.down * (9f * press);
-                    card.localScale = Vector3.one * Mathf.Lerp(1f, 0.94f, press);
+                    card.localScale = Vector3.one * Mathf.Lerp(startScale, startScale * 0.94f, press);
                 }
                 else
                 {
@@ -593,7 +607,7 @@ namespace ShatteredSail.Presentation
                     float travel = EaseOutCubic(u);
                     card.anchoredPosition = Vector2.Lerp(start, focus, travel) + Vector2.up * (35f * Mathf.Sin(u * Mathf.PI));
                     float spring = Mathf.Sin(u * Mathf.PI) * 0.11f;
-                    card.localScale = Vector3.one * (Mathf.Lerp(0.94f, 1.1f, travel) + spring);
+                    card.localScale = Vector3.one * (Mathf.Lerp(startScale * 0.94f, 1.1f, travel) + spring);
                     card.localRotation = Quaternion.Euler(0f, Mathf.Sin(u * Mathf.PI) * -24f,
                         Mathf.Lerp(start.x < 0f ? 8f : -8f, -3f, travel));
                 }
@@ -777,11 +791,13 @@ namespace ShatteredSail.Presentation
 
         private IEnumerator AnimateFloatingText(RectTransform stage, Vector2 position, string value, Color color, string name)
         {
+            // Lift teal numbers above the sea's similar colors without a heavy outline.
+            if (color == Teal) color = Color.Lerp(color, Color.white, 0.6f);
             Text text = CreateText(name, stage, new Vector2(320f, 62f), position, 30, FontStyle.Bold, TextAnchor.MiddleCenter, color);
             text.text = value;
-            Outline outline = text.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0.01f, 0.015f, 0.02f, 0.98f);
-            outline.effectDistance = new Vector2(3f, -3f);
+            // The display face already has heavy strokes; a wide opaque outline
+            // reads as offset copies while the label moves and scales.
+            AddSceneLabelOutline(text);
             float duration = 0.42f;
             for (float elapsed = 0f; elapsed < duration; elapsed += Time.unscaledDeltaTime)
             {
@@ -903,17 +919,22 @@ namespace ShatteredSail.Presentation
     {
         private RectTransform rect;
         private Vector3 targetScale = Vector3.one;
+        private float restingScale = 1f;
+        private float inspectionScale = 1f;
         private Quaternion targetRotation = Quaternion.identity;
         private Vector2 restingPosition;
         private Vector2 targetPosition;
         private bool positionCaptured;
         private bool hovering;
+        private bool pressed;
         private Color accent = Color.white;
         private Image background;
         private Color restingColor;
         private RectTransform keywordTooltip;
         private CanvasGroup keywordTooltipGroup;
         private Canvas hoverCanvas;
+        private Vector4 restingRaycastPadding;
+        private Rect frameHitBounds;
 
         public void Configure(Color effectColor, RectTransform tooltip = null)
         {
@@ -922,8 +943,31 @@ namespace ShatteredSail.Presentation
             hoverCanvas = gameObject.AddComponent<Canvas>();
             gameObject.AddComponent<GraphicRaycaster>();
             accent = effectColor;
-            if (background != null) restingColor = background.color;
+            if (background != null)
+            {
+                restingColor = background.color;
+                RefreshFrameHitArea();
+            }
+            SetKeywordTooltip(tooltip);
+        }
+
+        public void RefreshFrameHitArea()
+        {
+            if (rect == null || background == null) return;
+            restingRaycastPadding = background.raycastPadding;
+            Rect body = rect.rect;
+            frameHitBounds = Rect.MinMaxRect(body.xMin + restingRaycastPadding.x,
+                body.yMin + restingRaycastPadding.y, body.xMax - restingRaycastPadding.z,
+                body.yMax - restingRaycastPadding.w);
+        }
+
+        public void SetKeywordTooltip(RectTransform tooltip)
+        {
+            if (keywordTooltip == tooltip) return;
+            if (keywordTooltipGroup != null) keywordTooltipGroup.alpha = 0f;
+            if (keywordTooltip != null) keywordTooltip.gameObject.SetActive(false);
             keywordTooltip = tooltip;
+            keywordTooltipGroup = null;
             if (keywordTooltip != null)
             {
                 keywordTooltipGroup = keywordTooltip.GetComponent<CanvasGroup>();
@@ -940,14 +984,95 @@ namespace ShatteredSail.Presentation
             if (hoverCanvas != null) { hoverCanvas.overrideSorting = true; hoverCanvas.sortingOrder = 30; }
             if (rect != null)
             {
-                restingPosition = rect.anchoredPosition;
-                targetPosition = restingPosition + Vector2.up * 46f;
+                if (!positionCaptured) restingPosition = rect.anchoredPosition;
                 positionCaptured = true;
             }
             hovering = true;
-            targetScale = Vector3.one * 1.07f;
+            pressed = false;
+            RefreshInspectionTarget();
             targetRotation = Quaternion.Euler(0f, 0f, -0.7f);
             if (keywordTooltip != null) keywordTooltip.gameObject.SetActive(true);
+        }
+
+        private void RefreshInspectionTarget()
+        {
+            if (rect == null || !positionCaptured) return;
+            targetPosition = restingPosition + Vector2.up * (46f +
+                (1f - restingScale) * CardFaceLayout.FrameSize.y * .5f);
+            inspectionScale = 1f;
+            if (rect.parent is RectTransform hand && hand.name == "Battle Hand")
+                FitInspectionToClearSpace(hand);
+            targetScale = Vector3.one * inspectionScale * (pressed ? .98f : 1f);
+        }
+
+        public void RefreshInspectionLayoutImmediately()
+        {
+            if (!hovering || rect == null) return;
+            RefreshInspectionTarget();
+            rect.anchoredPosition = targetPosition;
+            rect.localScale = targetScale;
+            rect.localRotation = targetRotation;
+            UpdatePointerFootprint();
+        }
+
+        private void FitInspectionToClearSpace(RectTransform hand)
+        {
+            // Preserve a full-size inspection wherever possible. A taller card
+            // beside a boarding party needs the largest scale that fits both
+            // the visible screen and the clear space below that party.
+            Canvas canvas = hand.GetComponentInParent<Canvas>();
+            RectTransform screen = canvas != null ? FixedGameViewport.Bounds(canvas) : hand;
+            Rect screenBounds = BoundsRelativeTo(screen, hand);
+            Rect frame = RotatedInspectionBounds();
+            float lower = screenBounds.yMin + 6f;
+            float upper = screenBounds.yMax - 6f;
+            targetPosition.x = Mathf.Clamp(targetPosition.x,
+                Mathf.Max(hand.rect.xMin, screenBounds.xMin) - frame.xMin + 4f,
+                Mathf.Min(hand.rect.xMax, screenBounds.xMax) - frame.xMax - 4f);
+            foreach (string name in new[] { "Player Ship Art", "Enemy Ship Art" })
+            {
+                RectTransform actor = hand.parent.Find(name) as RectTransform;
+                if (actor == null) continue;
+                Rect actorBounds = BoundsRelativeTo(actor, hand);
+                if (targetPosition.x + frame.xMax + 3f > actorBounds.xMin &&
+                    targetPosition.x + frame.xMin - 3f < actorBounds.xMax)
+                    upper = Mathf.Min(upper, actorBounds.yMin - 6f);
+            }
+            inspectionScale = Mathf.Min(1f, (upper - lower) / frame.height);
+            inspectionScale = Mathf.Max(.01f, inspectionScale);
+            targetPosition.y = Mathf.Clamp(targetPosition.y,
+                lower - frame.yMin * inspectionScale, upper - frame.yMax * inspectionScale);
+        }
+
+        private Rect RotatedInspectionBounds()
+        {
+            Vector2 minimum = frameHitBounds.min;
+            Vector2 maximum = frameHitBounds.max;
+            Quaternion rotation = Quaternion.Euler(0f, 0f, -.7f);
+            for (int index = 0; index < 4; index++)
+            {
+                Vector2 corner = new Vector2((index & 1) == 0 ? frameHitBounds.xMin : frameHitBounds.xMax,
+                    (index & 2) == 0 ? frameHitBounds.yMin : frameHitBounds.yMax);
+                Vector2 rotated = rotation * corner;
+                minimum = Vector2.Min(minimum, rotated);
+                maximum = Vector2.Max(maximum, rotated);
+            }
+            return Rect.MinMaxRect(minimum.x, minimum.y, maximum.x, maximum.y);
+        }
+
+        private static Rect BoundsRelativeTo(RectTransform target, RectTransform parent)
+        {
+            Vector3[] corners = new Vector3[4];
+            target.GetWorldCorners(corners);
+            Vector2 minimum = parent.InverseTransformPoint(corners[0]);
+            Vector2 maximum = minimum;
+            for (int index = 1; index < corners.Length; index++)
+            {
+                Vector2 point = parent.InverseTransformPoint(corners[index]);
+                minimum = Vector2.Min(minimum, point);
+                maximum = Vector2.Max(maximum, point);
+            }
+            return Rect.MinMaxRect(minimum.x, minimum.y, maximum.x, maximum.y);
         }
 
         public void ResetAfterHandLayout()
@@ -956,12 +1081,14 @@ namespace ShatteredSail.Presentation
             restingPosition = targetPosition = rect.anchoredPosition;
             positionCaptured = false;
             hovering = false;
-            targetScale = Vector3.one;
+            pressed = false;
+            targetScale = Vector3.one * restingScale;
             targetRotation = Quaternion.identity;
-            rect.localScale = Vector3.one;
+            rect.localScale = Vector3.one * restingScale;
             rect.localRotation = Quaternion.identity;
             if (hoverCanvas != null) hoverCanvas.overrideSorting = false;
             if (background != null) background.color = restingColor;
+            if (background != null) background.raycastPadding = restingRaycastPadding;
             if (keywordTooltipGroup != null) keywordTooltipGroup.alpha = 0f;
             if (keywordTooltip != null) keywordTooltip.gameObject.SetActive(false);
             CanvasGroup group = GetComponent<CanvasGroup>();
@@ -969,38 +1096,58 @@ namespace ShatteredSail.Presentation
             enabled = true;
         }
 
+        public void SetRestingScale(float value)
+        {
+            restingScale = value;
+            ResetAfterHandLayout();
+        }
+
         public void OnPointerExit(PointerEventData eventData)
         {
             if (hoverCanvas != null) hoverCanvas.overrideSorting = false;
             hovering = false;
-            targetScale = Vector3.one;
+            targetScale = Vector3.one * restingScale;
             targetRotation = Quaternion.identity;
             if (positionCaptured) targetPosition = restingPosition;
         }
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            targetScale = Vector3.one * 0.98f;
+            pressed = true;
+            targetScale = Vector3.one * ((hovering ? inspectionScale : restingScale) * 0.98f);
         }
 
         public void OnPointerUp(PointerEventData eventData)
         {
-            targetScale = hovering ? Vector3.one * 1.07f : Vector3.one;
+            pressed = false;
+            targetScale = Vector3.one * (hovering ? inspectionScale : restingScale);
         }
 
         private void Update()
         {
             if (rect == null) return;
+            if (hovering) RefreshInspectionTarget();
             float blend = 1f - Mathf.Exp(-15f * Time.unscaledDeltaTime);
             rect.localScale = Vector3.Lerp(rect.localScale, targetScale, blend);
             rect.localRotation = Quaternion.Slerp(rect.localRotation, targetRotation, blend);
             if (positionCaptured) rect.anchoredPosition = Vector2.Lerp(rect.anchoredPosition, targetPosition, blend);
+            if (hovering && rect.parent is RectTransform hand && hand.name == "Battle Hand")
+            {
+                Vector2 bounded = rect.anchoredPosition;
+                float inset = CardFaceLayout.FrameSize.x * .5f + 4f;
+                bounded.x = Mathf.Clamp(bounded.x, hand.rect.xMin + inset, hand.rect.xMax - inset);
+                rect.anchoredPosition = bounded;
+            }
+            UpdatePointerFootprint();
             if (background != null)
             {
                 float highlight = hovering ? 1f : 0f;
                 background.color = Color.Lerp(restingColor, Color.Lerp(restingColor, accent, 0.28f), highlight);
+                Color fill = background.color;
+                fill.a = restingColor.a;
+                background.color = fill;
             }
-            if (keywordTooltipGroup != null)
+            if (keywordTooltipGroup != null && keywordTooltip != null)
             {
                 keywordTooltipGroup.alpha = Mathf.Lerp(keywordTooltipGroup.alpha, hovering ? 1f : 0f, blend);
                 if (!hovering && keywordTooltipGroup.alpha < 0.02f && keywordTooltip.gameObject.activeSelf)
@@ -1011,15 +1158,37 @@ namespace ShatteredSail.Presentation
             }
         }
 
+        private void UpdatePointerFootprint()
+        {
+            if (background == null || !positionCaptured || rect.parent == null) return;
+            // Raising a card must not move its hit area away from a stationary
+            // pointer at the original bottom corner and repeatedly cancel hover.
+            Vector2 minimum = frameHitBounds.min;
+            Vector2 maximum = frameHitBounds.max;
+            for (int index = 0; index < 4; index++)
+            {
+                Vector2 corner = new Vector2((index & 1) == 0 ? frameHitBounds.xMin : frameHitBounds.xMax,
+                    (index & 2) == 0 ? frameHitBounds.yMin : frameHitBounds.yMax);
+                Vector3 world = rect.parent.TransformPoint(restingPosition + corner * restingScale);
+                Vector2 point = rect.InverseTransformPoint(world);
+                minimum = Vector2.Min(minimum, point);
+                maximum = Vector2.Max(maximum, point);
+            }
+            Rect body = rect.rect;
+            background.raycastPadding = new Vector4(minimum.x - body.xMin, minimum.y - body.yMin,
+                body.xMax - maximum.x, body.yMax - maximum.y);
+        }
+
         private void OnDisable()
         {
             if (rect != null)
             {
-                rect.localScale = Vector3.one;
+                rect.localScale = Vector3.one * restingScale;
                 rect.localRotation = Quaternion.identity;
                 if (positionCaptured) rect.anchoredPosition = restingPosition;
             }
             if (background != null) background.color = restingColor;
+            if (background != null) background.raycastPadding = restingRaycastPadding;
             hovering = false;
             if (keywordTooltipGroup != null) keywordTooltipGroup.alpha = 0f;
             if (hoverCanvas != null) hoverCanvas.overrideSorting = false;

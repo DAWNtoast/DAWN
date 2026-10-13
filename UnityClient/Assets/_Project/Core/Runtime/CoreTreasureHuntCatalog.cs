@@ -37,13 +37,41 @@ namespace ShatteredSail.Core.Gameplay
 
     public sealed class CoreTreasureMapRecord
     {
-        internal CoreTreasureMapRecord(string id, string seed, string rankId)
-        { Id = id; Seed = seed; RankId = rankId; }
+        internal CoreTreasureMapRecord(string id, string seed, string rankId, int geometryVersion = 1)
+        { Id = id; Seed = seed; RankId = rankId; MapGeometryVersion = geometryVersion; }
         public string Id { get; }
         public string Seed { get; }
         public string RankId { get; }
+        public int MapGeometryVersion { get; }
         public CoreTreasureMapRank Rank => CoreTreasureHuntCatalog.FindRank(RankId);
         public string Name => Rank.Name + "藏宝图";
+    }
+
+    /// <summary>A consumed map remains in the folio even after retreat or failure.</summary>
+    public sealed class CoreUsedTreasureMapRecord
+    {
+        internal CoreUsedTreasureMapRecord(string id, string seed, string rankId, string departurePort,
+            bool hasExplorationCoverage, float explorationCoverage, int geometryVersion = 0)
+        {
+            Id = id; Seed = seed; RankId = rankId ?? string.Empty; DeparturePort = departurePort ?? string.Empty;
+            HasExplorationCoverage = hasExplorationCoverage; ExplorationCoverage = explorationCoverage;
+            MapGeometryVersion = geometryVersion;
+        }
+        public string Id { get; }
+        public string Seed { get; }
+        public string RankId { get; }
+        public int MapGeometryVersion { get; }
+        // Legacy seed-only saves did not record the map's rank or exploration.
+        public CoreTreasureMapRank Rank => CoreTreasureHuntCatalog.FindRank(RankId);
+        public string Name => Rank == null ? "藏宝图" : Rank.Name + "藏宝图";
+        public string DeparturePort { get; }
+        public bool HasExplorationCoverage { get; private set; }
+        public float ExplorationCoverage { get; private set; }
+        internal void RecordExploration(float coverage)
+        {
+            HasExplorationCoverage = true;
+            ExplorationCoverage = coverage;
+        }
     }
 
     /// <summary>Unity's treasure rules mirror treasure_map_config.csv; ordinary route bosses remain separate.</summary>

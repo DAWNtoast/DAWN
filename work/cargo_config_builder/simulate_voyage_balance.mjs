@@ -265,7 +265,7 @@ const md = [
     row.battle_win_rate + "% | " + row.average_net_value + " | " + row.end_cargo_ratio + "% | " +
     row.hull_remaining + "% | " + row.warnings + " |"),
   "",
-  "目标区间：均衡策略成功率 60%-75%；返港货舱因路线收益结构不同允许 20%-95%，但不得超载；派遣长期价值应低于同时间主动航行的 40%。",
+  "目标区间：均衡策略成功率 60%-75%；返港货舱因路线收益结构不同允许 20%-95%，但不得超载。",
   "",
 ];
 await fs.writeFile(outputMd, md.join("\n"), "utf8");

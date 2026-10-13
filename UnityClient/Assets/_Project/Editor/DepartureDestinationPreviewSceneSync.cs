@@ -16,6 +16,7 @@ namespace ShatteredSail.Editor
     {
         public static void SyncDepartureDestinationStatesFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Departure destination previews require stopped edit mode.");
             foreach (string reference in ChartSeedReferencePaths)
@@ -28,8 +29,102 @@ namespace ShatteredSail.Editor
 
         public static void SyncAndCaptureDepartureDestinationsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             SyncDepartureDestinationStatesFromCommandLine();
             UIPreviewSceneAcceptance.CaptureDepartureDestinationsFromCommandLine();
+        }
+
+        public static void SyncDeparturePresentationStructureFromCommandLine()
+        {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("Departure presentation synchronization requires stopped edit mode.");
+            foreach (string reference in ChartSeedReferencePaths)
+                SyncDeparturePresentationStructure(reference);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("DEPARTURE_PRESENTATION_STRUCTURE_SYNC: updated " + ChartSeedReferencePaths.Length +
+                " authored departure scenes; synchronized route summaries, removed tutorial buttons; " +
+                "existing route art, port controls, tutorial gates and unrelated objects retained.");
+        }
+
+        public static void SyncAndCaptureDeparturePresentationFromCommandLine()
+        {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
+            SyncDepartureDestinationStatesFromCommandLine();
+            SyncDeparturePresentationStructureFromCommandLine();
+            SyncDepartureCleanPanelFromCommandLine();
+            UIPreviewSceneAcceptance.CaptureDepartureLayoutFromCommandLine();
+        }
+
+        private static void SyncDeparturePresentationStructure(string reference)
+        {
+            string path = EditableSceneFolder + "/" + reference;
+            string absolute = AbsolutePath(path);
+            if (!File.Exists(absolute)) throw new FileNotFoundException("Missing authored departure preview", path);
+            string backup = AbsolutePath("Artifacts/DeparturePresentation20261010/preview-backup/" + reference);
+            Directory.CreateDirectory(Path.GetDirectoryName(backup));
+            if (!File.Exists(backup)) File.Copy(absolute, backup);
+
+            Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+            CoreGameplayDemoController destination = scene.GetRootGameObjects()
+                .SelectMany(root => root.GetComponentsInChildren<CoreGameplayDemoController>(true)).Single();
+            if (destination.EditorPreviewScreen != CoreGameplayPreviewScreen.VoyageDeparture ||
+                !destination.HasCompleteEditorPreview)
+                throw new InvalidOperationException("Expected a complete authored departure preview in " + path);
+            Transform targetContent = destination.GetComponentsInChildren<Transform>(true)
+                .Single(item => item.name == "Phase Content");
+            Transform targetRoutes = targetContent.Find("Route Selection");
+            Transform targetSetup = targetContent.Find("Voyage Setup");
+            if (targetRoutes == null || targetSetup == null)
+                throw new InvalidOperationException("Missing authored departure panels in " + path);
+            string destinationText = targetSetup.Find("Destination Summary")?.GetComponent<Text>()?.text;
+            string authoredDestination = CoreVoyageSession.DestinationPorts.FirstOrDefault(port =>
+                destinationText != null && destinationText.StartsWith("到达港口：" + port, StringComparison.Ordinal));
+
+            Scene stagingScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            GameObject staging = null;
+            try
+            {
+                staging = new GameObject("__DeparturePresentationStaging");
+                SceneManager.MoveGameObjectToScene(staging, stagingScene);
+                CoreGameplayDemoController source = staging.AddComponent<CoreGameplayDemoController>();
+                CopyProvisionPreviewSettings(destination, source);
+                source.RefreshEditorPreview();
+                int chartState = reference == "UIVoyageDeparture/UIVoyageDeparture_RecordedChart.unity" ? 1 :
+                    reference == "UIVoyageDeparture/UIVoyageDeparture_InvalidChart.unity" ? 2 : 0;
+                if (chartState > 0) source.ConfigureEditorPreviewDepartureChart(chartState);
+                else if (authoredDestination != null && source.Session.SelectedTreasureMap == null &&
+                    source.Session.SelectDestinationPort(authoredDestination))
+                {
+                    MethodInfo refresh = typeof(CoreGameplayDemoController).GetMethod("RefreshDepartureDestinationSelection",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (refresh == null) throw new MissingMethodException("RefreshDepartureDestinationSelection");
+                    refresh.Invoke(source, null);
+                }
+                if (!source.HasCompleteEditorPreview)
+                    throw new InvalidOperationException("Incomplete departure presentation staging preview: " + reference);
+                Transform sourceRoutes = source.GetComponentsInChildren<Transform>(true)
+                    .Single(item => item.name == "Route Selection");
+                Transform summary = sourceRoutes.Find("Departure Route Summary");
+                if (summary == null || summary.GetComponent<Text>() == null)
+                    throw new InvalidOperationException("Missing runtime departure route summary in " + reference);
+                // The setup quote and its icons were retired by the panel cleanup.
+                // This command only updates the route summary and tutorial button.
+                CopyTreasureLayer(summary, targetRoutes, "Departure Route Summary");
+                CopyTreasureLayer(null, targetSetup, "Replay Tutorial");
+            }
+            finally
+            {
+                if (staging != null) UnityEngine.Object.DestroyImmediate(staging);
+                if (stagingScene.IsValid() && stagingScene.isLoaded) EditorSceneManager.CloseScene(stagingScene, true);
+                if (scene.IsValid() && scene.isLoaded) SceneManager.SetActiveScene(scene);
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene, path))
+                throw new InvalidOperationException("Failed to save departure presentation preview " + path);
+            RepairSavedNavigationCanvasScale(absolute);
+            AssertSavedNavigationCanvasScale(absolute);
         }
 
         private static void SyncDepartureDestinationScene(string reference)

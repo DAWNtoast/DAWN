@@ -17,12 +17,14 @@ namespace ShatteredSail.Presentation
         {
             public string seed;
             public int routeIndex;
+            public int mapGeometryVersion;
             public string routeName;
             public string departurePort;
             public string destinationPort;
             public bool tutorialWaters;
             public float coverage;
             public bool[] exploredCells;
+            public bool[] chartExploredCells;
             public int[] revealedLocationIds;
         }
 
@@ -138,19 +140,21 @@ namespace ShatteredSail.Presentation
             {
                 if (!uint.TryParse(source.hash, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint hash) ||
                     !session.TryImportLegacyChart(seed, source.routeIndex, source.departurePort, source.destinationPort,
-                        hash, source.tutorialWaters, out seed) ||
+                        hash, source.tutorialWaters, out seed, source.mapGeometryVersion) ||
                     !CoreVoyageSession.TryParseChartSeed(seed, out definition)) return false;
             }
             record = new DepartureChartRecord
             {
                 seed = definition.Seed,
                 routeIndex = definition.RouteIndex,
+                mapGeometryVersion = source.mapGeometryVersion,
                 routeName = CoreVoyageSession.Routes[definition.RouteIndex].Name,
                 departurePort = definition.ForwardDeparturePort,
                 destinationPort = definition.ForwardDestinationPort,
                 tutorialWaters = definition.TutorialWaters,
                 coverage = source.coverage,
                 exploredCells = source.exploredCells,
+                chartExploredCells = source.chartExploredCells,
                 revealedLocationIds = source.revealedLocationIds,
             };
             return ValidateDepartureChartRecord(record);
@@ -159,13 +163,23 @@ namespace ShatteredSail.Presentation
         private static bool ValidateDepartureChartRecord(DepartureChartRecord record)
         {
             if (record == null || !CoreVoyageSession.TryParseChartSeed(record.seed, out CoreSeaChartDefinition definition) ||
+                record.mapGeometryVersion != definition.MapGeometryVersion ||
                 record.routeIndex != definition.RouteIndex || record.departurePort != definition.ForwardDeparturePort ||
                 record.destinationPort != definition.ForwardDestinationPort || record.tutorialWaters != definition.TutorialWaters)
                 return false;
+            var geometry = new CoreVoyageMap(record.mapGeometryVersion);
+            int terrainCount = geometry.Columns * geometry.Rows;
+            int chartCount = geometry.FineColumns * geometry.FineRows;
+            if (record.exploredCells != null && record.exploredCells.Length != 0 && record.exploredCells.Length != terrainCount ||
+                record.chartExploredCells != null && record.chartExploredCells.Length != 0 && record.chartExploredCells.Length != chartCount)
+                return false;
             record.seed = definition.Seed;
             record.routeName = CoreVoyageSession.Routes[definition.RouteIndex].Name;
-            if (record.exploredCells == null || record.exploredCells.Length != CoreVoyageMap.GridColumns * CoreVoyageMap.GridRows)
-                record.exploredCells = new bool[CoreVoyageMap.GridColumns * CoreVoyageMap.GridRows];
+            record.exploredCells = record.exploredCells == null || record.exploredCells.Length == 0
+                ? new bool[terrainCount] : (bool[])record.exploredCells.Clone();
+            record.chartExploredCells = record.chartExploredCells == null || record.chartExploredCells.Length == 0
+                ? CoreVoyageMap.ExpandExplorationForChart(record.exploredCells, record.mapGeometryVersion)
+                : (bool[])record.chartExploredCells.Clone();
             record.revealedLocationIds = (record.revealedLocationIds ?? Array.Empty<int>()).Where(id => id >= 0).Distinct().ToArray();
             record.coverage = 100f * record.exploredCells.Count(value => value) / record.exploredCells.Length;
             return true;
@@ -178,6 +192,8 @@ namespace ShatteredSail.Presentation
             {
                 for (int index = 0; index < record.exploredCells.Length; index++)
                     record.exploredCells[index] |= previous.exploredCells[index];
+                for (int index = 0; index < record.chartExploredCells.Length; index++)
+                    record.chartExploredCells[index] |= previous.chartExploredCells[index];
                 record.revealedLocationIds = record.revealedLocationIds.Union(previous.revealedLocationIds).ToArray();
                 record.coverage = 100f * record.exploredCells.Count(value => value) / record.exploredCells.Length;
                 recordedDepartureCharts.Remove(previous);
@@ -197,10 +213,15 @@ namespace ShatteredSail.Presentation
         {
             if (session == null || session.Map == null || session.IsTreasureVoyage || tutorialActive) return;
             DepartureChartRecord chart = recordedDepartureCharts.Find(record => record.seed == session.CurrentChartSeed);
-            if (chart == null) return;
+            if (chart == null || chart.mapGeometryVersion != session.Map.GeometryVersion ||
+                chart.exploredCells.Length != session.Map.ExploredCells.Length ||
+                chart.chartExploredCells.Length != session.Map.FineColumns * session.Map.FineRows) return;
+            session.Map.InitializeChartExploration();
             if (session.Map.ExploredCells.Length == chart.exploredCells.Length)
                 for (int index = 0; index < chart.exploredCells.Length; index++)
                     session.Map.ExploredCells[index] |= chart.exploredCells[index];
+            for (int index = 0; index < chart.chartExploredCells.Length; index++)
+                session.Map.ChartExploredCells[index] |= chart.chartExploredCells[index];
             foreach (CoreMapNode node in session.Map.Nodes)
                 if (Array.IndexOf(chart.revealedLocationIds, node.Id) >= 0)
                 {

@@ -158,8 +158,9 @@ namespace ShatteredSail.Presentation
             texture != null ? new ItemIconArt(texture, new Rect(bounds.x / referenceWidth,
                 1f - bounds.yMax / referenceHeight, bounds.width / referenceWidth, bounds.height / referenceHeight)) : default;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetCache()
+        // These are borrowed Resources textures. Visible RawImages keep their
+        // own references while the engine collects art from the previous scene.
+        public static void ReleaseLoadedTextures()
         {
             atlas = null;
             atlasLoaded = false;
@@ -168,5 +169,8 @@ namespace ShatteredSail.Presentation
             treasureAtlasALoaded = false;
             treasureAtlasBLoaded = false;
         }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetCache() => ReleaseLoadedTextures();
     }
 }

@@ -9,27 +9,34 @@ namespace ShatteredSail.Presentation
     public sealed class PortHeaderArtCatalog : IDisposable
     {
         private readonly Dictionary<string, PortHeaderTheme> themes = new Dictionary<string, PortHeaderTheme>(StringComparer.Ordinal);
+        private readonly Func<string, Texture2D> resourceLoader;
 
-        public PortHeaderArtCatalog()
+        public PortHeaderArtCatalog() : this(Resources.Load<Texture2D>) { }
+
+        internal PortHeaderArtCatalog(Func<string, Texture2D> resourceLoader)
         {
-            // Authored sheets have different blank margins. Select each frame
-            // in sprite coordinates without modifying or recolouring source pixels.
-            Add("断锚港", "broken_anchor", "#E7B17C", new Rect(0f, 836f / 1214f, 1f, 378f / 1214f));
-            Add("白贝港", "white_shell", "#F2DEB5", new Rect(0f, 0f, 1f, 1f));
-            Add("铜钟港", "bronze_bell", "#EFCA80", new Rect(0f, 335f / 859f, 1f, 524f / 859f));
-            Add("盐冠港", "salt_crown", "#F6D586", new Rect(0f, 144f / 859f, 1f, 617f / 859f));
-            Add("暮潮港", "twilight_tide", "#D7C7F4", new Rect(0f, 191f / 859f, 1f, 496f / 859f));
-            Add("灰鸥港", "gray_gull", "#EBD0A0", new Rect(0f, 826f / 1214f, 1f, 388f / 1214f));
+            this.resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         }
 
         public PortHeaderTheme ForPort(string portName)
         {
-            return portName != null && themes.TryGetValue(portName, out PortHeaderTheme theme) ? theme : themes["灰鸥港"];
+            // Authored sheets have different blank margins. Keep the exact crop
+            // and nine-slice metadata, but create only the requested frame.
+            switch (portName)
+            {
+                case "断锚港": return Get("断锚港", "broken_anchor", "#E7B17C", new Rect(0f, 836f / 1214f, 1f, 378f / 1214f));
+                case "白贝港": return Get("白贝港", "white_shell", "#F2DEB5", new Rect(0f, 0f, 1f, 1f));
+                case "铜钟港": return Get("铜钟港", "bronze_bell", "#EFCA80", new Rect(0f, 335f / 859f, 1f, 524f / 859f));
+                case "盐冠港": return Get("盐冠港", "salt_crown", "#F6D586", new Rect(0f, 144f / 859f, 1f, 617f / 859f));
+                case "暮潮港": return Get("暮潮港", "twilight_tide", "#D7C7F4", new Rect(0f, 191f / 859f, 1f, 496f / 859f));
+                default: return Get("灰鸥港", "gray_gull", "#EBD0A0", new Rect(0f, 826f / 1214f, 1f, 388f / 1214f));
+            }
         }
 
-        private void Add(string port, string slug, string accentHex, Rect normalizedRect)
+        private PortHeaderTheme Get(string port, string slug, string accentHex, Rect normalizedRect)
         {
-            Texture2D texture = Resources.Load<Texture2D>("PortHeaders/" + slug + "_header_v1");
+            if (themes.TryGetValue(port, out PortHeaderTheme cached)) return cached;
+            Texture2D texture = resourceLoader("PortHeaders/" + slug + "_header_v1");
             ColorUtility.TryParseHtmlString(accentHex, out Color accent);
             Sprite frame = null;
             float height = 148f;
@@ -43,7 +50,9 @@ namespace ShatteredSail.Presentation
                 frame.name = slug + " Header Frame";
                 frame.hideFlags = HideFlags.HideAndDontSave;
             }
-            themes.Add(port, new PortHeaderTheme(frame, height, accent));
+            var theme = new PortHeaderTheme(frame, height, accent);
+            themes.Add(port, theme);
+            return theme;
         }
 
         public void Dispose()

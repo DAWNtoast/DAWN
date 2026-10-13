@@ -13,18 +13,23 @@ namespace ShatteredSail.Presentation
         private void BuildWarehouseCurseService(RectTransform inventory)
         {
             bool cursed = session.CurseCount > 0;
-            RectTransform panel = TreasureWoodPanel("Treasure Curse Panel", inventory,
-                cursed ? new Vector2(1030f, 106f) : new Vector2(320f, 40f),
-                cursed ? new Vector2(-374f, 320f) : new Vector2(-729f, 353f));
-            TreasureLabel("Treasure Curse Status", panel,
-                cursed ? new Vector2(970f, 28f) : new Vector2(296f, 30f),
-                cursed ? new Vector2(0f, 29f) : Vector2.zero, cursed ? 20 : 18,
-                Gold, CurseBattleStatus, TextAnchor.MiddleCenter);
-            Text rule = TreasureLabel("Treasure Curse Rule", panel, new Vector2(616f, 48f),
-                new Vector2(-173f, -18f), 17, Ink,
+            // The wall above the cabinet crest is reserved across all six room
+            // paintings. The compact tutorial form stays below its taller header.
+            RectTransform panel = WarehousePanel("Treasure Curse Panel", inventory,
+                cursed ? new Vector2(900f, tutorialActive ? 72f : 94f) : new Vector2(440f, tutorialActive ? 28f : 40f),
+                new Vector2(-312f, cursed ? (tutorialActive ? 396f : 426f) : (tutorialActive ? 420f : 438f)), Color.clear);
+            Image face = panel.GetComponent<Image>();
+            ApplyWarehouseWood(face);
+            WarehouseLabel("Treasure Curse Status", panel,
+                cursed ? new Vector2(864f, 26f) : new Vector2(416f, tutorialActive ? 24f : 30f),
+                cursed ? new Vector2(0f, tutorialActive ? 19f : 27f) : Vector2.zero, 18,
+                CurseBattleStatus, WarehouseRoomTheme.Brass);
+            Text rule = WarehouseLabel("Treasure Curse Rule", panel, new Vector2(590f, 38f),
+                new Vector2(-129f, -14f), 16,
                 "每层战斗承伤 +10%（含冲撞自损）。装甲后、格挡前结算。\n返航、换船与存仓不会清除。",
-                TextAnchor.MiddleLeft);
-            Button purify = BuildCursePurificationButton(panel, new Vector2(308f, 44f), new Vector2(326f, -18f));
+                WarehouseRoomTheme.Ink);
+            rule.alignment = TextAnchor.MiddleLeft;
+            Button purify = BuildCursePurificationButton(panel, new Vector2(242f, 36f), new Vector2(310f, -14f));
             rule.gameObject.SetActive(cursed);
             purify.gameObject.SetActive(cursed);
         }
@@ -34,11 +39,11 @@ namespace ShatteredSail.Presentation
             int quotedCount = session.CurseCount;
             CoreVoyageSession quotedSession = session;
             int quotedFacility = activePortFacility;
-            Button purify = CreateButton("Treasure Purify Curse", parent, size, position, PanelRaised, Ink, 18);
+            Button purify = WarehouseButton("Treasure Purify Curse", parent, size, position, PanelRaised, Ink, 18);
             purify.GetComponentInChildren<Text>().text = quotedCount == 0 ? "无需净化 · 无诅咒" :
                 "净化 1 层 · " + CoreVoyageSession.CursePurificationCost.ToString("0") + " 金";
             purify.interactable = session.CanPurifyCurse(out _);
-            purify.onClick.AddListener(() =>
+            System.Action purifyAction = () =>
             {
                 if (this == null || !isActiveAndEnabled || !ReferenceEquals(session, quotedSession) ||
                     activePortFacility != quotedFacility) return;
@@ -49,7 +54,9 @@ namespace ShatteredSail.Presentation
                 }
                 portNotice = result;
                 Render();
-            });
+            };
+            if (parent.name == "Treasure Curse Panel") AddWarehouseAction(purify, purifyAction);
+            else purify.onClick.AddListener(() => purifyAction());
             return purify;
         }
     }

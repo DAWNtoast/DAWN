@@ -15,8 +15,10 @@ namespace ShatteredSail.Core.Tests
             foreach (var entry in catalog.Entries)
             {
                 var geometry = ComponentShopDisplayGeometry.For(entry);
-                Assert.That(geometry.ModelSize.x, Is.InRange(150f, 301f), entry.Id);
-                Assert.That(geometry.ModelSize.y, Is.InRange(90f, 261f), entry.Id);
+                // Independent artwork includes narrow instruments and long beams.
+                // A fixed minimum on both axes would require stretching these shapes.
+                Assert.That(geometry.ModelSize.x, Is.GreaterThan(0f).And.LessThanOrEqualTo(301f), entry.Id);
+                Assert.That(geometry.ModelSize.y, Is.GreaterThan(0f).And.LessThanOrEqualTo(261f), entry.Id);
                 Assert.That(geometry.ModelUv.xMin, Is.GreaterThanOrEqualTo(0f), entry.Id);
                 Assert.That(geometry.ModelUv.yMin, Is.GreaterThanOrEqualTo(0f), entry.Id);
                 Assert.That(geometry.ModelUv.xMax, Is.LessThanOrEqualTo(1f), entry.Id);
@@ -29,15 +31,17 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void ExpandedMarketComponents_UseMeasuredFamilyBounds()
+        public void ExpandedMarketComponents_UseMeasuredIndividualBounds()
         {
             var catalog = new ComponentArtCatalog();
             Assert.That(catalog.ExpandedEntries.Count, Is.EqualTo(ComponentArtCatalog.ExpandedEntryCount));
             foreach (var entry in catalog.ExpandedEntries)
             {
                 var geometry = ComponentShopDisplayGeometry.For(entry);
-                Assert.That(geometry.ModelSize.x, Is.InRange(150f, 301f), entry.Id);
-                Assert.That(geometry.ModelSize.y, Is.InRange(90f, 261f), entry.Id);
+                Assert.That(geometry.ModelSize.x, Is.GreaterThan(0f).And.LessThanOrEqualTo(301f), entry.Id);
+                Assert.That(geometry.ModelSize.y, Is.GreaterThan(0f).And.LessThanOrEqualTo(261f), entry.Id);
+                Assert.That(geometry.ModelSize.x / geometry.ModelSize.y,
+                    Is.EqualTo(geometry.ModelUv.width / geometry.ModelUv.height).Within(0.0001f), entry.Id);
                 Assert.That(geometry.ModelBounds.Overlaps(geometry.PlaqueBounds), Is.False, entry.Id);
                 Assert.That(geometry.ModelBounds.yMax,
                     Is.LessThanOrEqualTo(ComponentShopDisplayGeometry.MaximumModelTop + 0.001f), entry.Id);
@@ -48,7 +52,7 @@ namespace ShatteredSail.Core.Tests
         public void ShowroomFit_PreservesEveryComponentAspectRatioInsideAuthoredBox()
         {
             var catalog = new ComponentArtCatalog();
-            foreach (var entry in catalog.Entries)
+            foreach (var entry in catalog.ExpandedEntries)
             {
                 var geometry = ComponentShopDisplayGeometry.For(entry);
                 Vector2 size = ComponentShopDisplayGeometry.FitShowroomModelSize(geometry.ModelUv);
@@ -65,7 +69,7 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void DetailFitIsLargerThanCompactShopFitWithoutStretchingArtwork()
         {
-            foreach (var entry in new ComponentArtCatalog().Entries)
+            foreach (var entry in new ComponentArtCatalog().ExpandedEntries)
             {
                 var geometry = ComponentShopDisplayGeometry.For(entry);
                 Vector2 shopSize = ComponentShopDisplayGeometry.FitShowroomModelSize(geometry.ModelUv);
@@ -81,7 +85,7 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void PlaqueGapSurvivesAllShowroomAndDetailScales()
         {
-            foreach (var entry in new ComponentArtCatalog().Entries)
+            foreach (var entry in new ComponentArtCatalog().ExpandedEntries)
                 foreach (float scale in new[] { 0.78f, 0.9f, 0.96f, 1f, 1.08f })
                 {
                     var geometry = ComponentShopDisplayGeometry.For(entry);
@@ -94,7 +98,7 @@ namespace ShatteredSail.Core.Tests
         public void RarityAuraAlsoRemainsAboveTheSign()
         {
             foreach (string port in RegionalShopFurniture.Ports)
-                foreach (var entry in new ComponentArtCatalog().Entries)
+                foreach (var entry in new ComponentArtCatalog().ExpandedEntries)
                 {
                     var geometry = ComponentShopDisplayGeometry.For(entry, port);
                     float auraBottom = geometry.ModelPosition.y - geometry.ModelSize.y * 1.035f * 0.5f;

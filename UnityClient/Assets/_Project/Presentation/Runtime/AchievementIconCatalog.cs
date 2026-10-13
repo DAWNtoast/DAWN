@@ -63,8 +63,10 @@ namespace ShatteredSail.Presentation
             { "invest_all_ports", 20 }, { "invest_ten", 21 }, { "ship_second", 22 }, { "ship_third", 23 },
             { "ship_fourth", 24 }, { "all_ships", 25 }, { "component_inventory", 26 }, { "component_cannon", 27 },
             { "component_full", 28 }, { "component_shop", 29 }, { "crew_one", 30 }, { "crew_three", 31 },
-            { "crew_six", 32 }, { "crew_variants", 33 }, { "dispatch_prepare", 34 }, { "dispatch_long", 35 },
-            { "dispatch_resolved", 36 }, { "warehouse_one", 37 }, { "warehouse_three", 38 }, { "warehouse_ten", 39 },
+            { "crew_six", 32 }, { "crew_variants", 33 },
+            { "voyage_three_events", 34 },
+            { "voyage_half_chart", 35 }, { "voyage_event_arrival", 36 },
+            { "warehouse_one", 37 }, { "warehouse_three", 38 }, { "warehouse_ten", 39 },
             { "warehouse_display_six", 40 }, { "chart_drawn", 41 }, { "battle_deck", 42 }, { "battle_stages", 43 },
             { "card_upgrade", 44 }, { "special_card", 45 }, { "cargo_ready", 46 }, { "cargo_all", 47 },
             { "fame", 48 }, { "seventh_harbor", 49 },
@@ -106,8 +108,9 @@ namespace ShatteredSail.Presentation
                 1f - source.yMax / referenceHeight, source.width / referenceWidth, source.height / referenceHeight)) : default;
         }
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetCache()
+        // Clear borrowed references only: an already open achievement page
+        // must retain its textures during Resources.UnloadUnusedAssets.
+        public static void ReleaseLoadedTextures()
         {
             atlasA = null;
             atlasB = null;
@@ -116,5 +119,8 @@ namespace ShatteredSail.Presentation
             atlasBLoaded = false;
             atlasCLoaded = false;
         }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetCache() => ReleaseLoadedTextures();
     }
 }

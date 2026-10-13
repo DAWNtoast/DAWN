@@ -12,6 +12,10 @@ The Unity Core rules, runtime content catalogs and accepted scene tests define c
 
 ## Project layout
 
+Port header layouts now live in editable Prefabs. Market and warehouse updates
+reuse their existing UI objects; see [UI Prefab and caching notes](Documentation/UiPrefabCaching.md)
+for asset paths, lifecycle rules, and regression/performance checks.
+
 - `Assets/_Project/Core`: deterministic gameplay rules with no `UnityEngine` dependency.
 - `Assets/_Project/Content`: runtime content contracts and stable content identifiers.
 - `Assets/_Project/Persistence`: save schema and migrations.
@@ -44,36 +48,6 @@ EditMode tests (the Unity Test Runner exits automatically, so do not add `-quit`
   -testResults 'D:\Game\UnityClient\TestResults-EditMode.xml' `
   -logFile 'D:\Game\UnityClient\Logs\editmode-tests.log'
 ```
-
-## Shared UI infrastructure
-
-`UiTheme` owns palette and interaction tokens; `UiKit` creates shared controls
-without changing their existing wood/paper skins. `UiLayout` provides anchored
-full-screen, two/three-column and sidebar/detail templates, including safe-area
-and optional ultrawide content limits. New page layouts should compose these
-helpers instead of copying the old factories.
-
-`UiId` identifies runtime controls independently of their names and hierarchy.
-Lookups must supply the smallest owning view; duplicate live IDs fail closed.
-Use `Bind` again when a pooled control changes its action or item. The explicit
-legacy-name fallback supports saved previews that do not yet contain IDs;
-authored scene-structure tests can continue checking their serialized names.
-
-`UiView` registers phase builders and permits only declared refresh regions.
-Port headers and the existing battle view retain their objects. Explicit refresh
-requests with changed models, phases, layouts, or missing controls use the full
-build path. Background header polling only updates readouts and never rebuilds
-the screen or dismisses an open dialog. Per-page
-retention beyond those regions is deliberately deferred to the sequential page
-refactor. Shared confirmation, hover and toast lifetimes reject stale/disabled
-owners while the calling controller keeps business validation and persistence.
-
-Run `../tools/UIRefactor/Validate.ps1` with an explicit `-ProjectPath` and a new
-absolute `-OutputPath`. It runs graphical EditMode/PlayMode tests and the 87-frame
-capture without replacing old evidence, and checks the authored battle scene
-hash. `CompareTests.ps1` distinguishes new failures from historical failures,
-skips and tests that did not run. The persistence test saves only a disposable
-scene copy, never the developer's original preview.
 
 ## Legacy tutorial voyage scene (developer test only)
 
@@ -113,7 +87,7 @@ and master-volume settings remain available, and old audio preference keys stay
 compatible with local saves. Non-battle transitions and committed port actions
 use separate `WorldSfx`, `InterfaceSfx`, and low-volume `Ambience` banks, covering
 departure, sailing, encounters, settlement, trading, equipment, recruitment,
-dispatch, investment, treasure maps, chart drawing, curse purification, and
+investment, treasure maps, chart drawing, curse purification, and
 monthly shop refresh.
 
 The battle bank can be regenerated deterministically with
@@ -128,16 +102,25 @@ settings, achievements, and exit actions. Continue reads the existing local
 profile; new game asks for confirmation before resetting gameplay progress.
 
 The 50 achievements are permanent milestones within that save. Committed gameplay
-captures qualifying state; spending money, leaving a port, changing equipment, or
-claiming a dispatch never revokes an unlocked achievement. Starting a new game
+captures qualifying state; spending money, leaving a port, or changing equipment
+never revokes an unlocked achievement. Starting a new game
 clears the achievement history along with gameplay progress. Existing saves import
 evidence from their current state, collection travel history, and legacy records;
 editor previews and achievement-panel queries do not write progress.
 
+Three replacement voyage achievements restore the catalog to 50 entries. “亲历远航”
+requires at least three completed map events and a safe return or arrival;
+“循图探海” requires at least 50% exploration coverage and a safe return or arrival;
+“跨海领航” requires at least six completed map events and arrival at the target port.
+Each requires one ordinary non-tutorial, non-treasure voyage. Skipped events and
+separate voyages do not accumulate. Permanent unlocks commit with the confirmed
+settlement save, and retired dispatch records cannot grant them. Profile journals
+use version 3 while retaining strict recovery support for version 2 and both
+earlier version-1 key sets. The menu uses seven pages, with two entries on the last.
+
 Previously tutorial-only actions can also be completed after graduation: edit a
 deck, obtain a spare component, return with hull damage, or complete a successful
-voyage with a navigator. Long dispatch requires 12 hours, and dispatch completion
-requires a successful reward claim. Visiting all ports is independent of investing;
+voyage with a navigator. Visiting all ports is independent of investing;
 the six-port investment achievement requires an investment in each port. Crew
 milestones count individual recruits, and the regional crew milestone requires
 recruits from all six ports. Equipment achievements read the current per-ship
@@ -150,9 +133,9 @@ then the unified core-game scene.
 ## Core gameplay
 
 `Assets/_Project/Scenes/CoreGameplayDemo.unity` is the current playable main
-loop. Its port opens as an illustrated, interactive harbor overview with nine
+loop. Its port opens as an illustrated, interactive harbor overview with eight
 clickable facilities: warehouse, shipyard, tavern, component shop, card
-workshop, dispatch desk, treasure-map table, logistics, and the voyage pier.
+workshop, treasure-map table, logistics, and the voyage pier.
 Facility labels sit above their harbor icons, hover states turn gold, and each
 screen has a dedicated background plus previous/next and return-to-port
 navigation. The voyage pier includes three route profiles, deterministic seeded maps,
@@ -205,7 +188,7 @@ enemy ship by route, with a dedicated boss scene.
 The facility hub and its nine interior scenes use the generated pixel-art set
 in `Assets/_Project/Resources/PortFacilities`. `PortFacilityArtCatalog` loads
 the icon atlas and dedicated warehouse, shipyard, tavern, shop, workshop,
-dispatch, treasure, logistics, and voyage backgrounds. Warehouse and logistics
+treasure, logistics, and voyage backgrounds. Warehouse and logistics
 restocking call the real core session; the voyage pier retains the complete
 route-selection and departure flow, while other management screens expose the
 current prototype data and selection states.
@@ -238,15 +221,22 @@ tests for deterministic rules and PlayMode tests for scene/UI smoke coverage.
 
 ## 桌面包体优化
 
+`Assets/_Project/Scenes/UIPreviewsForMe` 已按用户于 2026-10-13 的要求清空并退役。
+后续不要重新生成、保存、刷新或从隔离工程拷回该目录；旧专用命令会明确提示已退役。
+通用 `Assets/_Project/Scenes/UIPreviews` 和正式游戏场景继续保留，混合场景同步只处理
+仍受支持的目标。项目协作规则已在根目录 `AGENTS.md` 中记录此要求。
+
 `DesktopBackgroundCompressionPolicy` 采用明确的背景路径白名单；当前有 42 张
 符合条件的 Default 类型背景在桌面平台使用高质量 BC7。导入时将宽高调整至
 最近的 4 倍数，按整图双线性重采样保留归一化 UV；源 PNG 不改，原有尺寸上限、
 mipmap、Read/Write 和采样设置保持不变。Sprite、可读家具、人物立绘、图标和
 图集不在本轮处理范围。不要用全目录压缩替代此白名单。
 
-28 张退役图片已移入 `Assets/_Project/Editor/ArchivedArt`，保留原图及 GUID，
-作为编辑器美术档案，不进入 Player。不得将归档目录全部拷回 `Resources`；
-确需恢复单个资源时，应先核对正式引用和重复打包风险。
+此前移入 `Assets/_Project/Editor/ArchivedArt` 的退役图片已于 2026-10-13
+按用户审核的 B01 清单清理：本轮删除当时剩余的 27 张图片及配对 `.meta`，
+没有恢复到 `Resources`。原始归档统计属于历史状态；逐文件路径、GUID、SHA256
+及替代依据见 [清理记录](../Artifacts/UnusedAssetAudit20261013/cleanup-result.json)
+和 [审核清单](../Artifacts/UnusedAssetAudit20261013/index.html)。
 
 策略没有启动时批量重导逻辑。需要显式应用时，在目标桌面平台的隔离工程中执行：
 
@@ -274,21 +264,9 @@ Unity.exe -batchmode -quit -projectPath "<工程绝对路径>" -buildTarget Win6
 `../Artifacts/UIPolish20261009/font-source.md`，许可证随 Resources/Fonts 保存。
 不要直接换回原始 1448/em 的行高，否则紧凑标题栏会在 UGUI 垂直截断时消失。
 
-1080p 参考画布采用标题 32–40、按钮和页签 22–26、正文 22–24、辅助说明
-18–20 的基础字号。主菜单和游戏内设置提供标准、大字、特大字，对应 1、1.25、
-1.5 倍；点击“应用”后保存并重建当前界面。`GameReadability.Body/Heading`
-始终从基础字号计算，不叠乘当前字体。文字空间不足时扩大行高、分页或滚动，
-`WoodButtonSkin` 不再启用自动缩字。
-
-市场在三档模式下分别每页显示 4、3、2 项，同类文字在所有页上使用相同字号，
-末页不单独放大或缩小；翻页保留数量、收货方式及报价校验。出航左右栏改为
-900 / 950 的基础宽度，右侧船只与船员说明可滚动，出航按钮固定可见。
-仓库、卡组、酒馆、船坞、部件详情及事件长文保留完整内容并按需滚动。
-
 `WoodButtonSkin.SetRole` 可明确指定 Primary / Secondary / Danger；页面标签的选中
 状态独立保存。默认返回、分页、设置为次操作，确认与出航为主操作。卡牌和透明
-场景热点保持原有样式与点击区域。普通 Header 基础高108、教程基础高148，
-随字号档位增加高度以容纳上下提示。
+场景热点保持原有样式与点击区域。普通 Header 高108，教程高148以容纳上下提示。
 背景扩展使用同一UV坐标换算；航海四区读取实际Header高度。
 
 航海页把预计耗时、航速和补给消耗放在常驻摘要里；风流修正通过“风流详情”

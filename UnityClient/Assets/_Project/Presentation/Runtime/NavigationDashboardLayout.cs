@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
-    /// <summary>Tiles the voyage surface below its header without stretching map coordinates or text.</summary>
+    /// <summary>Tiles the voyage surface, filling the chart while preserving logical coordinates and marker proportions.</summary>
     [ExecuteAlways, DisallowMultipleComponent]
     public sealed class NavigationDashboardLayout : MonoBehaviour
     {
@@ -40,72 +40,31 @@ namespace ShatteredSail.Presentation
             if (applying || !isActiveAndEnabled) return;
             var content = transform.parent as RectTransform;
             if (content == null || content.rect.width <= 0f || content.rect.height <= PhaseSurfaceLayout.HeaderHeight) return;
+            // Old saved previews also use the fixed game surface when opened.
+            Canvas canvas = content.GetComponentInParent<Canvas>();
+            if (canvas != null) FixedGameViewport.Create(canvas.rootCanvas);
             RectTransform chart = Child(content, "Navigation Chart"), controls = Child(content, "Navigation Controls"),
-                lookout = Child(content, "Forward View Panel"), journal = Child(content, "Navigation Journal");
-            if (chart == null || controls == null || lookout == null || journal == null) return;
+                lookout = Child(content, "Forward View Panel");
+            if (chart == null || controls == null || lookout == null) return;
             RectTransform header = Child(content, "Voyage Header");
-            float headerHeight = header == null ? PhaseSurfaceLayout.HeaderHeight : header.rect.height;
-            if (content.rect.height <= headerHeight) return;
             applying = true;
             try
             {
+                if (header != null) NavigationHeaderSkin.ApplyLayout(header);
+                float headerHeight = header == null ? PhaseSurfaceLayout.HeaderHeight : header.rect.height;
+                if (content.rect.height <= headerHeight) return;
                 Rect bounds = content.rect;
                 float height = bounds.height - headerHeight;
-                float leftWidth = bounds.width * .51f;
+                float leftWidth = bounds.width * .6625f;
                 float splitX = bounds.xMin + leftWidth;
-                float controlsHeight = 380f + (GameReadability.Scale - 1f) * 180f;
-                // Reserve space for the fixed readouts AND several complete log
-                // lines. A ScrollRect cannot compensate for a collapsed viewport.
-                float journalHeight = 340f + (GameReadability.Scale - 1f) * 240f;
-                float leftBottom = height * (controlsHeight / 972f), rightBottom = height * (journalHeight / 972f);
-                Fit(chart, new Rect(bounds.xMin, bounds.yMin + leftBottom, leftWidth, height - leftBottom), new Vector2(860, 560));
-                Fit(controls, new Rect(bounds.xMin, bounds.yMin, leftWidth, leftBottom), new Vector2(860, controlsHeight));
+                float rightBottom = height * .48f;
+                Fit(chart, new Rect(bounds.xMin, bounds.yMin, leftWidth, height), new Vector2(1100, 800));
+                Fit(controls, new Rect(splitX, bounds.yMin, bounds.width - leftWidth, rightBottom), new Vector2(660, 470));
                 Fit(lookout, new Rect(splitX, bounds.yMin + rightBottom, bounds.width - leftWidth, height - rightBottom), new Vector2(980, 650));
-                Fit(journal, new Rect(splitX, bounds.yMin, bounds.width - leftWidth, rightBottom), new Vector2(980, journalHeight));
+                NavigationInterfaceSkin.ApplyDashboard(content);
                 LayoutChart(chart);
                 LayoutControls(controls);
                 LayoutLookout(lookout);
-                LayoutJournal(journal);
-                if (header != null)
-                {
-                    // Give the chosen font its real line height. The shared
-                    // header grows with reading size and reserves lesson bands.
-                    RectTransform title = Child(header, "Voyage Header Title");
-                    RectTransform status = Child(header, "Voyage Header Status");
-                    float titleHeight = Mathf.Ceil(GameReadability.FontSize(32) * 1.16f) + 4;
-                    float statusHeight = Mathf.Ceil(GameReadability.FontSize(18) * 1.16f) + 4;
-                    Box(title, new Vector2(650,titleHeight), Vector2.zero);
-                    HeaderAnchor(title, 0f, 373f, (statusHeight + 4) * .5f);
-                    Box(status, new Vector2(650,statusHeight), Vector2.zero);
-                    HeaderAnchor(status, 0f, 373f, -(titleHeight + 4) * .5f);
-                    Text statusLabel = status == null ? null : status.GetComponent<Text>();
-                    if (statusLabel != null) statusLabel.alignment = TextAnchor.MiddleLeft;
-                    RectTransform ribbon = Child(header, "Lookout Time Ribbon");
-                    // The stretched header can still have its previous width
-                    // during a canvas resize callback; content bounds are current.
-                    float clockWidth = Mathf.Min(900, bounds.width - 1040);
-                    float dateHeight = GameReadability.FontSize(20) + 8;
-                    float legendHeight = GameReadability.FontSize(18) + 7;
-                    float trackHeight = 12 * GameReadability.Scale;
-                    // Two 2-unit gaps separate the track from the labels. This
-                    // also leaves a real gap above the standard lesson footer.
-                    float clockHeight = dateHeight + legendHeight + trackHeight + 4;
-                    Box(ribbon, new Vector2(clockWidth,clockHeight), Vector2.zero);
-                    HeaderAnchor(ribbon, .5f, 190f);
-                    ReadingBox(ribbon, "Lookout Time Readout", 20, new Vector2(clockWidth - 20,dateHeight), new Vector2(0,(clockHeight-dateHeight)*.5f));
-                    ReadingBox(ribbon, "Lookout Time Legend", 18, new Vector2(clockWidth - 20,legendHeight), new Vector2(0,-(clockHeight-legendHeight)*.5f));
-                    RectTransform track = Child(ribbon, "Lookout Time Track");
-                    if (track != null)
-                    {
-                        float trackScale = trackHeight / 116f;
-                        track.localScale = Vector3.one * trackScale;
-                        Box(track, new Vector2((clockWidth - 32) / trackScale,116), new Vector2(0,(legendHeight-dateHeight)*.5f));
-                    }
-                    Box(Child(header, "Voyage Cargo"), new Vector2(144,64), Vector2.zero);
-                    HeaderAnchor(Child(header, "Voyage Cargo"), 1f, -246f);
-                    Box(Child(header, "Voyage Settings"), new Vector2(128,64), Vector2.zero);
-                    HeaderAnchor(Child(header, "Voyage Settings"), 1f, -94f);
-                }
             }
             finally { applying = false; }
         }
@@ -123,133 +82,232 @@ namespace ShatteredSail.Presentation
         private static void LayoutChart(RectTransform panel)
         {
             Vector2 size = panel.sizeDelta;
-            float titleHeight = 46 * GameReadability.Scale, seedHeight = 28 * GameReadability.Scale;
-            float hintHeight = 42 * GameReadability.Scale;
-            float top = size.y * .5f - 12;
-            ReadingBox(panel, "Map Title", 32, new Vector2(size.x - 50f, titleHeight), new Vector2(0, top - titleHeight * .5f));
-            ReadingBox(panel, "Map Seed", 18, new Vector2(size.x - 50f, seedHeight), new Vector2(0, top - titleHeight - seedHeight * .5f));
-            ReadingBox(panel, "Map Course Hint", 18, new Vector2(size.x - 50f, hintHeight), new Vector2(0, -size.y * .5f + 10 + hintHeight * .5f));
+            // Extend under the painted gold rim so no dark gutter remains.
+            const float padding = 4f, stripHeight = 58f;
+            float headingY = size.y * .5f - padding - stripHeight * .5f;
+            Box(Child(panel, "Navigation Map Title Strip"), new Vector2(size.x - padding * 2f, stripHeight), new Vector2(0, headingY));
+            Box(Child(panel, "Navigation Map Title Compass"), new Vector2(34f, 34f), new Vector2(-size.x * .5f + 36f, headingY));
+            float titleWidth = Mathf.Clamp((size.x - 96f) * .42f, 330f, 560f);
+            ChartTextBox(Child(panel, "Map Title"), new Vector2(titleWidth, 34f),
+                new Vector2(-size.x * .5f + 64f + titleWidth * .5f, headingY), 23, panel.localScale.x);
+            float enduranceWidth = size.x - 104f - titleWidth;
+            RectTransform endurance = Child(panel, "Voyage Supply Endurance");
+            Box(endurance, new Vector2(enduranceWidth, 34f), new Vector2(size.x * .5f - 24f - enduranceWidth * .5f, headingY));
+            ChartTextBox(Child(endurance, "Water Food Endurance"), new Vector2(enduranceWidth, 30f),
+                Vector2.zero, 17, panel.localScale.x);
+            RectTransform hint = Child(panel, "Map Course Hint");
+            ChartTextBox(hint, new Vector2(size.x - 48f, 32f),
+                new Vector2(0, -size.y * .5f + 28f), 14, panel.localScale.x);
             RectTransform frame = Child(panel, "Procedural Sea Chart Frame"), map = Child(frame, "Map Layer");
             if (map == null) return;
-            float mapTop = top - titleHeight - seedHeight - 8;
-            float mapBottom = -size.y * .5f + 18 + hintHeight;
-            float scale = Mathf.Min((size.x - 32f) / 1200f, (mapTop - mapBottom) / 675f);
-            map.localScale = new Vector3(scale, scale, 1f);
-            Box(frame, new Vector2(1200, 675) * scale, new Vector2(0, (mapTop + mapBottom) * .5f));
+            // Match the old procedural backing to the surrounding fog surface,
+            // so its inset does not draw a second dark rectangle around the map.
+            Image mapBacking = Child(map, "Procedural Sea Chart")?.GetComponent<Image>();
+            Image panelBacking = panel.GetComponent<Image>();
+            if (mapBacking != null && panelBacking != null)
+            {
+                mapBacking.sprite = mapBacking.overrideSprite = null;
+                mapBacking.type = Image.Type.Simple;
+                mapBacking.color = panelBacking.color;
+                mapBacking.raycastTarget = false;
+            }
+            // Fit the plotted sea, not the larger logical root's empty margins.
+            // Keep the established coordinates for routes, markers and input.
+            float mapTop = headingY - stripHeight * .5f;
+            float mapBottom = -size.y * .5f + padding + (hint == null ? 0f : 40f);
+            Vector2 mapSize = new Vector2(size.x - padding * 2f, mapTop - mapBottom);
+            RectTransform sea = Child(map, "Ocean Tile Layer");
+            if (sea == null) return;
+            map.sizeDelta = sea.rect.size + new Vector2(40f, 45f);
+            Box(frame, mapSize, new Vector2(0, (mapTop + mapBottom) * .5f));
+            // The logical input/backing and edge sprites may extend beyond the
+            // sea. Clip them at the frame, including their raycast area.
+            if (frame.GetComponent<RectMask2D>() == null) frame.gameObject.AddComponent<RectMask2D>();
+            NavigationMapViewport viewport = map.GetComponent<NavigationMapViewport>() ?? map.gameObject.AddComponent<NavigationMapViewport>();
+            if (viewport.Columns == 0)
+            {
+                // Persisted previews predating the viewport retain their full
+                // fine fog data, including transparent explored cells.
+                VoyageMapTileLayerGraphic fog = Child(Child(map, "Visibility Mask Layer"), "Chart Fog Tiles")?.GetComponent<VoyageMapTileLayerGraphic>();
+                viewport.Initialize(48, fog == null ? 32 : fog.TileCount / (48 * 4));
+            }
+            viewport.ApplyLayout(frame, sea);
+            ApplyMapMarkerScale(map);
+        }
+
+        public static void ApplyMapMarkerScale(RectTransform map)
+        {
+            if (map == null || map.localScale.x <= 0f || map.localScale.y <= 0f) return;
+            float uniformScale = Mathf.Min(map.localScale.x, map.localScale.y);
+            Vector3 correction = new Vector3(uniformScale / map.localScale.x, uniformScale / map.localScale.y, 1f);
+            // Marker positions follow the chart projection; artwork and hit areas
+            // keep their authored proportions. Lines and terrain follow the map.
+            foreach (Transform child in map)
+            {
+                if (!child.gameObject.activeSelf) continue;
+                if (child.name == "Player Ship" || child.name.StartsWith("Event Node ") ||
+                    child.name == "Departure Port" || child.name == "Departure Port Halo" ||
+                    child.name == "Destination Port" || child.name == "Destination Port Halo")
+                    SetMarkerScale(child as RectTransform, correction);
+            }
+            RectTransform course = Child(map, "Course Preview Layer");
+            SetMarkerScale(Child(course, "Course Target"), correction);
+            SetMarkerScale(Child(course, "Direct Course Target Halo"), correction);
+        }
+
+        private static void SetMarkerScale(RectTransform marker, Vector3 scale)
+        {
+            if (marker == null) return;
+            marker.localScale = scale;
+            // Animation must use the same corrected baseline after a resize.
+            marker.GetComponent<NauticalButtonMotion>()?.SetBaseScale(scale);
+            marker.GetComponent<VoyageEventMarkerPulse>()?.SetBaseScale(scale);
         }
 
         private static void LayoutControls(RectTransform panel)
         {
-            float scale = GameReadability.Scale, half = panel.sizeDelta.y * .5f;
-            float dx = (panel.sizeDelta.x - 860f) * .5f;
-            float titleHeight = 46 * scale;
-            ReadingBox(panel, "Navigation Title", 32, new Vector2(310, titleHeight), new Vector2(-247-dx, half-16-titleHeight*.5f));
-            string[] directions = { "NorthWest", "North", "NorthEast", "West", "East", "SouthWest", "South", "SouthEast" };
-            float cell = 48 * scale, row = half - 28 - titleHeight - cell * .5f;
-            Vector2[] positions = { new Vector2(-350,row), new Vector2(-247,row), new Vector2(-144,row), new Vector2(-350,row-cell-8),
-                new Vector2(-144,row-cell-8), new Vector2(-350,row-2*(cell+8)), new Vector2(-247,row-2*(cell+8)), new Vector2(-144,row-2*(cell+8)) };
-            for (int i = 0; i < directions.Length; i++)
-                ReadingButton(panel, "Heading " + directions[i], 22, new Vector2(96,cell), positions[i]+new Vector2(-dx,0));
-            ReadingBox(panel, "Compass", 20, new Vector2(94,cell), new Vector2(-247-dx,row-cell-8));
-            float width = panel.sizeDelta.x - 422f;
-            ReadingBox(panel, "Distance Label", 22, new Vector2(width-176,titleHeight), new Vector2(81,half-16-titleHeight*.5f));
-            ReadingButton(panel, "Forecast Details", 22, new Vector2(164,titleHeight), new Vector2(169+width*.5f-82,half-16-titleHeight*.5f));
+            Vector2 size = panel.sizeDelta;
+            const float compassWidth = 280f, gap = 22f, padding = 28f;
+            float usableWidth = size.x - padding * 2f;
+            float compassCenter = -size.x * .5f + padding + compassWidth * .5f;
+            float forecastWidth = usableWidth - compassWidth - gap;
+            float forecastCenter = size.x * .5f - padding - forecastWidth * .5f;
+            float top = size.y * .5f - 82f;
+            float footerY = -size.y * .5f + 49f;
+            float bodyBottom = footerY + 47f;
+            float compassDiameter = Mathf.Min(compassWidth, top - bodyBottom);
+            Box(Child(panel, "Navigation Title"), new Vector2(usableWidth-140f,32f),
+                new Vector2(-70f,size.y*.5f-39f));
+            NavigationCompassControl.Attach(panel);
+            NavigationCompassControl.Layout(panel, new Vector2(compassCenter, top - compassDiameter * .5f), compassDiameter);
+            Box(Child(panel, "Distance Label"), new Vector2(forecastWidth,48), new Vector2(forecastCenter,top-38f));
+            ControlBox(Child(panel, "Forecast Details"), new Vector2(128,38), new Vector2(size.x*.5f-padding-64f,size.y*.5f-39f));
             RectTransform slider = Child(panel, "Distance Slider");
-            Box(slider, new Vector2(width,38), new Vector2(169,half-titleHeight-43));
-            Box(Child(slider, "Background"), new Vector2(width,8), Vector2.zero);
-            Box(Child(slider, "Fill Area"), new Vector2(width-18,8), new Vector2(-9,0));
-            Box(Child(slider, "Handle Slide Area"), new Vector2(width-24,34), Vector2.zero);
-            float actionHeight = 56 * scale, actionY = -half + 16 + actionHeight * .5f;
-            float forecastTop = half - titleHeight - 72, forecastBottom = actionY + actionHeight * .5f + 12;
-            ReadingBox(panel, "Forecast", 22, new Vector2(width,forecastTop-forecastBottom), new Vector2(169,(forecastTop+forecastBottom)*.5f));
-            ReadingButton(panel, "Execute Sail", 24, new Vector2(width,actionHeight), new Vector2(169,actionY));
-            ReadingButton(panel, "Safe Return", 22, new Vector2(302,actionHeight), new Vector2(-247-dx,actionY));
-            // Disclosure floats into the chart only while open; the chart's input geometry is unchanged.
+            Box(slider, new Vector2(forecastWidth,34), new Vector2(forecastCenter,top-91f));
+            Box(Child(slider, "Background"), new Vector2(forecastWidth,12), Vector2.zero);
+            Box(Child(slider, "Fill Area"), new Vector2(forecastWidth-18,10), new Vector2(-9,0));
+            Box(Child(slider, "Handle Slide Area"), new Vector2(forecastWidth-24,34), Vector2.zero);
+            float forecastTop = top - 130f;
+            float forecastHeight = Mathf.Max(132f, forecastTop - bodyBottom);
+            Box(Child(panel, "Forecast"), new Vector2(forecastWidth,forecastHeight), new Vector2(forecastCenter,forecastTop-forecastHeight*.5f));
+            float actionWidth = (usableWidth-gap)*.5f;
+            ControlBox(Child(panel, "Execute Sail"), new Vector2(actionWidth,66), new Vector2((actionWidth+gap)*.5f,footerY));
+            ControlBox(Child(panel, "Safe Return"), new Vector2(actionWidth,66), new Vector2(-(actionWidth+gap)*.5f,footerY));
+            // Expanded details float above the controls into the right-hand lookout.
             Transform disclosure = panel.Find("Forecast Details Panel");
-            float disclosureHeight = 140 * scale;
-            Box(disclosure as RectTransform, new Vector2(width,disclosureHeight), new Vector2(169,half+disclosureHeight*.5f));
+            Box(disclosure as RectTransform, new Vector2(usableWidth,150), new Vector2(0,size.y*.5f+75));
             if (disclosure != null)
-                ReadingBox(disclosure, "Forecast Detail Text", 22, new Vector2(width-32,disclosureHeight-24), Vector2.zero);
+                Box(disclosure.Find("Forecast Detail Text") as RectTransform, new Vector2(usableWidth-32,124), Vector2.zero);
         }
 
         private static void LayoutLookout(RectTransform panel)
         {
             RectTransform viewport = Child(panel, "Forward Viewport");
             if (viewport == null) return;
-            Vector2 size = panel.sizeDelta - new Vector2(24,24);
+            RectTransform card = Child(viewport, "Encounter Card");
+            // The panorama covers the entire region; only event paper needs an inset.
+            Vector2 size = card == null ? panel.sizeDelta : panel.sizeDelta - new Vector2(24,24);
             Box(viewport, size, Vector2.zero);
             Box(Child(viewport, "Lookout Ocean"), size, Vector2.zero);
             Box(Child(viewport, "Lookout Ocean Transition"), size, Vector2.zero);
             FitPanorama(Child(viewport, "Lookout Ocean"), size);
             FitPanorama(Child(viewport, "Lookout Ocean Transition"), size);
-            float headingHeight = 56 * GameReadability.Scale, reportHeight = 100 * GameReadability.Scale;
-            Box(Child(viewport, "Lookout Heading Plaque"), new Vector2(size.x,headingHeight), new Vector2(0,size.y*.5f-headingHeight*.5f));
-            ReadingBox(viewport, "Lookout Heading", 32, new Vector2(size.x-48,headingHeight-10), new Vector2(0,size.y*.5f-headingHeight*.5f));
-            Box(Child(viewport, "Lookout Report Plaque"), new Vector2(size.x,reportHeight), new Vector2(0,-size.y*.5f+reportHeight*.5f));
-            ReadingBox(viewport, "Lookout Report", 22, new Vector2(size.x-48,reportHeight-10), new Vector2(0,-size.y*.5f+reportHeight*.5f));
-            RectTransform card = Child(viewport, "Encounter Card");
+            Box(Child(viewport, "Lookout Heading Plaque"), new Vector2(size.x,60), new Vector2(0,size.y*.5f-30));
+            Box(Child(viewport, "Lookout Heading"), new Vector2(size.x-48,40), new Vector2(0,size.y*.5f-30));
+            Box(Child(viewport, "Lookout Report Plaque"), new Vector2(size.x,92), new Vector2(0,-size.y*.5f+46));
+            Box(Child(viewport, "Lookout Report"), new Vector2(size.x-48,80), new Vector2(0,-size.y*.5f+46));
             if (card == null) return;
             Box(card, size, card.anchoredPosition);
-            Box(Child(card, "Encounter Parchment"), size - new Vector2(16,12), Vector2.zero);
-            Box(Child(card, "Encounter Themed Frame"), size, Vector2.zero);
-            CoreGameplayDemoController.ReflowEmbeddedEncounter(card);
+            LayoutEmbeddedEncounter(card);
+        }
+
+        public static void LayoutEmbeddedEncounter(RectTransform card)
+        {
+            if (card == null) return;
+            Box(Child(card, "Encounter Parchment"), card.sizeDelta, Vector2.zero);
+            RectTransform content = Child(card, "Encounter Paper Content");
+            if (content == null) return;
+            Vector2 size = card.sizeDelta - new Vector2(64,64);
+            Box(content, size, Vector2.zero);
+            float top = size.y * .5f;
+            float heroHeight = Mathf.Clamp(size.y * .44f,246f,304f);
+            float artWidth = Mathf.Min(size.x * .35f,(heroHeight - 36f) * 4f / 3f);
+            float artHeight = (artWidth-6f) * .75f + 6f;
+            float artCenter = -size.x * .5f + artWidth * .5f;
+            RectTransform mount = Child(content,"Encounter Illustration Mount");
+            Box(mount,new Vector2(artWidth,artHeight),new Vector2(artCenter,top-artHeight*.5f));
+            Box(Child(mount,"Demo Event Art"),new Vector2(artWidth-6f,artHeight-6f),Vector2.zero);
+            Box(Child(content,"Encounter Location"),new Vector2(artWidth,28f),new Vector2(artCenter,top-artHeight-20f));
+            float narrativeWidth = size.x-artWidth-28f;
+            float narrativeCenter = size.x*.5f-narrativeWidth*.5f;
+            Box(Child(content,"Encounter Title"),new Vector2(narrativeWidth,48f),new Vector2(narrativeCenter,top-24f));
+            Box(Child(content,"Encounter Description"),new Vector2(narrativeWidth,heroHeight-62f),new Vector2(narrativeCenter,top-62f-(heroHeight-62f)*.5f));
+            float badgeY = top-heroHeight-22f;
+            float footerWidth = 218f;
+            Box(Child(content,"Encounter Badge"),new Vector2(size.x-footerWidth-16f,28f),new Vector2(-(footerWidth+16f)*.5f,badgeY));
+            Box(Child(content,"Encounter Decision Footer"),new Vector2(footerWidth,28f),new Vector2(size.x*.5f-footerWidth*.5f,badgeY));
+            EncounterFont(Child(content,"Encounter Title"),36);
+            EncounterFont(Child(content,"Encounter Description"),24);
+            EncounterFont(Child(content,"Encounter Location"),22);
+            EncounterFont(Child(content,"Encounter Badge"),20);
+            EncounterFont(Child(content,"Encounter Decision Footer"),18);
+
+            RectTransform viewport = Child(content,"Encounter Decision Viewport");
+            RectTransform actions = Child(viewport,"Encounter Choices");
+            if (viewport == null || actions == null) return;
+            ScrollRect scroll = viewport.GetComponent<ScrollRect>();
+            float normalized = scroll == null ? 1f : scroll.verticalNormalizedPosition;
+            float viewportTop = badgeY-28f;
+            float viewportHeight = viewportTop+size.y*.5f;
+            Box(viewport,new Vector2(size.x,viewportHeight),new Vector2(0,viewportTop-viewportHeight*.5f));
+            float cursor = 0;
+            foreach (Transform child in actions)
+            {
+                Button button = child.GetComponent<Button>();
+                if (button == null || !child.gameObject.activeSelf) continue;
+                bool skip = child.name.StartsWith("Skip ");
+                float height = skip ? 80f : 96f;
+                var row = (RectTransform)child;
+                row.anchorMin = row.anchorMax = new Vector2(.5f,1f);
+                Box(row,new Vector2(size.x,height),new Vector2(0,-cursor-height*.5f));
+                float textWidth = size.x-218f;
+                Box(Child(row,"Label"),new Vector2(textWidth,34f),new Vector2(-39f,skip ? 17f : 25f));
+                Box(Child(row,"Detail"),new Vector2(textWidth,skip ? 28f : 48f),new Vector2(-39f,skip ? -19f : -20f));
+                Box(Child(row,"Hours"),new Vector2(132f,height-12f),new Vector2(size.x*.5f-78f,0));
+                Box(Child(row,"Decision Number"),new Vector2(40f,38f),new Vector2(-size.x*.5f+30f,0));
+                EncounterFont(Child(row,"Label"),28);
+                EncounterFont(Child(row,"Detail"),22);
+                EncounterFont(Child(row,"Hours"),20,14);
+                EncounterFont(Child(row,"Decision Number"),24);
+                cursor += height+10f;
+            }
+            float heightNeeded = Mathf.Max(0,cursor-10f);
+            actions.anchorMin = actions.anchorMax = actions.pivot = new Vector2(.5f,1f);
+            Box(actions,new Vector2(size.x,Mathf.Max(viewportHeight,heightNeeded)),actions.anchoredPosition);
+            if (scroll != null)
+            {
+                scroll.vertical = heightNeeded > viewportHeight;
+                scroll.verticalNormalizedPosition = scroll.vertical ? Mathf.Clamp01(normalized) : 1f;
+                Text footer = Child(content,"Encounter Decision Footer")?.GetComponent<Text>();
+                Text badge = Child(content,"Encounter Badge")?.GetComponent<Text>();
+                if (footer != null) footer.text = scroll.vertical ? "上下滚动查看更多" :
+                    badge != null && badge.text.Contains("必须处理") ? "选择可行方案继续" : "略过不耗时";
+            }
+        }
+
+        private static void EncounterFont(RectTransform rect,int size,int minimum = 0)
+        {
+            Text label = rect == null ? null : rect.GetComponent<Text>();
+            if (label == null) return;
+            label.fontSize = label.resizeTextMaxSize = size;
+            label.resizeTextMinSize = minimum > 0 ? minimum : size-3;
+            label.resizeTextForBestFit = true;
         }
 
         private static void FitPanorama(RectTransform rect, Vector2 size)
         {
             RawImage image = rect == null ? null : rect.GetComponent<RawImage>();
             if (image != null) image.uvRect = NavigationLookoutArtCatalog.PanoramaUv(size, image.texture);
-        }
-
-        private static void LayoutJournal(RectTransform panel)
-        {
-            Vector2 size = panel.sizeDelta;
-            float scale = GameReadability.Scale, titleHeight = 46 * scale, cargoHeight = 32 * scale;
-            float top = size.y * .5f - 16;
-            ReadingBox(panel, "Log Title", 32, new Vector2(285,titleHeight), new Vector2(-size.x*.5f+175,top-titleHeight*.5f));
-            ReadingBox(panel, "Voyage Cargo Summary", 18, new Vector2(size.x-355,titleHeight), new Vector2(145,top-titleHeight*.5f));
-            float cargoTop = top-titleHeight-10;
-            ReadingBox(panel, "Cargo Status", 18, new Vector2(size.x-66,cargoHeight), new Vector2(0,cargoTop-cargoHeight*.5f));
-            Text cargo = Child(panel, "Cargo Status")?.GetComponent<Text>();
-            if(cargo != null) cargo.alignment = TextAnchor.MiddleLeft;
-            float logTop = cargoTop-cargoHeight-10, enduranceHeight = 64*scale;
-            float logBottom = -size.y*.5f+14+enduranceHeight+10;
-            RectTransform scroll = Child(panel, "Voyage Journal Scroll");
-            Box(scroll, new Vector2(size.x-66,logTop-logBottom), new Vector2(0,(logTop+logBottom)*.5f));
-            RectTransform log = Child(scroll, "Voyage Log");
-            if (log != null)
-            {
-                log.sizeDelta = new Vector2(size.x-96,log.sizeDelta.y);
-                Text label = log.GetComponent<Text>();
-                GameReadability.Body(label, 22);
-                log.sizeDelta = new Vector2(log.sizeDelta.x, Mathf.Max(scroll.rect.height-2,label.preferredHeight+18));
-            }
-            RectTransform endurance = Child(panel, "Voyage Supply Endurance");
-            Box(endurance, new Vector2(size.x-66,enduranceHeight), new Vector2(0,-size.y*.5f+14+enduranceHeight*.5f));
-            ReadingBox(endurance, "Water Food Endurance", 20, new Vector2(size.x-100,32*scale), new Vector2(0,16*scale));
-            ReadingBox(endurance, "Supply Endurance Summary", 18, new Vector2(size.x-100,28*scale), new Vector2(0,-15*scale));
-        }
-
-        private static void ReadingBox(Transform parent, string name, int standard, Vector2 size, Vector2 position)
-        {
-            RectTransform rect = Child(parent, name);
-            Box(rect,size,position);
-            if(rect != null)
-            {
-                Text label = rect.GetComponent<Text>();
-                GameReadability.Body(label,standard);
-                if(label != null && (name.EndsWith("Title") || name == "Lookout Heading")) label.font = GameTypography.InterfaceFont;
-            }
-        }
-
-        private static void ReadingButton(Transform parent, string name, int standard, Vector2 size, Vector2 position)
-        {
-            RectTransform rect = Child(parent,name);
-            Box(rect,size,position);
-            Text label = rect == null ? null : rect.GetComponentInChildren<Text>();
-            if(label == null) return;
-            label.rectTransform.sizeDelta = size-new Vector2(14,8);
-            GameReadability.Body(label,standard);
         }
 
         private static RectTransform Child(Transform parent, string name)
@@ -270,11 +328,28 @@ namespace ShatteredSail.Presentation
             if (rect.sizeDelta != size) rect.sizeDelta = size;
             if (rect.anchoredPosition != position) rect.anchoredPosition = position;
         }
-        private static void HeaderAnchor(RectTransform rect, float x, float offset, float y = 0f)
+
+        private static void ChartTextBox(RectTransform rect, Vector2 size, Vector2 position,
+            int authoredFontSize, float chartScale)
         {
             if (rect == null) return;
-            rect.anchorMin = rect.anchorMax = new Vector2(x,.5f);
-            rect.anchoredPosition = new Vector2(offset,y);
+            Text label = rect.GetComponent<Text>();
+            if (label == null) { Box(rect, size, position); return; }
+            // The map panel scales as one surface, but legacy Text rasterizes
+            // only for the Canvas scale. Request enough native glyph pixels and
+            // counter-scale this label so its displayed font size and box stay
+            // unchanged. Always derive from authored values, never the last pass.
+            int rasterFontSize = Mathf.CeilToInt(authoredFontSize * Mathf.Max(1f, chartScale));
+            float labelScale = authoredFontSize / (float)rasterFontSize;
+            label.fontSize = rasterFontSize;
+            Vector3 scale = new Vector3(labelScale, labelScale, 1f);
+            if (rect.localScale != scale) rect.localScale = scale;
+            Box(rect, size / labelScale, position);
+        }
+        private static void ControlBox(RectTransform rect, Vector2 size, Vector2 position)
+        {
+            Box(rect, size, position);
+            Box(Child(rect, "Label"), size - new Vector2(24,8), Vector2.zero);
         }
     }
 }

@@ -76,6 +76,7 @@ namespace ShatteredSail.Editor
         /// <summary>Read the authored references used by the new-game flow without regenerating them.</summary>
         public static void CaptureEditableFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             string[] references = {
                 "UI_PortHub.unity", "UI_VoyageDeparture.unity", "UI_Navigation.unity",
                 "UI_Encounter.unity", "UI_Settlement.unity", "UI_Tavern.unity",
@@ -93,24 +94,28 @@ namespace ShatteredSail.Editor
 
         public static void CaptureTreasureAdventureFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("TREASURE_ADVENTURE_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory(),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.TreasureAdventureReferencePaths));
         }
 
         public static void CaptureDepartureProvisionsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("DEPARTURE_PROVISION_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory(),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.DepartureProvisionReferencePaths));
         }
 
         public static void CaptureTradeEconomyFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("TRADE_ECONOMY_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.DepartureProvisionReferencePaths));
         }
 
         public static void CaptureMarketQuantityFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("MARKET_QUANTITY_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/MarketQuantity20261002/preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.MarketQuantityReferencePaths));
@@ -118,12 +123,14 @@ namespace ShatteredSail.Editor
 
         public static void CapturePortWarehouseFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("PORT_WAREHOUSE_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.PortWarehouseReferencePaths));
         }
 
         public static void CaptureStorageRoutingFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("STORAGE_ROUTING_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/StorageRouting20261002/preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.StorageRoutingReferencePaths));
@@ -131,6 +138,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureWarehouseCargoFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("WAREHOUSE_CARGO_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/StorageRouting20261002/warehouse-preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.WarehouseCargoReferencePaths));
@@ -138,6 +146,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureRareWarehouseFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("RARE_WAREHOUSE_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/RareWarehouse20261003/preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.RareWarehouseReferencePaths));
@@ -145,6 +154,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureRareInvestmentFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("RARE_INVESTMENT_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/RareConsumption20261003/investment-preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.RareInvestmentReferencePaths));
@@ -152,6 +162,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureWarehouseTabsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("WAREHOUSE_TABS_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/WarehouseTabs20261002/preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.WarehouseTabsReferencePaths));
@@ -159,12 +170,14 @@ namespace ShatteredSail.Editor
 
         public static void CaptureComponentResaleFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("COMPONENT_RESALE_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.ComponentResaleReferencePaths));
         }
 
         public static void CaptureChartSeedsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("CHART_SEED_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/SeaChartSeeds20261002/preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.ChartSeedReferencePaths));
@@ -172,6 +185,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureDepartureDestinationsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("DEPARTURE_DESTINATION_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory(),
                 "Assets/_Project/Scenes/UIPreviewsForMe", new[]
                 {
@@ -183,6 +197,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureDepartureChartSelectionFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("DEPARTURE_CHART_SELECTION_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory(),
                 "Assets/_Project/Scenes/UIPreviewsForMe", new[]
                 {
@@ -196,6 +211,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureDepartureLayoutFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             string output = ResolveOutputDirectory();
             Debug.Log("DEPARTURE_LAYOUT_UI_ACCEPTANCE: " + Capture(output,
                 "Assets/_Project/Scenes/UIPreviewsForMe", new[]
@@ -212,6 +228,7 @@ namespace ShatteredSail.Editor
 
         public static void CapturePortFacilityNavigationFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("PORT_FACILITY_NAVIGATION_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory(),
                 "Assets/_Project/Scenes/UIPreviewsForMe", new[]
                 {
@@ -223,6 +240,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureRegionalShipyardsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("REGIONAL_SHIPYARD_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/RegionalShips20261002/preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.RegionalShipyardReferencePaths));
@@ -230,6 +248,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureCleanSceneLabelsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("CLEAN_SCENE_LABELS_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory(),
                 "Assets/_Project/Scenes/UIPreviewsForMe", new[]
                 {
@@ -240,6 +259,7 @@ namespace ShatteredSail.Editor
 
         public static void CaptureBoardingCrewFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("BOARDING_CREW_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory("-navalVisualCapturePath",
                 "Artifacts/ShipProgression20261003/boarding-preview-captures"),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.BoardingCrewReferencePaths));
@@ -247,12 +267,14 @@ namespace ShatteredSail.Editor
 
         public static void CaptureNavigationEnduranceFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("NAVIGATION_ENDURANCE_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory(),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.NavigationEnduranceReferencePaths));
         }
 
         public static void CaptureBossTreasureDropsFromCommandLine()
         {
+            GameplayPreviewSceneBuilder.RejectRetiredEditablePreviews();
             Debug.Log("BOSS_TREASURE_DROP_UI_ACCEPTANCE: " + Capture(ResolveOutputDirectory(),
                 "Assets/_Project/Scenes/UIPreviewsForMe", GameplayPreviewSceneBuilder.BossTreasureDropReferencePaths));
         }

@@ -42,31 +42,52 @@ namespace ShatteredSail.Presentation
         {
             CoreTreasureMapRecord map = session.SelectedTreasureMap;
             if (map == null) return;
+            CoreVoyageSession owner = session;
+            int revision = departureChartRevision;
+            string origin = session.CurrentPort;
+            bool Current() => ReferenceEquals(session, owner) && revision == departureChartRevision &&
+                panel != null && panel.gameObject.activeInHierarchy && session.CurrentPort == origin &&
+                session.Phase == CoreDemoPhase.Port && session.SelectedTreasureMap?.Id == map.Id &&
+                (activePortFacility == PortFacilityArtCatalog.VoyageFacilityIndex || !Application.isPlaying && editorPreviewScreen == CoreGameplayPreviewScreen.VoyageDeparture);
             Text title = CreateText("Treasure Departure Title", panel, new Vector2(1050f, 48f),
                 new Vector2(0f, 240f), 29, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
             title.text = map.Name + " · 隐藏海域";
             RawImage illustration = CreateRawImage("Treasure Departure Art", panel, new Vector2(580f, 326f),
-                new Vector2(-235f, 48f), Resources.Load<Texture2D>("TreasureHunt/treasure_hunt_route_map"), new Rect(0, 0, 1, 1));
+                new Vector2(-235f, 48f), TreasureChartArt(map.RankId), new Rect(0, 0, 1, 1));
+            UiImageAspect.Fit(illustration, new Vector2(580f, 326f));
             illustration.raycastTarget = false;
             Text detail = CreateText("Treasure Departure Detail", panel, new Vector2(430f, 270f),
                 new Vector2(315f, 50f), 22, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
-            detail.text = "品阶：" + map.Rank.Name + "\n推荐战力：" + map.Rank.RecommendedPower +
+            detail.text = "品阶：" + map.Rank.Name +
                 "\n开启秘藏需要 " + map.Rank.RequiredClues + " 条线索\n种子：" + map.Seed +
-                "\n探险结束返回：" + session.CurrentPort;
+                "\n可从任意港口出发，无需航海士\n探险结束返回：" + session.CurrentPort;
             Text consumption = CreateText("Treasure Departure Consumption", panel, new Vector2(1030f, 90f),
                 new Vector2(0f, -184f), 21, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
             bool canStart = session.CanStartTreasureVoyage(out string reason);
-            consumption.text = "出航时消耗这张藏宝图 · 中途撤离或失败不返还\n" +
-                (canStart ? "整备校验通过。开启秘藏后以 95% 基础保护率返港。" : reason + "；藏宝图仍保留。") +
+            consumption.text = "出航时消耗这个藏宝海图种子 · 中途撤离或失败不返还\n" +
+                (canStart ? "整备校验通过。开启秘藏后以 95% 基础保护率返港。" : reason + "；种子仍保留。") +
                 "\n这是一条一次性隐藏航路，不能绘制成普通海图。";
             Button cancel = CreateButton("Cancel Treasure Voyage", panel, new Vector2(440f, 56f),
                 new Vector2(-260f, -282f), PanelRaised, Ink, 21);
-            cancel.GetComponentInChildren<Text>().text = "卸下藏宝图 · 改为普通航线";
-            cancel.onClick.AddListener(() => { session.ClearSelectedTreasureMap(); SaveProgress(); Render(); });
+            cancel.GetComponentInChildren<Text>().text = "取消使用种子 · 普通航线";
+            cancel.onClick.AddListener(() =>
+            {
+                if (!Current() || !cancel.IsInteractable()) return;
+                session.ClearSelectedTreasureMap();
+                session.ClearChartSeedSelection();
+                departureUseChartSeed = false;
+                SaveProgress();
+                Render();
+            });
             Button table = CreateButton("Return To Treasure Table", panel, new Vector2(440f, 56f),
                 new Vector2(260f, -282f), PanelRaised, Gold, 21);
             table.GetComponentInChildren<Text>().text = "返回藏宝图桌";
-            table.onClick.AddListener(() => { activePortFacility = 6; Render(); });
+            table.onClick.AddListener(() =>
+            {
+                if (!Current() || !table.IsInteractable()) return;
+                activePortFacility = PortFacilityArtCatalog.TreasureFacilityIndex;
+                Render();
+            });
         }
 
         private CoreMapNode TreasureCoreNode()

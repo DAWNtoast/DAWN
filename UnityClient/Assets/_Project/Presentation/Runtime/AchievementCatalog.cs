@@ -33,7 +33,6 @@ namespace ShatteredSail.Presentation
     public static class AchievementCatalog
     {
         public const int TotalCount = CoreAchievementCatalog.CatalogCount;
-        public const int LongDispatchHours = CoreAchievementCatalog.LongDispatchHours;
         private const string UnlockPrefix = "ShatteredSail.Achievements.Unlocked.v1.";
         private const string VisitPrefix = "ShatteredSail.Achievements.Visited.v1.";
 
@@ -96,8 +95,10 @@ namespace ShatteredSail.Presentation
                 case "crew_ports_recruited": current = snapshot.CrewPortCount; break;
                 case "warehouse_treasures_owned": current = snapshot.WarehouseCount; break;
                 case "warehouse_treasures_displayed": current = DisplayCount(); break;
-                case "configured_cards": current = CsvCount(CoreGameplayDemoController.BattleDeckKey); break;
-                case "configured_deck_stages": current = StageDeckCount(); break;
+                case "configured_cards": current = Int(CoreGameplayDemoController.BattleDeckEditedKey) == 1
+                    ? CsvCount(CoreGameplayDemoController.BattleDeckKey) : 0; break;
+                case "configured_deck_stages": current = Int(CoreGameplayDemoController.BattleDeckEditedKey) == 1
+                    ? StageDeckCount() : 0; break;
                 case "special_cards_owned": current = CsvCount(CoreGameplayDemoController.AcquiredSpecialCardsKey, ';'); break;
                 case "profile_fame": current = Cargo("Fame"); break;
                 case "prepared_water_and_food":
@@ -171,20 +172,23 @@ namespace ShatteredSail.Presentation
         public static void ClearProgress()
         {
             foreach (string key in PersistenceKeys) PlayerPrefs.DeleteKey(key);
+            // This is gameplay evidence rather than an achievement record, but
+            // it must reset with the achievement history when a profile starts
+            // over; otherwise restored default decks could look player-authored.
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleDeckEditedKey);
         }
 
         private static void Unlock(string id) => PlayerPrefs.SetInt(UnlockPrefix + id, 1);
-        public static void RecordDeckEdited() => Unlock("tutorial_deck");
+        public static void RecordDeckEdited()
+        {
+            PlayerPrefs.SetInt(CoreGameplayDemoController.BattleDeckEditedKey, 1);
+            Unlock("tutorial_deck");
+        }
         public static void RecordDamagedReturn() => Unlock("tutorial_recovery");
         public static void RecordNavigatorVoyage() => Unlock("tutorial_navigator");
-        public static void RecordDispatchCompleted() => Unlock("dispatch_resolved");
-
-        public static void RecordDispatchStarted(int hours)
-        {
-            Unlock("dispatch_prepare");
-            if (hours >= LongDispatchHours) Unlock("dispatch_long");
-        }
-
+        public static void RecordVoyageThreeEvents() => Unlock(CoreAchievementCatalog.VoyageThreeEventsId);
+        public static void RecordVoyageHalfChart() => Unlock(CoreAchievementCatalog.VoyageHalfChartId);
+        public static void RecordVoyageEventArrival() => Unlock(CoreAchievementCatalog.VoyageEventArrivalId);
         private static bool MeetsRequirement(CoreAchievementDefinition definition, ProgressSnapshot snapshot)
         {
             switch (definition.Id)
@@ -197,6 +201,11 @@ namespace ShatteredSail.Presentation
                 case "tutorial_component": return Int(CoreGameplayDemoController.GuidedTutorialComponentRewardKey) == 1 || snapshot.HasSpareComponent;
                 case "tutorial_recovery": return Int(CoreGameplayDemoController.GuidedTutorialRecoveryKey) == 1;
                 case "tutorial_navigator": return Int(CoreGameplayDemoController.GuidedTutorialNavigatorEventKey) == 1;
+                // Only the confirmed settlement transaction supplies this evidence.
+                // Opening a menu or reading unrelated profile counters cannot earn it.
+                case CoreAchievementCatalog.VoyageThreeEventsId:
+                case CoreAchievementCatalog.VoyageHalfChartId:
+                case CoreAchievementCatalog.VoyageEventArrivalId: return false;
                 case "tutorial_warehouse": return snapshot.WarehouseCount >= definition.Target;
                 case "component_loadout": return snapshot.MaxLoadoutCount >= definition.Target;
                 case "gold_600": return snapshot.Gold >= definition.Target;
@@ -224,16 +233,18 @@ namespace ShatteredSail.Presentation
                 case "crew_three": return snapshot.CrewCount >= definition.Target;
                 case "crew_six": return snapshot.CrewCount >= definition.Target;
                 case "crew_variants": return snapshot.CrewPortCount >= definition.Target;
-                case "dispatch_prepare": return HasActiveDispatch();
-                case "dispatch_long": return HasActiveDispatch() && Int(CoreGameplayDemoController.DispatchDurationKey) >= definition.Target;
-                case "dispatch_resolved": return false; // Only a successful reward claim records completion.
                 case "warehouse_one": return snapshot.WarehouseCount >= definition.Target;
                 case "warehouse_three": return snapshot.WarehouseCount >= definition.Target;
                 case "warehouse_ten": return snapshot.WarehouseCount >= definition.Target;
                 case "warehouse_display_six": return DisplayCount() >= definition.Target;
                 case "chart_drawn": return !string.IsNullOrEmpty(PlayerPrefs.GetString(CoreGameplayDemoController.DrawnSeaChartKey, string.Empty));
-                case "battle_deck": return CsvCount(CoreGameplayDemoController.BattleDeckKey) >= definition.Target;
-                case "battle_stages": return StageDeckCount() >= definition.Target;
+                // Loading a new profile writes curated defaults for all three
+                // stages. Require an explicit workshop edit so those defaults
+                // do not masquerade as player-authored milestones.
+                case "battle_deck": return Int(CoreGameplayDemoController.BattleDeckEditedKey) == 1 &&
+                    CsvCount(CoreGameplayDemoController.BattleDeckKey) >= definition.Target;
+                case "battle_stages": return Int(CoreGameplayDemoController.BattleDeckEditedKey) == 1 &&
+                    StageDeckCount() >= definition.Target;
                 case "card_upgrade": return !string.IsNullOrEmpty(PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey, string.Empty));
                 case "special_card": return CsvCount(CoreGameplayDemoController.AcquiredSpecialCardsKey, ';') >= definition.Target;
                 case "cargo_ready": return Cargo("Water") >= definition.Target && Cargo("Food") >= definition.Target;
@@ -246,7 +257,6 @@ namespace ShatteredSail.Presentation
 
         private static int Int(string key) => PlayerPrefs.GetInt(key, 0);
         private static decimal Gold() => ProfileGoldPersistence.Load();
-        private static bool HasActiveDispatch() => PlayerPrefs.GetInt(CoreGameplayDemoController.DispatchMissionKey, -1) >= 0;
 
         private static bool HasTutorialTreasure()
         {

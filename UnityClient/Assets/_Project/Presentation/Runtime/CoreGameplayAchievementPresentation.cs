@@ -71,8 +71,6 @@ namespace ShatteredSail.Presentation
             Text detail = CreateText("Achievement Notification Detail", card, new Vector2(360f, 28f), new Vector2(38f, -19f), 18, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
             var view = host.AddComponent<AchievementToastPresenter>();
             view.Owner = this; view.Card = card.gameObject; view.Icon = icon; view.Title = title; view.Detail = detail;
-            view.Lifetime = UiToastLifetime.Bind(host, card.gameObject,
-                () => this != null && isActiveAndEnabled && !profileSaveBlocked);
             card.gameObject.SetActive(false);
             return view;
         }
@@ -85,7 +83,7 @@ namespace ShatteredSail.Presentation
             internal GameObject Card;
             internal RawImage Icon;
             internal Text Title, Detail;
-            internal UiToastLifetime Lifetime;
+            private float expires;
 
             internal void Show(CoreAchievementDefinition definition, int count)
             {
@@ -94,11 +92,17 @@ namespace ShatteredSail.Presentation
                 UiImageAspect.Fit(Icon, new Vector2(48f, 48f));
                 Title.text = "成就解锁 · " + definition.Title;
                 Detail.text = count > 1 ? "同时解锁 " + count + " 项成就 · 主菜单可查看" : "主菜单可查看成就";
-                Lifetime.Show(4f);
+                expires = Time.unscaledTime + 4f;
+                Card.SetActive(true);
             }
 
-            internal void Hide() { if (Lifetime != null) Lifetime.Hide(); }
+            internal void Hide() { if (Card != null) Card.SetActive(false); }
             private void OnDisable() => Hide();
+            private void Update()
+            {
+                if (Card == null || !Card.activeSelf) return;
+                if (Owner == null || !Owner.isActiveAndEnabled || Owner.profileSaveBlocked || Time.unscaledTime >= expires) Hide();
+            }
         }
     }
 }

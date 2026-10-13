@@ -180,7 +180,8 @@ namespace ShatteredSail.Presentation.Tests
                             visible += " | name=" + PortText("Component Detail Name").text +
                                 " | rarity/slot=" + PortText("Component Detail Meta").text +
                                 " | quality=" + PortText("Component Detail Quality").text;
-                            yield return Click("Back To Component Shop");
+                            yield return Click("Return To Port Hub");
+                            Assert.That(PortButton(name), Is.Not.Null);
                         }
                         else visible += " | detail unavailable: sold offer";
                         result.Add(visible);

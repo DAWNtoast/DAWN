@@ -8,7 +8,12 @@ namespace ShatteredSail.Core.Gameplay
     public static class CoreBattleUpgradeBalance
     {
         public const int MaximumLevel = 3;
-        public const int NumericalMultiplier = 2;
+        public static decimal MultiplierForLevel(int level) =>
+            level <= 0 ? 1m : level == 1 ? 1.2m : level == 2 ? 1.5m : 2m;
+
+        public static int ScaleNumerical(int value, int level) =>
+            (int)Math.Max(int.MinValue, Math.Min(int.MaxValue,
+                decimal.Round(value * MultiplierForLevel(level), 0, MidpointRounding.AwayFromZero)));
         public static int CostForNextLevel(int currentLevel) => currentLevel == 0 ? 120 : currentLevel == 1 ? 240 : currentLevel == 2 ? 480 : 0;
     }
 
@@ -54,20 +59,44 @@ namespace ShatteredSail.Core.Gameplay
 
         private static CoreBattleCard BuildUpgradedCardDefinition(CoreBattleCard original, int level)
         {
-            int multiplier = CoreBattleUpgradeBalance.NumericalMultiplier;
-            CoreBattleCard upgraded = new CoreBattleCard(original.Id, original.Name, original.Type,
-                Math.Max(0, original.Energy - (level >= 2 ? 1 : 0)), original.Damage * multiplier,
-                original.Block * multiplier, original.Repair * multiplier, original.Draw + (level >= 3 ? 1 : 0),
-                original.PowderCost, string.Empty, original.AllowedStages, original.Action, original.RequiredCrew,
-                original.ArtId, original.CannonballCost, original.RequiredComponent, level);
-            return new CoreBattleCard(upgraded.Id, upgraded.Name, upgraded.Type, upgraded.Energy, upgraded.Damage,
-                upgraded.Block, upgraded.Repair, upgraded.Draw, upgraded.PowderCost, DescribeUpgradedBattleCard(upgraded),
-                upgraded.AllowedStages, upgraded.Action, upgraded.RequiredCrew, upgraded.ArtId, upgraded.CannonballCost,
-                upgraded.RequiredComponent, level);
+            // Only authored draw cards gain a third-rank draw. Energy, resource
+            // costs and effect structure stay stable across all four ranks.
+            return new CoreBattleCard(original.Id, original.Name, original.Type,
+                original.Energy, CoreBattleUpgradeBalance.ScaleNumerical(original.Damage, level),
+                CoreBattleUpgradeBalance.ScaleNumerical(original.Block, level),
+                CoreBattleUpgradeBalance.ScaleNumerical(original.Repair, level),
+                original.Draw + (level >= 3 && original.Draw > 0 ? 1 : 0),
+                original.PowderCost, original.DescriptionTemplate, original.AllowedStages, original.Action, original.RequiredCrew,
+                original.ArtId, original.CannonballCost, original.RequiredComponent, level,
+                original.SchoolId, original.SchoolEffect?.AtLevel(level, original.Draw == 0),
+                original.BoardingBlock.HasValue ? (int?)CoreBattleUpgradeBalance.ScaleNumerical(original.BoardingBlock.Value, level) : null);
         }
 
-        public int GetCardUpgradeCost(int index) => index < 0 || index >= cardLibrary.Count || cardLibrary[index].AllowedStages == NavalBattleStages.None || IsSpecialBattleCard(cardLibrary[index].Id) ? 0 :
+        public int GetCardUpgradeCost(int index) => index < 0 || index >= cardLibrary.Count || cardLibrary[index].AllowedStages == NavalBattleStages.None || IsSpecialBattleCard(cardLibrary[index].Id) || !HasBattleCardUpgradeBenefit(index) ? 0 :
             CoreBattleUpgradeBalance.CostForNextLevel(GetCardUpgradeLevel(cardLibrary[index].Id));
+
+        public bool HasBattleCardUpgradeBenefit(int index)
+        {
+            CoreBattleCard original = GetBattleCardAtLevel(index, 0);
+            if (original == null) return false;
+            // A draw-only card may be flat at +1/+2 and still gain at +3.
+            // Ignore BurnDamage on non-fire-round cards: that derived default is unused.
+            for (int rank = 1; rank <= CoreBattleUpgradeBalance.MaximumLevel; rank++)
+            {
+                CoreBattleCard upgraded = GetBattleCardAtLevel(index, rank);
+                if (original.Damage != upgraded.Damage || original.Block != upgraded.Block ||
+                    original.Repair != upgraded.Repair || original.Draw != upgraded.Draw ||
+                    original.BoardingBlock != upgraded.BoardingBlock ||
+                    original.MovementMeters != upgraded.MovementMeters || original.StrategyAmount != upgraded.StrategyAmount ||
+                    original.StrategyLimit != upgraded.StrategyLimit ||
+                    (original.Action == NavalBattleCardAction.FireRounds && original.BurnDamage != upgraded.BurnDamage)) return true;
+                CoreSchoolCardEffect before = original.SchoolEffect, after = upgraded.SchoolEffect;
+                if (before != null && after != null && (before.Power != after.Power || before.Secondary != after.Secondary ||
+                    before.Threshold != after.Threshold || before.Duration != after.Duration || before.Limit != after.Limit ||
+                    before.Movement != after.Movement)) return true;
+            }
+            return false;
+        }
 
         public void ConfigureCardUpgrades(IReadOnlyDictionary<string, int> levels)
         {
@@ -91,7 +120,10 @@ namespace ShatteredSail.Core.Gameplay
             if (Phase != CoreDemoPhase.Port) return "请在港口强化卡牌";
             CoreBattleCard card = GetBattleCard(index);
             if (card == null) return "卡牌不存在";
+            string unlockReason = GetBattleCardUnlockReason(card);
+            if (unlockReason.Length > 0) return unlockReason;
             if (IsSpecialBattleCard(card.Id)) return "特殊卡牌仅随来源船员或部件出海航行获得经验，不能使用金币强化";
+            if (!HasBattleCardUpgradeBenefit(index)) return "固定功能牌无可强化数值，不支持金币强化";
             if (card.UpgradeLevel >= CoreBattleUpgradeBalance.MaximumLevel) return "已完成三次强化";
             if (!HasBattleCrew(card.RequiredCrew)) return "先携带提供该卡牌的特殊船员";
             if (!HasBattleComponent(card.RequiredComponent)) return "先装备提供该卡牌的部件";
@@ -146,8 +178,9 @@ namespace ShatteredSail.Core.Gameplay
             return result.AsReadOnly();
         }
 
-        private static string DescribeUpgradedBattleCard(CoreBattleCard card)
+        private static string DescribeUpgradedBattleCard(CoreBattleCard card, int? burnDamage = null)
         {
+            // Only the boarding preview uses this stage-specific wording.
             StringBuilder text = new StringBuilder();
             if (card.Action == NavalBattleCardAction.Cannon) text.Append("350 米内：");
             if (card.Action == NavalBattleCardAction.Sabotage) text.Append("150 米内：");
@@ -158,6 +191,7 @@ namespace ShatteredSail.Core.Gameplay
                 text.Append(card.Action == NavalBattleCardAction.Retreat ? "远离 " : "靠近 ").Append(card.MovementMeters).Append(" 米，");
             switch (card.Action)
             {
+                case NavalBattleCardAction.Energize: text.Append("恢复 1 行动点；"); break;
                 case NavalBattleCardAction.Polish: text.Append("本场防御牌额外格挡 +").Append(card.StrategyAmount).Append("，最高 +").Append(card.StrategyLimit).Append("；"); break;
                 case NavalBattleCardAction.Load:
                 case NavalBattleCardAction.PrecisionLoad: text.Append("下次炮击 +").Append(card.StrategyAmount).Append("，装填最高 +").Append(card.StrategyLimit).Append("；"); break;
@@ -167,7 +201,7 @@ namespace ShatteredSail.Core.Gameplay
                 case NavalBattleCardAction.Circle: text.Append("舰艏对准敌舰侧舷，须推进后才能冲撞；"); break;
                 case NavalBattleCardAction.Parallel:
                 case NavalBattleCardAction.Navigator: text.Append("转为平行，60 米内可接舷；"); break;
-                case NavalBattleCardAction.FireRounds: text.Append("烈焰强化 +").Append(card.StrategyAmount).Append(" 发，最高 ").Append(card.StrategyLimit).Append(" 发；命中后灼烧 ").Append(card.BurnDuration).Append(" 回合，每回合 ").Append(card.BurnDamage).Append(" 伤害；"); break;
+                case NavalBattleCardAction.FireRounds: text.Append("烈焰强化 +").Append(card.StrategyAmount).Append(" 发，最高 ").Append(card.StrategyLimit).Append(" 发；命中后灼烧 ").Append(card.BurnDuration).Append(" 回合，每回合 ").Append(burnDamage ?? card.BurnDamage).Append(" 伤害；"); break;
             }
             if (card.Draw > 0) text.Append("抽 ").Append(card.Draw).Append(" 张当前阶段牌；");
             if (card.PowderCost > 0 || card.CannonballCost > 0)
@@ -178,7 +212,8 @@ namespace ShatteredSail.Core.Gameplay
                 if (card.CannonballCost > 0) text.Append(card.CannonballCost).Append(" 炮弹");
                 text.Append("；");
             }
-            return CoreBattleCardText.FormatEffects(text.ToString().TrimEnd('；') + "。");
+            string description = CoreBattleCardText.FormatEffects(text.ToString().TrimEnd('；') + "。");
+            return description;
         }
     }
 }

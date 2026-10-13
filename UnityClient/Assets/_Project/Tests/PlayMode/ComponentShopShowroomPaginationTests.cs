@@ -77,15 +77,15 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator FourOffers_PageRoundTripDisablesOldGroupBeforeDeferredDestruction()
+        public IEnumerator SixOffers_PageRoundTripDisablesOldGroupBeforeDeferredDestruction()
         {
-            return VerifyPageRoundTrip(4);
+            return VerifyPageRoundTrip(6);
         }
 
         [UnityTest]
-        public IEnumerator FiveOffers_PageRoundTripDisablesOldGroupBeforeDeferredDestruction()
+        public IEnumerator SevenOffers_PageRoundTripDisablesOldGroupBeforeDeferredDestruction()
         {
-            return VerifyPageRoundTrip(5);
+            return VerifyPageRoundTrip(7);
         }
 
         private IEnumerator VerifyPageRoundTrip(int count)
@@ -96,7 +96,7 @@ namespace ShatteredSail.Presentation.Tests
                 CoreGameplayDemoController.ComponentShopPurchaseKey(item.Id))).ToArray();
             decimal gold = session.ProfileGold;
             Invoke("BuildComponentShopShowroom", panel, stock, FixtureDate, 0);
-            AssertOffers(stock.Take(3), false);
+            AssertOffers(stock.Take(5), false);
             Button[] firstOffers = Offers(false);
             GameObject[] firstGroup = DirectChildren();
             Assert.That(RequireActiveButton("Component Shop Previous Display").interactable, Is.False);
@@ -109,13 +109,28 @@ namespace ShatteredSail.Presentation.Tests
                 "Old showroom roots must be inactive immediately, before Destroy completes at frame end.");
             Assert.That(firstOffers.All(item => !item.gameObject.activeInHierarchy && !item.IsActive()), Is.True,
                 "A pending-destruction offer must stop rendering and accepting UI input in the same frame.");
-            AssertOffers(stock.Skip(3), false);
+            AssertOffers(stock.Skip(5), false);
+            // All old roots still exist until frame end. Select must update the
+            // new active showcase, not the earlier same-named inactive root.
+            Button selectedOffer = Offers(false).Last();
+            selectedOffer.GetComponent<EventTrigger>().triggers.Single(item => item.eventID == EventTriggerType.Select)
+                .callback.Invoke(null);
+            RawImage[] selectedHeroes = panel.GetComponentsInChildren<RawImage>(false)
+                .Where(item => item.name.StartsWith("Component Shop Hero ")).ToArray();
+            Assert.That(selectedHeroes.Length, Is.EqualTo(1), "Same-frame focus must leave exactly one active hero.");
+            Assert.That(selectedHeroes[0].texture, Is.SameAs(stock.Last().Entry.ShipLayer));
+            Assert.That(ReadField<string>("componentShopShowroomOfferId"), Is.EqualTo(stock.Last().Id));
+            // Restore the first item so the page-round-trip assertions below
+            // continue to verify the normal first-offer page selection.
+            Offers(false).First().GetComponent<EventTrigger>().triggers.Single(item => item.eventID == EventTriggerType.Select)
+                .callback.Invoke(null);
+            AssertOffers(stock.Skip(5), false);
             AssertUnchanged(stock, originalStock, gold);
 
             yield return null;
 
             Assert.That(firstGroup.All(item => item == null), Is.True, "The first group must be destroyed after the frame ends.");
-            AssertOffers(stock.Skip(3), true);
+            AssertOffers(stock.Skip(5), true);
             Assert.That(RequireActiveButton("Component Shop Next Display").interactable, Is.False);
             Button previous = RequireActiveButton("Component Shop Previous Display");
             Assert.That(previous.interactable, Is.True);
@@ -125,13 +140,13 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ReadField<int>("componentShopDisplayPage"), Is.Zero);
             Assert.That(secondGroup.All(item => item != null && !item.activeSelf), Is.True,
                 "Returning to the first page must immediately disable the outgoing group too.");
-            AssertOffers(stock.Take(3), false);
+            AssertOffers(stock.Take(5), false);
             AssertUnchanged(stock, originalStock, gold);
 
             yield return null;
 
             Assert.That(secondGroup.All(item => item == null), Is.True);
-            AssertOffers(stock.Take(3), true);
+            AssertOffers(stock.Take(5), true);
             Assert.That(RequireActiveButton("Component Shop Previous Display").interactable, Is.False);
             Assert.That(RequireActiveButton("Component Shop Next Display").interactable, Is.True);
             AssertUnchanged(stock, originalStock, gold);
@@ -140,10 +155,10 @@ namespace ShatteredSail.Presentation.Tests
         private IReadOnlyList<PortComponentShopStockItem> CreateStock(int count)
         {
             string fixtureId = "runtime-pagination-test|" + Guid.NewGuid().ToString("N");
-            ComponentSlot[] slots = { ComponentSlot.Bow, ComponentSlot.Sail, ComponentSlot.Instrument, ComponentSlot.Plating, ComponentSlot.Cannon };
+            ComponentArtEntry[] entries = componentArt.ExpandedEntries.Where(item => item.Slot == ComponentSlot.Bow).ToArray();
             return Enumerable.Range(0, count).Select(index =>
             {
-                ComponentArtEntry entry = componentArt.Entries.First(item => item.Slot == slots[index]);
+                ComponentArtEntry entry = entries[index];
                 return new PortComponentShopStockItem(fixtureId + "|" + index, session.CurrentPort,
                     PortComponentShopCatalog.MonthKey(FixtureDate), entry, 1f, 200 + index * 10);
             }).ToList().AsReadOnly();
@@ -162,41 +177,22 @@ namespace ShatteredSail.Presentation.Tests
 
         private void AssertOffers(IEnumerable<PortComponentShopStockItem> expected, bool includeInactive)
         {
+            Button resale = RequireActiveButton("Open Component Resale");
+            Assert.That(resale.GetComponent<RectTransform>().anchoredPosition, Is.EqualTo(new Vector2(-800f, -327f)),
+                "Rebuilt resale must be laid out in this frame, while the previous same-named button awaits destruction.");
             CollectionAssert.AreEqual(expected.Select(item => "Component Shop Offer " + item.Id),
                 Offers(includeInactive).Select(button => button.name),
                 includeInactive ? "After destruction only the current page may remain in the hierarchy." : "Only the current page may be active.");
-            Assert.That(panel.GetComponentsInChildren<Transform>(false).Any(item =>
-                item.name.StartsWith("Component Shop Merchant") || item.name.StartsWith("Component Shop Mount") ||
-                item.name.Contains("Furniture Foot") || item.name.Contains("Load Contact")), Is.False);
             foreach (Button offer in Offers(includeInactive))
             {
-                var model = offer.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Model "));
-                var aura = offer.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Rarity Aura "));
-                var plaque = offer.GetComponentsInChildren<RawImage>().Single(item =>
-                    item.name.StartsWith("Component Shop Plaque ") && item.texture == RegionalShopFurniture.For(session.CurrentPort).Atlas);
-                Assert.That(aura.color, Is.EqualTo(Color.clear), "Offers must not render a persistent rarity halo.");
-                RectTransform modelRect = model.rectTransform, plaqueRect = plaque.rectTransform;
-                Assert.That(modelRect.anchoredPosition.y - modelRect.sizeDelta.y * 0.5f,
-                    Is.GreaterThan(plaqueRect.anchoredPosition.y + plaqueRect.sizeDelta.y * 0.5f + 19f));
-                Assert.That(modelRect.localRotation, Is.EqualTo(Quaternion.identity), "Do not rotate a part to fit a removed rack.");
-                foreach (RawImage target in new[] { model, plaque })
-                {
-                    Assert.That(target.raycastTarget, Is.True);
-                    Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(target.gameObject), Is.SameAs(offer.gameObject));
-                }
-                var position = modelRect.anchoredPosition;
-                var scale = modelRect.localScale;
-                var normal = plaque.color;
-                var trigger = offer.GetComponent<EventTrigger>();
-                trigger.triggers.Single(item => item.eventID == EventTriggerType.PointerEnter).callback.Invoke(new BaseEventData(null));
-                Assert.That(plaque.color, Is.EqualTo(normal), "Hover must not repaint the component plaque.");
-                Assert.That(modelRect.anchoredPosition, Is.EqualTo(position));
-                Assert.That(modelRect.localScale, Is.EqualTo(scale));
-                trigger.triggers.Single(item => item.eventID == EventTriggerType.PointerExit).callback.Invoke(new BaseEventData(null));
-                Assert.That(plaque.color, Is.EqualTo(normal));
+                var icon = offer.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Thumbnail "));
+                Assert.That(icon.texture, Is.Not.Null);
+                Assert.That(icon.raycastTarget, Is.False);
+                Assert.That(offer.targetGraphic.raycastTarget, Is.True);
             }
+            var hero = panel.GetComponentsInChildren<RawImage>(false).Single(item => item.name.StartsWith("Component Shop Hero "));
+            Assert.That(hero.texture, Is.SameAs(expected.First().Entry.ShipLayer));
         }
-
         private Button[] Offers(bool includeInactive)
         {
             return panel.GetComponentsInChildren<Button>(includeInactive)

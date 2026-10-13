@@ -43,7 +43,7 @@ namespace ShatteredSail.Presentation
         {
             if (originalFace.a <= 0.01f) return false;
             // These Selectables are cards/map markers, not flat action buttons.
-            foreach (string prefix in new[] { "Battle Card ", "Add Deck Card ", "Dispatch Crew Toggle ", "Event Node " })
+            foreach (string prefix in new[] { "Battle Card ", "Add Deck Card ", "Event Node " })
                 if (name.StartsWith(prefix, StringComparison.Ordinal)) return false;
             return true;
         }
@@ -75,11 +75,9 @@ namespace ShatteredSail.Presentation
                 float insetX = Mathf.Clamp(size.x * 0.06f, 4f, 12f);
                 float insetY = Mathf.Clamp(size.y * 0.07f, 2f, 5f);
                 label.rectTransform.sizeDelta = size - new Vector2(insetX * 2f, insetY * 2f);
-                // Typography belongs to the page layout. A material/skin pass
-                // must never make later pages silently use smaller captions.
-                label.resizeTextForBestFit = false;
+                label.resizeTextForBestFit = true;
                 label.resizeTextMaxSize = label.fontSize;
-                label.resizeTextMinSize = label.fontSize;
+                label.resizeTextMinSize = Mathf.Min(label.fontSize, Mathf.Max(10, label.fontSize - 3));
                 label.horizontalOverflow = HorizontalWrapMode.Wrap;
                 label.verticalOverflow = VerticalWrapMode.Truncate;
             }
@@ -109,7 +107,7 @@ namespace ShatteredSail.Presentation
         {
             if (string.IsNullOrEmpty(name)) return WoodButtonRole.Secondary;
             if (name == "Confirm New Game" || name == "Reset" || name == "Reset Tutorial" ||
-                name == "Recall Dispatch Job" || name == "Retreat Battle" || name == "Emergency Battle Return")
+                name == "Retreat Battle" || name == "Emergency Battle Return")
                 return WoodButtonRole.Danger;
             // Navigation controls stay quiet even if their caller historically
             // supplied a gold color. The settlement's finish action is an exception.

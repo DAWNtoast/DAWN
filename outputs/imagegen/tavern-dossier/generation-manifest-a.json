@@ -1,0 +1,142 @@
+{
+  "mode": "built-in imagegen",
+  "count": 17,
+  "assets": [
+    {
+      "id": "crew_broken_anchor_carpenter_kia",
+      "name": "铆骨匠 琪娅",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_carpenter_kia_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_broken_anchor_carpenter_kia.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-8d0afce5-71e1-4b08-92f2-437a2a579c42.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_broken_anchor_doctor_hector",
+      "name": "瘢痕医师 赫克托",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_doctor_hector_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_broken_anchor_doctor_hector.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-b979e57b-86cf-43c0-b5f2-672a5e9d75dc.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_broken_anchor_gunner_mira",
+      "name": "沉钟炮师 米拉",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_gunner_mira_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_broken_anchor_gunner_mira.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-c78f4d3e-366a-4661-96d1-12944221eeec.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_broken_anchor_cook_tam",
+      "name": "烟熏厨娘 塔姆",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_cook_tam_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_broken_anchor_cook_tam.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-a7f394ab-bde4-49ae-8fa8-28ae997a1a33.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_broken_anchor_diver_udo",
+      "name": "锚墓潜手 乌铎",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_diver_udo_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_broken_anchor_diver_udo.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-82a4504e-7155-4443-8f71-ab3b2151630c.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_white_shell_navigator_saina",
+      "name": "珊潮领航员 赛娜",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_navigator_saina_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_white_shell_navigator_saina.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-1f392dba-b2dc-4b6e-b118-c9f354c08535.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_white_shell_carpenter_atang",
+      "name": "贝骨船匠 阿棠",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_carpenter_atang_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_white_shell_carpenter_atang.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-3d225a03-62a4-47ef-8ffc-362aee8cec95.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_white_shell_doctor_mirei",
+      "name": "香潮医师 米蕾",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_doctor_mirei_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_white_shell_doctor_mirei.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-5246f446-6f47-4067-8f8e-6d23647d448f.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_white_shell_gunner_gallo",
+      "name": "珠炮手 加洛",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_gunner_gallo_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_white_shell_gunner_gallo.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-c0dd4b42-4f2c-4f06-b552-09c546387453.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_white_shell_cook_flora",
+      "name": "柑潮厨师 芙萝",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_cook_flora_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_white_shell_cook_flora.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-e68e5803-604f-4318-a6cd-99aa44323874.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_white_shell_diver_kela",
+      "name": "采珠人 珂拉",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_diver_kela_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_white_shell_diver_kela.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-c4eba671-1662-49cd-88ec-6504e546ff58.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_bronze_bell_navigator_vick",
+      "name": "黄铜测绘师 维克",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_navigator_vick_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_bronze_bell_navigator_vick.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-4c7898a3-5e7e-48b5-a614-86009a757e97.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_bronze_bell_carpenter_osser",
+      "name": "齿轮船匠 奥瑟",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_carpenter_osser_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_bronze_bell_carpenter_osser.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-b685757d-a001-4927-aa98-b2045fca8646.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_bronze_bell_doctor_ada",
+      "name": "退役军医 艾达",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_doctor_ada_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_bronze_bell_doctor_ada.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-96b52c17-1223-4509-97b6-4116e8b7edcd.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_bronze_bell_gunner_helen",
+      "name": "钟楼炮官 赫莲",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_gunner_helen_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_bronze_bell_gunner_helen.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-208f9686-9f4c-4887-aa56-1b60bd87bab7.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_bronze_bell_cook_basin",
+      "name": "锅炉厨师 巴辛",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_cook_basin_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_bronze_bell_cook_basin.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-50ef4624-a00e-4168-beab-1135319c4855.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    },
+    {
+      "id": "crew_bronze_bell_diver_duke",
+      "name": "铜盔潜工 杜克",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_diver_duke_dossier_v1.png",
+      "prompt": "D:/Game/outputs/imagegen/tavern-dossier/prompts/crew_bronze_bell_diver_duke.txt",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a12ea6-c4dc-7cd0-9a71-2b632fe1c4a5\\exec-18736a2f-3b5d-4c12-adf4-99bb9fe76fa0.png",
+      "visualCheck": "Passed: correct atlas identity; single portrait; approved composition; blank right area"
+    }
+  ]
+}

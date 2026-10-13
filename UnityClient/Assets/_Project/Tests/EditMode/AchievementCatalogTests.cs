@@ -20,13 +20,9 @@ namespace ShatteredSail.Presentation.Tests
                 !string.IsNullOrEmpty(item.Description) && !string.IsNullOrEmpty(item.CategoryLabel)), Is.True);
         }
 
-        [TestCase(0, 8, 7)]
-        [TestCase(1, 6, 9)]
-        [TestCase(2, 4, 13)]
-        public void MainMenuAchievements_PaginatesReadableRowsWithinTheCard(int level, int rowsPerPage, int pages)
+        [Test]
+        public void MainMenuAchievements_PaginatesEightReadableRowsWithinTheCard()
         {
-            int? oldLevel = GameReadability.OverrideLevel;
-            GameReadability.OverrideLevel = level;
             Scene scene = EditorSceneManager.NewPreviewScene();
             GameObject host = new GameObject("Achievement Pagination Fixture");
             host.SetActive(false);
@@ -41,37 +37,29 @@ namespace ShatteredSail.Presentation.Tests
                 Text page = host.GetComponentsInChildren<Text>(true).Single(text => text.name == "Achievements Page Indicator");
                 RectTransform card = host.GetComponentsInChildren<RectTransform>(true).Single(rect => rect.name == "Achievements Card");
                 Canvas.ForceUpdateCanvases();
-                Assert.That(page.text, Is.EqualTo("1 / " + pages));
+                Assert.That(page.text, Is.EqualTo("1 / 7"));
                 Assert.That(previous.interactable, Is.False);
                 Assert.That(next.interactable, Is.True);
-                AssertAchievementRowsFit(card, next, previous, rowsPerPage);
-                foreach (Text heading in card.GetComponentsInChildren<Text>().Where(text => text.name.StartsWith("Modal ", StringComparison.Ordinal)))
-                {
-                    Assert.That(heading.resizeTextForBestFit, Is.False, heading.name);
-                    int baseSize = heading.name == "Modal Title" ? 36 : heading.name == "Modal Eyebrow" ? 18 : 20;
-                    Assert.That(heading.fontSize, Is.EqualTo(GameReadability.FontSize(baseSize)), heading.name);
-                    Assert.That(heading.preferredHeight, Is.LessThanOrEqualTo(heading.rectTransform.rect.height + .1f), heading.name);
-                }
+                AssertAchievementRowsFit(card, next, previous);
 
                 next.onClick.Invoke();
-                Assert.That(page.text, Is.EqualTo("2 / " + pages));
+                Assert.That(page.text, Is.EqualTo("2 / 7"));
                 Assert.That(previous.interactable, Is.True);
-                AssertAchievementRowsFit(card, next, previous, rowsPerPage);
+                AssertAchievementRowsFit(card, next, previous);
             }
             finally
             {
                 if (host != null) UnityEngine.Object.DestroyImmediate(host);
                 if (scene.IsValid()) EditorSceneManager.ClosePreviewScene(scene);
-                GameReadability.OverrideLevel = oldLevel;
             }
         }
 
-        private static void AssertAchievementRowsFit(RectTransform card, Button next, Button previous, int rowsPerPage)
+        private static void AssertAchievementRowsFit(RectTransform card, Button next, Button previous)
         {
             Rect[] rows = card.GetComponentsInChildren<RectTransform>()
                 .Where(rect => rect.name.StartsWith("Achievement Row ", StringComparison.Ordinal))
                 .Select(rect => BoundsIn(card, rect)).OrderByDescending(rect => rect.yMax).ToArray();
-            Assert.That(rows.Length, Is.EqualTo(rowsPerPage));
+            Assert.That(rows.Length, Is.EqualTo(8));
             float navigationTop = Mathf.Max(BoundsIn(card, next.GetComponent<RectTransform>()).yMax,
                 BoundsIn(card, previous.GetComponent<RectTransform>()).yMax);
             for (int index = 0; index < rows.Length; index++)

@@ -103,20 +103,13 @@ namespace ShatteredSail.Presentation
             {
                 departureChartPreviewEmpty.text = "从上方记录中选择海图种子\n即可预览海图与两端港口";
             }
-            DepartureLayout.ApplyRoute(departureChartPreview.parent.parent as RectTransform);
-            if (show)
-            {
-                // The readable seed/validation rows may resize the map viewport.
-                departureChartPreviewOrigin.anchoredPosition = DepartureChartPreviewPosition(departureChartPreviewMap.Departure);
-                departureChartPreviewDestination.anchoredPosition = DepartureChartPreviewPosition(departureChartPreviewMap.Destination);
-            }
         }
 
         private Vector2 DepartureChartPreviewPosition(VoyagePoint point)
         {
             Vector2 size = departureChartPreview.sizeDelta;
-            return new Vector2((point.X / CoreVoyageMap.Width - .5f) * size.x,
-                (point.Y / CoreVoyageMap.Height - .5f) * size.y);
+            return new Vector2((point.X / departureChartPreviewMap.WorldWidth - .5f) * size.x,
+                (point.Y / departureChartPreviewMap.WorldHeight - .5f) * size.y);
         }
     }
 }

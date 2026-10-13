@@ -33,13 +33,13 @@ namespace ShatteredSail.Editor
         {
             new[] { "Tavern Crew Biography" },
             new[] { "Tavern Crew Story Heading", "Tavern Crew Story" },
-            new[] { "Tavern Crew Skill Heading", "Tavern Crew Skill", "Tavern Crew Stats" },
+            new[] { "Tavern Crew Skill Heading", "Tavern Crew Skill" },
             new[] { "Tavern Special Card Name", "Tavern Special Card Growth" },
         };
         private static readonly string[] BodyNames =
         {
             "Tavern Crew Biography", "Tavern Crew Story",
-            "Tavern Crew Skill", "Tavern Crew Stats", "Tavern Crew Contract Note",
+            "Tavern Crew Skill",
             "Tavern Special Card Effect", "Tavern Special Card Lore", "Tavern Special Card Empty",
         };
 
@@ -342,7 +342,6 @@ namespace ShatteredSail.Editor
             CheckExactText(detail, "Tavern Crew Story Heading", CrewNarrativeCatalog.StoryFor(crew).ChapterLabel, record);
             CheckExactText(detail, "Tavern Crew Story", CrewNarrativeCatalog.StoryFor(crew).Body, record);
             CheckExactText(detail, "Tavern Crew Skill", crew.SkillDescription, record);
-            CheckExactText(detail, "Tavern Crew Stats", crew.Stats, record);
 
             record.fontSize = int.MaxValue;
             foreach (Text text in detail.GetComponentsInChildren<Text>(false))

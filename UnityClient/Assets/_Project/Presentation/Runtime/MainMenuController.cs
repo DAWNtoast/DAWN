@@ -26,17 +26,17 @@ namespace ShatteredSail.Presentation
         public const string EffectsVolumeKey = "ShatteredSail.EffectsVolume.v1";
         public const string FullScreenKey = "ShatteredSail.FullScreen.v1";
 
-        private static readonly Color Ink = UiTheme.Menu.Ink;
-        private static readonly Color MutedInk = UiTheme.Menu.MutedInk;
-        private static readonly Color DeepSea = UiTheme.Menu.DeepSea;
-        private static readonly Color Panel = UiTheme.Menu.Panel;
-        private static readonly Color PanelRaised = UiTheme.Menu.PanelRaised;
-        private static readonly Color Gold = UiTheme.Menu.Gold;
-        private static readonly Color Teal = UiTheme.Menu.Teal;
-        private static readonly Color Coral = UiTheme.Menu.Coral;
-        private static readonly Color PaperInk = UiTheme.PaperInk;
-        private static readonly Color PaperMutedInk = UiTheme.PaperMutedInk;
-        private static readonly Color PaperAccent = UiTheme.PaperAccent;
+        private static readonly Color Ink = Html("#F1E7CC");
+        private static readonly Color MutedInk = Html("#A9B8B5");
+        private static readonly Color DeepSea = Html("#06151C");
+        private static readonly Color Panel = Html("#0B222B");
+        private static readonly Color PanelRaised = Html("#123640");
+        private static readonly Color Gold = Html("#D9A83E");
+        private static readonly Color Teal = Html("#2B8880");
+        private static readonly Color Coral = Html("#D16B52");
+        private static readonly Color PaperInk = Html("#2B1B11");
+        private static readonly Color PaperMutedInk = Html("#46321F");
+        private static readonly Color PaperAccent = Html("#203D2D");
 
         private Font interfaceFont;
         private Button continueButton;
@@ -48,7 +48,6 @@ namespace ShatteredSail.Presentation
         private Slider musicSlider;
         private Slider effectsSlider;
         private Toggle fullScreenToggle;
-        private ReadabilitySelector readabilitySelector;
         private Text masterValue;
         private Text musicValue;
         private Text effectsValue;
@@ -65,7 +64,7 @@ namespace ShatteredSail.Presentation
 
         private RectTransform menuCanvas;
         private bool menuCanvasIsEditorPreview;
-        private readonly List<AchievementRowView> achievementRows = new List<AchievementRowView>(8);
+        private readonly List<AchievementRowView> achievementRows = new List<AchievementRowView>(AchievementsPerPage);
         private AchievementProgressView[] achievementProgress;
         private readonly int[] achievementFilteredIndices = new int[AchievementCatalog.TotalCount];
         private int achievementFilteredCount;
@@ -74,14 +73,29 @@ namespace ShatteredSail.Presentation
         private readonly List<Button> achievementStateButtons = new List<Button>(3);
         private Text achievementEmpty;
         private int achievementStateFilter;
-        private Text achievementMenuDetail;
         private Text achievementSummary;
         private Text achievementPageLabel;
         private Button achievementPreviousPage;
         private Button achievementNextPage;
         private int achievementPage;
-        private static int AchievementsPerPage => GameReadability.Level == 0 ? 8 : GameReadability.Level == 1 ? 6 : 4;
+        private const int AchievementsPerPage = 8;
         private static bool profileRecoveryBlocked;
+
+        // Startup visibility and progress capture share one validated snapshot;
+        // every player action still revalidates the current save.
+        private readonly struct MenuSaveView
+        {
+            internal readonly bool HasSave;
+            internal readonly bool ReadableVoyage;
+            internal readonly string VoyageNotice;
+
+            internal MenuSaveView(bool hasSave, bool readableVoyage, string voyageNotice)
+            {
+                HasSave = hasSave;
+                ReadableVoyage = readableVoyage;
+                VoyageNotice = voyageNotice;
+            }
+        }
 
         public Button ContinueButton => continueButton;
         public bool HasSaveData => HasSave();
@@ -97,9 +111,8 @@ namespace ShatteredSail.Presentation
             bool readOnlySmoke = ReleasePlayerSmokeCheck.IsRequested;
             profileRecoveryBlocked = !readOnlySmoke && !ProfileSaveJournal.TryRecover(out profileNotice);
             RemoveEditorPreview();
-            string voyageNotice = null;
-            bool readableVoyage = !readOnlySmoke && !profileRecoveryBlocked && VoyageSuspensionPersistence.TryRead(out _, out voyageNotice);
-            if (!readOnlySmoke && !profileRecoveryBlocked && HasSave() && readableVoyage)
+            MenuSaveView saveView = ReadMenuSaveView();
+            if (saveView.HasSave && saveView.ReadableVoyage)
             {
                 AchievementCatalog.CaptureProgress();
                 PlayerPrefs.Save();
@@ -107,11 +120,12 @@ namespace ShatteredSail.Presentation
             Application.targetFrameRate = 60;
             interfaceFont = CreateInterfaceFont();
             EnsureEventSystem();
-            BuildCanvas("Main Menu Canvas", false);
+            BuildCanvas("Main Menu Canvas", false, saveView);
             string pendingNotice = VoyageSuspensionPersistence.PendingNotice;
             VoyageSuspensionPersistence.PendingNotice = null;
-            string notice = profileNotice ?? pendingNotice ?? voyageNotice;
+            string notice = profileNotice ?? pendingNotice ?? saveView.VoyageNotice;
             if (!string.IsNullOrEmpty(notice)) ShowSaveNotice(notice);
+            StartCoroutine(RuntimeArtMemory.CollectAfterReturningToMenu());
         }
 
         private void OnEnable()
@@ -157,13 +171,20 @@ namespace ShatteredSail.Presentation
 
         private void BuildEditorPreview()
         {
-            if (transform.Find(EditorPreviewCanvasName) != null)
+            Transform existing = transform.Find(EditorPreviewCanvasName);
+            if (existing != null)
             {
+                Canvas previewCanvas = existing.GetComponent<Canvas>();
+                if (previewCanvas != null)
+                {
+                    menuCanvas = FixedGameViewport.Create(previewCanvas);
+                    menuCanvasIsEditorPreview = true;
+                }
                 return;
             }
 
             interfaceFont = CreateInterfaceFont();
-            BuildCanvas(EditorPreviewCanvasName, true);
+            BuildCanvas(EditorPreviewCanvasName, true, ReadMenuSaveView());
         }
 
         private void RemoveEditorPreview()
@@ -187,7 +208,7 @@ namespace ShatteredSail.Presentation
             }
         }
 
-        private void BuildCanvas(string canvasName, bool editorPreview)
+        private void BuildCanvas(string canvasName, bool editorPreview, MenuSaveView saveView)
         {
             GameObject canvasObject = new GameObject(canvasName, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasObject.transform.SetParent(transform, false);
@@ -197,21 +218,23 @@ namespace ShatteredSail.Presentation
             CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
-            // Keep the entire authored menu and modal surface visible at narrow
-            // and ultrawide window ratios, just like the core gameplay canvas.
+            // Fit the fixed 16:9 menu and its dialogs uniformly inside any window.
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
-            RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
+            RectTransform canvasRect = FixedGameViewport.Create(canvas);
             menuCanvas = canvasRect;
             menuCanvasIsEditorPreview = editorPreview;
             ClearAchievementView();
+            settingsPanel = null;
+            confirmationPanel = null;
             BuildBackground(canvasRect);
-            BuildMainMenu(canvasRect);
-            BuildSettingsPanel(canvasRect);
-            BuildNewGameConfirmation(canvasRect);
-
+            BuildMainMenu(canvasRect, saveView);
             if (editorPreview)
             {
+                // Keep complete inactive surfaces available to scene previews and
+                // editor captures; players create optional dialogs on first use.
+                BuildSettingsPanel(canvasRect);
+                BuildNewGameConfirmation(canvasRect);
                 SetEditorPreviewFlags(canvasObject.transform);
             }
         }
@@ -256,124 +279,88 @@ namespace ShatteredSail.Presentation
                 Debug.LogWarning("Main menu background was not found at Resources/MainMenu/main_menu_background.");
             }
 
-            Image atmosphere = CreateStretchPanel("Atmosphere Tint", canvasRect, new Color(0.01f, 0.04f, 0.06f, 0.16f)).GetComponent<Image>();
-            atmosphere.raycastTarget = false;
-            RectTransform leftVeil = CreateFixedPanel("Left Menu Veil", canvasRect, new Vector2(760f, 1080f), new Vector2(-580f, 0f), new Color(0.015f, 0.055f, 0.075f, 0.88f));
-            leftVeil.GetComponent<Image>().raycastTarget = false;
-            Image rule = CreateImage("Gold Rule", canvasRect, new Vector2(3f, 920f), new Vector2(-198f, 0f), new Color(Gold.r, Gold.g, Gold.b, 0.62f));
-            rule.raycastTarget = false;
         }
 
-        private void BuildMainMenu(RectTransform canvasRect)
+        private void BuildMainMenu(RectTransform canvasRect, MenuSaveView saveView)
         {
-            RectTransform menu = CreateRect("Main Menu Content", canvasRect, new Vector2(620f, 1000f), new Vector2(-565f, 0f));
+            // The artwork keeps its quiet sky on the left; the sunset harbor
+            // remains visible without an opaque navigation panel.
+            RectTransform menu = CreateRect("Main Menu Content", canvasRect, new Vector2(1000f, 1000f), new Vector2(-280f, 0f));
+            BuildGameTitle(menu);
 
-            Text eyebrow = CreateText("Eyebrow", menu, new Vector2(600f, 32f), new Vector2(0f, 444f), 20, FontStyle.Bold, TextAnchor.MiddleLeft, Html("#91C9B6"));
-            eyebrow.text = "远海航路局 · 船长终端";
-
-            Text title = CreateText("Game Title", menu, new Vector2(620f, 88f), new Vector2(0f, 380f), 58, FontStyle.Bold, TextAnchor.MiddleLeft, Gold);
-            title.text = GameClientInfo.DisplayName;
-            Outline titleOutline = title.gameObject.AddComponent<Outline>();
-            titleOutline.effectColor = new Color(0f, 0f, 0f, 0.8f);
-            titleOutline.effectDistance = new Vector2(2f, -2f);
-
-            Text englishTitle = CreateText("English Title", menu, new Vector2(600f, 32f), new Vector2(0f, 322f), 20, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
-            englishTitle.text = "T H E   S E V E N T H   H A R B O R";
-            Text subtitle = CreateText("Subtitle", menu, new Vector2(600f, 188f), new Vector2(0f, 204f), 22, FontStyle.Normal, TextAnchor.UpperLeft, Ink);
-            subtitle.text = SeventhPortLoreCatalog.CurrentIntroduction;
-            // Preserve the entire story at a readable fixed size. Shrinking
-            // this paragraph to fit hid its meaning at 720p.
-            subtitle.horizontalOverflow = HorizontalWrapMode.Wrap;
-            subtitle.verticalOverflow = VerticalWrapMode.Truncate;
-            subtitle.resizeTextForBestFit = false;
-            subtitle.lineSpacing = 1.22f;
-
-            CreateImage("Menu Divider", menu, new Vector2(600f, 2f), new Vector2(0f, 100f), new Color(Gold.r, Gold.g, Gold.b, 0.48f)).raycastTarget = false;
-
-            Button newGame = CreateMenuButton("New Game", menu, new Vector2(600f, 72f), new Vector2(0f, 54f), "开始新游戏", "从断锚港重新启航", Gold, DeepSea);
+            Button newGame = CreateMenuButton("New Game", menu, new Vector2(580f, 62f), new Vector2(0f, -35f),
+                "开始新游戏", saveView.HasSave ? Ink : Gold);
             newGame.onClick.AddListener(RequestNewGame);
             newGame.interactable = !ReleasePlayerSmokeCheck.IsRequested;
 
-            continueButton = CreateMenuButton("Continue Game", menu, new Vector2(600f, 72f), new Vector2(0f, -30f), "继续游戏", BuildContinueDetail(), Teal, Ink);
-            continueButton.interactable = (Application.isPlaying && profileRecoveryBlocked) || HasSave();
+            continueButton = CreateMenuButton("Continue Game", menu, new Vector2(580f, 62f), new Vector2(0f, -101f),
+                "继续游戏", saveView.HasSave ? Gold : Ink);
+            continueButton.interactable = (Application.isPlaying && profileRecoveryBlocked) || saveView.HasSave;
             continueButton.onClick.AddListener(ContinueGame);
-            WoodButtonSkin.SetRole(continueButton, continueButton.interactable ? WoodButtonRole.Primary : WoodButtonRole.Secondary);
-            WoodButtonSkin.SetRole(newGame, continueButton.interactable ? WoodButtonRole.Secondary : WoodButtonRole.Primary);
 
-            Button settings = CreateMenuButton("Settings", menu, new Vector2(600f, 72f), new Vector2(0f, -114f), "设置", "", PanelRaised, Ink);
-            settings.onClick.AddListener(() =>
-            {
-                readabilitySelector.Value = GameReadability.Level;
-                settingsPanel.gameObject.SetActive(true);
-            });
+            Button settings = CreateMenuButton("Settings", menu, new Vector2(580f, 62f), new Vector2(0f, -167f), "设置", Ink);
+            settings.onClick.AddListener(OpenSettings);
 
-            Button achievements = CreateMenuButton("Achievements", menu, new Vector2(600f, 72f), new Vector2(0f, -198f), "成就", BuildAchievementProgress(), PanelRaised, Ink);
-            achievementMenuDetail = achievements.transform.Find("Detail").GetComponent<Text>();
+            Button achievements = CreateMenuButton("Achievements", menu, new Vector2(580f, 62f), new Vector2(0f, -233f), "成就", Ink);
             achievements.onClick.AddListener(OpenAchievements);
 
-            Button exit = CreateMenuButton("Exit Game", menu, new Vector2(600f, 72f), new Vector2(0f, -282f), "退出游戏", "", new Color(0.24f, 0.20f, 0.19f, 0.96f), Ink);
+            Button exit = CreateMenuButton("Exit Game", menu, new Vector2(580f, 62f), new Vector2(0f, -299f), "退出游戏", Ink);
             exit.onClick.AddListener(ExitGame);
-
-            Text saveState = CreateText("Save State", menu, new Vector2(600f, 56f), new Vector2(0f, -366f), 18, FontStyle.Normal, TextAnchor.UpperLeft, Ink);
-            saveState.text = ReleasePlayerSmokeCheck.IsRequested ? "只读发布验收 · 未载入玩家存档" :
-                Application.isPlaying && profileRecoveryBlocked ? "角色存档等待恢复 · 修复后可点击继续游戏重试" :
-                HasSave() ? BuildSaveSummary() : "尚无航行记录";
-
-            Text version = CreateText("Version", menu, new Vector2(600f, 30f), new Vector2(0f, -466f), 18, FontStyle.Normal, TextAnchor.MiddleLeft, MutedInk);
-            version.text = "版本 " + Application.version + " · 本地存档";
-            ApplyHomeReadingLayout(menu, subtitle, saveState, version);
         }
 
-        private void ApplyHomeReadingLayout(RectTransform menu, Text introduction, Text saveState, Text version)
+        private void BuildGameTitle(RectTransform menu)
         {
-            float scale = GameReadability.Scale;
-            foreach (string name in new[] { "Eyebrow", "English Title" })
+            Texture2D texture = Resources.Load<Texture2D>("MainMenu/main_menu_title_bilingual");
+            if (texture != null)
             {
-                Text label = menu.Find(name).GetComponent<Text>();
-                GameReadability.Body(label, 20);
-                label.rectTransform.sizeDelta = new Vector2(600f, 40f);
+                texture.filterMode = FilterMode.Bilinear;
+                texture.wrapMode = TextureWrapMode.Clamp;
+                // Size follows the source aspect, preserving the transparent
+                // bilingual lettering instead of stretching it into a banner.
+                float width = 920f;
+                RawImage title = CreateRect("Game Title Artwork", menu,
+                    new Vector2(width, width * texture.height / texture.width), new Vector2(0f, 250f))
+                    .gameObject.AddComponent<RawImage>();
+                title.texture = texture;
+                title.color = Color.white;
+                title.raycastTarget = false;
+                return;
             }
-            GameReadability.Body(introduction, 22);
-            GameReadability.Body(saveState, 18);
-            GameReadability.Body(version, 18);
-            string[] actions = { "New Game", "Continue Game", "Settings", "Achievements", "Exit Game" };
-            float height = 72f + 40f * (scale - 1f), step = height + 12f;
-            for (int i = 0; i < actions.Length; i++)
+
+            Text fallback = CreateText("Game Title", menu, new Vector2(900f, 130f), new Vector2(0f, 300f),
+                96, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
+            fallback.text = GameClientInfo.DisplayName;
+            AddMenuTextOutline(fallback);
+            Text english = CreateText("English Title", menu, new Vector2(900f, 48f), new Vector2(0f, 190f),
+                28, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
+            english.text = "THE SEVENTH HARBOR";
+            AddMenuTextOutline(english);
+        }
+
+        private void OpenSettings()
+        {
+            if (menuCanvas == null) return;
+            if (settingsPanel == null)
             {
-                RectTransform button = menu.Find(actions[i]) as RectTransform;
-                button.sizeDelta = new Vector2(600f, height);
-                button.anchoredPosition = new Vector2(0f, 54f - i * step);
-                Text title = button.Find("Title").GetComponent<Text>();
-                Text detail = button.Find("Detail").GetComponent<Text>();
-                GameReadability.Body(title, 26); GameReadability.Body(detail, 18);
-                title.rectTransform.sizeDelta = new Vector2(460f, 34f * scale);
-                title.rectTransform.anchoredPosition = new Vector2(-45f, 12f * scale);
-                detail.rectTransform.sizeDelta = new Vector2(510f, 24f * scale);
-                detail.rectTransform.anchoredPosition = new Vector2(-20f, -19f * scale);
+                BuildSettingsPanel(menuCanvas);
+                if (menuCanvasIsEditorPreview) SetEditorPreviewFlags(settingsPanel);
             }
-            saveState.rectTransform.sizeDelta = new Vector2(600f, 56f * scale);
-            saveState.rectTransform.anchoredPosition = new Vector2(0f, 54f - 4f * step - height * .5f - 10f - 28f * scale);
-            version.rectTransform.sizeDelta = new Vector2(600f, 32f);
-            version.rectTransform.anchoredPosition = new Vector2(0f, -522f);
-            if (GameReadability.Level == 0) return;
-            // Keep the main actions in view while giving the complete introduction
-            // its own scroll area; never shrink the paragraph to reclaim space.
-            GameReadability.ScrollBody(introduction, menu, new Vector2(600f, 188f), new Vector2(0f, 204f));
+            settingsPanel.gameObject.SetActive(true);
         }
 
         private void BuildSettingsPanel(RectTransform canvasRect)
         {
             settingsPanel = CreateModalBackdrop("Settings Panel", canvasRect);
-            RectTransform card = CreatePaperCard("Settings Card", settingsPanel, new Vector2(1040f, 960f));
+            RectTransform card = CreatePaperCard("Settings Card", settingsPanel, new Vector2(1040f, 800f));
             BuildModalHeading(card, "游戏设置", "应用后保存在本机，下次启动自动沿用。", "SETTINGS");
 
             float master = PlayerPrefs.GetFloat(MasterVolumeKey, 0.8f);
             float music = PlayerPrefs.GetFloat(MusicVolumeKey, 0.7f);
             float effects = PlayerPrefs.GetFloat(EffectsVolumeKey, 0.8f);
-            masterSlider = CreateSettingSlider(card, "Master Volume", "主音量", 216f, master, out masterValue);
-            musicSlider = CreateSettingSlider(card, "Music Volume", "音乐", 102f, music, out musicValue);
+            masterSlider = CreateSettingSlider(card, "Master Volume", "主音量", 156f, master, out masterValue);
+            musicSlider = CreateSettingSlider(card, "Music Volume", "音乐", 52f, music, out musicValue);
             effectsSlider = CreateSettingSlider(card, "Effects Volume",
-                "战斗音效", -12f, effects, out effectsValue);
+                "战斗音效", -52f, effects, out effectsValue);
             masterSlider.interactable = true;
             musicSlider.interactable = true;
             effectsSlider.interactable = CoreGameplayDemoController.SoundEffectsEnabled;
@@ -382,38 +369,19 @@ namespace ShatteredSail.Presentation
             musicSlider.onValueChanged.AddListener(value => musicValue.text = Mathf.RoundToInt(value * 100f) + "%");
             effectsSlider.onValueChanged.AddListener(value => effectsValue.text = Mathf.RoundToInt(value * 100f) + "%");
 
-            fullScreenToggle = CreateToggle("Full Screen", card, new Vector2(600f, 64f), new Vector2(-30f, -124f), "全屏模式");
+            fullScreenToggle = CreateToggle("Full Screen", card, new Vector2(600f, 54f), new Vector2(-30f, -160f), "全屏模式");
             fullScreenToggle.isOn = PlayerPrefs.GetInt(FullScreenKey, Screen.fullScreen ? 1 : 0) == 1;
 
-            readabilitySelector = GameReadability.CreateSelector(card, "Menu Reading Size", new Vector2(0f, -230f), GameReadability.Level);
-            Text hint = CreateText("Settings Hint", card, new Vector2(880f, 40f), new Vector2(0f, -300f), 18, FontStyle.Normal, TextAnchor.UpperLeft, PaperMutedInk);
+            Text hint = CreateText("Settings Hint", card, new Vector2(880f, 54f), new Vector2(0f, -235f), 20, FontStyle.Normal, TextAnchor.UpperLeft, PaperMutedInk);
             hint.text = "";
 
-            Button apply = CreateButton("Apply Settings", card, new Vector2(400f, 76f), new Vector2(225f, -388f), Gold, DeepSea, 24);
+            Button apply = CreateButton("Apply Settings", card, new Vector2(320f, 62f), new Vector2(190f, -317f), Gold, DeepSea, 24);
             apply.GetComponentInChildren<Text>().text = "应用设置";
             apply.onClick.AddListener(ApplySettings);
             apply.interactable = !ReleasePlayerSmokeCheck.IsRequested;
-            Button back = CreateButton("Back From Settings", card, new Vector2(400f, 76f), new Vector2(-225f, -388f), PanelRaised, Ink, 24);
+            Button back = CreateButton("Back From Settings", card, new Vector2(300f, 62f), new Vector2(-190f, -317f), PanelRaised, Ink, 24);
             back.GetComponentInChildren<Text>().text = "返回主菜单";
             back.onClick.AddListener(() => settingsPanel.gameObject.SetActive(false));
-            foreach (Text label in card.GetComponentsInChildren<Text>(true))
-            {
-                if (label.name == "Modal Title")
-                {
-                    GameReadability.Heading(label, 36);
-                    label.rectTransform.sizeDelta = new Vector2(880f, 80f);
-                    label.rectTransform.anchoredPosition = new Vector2(0f, 365f);
-                }
-                else if (label.name == "Modal Eyebrow" || label.name == "Modal Subtitle" || label.name == "Settings Hint")
-                {
-                    GameReadability.Body(label, 18);
-                    label.rectTransform.sizeDelta = new Vector2(880f, 40f);
-                    if (label.name == "Modal Eyebrow") label.rectTransform.anchoredPosition = new Vector2(0f, 438f);
-                    if (label.name == "Modal Subtitle") label.rectTransform.anchoredPosition = new Vector2(0f, 298f);
-                }
-            }
-            GameReadability.Body(apply.GetComponentInChildren<Text>(), 24);
-            GameReadability.Body(back.GetComponentInChildren<Text>(), 24);
             settingsPanel.gameObject.SetActive(false);
         }
 
@@ -428,7 +396,6 @@ namespace ShatteredSail.Presentation
             achievementStateButtons.Clear();
             achievementEmpty = null;
             achievementStateFilter = 0;
-            achievementMenuDetail = null;
             achievementSummary = null;
             achievementPageLabel = null;
             achievementPreviousPage = null;
@@ -455,7 +422,6 @@ namespace ShatteredSail.Presentation
             }
             string progress = BuildAchievementProgress(unlockedCount);
             achievementSummary.text = progress;
-            achievementMenuDetail.text = progress;
             FilterAchievements(false);
             achievementsPanel.gameObject.SetActive(true);
         }
@@ -465,60 +431,29 @@ namespace ShatteredSail.Presentation
             achievementsPanel = CreateModalBackdrop("Achievements Panel", canvasRect);
             RectTransform card = CreatePaperCard("Achievements Card", achievementsPanel, new Vector2(1180f, 960f));
             achievementSummary = BuildModalHeading(card, "船长成就", string.Empty, "ACHIEVEMENTS");
-            foreach (Text heading in card.GetComponentsInChildren<Text>(true))
-            {
-                if (heading.name == "Modal Eyebrow")
-                {
-                    GameReadability.Body(heading, 18);
-                    heading.rectTransform.sizeDelta = new Vector2(880f, 32f);
-                    heading.rectTransform.anchoredPosition = new Vector2(0f, 451f);
-                }
-                else if (heading.name == "Modal Title")
-                {
-                    GameReadability.Heading(heading, 36);
-                    heading.rectTransform.sizeDelta = new Vector2(880f, 72f);
-                    heading.rectTransform.anchoredPosition = new Vector2(0f, 390f);
-                }
-                else if (heading.name == "Modal Subtitle")
-                {
-                    GameReadability.Body(heading, 20);
-                    heading.alignment = TextAnchor.MiddleCenter;
-                    heading.rectTransform.sizeDelta = new Vector2(880f, 40f);
-                    heading.rectTransform.anchoredPosition = new Vector2(0f, 331f);
-                }
-            }
-            ((RectTransform)card.Find("Modal Divider")).anchoredPosition = new Vector2(0f, 307f);
             BuildAchievementFilters(card);
 
             achievementRows.Clear();
             achievementPage = 0;
             for (int slot = 0; slot < AchievementsPerPage; slot += 1)
             {
-                achievementRows.Add(CreateAchievementRow(card, new Vector2(0f, 217f - 48f * (GameReadability.Scale - 1f) - slot * 73f * GameReadability.Scale)));
+                achievementRows.Add(CreateAchievementRow(card, new Vector2(0f, 217f - slot * 73f)));
             }
             achievementEmpty = CreateText("Achievements Empty", card, new Vector2(980f, 80f), Vector2.zero, 24, FontStyle.Normal, TextAnchor.MiddleCenter, PaperMutedInk);
             achievementEmpty.text = "暂无符合条件的成就。";
-            GameReadability.Body(achievementEmpty, 24);
             achievementEmpty.gameObject.SetActive(false);
 
-            achievementPreviousPage = CreateButton("Achievements Previous Page", card, new Vector2(190f, 50f), new Vector2(-290f, -372f), PanelRaised, Ink, 22);
+            // Keep a gap between the final row, paging controls, return action
+            // and the parchment's lower inner frame.
+            achievementPreviousPage = CreateButton("Achievements Previous Page", card, new Vector2(190f, 38f), new Vector2(-290f, -360f), PanelRaised, Ink, 22);
             achievementPreviousPage.GetComponentInChildren<Text>().text = "上一页";
             achievementPreviousPage.onClick.AddListener(() => SetAchievementPage(achievementPage - 1));
-            achievementPageLabel = CreateText("Achievements Page Indicator", card, new Vector2(220f, 32f), new Vector2(0f, -372f), 22, FontStyle.Bold, TextAnchor.MiddleCenter, PaperInk);
-            achievementNextPage = CreateButton("Achievements Next Page", card, new Vector2(190f, 50f), new Vector2(290f, -372f), PanelRaised, Ink, 22);
+            achievementPageLabel = CreateText("Achievements Page Indicator", card, new Vector2(220f, 32f), new Vector2(0f, -360f), 22, FontStyle.Bold, TextAnchor.MiddleCenter, PaperInk);
+            achievementNextPage = CreateButton("Achievements Next Page", card, new Vector2(190f, 38f), new Vector2(290f, -360f), PanelRaised, Ink, 22);
             achievementNextPage.GetComponentInChildren<Text>().text = "下一页";
             achievementNextPage.onClick.AddListener(() => SetAchievementPage(achievementPage + 1));
-            GameReadability.Body(achievementPageLabel, 22);
-            achievementPageLabel.rectTransform.sizeDelta = new Vector2(220f, 48f);
-            foreach (Button pager in new[] { achievementPreviousPage, achievementNextPage })
-            {
-                pager.GetComponent<RectTransform>().sizeDelta = new Vector2(190f, 64f);
-                pager.GetComponentInChildren<Text>().rectTransform.sizeDelta = new Vector2(170f, 54f);
-                GameReadability.Body(pager.GetComponentInChildren<Text>(), 22);
-            }
 
-            Button back = CreateButton("Back From Achievements", card, new Vector2(320f, 64f), new Vector2(0f, -436f), Gold, DeepSea, 22);
-            GameReadability.Body(back.GetComponentInChildren<Text>(), 22);
+            Button back = CreateButton("Back From Achievements", card, new Vector2(320f, 38f), new Vector2(0f, -406f), Gold, DeepSea, 22);
             back.GetComponentInChildren<Text>().text = "返回主菜单";
             back.onClick.AddListener(() => achievementsPanel.gameObject.SetActive(false));
             achievementsPanel.gameObject.SetActive(false);
@@ -574,18 +509,13 @@ namespace ShatteredSail.Presentation
             achievementCategories.Add("全部分类");
             foreach (CoreAchievementDefinition definition in AchievementCatalog.All)
                 if (!achievementCategories.Contains(definition.CategoryLabel)) achievementCategories.Add(definition.CategoryLabel);
-            float filterHeight = 40f * GameReadability.Scale;
-            RectTransform root = CreateRect("Achievements Category", card, new Vector2(380f, filterHeight), new Vector2(-330f, 274f));
+            RectTransform root = CreateRect("Achievements Category", card, new Vector2(380f, 32f), new Vector2(-330f, 274f));
             Image face = root.gameObject.AddComponent<Image>(); face.color = new Color(.88f, .81f, .67f, 1f);
             achievementCategory = root.gameObject.AddComponent<Dropdown>();
             achievementCategory.targetGraphic = face;
             Text caption = CreateText("Category Label", root, new Vector2(314f, 32f), new Vector2(-12f, 0f), 20, FontStyle.Bold, TextAnchor.MiddleLeft, PaperInk);
             Text arrow = CreateText("Category Arrow", root, new Vector2(28f, 32f), new Vector2(164f, 0f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, PaperInk);
             arrow.text = "▼";
-            GameReadability.Body(caption, 22);
-            caption.rectTransform.sizeDelta = new Vector2(314f, filterHeight);
-            GameReadability.Body(arrow, 18);
-            arrow.rectTransform.sizeDelta = new Vector2(28f, filterHeight);
             RectTransform template = CreateRect("Template", root, new Vector2(380f, 390f), Vector2.zero);
             template.anchorMin = new Vector2(0f, 0f); template.anchorMax = new Vector2(1f, 0f); template.pivot = new Vector2(.5f, 1f);
             template.sizeDelta = new Vector2(0f, 390f); template.anchoredPosition = Vector2.zero;
@@ -602,10 +532,6 @@ namespace ShatteredSail.Presentation
             Toggle toggle = item.gameObject.AddComponent<Toggle>(); toggle.targetGraphic = itemFace;
             Image check = CreateImage("Selected", item, new Vector2(8f, 22f), new Vector2(-177f, 0f), Gold); check.raycastTarget = false; toggle.graphic = check;
             Text itemText = CreateText("Item Label", item, new Vector2(328f, 32f), new Vector2(9f, 0f), 20, FontStyle.Normal, TextAnchor.MiddleLeft, PaperInk);
-            GameReadability.Body(itemText, 22);
-            item.sizeDelta = new Vector2(0f, 40f * GameReadability.Scale);
-            content.sizeDelta = item.sizeDelta;
-            itemText.rectTransform.sizeDelta = new Vector2(328f, 36f * GameReadability.Scale);
             scroll.viewport = viewport; scroll.content = content;
             achievementCategory.template = template; achievementCategory.captionText = caption; achievementCategory.itemText = itemText;
             achievementCategory.AddOptions(achievementCategories);
@@ -615,8 +541,7 @@ namespace ShatteredSail.Presentation
             for (int index = 0; index < 3; index++)
             {
                 int filter = index;
-                Button button = CreateButton("Achievements Filter " + names[index], card, new Vector2(200f, filterHeight), new Vector2(-5f + index * 210f, 274f), PanelRaised, Ink, 22);
-                GameReadability.Body(button.GetComponentInChildren<Text>(), 22);
+                Button button = CreateButton("Achievements Filter " + names[index], card, new Vector2(200f, 32f), new Vector2(-5f + index * 210f, 274f), PanelRaised, Ink, 18);
                 button.onClick.AddListener(() => { achievementStateFilter = filter; FilterAchievements(true); });
                 achievementStateButtons.Add(button);
             }
@@ -625,27 +550,19 @@ namespace ShatteredSail.Presentation
         private void BuildNewGameConfirmation(RectTransform canvasRect)
         {
             confirmationPanel = CreateModalBackdrop("New Game Confirmation", canvasRect);
-            RectTransform card = CreatePaperCard("Confirmation Card", confirmationPanel, new Vector2(1040f, 580f));
-            Text eyebrow = CreateText("Confirmation Eyebrow", card, new Vector2(920f, 40f), new Vector2(0f, 230f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, PaperAccent);
-            GameReadability.Body(eyebrow, 18);
+            RectTransform card = CreatePaperCard("Confirmation Card", confirmationPanel, new Vector2(820f, 430f));
+            Text eyebrow = CreateText("Confirmation Eyebrow", card, new Vector2(700f, 28f), new Vector2(0f, 150f), 18, FontStyle.Bold, TextAnchor.MiddleCenter, PaperAccent);
             eyebrow.text = "NEW VOYAGE";
-            Text title = CreateText("Confirmation Title", card, new Vector2(920f, 80f), new Vector2(0f, 158f), 34, FontStyle.Bold, TextAnchor.MiddleCenter, PaperInk);
-            GameReadability.Heading(title, 34);
+            Text title = CreateText("Confirmation Title", card, new Vector2(700f, 55f), new Vector2(0f, 92f), 34, FontStyle.Bold, TextAnchor.MiddleCenter, PaperInk);
             title.text = "开始新的航行？";
-            Text body = CreateText("Confirmation Body", card, new Vector2(920f, 186f), new Vector2(0f, 3f), 22, FontStyle.Normal, TextAnchor.MiddleCenter, PaperMutedInk);
-            GameReadability.Body(body, 22);
+            Text body = CreateText("Confirmation Body", card, new Vector2(710f, 90f), new Vector2(0f, 5f), 22, FontStyle.Normal, TextAnchor.UpperCenter, PaperMutedInk);
             body.text = "现有航程、教学进度、金币、贵重藏品及陈列记录将被重置。\n游戏设置与美术资源不会受到影响。";
-            Button cancel = CreateButton("Cancel New Game", card, new Vector2(390f, 80f), new Vector2(-225f, -202f), PanelRaised, Ink, 22);
-            GameReadability.Body(cancel.GetComponentInChildren<Text>(), 22);
+            Button cancel = CreateButton("Cancel New Game", card, new Vector2(280f, 60f), new Vector2(-160f, -135f), PanelRaised, Ink, 22);
             cancel.GetComponentInChildren<Text>().text = "保留存档";
-            Button confirm = CreateButton("Confirm New Game", card, new Vector2(390f, 80f), new Vector2(225f, -202f), Coral, Ink, 22);
-            GameReadability.Body(confirm.GetComponentInChildren<Text>(), 22);
+            cancel.onClick.AddListener(() => confirmationPanel.gameObject.SetActive(false));
+            Button confirm = CreateButton("Confirm New Game", card, new Vector2(280f, 60f), new Vector2(160f, -135f), Coral, Ink, 22);
             confirm.GetComponentInChildren<Text>().text = "确认重新开始";
-            RectTransform owner = confirmationPanel;
-            UiConfirmationActions.Bind(owner.gameObject, confirm, cancel,
-                () => owner == confirmationPanel && (saveNoticePanel == null || !saveNoticePanel.gameObject.activeInHierarchy),
-                () => { StartNewGame(); return saveNoticePanel == null || !saveNoticePanel.gameObject.activeInHierarchy; },
-                () => owner.gameObject.SetActive(false));
+            confirm.onClick.AddListener(StartNewGame);
             confirmationPanel.gameObject.SetActive(false);
         }
 
@@ -654,11 +571,22 @@ namespace ShatteredSail.Presentation
             if (ReleasePlayerSmokeCheck.IsRequested) return;
             if ((Application.isPlaying && profileRecoveryBlocked) || HasSave())
             {
-                confirmationPanel.gameObject.SetActive(true);
+                OpenNewGameConfirmation();
                 return;
             }
 
             StartNewGame();
+        }
+
+        private void OpenNewGameConfirmation()
+        {
+            if (menuCanvas == null) return;
+            if (confirmationPanel == null)
+            {
+                BuildNewGameConfirmation(menuCanvas);
+                if (menuCanvasIsEditorPreview) SetEditorPreviewFlags(confirmationPanel);
+            }
+            confirmationPanel.gameObject.SetActive(true);
         }
 
         private static void StartNewGame()
@@ -678,8 +606,6 @@ namespace ShatteredSail.Presentation
             AchievementCatalog.ClearProgress();
             CoreGameplayDemoController.InitializeNewGameCalendar(DateTime.Now);
             DateTime startDate = CoreGameplayDemoController.SavedGameDateTime();
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchGameClockKey);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchRealClockKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.ComponentPurchaseAchievementKey);
             PlayerPrefs.SetString(CoreGameplayDemoController.WorldEconomyScopeKey, Guid.NewGuid().ToString("N"));
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.TutorialCompletedKey);
@@ -705,9 +631,11 @@ namespace ShatteredSail.Presentation
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.GameMasterShopScopeKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.CurrentPortKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.SelectedShipKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.LastVoyageExplorationCoverageKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.ComponentInventoryKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleDeckKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleDeckEditedKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleCardUpgradeKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.SpecialCardExperienceKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.AcquiredSpecialCardsKey);
@@ -717,12 +645,6 @@ namespace ShatteredSail.Presentation
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.CrewAtSeaKey);
             foreach (CrewVariantDefinition crew in CrewNarrativeCatalog.AllCrew)
                 PlayerPrefs.DeleteKey(CoreGameplayDemoController.CrewLocationKeyForReset(crew.Id));
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchMissionKey);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchEndsAtKey);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchDurationKey);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchCrewKey);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchCrewIdentityKey);
-            PlayerPrefs.DeleteKey(CoreGameplayDemoController.DispatchBalanceVersionKey);
             for (int index = 0; index < 6; index += 1)
             {
                 PlayerPrefs.DeleteKey(CoreGameplayDemoController.CrewRecruitmentKey(index));
@@ -765,6 +687,7 @@ namespace ShatteredSail.Presentation
                 PlayerPrefs.DeleteKey(CoreGameplayDemoController.CargoKey(cargoResources[index]));
             }
             PlayerPrefs.Save();
+            OpeningComicCatalog.RequestPlayback();
             SceneManager.LoadScene(MainSceneName);
         }
 
@@ -783,24 +706,25 @@ namespace ShatteredSail.Presentation
                 FindFirstObjectByType<MainMenuController>()?.ShowSaveNotice(reason);
                 return;
             }
+            OpeningComicCatalog.ClearPlaybackRequest();
             SceneManager.LoadScene(MainSceneName);
         }
 
         private void ShowSaveNotice(string notice)
         {
             if (saveNoticePanel != null) Destroy(saveNoticePanel.gameObject);
-            RectTransform canvas = transform.Find("Main Menu Canvas") as RectTransform;
+            RectTransform canvas = menuCanvas;
             if (canvas == null) return;
             saveNoticePanel = CreateModalBackdrop("Voyage Save Notice", canvas);
-            RectTransform card = CreatePaperCard("Voyage Save Notice Card", saveNoticePanel, new Vector2(1040f, 640f));
-            Text title = CreateText("Voyage Save Notice Title", card, new Vector2(920f, 80f), new Vector2(0f, 246f), 32, FontStyle.Bold, TextAnchor.MiddleCenter, PaperInk);
-            GameReadability.Heading(title);
+            RectTransform card = CreatePaperCard("Voyage Save Notice Card", saveNoticePanel, new Vector2(900f, 440f));
+            Text title = CreateText("Voyage Save Notice Title", card, new Vector2(780f, 50f), new Vector2(0f, 145f), 32, FontStyle.Bold, TextAnchor.MiddleCenter, PaperInk);
             title.text = "航程存档提示";
             Text body = CreateText("Voyage Save Notice Body", card, new Vector2(780f, 205f), new Vector2(0f, 0f), 22, FontStyle.Normal, TextAnchor.MiddleCenter, PaperMutedInk);
             body.text = notice;
-            GameReadability.ScrollBody(body, card, new Vector2(920f, 340f), new Vector2(0f, 0f));
-            Button close = CreateButton("Close Voyage Save Notice", card, new Vector2(360f, 80f), new Vector2(0f, -246f), Gold, DeepSea, 24);
-            GameReadability.Body(close.GetComponentInChildren<Text>(), 24);
+            body.resizeTextForBestFit = true;
+            body.resizeTextMinSize = 15;
+            body.resizeTextMaxSize = 22;
+            Button close = CreateButton("Close Voyage Save Notice", card, new Vector2(300f, 56f), new Vector2(0f, -150f), Gold, DeepSea, 23);
             close.GetComponentInChildren<Text>().text = "知道了";
             close.onClick.AddListener(CloseSaveNotice);
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(close.gameObject);
@@ -818,24 +742,14 @@ namespace ShatteredSail.Presentation
 
         private void ApplySettings()
         {
-            if (!Application.isPlaying || ReleasePlayerSmokeCheck.IsRequested) return;
-            bool readingChanged = readabilitySelector.Value != GameReadability.Level;
+            if (ReleasePlayerSmokeCheck.IsRequested) return;
             PlayerPrefs.SetFloat(MasterVolumeKey, masterSlider.value);
             PlayerPrefs.SetFloat(MusicVolumeKey, musicSlider.value);
             if (CoreGameplayDemoController.SoundEffectsEnabled) PlayerPrefs.SetFloat(EffectsVolumeKey, effectsSlider.value);
             PlayerPrefs.SetInt(FullScreenKey, fullScreenToggle.isOn ? 1 : 0);
-            PlayerPrefs.SetInt(GameReadability.PreferenceKey, readabilitySelector.Value);
             PlayerPrefs.Save();
             Screen.fullScreen = fullScreenToggle.isOn;
             settingsPanel.gameObject.SetActive(false);
-            if (readingChanged && menuCanvas != null)
-            {
-                GameObject previous = menuCanvas.gameObject;
-                string canvasName = previous.name;
-                previous.SetActive(false);
-                BuildCanvas(canvasName, menuCanvasIsEditorPreview);
-                Destroy(previous);
-            }
         }
 
         private static void ExitGame()
@@ -853,35 +767,30 @@ namespace ShatteredSail.Presentation
             // probe or recover the player's suspended voyage, even for labels.
             if (ReleasePlayerSmokeCheck.IsRequested) return false;
             if (Application.isPlaying && profileRecoveryBlocked) return false;
-            return VoyageSuspensionPersistence.HasCheckpoint || PlayerPrefs.HasKey(CoreGameplayDemoController.TutorialCompletedKey) ||
+            return VoyageSuspensionPersistence.HasCheckpoint || HasProfileSave();
+        }
+
+        private static bool HasProfileSave()
+        {
+            return PlayerPrefs.HasKey(CoreGameplayDemoController.TutorialCompletedKey) ||
                 PlayerPrefs.HasKey(CoreGameplayDemoController.ProfileGoldKey) || PlayerPrefs.HasKey(ProfileGoldPersistence.DecimalKey) ||
                 PlayerPrefs.HasKey(CoreGameplayDemoController.CurrentPortKey);
         }
 
-        private static string BuildContinueDetail()
+        private static MenuSaveView ReadMenuSaveView()
         {
-            if (ReleasePlayerSmokeCheck.IsRequested) return "只读发布验收 · 未载入玩家存档";
-            if (Application.isPlaying && profileRecoveryBlocked) return "角色保存等待恢复 · 点击重试";
-            return HasSave() ? BuildSaveSummary() : "暂无可继续的航行记录";
-        }
+            if (ReleasePlayerSmokeCheck.IsRequested)
+                return new MenuSaveView(false, false, null);
+            if (Application.isPlaying && profileRecoveryBlocked)
+                return new MenuSaveView(false, false, null);
 
-        private static string BuildSaveSummary()
-        {
-            if (Application.isPlaying && profileRecoveryBlocked) return "角色存档等待恢复 · 原文件已保留";
-            if (Application.isPlaying)
-            {
-                if (!VoyageSuspensionPersistence.TryRead(out VoyageSuspensionRecord voyage, out _)) return "航程存档需要检查 · 原文件已保留";
-                if (voyage != null) return "继续已保存的航程 · " + voyage.voyage.departurePort + " → " + voyage.voyage.destinationPort;
-            }
-            string port = PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey, "断锚港");
-            decimal gold = ProfileGoldPersistence.Load();
-            return port + " · " + PortMarketCatalog.FormatPrice(gold) + " 金币";
-        }
-
-        private static string BuildAchievementProgress()
-        {
-            if (Application.isPlaying && profileRecoveryBlocked) return "角色存档等待恢复";
-            return BuildAchievementProgress(AchievementCatalog.CountUnlocked());
+            VoyageSuspensionRecord voyage = null;
+            string notice = null;
+            bool readableVoyage = !Application.isPlaying || VoyageSuspensionPersistence.TryRead(out voyage, out notice);
+            // An unreadable slot still needs Continue/retry and new-game
+            // confirmation, even when the settled profile has no keys.
+            bool hasSave = !readableVoyage || voyage != null || HasProfileSave();
+            return new MenuSaveView(hasSave, readableVoyage, notice);
         }
 
         private static string BuildAchievementProgress(int unlockedCount)
@@ -891,16 +800,18 @@ namespace ShatteredSail.Presentation
 
         private static RectTransform CreatePaperCard(string name, Transform parent, Vector2 size)
         {
-            RectTransform card = CreateFixedPanel(name, parent, size, Vector2.zero, new Color(Panel.r, Panel.g, Panel.b, 0.99f));
+            RectTransform card = CreateRect(name, parent, size, Vector2.zero);
+            Image image = card.gameObject.AddComponent<Image>();
+            image.color = new Color(Panel.r, Panel.g, Panel.b, 0.99f);
             // These dialogs use parchment; pair a light paper face with dark
-            // reading ink instead of the former pale text for blue panels.
-            card.GetComponent<Image>().color = new Color(1f, 0.98f, 0.94f, 1f);
+            // reading ink without first loading a generic panel's paper skin.
+            NauticalSurfaceSkin.ApplyReadingPanel(image);
             return card;
         }
 
         private Text BuildModalHeading(RectTransform card, string titleValue, string subtitleValue, string eyebrowValue)
         {
-            Text eyebrow = CreateText("Modal Eyebrow", card, new Vector2(880f, 28f), new Vector2(0f, card.rect.height * 0.5f - 58f), 18, FontStyle.Bold, TextAnchor.MiddleCenter, PaperAccent);
+            Text eyebrow = CreateText("Modal Eyebrow", card, new Vector2(880f, 28f), new Vector2(0f, card.rect.height * 0.5f - 64f), 18, FontStyle.Bold, TextAnchor.MiddleCenter, PaperAccent);
             eyebrow.text = eyebrowValue;
             Text title = CreateText("Modal Title", card, new Vector2(880f, 52f), new Vector2(0f, card.rect.height * 0.5f - 105f), 36, FontStyle.Bold, TextAnchor.MiddleCenter, PaperInk);
             title.text = titleValue;
@@ -912,20 +823,18 @@ namespace ShatteredSail.Presentation
 
         private Slider CreateSettingSlider(RectTransform parent, string objectName, string labelValue, float y, float value, out Text valueText)
         {
-            Text label = CreateText(objectName + " Label", parent, new Vector2(200f, 54f), new Vector2(-280f, y), 24, FontStyle.Normal, TextAnchor.MiddleLeft, PaperInk);
-            GameReadability.Body(label, 24);
+            Text label = CreateText(objectName + " Label", parent, new Vector2(180f, 40f), new Vector2(-275f, y), 24, FontStyle.Bold, TextAnchor.MiddleLeft, PaperInk);
             label.text = labelValue;
             Slider slider = CreateSlider(objectName, parent, new Vector2(410f, 42f), new Vector2(40f, y), value);
-            valueText = CreateText(objectName + " Value", parent, new Vector2(140f, 54f), new Vector2(355f, y), 22, FontStyle.Normal, TextAnchor.MiddleRight, PaperInk);
-            GameReadability.Body(valueText, 22);
+            valueText = CreateText(objectName + " Value", parent, new Vector2(90f, 40f), new Vector2(330f, y), 22, FontStyle.Bold, TextAnchor.MiddleRight, PaperInk);
             valueText.text = Mathf.RoundToInt(value * 100f) + "%";
             return slider;
         }
 
         private AchievementRowView CreateAchievementRow(RectTransform parent, Vector2 position)
         {
-            float scale = GameReadability.Scale;
-            RectTransform row = UiKit.CreateListRow("Achievement Row", parent, new Vector2(1040f, 64f * scale), position, Color.white);
+            RectTransform row = CreateRect("Achievement Row", parent, new Vector2(1040f, 64f), position);
+            row.gameObject.AddComponent<Image>();
             Image rowFace = row.GetComponent<Image>();
             RawImage icon = CreateRect("Achievement Icon", row,
                 new Vector2(48f, 48f), new Vector2(-477f, 0f)).gameObject.AddComponent<RawImage>();
@@ -934,12 +843,6 @@ namespace ShatteredSail.Presentation
             Text detail = CreateText("Description", row, new Vector2(680f, 26f), new Vector2(-95f, -17f), 18, FontStyle.Normal, TextAnchor.MiddleLeft, PaperMutedInk);
             Text state = CreateText("State", row, new Vector2(220f, 26f), new Vector2(395f, 14f), 18, FontStyle.Bold, TextAnchor.MiddleRight, PaperMutedInk);
             Text progress = CreateText("Progress", row, new Vector2(220f, 26f), new Vector2(395f, -15f), 18, FontStyle.Normal, TextAnchor.MiddleRight, PaperMutedInk);
-            foreach (Text label in new[] { title, detail, state, progress })
-            {
-                GameReadability.Body(label, label == title ? 24 : 18);
-                label.rectTransform.sizeDelta = new Vector2(label.rectTransform.sizeDelta.x, label.rectTransform.sizeDelta.y * scale);
-                label.rectTransform.anchoredPosition = new Vector2(label.rectTransform.anchoredPosition.x, label.rectTransform.anchoredPosition.y * scale);
-            }
             return new AchievementRowView { Root = row, Face = rowFace, Icon = icon, Title = title, Description = detail, State = state, Progress = progress };
         }
 
@@ -947,11 +850,9 @@ namespace ShatteredSail.Presentation
         {
             bool unlocked = progress.Unlocked;
             row.Root.name = "Achievement Row " + achievement.Id;
-            UiId.Bind(row.Root.gameObject, row.Root.name);
             row.Face.color = new Color(PaperMutedInk.r, PaperMutedInk.g, PaperMutedInk.b, unlocked ? 0.12f : 0.05f);
             ItemIconArt art = AchievementIconCatalog.ForId(achievement.Id);
             row.Icon.name = "Achievement Icon " + achievement.Id;
-            UiId.Bind(row.Icon.gameObject, row.Icon.name);
             row.Icon.texture = art.Texture;
             row.Icon.uvRect = art.Uv;
             row.Icon.enabled = art.IsAvailable;
@@ -967,38 +868,70 @@ namespace ShatteredSail.Presentation
 
         private RectTransform CreateModalBackdrop(string name, RectTransform canvasRect)
         {
-            return UiKit.CreateModalBackdrop(name, canvasRect, new Color(0.005f, 0.018f, 0.024f, 0.92f));
+            RectTransform backdrop = CreateStretchPanel(name, canvasRect, new Color(0.005f, 0.018f, 0.024f, 0.92f));
+            backdrop.GetComponent<Image>().raycastTarget = true;
+            return backdrop;
         }
 
-        private Button CreateMenuButton(string name, Transform parent, Vector2 size, Vector2 position, string title, string detail, Color normalColor, Color textColor)
+        private Button CreateMenuButton(string name, Transform parent, Vector2 size, Vector2 position,
+            string title, Color textColor)
         {
             RectTransform rect = CreateRect(name, parent, size, position);
-            Image background = rect.gameObject.AddComponent<Image>();
-            background.color = normalColor;
+            // Invisible hit area keeps the entire row clickable while the title
+            // itself carries pointer, keyboard selection and disabled feedback.
+            Image hitArea = rect.gameObject.AddComponent<Image>();
+            hitArea.color = Color.clear;
             Button button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = background;
-            ColorBlock colors = button.colors;
-            colors.normalColor = normalColor;
-            colors.highlightedColor = Color.Lerp(normalColor, Color.white, 0.18f);
-            colors.pressedColor = Color.Lerp(normalColor, Color.black, 0.2f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.disabledColor = new Color(0.16f, 0.21f, 0.22f, 0.82f);
-            button.colors = colors;
-            Text titleText = CreateText("Title", rect, new Vector2(size.x - 140f, 34f), new Vector2(-45f, 12f), 26, FontStyle.Bold, TextAnchor.MiddleLeft, textColor);
+            Text titleText = CreateText("Title", rect, new Vector2(size.x, 40f), Vector2.zero,
+                32, FontStyle.Bold, TextAnchor.MiddleCenter, Color.white);
             titleText.text = title;
-            Text detailText = CreateText("Detail", rect, new Vector2(size.x - 90f, 24f), new Vector2(-20f, -19f), 18, FontStyle.Normal, TextAnchor.MiddleLeft, textColor);
-            detailText.color = new Color(detailText.color.r, detailText.color.g, detailText.color.b, 0.75f);
-            detailText.text = detail;
-            Text arrow = CreateText("Arrow", rect, new Vector2(44f, 54f), new Vector2(size.x * 0.5f - 35f, 0f), 28, FontStyle.Bold, TextAnchor.MiddleCenter, textColor);
-            arrow.text = "›";
-            WoodButtonSkin.Apply(button, normalColor);
+            AddMenuTextOutline(titleText);
+            button.targetGraphic = titleText;
+            ColorBlock colors = button.colors;
+            colors.normalColor = textColor;
+            colors.highlightedColor = new Color(1f, 0.81f, 0.48f, 1f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.pressedColor = new Color(1f, 0.52f, 0.31f, 1f);
+            colors.disabledColor = new Color(0.56f, 0.60f, 0.65f, 1f);
+            colors.fadeDuration = 0.12f;
+            button.colors = colors;
+
             return button;
+        }
+
+        private static void AddMenuTextOutline(Text text)
+        {
+            Outline outline = text.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0.025f, 0.035f, 0.065f, 0.92f);
+            outline.effectDistance = new Vector2(1f, -1f);
         }
 
         private Slider CreateSlider(string name, Transform parent, Vector2 size, Vector2 position, float value)
         {
-            return UiKit.CreateSlider(name, parent, size, position, 0f, 1f, value,
-                DeepSea, Gold, fillInset: 20f, handleWidth: 26f);
+            RectTransform root = CreateRect(name, parent, size, position);
+            Slider slider = root.gameObject.AddComponent<Slider>();
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            RectTransform background = CreateRect("Background", root, new Vector2(size.x, 8f), Vector2.zero);
+            background.gameObject.AddComponent<Image>().color = DeepSea;
+            NauticalSurfaceSkin.ApplyControlPart(background.GetComponent<Image>());
+            RectTransform fillArea = CreateRect("Fill Area", root, new Vector2(size.x - 20f, 8f), new Vector2(-10f, 0f));
+            RectTransform fill = CreateRect("Fill", fillArea, Vector2.zero, Vector2.zero);
+            fill.anchorMin = Vector2.zero;
+            fill.anchorMax = Vector2.one;
+            fill.offsetMin = Vector2.zero;
+            fill.offsetMax = Vector2.zero;
+            fill.gameObject.AddComponent<Image>().color = Gold;
+            NauticalSurfaceSkin.ApplyControlPart(fill.GetComponent<Image>());
+            RectTransform handleArea = CreateRect("Handle Slide Area", root, new Vector2(size.x - 24f, size.y), Vector2.zero);
+            // Slider stretches the handle over its track area's height.
+            Image handle = CreateImage("Handle", handleArea, new Vector2(26f, 0f), Vector2.zero, Gold);
+            slider.fillRect = fill;
+            slider.handleRect = handle.rectTransform;
+            slider.targetGraphic = handle;
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.value = value;
+            return slider;
         }
 
         private Toggle CreateToggle(string name, Transform parent, Vector2 size, Vector2 position, string labelValue)
@@ -1007,8 +940,7 @@ namespace ShatteredSail.Presentation
             Toggle toggle = root.gameObject.AddComponent<Toggle>();
             Image background = CreateImage("Background", root, new Vector2(34f, 34f), new Vector2(-280f, 0f), DeepSea);
             Image checkmark = CreateImage("Checkmark", background.rectTransform, new Vector2(22f, 22f), Vector2.zero, Gold);
-            Text label = CreateText("Label", root, new Vector2(510f, 54f), new Vector2(28f, 0f), 24, FontStyle.Normal, TextAnchor.MiddleLeft, PaperInk);
-            GameReadability.Body(label, 24);
+            Text label = CreateText("Label", root, new Vector2(510f, 42f), new Vector2(28f, 0f), 24, FontStyle.Bold, TextAnchor.MiddleLeft, PaperInk);
             label.text = labelValue;
             toggle.targetGraphic = background;
             toggle.graphic = checkmark;
@@ -1017,32 +949,80 @@ namespace ShatteredSail.Presentation
 
         private Button CreateButton(string name, Transform parent, Vector2 size, Vector2 position, Color normalColor, Color textColor, int fontSize)
         {
-            return UiKit.CreateButton(name, parent, size, position, normalColor, textColor, fontSize);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = normalColor;
+            Button button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            ColorBlock colors = button.colors;
+            colors.normalColor = normalColor;
+            colors.highlightedColor = Color.Lerp(normalColor, Color.white, 0.16f);
+            colors.pressedColor = Color.Lerp(normalColor, Color.black, 0.18f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.disabledColor = new Color(0.2f, 0.26f, 0.27f, 0.75f);
+            button.colors = colors;
+            Text label = CreateText("Label", rect, size - new Vector2(24f, 10f), Vector2.zero, fontSize, FontStyle.Bold, TextAnchor.MiddleCenter, textColor);
+            label.text = name;
+            WoodButtonSkin.Apply(button, normalColor);
+            return button;
         }
 
         private Text CreateText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, FontStyle style, TextAnchor alignment, Color color)
         {
-            return UiKit.CreateText(name, parent, size, position, fontSize, style, alignment, color);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Text text = rect.gameObject.AddComponent<Text>();
+            GameTypography.Apply(text, fontSize, style);
+            text.alignment = alignment;
+            text.color = NauticalSurfaceSkin.ReadableTextColor(parent, color);
+            text.raycastTarget = false;
+            text.supportRichText = true;
+            return text;
         }
 
         private static RectTransform CreateRect(string name, Transform parent, Vector2 size, Vector2 position)
         {
-            return UiKit.CreateRect(name, parent, size, position);
+            GameObject item = new GameObject(name, typeof(RectTransform));
+            item.transform.SetParent(parent, false);
+            RectTransform rect = item.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+            return rect;
         }
 
         private static RectTransform CreateStretchPanel(string name, Transform parent, Color color)
         {
-            return UiKit.CreateStretchPanel(name, parent, color);
+            GameObject panel = new GameObject(name, typeof(RectTransform), typeof(Image));
+            panel.transform.SetParent(parent, false);
+            RectTransform rect = panel.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            panel.GetComponent<Image>().color = color;
+            if (name == "Fill") NauticalSurfaceSkin.ApplyControlPart(panel.GetComponent<Image>());
+            else NauticalSurfaceSkin.ApplyPanel(panel.GetComponent<Image>(), color);
+            return rect;
         }
 
         private static RectTransform CreateFixedPanel(string name, Transform parent, Vector2 size, Vector2 position, Color color)
         {
-            return UiKit.CreatePanel(name, parent, size, position, color);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            NauticalSurfaceSkin.ApplyPanel(image, color);
+            return rect;
         }
 
         private static Image CreateImage(string name, Transform parent, Vector2 size, Vector2 position, Color color)
         {
-            return UiKit.CreateImage(name, parent, size, position, color);
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            NauticalSurfaceSkin.ApplyControlPart(image);
+            return image;
         }
 
         private static Font CreateInterfaceFont()

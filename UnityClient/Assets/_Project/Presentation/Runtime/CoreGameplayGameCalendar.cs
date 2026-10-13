@@ -10,9 +10,6 @@ namespace ShatteredSail.Presentation
         public const string GameClockKey = "ShatteredSail.GameClockHours.v1";
         public const string WorldEconomyScopeKey = "ShatteredSail.WorldEconomyScope.v1";
         public const string ComponentPurchaseAchievementKey = "ShatteredSail.ComponentPurchaseAchievement.v1";
-        public const string DispatchGameClockKey = "ShatteredSail.Dispatch.GameClock.v1";
-        public const string DispatchRealClockKey = "ShatteredSail.Dispatch.RealClock.v1";
-
         // A fresh campaign samples the local date once. Persist it immediately so
         // reopening the game on another day cannot move the campaign calendar.
         private void RestoreGameCalendar()
@@ -48,53 +45,6 @@ namespace ShatteredSail.Presentation
             // Commit beside cargo and profile at the existing save checkpoint;
             // never persist a newer month against an older, unspent cargo save.
             PlayerPrefs.SetString(GameClockKey, session.ElapsedGameHours.ToString("R", CultureInfo.InvariantCulture));
-        }
-
-        private long DispatchDeadline(int hours)
-        {
-            long now = DateTime.UtcNow.Ticks;
-            return now + Math.Min(DateTime.MaxValue.Ticks - now, Math.Max(0L, hours) * TimeSpan.TicksPerHour);
-        }
-
-        private void MigrateDispatchGameClock()
-        {
-            int mission = PlayerPrefs.GetInt(DispatchMissionKey, -1);
-            if (mission < 0)
-            {
-                if (!PlayerPrefs.HasKey(DispatchGameClockKey) && !PlayerPrefs.HasKey(DispatchRealClockKey)) return;
-                PlayerPrefs.DeleteKey(DispatchGameClockKey);
-                PlayerPrefs.DeleteKey(DispatchRealClockKey);
-                PlayerPrefs.Save();
-                return;
-            }
-            if (PlayerPrefs.GetInt(DispatchRealClockKey, 0) == 1)
-            {
-                if (!PlayerPrefs.HasKey(DispatchGameClockKey)) return;
-                PlayerPrefs.DeleteKey(DispatchGameClockKey);
-                PlayerPrefs.Save();
-                return;
-            }
-            if (PlayerPrefs.GetInt(DispatchGameClockKey, 0) == 1 &&
-                CoreEconomyBalance.IsValidDispatchRecord(mission,
-                PlayerPrefs.GetString(DispatchEndsAtKey, "0"), out long end))
-            {
-                int duration = Mathf.Clamp(PlayerPrefs.GetInt(DispatchDurationHoursKey, DispatchDurations[mission]),
-                    DispatchDurations[mission], DispatchDurations[mission] * 2);
-                // Preserve the remaining time of a game-clock job exactly once.
-                // The saved game calendar is only read; dispatch never advances it.
-                long remaining = Math.Min(duration * TimeSpan.TicksPerHour,
-                    Math.Max(0L, end - session.GameDateTime.Ticks));
-                long now = DateTime.UtcNow.Ticks;
-                long translated = now + Math.Min(remaining, DateTime.MaxValue.Ticks - now);
-                PlayerPrefs.SetString(DispatchEndsAtKey, translated.ToString(CultureInfo.InvariantCulture));
-            }
-            // Original UTC jobs keep their exact deadline, including completed
-            // offline jobs. Never interpret their timestamp as game-calendar time.
-            // Leave malformed records malformed so the existing recovery UI
-            // can clear them without granting a reward.
-            PlayerPrefs.SetInt(DispatchRealClockKey, 1);
-            PlayerPrefs.DeleteKey(DispatchGameClockKey);
-            PlayerPrefs.Save();
         }
 
         public static DateTime SavedGameDateTime()

@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation.Tests
             for (int index = 0; index < canonicalIds.Length; index++)
             {
                 string id = canonicalIds[index];
-                int group = index / 20;
+                int group = index < 20 ? 0 : index < 40 ? 1 : 2;
                 ItemIconArt art = AchievementIconCatalog.ForId(id);
                 Assert.That(art.IsAvailable, Is.True, id);
                 Assert.That(art.Texture, Is.SameAs(textures[group]), id);
@@ -67,13 +67,13 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void UnknownIdsAndFortyFiveRetiredPrototypeIds_DoNotBorrowAnyOtherAchievementArt()
+        public void UnknownIdsAndRetiredIds_DoNotBorrowAnyOtherAchievementArt()
         {
             foreach (string id in new[] { null, "", " ", "unknown", "tutorial_departure_typo", "FIRST_SAIL" })
                 Assert.That(AchievementIconCatalog.ForId(id).IsAvailable, Is.False, id);
             string[] retired = AchievementDefinitionCompatibilityTests.RetiredPrototypeIds;
-            Assert.That(retired.Length, Is.EqualTo(45));
-            Assert.That(retired.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(45));
+            Assert.That(retired.Length, Is.EqualTo(48));
+            Assert.That(retired.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(48));
             foreach (string id in retired)
             {
                 Assert.That(CoreAchievementCatalog.Find(id), Is.Null, id);
@@ -99,6 +99,31 @@ namespace ShatteredSail.Presentation.Tests
             AssertCache(true, true, true);
             ResetCache();
             AssertCache(false, false, false);
+        }
+
+        [Test]
+        public void ReleaseLoadedTextures_PreservesOpenPageArtAndRestoresLazyGroupLoading()
+        {
+            AchievementIconCatalog.ReleaseLoadedTextures();
+            Texture2D first = AchievementIconCatalog.ForId("tutorial_departure").Texture;
+            Texture2D second = AchievementIconCatalog.ForId("invest_all_ports").Texture;
+            Texture2D third = AchievementIconCatalog.ForId("warehouse_display_six").Texture;
+            Assert.That(new[] { first, second, third }.All(texture => texture != null), Is.True);
+            try
+            {
+                AchievementIconCatalog.ReleaseLoadedTextures();
+                AchievementIconCatalog.ReleaseLoadedTextures();
+                AssertCache(false, false, false);
+                Assert.That(new[] { first, second, third }.All(texture => texture != null), Is.True,
+                    "A menu page can already be displaying these borrowed textures when cleanup runs.");
+                Assert.That(AchievementIconCatalog.ForId("warehouse_display_six").Texture, Is.SameAs(third));
+                AssertCache(false, false, true);
+                Assert.That(AchievementIconCatalog.ForId("tutorial_departure").Texture, Is.SameAs(first));
+                AssertCache(true, false, true);
+                Assert.That(AchievementIconCatalog.ForId("invest_all_ports").Texture, Is.SameAs(second));
+                AssertCache(true, true, true);
+            }
+            finally { AchievementIconCatalog.ReleaseLoadedTextures(); }
         }
 
         private static void ResetCache() => typeof(AchievementIconCatalog)

@@ -1,0 +1,290 @@
+[
+  {
+    "id": "crew_broken_anchor_navigator_lorne",
+    "port": "断锚港",
+    "profession": 0,
+    "name": "测潮师 洛恩",
+    "appearance": "五十岁深褐肤色；长窄脸与鹰钩鼻；灰白绳辫；左眼浑浊；瘦高驼背；锈红测潮尺",
+    "asset": "PortArt/CrewDossiers/crew_broken_anchor_navigator_lorne_dossier_v1"
+  },
+  {
+    "id": "crew_broken_anchor_carpenter_kia",
+    "port": "断锚港",
+    "profession": 1,
+    "name": "铆骨匠 琪娅",
+    "appearance": "二十七岁古铜肤色；方下颌；黑色寸发；鼻梁横疤；结实矮壮；铜铆钉围裙",
+    "asset": "PortArt/CrewDossiers/crew_broken_anchor_carpenter_kia_dossier_v1"
+  },
+  {
+    "id": "crew_broken_anchor_doctor_hector",
+    "port": "断锚港",
+    "profession": 2,
+    "name": "瘢痕医师 赫克托",
+    "appearance": "六十岁苍白肤色；凹陷长脸；秃顶白络腮胡；双颊缝合疤；清瘦；骨柄手术箱",
+    "asset": "PortArt/CrewDossiers/crew_broken_anchor_doctor_hector_dossier_v1"
+  },
+  {
+    "id": "crew_broken_anchor_gunner_mira",
+    "port": "断锚港",
+    "profession": 3,
+    "name": "沉钟炮师 米拉",
+    "appearance": "三十五岁黑肤；圆脸高颧骨；短卷银发；右眉裂痕；宽肩；背负双筒短炮",
+    "asset": "PortArt/CrewDossiers/crew_broken_anchor_gunner_mira_dossier_v1"
+  },
+  {
+    "id": "crew_broken_anchor_cook_tam",
+    "port": "断锚港",
+    "profession": 4,
+    "name": "烟熏厨娘 塔姆",
+    "appearance": "四十二岁麦色肤色；宽脸酒窝；栗色卷发包头巾；丰腴体型；烟熏铜锅与鱼叉勺",
+    "asset": "PortArt/CrewDossiers/crew_broken_anchor_cook_tam_dossier_v1"
+  },
+  {
+    "id": "crew_broken_anchor_diver_udo",
+    "port": "断锚港",
+    "profession": 5,
+    "name": "锚墓潜手 乌铎",
+    "appearance": "三十岁黝黑肤色；菱形脸；剃光头；下唇铜环；精瘦；不对称锈铁潜盔",
+    "asset": "PortArt/CrewDossiers/crew_broken_anchor_diver_udo_dossier_v1"
+  },
+  {
+    "id": "crew_white_shell_navigator_saina",
+    "port": "白贝港",
+    "profession": 0,
+    "name": "珊潮领航员 赛娜",
+    "appearance": "二十四岁棕肤；心形脸与雀斑；蓬松黑卷发夹白贝；轻盈修长；青绿纱披肩",
+    "asset": "PortArt/CrewDossiers/crew_white_shell_navigator_saina_dossier_v1"
+  },
+  {
+    "id": "crew_white_shell_carpenter_atang",
+    "port": "白贝港",
+    "profession": 1,
+    "name": "贝骨船匠 阿棠",
+    "appearance": "三十一岁东方面孔；鹅蛋脸；乌黑高马尾；颊侧贝粉纹；纤细有力；象牙色贝骨锯",
+    "asset": "PortArt/CrewDossiers/crew_white_shell_carpenter_atang_dossier_v1"
+  },
+  {
+    "id": "crew_white_shell_doctor_mirei",
+    "port": "白贝港",
+    "profession": 2,
+    "name": "香潮医师 米蕾",
+    "appearance": "五十岁深棕肤色；柔和圆脸；银灰爆炸卷；无疤；丰润体型；花草药囊",
+    "asset": "PortArt/CrewDossiers/crew_white_shell_doctor_mirei_dossier_v1"
+  },
+  {
+    "id": "crew_white_shell_gunner_gallo",
+    "port": "白贝港",
+    "profession": 3,
+    "name": "珠炮手 加洛",
+    "appearance": "十九岁浅褐肤色；少年圆脸；金棕蓬发；门牙缺角；瘦小灵活；珍珠镶柄信号炮",
+    "asset": "PortArt/CrewDossiers/crew_white_shell_gunner_gallo_dossier_v1"
+  },
+  {
+    "id": "crew_white_shell_cook_flora",
+    "port": "白贝港",
+    "profession": 4,
+    "name": "柑潮厨师 芙萝",
+    "appearance": "二十八岁金棕肤色；长脸翘鼻；橙红短卷发；酒窝；高挑；柑橘串与白釉汤锅",
+    "asset": "PortArt/CrewDossiers/crew_white_shell_cook_flora_dossier_v1"
+  },
+  {
+    "id": "crew_white_shell_diver_kela",
+    "port": "白贝港",
+    "profession": 5,
+    "name": "采珠人 珂拉",
+    "appearance": "三十六岁深棕肤色；方脸；剃侧长辫；鼻梁白贝彩绘；健美；珍珠网袋与短蹼",
+    "asset": "PortArt/CrewDossiers/crew_white_shell_diver_kela_dossier_v1"
+  },
+  {
+    "id": "crew_bronze_bell_navigator_vick",
+    "port": "铜钟港",
+    "profession": 0,
+    "name": "黄铜测绘师 维克",
+    "appearance": "四十八岁白肤；瘦削矩形脸；油黑八字胡；单片机械目镜；笔挺身形；多臂黄铜六分仪",
+    "asset": "PortArt/CrewDossiers/crew_bronze_bell_navigator_vick_dossier_v1"
+  },
+  {
+    "id": "crew_bronze_bell_carpenter_osser",
+    "port": "铜钟港",
+    "profession": 1,
+    "name": "齿轮船匠 奥瑟",
+    "appearance": "五十六岁灰肤；宽额方颌；钢灰平头；烧伤覆盖右颊；魁梧；齿轮义手",
+    "asset": "PortArt/CrewDossiers/crew_bronze_bell_carpenter_osser_dossier_v1"
+  },
+  {
+    "id": "crew_bronze_bell_doctor_ada",
+    "port": "铜钟港",
+    "profession": 2,
+    "name": "退役军医 艾达",
+    "appearance": "四十岁东方面孔；锐利长眼；齐耳黑发夹银丝；唇角旧伤；挺拔；黄铜扣军医大衣",
+    "asset": "PortArt/CrewDossiers/crew_bronze_bell_doctor_ada_dossier_v1"
+  },
+  {
+    "id": "crew_bronze_bell_gunner_helen",
+    "port": "铜钟港",
+    "profession": 3,
+    "name": "钟楼炮官 赫莲",
+    "appearance": "三十三岁苍白肤色；高颧窄脸；铜红色短发；左耳缺角；修长；黑金帝国炮官制服",
+    "asset": "PortArt/CrewDossiers/crew_bronze_bell_gunner_helen_dossier_v1"
+  },
+  {
+    "id": "crew_bronze_bell_cook_basin",
+    "port": "铜钟港",
+    "profession": 4,
+    "name": "锅炉厨师 巴辛",
+    "appearance": "六十二岁黑肤；椭圆脸白眉；光头；蒸汽烫疤环绕双臂；壮硕；压力锅背架",
+    "asset": "PortArt/CrewDossiers/crew_bronze_bell_cook_basin_dossier_v1"
+  },
+  {
+    "id": "crew_bronze_bell_diver_duke",
+    "port": "铜钟港",
+    "profession": 5,
+    "name": "铜盔潜工 杜克",
+    "appearance": "四十四岁浅棕肤色；粗眉方脸；棕色络腮胡；鼻骨歪斜；极魁梧；球形铜盔与配重靴",
+    "asset": "PortArt/CrewDossiers/crew_bronze_bell_diver_duke_dossier_v1"
+  },
+  {
+    "id": "crew_salt_crown_navigator_ashir",
+    "port": "盐冠港",
+    "profession": 0,
+    "name": "盐路航海士 阿希尔",
+    "appearance": "三十八岁棕肤；瘦长脸；剃光头留靛蓝长辫；白色眉毛；高瘦；盐晶罗盘披肩",
+    "asset": "PortArt/CrewDossiers/crew_salt_crown_navigator_ashir_dossier_v1"
+  },
+  {
+    "id": "crew_salt_crown_carpenter_saf",
+    "port": "盐冠港",
+    "profession": 1,
+    "name": "晒骨匠 萨芙",
+    "appearance": "五十二岁深褐肤色；三角脸；白色短脏辫；额头晒斑；精瘦硬朗；兽骨支架与盐蜡锤",
+    "asset": "PortArt/CrewDossiers/crew_salt_crown_carpenter_saf_dossier_v1"
+  },
+  {
+    "id": "crew_salt_crown_doctor_naji",
+    "port": "盐冠港",
+    "profession": 2,
+    "name": "荒潮药师 娜吉",
+    "appearance": "二十九岁褐肤；杏眼圆脸；黑发盘成双环；眼下金色盐纹；娇小；彩釉药瓶腰带",
+    "asset": "PortArt/CrewDossiers/crew_salt_crown_doctor_naji_dossier_v1"
+  },
+  {
+    "id": "crew_salt_crown_gunner_rokan",
+    "port": "盐冠港",
+    "profession": 3,
+    "name": "白焰炮手 罗坎",
+    "appearance": "四十一岁浅褐肤色；厚唇方脸；焦白莫西干发；双手灼伤；宽肩；白陶火药罐",
+    "asset": "PortArt/CrewDossiers/crew_salt_crown_gunner_rokan_dossier_v1"
+  },
+  {
+    "id": "crew_salt_crown_cook_maz",
+    "port": "盐冠港",
+    "profession": 4,
+    "name": "香路厨娘 玛兹",
+    "appearance": "三十七岁橄榄肤色；菱形脸绿眼；黑色波浪长发；鼻侧痣；丰满；六格香料盘与银锅",
+    "asset": "PortArt/CrewDossiers/crew_salt_crown_cook_maz_dossier_v1"
+  },
+  {
+    "id": "crew_salt_crown_diver_isha",
+    "port": "盐冠港",
+    "profession": 5,
+    "name": "盐井潜客 伊沙",
+    "appearance": "二十二岁深褐肤色；圆脸大眼；短白卷发；耳廓盐晶穿孔；柔韧矮小；皮革软盔与晶灯",
+    "asset": "PortArt/CrewDossiers/crew_salt_crown_diver_isha_dossier_v1"
+  },
+  {
+    "id": "crew_twilight_tide_navigator_selene",
+    "port": "暮潮港",
+    "profession": 0,
+    "name": "月潮占星师 塞勒涅",
+    "appearance": "六十五岁深肤；细长脸银色瞳孔；及腰白直发；无眉；高挑清瘦；石质星盘与月纱",
+    "asset": "PortArt/CrewDossiers/crew_twilight_tide_navigator_selene_dossier_v1"
+  },
+  {
+    "id": "crew_twilight_tide_carpenter_orlan",
+    "port": "暮潮港",
+    "profession": 1,
+    "name": "骨舟匠 欧兰",
+    "appearance": "三十四岁苍白肤色；尖下巴；紫黑长发遮半脸；颈侧鳃状刺青；纤长；弯月骨锯",
+    "asset": "PortArt/CrewDossiers/crew_twilight_tide_carpenter_orlan_dossier_v1"
+  },
+  {
+    "id": "crew_twilight_tide_doctor_viya",
+    "port": "暮潮港",
+    "profession": 2,
+    "name": "梦疫医师 维娅",
+    "appearance": "四十六岁橄榄肤色；疲惫杏眼；深蓝短卷发；额心银点；瘦削；装满梦砂的玻璃面罩",
+    "asset": "PortArt/CrewDossiers/crew_twilight_tide_doctor_viya_dossier_v1"
+  },
+  {
+    "id": "crew_twilight_tide_gunner_yilan",
+    "port": "暮潮港",
+    "profession": 3,
+    "name": "蓝火炮巫 伊岚",
+    "appearance": "二十六岁东方面孔；锐利凤眼；乌发夹钴蓝挑染；右颊符文；修长；蓝火符管长炮",
+    "asset": "PortArt/CrewDossiers/crew_twilight_tide_gunner_yilan_dossier_v1"
+  },
+  {
+    "id": "crew_twilight_tide_cook_lume",
+    "port": "暮潮港",
+    "profession": 4,
+    "name": "夜宴厨师 露姆",
+    "appearance": "三十岁蓝黑肤色；娃娃脸；蓬松紫发；面颊荧光雀斑；圆润；发光菌篮与黑釉茶壶",
+    "asset": "PortArt/CrewDossiers/crew_twilight_tide_cook_lume_dossier_v1"
+  },
+  {
+    "id": "crew_twilight_tide_diver_naive",
+    "port": "暮潮港",
+    "profession": 5,
+    "name": "幽灯潜者 奈芙",
+    "appearance": "五十八岁苍白肤色；长方脸；剃顶留两侧银辫；一道贯穿鼻梁的蓝疤；高瘦；水母灯与骨质呼吸管",
+    "asset": "PortArt/CrewDossiers/crew_twilight_tide_diver_naive_dossier_v1"
+  },
+  {
+    "id": "crew_gray_gull_navigator_evelyn",
+    "port": "灰鸥港",
+    "profession": 0,
+    "name": "星盘手 伊芙琳",
+    "appearance": "三十二岁橄榄肤色；长椭圆脸与灰绿色眼睛；黑色波浪发配青头巾；修长；金星盘",
+    "asset": "PortArt/CrewDossiers/crew_gray_gull_navigator_evelyn_dossier_v1"
+  },
+  {
+    "id": "crew_gray_gull_carpenter_barlow",
+    "port": "灰鸥港",
+    "profession": 1,
+    "name": "船匠 巴洛",
+    "appearance": "四十五岁晒红肤色；宽鼻方脸；红头巾下深棕短发；浓胡须；魁梧；木槌与绳圈",
+    "asset": "PortArt/CrewDossiers/crew_gray_gull_carpenter_barlow_dossier_v1"
+  },
+  {
+    "id": "crew_gray_gull_doctor_moer",
+    "port": "灰鸥港",
+    "profession": 2,
+    "name": "船医 莫尔",
+    "appearance": "三十九岁浅棕肤色；窄脸与圆眼镜；黑色中分卷发；下巴短须；清瘦；青玻璃药瓶",
+    "asset": "PortArt/CrewDossiers/crew_gray_gull_doctor_moer_dossier_v1"
+  },
+  {
+    "id": "crew_gray_gull_gunner_leisa",
+    "port": "灰鸥港",
+    "profession": 3,
+    "name": "炮术官 雷萨",
+    "appearance": "三十岁深棕肤色；棱角脸；赤褐长发束高马尾；右眉缺口；健壮；长引火杖",
+    "asset": "PortArt/CrewDossiers/crew_gray_gull_gunner_leisa_dossier_v1"
+  },
+  {
+    "id": "crew_gray_gull_cook_pepe",
+    "port": "灰鸥港",
+    "profession": 4,
+    "name": "厨师 佩佩",
+    "appearance": "五十四岁棕肤；饱满圆脸；深灰卷发藏于白头巾；笑纹明显；丰腴；刻痕盐锅",
+    "asset": "PortArt/CrewDossiers/crew_gray_gull_cook_pepe_dossier_v1"
+  },
+  {
+    "id": "crew_gray_gull_diver_noya",
+    "port": "灰鸥港",
+    "profession": 5,
+    "name": "潜水员 诺雅",
+    "appearance": "二十五岁浅褐肤色；心形脸；乌黑双辫；鼻梁细疤；娇小敏捷；青铜潜水镜",
+    "asset": "PortArt/CrewDossiers/crew_gray_gull_diver_noya_dossier_v1"
+  }
+]

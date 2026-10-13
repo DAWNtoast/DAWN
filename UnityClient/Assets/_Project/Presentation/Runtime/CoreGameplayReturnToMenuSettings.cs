@@ -19,9 +19,8 @@ namespace ShatteredSail.Presentation
         private Button BuildReturnToMenuSettingsButton(RectTransform sheet)
         {
             returnMenuButton = CreatePortSettingsButton("Return To Main Menu", sheet,
-                new Vector2(0f, -427f), "保存并返回主菜单", Html("#705136"));
-            returnMenuButton.GetComponent<RectTransform>().sizeDelta = new Vector2(500f, 48f * GameReadability.Scale);
-            returnMenuButton.GetComponentInChildren<Text>().rectTransform.sizeDelta = new Vector2(476f, 48f * GameReadability.Scale - 10f);
+                new Vector2(0f, -353f), "保存并返回主菜单", Html("#705136"));
+            returnMenuButton.GetComponent<RectTransform>().sizeDelta = new Vector2(440f, 52f);
             RectTransform owner = portSettingsOverlay;
             returnMenuButton.onClick.AddListener(() =>
             {
@@ -53,24 +52,30 @@ namespace ShatteredSail.Presentation
             RectTransform owner = returnMenuConfirmation;
             owner.gameObject.AddComponent<PortSettingsBackgroundFocusHandler>().OnBackgroundPressed = FocusReturnToMenuConfirmation;
             RectTransform card = CreateFixedPanel("Return To Main Menu Sheet", owner,
-                new Vector2(1040f, 520f), Vector2.zero, Html("#DFC591"));
-            Text title = CreateText("Return To Main Menu Title", card, new Vector2(960f, 80f),
-                new Vector2(0f, 166f), 32, FontStyle.Bold, TextAnchor.MiddleCenter, Html("#322215"));
-            GameReadability.Heading(title);
+                new Vector2(880f, 410f), Vector2.zero, Html("#DFC591"));
+            Text title = CreateText("Return To Main Menu Title", card, new Vector2(780f, 48f),
+                new Vector2(0f, 128f), 30, FontStyle.Bold, TextAnchor.MiddleCenter, Html("#322215"));
             title.text = "保存并返回主菜单？";
-            returnMenuMessage = CreateText("Return To Main Menu Message", card, new Vector2(960f, 200f),
-                new Vector2(0f, 10f), 22, FontStyle.Normal, TextAnchor.MiddleCenter, Html("#322215"));
-            GameReadability.Body(returnMenuMessage, 22);
+            returnMenuMessage = CreateText("Return To Main Menu Message", card, new Vector2(760f, 134f),
+                new Vector2(0f, 20f), 21, FontStyle.Normal, TextAnchor.MiddleCenter, Html("#322215"));
+            returnMenuMessage.resizeTextForBestFit = true;
+            returnMenuMessage.resizeTextMinSize = 16;
+            returnMenuMessage.resizeTextMaxSize = 21;
             returnMenuMessage.text = session != null && session.Phase == CoreDemoPhase.Port
                 ? "保存港口进度，下次可继续。\n未应用的设置不保存。"
                 : "保存航程，下次可继续航行。\n未应用的设置不保存。";
             returnMenuCancelButton = CreatePortSettingsButton("Cancel Return To Main Menu", card,
-                new Vector2(-225f, -170f), "取消 · 继续游戏", Html("#705136"));
+                new Vector2(-205f, -126f), "取消 · 继续游戏", Html("#705136"));
             returnMenuConfirmButton = CreatePortSettingsButton("Confirm Return To Main Menu", card,
-                new Vector2(225f, -170f), "保存并返回", Html("#98682D"));
-            UiConfirmationActions.Bind(owner.gameObject, returnMenuConfirmButton, returnMenuCancelButton,
-                () => owner != null && owner == returnMenuConfirmation,
-                () => { ConfirmReturnToMainMenu(); return returnMenuSaving; }, CloseReturnToMenuConfirmation);
+                new Vector2(205f, -126f), "保存并返回", Html("#98682D"));
+            returnMenuCancelButton.onClick.AddListener(() =>
+            {
+                if (owner != null && owner == returnMenuConfirmation) CloseReturnToMenuConfirmation();
+            });
+            returnMenuConfirmButton.onClick.AddListener(() =>
+            {
+                if (owner != null && owner == returnMenuConfirmation) ConfirmReturnToMainMenu();
+            });
             foreach (Button control in new[] { returnMenuCancelButton, returnMenuConfirmButton })
             {
                 Button other = control == returnMenuCancelButton ? returnMenuConfirmButton : returnMenuCancelButton;

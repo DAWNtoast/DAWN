@@ -9,10 +9,20 @@ namespace ShatteredSail.Core.Tests
         private static readonly DateTime TestDay = new DateTime(2026, 9, 23);
 
         [Test]
-        public void Catalog_LastSupportedMonthCannotOverflowTheRestockLabel()
+        public void Catalog_LastSupportedMonthWrapsRestockLabelToFirstYear()
         {
-            Assert.That(PortMarketCatalog.NextRefreshLabel(DateTime.MaxValue), Is.EqualTo("已达历法上限"));
-            Assert.That(PortComponentShopCatalog.NextRefreshLabel(DateTime.MaxValue), Is.EqualTo("已达历法上限"));
+            Assert.That(PortMarketCatalog.NextRefreshLabel(DateTime.MaxValue), Is.EqualTo("1-01-01"));
+            Assert.That(PortComponentShopCatalog.NextRefreshLabel(DateTime.MaxValue), Is.EqualTo("1-01-01"));
+        }
+
+        [TestCase(1, "1-09")]
+        [TestCase(77, "77-09")]
+        [TestCase(999, "999-09")]
+        [TestCase(2026, "2026-09")]
+        [TestCase(9999, "9999-09")]
+        public void Catalog_MonthLabelShowsTheFullYearWithoutLeadingZeros(int year, string expected)
+        {
+            Assert.That(PortMarketCatalog.MonthLabel(new DateTime(year, 9, 23)), Is.EqualTo(expected));
         }
 
         [Test]
@@ -121,16 +131,23 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
+        [TestCase(1, 1, 1, "0001-01", "1-02-01")]
+        [TestCase(77, 9, 1, "0077-09", "77-10-01")]
+        [TestCase(999, 12, 31, "0999-12", "1000-01-01")]
         [TestCase(2026, 9, 1, "2026-09", "2026-10-01")]
         [TestCase(2026, 9, 30, "2026-09", "2026-10-01")]
         [TestCase(2026, 12, 31, "2026-12", "2027-01-01")]
         [TestCase(2028, 2, 29, "2028-02", "2028-03-01")]
+        [TestCase(9999, 11, 30, "9999-11", "9999-12-01")]
+        [TestCase(9999, 12, 1, "9999-12", "1-01-01")]
+        [TestCase(9999, 12, 31, "9999-12", "1-01-01")]
         public void Catalog_MonthKeysAndNextRefreshHandleCalendarBoundaries(int year, int month, int day,
             string period, string nextRefresh)
         {
             DateTime date = new DateTime(year, month, day);
             Assert.That(PortMarketCatalog.MonthKey(date), Is.EqualTo(period));
             Assert.That(PortMarketCatalog.NextRefreshLabel(date), Is.EqualTo(nextRefresh));
+            Assert.That(PortComponentShopCatalog.NextRefreshLabel(date), Is.EqualTo(nextRefresh));
         }
 
         [Test]
@@ -178,6 +195,42 @@ namespace ShatteredSail.Core.Tests
             Assert.That(PortMarketCatalog.PurchaseStep(PortMarketItem.Food), Is.EqualTo(100));
             Assert.That(PortMarketCatalog.SaleStep(PortMarketItem.Water), Is.EqualTo(100));
             Assert.That(PortMarketCatalog.SaleStep(PortMarketItem.Wood), Is.EqualTo(10));
+        }
+
+        [TestCase(0, 0)]
+        [TestCase(49, 0)]
+        [TestCase(50, 1)]
+        [TestCase(750, 15)]
+        public void Catalog_FameDiscountUsesWholeFiftiesAndCapsAtFifteenPercent(int fame, int expectedDiscount)
+        {
+            const string port = "白贝港";
+            const PortMarketItem item = PortMarketItem.Wood;
+            PortMarketDayState day = PortMarketCatalog.DayState(port, item, TestDay);
+            decimal undiscountedRaw = PortMarketCatalog.BaseBuyPrice(item) *
+                ShatteredSail.Core.Gameplay.CorePortEconomy.LocalPriceMultiplier(port, PortMarketCatalog.Key(item)) *
+                day.BuyMultiplier;
+            decimal expected = decimal.Round(undiscountedRaw * (100 - expectedDiscount) / 100m, 4);
+
+            Assert.That(PortMarketCatalog.FamePurchaseDiscountPercent(fame), Is.EqualTo(expectedDiscount));
+            Assert.That(PortMarketCatalog.BuyUnitPrice(port, item, TestDay, fame), Is.EqualTo(expected));
+            Assert.That(PortMarketCatalog.CalculateBuyCost(port, item, TestDay, 1, fame), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void Catalog_FameDiscountDoesNotChangeSaleQuotes()
+        {
+            const string port = "白贝港";
+            const PortMarketItem item = PortMarketItem.Wood;
+            const int quantity = 10;
+            decimal baseline = PortMarketCatalog.CalculateSellRevenue(port, item, TestDay, quantity);
+
+            foreach (int fame in new[] { 0, 49, 50, 750 })
+            {
+                // Sale quotes intentionally have no fame input; verify that
+                // changing the purchase discount leaves the sale quote fixed.
+                Assert.That(PortMarketCatalog.CalculateBuyCost(port, item, TestDay, quantity, fame), Is.GreaterThan(0m));
+                Assert.That(PortMarketCatalog.CalculateSellRevenue(port, item, TestDay, quantity), Is.EqualTo(baseline));
+            }
         }
     }
 }

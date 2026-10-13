@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -103,8 +103,8 @@ namespace ShatteredSail.Presentation.Tests
                         var quantities = (Dictionary<PortMarketItem, int>)typeof(CoreGameplayDemoController)
                             .GetField("marketQuantities", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
                         quantities.Clear(); render();
-                        yield return EnsureMarketItemVisible("wood");
-                        MarketQuantityField("wood").text = "1";
+                        yield return OpenMarketTrade("wood");
+                        MarketQuantityField("wood").value = 1;
                     }
                     else if (scenario.StartsWith("departure")) render();
                     else if (scenario == "settlement_draw_chart")
@@ -120,7 +120,12 @@ namespace ShatteredSail.Presentation.Tests
                     for (int operation = 0; operation < operations; operation++)
                     {
                         Action action;
-                        if (scenario.StartsWith("market")) action = ActiveButton("Market Increase wood").onClick.Invoke;
+                        if (scenario.StartsWith("market"))
+                        {
+                            Slider slider = MarketQuantityField("wood");
+                            float next = operation + 2;
+                            action = () => slider.value = next;
+                        }
                         else if (scenario.StartsWith("departure"))
                         {
                             Slider slider = GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>();
@@ -151,7 +156,7 @@ namespace ShatteredSail.Presentation.Tests
                         else sample.managedBytes = -1;
                     }
                     if (scenario.StartsWith("market"))
-                        Assert.That(GameObject.Find("Market Quantity Input wood").GetComponent<InputField>().text, Is.EqualTo("40"));
+                        Assert.That(MarketQuantityField("wood").value, Is.EqualTo(40));
                     if (scenario.StartsWith("departure"))
                         Assert.That(GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>().value,
                             Is.EqualTo(session.CrewCountValue - session.SelectedSpecialCrewCount));

@@ -297,8 +297,7 @@ namespace ShatteredSail.Core.Tests
             if (boarding && tactic == Tactic.Sustain)
                 score = repair * (health <= attack * 2 ? 3.5 : 1.2) + block * (health <= attack * 2 ? 3.5 : 2.1);
             double divisor = session.GetBattleCardEnergyCost(cardIndex) + .65;
-            int damage = effect.Damage + (card.Action == NavalBattleCardAction.Cannon ?
-                Math.Max(0, (session.EffectiveFirepower - 8) / 2) + battle.PlayerLoadedShot : 0);
+            int damage = session.GetBattleCardDamage(card, battle.Stage);
             if (damage >= enemyHealth + battle.EnemyBlock) return 10000 / divisor;
             if (!preparing && (boarding || tactic == Tactic.Cannon)) score += damage * 1.7;
             if (card.Draw > 0 && battle.Hand.Count < 7) score += card.Draw * (battle.Hand.Count < 4 ? 6 : 2);

@@ -42,8 +42,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Achievement Icon tutorial_departure").GetComponent<RawImage>().color.a, Is.LessThan(1f));
             // Simulate a milestone recorded elsewhere while the menu is open.
             // Paging keeps the opening snapshot; reopening must refresh it.
-            Assert.That(displayedStates["dispatch_resolved"], Is.False);
-            AchievementCatalog.RecordDispatchCompleted();
+            Assert.That(displayedStates["tutorial_recovery"], Is.False);
+            AchievementCatalog.RecordDamagedReturn();
             progress = AchievementCatalog.PersistenceKeys.ToDictionary(key => key,
                 key => PlayerPrefs.HasKey(key) ? (int?)PlayerPrefs.GetInt(key) : null);
 
@@ -90,15 +90,15 @@ namespace ShatteredSail.Presentation.Tests
                 "Reopening preserves the page the player was reading.");
             string refreshedSummary = "已解锁 " + (displayedStates.Count(item => item.Value) + 1) + " / 50";
             Assert.That(GameObject.Find("Achievements Card").transform.Find("Modal Subtitle").GetComponent<Text>().text, Is.EqualTo(refreshedSummary));
-            Assert.That(ActiveButton("Achievements").transform.Find("Detail").GetComponent<Text>().text, Is.EqualTo(refreshedSummary));
-            int dispatchPage = AchievementCatalog.All.ToList().FindIndex(item => item.Id == "dispatch_resolved") / 8;
-            for (int page = 6; page > dispatchPage; page--) yield return ClickAchievementIconControl("Achievements Previous Page");
-            RawImage refreshedIcon = GameObject.Find("Achievement Icon dispatch_resolved").GetComponent<RawImage>();
+            Assert.That(ActiveButton("Achievements").transform.Find("Detail"), Is.Null);
+            int milestonePage = AchievementCatalog.All.ToList().FindIndex(item => item.Id == "tutorial_recovery") / 8;
+            for (int page = 6; page > milestonePage; page--) yield return ClickAchievementIconControl("Achievements Previous Page");
+            RawImage refreshedIcon = GameObject.Find("Achievement Icon tutorial_recovery").GetComponent<RawImage>();
             Assert.That(refreshedIcon.color, Is.EqualTo(Color.white));
-            Assert.That(refreshedIcon.texture, Is.SameAs(AchievementIconCatalog.ForId("dispatch_resolved").Texture));
-            Assert.That(refreshedIcon.uvRect, Is.EqualTo(AchievementIconCatalog.ForId("dispatch_resolved").Uv));
+            Assert.That(refreshedIcon.texture, Is.SameAs(AchievementIconCatalog.ForId("tutorial_recovery").Texture));
+            Assert.That(refreshedIcon.uvRect, Is.EqualTo(AchievementIconCatalog.ForId("tutorial_recovery").Uv));
             Assert.That(refreshedIcon.transform.parent.Find("State").GetComponent<Text>().text, Is.EqualTo("已解锁"));
-            for (int page = dispatchPage; page > 0; page--) yield return ClickAchievementIconControl("Achievements Previous Page");
+            for (int page = milestonePage; page > 0; page--) yield return ClickAchievementIconControl("Achievements Previous Page");
             Assert.That(ActiveButton("Achievements Previous Page").interactable, Is.False);
             CollectionAssert.AreEquivalent(allIcons, controller.GetComponentsInChildren<RawImage>(true)
                 .Where(image => image.name.StartsWith("Achievement Icon ")).ToArray(), "Paging and reopening reuse the existing badge graphics.");

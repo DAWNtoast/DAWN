@@ -9,11 +9,20 @@ namespace ShatteredSail.Presentation
     {
         public const string CanvasPath = "UISurfaces/nautical_canvas_v1";
         public const string PaperPath = "UISurfaces/journal_parchment_v1";
+        public const string ReadingPaperPath = "UISurfaces/aged_reading_parchment_v1";
+        public const string InvestmentPaperPath = "UISurfaces/investment_charter_parchment_v1";
+        public const string CollectionPaperPath = "UISurfaces/collection_archive_parchment_v1";
         private static Sprite canvas;
         private static Sprite paper;
         private static Sprite timber;
+        private static Sprite readingPaper;
+        private static Sprite investmentPaper;
+        private static Sprite collectionPaper;
         public static Sprite Canvas => Load(ref canvas, CanvasPath);
         public static Sprite Paper => Load(ref paper, PaperPath);
+        public static Sprite ReadingPaper => Load(ref readingPaper, ReadingPaperPath, true) ?? Paper;
+        public static Sprite InvestmentPaper => Load(ref investmentPaper, InvestmentPaperPath, true) ?? Paper;
+        public static Sprite CollectionPaper => Load(ref collectionPaper, CollectionPaperPath, true) ?? Paper;
 
         static NauticalSurfaceSkin()
         {
@@ -32,19 +41,21 @@ namespace ShatteredSail.Presentation
 
         public static bool ApplyPanel(Image image, Color original)
         {
-            if (image == null || original.a <= 0.01f || IsAtmosphere(image.name)) return false;
+            if (image == null || original.a <= 0.01f || IsAtmosphere(image.name) ||
+                image.name == "Warehouse Ledger") return false;
             string name = image.name;
             bool light = original.r + original.g + original.b > 1.65f;
             bool wood = !light && (original.r > original.b * 1.3f || name.Contains("Header") ||
                 name.Contains("Ledger") || name.Contains("Plaque") || name.Contains("Settlement") ||
                 name.Contains("Footer") || name.Contains("Unified Art Frame") ||
-                name == "Left Menu Veil" || name == "Active Dispatch Job");
-            // Information panels that used the dark blue nautical canvas now
-            // use the same journal parchment as the readable dossier surfaces.
-            // Keep wood and light authored surfaces unchanged; scene overlays
-            // are filtered above by IsAtmosphere().
+                name == "Left Menu Veil");
+            if (name == "Port Investment Summary" || name == "Port Investment Ledger")
+                return ApplyPaperPanel(image, InvestmentPaper);
             Sprite face = light ? Paper : wood ? Timber : Paper;
             if (face == null) return false;
+            Rect bounds = image.rectTransform.rect;
+            if (!wood && original.a >= 0.65f && bounds.width >= 450f && bounds.height >= 180f)
+                return ApplyReadingPanel(image);
             image.sprite = face;
             image.type = Image.Type.Tiled;
             image.pixelsPerUnitMultiplier = face.rect.width / (wood ? 620f : 340f);
@@ -52,6 +63,52 @@ namespace ShatteredSail.Presentation
             image.color = light ? new Color(1f, 1f, 1f, original.a) :
                 wood ? new Color(0.92f, 0.88f, 0.82f, original.a) : new Color(0.96f, 0.91f, 0.81f, original.a);
             if (NeedsFrame(name)) AddFrame(image);
+            return true;
+        }
+
+        /// <summary>Explicit reading surface; preserves layout and hit testing, including atmosphere-exempt callers.</summary>
+        public static bool ApplyReadingPanel(Image image) => ApplyPaperPanel(image, ReadingPaper);
+
+        /// <summary>Recognizes cached material sprites without loading unrelated textures during a text query.</summary>
+        public static bool IsPaperSurface(Sprite sprite) => sprite != null &&
+            (sprite == paper || sprite == readingPaper || sprite == investmentPaper || sprite == collectionPaper ||
+             sprite.name == PaperPath || sprite.name == ReadingPaperPath ||
+             sprite.name == InvestmentPaperPath || sprite.name == CollectionPaperPath ||
+             sprite.name == DepartureSkin.PaperResourcePath);
+
+        /// <summary>Lets the engine collect facility papers while preserving any live Image references.</summary>
+        public static void ReleaseGameplayPaperReferences()
+        {
+            ReleasePaperReference(ref investmentPaper);
+            ReleasePaperReference(ref collectionPaper);
+            DepartureSkin.ReleaseGameplayPaperReference();
+        }
+
+        private static void ReleasePaperReference(ref Sprite cached)
+        {
+            // These sprites are generated, unlike their borrowed source textures.
+            // HideAndDontSave pins them even after clearing the static cache;
+            // remove only that pin and let UnloadUnusedAssets inspect live UI.
+            if (cached != null) cached.hideFlags &= ~HideFlags.DontUnloadUnusedAsset;
+            cached = null;
+        }
+
+        private static bool ApplyPaperPanel(Image image, Sprite face)
+        {
+            if (image == null || face == null) return false;
+            bool aged = face == readingPaper || face == investmentPaper || face == collectionPaper;
+            image.sprite = face;
+            image.overrideSprite = null;
+            image.type = aged ? Image.Type.Sliced : Image.Type.Tiled;
+            image.fillCenter = true;
+            image.pixelsPerUnitMultiplier = face.rect.width / (aged ? 800f : 340f);
+            // The PNG owns transparent torn edges. Its opaque centre must not
+            // pick up the busy scene below, or dark reading ink loses contrast.
+            image.color = Color.white;
+            // Authored paper already has its edge treatment; no extra retained
+            // child layer is created. Hide an older preview's optional timber rim.
+            Transform rim = image.transform.Find("Material Timber Rim");
+            if (rim != null) rim.gameObject.SetActive(false);
             return true;
         }
 
@@ -63,7 +120,7 @@ namespace ShatteredSail.Presentation
             {
                 Image surface = current.GetComponent<Image>();
                 if (surface == null || !surface.enabled || surface.color.a < 0.65f) continue;
-                if (surface.sprite == Paper)
+                if (IsPaperSurface(surface.sprite))
                 {
                     if (requested.r + requested.g + requested.b < 1f) return requested;
                     if (requested.r > requested.g * 1.5f && requested.g < 0.5f)
@@ -87,27 +144,13 @@ namespace ShatteredSail.Presentation
         public static bool ApplySpecialButton(Button button, Color original)
         {
             if (button == null || original.a <= 0.01f) return false;
-            bool crew = button.name.StartsWith("Dispatch Crew Toggle ", StringComparison.Ordinal);
-            if (!crew && !button.name.StartsWith("Add Deck Card ", StringComparison.Ordinal)) return false;
+            if (!button.name.StartsWith("Add Deck Card ", StringComparison.Ordinal)) return false;
             Image image = button.GetComponent<Image>();
             if (image == null || Paper == null) return false;
             image.sprite = Paper;
             image.type = Image.Type.Tiled;
             image.pixelsPerUnitMultiplier = Paper.rect.width / 280f;
             image.color = Color.white;
-            if (crew)
-            {
-                ColorBlock colors = button.colors;
-                colors.normalColor = original.a > 0.7f ? new Color(original.r, original.g, original.b, 1f) : new Color(0.96f, 0.87f, 0.70f, 0.9f);
-                colors.highlightedColor = Color.Lerp(colors.normalColor, Color.white, 0.22f);
-                colors.selectedColor = colors.highlightedColor;
-                colors.pressedColor = colors.normalColor * new Color(0.85f, 0.85f, 0.85f, 1f);
-                colors.disabledColor = new Color(0.78f, 0.74f, 0.65f, 0.75f);
-                button.colors = colors;
-                Outline rim = button.gameObject.AddComponent<Outline>();
-                rim.effectColor = new Color(0.40f, 0.27f, 0.12f, 0.5f);
-                rim.effectDistance = new Vector2(1f, -1f);
-            }
             return true;
         }
 
@@ -143,7 +186,7 @@ namespace ShatteredSail.Presentation
         {
             return name == "Settings Card" || name == "Achievements Card" || name == "Confirmation Card" ||
                 name == "Warehouse Ledger" || name == "Route Selection" || name == "Voyage Setup" ||
-                name == "Active Dispatch Job" || name == "Tutorial Guide" || name == "Guide Panel" ||
+                name == "Tutorial Guide" || name == "Guide Panel" ||
                 name == "Tutorial Banner" || name == "Tutorial Battle Card";
         }
 
@@ -175,25 +218,35 @@ namespace ShatteredSail.Presentation
             }
         }
 
-        private static Sprite Load(ref Sprite cached, string path)
+        private static Sprite Load(ref Sprite cached, string path, bool sliced = false)
         {
             if (cached != null) return cached;
             Texture2D texture = Resources.Load<Texture2D>(path);
             if (texture == null) return null;
-            cached = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * 0.5f, 100f);
+            Rect rect = new Rect(0, 0, texture.width, texture.height);
+            if (sliced)
+            {
+                // Keep the outer 2-3% painted wear inside fixed corners/edges.
+                // A 4% slice leaves the quiet writing area free to resize once.
+                Vector4 border = new Vector4(texture.width * .04f, texture.height * .04f,
+                    texture.width * .04f, texture.height * .04f);
+                cached = Sprite.Create(texture, rect, Vector2.one * 0.5f, 100f, 0, SpriteMeshType.FullRect, border);
+            }
+            else cached = Sprite.Create(texture, rect, Vector2.one * 0.5f, 100f);
             cached.name = path; cached.hideFlags = HideFlags.HideAndDontSave;
             return cached;
         }
 
         private static void Release()
         {
-            foreach (Sprite sprite in new[] { canvas, paper, timber })
+            foreach (Sprite sprite in new[] { canvas, paper, timber, readingPaper, investmentPaper, collectionPaper })
             {
                 if (sprite == null) continue;
                 if (Application.isPlaying) UnityEngine.Object.Destroy(sprite);
                 else UnityEngine.Object.DestroyImmediate(sprite);
             }
             canvas = paper = timber = null;
+            readingPaper = investmentPaper = collectionPaper = null;
         }
     }
 }

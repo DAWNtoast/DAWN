@@ -14,6 +14,16 @@ namespace ShatteredSail.Core.Tests
     public sealed class ProfileSaveJournalTests
     {
         private const string OutsideKey = "ShatteredSail.Tests.ProfileJournal.Unrelated";
+        private const string VoyageThreeEventsKey = "ShatteredSail.Achievements.Unlocked.v1.voyage_three_events";
+        private const string VoyageHalfChartKey = "ShatteredSail.Achievements.Unlocked.v1.voyage_half_chart";
+        private const string VoyageEventArrivalKey = "ShatteredSail.Achievements.Unlocked.v1.voyage_event_arrival";
+        private static readonly string[] VersionThreeAchievementKeys = { VoyageHalfChartKey, VoyageEventArrivalKey };
+        private static readonly string[] RetiredAchievementKeys =
+        {
+            "ShatteredSail.Achievements.Unlocked.v1.dispatch_prepare",
+            "ShatteredSail.Achievements.Unlocked.v1.dispatch_long",
+            "ShatteredSail.Achievements.Unlocked.v1.dispatch_resolved",
+        };
         private readonly Dictionary<string, bool> expectedTypes = ExpectedWriterKeys();
         private readonly Dictionary<FieldInfo, object> originalStatics = new Dictionary<FieldInfo, object>();
         private Dictionary<string, SavedPreference> originalPreferences;
@@ -52,6 +62,7 @@ namespace ShatteredSail.Core.Tests
                 [CoreGameplayDemoController.WorldEconomyScopeKey] = true,
                 [OutsideKey] = true,
             };
+            foreach (string key in RetiredAchievementKeys) preservedTypes.Add(key, false);
             originalPreferences = ReadPreferences(preservedTypes);
             foreach (FieldInfo field in typeof(ProfileSaveJournal).GetFields(BindingFlags.NonPublic | BindingFlags.Static))
             {
@@ -90,13 +101,44 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void ProtectedManifestCoversEveryCurrentSaveProgressWriterAndNoEarlierIndependentWrites()
         {
-            Assert.That(expectedTypes.Count, Is.EqualTo(100), "29 string and 71 integer keys for the six-port profile.");
-            Assert.That(expectedTypes.Values.Count(value => value), Is.EqualTo(29));
+            Assert.That(expectedTypes.Count, Is.EqualTo(102), "30 string and 72 integer keys for the six-port profile.");
+            Assert.That(expectedTypes.Values.Count(value => value), Is.EqualTo(30));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Is.EquivalentTo(expectedTypes.Keys));
             Assert.That(ProfileSaveJournal.ProtectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(expectedTypes.Count));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Does.Not.Contain(CoreGameplayDemoController.WorldEconomyScopeKey));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Does.Not.Contain(CoreGameplayDemoController.TutorialCompletedKey));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Does.Not.Contain(CoreGameplayDemoController.RecordedSeaChartsKey));
+        }
+
+        [Test]
+        public void NewJournalUsesVersionThreeAndIncludesAllVoyageMilestones()
+        {
+            Begin();
+            Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
+            JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
+            Assert.That(record.version, Is.EqualTo(3));
+            Assert.That(record.entries.Length, Is.EqualTo(102));
+            Assert.That(record.entries.Single(entry => entry.key == VoyageThreeEventsKey).type, Is.EqualTo("int"));
+            foreach (string key in VersionThreeAchievementKeys)
+                Assert.That(record.entries.Single(entry => entry.key == key).type, Is.EqualTo("int"));
+        }
+
+        [TestCase(false, VoyageThreeEventsKey)]
+        [TestCase(true, VoyageThreeEventsKey)]
+        [TestCase(false, VoyageHalfChartKey)]
+        [TestCase(true, VoyageHalfChartKey)]
+        [TestCase(false, VoyageEventArrivalKey)]
+        [TestCase(true, VoyageEventArrivalKey)]
+        public void CurrentJournalRestoresEachVoyageMilestoneBeforeImage(bool existed, string key)
+        {
+            if (existed) PlayerPrefs.SetInt(key, 1);
+            Begin();
+            PlayerPrefs.SetInt(key, 23);
+
+            Assert.That(ProfileSaveJournal.TryRecover(out string notice), Is.True, notice);
+            Assert.That(PlayerPrefs.HasKey(key), Is.EqualTo(existed));
+            if (existed) Assert.That(PlayerPrefs.GetInt(key), Is.EqualTo(1));
+            AssertSlotEmpty();
         }
 
         [Test]
@@ -112,6 +154,157 @@ namespace ShatteredSail.Core.Tests
             AssertPreferences(before);
             Assert.That(PlayerPrefs.GetString(OutsideKey), Is.EqualTo("outside-after-begin"));
             AssertSlotEmpty();
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LegacyJournalRestoresItsKeysAndRemovesNewMilestonesWithoutRestoringRetiredAchievements(bool includesRetired)
+        {
+            SeedValues("before", 1100, true);
+            PlayerPrefs.DeleteKey(VoyageThreeEventsKey);
+            foreach (string key in VersionThreeAchievementKeys) PlayerPrefs.DeleteKey(key);
+            Dictionary<string, SavedPreference> before = ReadPreferences(expectedTypes);
+            Begin();
+            JournalRecord legacy = ReadLegacyRecord(includesRetired);
+            ReplaceJournalPayload(JsonUtility.ToJson(legacy));
+            SeedValues("interrupted", 2200, false);
+            foreach (string key in RetiredAchievementKeys) PlayerPrefs.DeleteKey(key);
+
+            Assert.That(ProfileSaveJournal.TryRecover(out string notice), Is.True, notice);
+            AssertPreferences(before);
+            foreach (string key in RetiredAchievementKeys) Assert.That(PlayerPrefs.HasKey(key), Is.False, key);
+            AssertSlotEmpty();
+            Begin();
+            Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
+            JournalRecord upgraded = JsonUtility.FromJson<JournalRecord>(json);
+            Assert.That(upgraded.version, Is.EqualTo(3));
+            Assert.That(upgraded.entries.Select(entry => entry.key), Is.EquivalentTo(expectedTypes.Keys));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void VersionTwoJournalRestoresExistingMilestoneAndRemovesOnlyTheTwoLaterMilestones(bool milestoneExisted)
+        {
+            SeedValues("before", 1100, true);
+            if (milestoneExisted) PlayerPrefs.SetInt(VoyageThreeEventsKey, 1);
+            else PlayerPrefs.DeleteKey(VoyageThreeEventsKey);
+            foreach (string key in VersionThreeAchievementKeys) PlayerPrefs.DeleteKey(key);
+            Dictionary<string, SavedPreference> before = ReadPreferences(expectedTypes);
+            Begin();
+            ReplaceJournalPayload(JsonUtility.ToJson(ReadVersionTwoRecord()));
+            SeedValues("interrupted", 2200, false);
+            ForgetActiveTransactionForRestartSimulation();
+
+            Assert.That(ProfileSaveJournal.TryRecover(out string notice), Is.True, notice);
+            AssertPreferences(before);
+            Assert.That(PlayerPrefs.HasKey(VoyageThreeEventsKey), Is.EqualTo(milestoneExisted));
+            foreach (string key in VersionThreeAchievementKeys) Assert.That(PlayerPrefs.HasKey(key), Is.False, key);
+            AssertSlotEmpty();
+            Begin();
+            Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
+            Assert.That(JsonUtility.FromJson<JournalRecord>(json).version, Is.EqualTo(3));
+        }
+
+        [TestCase(false, "missing-current")]
+        [TestCase(false, "duplicate-current")]
+        [TestCase(false, "unknown")]
+        [TestCase(false, "current-type")]
+        [TestCase(false, "new-key")]
+        [TestCase(false, "half-chart-key")]
+        [TestCase(false, "event-arrival-key")]
+        [TestCase(true, "missing-current")]
+        [TestCase(true, "duplicate-current")]
+        [TestCase(true, "duplicate-retired")]
+        [TestCase(true, "unknown")]
+        [TestCase(true, "retired-type")]
+        [TestCase(true, "new-key")]
+        [TestCase(true, "half-chart-key")]
+        [TestCase(true, "event-arrival-key")]
+        public void InvalidLegacyJournalIsRejectedBeforeAnyCurrentKeyIsRestored(bool includesRetired, string damage)
+        {
+            SeedValues("before", 1100, false);
+            Begin();
+            JournalRecord legacy = ReadLegacyRecord(includesRetired);
+            int last = legacy.entries.Length - 1;
+            switch (damage)
+            {
+                case "missing-current": legacy.entries = legacy.entries.Skip(1).ToArray(); break;
+                case "duplicate-current": legacy.entries[1] = legacy.entries[0]; break;
+                case "duplicate-retired": legacy.entries[last] = legacy.entries[last - 1]; break;
+                case "unknown": legacy.entries[last].key = OutsideKey; break;
+                case "current-type": legacy.entries[0].type = legacy.entries[0].type == "int" ? "string" : "int"; break;
+                case "retired-type": legacy.entries[last].type = "string"; break;
+                case "new-key": legacy.entries[last].key = VoyageThreeEventsKey; break;
+                case "half-chart-key": legacy.entries[last].key = VoyageHalfChartKey; break;
+                case "event-arrival-key": legacy.entries[last].key = VoyageEventArrivalKey; break;
+            }
+            ReplaceJournalPayload(JsonUtility.ToJson(legacy));
+            SeedValues("interrupted", 2200, false);
+            Dictionary<string, byte[]> evidence = ReadJournalFiles();
+            AssertRecoveryAndBeginRejectWithoutMutation();
+            AssertJournalFiles(evidence);
+        }
+
+        [TestCase("missing-new-key")]
+        [TestCase("missing-half-chart-key")]
+        [TestCase("missing-event-arrival-key")]
+        [TestCase("version-three-version-two-keys")]
+        [TestCase("version-three-retired-keys")]
+        [TestCase("version-one-current-keys")]
+        [TestCase("version-two-current-keys")]
+        [TestCase("version-two-retired-keys")]
+        public void JournalVersionCannotDisguiseAnIncompleteOrUnexpectedManifest(string damage)
+        {
+            SeedValues("before", 1100, false);
+            Begin();
+            Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
+            JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
+            switch (damage)
+            {
+                case "missing-new-key": record.entries = record.entries.Where(entry => entry.key != VoyageThreeEventsKey).ToArray(); break;
+                case "missing-half-chart-key": record.entries = record.entries.Where(entry => entry.key != VoyageHalfChartKey).ToArray(); break;
+                case "missing-event-arrival-key": record.entries = record.entries.Where(entry => entry.key != VoyageEventArrivalKey).ToArray(); break;
+                case "version-three-version-two-keys": record = ReadVersionTwoRecord(); record.version = 3; break;
+                case "version-three-retired-keys": record = ReadLegacyRecord(true); record.version = 3; break;
+                case "version-one-current-keys": record.version = 1; break;
+                case "version-two-current-keys": record.version = 2; break;
+                case "version-two-retired-keys": record = ReadLegacyRecord(true); record.version = 2; break;
+            }
+            ReplaceJournalPayload(JsonUtility.ToJson(record));
+            SeedValues("interrupted", 2200, false);
+            Dictionary<string, byte[]> evidence = ReadJournalFiles();
+
+            AssertRecoveryAndBeginRejectWithoutMutation();
+            AssertJournalFiles(evidence);
+        }
+
+        [TestCase("missing-current")]
+        [TestCase("duplicate-current")]
+        [TestCase("new-key-type")]
+        [TestCase("missing-new-key")]
+        [TestCase("half-chart-key")]
+        [TestCase("event-arrival-key")]
+        public void InvalidVersionTwoJournalIsRejectedWithoutRestoringOrDeletingAnyMilestone(string damage)
+        {
+            SeedValues("before", 1100, false);
+            Begin();
+            JournalRecord record = ReadVersionTwoRecord();
+            JournalEntry milestone = record.entries.Single(entry => entry.key == VoyageThreeEventsKey);
+            switch (damage)
+            {
+                case "missing-current": record.entries = record.entries.Skip(1).ToArray(); break;
+                case "duplicate-current": record.entries[1] = record.entries[0]; break;
+                case "new-key-type": milestone.type = "string"; break;
+                case "missing-new-key": record.entries = record.entries.Where(entry => entry.key != VoyageThreeEventsKey).ToArray(); break;
+                case "half-chart-key": milestone.key = VoyageHalfChartKey; break;
+                case "event-arrival-key": milestone.key = VoyageEventArrivalKey; break;
+            }
+            ReplaceJournalPayload(JsonUtility.ToJson(record));
+            SeedValues("interrupted", 2200, false);
+            Dictionary<string, byte[]> evidence = ReadJournalFiles();
+
+            AssertRecoveryAndBeginRejectWithoutMutation();
+            AssertJournalFiles(evidence);
         }
 
         [Test]
@@ -426,6 +619,30 @@ namespace ShatteredSail.Core.Tests
             Assert.That(payload, Is.Not.Empty);
         }
 
+        private JournalRecord ReadLegacyRecord(bool includesRetired)
+        {
+            JournalRecord record = ReadVersionTwoRecord();
+            record.version = 1;
+            record.entries = record.entries.Where(entry => entry.key != VoyageThreeEventsKey).ToArray();
+            if (includesRetired)
+                record.entries = record.entries.Concat(RetiredAchievementKeys.Select(key => new JournalEntry
+                {
+                    key = key, type = "int", stringValue = string.Empty, exists = true, intValue = 1,
+                })).ToArray();
+            Assert.That(record.entries.Length, Is.EqualTo(includesRetired ? 102 : 99));
+            return record;
+        }
+
+        private JournalRecord ReadVersionTwoRecord()
+        {
+            Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
+            JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
+            record.version = 2;
+            record.entries = record.entries.Where(entry => !VersionThreeAchievementKeys.Contains(entry.key)).ToArray();
+            Assert.That(record.entries.Length, Is.EqualTo(100));
+            return record;
+        }
+
         private void SeedValues(string prefix, int number, bool includeAbsent)
         {
             int index = 0;
@@ -546,7 +763,7 @@ namespace ShatteredSail.Core.Tests
                 "ShatteredSail.ComponentInventory.v2", "ShatteredSail.Collection.Progress.v1",
                 "ShatteredSail.Warehouse.Owned.v1", "ShatteredSail.Warehouse.Display.v1", "ShatteredSail.PortWarehouse.Cargo.v1",
                 "ShatteredSail.TreasureProgress.v1", "ShatteredSail.SeaChart.Progress.v1", "ShatteredSail.GameClockHours.v1",
-                "ShatteredSail.ProfileGold.Decimal.v2", "ShatteredSail.CurrentPort.v1", "ShatteredSail.BattleDeck.v1",
+                "ShatteredSail.ProfileGold.Decimal.v2", "ShatteredSail.CurrentPort.v1", "ShatteredSail.LastVoyageExplorationCoverage.v1", "ShatteredSail.BattleDeck.v1",
                 "ShatteredSail.BattleCardUpgrades.v1", "ShatteredSail.SpecialCards.Experience.v1", "ShatteredSail.SpecialCards.Acquired.v1",
                 "ShatteredSail.BattleDeck.v2.Preparation", "ShatteredSail.BattleDeck.v2.Naval", "ShatteredSail.BattleDeck.v2.Boarding",
             }) result.Add(key, true);
@@ -558,7 +775,7 @@ namespace ShatteredSail.Core.Tests
             foreach (string key in new[]
             {
                 "ShatteredSail.Warehouse.DisplayRecord.v1", "ShatteredSail.Warehouse.PortMigration.v1",
-                "ShatteredSail.ProfileGold.v1", "ShatteredSail.SelectedShip.v1",
+                "ShatteredSail.ProfileGold.v1", "ShatteredSail.SelectedShip.v1", "ShatteredSail.BattleDeck.Edited.v1",
             }) result.Add(key, false);
             foreach (string cargo in new[] { "Water", "Food", "Beer", "Medicine", "Wood", "Iron", "Cloth", "Powder", "Cannonballs", "Gold", "Fame" })
                 result.Add("ShatteredSail.Cargo.v1." + cargo, false);

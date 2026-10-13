@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
 using UnityEngine.UI;
@@ -43,19 +43,6 @@ namespace ShatteredSail.Presentation
             return true;
         }
 
-        private static string FormatInvestmentCost(PortInvestmentCost cost)
-        {
-            List<string> parts = new List<string>();
-            if (cost.Gold > 0) parts.Add(cost.Gold + " 金币");
-            if (cost.Wood > 0) parts.Add(cost.Wood + " 木材");
-            if (cost.Iron > 0) parts.Add(cost.Iron + " 铁矿");
-            if (cost.RequiredQuantity > 0) parts.Add(cost.RequiredQuantity + " " + PortMarketCatalog.Name(cost.RequiredItem));
-            if (cost.RareMaterials != null)
-                foreach (CorePortInvestmentRequirement rare in cost.RareMaterials)
-                    parts.Add(rare.Quantity + " " + CoreWarehouseItemCatalog.Find(rare.Key).Name);
-            return parts.Count == 0 ? "无需投入" : string.Join(" + ", parts);
-        }
-
         private string InvestmentShortfall(PortInvestmentCost cost)
         {
             List<string> missing = new List<string>();
@@ -79,153 +66,66 @@ namespace ShatteredSail.Presentation
         {
             investmentSupplyPanelOpen = false;
             investmentQuoteToken = new object();
+            Color darkInk = Html("#332116");
+            Color mutedInk = Html("#705039");
+            Color warmInk = Html("#F7E3B4");
+            Color shortfallInk = Html("#A13224");
+            Rect sceneBounds = PortInvestmentSceneLayout.Scene;
+            Rect ledgerBounds = PortInvestmentSceneLayout.Ledger;
+            Rect benefitBounds = PortInvestmentSceneLayout.Benefits;
+            Rect plaqueBounds = PortInvestmentSceneLayout.ProjectPlaque;
 
-            // The investment screen sits over a busy port illustration. Use a light
-            // parchment surface for the information columns and reserve dark timber
-            // strips for the tier rows so every label has a stable, high-contrast
-            // reading surface in both the editor preview and runtime.
-            Color parchmentSurface = new Color(0.88f, 0.78f, 0.62f, 0.96f);
-            Color darkInk = Html("#24170F");
-            Color mutedInk = Html("#5A3A24");
-            Color tierSurface = new Color(0.16f, 0.08f, 0.03f, 0.92f);
-            Color completedTierSurface = new Color(0.08f, 0.30f, 0.19f, 0.94f);
-
-            RectTransform panel = CreateFixedPanel("Port Investment Panel", contentRoot,
-                new Vector2(1820f, 650f), new Vector2(0f, -55f), Color.clear);
-            RectTransform summary = CreateFixedPanel("Port Investment Summary", panel,
-                new Vector2(630f, 548f), new Vector2(-520f, -10f), parchmentSurface);
-            RectTransform ledger = CreateFixedPanel("Port Investment Ledger", panel,
-                new Vector2(850f, 570f), new Vector2(420f, -10f), parchmentSurface);
-            summary.GetComponent<Image>().raycastTarget = false;
-            ledger.GetComponent<Image>().raycastTarget = false;
+            // The painting already contains the paper and timber. These clear
+            // roots register live controls without hiding any of the harbour.
+            RectTransform panel = CreateInvestmentRegion("Port Investment Panel", contentRoot, sceneBounds, sceneBounds);
+            RectTransform summary = CreateInvestmentRegion("Port Investment Summary", panel, benefitBounds, sceneBounds);
+            RectTransform ledger = CreateInvestmentRegion("Port Investment Ledger", panel, ledgerBounds, sceneBounds);
+            RectTransform plaque = CreateInvestmentRegion("Port Investment Project Plaque", panel, plaqueBounds, sceneBounds);
 
             int level = PortInvestmentLevel(session.CurrentPort);
-            PortMarketItem requiredItem = PortInvestmentCatalog.RequiredItemFor(session.CurrentPort);
-            string requiredName = PortMarketCatalog.Name(requiredItem);
-            float currentChance = PortInvestmentCatalog.HighQualityChance(level);
-            Text summaryTitle = CreateText("Port Investment Summary Title", summary,
-                new Vector2(570f, 44f), new Vector2(0f, 220f), 28, FontStyle.Bold,
-                TextAnchor.MiddleCenter, darkInk);
-            summaryTitle.text = PortInvestmentCatalog.NameFor(session.CurrentPort);
-            AddSceneLabelOutline(summaryTitle);
-            Text summaryPort = CreateText("Port Investment Port", summary,
-                new Vector2(570f, 28f), new Vector2(0f, 184f), 17, FontStyle.Bold,
-                TextAnchor.MiddleCenter, mutedInk);
-            summaryPort.text = session.CurrentPort + " · 港口投资建设";
-            AddSceneLabelOutline(summaryPort);
-            Text levelText = CreateText("Port Investment Level", summary,
-                new Vector2(570f, 42f), new Vector2(0f, 132f), 26, FontStyle.Bold,
-                TextAnchor.MiddleCenter, darkInk);
-            levelText.text = "建设等级  Lv." + level + " / " + PortInvestmentCatalog.MaxLevel;
-            AddSceneLabelOutline(levelText);
-            Text chance = CreateText("Port Investment Quality Chance", summary,
-                new Vector2(540f, 86f), new Vector2(0f, 58f), 20, FontStyle.Bold,
-                TextAnchor.MiddleCenter, darkInk);
-            chance.text = "新解锁部件稀有及以上 " + (currentChance * 100f).ToString("0.0") + "%\n" +
-                "每月部件 " + PortComponentShopCatalog.StockCount(level) + " 件（基础 6 件）";
-            chance.horizontalOverflow = HorizontalWrapMode.Wrap;
-            chance.verticalOverflow = VerticalWrapMode.Truncate;
-            chance.resizeTextForBestFit = false;
-            chance.resizeTextMinSize = 16;
-            chance.resizeTextMaxSize = 20;
-            AddSceneLabelOutline(chance);
-            Text resources = CreateText("Port Investment Resources", summary,
-                new Vector2(560f, 112f), new Vector2(0f, -46f), 16, FontStyle.Normal,
-                TextAnchor.MiddleCenter, mutedInk);
-            resources.text = "可用资源（本港仓储＋随船货物）\n金币 " + session.ProfileGold +
-                "　木材 " + session.GetPortInvestmentMaterialAmount("wood") +
-                "　铁矿 " + session.GetPortInvestmentMaterialAmount("iron") +
-                "\n本港专需：" + requiredName + " " + session.GetPortInvestmentMaterialAmount(PortMarketCatalog.Key(requiredItem));
-            var rareInventory = new List<string>();
-            foreach (CorePortInvestmentRequirement rare in PortInvestmentCatalog.CostForLevel(session.CurrentPort,
-                PortInvestmentCatalog.MaxLevel).RareMaterials)
-                rareInventory.Add(CoreWarehouseItemCatalog.Find(rare.Key).Name + " " + session.GetPortInvestmentMaterialAmount(rare.Key));
-            resources.text += "\n高阶珍稀：" + string.Join("　", rareInventory);
-            resources.horizontalOverflow = HorizontalWrapMode.Wrap;
-            resources.verticalOverflow = VerticalWrapMode.Truncate;
-            resources.resizeTextForBestFit = false;
-            resources.resizeTextMinSize = 13;
-            resources.resizeTextMaxSize = 16;
-            AddSceneLabelOutline(resources);
-            Text benefit = CreateText("Port Investment Benefit", summary,
-                new Vector2(560f, 64f), new Vector2(0f, -135f), 15, FontStyle.Normal,
-                TextAnchor.MiddleCenter, darkInk);
-            benefit.text = "普通货物月额度 " + PortMarketCatalog.MaxPurchaseQuota(PortMarketItem.Wood, level) +
-                (level < PortInvestmentCatalog.MaxLevel ? " → " + PortMarketCatalog.MaxPurchaseQuota(PortMarketItem.Wood, level + 1) : "（已满级）") +
-                "；升级增加实际库存。\n每级部件 +2 件；本月已购保留，所有港口每月首日统一补货。";
-            benefit.horizontalOverflow = HorizontalWrapMode.Wrap;
-            benefit.verticalOverflow = VerticalWrapMode.Truncate;
-            benefit.resizeTextForBestFit = false;
-            benefit.resizeTextMinSize = 12;
-            benefit.resizeTextMaxSize = 15;
-            AddSceneLabelOutline(benefit);
-            Text sourcing = CreateText("Port Investment Sourcing", summary,
-                new Vector2(560f, 82f), new Vector2(0f, -218f), 16, FontStyle.Bold,
-                TextAnchor.MiddleCenter, darkInk);
-            sourcing.text = requiredName + "在本港价格较高，建议到" + PortInvestmentCatalog.SuggestedSourcePort(session.CurrentPort) +
-                "采购。\n分批运回本港收藏室，可累计备齐建设材料。";
-            sourcing.horizontalOverflow = HorizontalWrapMode.Wrap;
-            sourcing.resizeTextForBestFit = false;
-            sourcing.resizeTextMinSize = 13;
-            sourcing.resizeTextMaxSize = 16;
-            AddSceneLabelOutline(sourcing);
-
-            Text ledgerTitle = CreateText("Port Investment Ledger Title", ledger,
-                new Vector2(780f, 40f), new Vector2(0f, 242f), 25, FontStyle.Bold,
-                TextAnchor.MiddleCenter, darkInk);
-            ledgerTitle.text = "港口建设计划";
-            AddSceneLabelOutline(ledgerTitle);
-            Text ledgerHint = CreateText("Port Investment Ledger Hint", ledger,
-                new Vector2(760f, 34f), new Vector2(0f, 205f), 15, FontStyle.Bold,
-                TextAnchor.MiddleCenter, mutedInk);
-            ledgerHint.text = "投入金币、木材、铁矿与" + requiredName + "；Lv.4–5 追加珍稀捐献\n先扣本港仓储，不足使用随船货物；其他港库存不参与";
-            ledgerHint.horizontalOverflow = HorizontalWrapMode.Wrap;
-            ledgerHint.verticalOverflow = VerticalWrapMode.Truncate;
-            ledgerHint.resizeTextForBestFit = false;
-            ledgerHint.resizeTextMinSize = 12;
-            ledgerHint.resizeTextMaxSize = 15;
-            AddSceneLabelOutline(ledgerHint);
-
-            for (int tier = 1; tier <= PortInvestmentCatalog.MaxLevel; tier += 1)
-            {
-                float y = 150f - (tier - 1) * 62f;
-                PortInvestmentCost cost = PortInvestmentCatalog.CostForLevel(session.CurrentPort, tier);
-                bool completed = level >= tier;
-                RectTransform row = CreateFixedPanel("Port Investment Tier " + tier, ledger,
-                    new Vector2(760f, 50f), new Vector2(0f, y),
-                    completed ? completedTierSurface : tierSurface);
-                Text rowText = CreateText("Port Investment Tier Label " + tier, row,
-                    new Vector2(720f, 42f), Vector2.zero, 17, FontStyle.Bold,
-                    TextAnchor.MiddleCenter, Ink);
-                rowText.text = completed
-                    ? "Lv." + tier + "　已完成建设"
-                    : "Lv." + tier + "　投入 " + FormatInvestmentCost(cost);
-                rowText.horizontalOverflow = HorizontalWrapMode.Wrap;
-                rowText.verticalOverflow = VerticalWrapMode.Truncate;
-                rowText.resizeTextForBestFit = false;
-                rowText.resizeTextMinSize = 13;
-                rowText.resizeTextMaxSize = 17;
-                AddSceneLabelOutline(rowText);
-            }
-
             int nextLevel = level + 1;
-            PortInvestmentCost nextCost = nextLevel <= PortInvestmentCatalog.MaxLevel
+            bool hasNextLevel = nextLevel <= PortInvestmentCatalog.MaxLevel;
+            int comparisonLevel = Mathf.Min(nextLevel, PortInvestmentCatalog.MaxLevel);
+            CreateInvestmentText("Project Name", plaque, new Rect(138f, 126f, 278f, 27f), plaqueBounds,
+                session.CurrentPort + " · " + PortInvestmentCatalog.NameFor(session.CurrentPort), 25, warmInk);
+            CreateInvestmentText("Project Caption", plaque, new Rect(138f, 160f, 87f, 25f), plaqueBounds,
+                "本港建设", 19, warmInk);
+            CreateInvestmentText("Current Level", plaque, new Rect(228f, 160f, 65f, 25f), plaqueBounds,
+                "Lv." + level, 22, warmInk);
+            CreateInvestmentText("Next Level", plaque, new Rect(326f, 160f, 65f, 25f), plaqueBounds,
+                "Lv." + comparisonLevel, 22, warmInk);
+            RectTransform levelArrow = CreateInvestmentRegion("Port Investment Comparison Arrow", plaque,
+                new Rect(299f, 164f, 21f, 16f), plaqueBounds);
+            BuildInvestmentArrowStroke(levelArrow, "Shaft", new Vector2(21f, 2.5f), new Vector2(-1f, 0f), 0f, warmInk);
+            BuildInvestmentArrowStroke(levelArrow, "Upper", new Vector2(10f, 2.5f), new Vector2(6f, 3f), -40f, warmInk);
+            BuildInvestmentArrowStroke(levelArrow, "Lower", new Vector2(10f, 2.5f), new Vector2(6f, -3f), 40f, warmInk);
+            BuildInvestmentBenefits(summary, benefitBounds, level, comparisonLevel, warmInk);
+
+            PortInvestmentCost nextCost = hasNextLevel
                 ? PortInvestmentCatalog.CostForLevel(session.CurrentPort, nextLevel)
                 : default;
-            bool canUpgrade = nextLevel <= PortInvestmentCatalog.MaxLevel && CanAffordPortInvestment(nextCost);
-            Button upgrade = CreateButton("Confirm Port Investment", ledger,
-                new Vector2(360f, 54f), new Vector2(-185f, -205f), canUpgrade ? Gold : PanelRaised,
-                canUpgrade ? DeepSea : Ink, 18);
-            Text upgradeLabel = upgrade.GetComponentInChildren<Text>();
-            upgradeLabel.text = nextLevel <= PortInvestmentCatalog.MaxLevel
-                ? "升级至 Lv." + nextLevel + " · " + FormatInvestmentCost(nextCost)
-                : "港口已达到最高等级";
-            upgradeLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
-            upgradeLabel.verticalOverflow = VerticalWrapMode.Truncate;
-            upgradeLabel.resizeTextForBestFit = false;
-            upgradeLabel.resizeTextMinSize = 14;
-            upgradeLabel.resizeTextMaxSize = 18;
-            AddSceneLabelOutline(upgradeLabel);
+            CreateInvestmentText("Ledger Title", ledger, new Rect(1170f, 212f, 376f, 42f), ledgerBounds,
+                hasNextLevel ? "升级至 Lv." + nextLevel + " 所需材料" : "港口建设已完成", 29, darkInk);
+            if (hasNextLevel)
+                BuildInvestmentRequirements(ledger, nextCost, darkInk, shortfallInk);
+            else
+            {
+                CreateInvestmentText("Completed", ledger, new Rect(1170f, 368f, 376f, 55f), ledgerBounds,
+                    "已达到最高投资等级", 28, darkInk);
+                CreateInvestmentText("Completed Detail", ledger, new Rect(1175f, 426f, 366f, 75f), ledgerBounds,
+                    "本港已享有全部建设收益\n感谢您为港口发展作出的贡献", 21, mutedInk, wrap: true);
+            }
+            bool canUpgrade = hasNextLevel && CanAffordPortInvestment(nextCost);
+            CreateInvestmentText("Storage Hint", ledger, new Rect(1167f, 601f, 379f, 22f), ledgerBounds,
+                "拥有量：本港仓库 + 船舱 · 优先使用本港仓库", 17, mutedInk);
+            CreateInvestmentText("Readiness", ledger, new Rect(1167f, 626f, 379f, 22f), ledgerBounds,
+                !hasNextLevel ? "建设已完成 · 无需继续投入材料" :
+                canUpgrade ? "材料齐备 · 可立即升级" : "材料不足 · 请补齐红色项目", 19,
+                hasNextLevel && !canUpgrade ? shortfallInk : mutedInk);
+
+            Button upgrade = CreateInvestmentButton("Confirm Port Investment", ledger,
+                new Rect(1167f, 655f, 379f, 46f), ledgerBounds, 24,
+                hasNextLevel ? "升级至 Lv." + nextLevel : "港口已达到最高等级");
             upgrade.interactable = Application.isPlaying && !editorPreviewBuilding && canUpgrade;
             string quotedPort = session.CurrentPort;
             int quotedLevel = level;
@@ -237,13 +137,8 @@ namespace ShatteredSail.Presentation
                     InvestInCurrentPort(quotedPort, quotedLevel);
             });
 
-            Button market = CreateButton("Open Port Market", ledger,
-                new Vector2(168f, 54f), new Vector2(100f, -205f), PanelRaised, Ink, 16);
-            Text marketLabel = market.GetComponentInChildren<Text>();
-            marketLabel.text = "前往港口市场";
-            marketLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
-            marketLabel.verticalOverflow = VerticalWrapMode.Truncate;
-            AddSceneLabelOutline(marketLabel);
+            Button market = CreateInvestmentButton("Open Port Market", ledger,
+                new Rect(1167f, 711f, 184f, 35f), ledgerBounds, 19, "前往港口市场");
             market.onClick.AddListener(() =>
             {
                 investmentSupplyPanelOpen = false;
@@ -251,10 +146,8 @@ namespace ShatteredSail.Presentation
                 portNotice = "已进入港口市场；本港投资等级会提升每月库存与购买额度。";
                 Render();
             });
-
-            Button warehouse = CreateButton("Open Investment Warehouse", ledger,
-                new Vector2(168f, 54f), new Vector2(286f, -205f), PanelRaised, Ink, 16);
-            warehouse.GetComponentInChildren<Text>().text = "本港仓储";
+            Button warehouse = CreateInvestmentButton("Open Investment Warehouse", ledger,
+                new Rect(1361f, 711f, 185f, 35f), ledgerBounds, 19, "本港仓储");
             warehouse.onClick.AddListener(() =>
             {
                 activePortFacility = 0;
@@ -264,82 +157,158 @@ namespace ShatteredSail.Presentation
                 portWarehouseNotice = string.Empty;
                 Render();
             });
-
-            Text note = CreateText("Port Investment Notice", ledger,
-                new Vector2(740f, 40f), new Vector2(0f, -260f), 14, FontStyle.Bold,
-                TextAnchor.MiddleCenter, darkInk);
-            note.text = nextLevel > PortInvestmentCatalog.MaxLevel
-                ? "本港建设已完成，部件商店稀有及以上概率达到 " + (currentChance * 100f).ToString("0.0") + "%。"
-                : canUpgrade
-                    ? "确认后一次扣除全部列出的投入；其他港口库存不参与本港建设。"
-                    : "还缺少：" + InvestmentShortfall(nextCost);
-            note.horizontalOverflow = HorizontalWrapMode.Wrap;
-            note.verticalOverflow = VerticalWrapMode.Truncate;
-            note.resizeTextForBestFit = false;
-            note.resizeTextMinSize = 11;
-            note.resizeTextMaxSize = 14;
-            AddSceneLabelOutline(note);
-            if (nextLevel <= PortInvestmentCatalog.MaxLevel)
-            {
-                note.text = "本次投入：" + FormatInvestmentCost(nextCost) + "\n" + note.text;
-                upgradeLabel.text = "升级至 Lv." + nextLevel;
-            }
-            ApplyPortInvestmentReadingLayout(panel, summary, ledger);
         }
 
-        private static void ApplyPortInvestmentReadingLayout(RectTransform panel, RectTransform summary, RectTransform ledger)
+        private RectTransform CreateInvestmentRegion(string name, Transform parent, Rect bounds, Rect parentBounds)
         {
-            panel.sizeDelta = new Vector2(1820, 730); panel.anchoredPosition = new Vector2(0, -45);
-            summary.sizeDelta = new Vector2(720, 700); summary.anchoredPosition = new Vector2(-520, -5);
-            ledger.sizeDelta = new Vector2(1000, 700); ledger.anchoredPosition = new Vector2(360, -5);
-            foreach (RectTransform board in new[] { summary, ledger })
-            {
-                Text title = MaintenanceText(board, board == summary ? "Port Investment Summary Title" : "Port Investment Ledger Title");
-                SetMaintenanceReadingText(title, 32, true);
-                title.rectTransform.sizeDelta = new Vector2(board.rect.width - 40, 72);
-                title.rectTransform.anchoredPosition = new Vector2(0, 300);
-            }
-            ScrollRect summaryScroll = MaintenanceReadingScroll("Investment Summary Reading Scroll", summary, new Vector2(680, 590), new Vector2(0, -41));
-            float top = 0;
-            foreach (string name in new[] { "Port Investment Port", "Port Investment Level", "Port Investment Quality Chance",
-                "Port Investment Resources", "Port Investment Benefit", "Port Investment Sourcing" })
-                top = FlowMaintenanceText(MaintenanceText(summary, name), summaryScroll.content, top,
-                    name == "Port Investment Port" ? 18 : 22);
-            FinishMaintenanceScroll(summaryScroll, top);
+            RectTransform region = CreateFixedPanel(name, parent, PortInvestmentSceneLayout.Size(bounds.size),
+                PortInvestmentSceneLayout.RelativePosition(bounds, parentBounds), Color.clear);
+            region.GetComponent<Image>().raycastTarget = false;
+            return region;
+        }
 
-            ScrollRect plans = MaintenanceReadingScroll("Investment Plan Reading Scroll", ledger, new Vector2(960, 340), new Vector2(0, 84));
-            top = FlowMaintenanceText(MaintenanceText(ledger, "Port Investment Ledger Hint"), plans.content, 0, 18);
-            for (int tier = 1; tier <= PortInvestmentCatalog.MaxLevel; tier++)
+        private Text CreateInvestmentText(string name, Transform parent, Rect bounds, Rect parentBounds,
+            string value, int fontSize, Color color, TextAnchor alignment = TextAnchor.MiddleCenter,
+            bool wrap = false, int minimumFontSize = 17)
+        {
+            Text label = CreateText("Port Investment " + name, parent, PortInvestmentSceneLayout.Size(bounds.size),
+                PortInvestmentSceneLayout.RelativePosition(bounds, parentBounds), fontSize, FontStyle.Bold, alignment, color);
+            label.text = value;
+            label.horizontalOverflow = wrap ? HorizontalWrapMode.Wrap : HorizontalWrapMode.Overflow;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = Mathf.Min(fontSize, minimumFontSize);
+            label.resizeTextMaxSize = fontSize;
+            // With one-line fit, preserve exact balances rather than abbreviating
+            // old saves containing four decimal places or combined long totals.
+            if (!wrap) FitInvestmentSingleLine(label, fontSize, minimumFontSize);
+            AddSceneLabelOutline(label);
+            return label;
+        }
+
+        private static void FitInvestmentSingleLine(Text label, int preferredSize, int minimumSize)
+        {
+            label.resizeTextForBestFit = false;
+            label.fontSize = preferredSize;
+            while (label.fontSize > minimumSize && label.preferredWidth > label.rectTransform.rect.width)
+                label.fontSize--;
+        }
+
+        private Button CreateInvestmentButton(string name, Transform parent, Rect bounds, Rect parentBounds,
+            int fontSize, string caption)
+        {
+            Button button = CreateButton(name, parent, PortInvestmentSceneLayout.Size(bounds.size),
+                PortInvestmentSceneLayout.RelativePosition(bounds, parentBounds), PanelRaised, Ink, fontSize);
+            Text label = button.GetComponentInChildren<Text>();
+            label.text = caption;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            FitInvestmentSingleLine(label, fontSize, 17);
+            AddSceneLabelOutline(label);
+            return button;
+        }
+
+        private void BuildInvestmentRequirements(RectTransform ledger, PortInvestmentCost cost, Color ink, Color shortfallInk)
+        {
+            Rect ledgerBounds = PortInvestmentSceneLayout.Ledger;
+            var requirements = new List<(string Key, string Name, int Quantity)>();
+            if (cost.Gold > 0) requirements.Add(("gold", "金币", cost.Gold));
+            if (cost.Wood > 0) requirements.Add(("wood", "木材", cost.Wood));
+            if (cost.Iron > 0) requirements.Add(("iron", "铁矿", cost.Iron));
+            if (cost.RequiredQuantity > 0)
+                requirements.Add((PortMarketCatalog.Key(cost.RequiredItem), PortMarketCatalog.Name(cost.RequiredItem), cost.RequiredQuantity));
+            if (cost.RareMaterials != null)
+                foreach (CorePortInvestmentRequirement rare in cost.RareMaterials)
+                    requirements.Add((rare.Key, CoreWarehouseItemCatalog.Find(rare.Key).Name, rare.Quantity));
+
+            CreateInvestmentText("Material Header", ledger, new Rect(1210f, 274f, 109f, 25f), ledgerBounds,
+                "材料", 19, ink, TextAnchor.MiddleLeft);
+            CreateInvestmentText("Quantity Header", ledger, new Rect(1320f, 274f, 226f, 25f), ledgerBounds,
+                "拥有 / 需求", 19, ink, TextAnchor.MiddleRight);
+            float spacing = requirements.Count <= 4 ? 66f : 49f;
+            float firstY = requirements.Count <= 4 ? 331f : 306f;
+            for (int index = 0; index < requirements.Count; index++)
             {
-                RectTransform row = ledger.GetComponentsInChildren<RectTransform>(true).Single(rect => rect.name == "Port Investment Tier " + tier);
-                row.SetParent(plans.content, false); row.anchorMin = row.anchorMax = row.pivot = new Vector2(.5f, 1f);
-                row.sizeDelta = new Vector2(plans.content.rect.width - 8, 1000);
-                Text text = MaintenanceText(row, "Port Investment Tier Label " + tier);
-                float height = Mathf.Max(64, FlowMaintenanceText(text, row, 8, 22));
-                row.sizeDelta = new Vector2(row.sizeDelta.x, height); row.anchoredPosition = new Vector2(0, -top);
-                top += height + 12;
+                var requirement = requirements[index];
+                float top = firstY + index * spacing;
+                Rect rowBounds = new Rect(1167f, top, 379f, 47f);
+                RectTransform row = CreateInvestmentRegion("Port Investment Requirement " + requirement.Key,
+                    ledger, rowBounds, ledgerBounds);
+                decimal owned = requirement.Key == "gold" ? session.ProfileGold :
+                    session.GetPortInvestmentMaterialAmount(requirement.Key);
+                bool enough = owned >= requirement.Quantity;
+                Color quantityInk = enough ? ink : shortfallInk;
+                ItemIconArt art = requirement.Key == "gold" ? ItemIconCatalog.ForSpecial(requirement.Key) :
+                    ItemIconCatalog.ForCargo(requirement.Key);
+                Vector2 iconPosition = PortInvestmentSceneLayout.Position(new Vector2(1185f, top + 21f)) -
+                    PortInvestmentSceneLayout.Position(rowBounds.center);
+                CreateItemIcon("Port Investment Requirement Icon " + requirement.Key, row,
+                    art, iconPosition, PortInvestmentSceneLayout.Size(new Vector2(36f, 36f)).x);
+                CreateInvestmentText("Requirement Name " + requirement.Key, row,
+                    new Rect(1210f, top + 1f, 109f, 36f), rowBounds, requirement.Name, 23, ink, TextAnchor.MiddleLeft);
+                CreateInvestmentText("Requirement Quantity " + requirement.Key, row,
+                    new Rect(1320f, top + 1f, 226f, 29f), rowBounds,
+                    owned.ToString("0.####", CultureInfo.InvariantCulture) + "/" + requirement.Quantity.ToString(CultureInfo.InvariantCulture),
+                    25, quantityInk, TextAnchor.MiddleRight, minimumFontSize: 18);
+                if (!enough)
+                    CreateInvestmentText("Requirement Shortfall " + requirement.Key, row,
+                        new Rect(1320f, top + 30f, 226f, 17f), rowBounds,
+                        "缺 " + (requirement.Quantity - owned).ToString("0.####", CultureInfo.InvariantCulture),
+                        16, shortfallInk, TextAnchor.MiddleRight, minimumFontSize: 16);
             }
-            FinishMaintenanceScroll(plans, top);
-            // Current cost and shortfall remain separate from the plans. Large
-            // inventories may scroll here without moving the transaction buttons.
-            ScrollRect notice = MaintenanceReadingScroll("Investment Quote Reading Scroll", ledger, new Vector2(960, 132), new Vector2(0, -158));
-            FinishMaintenanceScroll(notice, FlowMaintenanceText(MaintenanceText(ledger, "Port Investment Notice"), notice.content, 0, 18));
-            string[] actions = { "Confirm Port Investment", "Open Port Market", "Open Investment Warehouse" };
-            float[] widths = { 420, 240, 210 }, positions = { -250, 110, 355 };
-            for (int i = 0; i < actions.Length; i++)
-            {
-                Button button = ledger.GetComponentsInChildren<Button>(true).Single(item => item.name == actions[i]);
-                RectTransform rect = (RectTransform)button.transform;
-                rect.sizeDelta = new Vector2(widths[i], 96); rect.anchoredPosition = new Vector2(positions[i], -280);
-                Text text = button.GetComponentInChildren<Text>(); SetMaintenanceReadingText(text, 22);
-                text.rectTransform.sizeDelta = new Vector2(widths[i] - 20, 88);
-            }
+        }
+
+        private void BuildInvestmentArrowStroke(RectTransform parent, string name, Vector2 size,
+            Vector2 position, float rotation, Color ink)
+        {
+            RectTransform stroke = CreateFixedPanel("Port Investment Arrow " + name, parent, size, position, Color.clear);
+            stroke.localRotation = Quaternion.Euler(0f, 0f, rotation);
+            Image image = stroke.GetComponent<Image>();
+            image.sprite = null;
+            image.color = ink;
+            image.raycastTarget = false;
+        }
+
+        private void BuildInvestmentBenefits(RectTransform summary, Rect bounds, int currentLevel, int nextLevel, Color ink)
+        {
+            bool complete = currentLevel == PortInvestmentCatalog.MaxLevel;
+            CreateInvestmentText("Benefit Heading", summary, new Rect(494f, 682f, 194f, 29f), bounds,
+                complete ? "本港建设收益" : "本次升级收益", 21, ink);
+            float chance = PortInvestmentCatalog.HighQualityChance(currentLevel) * 100f;
+            float nextChance = PortInvestmentCatalog.HighQualityChance(nextLevel) * 100f;
+            int components = PortComponentShopCatalog.StockCount(currentLevel);
+            int nextComponents = PortComponentShopCatalog.StockCount(nextLevel);
+            int quota = PortMarketCatalog.MaxPurchaseQuota(PortMarketItem.Wood, currentLevel);
+            int nextQuota = PortMarketCatalog.MaxPurchaseQuota(PortMarketItem.Wood, nextLevel);
+            BuildInvestmentBenefit(summary, bounds, "Quality", "新部件稀有及以上", 196f,
+                chance.ToString("0.0", CultureInfo.InvariantCulture) + "%",
+                nextChance.ToString("0.0", CultureInfo.InvariantCulture) + "%",
+                "+" + (nextChance - chance).ToString("0.0", CultureInfo.InvariantCulture) + " 个百分点", ink);
+            BuildInvestmentBenefit(summary, bounds, "Component", "每月部件数量", 465f,
+                components + " 件", nextComponents + " 件", "+" + (nextComponents - components) + " 件", ink);
+            BuildInvestmentBenefit(summary, bounds, "Quota", "普通货物月额度", 735f,
+                quota.ToString(CultureInfo.InvariantCulture), nextQuota.ToString(CultureInfo.InvariantCulture),
+                "+" + (nextQuota - quota), ink);
+        }
+
+        private void BuildInvestmentBenefit(RectTransform summary, Rect bounds, string key, string title,
+            float left, string current, string next, string increase, Color ink)
+        {
+            CreateInvestmentText("Current " + key + " Label", summary, new Rect(left, 723f, 232f, 24f), bounds,
+                title, 20, ink);
+            CreateInvestmentText("Current " + key + " Value", summary, new Rect(left + 6f, 751f, 89f, 32f), bounds,
+                current, 28, ink);
+            CreateInvestmentText(key + " Arrow", summary, new Rect(left + 101f, 754f, 30f, 27f), bounds,
+                "→", 24, ink);
+            CreateInvestmentText("Next " + key + " Value", summary, new Rect(left + 137f, 751f, 89f, 32f), bounds,
+                next, 28, Html("#FFD37D"));
+            CreateInvestmentText(key + " Increase", summary, new Rect(left, 788f, 232f, 25f), bounds,
+                increase, 22, Html("#FFD37D"));
         }
 
         private void InvestInCurrentPort(string quotedPort, int quotedLevel)
         {
             if (!Application.isPlaying || editorPreviewBuilding || session == null || session.Phase != CoreDemoPhase.Port ||
-                activePortFacility != 7 || session.CurrentPort != quotedPort || PortInvestmentLevel(quotedPort) != quotedLevel)
+                activePortFacility != PortFacilityArtCatalog.MaintenanceFacilityIndex || session.CurrentPort != quotedPort || PortInvestmentLevel(quotedPort) != quotedLevel)
                 return;
             int current = PortInvestmentLevel(session.CurrentPort);
             int next = current + 1;

@@ -11,7 +11,7 @@
 - 36 位具名船员：6 港口 × 6 职业，具有独立身份、外貌说明、招募状态、人物背景与地域肖像。酒馆人物在背景中就座；档案使用新绘羊皮纸胸像图。
 - 5 类部件各 25 件，共 125 件；每类每个稀有度各 5 件。各具名称、数值取舍、专精方向和来历，保留地区限售、月度库存规则。
 - 15 篇连贯短篇《航海异闻：第七码头》，通过六港人物与部件物证串联。女巫、海妖、海巨人、归潮舰队共同构成主线。
-- 兼容原有部件 ID 与船员职业存档；地区招募不会误登记为灰鸥港人物；派遣人员在出发时确定，不被后续招募改名。
+- 兼容原有部件 ID 与船员职业存档；地区招募不会误登记为灰鸥港人物。
 
 ## 六港视觉主题
 | 港口 | 场景辨识 |
@@ -29,8 +29,10 @@
 - 人物：`UnityClient/Assets/_Project/Resources/PortArt/CrewRegional/crew_*_portraits_v2.png`
 - 场景提示词：[regional_art_prompts.json](regional_art_prompts.json)
 - 人物提示词：[regional_portrait_prompts.json](regional_portrait_prompts.json)
-- 原始生成文件、最终路径：[regional_art_manifest.json](regional_art_manifest.json)
-- 未通过验收的棋盘格底试作已移至 `outputs/narrative/rejected-art/`，不再位于游戏资源目录，保留可恢复副本。
+- 本轮历史生成文件与当时接入路径：[regional_art_manifest.json](regional_art_manifest.json)
+- 未通过验收的棋盘格底试作曾移至 `outputs/narrative/rejected-art/`；2026-10-13 经审核按 I02 清理其中断锚、铜钟、盐冠、白贝 4 张旧稿及配对 `.meta`，该目录不再保留这些可恢复副本。
+
+2026-10-13 清理说明：本轮旧后勤背景 `maintenance_*_v1.png` 的 `Editor/ArchivedArt` 归档副本已按 B01 清理；现役区域后勤使用 `Regional/Maintenance/maintenance_*_side_v2.png`。提示词与生成清单保留历史路径和来源记录，不表示对应旧文件仍然存在。详见[旧素材清理记录](../../Artifacts/UnusedAssetAudit20261013/index.html)。
 
 ## 数值与美术边界
 125 件部件的玩法数据、名称和背景各自独立；实物模型与船体拼装图仍复用现有的「5 类 × 5 稀有度」25 套造型，并非 125 套新模型。稀有度环绕光和类型支架保持。
@@ -42,6 +44,6 @@
 - 短篇及人物索引：[seventh_berth_anthology.md](seventh_berth_anthology.md)
 - 125 部件设定：[component_anthology_125.md](component_anthology_125.md)
 - 测试输出位于 `UnityClient/TestResults-RegionalPorts-EditMode.xml` 与 `UnityClient/TestResults-RegionalPorts-PlayMode.xml`。
-最终自动化回归：EditMode 59/59 通过，PlayMode 18/18 通过，合计 77/77（2026-09-07）。覆盖区域资源与标题、采购牌布局、125 件部件的数量／真实数值／故事关联、换船后装配保留、跨月报价过期、区域招募独立、派遣身份快照及旧存档兼容。
+最终自动化回归：EditMode 59/59 通过，PlayMode 18/18 通过，合计 77/77（2026-09-07）。覆盖区域资源与标题、采购牌布局、125 件部件的数量／真实数值／故事关联、换船后装配保留、跨月报价过期、区域招募独立及旧存档兼容。
 
 测试与截图在隔离副本和独立存档命名空间执行，不覆盖玩家正在打开的场景或个人进度。
