@@ -148,7 +148,7 @@ namespace ShatteredSail.Core.Tests
             foreach (int ship in Enumerable.Range(0, 4))
             foreach (int route in Enumerable.Range(0, 3))
             {
-                var session = new CoreVoyageSession(); session.SelectShip(ship); session.SelectRoute(route);
+                var session = new CoreVoyageSession(); session.SelectShip(ship); SelectUnlockedRoute(session, route);
                 session.Cargo.Water = session.Cargo.Food = 0;
                 var order = session.CreateRecommendedSupplyOrder();
                 Assert.That(order.Water, Is.EqualTo(order.Food));
@@ -167,7 +167,7 @@ namespace ShatteredSail.Core.Tests
             int route, int targetRations)
         {
             var session = new CoreVoyageSession();
-            session.SelectRoute(route);
+            SelectUnlockedRoute(session, route);
             VoyageSupplyOrder order = session.CreateRecommendedSupplyOrder();
 
             Assert.That(order.Water, Is.EqualTo(targetRations - 120));
@@ -192,7 +192,7 @@ namespace ShatteredSail.Core.Tests
         public void RecommendedAmmunition_ReplenishesTwelvePowderAndTenBallsOnceWithoutGrantingFreeStock(int route)
         {
             var session = new CoreVoyageSession();
-            session.SelectRoute(route);
+            SelectUnlockedRoute(session, route);
             session.Cargo.Powder = session.Cargo.Cannonballs = 0;
             VoyageSupplyOrder order = session.CreateRecommendedSupplyOrder();
             Assert.That(order.Powder, Is.EqualTo(12));
@@ -218,7 +218,7 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession();
             session.Cargo.Water = session.Cargo.Food = 286;
             session.Cargo.Cannonballs = 10;
-            session.SelectRoute(route);
+            SelectUnlockedRoute(session, route);
             float volume = session.Cargo.UsedVolume;
             decimal gold = session.ProfileGold;
 
@@ -377,7 +377,7 @@ namespace ShatteredSail.Core.Tests
             foreach (int ship in Enumerable.Range(0, CoreVoyageSession.Ships.Count))
             {
                 var session = new CoreVoyageSession();
-                session.SelectShip(ship); session.SelectRoute(route);
+                session.SelectShip(ship); SelectUnlockedRoute(session, route);
                 session.ConfigureCrewCapabilities(false, false, false, false, cook, false);
                 session.SetSeed("NONCOMBAT-SAIL-" + route); session.StartVoyage();
                 // Isolate navigation economics: retain generated terrain/currents, but do not resolve encounters.
@@ -452,6 +452,16 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.TryPurchaseSupplies(new VoyageSupplyOrder { Wood = 1 }), Is.False);
             Assert.That(session.ProfileGold, Is.Zero);
             Assert.That(session.Cargo.Wood, Is.EqualTo(wood));
+        }
+
+        private static void SelectUnlockedRoute(CoreVoyageSession session, int route)
+        {
+            CoreTreasureProgress progress = session.CaptureTreasureProgress();
+            progress.pirateExperience = Math.Max(progress.pirateExperience,
+                CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[route].UnlockLevel));
+            session.RestoreTreasureProgress(progress);
+            session.SelectRoute(route);
+            Assert.That(session.SelectedRouteIndex, Is.EqualTo(route));
         }
 
         private static void ResolveWaitingEvent(CoreVoyageSession session, double hours)

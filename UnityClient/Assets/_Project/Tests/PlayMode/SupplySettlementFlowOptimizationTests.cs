@@ -53,10 +53,13 @@ namespace ShatteredSail.Presentation.Tests
                 yield return LoadProvisioningFixture();
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
                 SetProvisionClock(controller, () => now);
+                controller.Session.RestoreTreasureProgress(new CoreTreasureProgress
+                    { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[1].UnlockLevel) });
                 ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
                 Button retired = ActiveButton("Departure Buy Provisions");
                 Button.ButtonClickedEvent oldClick = retired.onClick;
                 ClickAcceptanceButton("Route 1"); yield return null;
+                Assert.That(controller.Session.SelectedRouteIndex, Is.EqualTo(1));
                 decimal gold = controller.Session.ProfileGold;
                 oldClick.Invoke();
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));

@@ -108,14 +108,24 @@ namespace ShatteredSail.Presentation.Tests
 
         [TestCase("Navigation Chart")]
         [TestCase("Navigation Controls")]
-        public void Navigation_ReadingPanelsReserveTheDrawnRule(string panel)
+        public void Navigation_ReadingPanelsKeepContentInsideCurrentTimberFrames(string panel)
         {
             CreatePreview(CoreGameplayPreviewScreen.Navigation);
-            Image paper = Paper(panel, NauticalSurfaceSkin.ReadingPaper);
+            Image paper = Find<Image>(panel);
+            Image frame = Find<Image>(panel + " Timber Frame");
+            Assert.That(frame.sprite.texture.name, Is.EqualTo("navigation_panel_frame_v3"));
+            Assert.That(frame.type, Is.EqualTo(Image.Type.Sliced));
+            Assert.That(frame.fillCenter, Is.False);
             if (panel == "Navigation Chart")
+            {
+                Assert.That(paper.sprite, Is.Null, "The map retains its solid sea backing.");
+                Assert.That(Find<Image>(NavigationInterfaceSkin.TitleStripName).sprite, Is.SameAs(NauticalSurfaceSkin.Paper));
                 AssertGlyphs(paper, host.transform, "Map Title", "Water Food Endurance");
+            }
             else if (panel == "Navigation Controls")
             {
+                Assert.That(paper.sprite, Is.SameAs(NauticalSurfaceSkin.Paper));
+                Assert.That(paper.type, Is.EqualTo(Image.Type.Tiled));
                 AssertGlyphs(paper, host.transform, "Navigation Title", "Distance Label", "Forecast");
                 AssertButtons(paper, "Execute Sail", "Safe Return", "Forecast Details");
                 AssertRect(paper, Find<Slider>("Distance Slider").GetComponent<RectTransform>());
@@ -362,7 +372,8 @@ namespace ShatteredSail.Presentation.Tests
         public void InnerRuleProjectionRejectsAnOuterContainedEdgeControlButAcceptsCenteredGlyphs()
         {
             CreatePreview(CoreGameplayPreviewScreen.Market);
-            Image paper = Paper("Market Board", NauticalSurfaceSkin.ReadingPaper);
+            OpenMarketPreview(PortMarketItem.Water);
+            Image paper = Paper("Market Item Detail", NauticalSurfaceSkin.ReadingPaper);
             Rect outer = paper.rectTransform.rect;
             Rect edgeControl = new Rect(outer.center.x - 4f, outer.yMin + 2f, 8f, 6f);
             Assert.That(Contains(outer, edgeControl), Is.True, "The old outer-paper check would accept this control.");
@@ -370,7 +381,7 @@ namespace ShatteredSail.Presentation.Tests
             GameObject labelHost = new GameObject("Whitespace Frame Probe", typeof(RectTransform), typeof(Text));
             labelHost.transform.SetParent(paper.transform, false);
             Text label = labelHost.GetComponent<Text>();
-            label.font = Find<Text>("Market Title").font;
+            label.font = Find<Text>("Market Shop Title").font;
             label.fontSize = 24;
             label.text = "内框";
             label.alignment = TextAnchor.MiddleCenter;
@@ -542,6 +553,13 @@ namespace ShatteredSail.Presentation.Tests
 
         private static Rect InnerRule(Image image)
         {
+            if (image.name == "Navigation Chart" || image.name == "Navigation Controls")
+            {
+                // The navigation redesign uses a thin timber rim over a sea
+                // surface or tiled paper, not the old inset aged-paper rule.
+                Rect panel = image.rectTransform.rect;
+                return Rect.MinMaxRect(panel.xMin + 4f, panel.yMin + 4f, panel.xMax - 4f, panel.yMax - 4f);
+            }
             if ((image.name == "Route Selection" || image.name == "Voyage Setup") && image.sprite == DepartureSkin.Paper)
             {
                 // The departure folio uses paper without the old printed black rule.

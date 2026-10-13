@@ -148,12 +148,23 @@ namespace ShatteredSail.Core.Tests
         [TestCase("gunner")]
         [TestCase("cook")]
         [TestCase("diver")]
-        public void SameProfessionAcrossSixPorts_HasDistinctMechanicsNotRenamedCopies(string profession)
+        public void SameProfessionAcrossSixPorts_PreservesAuthoredMechanicGroupsAndUniqueStories(string profession)
         {
             var definitions = CoreSpecialCardCatalog.All.Where(value => value.SourceKind == CoreSpecialCardSourceKind.Crew &&
                 value.SourceId.Contains("_" + profession + "_")).ToArray();
             Assert.That(definitions.Length, Is.EqualTo(6));
-            Assert.That(definitions.Select(value => Signature(value.Card)).Distinct().Count(), Is.EqualTo(6));
+            string[] expectedSharedGroups = profession == "carpenter"
+                ? new[] { "crew_gray_gull_carpenter_barlow|crew_salt_crown_carpenter_saf" }
+                : profession == "cook"
+                    ? new[] { "crew_gray_gull_cook_pepe|crew_salt_crown_cook_maz",
+                        "crew_twilight_tide_cook_lume|crew_white_shell_cook_flora" }
+                    : Array.Empty<string>();
+            string[] sharedGroups = definitions.GroupBy(value => Signature(value.Card))
+                .Where(group => group.Count() > 1)
+                .Select(group => string.Join("|", group.Select(value => value.SourceId).OrderBy(id => id, StringComparer.Ordinal)))
+                .ToArray();
+            Assert.That(sharedGroups, Is.EquivalentTo(expectedSharedGroups),
+                "Only the published defense rebalance pairs share their complete mechanics.");
             Assert.That(definitions.Select(value => value.Lore).Distinct().Count(), Is.EqualTo(6));
         }
 
@@ -171,22 +182,31 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(card.Damage, Is.GreaterThanOrEqualTo(0), card.Id);
                 Assert.That(card.Block, Is.GreaterThanOrEqualTo(0), card.Id);
                 Assert.That(card.Repair, Is.GreaterThanOrEqualTo(0), card.Id);
-                Assert.That(card.Draw, Is.InRange(0, 2), card.Id);
+                if (card.Id == "card_special_instrument_tradeledger_oracle")
+                    Assert.That(card.Draw, Is.EqualTo(3), card.Id);
+                else Assert.That(card.Draw, Is.InRange(0, 2), card.Id);
                 Assert.That(Enum.IsDefined(typeof(NavalBattleCardAction), card.Action), Is.True, card.Id);
                 Assert.That(card.AllowedStages, Is.Not.EqualTo(NavalBattleStages.None), card.Id);
                 Assert.That(card.IsAllowedInStage(NavalBattleStage.Preparation) && card.Damage > 0, Is.False, card.Id);
                 if (card.Action == NavalBattleCardAction.Cannon)
                 {
                     Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.Naval), card.Id);
-                    Assert.That(card.PowderCost, Is.EqualTo(card.Id == "card_special_cannon_dragonbreath_battery" ? 2 : 1), card.Id);
+                    int expectedPowder = card.SchoolId == "fire" ? card.ArtId == "card_school_fire_l03" ? 3 : 2 : 1;
+                    Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
                     Assert.That(card.CannonballCost, Is.EqualTo(1), card.Id);
                     StringAssert.Contains("350 米", card.Description);
                 }
                 else
                 {
                     Assert.That(card.CannonballCost, Is.Zero, card.Id);
-                    Assert.That(card.PowderCost, Is.EqualTo(card.Action == NavalBattleCardAction.Load ||
-                        card.Action == NavalBattleCardAction.PrecisionLoad ? 1 : 0), card.Id);
+                    CoreSchoolMechanic mechanic = card.SchoolEffect?.Mechanic ?? CoreSchoolMechanic.None;
+                    bool loading = card.Action == NavalBattleCardAction.Load || card.Action == NavalBattleCardAction.PrecisionLoad;
+                    bool powderFireEffect = mechanic == CoreSchoolMechanic.FireLoad || mechanic == CoreSchoolMechanic.FireIgnite ||
+                        mechanic == CoreSchoolMechanic.FireExtend || mechanic == CoreSchoolMechanic.FireBoardingCover ||
+                        mechanic == CoreSchoolMechanic.FireNaturalGuard || mechanic == CoreSchoolMechanic.FireScorch ||
+                        mechanic == CoreSchoolMechanic.FireOverflow;
+                    int expectedPowder = mechanic == CoreSchoolMechanic.FireBoardingSeed ? 2 : loading || powderFireEffect ? 1 : 0;
+                    Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
                 }
                 if (card.Action == NavalBattleCardAction.Sabotage)
                 {
@@ -210,7 +230,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(yilan.Card, Is.SameAs(CoreSchoolCardCatalog.ForSource(yilan.SourceId)));
             Assert.That(yilan.Card.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.FireLoad));
             Assert.That(yilan.Card.SchoolEffect.Secondary, Is.EqualTo(2));
-            Assert.That(yilan.Card.SchoolEffect.Power, Is.EqualTo(12));
+            Assert.That(yilan.Card.SchoolEffect.Power, Is.EqualTo(5));
+            Assert.That(yilan.Card.PowderCost, Is.EqualTo(1));
+            Assert.That(yilan.Card.SchoolEffect.Duration, Is.EqualTo(2));
             Assert.That(yilan.LegacySourceKey, Is.EqualTo("gunner"));
             Assert.That(yilan.StoryId, Is.EqualTo("seventh_berth_05"));
             StringAssert.Contains("命中", yilan.Lore);
@@ -254,8 +276,8 @@ namespace ShatteredSail.Core.Tests
             CoreBattleCard ranked = session.GetBattleCardAtLevel(index, 3);
             Assert.That(ranked.Repair, Is.EqualTo(card.Repair * 2));
             Assert.That(ranked.Block, Is.EqualTo(card.Block * 2));
-            Assert.That(ranked.Energy, Is.EqualTo(Math.Max(0, card.Energy - 1)));
-            Assert.That(ranked.Draw, Is.EqualTo(card.Draw + 1));
+            Assert.That(ranked.Energy, Is.EqualTo(card.Energy));
+            Assert.That(ranked.Draw, Is.EqualTo(card.Draw > 0 ? card.Draw + 1 : 0));
             Assert.That(ranked.Damage, Is.EqualTo(card.Damage * 2));
             Assert.That(ranked.SchoolId, Is.EqualTo(card.SchoolId));
             if (card.SchoolId.Length == 0)
@@ -295,7 +317,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.All));
             Assert.That(card.ArtId, Is.EqualTo("card_brace"));
             Assert.That(card.Energy, Is.EqualTo(1));
-            Assert.That(card.Block, Is.EqualTo(4));
+            Assert.That(card.Block, Is.EqualTo(5));
+            Assert.That(card.BoardingBlock, Is.EqualTo(3));
             Assert.That(card.Draw, Is.EqualTo(1));
             Assert.That(card.Damage + card.Repair + card.PowderCost + card.CannonballCost, Is.Zero);
             Assert.That(CoreSpecialCardCatalog.All.Count(value => value.SourceId.Contains("_cook_")), Is.EqualTo(6));
@@ -304,7 +327,8 @@ namespace ShatteredSail.Core.Tests
             for (int rank = 0; rank <= 3; rank++)
             {
                 CoreBattleCard ranked = session.GetBattleCardAtLevel(138, rank);
-                Assert.That(ranked.Block, Is.EqualTo(new[] { 4, 5, 6, 8 }[rank]));
+                Assert.That(ranked.Block, Is.EqualTo(new[] { 5, 6, 8, 10 }[rank]));
+                Assert.That(ranked.BoardingBlock, Is.EqualTo(new[] { 3, 4, 5, 6 }[rank]));
                 Assert.That(ranked.Energy, Is.EqualTo(1));
                 Assert.That(ranked.Draw, Is.EqualTo(rank < 3 ? 1 : 2));
                 Assert.That(ranked.Damage + ranked.Repair, Is.Zero);
@@ -378,10 +402,11 @@ namespace ShatteredSail.Core.Tests
         private static string Signature(CoreBattleCard card) => string.Join("|", new object[]
         {
             card.Action, card.AllowedStages, card.Energy, card.Damage, card.Block,
-            card.Repair, card.Draw, card.PowderCost, card.CannonballCost,
+            card.Repair, card.Draw, card.PowderCost, card.CannonballCost, card.BoardingBlock,
             card.SchoolId, card.SchoolEffect?.Mechanic, card.SchoolEffect?.Power,
             card.SchoolEffect?.Secondary, card.SchoolEffect?.Threshold, card.SchoolEffect?.Duration,
-            card.SchoolEffect?.Limit, card.SchoolEffect?.Movement,
+            card.SchoolEffect?.Limit, card.SchoolEffect?.Movement, card.SchoolEffect?.WoodCost,
+            card.SchoolEffect?.FallbackDamage, card.SchoolEffect?.FallbackBlock,
         });
     }
 }

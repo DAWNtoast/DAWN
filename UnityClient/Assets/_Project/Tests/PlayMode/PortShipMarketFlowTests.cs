@@ -257,6 +257,7 @@ namespace ShatteredSail.Presentation.Tests
                     yield return ClickShipyardControl("Shipyard Equip Component");
                     Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow).InstanceId, Is.EqualTo(bow), context);
                 }
+                yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
                 Assert.That(ActiveButton("Confirm Shipyard Vessel").GetComponentInChildren<Text>().text,
                     Is.EqualTo("设为旗舰"), context + " must offer free use, including foreign hulls.");
                 yield return ClickShipyardControl("Confirm Shipyard Vessel");

@@ -397,7 +397,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase(CoreGameplayPreviewScreen.Navigation)]
-        public void NonFacilityPages_RetainTheirOriginalHud(CoreGameplayPreviewScreen screen)
+        public void NonFacilityPages_UseTheDedicatedVoyageHud(CoreGameplayPreviewScreen screen)
         {
             using (PreviewFixture preview = new PreviewFixture())
             {
@@ -408,7 +408,10 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(preview.Require<RectTransform>("Voyage Header"), Is.Not.Null);
                 Image frame = preview.Require<Image>("Voyage Header Frame");
                 Assert.That(frame.sprite, Is.Not.Null);
-                Assert.That(frame.sprite.texture.name, Does.Contain("broken_anchor"));
+                Texture navigationHeader = Resources.Load<Texture2D>(NavigationHeaderSkin.HeaderResourcePath);
+                Assert.That(navigationHeader, Is.Not.Null, "The current voyage header artwork must be included.");
+                Assert.That(frame.sprite.texture, Is.SameAs(navigationHeader));
+                Assert.That(preview.Require<Image>("Voyage Header Compass").sprite, Is.Not.Null);
                 Assert.That(preview.Find("Port Facility Header"), Is.Null);
             }
         }
@@ -559,19 +562,27 @@ namespace ShatteredSail.Core.Tests
         private static void AssertHeaderMeetsBackground(PreviewFixture preview, int index, Rect header, string context)
         {
             RawImage background = preview.Require<RawImage>(BackgroundNames[index]);
-            Assert.That(background.rectTransform.rect.size, Is.EqualTo(PhaseSurfaceLayout.BackgroundSize),
-                "The room art must fill the 1920 x 972 surface below the compact header: " + context);
-            Assert.That(background.rectTransform.anchoredPosition, Is.EqualTo(PhaseSurfaceLayout.BackgroundPosition), context);
+            // These paintings contain a complete 16:9 composition, with the
+            // facility header overlaid. Older room paintings fill the area below it.
+            bool fullSurface = Screens[index] == CoreGameplayPreviewScreen.Warehouse ||
+                Screens[index] == CoreGameplayPreviewScreen.Maintenance ||
+                Screens[index] == CoreGameplayPreviewScreen.VoyageDeparture && preview.Controller.Session.CurrentPort == "断锚港";
+            Assert.That(background.rectTransform.rect.size,
+                Is.EqualTo(fullSurface ? new Vector2(1920f, 1080f) : new Vector2(1920f, 972f)),
+                "The room art must retain its authored full-surface or below-header composition: " + context);
+            Assert.That(background.rectTransform.anchoredPosition,
+                Is.EqualTo(fullSurface ? Vector2.zero : PhaseSurfaceLayout.BackgroundPosition), context);
             if (Screens[index] == CoreGameplayPreviewScreen.CardWorkshop)
                 Assert.That(background.texture, Is.Null, "The card workshop is a direct parchment preview without room art.");
             else
-                Assert.That(background.uvRect, Is.EqualTo(PhaseSurfaceLayout.BackgroundUv(background.texture)),
-                    "The room art must use the shared aspect-preserving crop: " + context);
+                Assert.That(background.uvRect,
+                    Is.EqualTo(fullSurface ? new Rect(0f, 0f, 1f, 1f) : PhaseSurfaceLayout.BackgroundUv(background.texture)),
+                    "Full paintings retain their complete UVs; below-header rooms retain their aspect-preserving crop: " + context);
             Rect bounds = BoundsIn(background.rectTransform, preview.Canvas.transform);
             Assert.That(header.xMin, Is.EqualTo(bounds.xMin).Within(0.01f), context + " / scene left");
             Assert.That(header.xMax, Is.EqualTo(bounds.xMax).Within(0.01f), context + " / scene right");
-            Assert.That(header.yMin, Is.EqualTo(bounds.yMax).Within(0.01f),
-                "The header and room background must meet exactly, leaving no visible seam: " + context);
+            Assert.That(fullSurface ? header.yMax : header.yMin, Is.EqualTo(bounds.yMax).Within(0.01f),
+                "The header must align with the full painting's top or the cropped room's upper edge without a seam: " + context);
             Assert.That(bounds.yMin, Is.EqualTo(preview.Canvas.GetComponent<RectTransform>().rect.yMin).Within(0.01f), context + " / scene bottom");
         }
 

@@ -106,26 +106,32 @@ namespace ShatteredSail.Presentation.Tests
                 yield return LoadProvisioningFixture();
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
                 CoreVoyageSession session = controller.Session;
+                CoreTreasureProgress routeProgress = session.CaptureTreasureProgress();
+                routeProgress.pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[1].UnlockLevel);
+                session.RestoreTreasureProgress(routeProgress);
                 SetProvisionClock(controller, () => now);
                 ClickAcceptanceButton("Port Hotspot Market"); yield return null;
                 yield return WaitForItemIconView(controller);
                 foreach (PortMarketItem item in PortMarketCatalog.AllItems)
                 {
                     string key = PortMarketCatalog.Key(item);
-                    RawImage icon = AssertItemIcon("Market Item Icon " + key, ItemIconCatalog.ForCargo(key), 80f);
+                    yield return OpenMarketItem(key);
+                    RawImage icon = AssertItemIcon("Market Item Icon " + key, ItemIconCatalog.ForCargo(key), 66f);
                     AssertIconDoesNotCoverRowText(icon);
                     Assert.That(GameObject.Find("Market Item Name " + key).GetComponent<Text>().text,
                         Does.Contain(PortMarketCatalog.Name(item)));
-                    foreach (Selectable control in icon.transform.parent.GetComponentsInChildren<Selectable>())
+                    AssertIconPointerReachesButton(icon, icon.name, false);
+                    foreach (Selectable control in GameObject.Find("Market Item Detail").GetComponentsInChildren<Selectable>())
                     {
-                        if (control.gameObject == icon.gameObject) continue;
+                        // The clickable catalog tab deliberately contains its icon.
+                        if (control.gameObject == icon.gameObject || icon.transform.IsChildOf(control.transform)) continue;
                         Assert.That(ItemIconBounds(icon.rectTransform, icon.transform.parent)
                             .Overlaps(ItemIconBounds((RectTransform)control.transform, icon.transform.parent)),
                             Is.False, key + " icon must leave the quantity and transaction controls clear.");
                     }
                 }
                 NavalBattleVisualCapture.Capture(controller, "ItemIcons_04_Market.png",
-                    "九种商品80像素可点击图标，三列各三件，价格直接显示在羊皮纸上", "Market Panel");
+                    "依次打开各商铺并检查九种商品66像素图标，价格显示在所选商品账单中", "Market Panel");
                 decimal gold = session.ProfileGold;
                 decimal buy = PortMarketCatalog.CalculateBuyCost(session.CurrentPort, PortMarketItem.Wood, now, 1);
                 decimal sell = PortMarketCatalog.CalculateSellRevenue(session.CurrentPort, PortMarketItem.Wood, now, 1);

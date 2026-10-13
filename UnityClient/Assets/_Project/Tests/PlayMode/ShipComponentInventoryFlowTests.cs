@@ -384,6 +384,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             ComponentArtEntry rare = new ComponentArtCatalog().Entries.First(item => item.Slot == ComponentSlot.Cannon && item.Rarity == ComponentRarity.Rare);
+            int originalCount = controller.OwnedComponents.Count;
             OwnedShipComponent first = controller.GrantOwnedComponent(rare, 0.96f);
             OwnedShipComponent second = controller.GrantOwnedComponent(rare, 1.09f);
             Assert.That(controller.TryEquipOwnedComponent(3, first.InstanceId), Is.False);
@@ -401,7 +402,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Phase, Is.Not.EqualTo(CoreDemoPhase.Port));
             Assert.That(controller.TryEquipOwnedComponent(0, first.InstanceId), Is.False);
             Assert.That(controller.TryUnequipShipComponent(0, ComponentSlot.Bow), Is.False);
-            Assert.That(controller.OwnedComponents.Count, Is.EqualTo(7));
+            Assert.That(controller.OwnedComponents.Count, Is.EqualTo(originalCount + 2),
+                "Refitting and rejected sailing actions must preserve both granted component instances.");
             LogAssert.NoUnexpectedReceived();
         }
     }

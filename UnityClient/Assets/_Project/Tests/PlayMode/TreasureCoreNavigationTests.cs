@@ -3,6 +3,7 @@ using System.Linq;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -33,7 +34,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreMapNode core = voyage.Map.Nodes.Single(n => n.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId);
             voyage.Map.Nodes.Clear(); voyage.Map.Nodes.Add(core);
             System.Array.Clear(voyage.Map.TerrainCells, 0, voyage.Map.CellCount);
-            core.Position = new VoyagePoint(50f, 32f);
+            core.Position = new VoyagePoint(voyage.Map.WorldWidth * .5f, voyage.Map.WorldHeight * .5f);
             voyage.Map.Destination = core.Position;
             SetDestinationTestPosition(voyage, core.Position);
             SetDestinationTestField(voyage, "randomAmbushOccurred", true);
@@ -42,24 +43,48 @@ namespace ShatteredSail.Presentation.Tests
             Canvas canvas = GameObject.Find("Navigation Chart").GetComponentInParent<Canvas>().rootCanvas;
             Assert.That(canvas.GetComponent<CanvasScaler>().screenMatchMode, Is.EqualTo(CanvasScaler.ScreenMatchMode.Expand));
             RectTransform surface = GameObject.Find("Map Course Input").GetComponent<RectTransform>();
+            RectTransform frame = GameObject.Find("Procedural Sea Chart Frame").GetComponent<RectTransform>();
+            RectMask2D clip = frame.GetComponent<RectMask2D>();
+            Assert.That(clip, Is.Not.Null, "The square-cell chart clips its panned logical map at the visible frame.");
+            Assert.That(surface.IsChildOf(frame), Is.True, "Map input must remain inside the chart's clipping hierarchy.");
+            Assert.That(surface.GetComponent<Image>().maskable, Is.True);
+            RectTransform viewport = FixedGameViewport.Bounds(canvas);
             var corners = new Vector3[4];
-            surface.GetWorldCorners(corners);
+            frame.GetWorldCorners(corners);
             foreach (Vector3 corner in corners)
             {
-                Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, corner);
-                Assert.That(screen.x, Is.InRange(0f, (float)Screen.width));
-                Assert.That(screen.y, Is.InRange(0f, (float)Screen.height));
+                Vector2 local = viewport.InverseTransformPoint(corner);
+                Assert.That(local.x, Is.InRange(viewport.rect.xMin - .01f, viewport.rect.xMax + .01f));
+                Assert.That(local.y, Is.InRange(viewport.rect.yMin - .01f, viewport.rect.yMax + .01f));
             }
             ClickAcceptanceButton("Event Node " + core.Id);
             yield return null;
             Assert.That(voyage.Phase, Is.EqualTo(CoreDemoPhase.Encounter));
             Assert.That(voyage.IsChoiceAvailable(0), Is.False);
+            yield return WaitForEncounterDossierPresentationCompletion();
+            ScrollRect choices = GameObject.Find("Encounter Decision Viewport").GetComponent<ScrollRect>();
+            Assert.That(choices.viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+            if (choices.vertical)
+            {
+                choices.OnScroll(new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0f, -20f) });
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+            }
+            ActiveButton("Encounter Choice 3").GetComponent<RectTransform>().GetWorldCorners(corners);
+            foreach (Vector3 corner in corners)
+            {
+                Vector2 local = choices.viewport.InverseTransformPoint(corner);
+                Assert.That(local.x, Is.InRange(choices.viewport.rect.xMin - .5f, choices.viewport.rect.xMax + .5f));
+                Assert.That(local.y, Is.InRange(choices.viewport.rect.yMin - .5f, choices.viewport.rect.yMax + .5f),
+                    "The complete continue-exploring choice must be revealed before its real pointer click.");
+            }
             ClickAcceptanceButton("Encounter Choice 3");
             yield return null;
             Assert.That(voyage.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(core.Skipped, Is.True);
             // Outside the marker but inside the 58px automatic snap range.
-            yield return ClickDestinationTestGraphic(GameObject.Find("Map Course Input"), new Vector2(40f, 0f));
+            yield return ClickDestinationTestGraphic(GameObject.Find("Map Course Input"),
+                DestinationTestMapPoint(voyage, core.Position) + new Vector2(40f, 0f));
             Assert.That(voyage.Phase, Is.EqualTo(CoreDemoPhase.Sailing), "Free water must not snap back to the deferred core.");
             Assert.That(voyage.HasDirectCourseTarget, Is.True);
             Assert.That(voyage.DirectCourseTarget.X, Is.GreaterThan(core.Position.X + 2f));
@@ -158,19 +183,12 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(image.name, Is.EqualTo("Treasure Story Comic Page"));
             Assert.That(image.texture, Is.Not.Null);
             Canvas canvas = image.GetComponentInParent<Canvas>().rootCanvas;
-            Assert.That(overlay.transform.parent, Is.SameAs(canvas.transform), "Full-screen comics must use the real canvas rather than the fixed phase surface.");
+            Assert.That(overlay.transform.parent, Is.SameAs(FixedGameViewport.Bounds(canvas)),
+                "Comics cover the fixed game viewport, preserving the letterbox bars at other window ratios.");
             Canvas.ForceUpdateCanvases();
-            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
             foreach (RectTransform rect in new[] { overlay.GetComponent<RectTransform>(), image.rectTransform, (RectTransform)advance.transform })
             {
-                var corners = new Vector3[4];
-                rect.GetWorldCorners(corners);
-                Vector2 bottomLeft = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
-                Vector2 topRight = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
-                Assert.That(bottomLeft.x, Is.EqualTo(0f).Within(1f));
-                Assert.That(bottomLeft.y, Is.EqualTo(0f).Within(1f));
-                Assert.That(topRight.x, Is.EqualTo(Screen.width).Within(1f));
-                Assert.That(topRight.y, Is.EqualTo(Screen.height).Within(1f));
+                AssertFullscreenComicRect(rect);
             }
             Assert.That(image.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)),
                 "Treasure pages retain the complete artwork so dialogue near an outer edge remains visible at every window ratio.");

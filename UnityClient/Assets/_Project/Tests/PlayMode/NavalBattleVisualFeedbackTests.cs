@@ -529,16 +529,19 @@ namespace ShatteredSail.Presentation.Tests
 
         private static void AssertMeasuredKeelContact(int shipIndex, float verticalTolerance)
         {
-            // Independent source-PNG measurements at the middle of the lower
-            // timber, not the padding bounds or the production layout helper.
-            float[] keelHeights = { 0.08f, 0.17f, 0.21f, 0.23f, 0.095f, 0.085f,
-                0.095f, 0.22f, 0.225f, 0.10f, 0.255f, 0.095f };
+            // Independent source-PNG measurements from ShipArtRedraw20261012/
+            // integration-report.json, in catalog ship order. These retain the
+            // authored contact 1.5% above the central timber edge; the unchanged
+            // standalone starter uses its original 0.08 contact. Do not derive
+            // expected contact from the production layout helper.
+            float[] keelHeights = { 0.08f, 0.1048f, 0.1039f, 0.1039f, 0.1224f, 0.1400f,
+                0.1273f, 0.1136f, 0.2298f, 0.1146f, 0.1576f, 0.1839f };
             PortArtCatalog art = new PortArtCatalog();
             foreach (string side in new[] { "Player", "Enemy" })
             {
                 RawImage hull = Find<RectTransform>(side + " Ship Art").GetComponentInChildren<RawImage>();
                 Rect sourceCell = side == "Enemy" ? art.ShipUv(1) : shipIndex == 0 ? new Rect(0f, 0f, 1f, 1f) : art.ShipUv(shipIndex);
-                float measuredY = side == "Enemy" ? 0.17f : keelHeights[shipIndex];
+                float measuredY = side == "Enemy" ? 0.1048f : keelHeights[shipIndex];
                 Vector2 sourcePoint = new Vector2(sourceCell.center.x, sourceCell.y + sourceCell.height * measuredY);
                 Rect visible = hull.uvRect;
                 Vector2 point = new Vector2((sourcePoint.x - visible.x) / visible.width, (sourcePoint.y - visible.y) / visible.height);

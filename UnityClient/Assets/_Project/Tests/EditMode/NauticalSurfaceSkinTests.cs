@@ -277,12 +277,13 @@ namespace ShatteredSail.Presentation.Tests
             host.AddComponent<MainMenuController>();
             host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Achievements").onClick.Invoke();
             Image[] images = host.GetComponentsInChildren<Image>(true);
-            foreach (string name in new[] { "Settings Card", "Achievements Card", "Confirmation Card", "Left Menu Veil" })
+            Assert.That(host.GetComponentsInChildren<RawImage>(true)
+                .Single(image => image.name == "Main Menu Background").texture, Is.Not.Null);
+            foreach (string name in new[] { "Settings Card", "Achievements Card", "Confirmation Card" })
             {
                 Image surface = images.Single(image => image.name == name);
                 Assert.That(surface.sprite, Is.Not.Null, name);
-                if (name != "Left Menu Veil")
-                    AssertDedicatedPaperStyle(surface, NauticalSurfaceSkin.ReadingPaper);
+                AssertDedicatedPaperStyle(surface, NauticalSurfaceSkin.ReadingPaper);
             }
             foreach (string name in new[] { "Settings Panel", "Achievements Panel", "New Game Confirmation" })
                 Assert.That(images.Single(image => image.name == name).sprite, Is.Null, name);
@@ -325,6 +326,15 @@ namespace ShatteredSail.Presentation.Tests
                     Image face = button.GetComponent<Image>();
                     if (face == null || face.color.a <= .01f || button.name.StartsWith("Event Node ")) continue;
                     if (button.GetComponentInChildren<BattleCardSurfaceGraphic>(true) != null) continue;
+                    if (button.name.StartsWith("Market Row "))
+                    {
+                        RawImage icon = button.GetComponentsInChildren<RawImage>(true)
+                            .Single(image => image.name.StartsWith("Market Item Icon "));
+                        Assert.That(icon.texture, Is.Not.Null, "Catalog tabs use the cargo icon over the shared paper.");
+                        Assert.That(icon.GetComponent<Button>().targetGraphic, Is.SameAs(icon));
+                        Assert.That(button.targetGraphic, Is.SameAs(face));
+                        continue;
+                    }
                     Image warehouseRim = button.transform.Find("Warehouse Inventory Rim")?.GetComponent<Image>();
                     if (warehouseRim != null)
                     {

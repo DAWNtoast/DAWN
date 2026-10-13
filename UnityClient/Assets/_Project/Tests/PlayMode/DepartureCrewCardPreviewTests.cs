@@ -110,8 +110,8 @@ namespace ShatteredSail.Presentation.Tests
         private static int ExpectedDepartureThrust(CoreVoyageSession session, int ordinary)
         {
             Assert.That(session.SelectedOrdinaryCrew, Is.EqualTo(ordinary), "The roster still controls departure capacity and health.");
-            Assert.That(session.GetBattleCard(14).Damage, Is.EqualTo(15), "The authored 10-point thrust at rank 2 retains its 1.5 upgrade multiplier.");
-            return 15;
+            Assert.That(session.GetBattleCard(14).Damage, Is.EqualTo(12), "The authored 8-point thrust at rank 2 retains its 1.5 upgrade multiplier.");
+            return 12;
         }
 
         private static void AssertCardCrewPreviewThrust(int ordinary)
@@ -129,7 +129,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(body.preferredHeight, Is.LessThanOrEqualTo(body.rectTransform.rect.height + .5f), side);
                 string expected = CardDescriptionText.Compact(session.BattleCardFaceDescription(card, NavalBattleStage.Boarding));
                 Assert.That(ForgeVisibleText(body.text), Is.EqualTo(ForgeVisibleText(expected)), side + " quotes the upgraded card independently of the departure roster");
-                int expectedDamage = side == "Current" ? 15 : 20;
+                int expectedDamage = side == "Current" ? 12 : 16;
                 Assert.That(session.GetBattleCardEffects(card, NavalBattleStage.Boarding).Damage, Is.EqualTo(expectedDamage));
                 Assert.That(ForgeVisibleText(body.text), Does.Contain("敌方船员-" + expectedDamage));
                 Assert.That(body.text, Does.Not.Contain("实际").And.Not.Contain("当前" + ordinary + "人"));

@@ -201,7 +201,10 @@ namespace ShatteredSail.Core.Tests
         private static CoreVoyageSession Voyage(int route, string seed)
         {
             CoreVoyageSession session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress
+                { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[route].UnlockLevel) });
             session.SelectRoute(route);
+            Assert.That(session.SelectedRouteIndex, Is.EqualTo(route));
             session.SetSeed(seed);
             session.StartVoyage();
             return session;

@@ -91,6 +91,8 @@ namespace ShatteredSail.Presentation
             ItemIconCatalog.ReleaseLoadedTextures();
             AchievementIconCatalog.ReleaseLoadedTextures();
             NauticalSurfaceSkin.ReleaseGameplayPaperReferences();
+            NavigationHeaderSkin.ReleaseGameplayReferences();
+            NavigationInterfaceSkin.ReleaseGameplayReferences();
             yield return Resources.UnloadUnusedAssets();
         }
     }

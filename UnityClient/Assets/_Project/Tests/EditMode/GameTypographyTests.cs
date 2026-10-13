@@ -362,12 +362,14 @@ namespace ShatteredSail.Core.Tests
             // every remaining label retains GameTypography's default spacing.
             switch (name)
             {
-                case "Market Detail Stock":
-                case "Market Detail Cargo":
                 case "Component Detail Description":
                 case "Component Detail Effect":
                 case "Component Detail Story Body":
                 case "Tavern Crew Biography": return 1.25f;
+                // The market's two compact 48px inventory readouts use the
+                // authored item-detail spacing, distinct from dossier prose.
+                case "Market Detail Stock":
+                case "Market Detail Cargo":
                 case "Market Purchase Choice Quote":
                 case "Component Special Card Growth":
                 case "Tavern Special Card Growth": return 1.15f;

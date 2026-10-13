@@ -57,7 +57,7 @@ namespace ShatteredSail.Presentation.Tests
                 string target = CoreVoyageSession.DestinationPorts[targetIndex];
                 Assert.That(session.SelectedDestinationPort, Is.EqualTo(target), "One click must select the named port directly.");
                 Assert.That(GameObject.Find("Departure Route Summary").GetComponent<Text>().text,
-                    Is.EqualTo("选择目标港口，当前航线：" + origin + "——" + target));
+                    Is.EqualTo("当前航线：" + origin + " → " + target));
                 Assert.That(GameObject.Find("Destination Summary"), Is.Null);
                 Assert.That(session.CurrentPort, Is.EqualTo(origin));
                 Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));

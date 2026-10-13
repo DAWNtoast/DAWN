@@ -186,6 +186,21 @@ namespace ShatteredSail.Presentation
             return sprite;
         }
 
+        /// <summary>Allows unused voyage art to unload without invalidating a live header.</summary>
+        public static void ReleaseGameplayReferences()
+        {
+            ReleaseReference(ref headerFace);
+            ReleaseReference(ref compassFace);
+        }
+
+        private static void ReleaseReference(ref Sprite sprite)
+        {
+            // HideAndDontSave pins generated sprites even when their view is gone.
+            // Live Images still protect the sprite during UnloadUnusedAssets.
+            if (sprite != null) sprite.hideFlags &= ~HideFlags.DontUnloadUnusedAsset;
+            sprite = null;
+        }
+
         private static void Release()
         {
             ReleaseSprite(ref headerFace);

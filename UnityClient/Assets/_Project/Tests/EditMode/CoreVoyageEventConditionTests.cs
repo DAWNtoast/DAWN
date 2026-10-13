@@ -47,6 +47,8 @@ namespace ShatteredSail.Core.Tests
         public void AuthoredNodes_KeepTerrainConsistentWithTheirEvents()
         {
             var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress
+                { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[2].UnlockLevel) });
             session.SelectRoute(0);
             session.StartVoyage();
             Assert.That(session.Map.Nodes.Single(node => node.Encounter.Id == "common_storm_debris").TerrainConstraint,
@@ -57,6 +59,7 @@ namespace ShatteredSail.Core.Tests
             session.SafeReturn();
             session.ReturnToPortAfterSettlement();
             session.SelectRoute(2);
+            Assert.That(session.SelectedRouteIndex, Is.EqualTo(2));
             session.StartVoyage();
             Assert.That(session.Map.Nodes.Single(node => node.Encounter.Id == "moon_obelisk").TerrainConstraint,
                 Is.EqualTo(EventTerrainConstraint.Beach));
@@ -66,6 +69,8 @@ namespace ShatteredSail.Core.Tests
         public void HighValueChoices_AreBoundToTheShipsThatCanExploitThem()
         {
             var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress
+                { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[1].UnlockLevel) });
             session.SelectRoute(0);
             session.StartVoyage();
             CoreEncounter reefCache = session.Map.Nodes.Single(node => node.Encounter.Id == "event_reef_hidden_cache").Encounter;
@@ -76,6 +81,7 @@ namespace ShatteredSail.Core.Tests
             session.SafeReturn();
             session.ReturnToPortAfterSettlement();
             session.SelectRoute(1);
+            Assert.That(session.SelectedRouteIndex, Is.EqualTo(1));
             session.StartVoyage();
             CoreEncounter wreck = session.Map.Nodes.Single(node => node.Encounter.Id == "gold_wreck").Encounter;
             Assert.That(wreck.Choices[0].RequiredShip, Is.EqualTo("salvage"));

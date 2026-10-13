@@ -132,7 +132,10 @@ namespace ShatteredSail.Core.Tests
         public void EmergencyFoodOffersChargeTheAuthoredPremium(int route, string encounterId, int food, int price)
         {
             var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress
+                { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[route].UnlockLevel) });
             session.SelectRoute(route);
+            Assert.That(session.SelectedRouteIndex, Is.EqualTo(route));
             session.StartVoyage();
             CoreEncounter encounter = session.Map.Nodes.Single(node => node.Encounter.Id == encounterId).Encounter;
             CoreEncounterChoice purchase = encounter.Choices.Single(choice => choice.Effect.Food > 0 && choice.Effect.Gold < 0);

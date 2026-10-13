@@ -166,6 +166,51 @@ namespace ShatteredSail.Presentation.Tests
             }
             public IEnumerator Click(string name)
             {
+                if (name.StartsWith("Event Node ", StringComparison.Ordinal))
+                {
+                    GameObject marker = GameObject.Find(name);
+                    Assert.That(marker, Is.Not.Null, "A chart-visible event must have its marker.");
+                    Canvas.ForceUpdateCanvases();
+                    RectTransform markerRect = marker.GetComponent<RectTransform>();
+                    NavigationMapViewport viewport = marker.GetComponentInParent<NavigationMapViewport>();
+                    Assert.That(viewport, Is.Not.Null);
+                    // IsChartVisible means discovered, not currently inside the
+                    // cropped viewport. Pan before using the normal pointer path.
+                    viewport.EnsureVisible(viewport.transform.InverseTransformPoint(markerRect.TransformPoint(markerRect.rect.center)));
+                    yield return null;
+                    Canvas.ForceUpdateCanvases();
+                }
+                if (name.StartsWith("Encounter Choice ", StringComparison.Ordinal))
+                {
+                    yield return WaitForEncounterDossierPresentationCompletion();
+                    Button choice = ActiveButton(name);
+                    Assert.That(choice, Is.Not.Null);
+                    ScrollRect scroll = choice.GetComponentInParent<ScrollRect>();
+                    Assert.That(scroll, Is.Not.Null);
+                    var corners = new Vector3[4];
+                    for (int attempt = 0; attempt < 8; attempt++)
+                    {
+                        choice.GetComponent<RectTransform>().GetWorldCorners(corners);
+                        float bottom = corners.Min(p => scroll.viewport.InverseTransformPoint(p).y);
+                        float top = corners.Max(p => scroll.viewport.InverseTransformPoint(p).y);
+                        Rect bounds = scroll.viewport.rect;
+                        if (bottom >= bounds.yMin - .5f && top <= bounds.yMax + .5f) break;
+                        Assert.That(scroll.vertical, Is.True, "Overflowing choices must support real scrolling.");
+                        float delta = top > bounds.yMax ? top - bounds.yMax + 2f : bottom - bounds.yMin - 2f;
+                        scroll.OnScroll(new PointerEventData(EventSystem.current) {
+                            scrollDelta = new Vector2(0f, delta / scroll.scrollSensitivity) });
+                        yield return null;
+                        Canvas.ForceUpdateCanvases();
+                    }
+                    choice.GetComponent<RectTransform>().GetWorldCorners(corners);
+                    foreach (Vector3 corner in corners)
+                    {
+                        Vector2 local = scroll.viewport.InverseTransformPoint(corner);
+                        Assert.That(local.x, Is.InRange(scroll.viewport.rect.xMin - .5f, scroll.viewport.rect.xMax + .5f));
+                        Assert.That(local.y, Is.InRange(scroll.viewport.rect.yMin - .5f, scroll.viewport.rect.yMax + .5f),
+                            "The complete chosen action must be revealed before the actual pointer click.");
+                    }
+                }
                 string before = State();
                 Record("Attempt click: " + name, before);
                 try { ClickAcceptanceButton(name); }
@@ -381,7 +426,7 @@ namespace ShatteredSail.Presentation.Tests
                         if (exactQuantities) Assert.That(amount, Is.EqualTo(purchase.Value - oldAmount),
                             "The market must retain the exact requested supply shortfall.");
                         decimal gold = Session.ProfileGold;
-                        decimal cost = PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, purchase.Key, Session.GameDateTime, amount);
+                        decimal cost = PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, purchase.Key, Session.GameDateTime, amount, Session.Cargo.Fame);
                         Assert.That(GameObject.Find("Market Trade Total").GetComponent<Text>().text,
                             Does.Contain(PortMarketCatalog.FormatPrice(cost)));
                         yield return Click(buy.name);
@@ -463,8 +508,9 @@ namespace ShatteredSail.Presentation.Tests
                     if (goal.node != null && goal.node.IsChartVisible) yield return Click("Event Node " + goal.node.Id);
                     else
                     {
-                        Vector2 local = new Vector2(Mathf.Lerp(-580f, 580f, goal.point.X / CoreVoyageMap.Width),
-                            Mathf.Lerp(-315f, 315f, goal.point.Y / CoreVoyageMap.Height));
+                        Vector2 seaSize = GameObject.Find("Ocean Tile Layer").GetComponent<RectTransform>().rect.size;
+                        Vector2 local = new Vector2((goal.point.X / Session.Map.WorldWidth - .5f) * seaSize.x,
+                            (goal.point.Y / Session.Map.WorldHeight - .5f) * seaSize.y);
                         yield return ClickChartPoint(local);
                         Record("Chart pointer: " + goal.key, before);
                         if (!chartClickAccepted) { rejected.Add(goal.key); continue; }
@@ -499,7 +545,7 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     cells.Add(i);
                     // Only remember terrain after it has actually been revealed.
-                    if (Session.Map.IsPassable(i % CoreVoyageMap.GridColumns, i / CoreVoyageMap.GridColumns)) water.Add(i);
+                    if (Session.Map.IsPassable(i % Session.Map.Columns, i / Session.Map.Columns)) water.Add(i);
                 }
                 foreach (CoreMapNode node in Session.Map.Nodes.Where(n => n.IsChartVisible)) nodes[node.Id] = node.Position;
             }
@@ -510,6 +556,13 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(surface, Is.Not.Null);
                 Canvas.ForceUpdateCanvases();
                 RectTransform rect = surface.GetComponent<RectTransform>();
+                NavigationMapViewport viewport = rect.GetComponentInParent<NavigationMapViewport>();
+                Assert.That(viewport, Is.Not.Null);
+                // The square-cell map is cropped; pan its production viewport to
+                // the chosen chart point before performing the normal raycast.
+                viewport.EnsureVisible(viewport.transform.InverseTransformPoint(rect.TransformPoint(rect.rect.center + local)));
+                yield return null;
+                Canvas.ForceUpdateCanvases();
                 Canvas canvas = surface.GetComponentInParent<Canvas>().rootCanvas;
                 var pointer = new PointerEventData(EventSystem.current) {
                     button = PointerEventData.InputButton.Left,
@@ -556,25 +609,25 @@ namespace ShatteredSail.Presentation.Tests
                 HashSet<int> seen = observedCells[map.Hash];
                 int UnknownNeighbours(int cell, int radius)
                 {
-                    int count = 0, column = cell % CoreVoyageMap.GridColumns, row = cell / CoreVoyageMap.GridColumns;
+                    int count = 0, column = cell % map.Columns, row = cell / map.Columns;
                     for (int dy = -radius; dy <= radius; dy++) for (int dx = -radius; dx <= radius; dx++)
                     {
                         int x = column + dx, y = row + dy;
-                        if (x > 0 && x < CoreVoyageMap.GridColumns - 1 && y > 0 && y < CoreVoyageMap.GridRows - 1 &&
-                            !seen.Contains(y * CoreVoyageMap.GridColumns + x)) count++;
+                        if (x > 0 && x < map.Columns - 1 && y > 0 && y < map.Rows - 1 &&
+                            !seen.Contains(y * map.Columns + x)) count++;
                     }
                     return count;
                 }
                 var frontier = observedWater[map.Hash].Where(i => !rejected.Contains("cell:" + i) && UnknownNeighbours(i, 1) > 0)
-                    .Select(i => new { index = i, point = map.CellCenter(i % CoreVoyageMap.GridColumns, i / CoreVoyageMap.GridColumns) })
-                    .Where(g => g.point.X >= 2 && g.point.X <= 98 && g.point.Y >= 2 && g.point.Y <= 62 && Distance(Session.Position, g.point) > 2f)
+                    .Select(i => new { index = i, point = map.CellCenter(i % map.Columns, i / map.Columns) })
+                    .Where(g => g.point.X >= 2 && g.point.X <= map.WorldWidth - 2 && g.point.Y >= 2 && g.point.Y <= map.WorldHeight - 2 && Distance(Session.Position, g.point) > 2f)
                     .OrderByDescending(g => UnknownNeighbours(g.index, 3) / (2f + Distance(Session.Position, g.point))).FirstOrDefault();
                 if (frontier != null) return new AdventureGoal { point = frontier.point, key = "cell:" + frontier.index };
                 // A free route preview probes unknown space only when no observed
                 // water frontier remains; no hidden terrain is inspected here.
                 return Enumerable.Range(0, map.CellCount).Where(i => !seen.Contains(i) && !rejected.Contains("cell:" + i))
-                    .Select(i => new AdventureGoal { point = map.CellCenter(i % CoreVoyageMap.GridColumns, i / CoreVoyageMap.GridColumns), key = "cell:" + i })
-                    .Where(g => g.point.X >= 2 && g.point.X <= 98 && g.point.Y >= 2 && g.point.Y <= 62 && Distance(Session.Position, g.point) > 2f)
+                    .Select(i => new AdventureGoal { point = map.CellCenter(i % map.Columns, i / map.Columns), key = "cell:" + i })
+                    .Where(g => g.point.X >= 2 && g.point.X <= map.WorldWidth - 2 && g.point.Y >= 2 && g.point.Y <= map.WorldHeight - 2 && Distance(Session.Position, g.point) > 2f)
                     .OrderBy(g => Distance(Session.Position, g.point)).FirstOrDefault();
             }
             private bool CrossesLockedCore(SailingForecast forecast)

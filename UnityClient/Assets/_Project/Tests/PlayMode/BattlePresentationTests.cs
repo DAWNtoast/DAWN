@@ -499,7 +499,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(hoverCanvas, Is.Not.Null);
             Assert.That(hoverCanvas.overrideSorting, Is.False);
             ExecuteEvents.Execute(hovered.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
-            yield return new WaitForSecondsRealtime(0.35f);
+            yield return WaitForInspectionConvergence(hovered.GetComponent<RectTransform>());
             Assert.That(hoverCanvas.overrideSorting, Is.True);
             AssertInspectionFitsClearSpace(hovered.GetComponent<RectTransform>(), restingScale.x);
             Assert.That(hoverCanvas.sortingOrder, Is.GreaterThan(hand.GetComponentInParent<Canvas>().sortingOrder),
@@ -561,7 +561,7 @@ namespace ShatteredSail.Presentation.Tests
                         AssertTopRaycastButton(screen, button, "resting " + context);
                         var pointer = new PointerEventData(EventSystem.current) { position = screen };
                         ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
-                        yield return new WaitForSecondsRealtime(.35f);
+                        yield return WaitForInspectionConvergence(card);
                         float restScale = Mathf.Min(1f, hand.rect.height / CardFaceLayout.FrameSize.y,
                             (hand.rect.width - 8f * (count - 1)) / (count * CardFaceLayout.FrameSize.x));
                         AssertInspectionFitsClearSpace(card, restScale);
@@ -585,10 +585,34 @@ namespace ShatteredSail.Presentation.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        private static IEnumerator WaitForInspectionConvergence(RectTransform card)
+        {
+            // Keep the existing initial hover interval, then observe the
+            // exponential animation until it reaches the required precision.
+            yield return new WaitForSecondsRealtime(.35f);
+            float deadline = Time.realtimeSinceStartup + 1f;
+            while (Mathf.Abs(card.localScale.x - InspectionTargetScale(card)) > .0002f &&
+                Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(card.localScale.x, Is.EqualTo(InspectionTargetScale(card)).Within(.0002f),
+                "The hover animation must converge within the bounded interval.");
+        }
+
+        private static float InspectionTargetScale(RectTransform card)
+        {
+            Component hover = card.GetComponent("BattleCardHoverFeedback");
+            Assert.That(hover, Is.Not.Null);
+            return (float)hover.GetType().GetField("inspectionScale", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hover);
+        }
+
         private static void AssertInspectionFitsClearSpace(RectTransform card, float restingScale)
         {
             Assert.That(card.localScale.x, Is.GreaterThan(restingScale + .05f), "Inspection must substantially enlarge the resting card");
-            Assert.That(card.localScale.x, Is.InRange(.80f, 1.01f), "Prefer 1x and retain at least 80% size beside a ship or boarding party");
+            float inspectionScale = InspectionTargetScale(card);
+            Assert.That(inspectionScale, Is.InRange(.80f, 1.01f), "Prefer 1x and retain at least 80% size beside a ship or boarding party");
+            // Exponential hover easing approaches the target without reaching
+            // it exactly after 0.35 seconds. Keep the exact design-size guard
+            // above and allow only a subpixel residual on the rendered frame.
+            Assert.That(card.localScale.x, Is.EqualTo(inspectionScale).Within(.002f), "The visible inspection must converge to its authored target size");
             AssertFrameInsideRootCanvas(card, "inspected card");
             Rect frame = WorldRect(card.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
             foreach (string name in new[] { "Player Ship Art", "Enemy Ship Art" })
@@ -600,8 +624,8 @@ namespace ShatteredSail.Presentation.Tests
             // rather than silently shrinking every card to its resting size.
             if (card.localScale.x < .98f)
             {
-                Rect screen = WorldRect(card.GetComponentInParent<Canvas>().rootCanvas.GetComponent<RectTransform>());
-                Assert.That(frame.yMin - screen.yMin, Is.LessThan(16f), "Reduced inspections use the screen's bottom clearance");
+                Rect screen = WorldRect(FixedGameViewport.Bounds(card.GetComponentInParent<Canvas>()));
+                Assert.That(frame.yMin - screen.yMin, Is.LessThan(16f), "Reduced inspections use the game viewport's bottom clearance");
             }
         }
 
@@ -612,7 +636,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(frame, Is.Not.Null, context);
             Canvas root = card.GetComponentInParent<Canvas>().rootCanvas;
             Rect complete = WorldRect(frame.rectTransform);
-            Rect screen = WorldRect(root.GetComponent<RectTransform>());
+            Rect screen = WorldRect(FixedGameViewport.Bounds(root));
             const float tolerance = .5f;
             Assert.That(complete.xMin, Is.GreaterThanOrEqualTo(screen.xMin - tolerance), context + " full frame left edge remains on screen");
             Assert.That(complete.xMax, Is.LessThanOrEqualTo(screen.xMax + tolerance), context + " full frame right edge remains on screen");

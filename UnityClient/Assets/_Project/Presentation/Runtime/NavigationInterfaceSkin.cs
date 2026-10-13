@@ -162,6 +162,13 @@ namespace ShatteredSail.Presentation
             return go.GetComponent<Image>();
         }
 
+        /// <summary>Releases the cache while leaving live dashboard Images in control of their art.</summary>
+        public static void ReleaseGameplayReferences()
+        {
+            if (panelFrame != null) panelFrame.hideFlags &= ~HideFlags.DontUnloadUnusedAsset;
+            panelFrame = null;
+        }
+
         private static void Release()
         {
             if (panelFrame == null) return;

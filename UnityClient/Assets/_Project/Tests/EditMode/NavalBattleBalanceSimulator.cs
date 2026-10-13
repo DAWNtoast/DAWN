@@ -80,7 +80,13 @@ namespace ShatteredSail.Core.Tests
             if (upgrade < 0 || upgrade > 3) throw new ArgumentOutOfRangeException(nameof(upgrade));
             var session = new CoreVoyageSession();
             session.SelectShip(loadout == Loadout.Starter ? 0 : loadout == Loadout.Patrol ? 2 : 7);
+            // This combat fixture skips campaign progression, not route eligibility.
+            // A rejected selection would silently simulate the first route instead.
+            session.RestoreTreasureProgress(new CoreTreasureProgress
+                { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[route].UnlockLevel) });
             session.SelectRoute(route);
+            if (session.SelectedRouteIndex != route)
+                throw new InvalidOperationException("The combat fixture did not select its requested route.");
             session.SetSeed(seed);
             bool specialists = loadout != Loadout.Starter;
             session.ConfigureCrewCapabilities(specialists, specialists, false, false, false, false);

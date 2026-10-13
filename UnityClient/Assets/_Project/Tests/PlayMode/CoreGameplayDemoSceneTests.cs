@@ -617,14 +617,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(warehouseGlow, Is.Not.Null);
             Assert.That(warehouseGlow.color.a, Is.Zero);
             int restingLabelSize = warehouseLabel.fontSize;
+            Color restingLabelColor = warehouseLabel.color;
             ExecuteEvents.Execute(warehouseHotspot.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
             yield return null;
             Assert.That(warehouseGlow.color.a, Is.Zero, "Hovering a port landmark must not show a warm glow.");
-            Assert.That(warehouseLabel.fontSize, Is.GreaterThan(restingLabelSize), "The facility name should visibly emphasize on hover.");
+            Assert.That(warehouseLabel.color, Is.Not.EqualTo(restingLabelColor), "The brass nameplate emphasizes the facility name on hover.");
+            Assert.That(warehouseLabel.fontSize, Is.EqualTo(restingLabelSize), "Hover feedback preserves the compact nameplate layout.");
             ExecuteEvents.Execute(warehouseHotspot.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerExitHandler);
             yield return null;
             Assert.That(warehouseGlow.color.a, Is.Zero, "The hover glow should clear after the pointer leaves.");
             Assert.That(warehouseLabel.fontSize, Is.EqualTo(restingLabelSize));
+            Assert.That(warehouseLabel.color, Is.EqualTo(restingLabelColor));
             warehouseHotspot.onClick.Invoke();
             yield return null;
 
@@ -996,10 +999,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             ActiveDeckCardCopyButton(8).onClick.Invoke();
             yield return null;
-            Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Preparation).Count, Is.EqualTo(9));
+            Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Preparation).Count, Is.EqualTo(preparationBeforeChestEntry.Length - 1),
+                "Removing the selected copy changes only that stage's current deck by one card.");
             ActiveButton("Add Deck Card 2").onClick.Invoke();
             yield return null;
-            Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Preparation).Count, Is.EqualTo(10));
+            Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Preparation).Count, Is.EqualTo(preparationBeforeChestEntry.Length));
             Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Preparation).Count(cardIndex => cardIndex == 2),
                 Is.EqualTo(preparationBeforeChestEntry.Count(cardIndex => cardIndex == 2) + 1));
             string expectedSavedDeck = string.Join(",", controller.Session.GetBattleDeck(NavalBattleStage.Preparation));
@@ -1178,13 +1182,18 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.VoyageMapArt.IsAvailable, Is.True,
                 "The detailed voyage chart must load its chart base, all three water textures, and seven terrain overlays.");
             Assert.That(controller.VoyageMapArt.LoadedTextureCount, Is.EqualTo(12));
+            CoreVoyageMap voyageMap = controller.Session.Map;
             Transform oceanLayer = GameObject.Find("Ocean Tile Layer").transform;
+            Vector2 oceanSize = ((RectTransform)oceanLayer).rect.size;
+            Assert.That(oceanSize, Is.EqualTo(new Vector2(voyageMap.Columns, voyageMap.Rows) * (1160f / 48f)),
+                "The voyage chart must preserve square cells for the current map geometry.");
             RawImage oceanBase = GameObject.Find("Ocean Chart Base").GetComponent<RawImage>();
             Assert.That(oceanBase.texture.name, Is.EqualTo("water_chart_base_v2"));
             RawImage[] oceanPatches = oceanLayer.GetComponentsInChildren<RawImage>()
                 .Where(image => image.name.StartsWith("Ocean Patch "))
                 .ToArray();
-            Assert.That(oceanPatches.Length, Is.EqualTo(24), "A 48 by 32 chart should use twenty-four reliable 8 by 8 water patches.");
+            Assert.That(oceanPatches.Length, Is.EqualTo(Mathf.CeilToInt(voyageMap.Columns / 8f) * Mathf.CeilToInt(voyageMap.Rows / 8f)),
+                "Eight-cell water patches must cover the complete current chart, including partial edge patches.");
             Assert.That(oceanPatches.Select(patch => patch.texture.name)
                 .Where(name => name.StartsWith("water_open_"))
                 .Distinct()
@@ -1202,9 +1211,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(mapShipBase.texture.name, Does.Contain("light_sloop_base"), "The chart ship should use the transparent modular hull rather than the black-backed legacy atlas.");
             Assert.That(controller.Session.Map.Nodes.Count, Is.GreaterThanOrEqualTo(10));
             Assert.That(controller.Session.Map.Nodes.Select(node => node.Encounter.Id).Distinct().Count(), Is.EqualTo(controller.Session.Map.Nodes.Count));
-            Assert.That(controller.Session.Map.ExploredCells.Length, Is.EqualTo(1536));
+            Assert.That(voyageMap.ExploredCells.Length, Is.EqualTo(voyageMap.Columns * voyageMap.Rows));
             Assert.That(GameObject.Find("Chart Fog Tiles").GetComponent<VoyageMapTileLayerGraphic>().TileCount,
-                Is.EqualTo(CoreVoyageMap.ChartColumns * CoreVoyageMap.ChartRows),
+                Is.EqualTo(voyageMap.FineColumns * voyageMap.FineRows),
                 "The visual fog renders the complete chart grid while logical exploration retains its separate grid.");
             Assert.That(GameObject.Find("Current Field Arrow 0"), Is.Not.Null);
             Assert.That(GameObject.Find("Current Direction Arrow"), Is.Null, "Oversized ship-local current arrows were removed.");
@@ -1279,8 +1288,8 @@ namespace ShatteredSail.Presentation.Tests
             VoyageGridCoordinate straitAnchor = controller.Session.Map.PointToCell(straitNode.Position);
             Assert.That(coastSurface.Field.SampleSignedDistance(straitAnchor.Column + .5f, straitAnchor.Row + .5f), Is.LessThan(0f),
                 "The visible strait anchor remains water, consistent with navigation.");
-            int terrainColumn = revealedTerrainCell % CoreVoyageMap.GridColumns;
-            int terrainRow = revealedTerrainCell / CoreVoyageMap.GridColumns;
+            int terrainColumn = revealedTerrainCell % voyageMap.Columns;
+            int terrainRow = revealedTerrainCell / voyageMap.Columns;
             Image terrainCell = GameObject.Find("Sea Terrain " + terrainColumn + " " + terrainRow).GetComponent<Image>();
             Assert.That(terrainCell, Is.Not.Null);
             Assert.That(terrainCell.sprite, Is.Null, "Terrain cells must no longer use the old monochrome circle sprite.");
@@ -1292,8 +1301,8 @@ namespace ShatteredSail.Presentation.Tests
             snappedNode.IntelRevealed = true;
             courseInput = Object.FindFirstObjectByType<MapCourseInputSurface>();
             Vector2 snappedLocal = new Vector2(
-                Mathf.Lerp(-580f, 580f, snappedNode.Position.X / 100f) + 40f,
-                Mathf.Lerp(-315f, 315f, snappedNode.Position.Y / 64f));
+                (snappedNode.Position.X / voyageMap.WorldWidth - .5f) * oceanSize.x + 40f,
+                (snappedNode.Position.Y / voyageMap.WorldHeight - .5f) * oceanSize.y);
             courseInput.SelectLocalPoint(snappedLocal);
             yield return null;
             Assert.That(controller.Session.DirectCourseTarget.X, Is.EqualTo(snappedNode.Position.X).Within(0.001f));

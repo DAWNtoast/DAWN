@@ -222,6 +222,8 @@ namespace ShatteredSail.Presentation.Tests
                 session.Battle.EnemyBoardingHealth = System.Math.Min(37, session.Battle.EnemyMaxBoardingHealth - 1);
                 session.Battle.PlayerBlock = 9;
                 session.Battle.EnemyBlock = 1;
+                typeof(CoreVoyageSession).GetProperty("Morale").SetValue(session, 0);
+                Assert.That(session.BoardingCriticalChancePercent, Is.Zero, "Isolate one authored hit from the separate critical mechanic.");
                 SetResponsiveHand(session, "card_crew_thrust", "card_crew_guard");
                 RenderResponsiveBattle(controller);
                 yield return null;
@@ -272,6 +274,8 @@ namespace ShatteredSail.Presentation.Tests
                 CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Preparation);
                 session.Battle.Stage = NavalBattleStage.Boarding;
                 session.Battle.EnemyBlock = 1;
+                typeof(CoreVoyageSession).GetProperty("Morale").SetValue(session, 0);
+                Assert.That(session.BoardingCriticalChancePercent, Is.Zero, "Isolate cancellation from the separate critical mechanic.");
                 SetResponsiveHand(session, "card_crew_thrust", "card_crew_guard");
                 RenderResponsiveBattle(controller);
                 yield return null;

@@ -73,6 +73,8 @@ namespace ShatteredSail.Core.Tests
         public void ConfirmedChartCrossingCountsOnceAcrossBothDirectionsAndReload(int route)
         {
             var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress
+                { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[route].UnlockLevel) });
             string seed = CoreVoyageSession.CreateChartSeed(route, "断锚港", "白贝港");
             Assert.That(session.TrySelectChartSeed(seed, out _), Is.True);
             session.StartVoyage();
@@ -89,6 +91,7 @@ namespace ShatteredSail.Core.Tests
 
             var restored = new CoreVoyageSession();
             restored.RestoreProfile(500, "白贝港");
+            restored.RestoreTreasureProgress(session.CaptureTreasureProgress());
             Assert.That(restored.RestoreCollectionProgress(saved), Is.True);
             Assert.That(restored.RestoreSeaChartProgress(session.CaptureSeaChartProgress()), Is.True);
             Assert.That(restored.TrySelectChartSeed(seed, out _), Is.True);
@@ -251,7 +254,13 @@ namespace ShatteredSail.Core.Tests
             if (id == CoreGuidedTutorialContent.BossEventId)
                 Assert.That(session.ConfigureGuidedTutorialVoyage(CoreGuidedTutorialContent.BossVoyageLeg), Is.True);
             else for (int i = 0; i < CoreVoyageSession.Routes.Count; i++)
-                if (id == "boss_" + CoreVoyageSession.Routes[i].Id) session.SelectRoute(i);
+                if (id == "boss_" + CoreVoyageSession.Routes[i].Id)
+                {
+                    session.RestoreTreasureProgress(new CoreTreasureProgress
+                        { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[i].UnlockLevel) });
+                    session.SelectRoute(i);
+                    Assert.That(session.SelectedRouteIndex, Is.EqualTo(i));
+                }
             session.StartVoyage();
             CoreMapNode node = session.Map.Nodes.FirstOrDefault(item => item.Encounter.Id == id);
             if (node == null) node = new CoreMapNode { Encounter = id == CoreBattleBalance.TreasureBossId

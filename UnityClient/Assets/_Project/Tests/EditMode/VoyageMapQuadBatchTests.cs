@@ -12,7 +12,9 @@ namespace ShatteredSail.Core.Tests
     public sealed class VoyageMapQuadBatchTests
     {
         private const float Width = 1160f;
-        private const float Height = 630f;
+        // The current sea chart has square logical cells (48 by 32), even
+        // though the surrounding dashboard viewport has a different aspect.
+        private const float Height = Width / 48f * 32f;
         private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
         private readonly List<Mesh> meshes = new List<Mesh>();
         private GameObject host;
@@ -107,7 +109,7 @@ namespace ShatteredSail.Core.Tests
             for (int row = 0; row <= CoreVoyageMap.ChartRows; row += 1)
             {
                 bool isMajor = row % 8 == 0;
-                AssertQuad(vertices, colors, 97 + row, new Vector2(0f, -315f + row * CellHeight),
+                AssertQuad(vertices, colors, 97 + row, new Vector2(0f, -Height * .5f + row * CellHeight),
                     new Vector2(Width, isMajor ? 1.15f : .55f), isMajor ? major : minor);
             }
         }
@@ -187,7 +189,8 @@ namespace ShatteredSail.Core.Tests
         private Vector2 Center(int column, int row)
         {
             VoyagePoint point = map.ChartCellCenter(column, row);
-            return new Vector2(Mathf.Lerp(-580f, 580f, point.X / 100f), Mathf.Lerp(-315f, 315f, point.Y / 64f));
+            return new Vector2(Mathf.Lerp(-Width * .5f, Width * .5f, point.X / 100f),
+                Mathf.Lerp(-Height * .5f, Height * .5f, point.Y / 64f));
         }
 
         private static void AssertNoOverlappingQuads(Vector3[] vertices)

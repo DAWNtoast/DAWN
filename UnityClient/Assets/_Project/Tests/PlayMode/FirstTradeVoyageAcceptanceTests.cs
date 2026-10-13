@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -76,6 +77,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreVoyageSession session = controller.Session;
             Assert.That(controller.IsTutorialActive, Is.False);
             Assert.That(session.SelectedShipIndex, Is.Zero, "Keep the actual starter sloop.");
+            Assert.That(session.CanSelectRoute(RealTradeAudit.StarterTradeRoute, out string routeReason), Is.True, routeReason);
             audit.initialProfileGold = (double)(session.ProfileGold);
             audit.originPort = session.CurrentPort;
             PortMarketItem tradeItem;
@@ -94,8 +96,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return audit.Click("Return To Port Hub");
             yield return audit.Click("Port Hotspot Market");
 
-            // Read the actual market quota and hold. Keep tutorial food and the
-            // original four beer; the White Shell specialty needs only 4.8 hold.
+            // Keep the inherited supplies and reserve enough hold for the
+            // departure panel's route recommendation before buying trade cargo.
             yield return OpenMarketItem(audit.tradeItemKey);
             yield return SetMarketInventoryExpanded(true);
             Text quotaLabel = MarketInfoLabel("Market Quota " + audit.tradeItemKey);
@@ -103,16 +105,30 @@ namespace ShatteredSail.Presentation.Tests
             string quotaText = quotaLabel.text;
             Match quota = Regex.Match(quotaText, @"可购\s+(\d+)");
             Assert.That(quota.Success, Is.True, "Read the visible purchase allowance: " + quotaText);
-            int freeHoldUnits = (int)Math.Floor((session.CargoCapacityValue - session.Cargo.UsedVolume + .001f) / PortMarketCatalog.CargoVolume(tradeItem));
             int ammunitionNeeded = Math.Max(0, RealTradeAudit.CannonballTarget - session.Cargo.Cannonballs);
+            int rationTarget = (int)Math.Ceiling(session.EstimateDailyRationConsumption(session.CrewCountValue, session.HasCook) *
+                (CoreVoyageSession.Routes[RealTradeAudit.StarterTradeRoute].RecommendedVoyageDays + 2) - 1e-9d);
+            int waterNeeded = Math.Max(0, rationTarget - session.Cargo.Water);
+            int foodNeeded = Math.Max(0, rationTarget - session.Cargo.Food);
+            float reservedHold = waterNeeded * PortMarketCatalog.CargoVolume(PortMarketItem.Water) +
+                foodNeeded * PortMarketCatalog.CargoVolume(PortMarketItem.Food) +
+                ammunitionNeeded * PortMarketCatalog.CargoVolume(PortMarketItem.Cannonballs);
+            int freeHoldUnits = (int)Math.Floor(Math.Max(0f, session.CargoCapacityValue - session.Cargo.UsedVolume - reservedHold + .001f) /
+                PortMarketCatalog.CargoVolume(tradeItem));
             decimal ammunitionQuote = PortMarketCatalog.CalculateBuyCost(session.CurrentPort, PortMarketItem.Cannonballs,
-                session.GameDateTime, ammunitionNeeded);
-            decimal preparationReserve = RealTradeAudit.RequiredCannonUpgradeCost(session) + ammunitionQuote + 60m;
+                session.GameDateTime, ammunitionNeeded, session.Cargo.Fame);
+            decimal provisionQuote = PortMarketCatalog.CalculateBuyCost(session.CurrentPort, PortMarketItem.Water,
+                session.GameDateTime, waterNeeded, session.Cargo.Fame) +
+                PortMarketCatalog.CalculateBuyCost(session.CurrentPort, PortMarketItem.Food,
+                    session.GameDateTime, foodNeeded, session.Cargo.Fame);
+            decimal preparationReserve = RealTradeAudit.RequiredCannonUpgradeCost(session) + ammunitionQuote + provisionQuote + 60m;
             int affordableTradeUnits = (int)Math.Max(0m, decimal.Floor((session.ProfileGold - preparationReserve) /
-                PortMarketCatalog.BuyUnitPrice(session.CurrentPort, tradeItem, session.GameDateTime)));
+                PortMarketCatalog.BuyUnitPrice(session.CurrentPort, tradeItem, session.GameDateTime, session.Cargo.Fame)));
             int tradeUnits = Math.Min(desiredQuantity, Math.Min(affordableTradeUnits,
                 Math.Min(int.Parse(quota.Groups[1].Value), freeHoldUnits)));
             Assert.That(tradeUnits, Is.GreaterThan(0), "No real quota or hold for the origin port's specialty.");
+            audit.Record("Reserve actual starter-route rations " + rationTarget + " each, hold " + reservedHold +
+                " and supply quote " + PortMarketCatalog.FormatPrice(provisionQuote) + " before purchasing trade cargo", null);
             yield return audit.MarketQuantity(audit.tradeItemKey, tradeUnits);
             audit.Shot("Cargo_Purchase_Quote", "Market Panel");
             decimal purchaseGold = session.ProfileGold;
@@ -135,14 +151,18 @@ namespace ShatteredSail.Presentation.Tests
             yield return audit.Click("Return To Port Hub");
             yield return audit.PrepareCannonDefense();
             yield return audit.Click("Port Hotspot Voyage");
-            yield return audit.Click("Route 1");
+            // The tutorial currently ends at level 2; Golden Tide needs level 3.
+            // The first unlocked sea route supports the same inter-port trade.
+            yield return audit.Click("Route " + RealTradeAudit.StarterTradeRoute);
             int destinationIndex = Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count)
                 .Single(index => CoreVoyageSession.DestinationPorts[index] == audit.destinationPort);
             yield return audit.Click("Departure Destination " + destinationIndex);
-            Assert.That(session.SelectedRouteIndex, Is.EqualTo(1));
+            Assert.That(session.SelectedRouteIndex, Is.EqualTo(RealTradeAudit.StarterTradeRoute));
             Assert.That(session.SelectedDestinationPort, Is.EqualTo(audit.destinationPort));
             Assert.That(session.SelectedDestinationPort, Is.Not.EqualTo(session.CurrentPort));
-            string tradeSeed = CoreVoyageSession.CreateChartSeed(1, audit.originPort, audit.destinationPort);
+            audit.Record("First trade uses unlocked " + CoreVoyageSession.Routes[RealTradeAudit.StarterTradeRoute].Name +
+                " at pirate level " + session.PirateLevel + "; no progression granted by the driver", null);
+            string tradeSeed = CoreVoyageSession.CreateChartSeed(RealTradeAudit.StarterTradeRoute, audit.originPort, audit.destinationPort);
             yield return audit.SelectSeed(tradeSeed);
             // Inspect the purchase-only basket, then buy the missing route water
             // and food only when their joint quote fits money, hold and quota.
@@ -171,6 +191,8 @@ namespace ShatteredSail.Presentation.Tests
             }
             else audit.Record("Departure provisions unavailable/already sufficient: " +
                 provisions?.GetComponentInChildren<Text>()?.text, null);
+            Assert.That(session.Cargo.Water, Is.GreaterThanOrEqualTo(rationTarget), "Trade cargo must leave room to buy the recommended water through the real basket.");
+            Assert.That(session.Cargo.Food, Is.GreaterThanOrEqualTo(rationTarget), "Trade cargo must leave room to buy the recommended food through the real basket.");
             audit.Shot("Departure_Trade_Manifest", "Voyage Setup");
             audit.tradeCargoAtDeparture = session.GetMarketCargoAmount(audit.tradeItemKey);
             audit.goldBeforeDeparture = (double)(session.ProfileGold);
@@ -279,7 +301,7 @@ namespace ShatteredSail.Presentation.Tests
         [Serializable]
         private sealed class RealTradeAudit
         {
-            public string scope = "Actual new-game tutorial then starter-sloop trade voyage, with paid cannon preparation and legal deck editing; no GM, profile relocation, direct combat-state edits or hidden-node targeting.";
+            public string scope = "Actual new-game tutorial then starter-sloop trade voyage on the unlocked Shattered Sail Reef route, with paid supplies/cannon preparation and legal deck editing; no GM, progression grants, profile relocation, direct combat-state edits or hidden-node targeting.";
             public string attribution = "Commodity sale quantity is capped at the purchased manifest and reserves starting cargo. Commodity margin, provision purchases, voyage settlement rewards and the sale of one newly acquired idle component are reported separately. Consumed inherited supplies and battle wear remain visible in actions, not assigned an invented monetary cost.";
             public bool completed, reloadVerified;
             public string failure = "", settlementOutcome = "", originPort = "", destinationPort = "",
@@ -297,6 +319,7 @@ namespace ShatteredSail.Presentation.Tests
             [NonSerialized] public CoreGameplayDemoController controller;
             [NonSerialized] private int shotIndex, encounterIndex;
             private CoreVoyageSession Session => controller.Session;
+            public const int StarterTradeRoute = 0;
             public const int CannonballTarget = 16;
 
             public static decimal RequiredCannonUpgradeCost(CoreVoyageSession session)
@@ -382,6 +405,50 @@ namespace ShatteredSail.Presentation.Tests
             }
             public IEnumerator Click(string name)
             {
+                if (name.StartsWith("Event Node ", StringComparison.Ordinal) || name == "Destination Port")
+                {
+                    GameObject marker = GameObject.Find(name);
+                    Assert.That(marker, Is.Not.Null, "A chart-visible destination must have its marker.");
+                    Canvas.ForceUpdateCanvases();
+                    RectTransform markerRect = marker.GetComponent<RectTransform>();
+                    NavigationMapViewport viewport = marker.GetComponentInParent<NavigationMapViewport>();
+                    Assert.That(viewport, Is.Not.Null);
+                    viewport.EnsureVisible(viewport.transform.InverseTransformPoint(markerRect.TransformPoint(markerRect.rect.center)));
+                    yield return null;
+                    Canvas.ForceUpdateCanvases();
+                }
+                if (name.StartsWith("Encounter Choice ", StringComparison.Ordinal))
+                {
+                    yield return WaitForEncounterDossierPresentationCompletion();
+                    Button choice = ActiveButton(name);
+                    Assert.That(choice, Is.Not.Null);
+                    ScrollRect scroll = choice.GetComponentInParent<ScrollRect>();
+                    Assert.That(scroll, Is.Not.Null);
+                    var corners = new Vector3[4];
+                    for (int attempt = 0; attempt < 8; attempt++)
+                    {
+                        choice.GetComponent<RectTransform>().GetWorldCorners(corners);
+                        float bottom = corners.Min(point => scroll.viewport.InverseTransformPoint(point).y);
+                        float top = corners.Max(point => scroll.viewport.InverseTransformPoint(point).y);
+                        Rect bounds = scroll.viewport.rect;
+                        if (bottom >= bounds.yMin - .5f && top <= bounds.yMax + .5f) break;
+                        Assert.That(scroll.vertical, Is.True, "Overflowing choices must support real scrolling.");
+                        Assert.That(scroll.scrollSensitivity, Is.GreaterThan(0f));
+                        float delta = top > bounds.yMax ? top - bounds.yMax + 2f : bottom - bounds.yMin - 2f;
+                        scroll.OnScroll(new PointerEventData(EventSystem.current) {
+                            scrollDelta = new Vector2(0f, delta / scroll.scrollSensitivity) });
+                        yield return null;
+                        Canvas.ForceUpdateCanvases();
+                    }
+                    choice.GetComponent<RectTransform>().GetWorldCorners(corners);
+                    foreach (Vector3 corner in corners)
+                    {
+                        Vector2 local = scroll.viewport.InverseTransformPoint(corner);
+                        Assert.That(local.x, Is.InRange(scroll.viewport.rect.xMin - .5f, scroll.viewport.rect.xMax + .5f));
+                        Assert.That(local.y, Is.InRange(scroll.viewport.rect.yMin - .5f, scroll.viewport.rect.yMax + .5f),
+                            "The full action must be revealed before the normal pointer click.");
+                    }
+                }
                 RealTradeState before = State();
                 Record("Attempt click: " + name, before);
                 ClickAcceptanceButton(name);
@@ -439,6 +506,12 @@ namespace ShatteredSail.Presentation.Tests
             }
             private IEnumerator ConfigureDeck(NavalBattleStage stage, int[] desired)
             {
+                Assert.That(desired.Length, Is.InRange(CoreVoyageSession.MinimumBaseBattleDeckSize, CoreVoyageSession.MaximumBaseBattleDeckSize));
+                foreach (int index in desired.Distinct())
+                {
+                    Assert.That(Session.GetAvailableBattleCards(stage), Does.Contain(index), "The planned deck uses an unlocked card in its actual stage.");
+                    Assert.That(desired.Count(value => value == index), Is.LessThanOrEqualTo(Session.GetBaseBattleCardOwnedCopies(index)));
+                }
                 yield return Click("Battle Deck Stage Tab " + stage);
                 for (int change = 0; change < 30; change++)
                 {
@@ -454,9 +527,16 @@ namespace ShatteredSail.Presentation.Tests
                     }
                     else if (missing >= 0 && current.Count < CoreVoyageSession.MaximumBaseBattleDeckSize)
                     {
-                        for (int page = 0; ActiveButton("Add Deck Card " + missing) == null && page < 10; page++)
-                            yield return Click(ActiveButton("Next Battle Card Collection Page")?.IsInteractable() == true
-                                ? "Next Battle Card Collection Page" : "Previous Battle Card Collection Page");
+                        // Previous edits can leave the collection on any page.
+                        // Return to the first page, then visit each page once;
+                        // alternating at the last page never reaches earlier cards.
+                        int available = Session.GetAvailableBattleCards(stage).Count;
+                        for (int page = 0; ActiveButton("Previous Battle Card Collection Page")?.IsInteractable() == true && page < available; page++)
+                            yield return Click("Previous Battle Card Collection Page");
+                        Assert.That(ActiveButton("Previous Battle Card Collection Page").IsInteractable(), Is.False);
+                        for (int page = 0; ActiveButton("Add Deck Card " + missing) == null && page < available &&
+                            ActiveButton("Next Battle Card Collection Page")?.IsInteractable() == true; page++)
+                            yield return Click("Next Battle Card Collection Page");
                         yield return Click("Add Deck Card " + missing);
                     }
                     else Assert.Fail("No legal deck edit can progress toward " + stage);
@@ -493,14 +573,16 @@ namespace ShatteredSail.Presentation.Tests
                         // or their coordinates, and uses ordinary route previews.
                         int next = Enumerable.Range(0, Session.Map.CellCount)
                             .Where(i => !probed.Contains(i) && !Session.Map.ExploredCells[i])
-                            .Where(i => Distance(Session.Map.CellCenter(i % CoreVoyageMap.GridColumns, i / CoreVoyageMap.GridColumns), Session.Map.Destination) < 20)
-                            .OrderBy(i => Distance(Session.Position, Session.Map.CellCenter(i % CoreVoyageMap.GridColumns, i / CoreVoyageMap.GridColumns)))
+                            .Where(i => Distance(Session.Map.CellCenter(i % Session.Map.Columns, i / Session.Map.Columns), Session.Map.Destination) < 20)
+                            .OrderBy(i => Distance(Session.Position, Session.Map.CellCenter(i % Session.Map.Columns, i / Session.Map.Columns)))
                             .DefaultIfEmpty(-1).First();
                         Assert.That(next, Is.GreaterThanOrEqualTo(0), "No visible boss and no nearby unobserved port approach remains.");
                         probed.Add(next);
-                        VoyagePoint point = Session.Map.CellCenter(next % CoreVoyageMap.GridColumns, next / CoreVoyageMap.GridColumns);
+                        VoyagePoint point = Session.Map.CellCenter(next % Session.Map.Columns, next / Session.Map.Columns);
                         RealTradeState before = State();
-                        Vector2 local = new Vector2(Mathf.Lerp(-580, 580, point.X / 100f), Mathf.Lerp(-315, 315, point.Y / 64f));
+                        Vector2 seaSize = GameObject.Find("Ocean Tile Layer").GetComponent<RectTransform>().rect.size;
+                        Vector2 local = new Vector2((point.X / Session.Map.WorldWidth - .5f) * seaSize.x,
+                            (point.Y / Session.Map.WorldHeight - .5f) * seaSize.y);
                         yield return ClickDestinationTestGraphic(GameObject.Find("Map Course Input"), local);
                         Record("Chart exploration click near public port: " + point.X + "," + point.Y, before);
                     }

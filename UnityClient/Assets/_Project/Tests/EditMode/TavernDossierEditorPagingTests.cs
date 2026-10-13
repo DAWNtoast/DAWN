@@ -42,8 +42,11 @@ namespace ShatteredSail.Presentation.Tests
             AssertDossier(port, profession, page);
 
             Transform previousCanvas = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName);
+            Canvas[] previousCanvases = host.GetComponentsInChildren<Canvas>(true);
             controller.RefreshEditorPreview();
             Assert.That(previousCanvas == null, Is.True, "Refresh must rebuild the generated preview hierarchy.");
+            Assert.That(previousCanvases.All(canvas => canvas == null), Is.True,
+                "Refresh must also destroy the previous viewport's letterbox Canvas.");
             AssertDossier(port, profession, page);
 
             controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.TavernCrewDetail, port, 1);
@@ -70,7 +73,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.HasCompleteEditorPreview, Is.True);
             Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.TavernCrewDetail));
             Assert.That(controller.Session.CurrentPort, Is.EqualTo(PortNames[(int)port]), "Selecting or refreshing a dossier must keep the configured port.");
-            Assert.That(host.GetComponentsInChildren<Canvas>(true).Length, Is.EqualTo(1));
+            Canvas[] canvases = host.GetComponentsInChildren<Canvas>(true);
+            Canvas[] roots = canvases.Where(canvas => canvas.isRootCanvas).ToArray();
+            Assert.That(roots.Length, Is.EqualTo(1), "The dossier must have one generated preview root.");
+            Assert.That(canvases.Length, Is.EqualTo(2), "The only child Canvas is the fixed viewport's letterbox overlay.");
+            Canvas overlay = canvases.Single(canvas => !canvas.isRootCanvas);
+            Assert.That(roots[0].name, Is.EqualTo(CoreGameplayDemoController.EditorPreviewCanvasName));
+            Assert.That(roots[0].transform.parent, Is.SameAs(host.transform));
+            Assert.That(overlay.name, Is.EqualTo("Game Letterbox Overlay"));
+            Assert.That(overlay.transform.parent, Is.SameAs(roots[0].transform));
+            Assert.That(overlay.rootCanvas, Is.SameAs(roots[0]));
+            Assert.That(roots[0].transform.Find(FixedGameViewport.Name), Is.Not.Null);
 
             SerializedObject configuration = new SerializedObject(controller);
             Assert.That(configuration.FindProperty("editorPreviewPort").intValue, Is.EqualTo((int)port));

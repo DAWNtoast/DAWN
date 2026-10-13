@@ -53,6 +53,7 @@ namespace ShatteredSail.Core.Tests
             "<b>350米内</b>炮击\n船体伤害28\n消耗5法力，伤害+44")]
         [TestCase("格挡+8\r抽1张", "格挡+8\n抽1张")]
         [TestCase("说明！\n格挡+8", "说明！\n格挡+8")]
+        [TestCase("自身贡献上限 8、总上限 16。", "本牌上限8、总上限16")]
         [TestCase("造成1.5点船体伤害。", "造成1.5点船体伤害")]
         public void Compact_HasExplicitMeaningPreservingResults(string source, string expected)
         {
@@ -71,7 +72,7 @@ namespace ShatteredSail.Core.Tests
                 "命中灼烧 8×2回合；首次接舷灼烧 8×2回合；" +
                 "接下来 2 个敌回合，自然燃烧造成伤害后获得 6 格挡。";
             const string expected = "炮战修复3船体，白刃战恢复3船员生命\n" +
-                "本阶段每回合首次满额延烧：装填+6\n自身贡献上限12、总上限24\n" +
+                "本阶段每回合首次满额延烧：装填+6\n本牌上限12、总上限24\n" +
                 "命中灼烧8×2回合\n首次接舷灼烧8×2回合\n" +
                 "下2个敌回合，自然燃烧造成伤害后获得6格挡";
             Assert.That(CardDescriptionText.Compact(source), Is.EqualTo(expected));

@@ -29,10 +29,11 @@ namespace ShatteredSail.Presentation.Tests
             CreatePreview(route);
             for (int refresh = 0; refresh < 3; refresh++)
             {
-                Canvas previous = host.GetComponentInChildren<Canvas>(true);
+                Canvas[] previous = host.GetComponentsInChildren<Canvas>(true);
                 controller.RefreshEditorPreview();
 
-                Assert.That(previous == null, Is.True, "The old generated hierarchy must be destroyed, not left hidden behind the new one.");
+                Assert.That(previous.All(canvas => canvas == null), Is.True,
+                    "The old root and letterbox Canvas must both be destroyed, not hidden behind the replacement.");
                 AssertCompleteDeparture(route);
             }
         }
@@ -88,20 +89,31 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Application.isPlaying, Is.False);
             Assert.That(controller.HasCompleteEditorPreview, Is.True);
             Canvas[] canvases = host.GetComponentsInChildren<Canvas>(true);
-            Assert.That(canvases.Length, Is.EqualTo(1), "Refreshing should leave exactly one generated preview Canvas.");
-            Assert.That(canvases[0].name, Is.EqualTo(CoreGameplayDemoController.EditorPreviewCanvasName));
-            Assert.That(canvases[0].gameObject.activeInHierarchy, Is.True);
-            Assert.That(canvases[0].gameObject.hideFlags & HideFlags.DontSaveInEditor, Is.EqualTo(HideFlags.DontSaveInEditor));
+            Canvas[] roots = canvases.Where(canvas => canvas.isRootCanvas).ToArray();
+            Assert.That(roots.Length, Is.EqualTo(1), "Refreshing should leave exactly one generated preview root Canvas.");
+            Canvas root = roots[0];
+            Assert.That(root.name, Is.EqualTo(CoreGameplayDemoController.EditorPreviewCanvasName));
+            Assert.That(root.transform.parent, Is.SameAs(host.transform));
+            Assert.That(root.gameObject.activeInHierarchy, Is.True);
+            Assert.That(root.gameObject.hideFlags & HideFlags.DontSaveInEditor, Is.EqualTo(HideFlags.DontSaveInEditor));
+            // The fixed viewport intentionally owns a sorted child Canvas to
+            // cover hovered controls outside its 16:9 surface.
+            Assert.That(canvases.Length, Is.EqualTo(2), "Only the root and its letterbox overlay should remain after refresh.");
+            Canvas overlay = canvases.Single(canvas => !canvas.isRootCanvas);
+            Assert.That(overlay.name, Is.EqualTo("Game Letterbox Overlay"));
+            Assert.That(overlay.transform.parent, Is.SameAs(root.transform));
+            Assert.That(overlay.rootCanvas, Is.SameAs(root));
+            Assert.That(root.transform.Find(FixedGameViewport.Name), Is.Not.Null);
 
             SerializedObject configuration = new SerializedObject(controller);
             Assert.That(configuration.FindProperty("editorPreviewScreen").intValue, Is.EqualTo((int)CoreGameplayPreviewScreen.VoyageDeparture));
             Assert.That(configuration.FindProperty("editorPreviewPort").intValue, Is.EqualTo((int)CoreGameplayPreviewPort.WhiteShell));
             Assert.That(configuration.FindProperty("editorPreviewRouteIndex").intValue, Is.EqualTo(route));
-            RawImage[] backgrounds = canvases[0].GetComponentsInChildren<RawImage>(true)
+            RawImage[] backgrounds = root.GetComponentsInChildren<RawImage>(true)
                 .Where(image => image.name == "Voyage Background").ToArray();
             Assert.That(backgrounds.Length, Is.EqualTo(1));
             Assert.That(backgrounds[0].texture, Is.Not.Null);
-            Assert.That(canvases[0].GetComponentsInChildren<Button>(true).Any(button => button.name == "Start Voyage"), Is.True);
+            Assert.That(root.GetComponentsInChildren<Button>(true).Any(button => button.name == "Start Voyage"), Is.True);
         }
     }
 }

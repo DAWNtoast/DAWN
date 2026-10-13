@@ -27,7 +27,7 @@ namespace ShatteredSail.Presentation.Tests
             SetResponsiveDrawPile(session, "card_emergency_repair", "card_chain_shot");
             session.Battle.DistanceMeters = 500f;
             session.Battle.Alignment = NavalBattleAlignment.HeadOn;
-            session.Battle.Energy = 0;
+            session.Battle.Energy = 1;
             RenderResponsiveBattle(controller);
             yield return null;
 
@@ -42,9 +42,9 @@ namespace ShatteredSail.Presentation.Tests
             int firstGuardId = firstGuard.GetInstanceID();
             int secondGuardId = secondGuard.GetInstanceID();
             CoreBattleCard turn = session.GetBattleCard(session.Battle.Hand[0]);
-            Assert.That(turn.Energy, Is.Zero);
+            Assert.That(turn.Energy, Is.EqualTo(1));
             Assert.That(turn.Draw, Is.EqualTo(2));
-            Assert.That(played.interactable, Is.True, "A tier-three maneuver can be played with no energy remaining.");
+            Assert.That(played.interactable, Is.True, "The upgraded maneuver retains its authored one-energy cost.");
 
             float started = Time.realtimeSinceStartup;
             played.onClick.Invoke();
@@ -92,7 +92,7 @@ namespace ShatteredSail.Presentation.Tests
             firstGuard.onClick.Invoke();
             yield return WaitResponsiveBattle(controller);
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(2));
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(turn.Block + 3));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(turn.Block + 2));
             Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(secondGuardId));
             AssertResponsiveHandMatchesCore(session);
             Assert.That(GameObject.Find("Battle Card").GetComponentsInChildren<BattleFxGraphic>(), Is.Empty);
@@ -123,7 +123,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(duplicateId));
             Assert.That(RequiredResponsive<Button>("Battle Card 1").GetInstanceID(), Is.EqualTo(repairId));
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(3));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(2));
             int[] handAfter = session.Battle.Hand.ToArray();
             obsoleteClick.Invoke();
             yield return null;
@@ -133,29 +133,32 @@ namespace ShatteredSail.Presentation.Tests
             retainedDuplicate.onClick.Invoke();
             yield return WaitResponsiveBattle(controller);
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(2));
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(6));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(4));
             Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(repairId));
             AssertResponsiveHandMatchesCore(session);
             LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]
-        public IEnumerator BattleResponsive_RealCrewCardRepairsGuardsAndDrawsWithoutSerialFeedbackOrLosingHover()
+        public IEnumerator BattleResponsive_RealComponentCardRepairsGuardsAndDrawsWithoutSerialFeedbackOrLosingHover()
         {
             yield return LoadResponsiveBattleScene();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            CoreSpecialCardDefinition special = CoreSpecialCardCatalog.ForCrew("crew_broken_anchor_carpenter_kia");
+            CoreSpecialCardDefinition special = CoreSpecialCardCatalog.ForComponent("instrument_deepwater_abacus");
             Assert.That(special, Is.Not.Null);
             CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval,
-                new Dictionary<string, int> { { special.Card.Id, 3 } }, special.SourceId);
+                new Dictionary<string, int> { { special.Card.Id, 3 } }, componentIds: new[] { special.SourceId });
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, session.MaxHull - 25);
             SetResponsiveHand(session, special.Card.Id, "card_brace");
-            SetResponsiveDrawPile(session, "card_chain_shot");
+            SetResponsiveDrawPile(session, "card_chain_shot", "card_emergency_repair");
             RenderResponsiveBattle(controller);
             yield return null;
             CoreBattleCard specialCard = session.GetBattleCard(session.Battle.Hand[0]);
             Assert.That(specialCard.UpgradeLevel, Is.EqualTo(3));
-            Assert.That(specialCard.Draw, Is.EqualTo(1));
+            Assert.That(specialCard.Draw, Is.EqualTo(2));
+            Assert.That(specialCard.Repair, Is.EqualTo(10));
+            Assert.That(specialCard.Block, Is.EqualTo(4));
+            Assert.That(session.CanPlayCard(0), Is.True, session.CardUnavailableReason(0));
             int hullBefore = session.Hull;
             int stageId = RequiredResponsive<RectTransform>("Battle Card").GetInstanceID();
             int retainedId = RequiredResponsive<Button>("Battle Card 1").GetInstanceID();
@@ -180,10 +183,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.IsBattleAnimationPlaying, Is.False);
             yield return null;
             float elapsed = Time.realtimeSinceStartup - started;
-            TestContext.WriteLine("[BattleResponsive timing] crew repair/guard/draw lock=" + elapsed.ToString("F3") +
+            TestContext.WriteLine("[BattleResponsive timing] component repair/guard/draw lock=" + elapsed.ToString("F3") +
                 "s; same battlefield=" + (RequiredResponsive<RectTransform>("Battle Card").GetInstanceID() == stageId));
             Assert.That(elapsed, Is.LessThan(2f));
-            Assert.That(sawSeparatedFeedback, Is.True, "Compound crew effects should be shown together without overlapping their numbers.");
+            Assert.That(sawSeparatedFeedback, Is.True, "Compound component effects should be shown together without overlapping their numbers.");
             Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetInstanceID(), Is.EqualTo(stageId));
             Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(retainedId));
             Assert.That(session.Hull, Is.EqualTo(hullBefore + specialCard.Repair));
@@ -277,11 +280,14 @@ namespace ShatteredSail.Presentation.Tests
 
         private static CoreVoyageSession CreateResponsiveBattle(CoreGameplayDemoController controller,
             NavalBattleStage stage, IReadOnlyDictionary<string, int> upgrades = null, string crewId = null,
-            IReadOnlyList<string> crewIds = null, double? gameHours = null, int pirateLevel = 1)
+            IReadOnlyList<string> crewIds = null, double? gameHours = null, int pirateLevel = 1,
+            IReadOnlyList<string> componentIds = null)
         {
             CoreVoyageSession session = new CoreVoyageSession();
             session.ConfigureCrewCapabilities(false, false, false, false, false, false);
-            if (crewIds != null) session.ConfigureSpecialCardSources(crewIds, Array.Empty<string>());
+            if (componentIds != null) session.ConfigureSpecialCardSources(crewIds ??
+                (crewId == null ? Array.Empty<string>() : new[] { crewId }), componentIds);
+            else if (crewIds != null) session.ConfigureSpecialCardSources(crewIds, Array.Empty<string>());
             else if (crewId != null) session.ConfigureSpecialCardSources(new[] { crewId }, Array.Empty<string>());
             if (upgrades != null) session.ConfigureCardUpgrades(upgrades);
             if (gameHours.HasValue) Assert.That(session.RestoreGameClock(gameHours.Value), Is.True);

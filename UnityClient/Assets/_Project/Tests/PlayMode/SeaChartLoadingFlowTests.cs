@@ -106,8 +106,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Departure Chart Preview").GetComponentInChildren<VoyageChartSurfaceGraphic>(), Is.Not.Null);
             CaptureSeaChartFlow(controller, "03_Seed_Route_Locked", "真实输入完整海图种子后自动选择航线并显示地图与端点", "Route Selection");
             ClickAcceptanceButton("Adjust Voyage Supplies"); yield return null;
-            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航界面"));
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
+            ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
             Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
             Assert.That(GameObject.Find("Use Chart Seed").GetComponent<Toggle>().isOn, Is.True);
             Assert.That(GameObject.Find("Seed Input").GetComponent<InputField>().text, Is.EqualTo(seed));
@@ -227,7 +229,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Settlement.BankedFragments, Is.EqualTo(1));
             Assert.That(controller.Session.Settlement.BankedPirateExperience, Is.EqualTo(80));
             Assert.That(controller.Session.TreasureFragments, Is.Zero, "The settlement has not been confirmed.");
-            Assert.That(controller.Session.PirateExperience, Is.EqualTo(40));
+            Assert.That(controller.Session.PirateExperience, Is.EqualTo(20), "Only the first lesson's 20 experience is banked before boss settlement.");
             string seed = controller.Session.CurrentChartSeed;
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, ""), Does.Not.Contain(seed));
             var savedVictory = JsonUtility.FromJson<CoreSeaChartProgress>(PlayerPrefs.GetString(CoreGameplayDemoController.SeaChartProgressKey));
@@ -247,7 +249,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return DriveGuidedTutorial(controller, "Complete", resumedSteps, false);
             Assert.That(resumedSteps, Does.Not.Contain("TutorialBoss"));
             Assert.That(controller.Session.TreasureFragments, Is.EqualTo(1));
-            Assert.That(controller.Session.PirateExperience, Is.EqualTo(120));
+            Assert.That(controller.Session.PirateExperience, Is.EqualTo(100));
             Assert.That(controller.Session.PirateLevel, Is.EqualTo(2));
             string[] components = controller.OwnedComponents.Select(item => item.InstanceId).OrderBy(id => id).ToArray();
             savedVictory = JsonUtility.FromJson<CoreSeaChartProgress>(PlayerPrefs.GetString(CoreGameplayDemoController.SeaChartProgressKey));
@@ -257,7 +259,7 @@ namespace ShatteredSail.Presentation.Tests
             controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller.IsTutorialActive, Is.False);
             Assert.That(controller.Session.TreasureFragments, Is.EqualTo(1));
-            Assert.That(controller.Session.PirateExperience, Is.EqualTo(120));
+            Assert.That(controller.Session.PirateExperience, Is.EqualTo(100));
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
             yield return SelectRecordedChartSeed(seed);
             ClickAcceptanceButton("Start Voyage"); yield return null;
@@ -267,7 +269,7 @@ namespace ShatteredSail.Presentation.Tests
             CaptureSeaChartFlow(controller, "10_Recovered_Chart_Revisited", "领取并再次重载后正常重访海图，首胜奖励不重复", "Navigation Chart");
             yield return FinishChartFlowVoyage(false);
             Assert.That(controller.Session.TreasureFragments, Is.EqualTo(1));
-            Assert.That(controller.Session.PirateExperience, Is.EqualTo(120), "Returning without exploring must not repeat the recovered boss experience.");
+            Assert.That(controller.Session.PirateExperience, Is.EqualTo(100), "Returning without exploring must not repeat the recovered boss experience.");
             CollectionAssert.AreEqual(components, controller.OwnedComponents.Select(item => item.InstanceId).OrderBy(id => id).ToArray());
             LogAssert.NoUnexpectedReceived();
         }

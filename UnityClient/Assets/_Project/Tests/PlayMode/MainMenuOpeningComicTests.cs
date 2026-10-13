@@ -127,10 +127,13 @@ namespace ShatteredSail.Presentation.Tests
                 rect.GetWorldCorners(corners);
                 Vector2 minimum = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
                 Vector2 maximum = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
-                Assert.That(minimum.x, Is.EqualTo(0f).Within(1f), rect.name);
-                Assert.That(minimum.y, Is.EqualTo(0f).Within(1f), rect.name);
-                Assert.That(maximum.x, Is.EqualTo(Screen.width).Within(1f), rect.name);
-                Assert.That(maximum.y, Is.EqualTo(Screen.height).Within(1f), rect.name);
+                FixedGameViewport.Bounds(canvas).GetWorldCorners(corners);
+                Vector2 viewportMinimum = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
+                Vector2 viewportMaximum = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
+                Assert.That(minimum.x, Is.EqualTo(viewportMinimum.x).Within(1f), rect.name);
+                Assert.That(minimum.y, Is.EqualTo(viewportMinimum.y).Within(1f), rect.name);
+                Assert.That(maximum.x, Is.EqualTo(viewportMaximum.x).Within(1f), rect.name);
+                Assert.That(maximum.y, Is.EqualTo(viewportMaximum.y).Within(1f), rect.name);
             }
         }
 
@@ -172,16 +175,20 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(advance, Is.Not.Null);
             Assert.That(advance.IsInteractable(), Is.True);
             Canvas.ForceUpdateCanvases();
+            Canvas canvas = advance.GetComponentInParent<Canvas>().rootCanvas;
+            RectTransform viewport = FixedGameViewport.Bounds(canvas);
+            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            Vector2 localPoint = viewport.rect.min + Vector2.Scale(viewport.rect.size, normalized);
             var pointer = new PointerEventData(EventSystem.current)
             {
                 button = PointerEventData.InputButton.Left,
-                position = new Vector2(Screen.width * normalized.x, Screen.height * normalized.y),
+                position = RectTransformUtility.WorldToScreenPoint(camera, viewport.TransformPoint(localPoint)),
             };
             var hits = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointer, hits);
             Assert.That(hits, Is.Not.Empty);
             Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(advance),
-                "The entire screen must advance the opening while protecting the tutorial controls.");
+                "The entire game viewport must advance the opening while protecting the tutorial controls.");
             ExecuteEvents.Execute(advance.gameObject, pointer, ExecuteEvents.pointerClickHandler);
         }
     }

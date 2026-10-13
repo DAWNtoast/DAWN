@@ -96,7 +96,9 @@ namespace ShatteredSail.Presentation.Tests
             RawImage[] auras = preview.GetComponentsInChildren<RawImage>(true)
                 .Where(image => image.name.StartsWith("Component Shop Rarity Aura"))
                 .ToArray();
-            Assert.That(auras.Length, Is.GreaterThan(0));
+            Assert.That(preview.GetComponentsInChildren<Button>(true)
+                .Count(button => button.name.StartsWith("Component Shop Offer ")), Is.GreaterThan(0),
+                "Validate a populated showroom; removing its offers is not a valid way to remove glow.");
             Assert.That(auras.All(image => image.color.a == 0f), Is.True,
                 "Rarity should be shown by the plaque/text without a persistent coloured halo.");
         }

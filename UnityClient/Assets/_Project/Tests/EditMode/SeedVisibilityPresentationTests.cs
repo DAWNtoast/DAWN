@@ -96,8 +96,10 @@ namespace ShatteredSail.Core.Tests
             Toggle toggle = Find<Toggle>("Use Chart Seed");
             RectTransform selection = Find<RectTransform>("Departure Chart Selection");
             Assert.That(toggle.transform.parent, Is.SameAs(routes));
-            Assert.That(toggle.GetComponent<RectTransform>().anchoredPosition.y,
-                Is.GreaterThan(((RectTransform)routes).rect.yMax), "The switch belongs above the left frame.");
+            RectTransform toggleRect = toggle.GetComponent<RectTransform>();
+            Assert.That(toggleRect.anchoredPosition.y + toggleRect.rect.yMax,
+                Is.LessThan(((RectTransform)routes).rect.yMax), "The chart switch belongs inside the current paper frame.");
+            Assert.That(toggleRect.anchoredPosition.y, Is.GreaterThan(0f), "The switch stays above the route choices.");
             Assert.That(setup.GetComponentsInChildren<Toggle>(true).Any(item => item.name == "Use Chart Seed"), Is.False);
             Assert.That(setup.GetComponentsInChildren<InputField>(true), Is.Empty);
             Assert.That(selection.gameObject.activeSelf, Is.False);

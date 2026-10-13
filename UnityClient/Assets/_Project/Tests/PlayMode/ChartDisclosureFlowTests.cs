@@ -66,6 +66,10 @@ namespace ShatteredSail.Presentation.Tests
             ActiveButton("Recruit Tavern Crew 0").onClick.Invoke();
             yield return null;
             Assert.That(controller.Session.CanDrawSeaChart, Is.True);
+            // The first back action closes the crew dossier, retaining the tavern.
+            ActiveButton("Return To Port Hub").onClick.Invoke();
+            yield return null;
+            Assert.That(controller.ActivePortSection, Is.EqualTo("灰鸥酒馆"));
             ActiveButton("Return To Port Hub").onClick.Invoke();
             yield return null;
             ActiveButton("Port Hotspot Voyage").onClick.Invoke();

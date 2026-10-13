@@ -85,7 +85,7 @@ namespace ShatteredSail.Presentation.Tests
             Write("interfaceFont", Invoke("CreateInterfaceFont"));
             Invoke("BuildCanvas", "Isolated Game Master Canvas");
             page = Read<RectTransform>("contentRoot");
-            canvasObject = page.parent.gameObject;
+            canvasObject = page.GetComponentInParent<Canvas>(true).rootCanvas.gameObject;
             canvasObject.transform.SetParent(null, false);
             var underlayObject = new GameObject("Underlying GM Draft", typeof(RectTransform), typeof(Image), typeof(Button));
             underlayObject.transform.SetParent(page, false);

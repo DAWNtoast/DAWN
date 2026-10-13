@@ -84,6 +84,7 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     yield return ClickAchievementIconControl("Port Hotspot Market");
                     yield return new WaitForSecondsRealtime(.35f);
+                    yield return ClickAchievementIconControl("Market Shop " + MarketSceneLayout.ShopForItem(PortMarketItem.Water));
                     yield return ClickAchievementIconControl("Market Item Icon water");
                     yield return ClickAchievementIconControl("Market Buy water");
                     yield return ClickAchievementIconControl("Confirm Market Buy water");
@@ -104,6 +105,8 @@ namespace ShatteredSail.Presentation.Tests
                         yield return ClickAchievementIconControl("Cancel Market Trade");
                     if (ActiveButton("Market Detail Back") != null)
                         yield return ClickAchievementIconControl("Market Detail Back");
+                    Assert.That(GameObject.Find("Market Item Detail"), Is.Null, "Cancel closes the current shop drawer.");
+                    yield return ClickAchievementIconControl("Market Shop " + MarketSceneLayout.ShopForItem(PortMarketItem.Water));
                     yield return ClickAchievementIconControl("Market Item Icon water");
                     yield return ClickAchievementIconControl("Market Sell water");
                     Slider quantity = GameObject.Find("Market Quantity Slider water").GetComponent<Slider>();

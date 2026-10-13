@@ -15,6 +15,7 @@ namespace ShatteredSail.Core.Tests
             var session = ReadyBattle();
             DirtySchoolState(session.Battle.Schools);
             Assert.That(session.Battle.Schools.Mana, Is.GreaterThan(0));
+            Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(14), "The read-only total must reflect both dirtied balances.");
             Assert.That(session.Battle.Schools.OverflowUsed, Is.True);
             Assert.That(session.CanCaptureVoyageCheckpoint, Is.False);
             Assert.Throws<InvalidOperationException>(() => session.CaptureVoyageCheckpoint());
@@ -89,15 +90,19 @@ namespace ShatteredSail.Core.Tests
         private static void DirtySchoolState(CoreSchoolBattleState state)
         {
             foreach (PropertyInfo property in typeof(CoreSchoolBattleState).GetProperties())
-                property.GetSetMethod(true).Invoke(state, new[] { property.PropertyType == typeof(bool) ? (object)true : 7 });
+            {
+                MethodInfo setter = property.GetSetMethod(true);
+                if (setter != null) setter.Invoke(state, new[] { property.PropertyType == typeof(bool) ? (object)true : 7 });
+            }
         }
         private static void AssertFresh(CoreSchoolBattleState state)
         {
             foreach (PropertyInfo property in typeof(CoreSchoolBattleState).GetProperties())
             {
                 object expected = property.PropertyType == typeof(bool) ? (object)false :
-                    property.Name == nameof(CoreSchoolBattleState.ManaLimit) ? 12 :
-                    property.Name == nameof(CoreSchoolBattleState.ThunderLimit) ? 6 : 0;
+                    property.Name == nameof(CoreSchoolBattleState.ManaLimit) ? 3 :
+                    property.Name == nameof(CoreSchoolBattleState.ThunderLimit) ? 6 :
+                    property.Name == nameof(CoreSchoolBattleState.TideLimit) ? 20 : 0;
                 Assert.That(property.GetValue(state), Is.EqualTo(expected), property.Name);
             }
         }

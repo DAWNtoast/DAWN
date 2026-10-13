@@ -32,7 +32,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 ComponentSlot slot = (ComponentSlot)i;
                 RawImage icon = AssertItemIcon("Shipyard Installed Art " + slot,
-                    ItemIconCatalog.ForComponent(controller.ShipComponent(0, slot)), 48f);
+                    ItemIconCatalog.ForComponent(controller.ShipComponent(0, slot)), 64f);
                 AssertIconDoesNotCoverRowText(icon);
                 AssertIconPointerReachesButton(icon, "Shipyard Equipment Slot " + slot, false);
             }
@@ -44,7 +44,7 @@ namespace ShatteredSail.Presentation.Tests
                 AssertIconPointerReachesButton(icon, "Shipyard Equipment Owned " + inventory[i].InstanceId, false);
             }
             NavalBattleVisualCapture.Capture(controller, "ItemIcons_11_Equipment_Inventory.png",
-                "隔离部件库存夹具；五个已装槽位与两件闲置部件使用48像素图标", "Shipyard Detail");
+                "隔离部件库存夹具；五个已装槽位使用64像素图标，两件闲置部件使用48像素图标", "Shipyard Detail");
 
             // Use the real Core settlement boundary and production renderer.
             // Reward values below are explicitly a visual fixture, not earned loot.

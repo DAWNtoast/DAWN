@@ -25,7 +25,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(session.Battle.PlayerOrdinaryCrew, Is.EqualTo(10));
             CoreBattleCard bandage = session.GetBattleCard(ResponsiveCardIndex("card_crew_bandage"));
-            const int enhanced = 8;
+            const int enhanced = 6;
             Assert.That(bandage.Repair, Is.EqualTo(enhanced), "The authored full treatment is unchanged by the ten-sailor roster.");
             int baseline = 2;
             BoardingCinematicAssertions.AssertScene(session);

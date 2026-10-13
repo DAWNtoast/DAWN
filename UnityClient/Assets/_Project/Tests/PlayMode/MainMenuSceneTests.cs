@@ -210,9 +210,9 @@ namespace ShatteredSail.Presentation.Tests
                 "Continuing an old save must retain stable component IDs rather than treating them as old catalog indexes.");
             Assert.That(game.EquippedComponent(ComponentSlot.Sail).Id, Is.EqualTo("sail_last_free_wind"),
                 "An expanded-catalog component must survive save restoration too.");
-            Assert.That(game.Session.BattleDeck.Count, Is.EqualTo(8));
-            Assert.That(game.Session.GetBattleDeck(NavalBattleStage.Preparation), Is.EqualTo(new[] { 8, 8, 9, 9, 10, 10, 11, 12 }),
-                "A separately saved stage takes precedence over the old combined deck.");
+            Assert.That(game.Session.BattleDeck.Count, Is.EqualTo(10), "Legacy decks fill the current ten-card minimum.");
+            Assert.That(game.Session.GetBattleDeck(NavalBattleStage.Preparation), Is.EqualTo(new[] { 8, 8, 9, 9, 10, 10, 11, 12, 11, 12 }),
+                "The separately saved stage takes precedence, preserves its eight cards, and fills only the missing minimum.");
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.LegacyWitchRecruitedKey), Is.False,
                 "Continuing a historical save must remove the retired placeholder recruitment flag.");
             Assert.That(CoreVoyageSession.CardLibrary.Any(card => card.Id.StartsWith("card_witch_") || card.RequiredCrew == "crew_witch_jinchao"), Is.False);

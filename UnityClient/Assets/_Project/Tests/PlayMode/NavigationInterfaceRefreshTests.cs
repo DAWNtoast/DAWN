@@ -25,8 +25,9 @@ namespace ShatteredSail.Presentation.Tests
             foreach (VoyagePoint target in new[] { new VoyagePoint(35f, 34f), new VoyagePoint(26f, 36f) })
             {
                 GameObject oldChart = GameObject.Find("Navigation Chart");
-                Vector2 local = new Vector2(Mathf.Lerp(-580f, 580f, target.X / 100f),
-                    Mathf.Lerp(-315f, 315f, target.Y / 64f));
+                Vector2 seaSize = GameObject.Find("Ocean Tile Layer").GetComponent<RectTransform>().rect.size;
+                Vector2 local = new Vector2((target.X / session.Map.WorldWidth - .5f) * seaSize.x,
+                    (target.Y / session.Map.WorldHeight - .5f) * seaSize.y);
                 ClickNavigationInterfaceRefreshGraphic(GameObject.Find("Map Course Input"), local);
 
                 Assert.That(session.HasDirectCourseTarget, Is.True);
@@ -144,8 +145,12 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(frame.fillCenter, Is.False, context);
                 Assert.That(frame.raycastTarget, Is.False, context);
             }
+            CoreVoyageMap map = Object.FindFirstObjectByType<CoreGameplayDemoController>().Session.Map;
+            Vector2 seaSize = new Vector2(map.Columns, map.Rows) * (1160f / 48f);
+            Assert.That(GameObject.Find("Ocean Tile Layer").GetComponent<RectTransform>().rect.size,
+                Is.EqualTo(seaSize), context + ": chart cells must remain square.");
             Assert.That(GameObject.Find("Map Layer").GetComponent<RectTransform>().sizeDelta,
-                Is.EqualTo(new Vector2(1200f, 675f)), context + ": map coordinates must remain unchanged.");
+                Is.EqualTo(seaSize + new Vector2(40f, 45f)), context + ": retain chart margins around the square grid.");
         }
 
         private static Image NavigationInterfaceRefreshImage(string name, string context)

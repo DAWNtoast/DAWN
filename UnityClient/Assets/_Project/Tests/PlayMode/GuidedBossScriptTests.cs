@@ -261,17 +261,17 @@ namespace ShatteredSail.Presentation.Tests
                 case GuidedBossBattleStep.BoardingHeal:
                     hand = new[] { "card_crew_bandage", "card_crew_thrust", "card_crew_guard" };
                     Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(InitialBoardingHealth(battle.PlayerMaxBoardingHealth,
-                        battle.NavalStartPlayerHull, session.Hull, session.MaxHull) - 1));
+                        battle.NavalStartPlayerHull, session.Hull, session.MaxHull) - 3));
                     Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(InitialBoardingHealth(battle.EnemyMaxBoardingHealth,
-                        battle.NavalStartEnemyHull, battle.EnemyHull, battle.EnemyMaxHull) - 10));
+                        battle.NavalStartEnemyHull, battle.EnemyHull, battle.EnemyMaxHull) - 8));
                     break;
                 case GuidedBossBattleStep.BoardingAttack3:
                     hand = new[] { "card_crew_thrust" };
                     Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(Math.Min(battle.PlayerMaxBoardingHealth,
                         InitialBoardingHealth(battle.PlayerMaxBoardingHealth, battle.NavalStartPlayerHull,
-                            session.Hull, session.MaxHull) - 1 + 8)), "The fixed enemy attacks remain 7 and 3; the authored guard is 6 and medicine enables the full 8-point bandage.");
-                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(InitialBoardingHealth(battle.EnemyMaxBoardingHealth,
-                        battle.NavalStartEnemyHull, battle.EnemyHull, battle.EnemyMaxHull) - 20));
+                            session.Hull, session.MaxHull) - 3 + 6)), "The fixed enemy attacks remain 7 and 3; the authored guard is 4 and medicine enables the full 6-point bandage.");
+                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(Math.Max(0, InitialBoardingHealth(battle.EnemyMaxBoardingHealth,
+                        battle.NavalStartEnemyHull, battle.EnemyHull, battle.EnemyMaxHull) - 16)));
                     break;
             }
             if (hand != null)
@@ -329,7 +329,7 @@ namespace ShatteredSail.Presentation.Tests
                         "The real click must apply the retreat card's effects quoted before the action.");
                     break;
                 case GuidedBossBattleStep.NavalLoad:
-                    Assert.That(battle.PlayerLoadedShot, Is.EqualTo(8)); break;
+                    Assert.That(battle.PlayerLoadedShot, Is.EqualTo(5)); break;
                 case GuidedBossBattleStep.NavalGuard:
                 case GuidedBossBattleStep.NavalGuard2:
                     Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard + 2)); break;
@@ -345,7 +345,7 @@ namespace ShatteredSail.Presentation.Tests
                 case GuidedBossBattleStep.NavalApproach2:
                     Assert.That(battle.DistanceMeters, Is.EqualTo(280)); break;
                 case GuidedBossBattleStep.NavalFire:
-                    Assert.That(battle.EnemyHull, Is.EqualTo(before.EnemyHull - 13));
+                    Assert.That(battle.EnemyHull, Is.EqualTo(before.EnemyHull - 12));
                     Assert.That(battle.EnemyBlock, Is.Zero); Assert.That(battle.PlayerLoadedShot, Is.Zero); break;
                 case GuidedBossBattleStep.NavalEndTurn2:
                     Assert.That(battle.DistanceMeters, Is.EqualTo(100)); Assert.That(session.Hull, Is.EqualTo(before.Hull - 1));
@@ -368,19 +368,29 @@ namespace ShatteredSail.Presentation.Tests
                 case GuidedBossBattleStep.BoardingAttack1:
                 case GuidedBossBattleStep.BoardingAttack2:
                 case GuidedBossBattleStep.BoardingAttack3:
-                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(Math.Max(0, before.EnemyHp - 10)),
-                        "The authored thrust deals its full 10 damage regardless of the ten-sailor tutorial roster."); break;
+                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(Math.Max(0, before.EnemyHp - 8)),
+                        "The authored thrust deals its full 8 damage regardless of the ten-sailor tutorial roster."); break;
                 case GuidedBossBattleStep.BoardingEndTurn1:
                     Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp - Math.Max(0, 7 - before.Guard)));
                     Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(Math.Min(7, before.Guard))); break;
                 case GuidedBossBattleStep.BoardingHeal:
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(Math.Min(battle.PlayerMaxBoardingHealth, before.PlayerHp + 8)),
-                        "Medicine enables the authored 8-point bandage; crew count no longer reduces its value."); break;
+                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(Math.Min(battle.PlayerMaxBoardingHealth, before.PlayerHp + 6)),
+                        "Medicine enables the authored 6-point bandage; crew count no longer reduces its value."); break;
                 case GuidedBossBattleStep.BoardingEndTurn2:
                     Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp - Math.Max(0, 3 - before.Guard)));
                     Assert.That(battle.LastEnemyGuardAbsorbed, Is.EqualTo(Math.Min(3, before.Guard))); break;
             }
-            if (action == GuidedBossActionKind.EndTurn) Assert.That(battle.Turn, Is.EqualTo(before.Turn + 1));
+            if (action == GuidedBossActionKind.EndTurn)
+            {
+                if (session.Phase == CoreDemoPhase.Settlement)
+                {
+                    Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
+                    Assert.That(session.Battle, Is.Null);
+                    Assert.That(battle.Turn, Is.EqualTo(before.Turn),
+                        "A lethal enemy action resolves the failure before starting another player turn.");
+                }
+                else Assert.That(battle.Turn, Is.EqualTo(before.Turn + 1));
+            }
             if (session.Phase == CoreDemoPhase.Sailing &&
                 (step == GuidedBossBattleStep.BoardingAttack1 || step == GuidedBossBattleStep.BoardingAttack2 || step == GuidedBossBattleStep.BoardingAttack3))
             {

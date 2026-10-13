@@ -23,6 +23,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return new WaitForSecondsRealtime(.8f);
             int count = MemoryCollectionCount(controller);
             Assert.That(count, Is.GreaterThanOrEqualTo(2));
+            yield return OpenMarketItem("water");
             Texture background = GameObject.Find("Market Background").GetComponent<RawImage>().texture;
             Texture icon = GameObject.Find("Market Item Icon water").GetComponent<RawImage>().texture;
             Assert.That(background, Is.Not.Null);
@@ -38,6 +39,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(MemoryCollectionCount(controller), Is.GreaterThan(count));
             ActiveButton("Port Hotspot Market").onClick.Invoke();
             yield return new WaitForSecondsRealtime(.8f);
+            yield return OpenMarketItem("water");
             Assert.That(GameObject.Find("Market Item Icon water").GetComponent<RawImage>().texture, Is.Not.Null);
             LogAssert.NoUnexpectedReceived();
         }
@@ -148,6 +150,43 @@ namespace ShatteredSail.Presentation.Tests
             finally { if (host != null) Object.Destroy(host); }
         }
 
+        [UnityTest]
+        public IEnumerator RuntimeMemory_MenuCollectionPreservesLiveNavigationArtThenReleasesItAndReopens()
+        {
+            yield return LoadNavigationInterfaceRefreshFixture();
+            int[] original = NavigationArtSpriteIds();
+            // A fast scene transition can overlap a live view with menu cleanup.
+            // Only Images, not coroutine-held Sprite references, own this art.
+            yield return CollectMenuArtForTest();
+            CollectionAssert.AreEqual(original, NavigationArtSpriteIds(), "Live navigation art must survive cache release.");
+            SceneManager.LoadScene("MainMenu", LoadSceneMode.Single);
+            yield return null;
+            yield return CollectMenuArtForTest();
+            foreach (int id in original)
+                Assert.That(LoadedSpriteExists(id), Is.False, "Closed navigation sprites must no longer be pinned.");
+
+            yield return LoadNavigationInterfaceRefreshFixture();
+            int[] reopened = NavigationArtSpriteIds();
+            Assert.That(reopened.Intersect(original), Is.Empty, "Reopening navigation reloads its collected sprites.");
+            AssertNavigationInterfaceRefreshSkin("after menu cleanup and reopening");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static int[] NavigationArtSpriteIds()
+        {
+            string[] names = { "Voyage Header Frame", "Voyage Header Compass", "Navigation Chart Timber Frame" };
+            string[] textures = { "navigation_header_v3", "navigation_compass_v3", "navigation_panel_frame_v3" };
+            var ids = new int[names.Length];
+            for (int index = 0; index < names.Length; index++)
+            {
+                Image image = GameObject.Find(names[index]).GetComponent<Image>();
+                Assert.That(image.sprite != null && image.sprite.texture != null, Is.True, names[index]);
+                Assert.That(image.sprite.texture.name, Is.EqualTo(textures[index]));
+                ids[index] = image.sprite.GetInstanceID();
+            }
+            return ids;
+        }
+
         private static bool LoadedSpriteExists(int instanceId) => Resources.FindObjectsOfTypeAll<Sprite>()
             .Any(sprite => sprite.GetInstanceID() == instanceId);
 
@@ -179,6 +218,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return new WaitForSecondsRealtime(.8f);
             int count = MemoryCollectionCount(controller);
             Assert.That(count, Is.GreaterThanOrEqualTo(1));
+            yield return OpenMarketItem("water");
             Assert.That(GameObject.Find("Market Item Icon water").GetComponent<RawImage>().texture, Is.Not.Null);
             ActiveButton("Return To Port Hub").onClick.Invoke();
             yield return null;

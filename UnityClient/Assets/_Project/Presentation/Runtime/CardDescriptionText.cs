@@ -33,7 +33,8 @@ namespace ShatteredSail.Presentation
             text = text.Replace("伤害额外+", "伤害+").Replace("额外伤害+", "伤害+")
                 .Replace("格挡额外+", "格挡+").Replace("额外格挡+", "格挡+")
                 .Replace("恢复额外+", "恢复+").Replace("额外恢复+", "恢复+")
-                .Replace("当前阶段生命", "本阶段生命").Replace("张当前阶段牌", "张本阶段牌");
+                .Replace("当前阶段生命", "本阶段生命").Replace("张当前阶段牌", "张本阶段牌")
+                .Replace("自身贡献上限", "本牌上限");
             text = Regex.Replace(text, @"(?<![\d.])(?:造成)?(\d+)点船体伤害", "船体伤害$1");
             text = Regex.Replace(text, @"(?<![\d.])(?:造成)?(\d+)点船员伤害", "船员伤害$1");
             text = Regex.Replace(text, @"恢复(\d+)点船员生命", "恢复$1船员生命");

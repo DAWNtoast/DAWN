@@ -37,7 +37,7 @@ namespace ShatteredSail.Presentation.Tests
             RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
             yield return WaitResponsiveBattle(controller);
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(3));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(2));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -64,7 +64,7 @@ namespace ShatteredSail.Presentation.Tests
 
             Assert.That(controller.IsBattleAnimationPlaying, Is.False);
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(3));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(2));
             AssertResponsiveHandMatchesCore(session);
             Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.True);
             Assert.That(GameObject.Find("Battle Card").GetComponentsInChildren<BattleFxGraphic>(), Is.Empty,
@@ -72,7 +72,7 @@ namespace ShatteredSail.Presentation.Tests
             RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
             yield return WaitResponsiveBattle(controller);
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(2));
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(6));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(4));
             LogAssert.NoUnexpectedReceived();
         }
 

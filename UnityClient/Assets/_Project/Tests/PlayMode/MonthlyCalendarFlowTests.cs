@@ -40,8 +40,9 @@ namespace ShatteredSail.Presentation.Tests
                     PlayerPrefs.SetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(id), 1);
             }
             ClickAcceptanceButton("Port Hotspot Market"); yield return null;
-            yield return OpenMarketItem("water");
-            Assert.That(ActiveButton("Market Buy water").IsInteractable(), Is.False);
+            yield return OpenMarketTrade("water");
+            Assert.That(CalendarMarketRemaining(controller, session.CurrentPort, PortMarketItem.Water), Is.Zero);
+            Assert.That(ActiveButton("Confirm Market Buy water").IsInteractable(), Is.False);
             yield return OpenMarketItem("wood");
             Assert.That(MarketInfoLabel("Market Quota wood").text, Does.Contain("已购 200"));
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
@@ -75,7 +76,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ActiveButton("Market Buy water").IsInteractable(), Is.True);
             AssertCalendarMarketDisplayedMonth(controller, savedDate);
             Assert.That(MarketInfoLabel("Market Quota water").text,
-                Does.Contain("当前可购 " + CalendarMarketRemaining(controller, session.CurrentPort, PortMarketItem.Water))
+                Does.Contain("可购 " + CalendarMarketRemaining(controller, session.CurrentPort, PortMarketItem.Water))
                     .And.Contain("已购 0").And.Not.Contain("下次补货"));
             NavalBattleVisualCapture.Capture(controller, "MonthlyCalendar_01_NewMonthMarket.png",
                 "月底夹具通过真实航行进入二月；所有港口月库存恢复，历史采购记录保留", "Market Panel");
@@ -128,7 +129,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null; // The visible market must notice the rollover itself.
             AssertCalendarMarketDisplayedMonth(controller, nextMonth);
             Assert.That(MarketInfoLabel("Market Quota wood").text,
-                Does.Contain("当前可购 " + CalendarMarketRemaining(controller, session.CurrentPort, PortMarketItem.Wood))
+                Does.Contain("可购 " + CalendarMarketRemaining(controller, session.CurrentPort, PortMarketItem.Wood))
                     .And.Contain("已购 0"));
             oldMonth.Invoke(); yield return null;
             Assert.That(session.ProfileGold, Is.EqualTo(before));

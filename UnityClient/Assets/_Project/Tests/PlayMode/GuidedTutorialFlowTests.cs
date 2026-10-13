@@ -394,7 +394,10 @@ namespace ShatteredSail.Presentation.Tests
             decimal gold = controller.Session.ProfileGold;
             int water = controller.Session.Cargo.Water;
             int purchaseQuantity = PortMarketCatalog.PurchaseStep(PortMarketItem.Water);
-            decimal price = PortMarketCatalog.CalculateBuyCost(controller.Session.CurrentPort, PortMarketItem.Water, controller.Session.GameDateTime, purchaseQuantity);
+            decimal price = PortMarketCatalog.CalculateBuyCost(controller.Session.CurrentPort, PortMarketItem.Water,
+                controller.Session.GameDateTime, purchaseQuantity, controller.Session.Cargo.Fame);
+            ClickGuidedButton("Market Shop " + MarketSceneLayout.ShopForItem(PortMarketItem.Water));
+            yield return null;
             ClickGuidedButton("Market Item Icon water");
             yield return null;
             ClickGuidedButton("Market Buy water");
@@ -496,7 +499,9 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             yield return CompleteGuidedNavigationSetup(controller);
             ClickGuidedButton("Execute Sail");
-            yield return null;
+            // The boundary fixture below redraws the encounter after consuming
+            // its remaining coverage. Wait until the real arrival owns that view.
+            yield return WaitForNavigationMotionCompletion(controller);
 
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Encounter));
             Assert.That(controller.Session.ActiveEncounter.Id, Is.EqualTo("tutorial_first_event"));
