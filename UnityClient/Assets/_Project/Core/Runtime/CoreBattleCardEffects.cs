@@ -14,7 +14,8 @@ namespace ShatteredSail.Core.Gameplay
 
         internal CoreBattleCardEffects(CoreBattleCard card, NavalBattleStage stage, int ordinaryCrew,
             int medicine, int? missingHealth, int extraDamage = 0, int extraBlock = 0, int extraRepair = 0,
-            int flatRepair = 0, bool medicineBoostAllowed = true, int flatDamage = 0, int wood = 0)
+            int flatRepair = 0, bool medicineBoostAllowed = true, int flatDamage = 0, int wood = 0,
+            int unprovisionedRepair = UnprovisionedRepair, bool fixedMedicineCost = false)
         {
             OrdinaryCrew = Math.Max(0, ordinaryCrew);
             BoardingScale = 1m;
@@ -26,7 +27,7 @@ namespace ShatteredSail.Core.Gameplay
             bool needsSupply = medicineBoostAllowed && card != null && card.IsAllowedInStage(stage) && FullRepair > 0;
             // The two-point fallback is final health and does not grow with
             // upgrades. Blood healing opts out of the supply gate.
-            FallbackRepair = needsSupply ? Math.Min(UnprovisionedRepair, FullRepair) : FullRepair;
+            FallbackRepair = needsSupply ? Math.Min(unprovisionedRepair, FullRepair) : FullRepair;
             BaseRepair = FallbackRepair;
             HasMedicineBoost = needsSupply && stage == NavalBattleStage.Boarding && medicine > 0 && FullRepair > FallbackRepair;
             HasWoodBoost = needsSupply && stage != NavalBattleStage.Boarding && wood > 0 && FullRepair > FallbackRepair;
@@ -36,7 +37,7 @@ namespace ShatteredSail.Core.Gameplay
             // A supply is useful only if the fixed fallback cannot fill the
             // wound. Quoting and overhealing never consume inventory.
             MedicineCost = HasMedicineBoost && missingHealth.HasValue &&
-                missingHealth.Value > FallbackRepair ? 1 : 0;
+                (fixedMedicineCost || missingHealth.Value > FallbackRepair) ? 1 : 0;
             WoodCost = HasWoodBoost && missingHealth.HasValue &&
                 missingHealth.Value > FallbackRepair ? 1 : 0;
         }
@@ -67,9 +68,18 @@ namespace ShatteredSail.Core.Gameplay
         public int GetBattleCardDamage(CoreBattleCard card, NavalBattleStage stage)
         {
             if (card == null) return 0;
+            if (stage == NavalBattleStage.Boarding)
+            {
+                card = CoreBoardingCardCatalog.ForBoarding(card);
+                if (card.BoardingSpec != null) return GetBoardingCardDamageQuote(card);
+            }
             int damage = GetBattleCardEffects(card, stage).Damage;
+            if (stage == NavalBattleStage.Naval) damage = SchoolSum(damage, NavalExpansionFirstDamageBonus(card));
+            if (stage == NavalBattleStage.Naval && NavalExpansionActive && card.Damage > 0 && card.SchoolId == "thunder" &&
+                CoreNavalSchoolExpansionCatalog.FindSpec(card.Id) != null)
+                damage = SchoolSum(damage, Battle.Schools.ThunderReadyDamage);
             if (card.Action != NavalBattleCardAction.Cannon) return damage;
-            int firepower = IsGuidedBossBattle ? 0 : Math.Max(0, (EffectiveFirepower - 8) / 2);
+            int firepower = Math.Max(0, (EffectiveFirepower - 8) / 2);
             return SchoolSum(damage, SchoolSum(firepower, SchoolFinalLoadedBonus()));
         }
 
@@ -78,6 +88,8 @@ namespace ShatteredSail.Core.Gameplay
 
         public CoreBattleCardEffects GetBattleCardEffects(CoreBattleCard card, NavalBattleStage stage)
         {
+            if (stage == NavalBattleStage.Boarding)
+                card = CoreBoardingCardCatalog.ForBoarding(card);
             card = GetSupplyAdjustedBattleCard(card);
             int ordinaryCrew = Phase == CoreDemoPhase.Battle && Battle != null
                 ? Battle.PlayerOrdinaryCrew : SelectedOrdinaryCrew;
@@ -86,6 +98,19 @@ namespace ShatteredSail.Core.Gameplay
                 missing = stage == NavalBattleStage.Boarding
                     ? Math.Max(0, Battle.PlayerMaxBoardingHealth - Battle.PlayerBoardingHealth)
                     : Math.Max(0, MaxHull - Hull);
+            // New boarding rules own their conditional effects and resource payments.
+            // Never attach retired school multipliers to the authored values.
+            if (stage == NavalBattleStage.Boarding && card?.BoardingSpec != null)
+            {
+                bool desperate = BActive && CTBDesperate;
+                int bloodBlock = desperate && card.BoardingSpec.Key == "blood_12" ? BValue(card, 8) - card.Block : 0;
+                int bloodRepair = desperate && card.BoardingSpec.Key == "blood_09" ? BValue(card, 9) - card.Repair : 0;
+                int fallback = desperate && card.BoardingSpec.Key == "blood_09" ? 3 : CoreBattleCardEffects.UnprovisionedRepair;
+                return new CoreBattleCardEffects(card, stage, ordinaryCrew, Cargo.Medicine, missing,
+                    Math.Max(0, GetBoardingCardDamageQuote(card) - card.Damage), bloodBlock, bloodRepair,
+                    unprovisionedRepair: fallback, fixedMedicineCost: card.BoardingSpec.Key != "basic_06" &&
+                        (!missing.HasValue || missing.Value > 0 || card.BoardingSpec.Key == "basic_07" || card.BoardingSpec.Key == "tide_12"));
+            }
             GetSchoolCardBonuses(card, stage, out int extraDamage, out int extraBlock, out int extraRepair);
             return new CoreBattleCardEffects(card, stage, ordinaryCrew, Cargo.Medicine, missing,
                 extraDamage, extraBlock, extraRepair,
@@ -98,6 +123,9 @@ namespace ShatteredSail.Core.Gameplay
         public string BattleCardEffectDescription(CoreBattleCard card, NavalBattleStage stage)
         {
             if (card == null) return string.Empty;
+            if (stage == NavalBattleStage.Boarding)
+                card = CoreBoardingCardCatalog.ForBoarding(card);
+            if (card.BoardingSpec != null) return card.Description;
             card = GetSupplyAdjustedBattleCard(card);
             CoreBattleCardEffects effect = GetBattleCardEffects(card, stage);
             if (card.SchoolEffect != null) return SchoolCardEffectDescription(card, stage, effect);
@@ -106,7 +134,8 @@ namespace ShatteredSail.Core.Gameplay
                 // Preserve every authored condition and line break, replacing
                 // only effect placeholders with the same quote combat uses.
                 return new CoreBattleCard(card.Id, card.Name, card.Type, card.Energy,
-                    effect.Damage, effect.Block, effect.Repair, card.Draw, card.PowderCost, card.DescriptionTemplate,
+                    effect.Damage, effect.Block, effect.Repair, card.Draw, card.PowderCost,
+                    SchoolBattleActive(stage) ? CoreSpecialCardRules.CostDescription(card.DescriptionTemplate, card, Battle) : card.DescriptionTemplate,
                     card.AllowedStages, card.Action, card.RequiredCrew, card.ArtId,
                     card.CannonballCost, card.RequiredComponent, card.UpgradeLevel, card.SchoolId, card.SchoolEffect, card.BoardingBlock).Description;
             }
@@ -123,6 +152,7 @@ namespace ShatteredSail.Core.Gameplay
         public string BattleCardPortDescription(CoreBattleCard card)
         {
             if (card == null) return string.Empty;
+            if (card.BoardingSpec != null) return card.Description;
             if (!card.IsAllowedInStage(NavalBattleStage.Boarding) || card.Damage == 0 && card.Block == 0 && card.Repair == 0)
                 return BattleCardEffectDescription(card, NavalBattleStage.Naval);
             CoreBattleCardEffects effect = GetBattleCardEffects(card, NavalBattleStage.Boarding);
@@ -141,6 +171,8 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (card == null || stage != NavalBattleStage.Boarding || !card.IsAllowedInStage(stage))
                 return string.Empty;
+            if (CoreBoardingCardCatalog.ForBoarding(card)?.BoardingSpec != null)
+                return string.Empty; // The authored boarding text already states medicine, fallback and timing.
             CoreBattleCardEffects effect = GetBattleCardEffects(card, stage);
             if (effect.FullRepair <= 0 || effect.FullRepair == effect.FallbackRepair) return string.Empty;
             string supply = effect.HasMedicineBoost ? "有药完整 " + effect.FullRepair : "无随船药品";

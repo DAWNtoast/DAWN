@@ -186,7 +186,15 @@ namespace ShatteredSail.Presentation.Tests
                 Transform[] borders = row.GetComponentsInChildren<Transform>(true)
                     .Where(child => child.name.StartsWith("Voyage Cargo Slot Border ", StringComparison.Ordinal)).ToArray();
                 Assert.That(borders.Length, Is.EqualTo(4), row.name + " must update its existing outline.");
-                Assert.That(row.colors.normalColor.a, Is.EqualTo(isSelected ? .12f : .025f).Within(.001f), row.name);
+                Color expectedFace = isSelected ? new Color(.95f, .86f, .67f, 1f) : new Color(.94f, .91f, .84f, 1f);
+                Color actualFace = row.colors.normalColor;
+                Assert.That(actualFace.r, Is.EqualTo(expectedFace.r).Within(.001f), row.name);
+                Assert.That(actualFace.g, Is.EqualTo(expectedFace.g).Within(.001f), row.name);
+                Assert.That(actualFace.b, Is.EqualTo(expectedFace.b).Within(.001f), row.name);
+                Assert.That(actualFace.a, Is.EqualTo(1f).Within(.001f), row.name);
+                Sprite face = row.GetComponent<Image>().sprite;
+                Assert.That(face, Is.Not.Null, row.name);
+                Assert.That(face.name, Is.EqualTo("Market Light Control"), row.name);
                 foreach (Transform border in borders)
                     Assert.That(border.GetComponent<Image>().color.a, Is.EqualTo(isSelected ? .85f : .48f).Within(.001f), row.name);
             }

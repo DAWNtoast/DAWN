@@ -11,7 +11,6 @@ namespace ShatteredSail.Core.Tests
     {
         [TestCase("plating_suncoin_rampart", NavalBattleCardAction.Polish)]
         [TestCase("card_gunner_precision", NavalBattleCardAction.PrecisionLoad)]
-        [TestCase("crew_salt_crown_gunner_rokan", NavalBattleCardAction.FireRounds)]
         public void CappedMixedBuffAtFullHull_StillGrantsBlockWithoutIncreasingStrategy(string sourceId, NavalBattleCardAction action)
         {
             CoreVoyageSession session = CreateSpecialBattle(sourceId);
@@ -31,6 +30,23 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Energy, Is.EqualTo(beforeEnergy - card.Energy));
             Assert.That(session.Hull, Is.EqualTo(session.MaxHull), "Unused repair must not disable the block effect.");
             Assert.That(GetStrategy(session, card.Action), Is.EqualTo(card.StrategyLimit));
+        }
+
+        [Test]
+        public void RedesignedRokan_AtFullFireReserveKeepsItsAuthoredBlockAndDraw()
+        {
+            CoreVoyageSession session = CreateSpecialBattle("crew_salt_crown_gunner_rokan");
+            CoreBattleCard card = session.GetBattleCard(session.Battle.Hand[0]);
+            Assert.That(card.Action, Is.EqualTo(NavalBattleCardAction.FireRounds));
+            Assert.That(card.Draw, Is.EqualTo(1));
+            session.Battle.PlayerFireRounds = card.StrategyLimit;
+            int block = session.Battle.PlayerBlock;
+            int energy = session.Battle.Energy;
+            Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(card.StrategyLimit));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(block + card.Block));
+            Assert.That(session.Battle.Hand.Count, Is.EqualTo(1), "The redesigned source explicitly draws one replacement.");
+            Assert.That(session.Battle.Energy, Is.EqualTo(energy - card.Energy));
         }
 
         [Test]
@@ -101,15 +117,16 @@ namespace ShatteredSail.Core.Tests
             Assert.That(GetStrategy(session, card.Action), Is.EqualTo(card.StrategyLimit));
         }
 
-        [TestCase("plating_suncoin_rampart")]
-        [TestCase("card_gunner_precision")]
-        [TestCase("crew_salt_crown_gunner_rokan")]
-        public void MasteredMixedBuff_AtCapDoesNotInventDrawAndCopiesPayDynamicCosts(string sourceId)
+        [TestCase("plating_suncoin_rampart", 1)]
+        [TestCase("card_gunner_precision", 2)]
+        public void MasteredMixedBuff_AtCapDoesNotInventDrawAndCopiesPayDynamicCosts(string sourceId, int maximum)
         {
             CoreVoyageSession session = CreateSpecialBattle(sourceId, 840);
             int index = session.Battle.Hand[0];
             CoreBattleCard card = session.GetBattleCard(index);
-            Assert.That(card.UpgradeLevel, Is.EqualTo(3));
+            Assert.That(session.GetCardMaximumUpgradeLevel(index), Is.EqualTo(maximum));
+            Assert.That(card.UpgradeLevel, Is.EqualTo(maximum));
+            Assert.That(session.GetSpecialCardExperience(card.Id), Is.EqualTo(840), "The lower effective ceiling preserves earned source experience.");
             Assert.That(card.Energy, Is.EqualTo(1));
             Assert.That(card.Draw, Is.Zero);
             SetStrategy(session, card.Action, card.StrategyLimit);
@@ -164,6 +181,9 @@ namespace ShatteredSail.Core.Tests
             session.StartVoyage();
             typeof(CoreVoyageSession).GetMethod("StartBattle", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(session,
                 new object[] { new CoreEncounter("mixed_buff_test", "混合增益测试敌舰", "海战", "测试", true, false, 1, 70), false });
+            CoreBattleCard definition = CoreVoyageSession.CardLibrary.First(card => card.Id == cardId);
+            if (!definition.IsAllowedInStage(NavalBattleStage.Preparation))
+                Assert.That(session.EndBattleTurn(), Is.True, "Naval-only components enter their legal combat stage.");
             session.Battle.Hand.Clear();
             session.Battle.Hand.Add(Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
                 .First(index => CoreVoyageSession.CardLibrary[index].Id == cardId));

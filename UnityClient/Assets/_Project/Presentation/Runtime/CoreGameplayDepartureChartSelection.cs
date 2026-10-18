@@ -24,7 +24,7 @@ namespace ShatteredSail.Presentation
         private RectTransform departureChartWarning;
         private object departureChartWarningIdentity;
         private bool DepartureChartModeActive => departureUseChartSeed && session != null &&
-            session.CanDrawSeaChart && !tutorialActive && session.SelectedTreasureMap == null;
+            session.CanDrawSeaChart && !tutorialActive && session.SelectedTreasureMap == null && !DepartureDockTreasureModeActive;
 
         private void BeginDepartureChartSelectionView()
         {
@@ -32,7 +32,10 @@ namespace ShatteredSail.Presentation
             {
                 departureUseChartSeed = false;
                 departureChartDraft = string.Empty;
+                departureDockTreasureMode = false;
             }
+            if (!UsesDepartureDockScene || tutorialActive || departureChartPort != session.CurrentPort)
+                departureDockTreasureMode = false;
             departureChartOwner = session;
             departureChartPort = session.CurrentPort;
             departureChartRevision++;
@@ -53,7 +56,7 @@ namespace ShatteredSail.Presentation
 
         private bool DepartureChartViewCurrent(RectTransform view, CoreVoyageSession owner, int revision)
         {
-            return session != null && ReferenceEquals(session, owner) &&
+            return !departureCrewConfigurationOpen && session != null && ReferenceEquals(session, owner) &&
                 ReferenceEquals(departureChartView, view) && revision == departureChartRevision &&
                 view != null && view.gameObject.activeInHierarchy && session.Phase == CoreDemoPhase.Port &&
                 session.CurrentPort == departureChartPort &&
@@ -66,7 +69,7 @@ namespace ShatteredSail.Presentation
             CoreVoyageSession owner = session;
             int revision = departureChartRevision;
             BuildDepartureTreasureSeedControl(routePanel, panel, owner, revision);
-            if (session.SelectedTreasureMap != null)
+            if (session.SelectedTreasureMap != null && !UsesDepartureDockScene)
             {
                 Text label = CreateText("Seed Label", routePanel, new Vector2(500f, 34f), new Vector2(-280f, 373f),
                     18, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
@@ -99,6 +102,11 @@ namespace ShatteredSail.Presentation
             departureChartToggle.onValueChanged.AddListener(value =>
             {
                 if (!DepartureChartViewCurrent(panel, owner, revision) || !session.CanDrawSeaChart || tutorialActive) return;
+                if (value && DepartureDockTreasureModeActive)
+                {
+                    LeaveDepartureDockTreasureSelection(true);
+                    return;
+                }
                 // Unity's editor Toggle rebuild also raises this event with its
                 // unchanged value. Do not rebuild graphics inside that canvas pass.
                 if (departureUseChartSeed == value) return;
@@ -123,6 +131,7 @@ namespace ShatteredSail.Presentation
             departureChartValidation.resizeTextForBestFit = true;
             departureChartValidation.resizeTextMinSize = 12;
             departureChartValidation.resizeTextMaxSize = 16;
+            if (UsesDepartureDockScene) BuildDepartureDockChartRecords(departureChartSelection);
             if (DepartureChartModeActive) ValidateDepartureChartDraft(false);
             RefreshDepartureChartControls();
         }
@@ -274,7 +283,8 @@ namespace ShatteredSail.Presentation
             if (departureChartToggle != null)
             {
                 departureChartToggle.SetIsOnWithoutNotify(mode);
-                departureChartToggle.interactable = session.CanDrawSeaChart && !tutorialActive && session.SelectedTreasureMap == null;
+                departureChartToggle.interactable = session.CanDrawSeaChart && !tutorialActive &&
+                    (UsesDepartureDockScene || session.SelectedTreasureMap == null);
             }
             if (departureChartValidation != null)
             {
@@ -296,7 +306,7 @@ namespace ShatteredSail.Presentation
                     Button route = routePanel.Find("Route " + index)?.GetComponent<Button>();
                     if (route != null)
                     {
-                        route.interactable = !mode && (!tutorialActive || index == 0) && session.CanSelectRoute(index, out _);
+                        route.interactable = !mode && !DepartureDockTreasureModeActive && (!tutorialActive || index == 0) && session.CanSelectRoute(index, out _);
                         route.gameObject.SetActive(!mode);
                         bool selected = session.SelectedRouteIndex == index;
                         DepartureSkin.SetRouteSelected(route, selected);
@@ -308,12 +318,28 @@ namespace ShatteredSail.Presentation
             }
             RefreshDepartureDestinationSelection();
             RefreshDepartureChartPreview();
-            Button start = departureChartView.Find("Start Voyage")?.GetComponent<Button>();
-            if (start != null) start.interactable = (!mode || departureChartValid) && session.CanStartOrdinaryVoyage(out _);
-            // Toggling a recorded chart does not rebuild the view. Expand the
-            // chart table here, and restore the dock when the toggle is cleared.
+            RefreshDepartureStartReadiness();
+            RefreshDepartureDockTreasureReadiness();
+            // Toggling a recorded chart keeps the dock and updates the chart slot in place.
             if (UsesDepartureDockScene)
                 ApplyDeparturePresentation(routePanel as RectTransform, departureChartView);
+        }
+
+        private void RefreshDepartureStartReadiness()
+        {
+            if (departureChartView == null || session == null) return;
+            bool mode = DepartureChartModeActive;
+            Button start = departureChartView.Find("Start Voyage")?.GetComponent<Button>();
+            if (start != null) start.interactable = DepartureDockTreasureModeActive
+                ? session.SelectedTreasureMap != null && session.CanStartTreasureVoyage(out _)
+                : (!mode || departureChartValid) && session.CanStartOrdinaryVoyage(out _);
+            if (start != null)
+            {
+                Text caption = start.GetComponentInChildren<Text>();
+                if (caption != null) caption.text = !session.HasEnoughOrdinaryCrewForDeparture
+                    ? "需" + session.MinimumDepartureOrdinaryCrew + "名普通船员"
+                    : session.SelectedTreasureMap != null ? "消耗藏宝图 · 扬帆出航" : "扬帆出航";
+            }
         }
 
         private void RefreshDepartureChartProvisionQuote()
@@ -328,6 +354,8 @@ namespace ShatteredSail.Presentation
                 else DestroyImmediate(previous.gameObject);
             }
             BuildDepartureProvisionPurchase(departureChartView);
+            if (UsesDepartureDockScene)
+                ApplyDeparturePresentation(FindActiveGuidedContent("Route Selection") as RectTransform, departureChartView);
         }
 
         private bool PrepareDepartureChartForVoyage(RectTransform panel)

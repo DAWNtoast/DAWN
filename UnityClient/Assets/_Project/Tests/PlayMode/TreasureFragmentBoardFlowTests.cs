@@ -32,7 +32,7 @@ namespace ShatteredSail.Presentation.Tests
             NavalBattleVisualCapture.Capture(controller, "Treasure_00_GmFragments.png", "GM 设置4片未鉴定碎片并保存，关闭后继续鉴定与拼合", "Game Master Sheet");
             ClickAcceptanceButton("Close Game Master");
             yield return null;
-            Assert.That(GameObject.Find("Treasure Workbench Status").GetComponent<Text>().text, Does.Contain("未鉴定碎片 4"));
+            Assert.That(GameObject.Find("Treasure Identify Status").GetComponent<Text>().text, Is.EqualTo("4 片待鉴定"));
             Assert.That(ActiveButton("Treasure Identify Fragment").IsInteractable(), Is.True);
             int originalRoute = session.SelectedRouteIndex;
             NavalBattleVisualCapture.Capture(controller, "Treasure_01_Unidentified.png", "隔离测试夹具：4片未鉴定，三图均为半透明底图", "Treasure Panel");
@@ -68,14 +68,21 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             ClickAcceptanceButton("Departure Treasure Seed Picker");
             yield return null;
-            NavalBattleVisualCapture.Capture(controller, "Treasure_05_DepartureSeedPicker.png", "出航界面从藏图册选择种子", "Departure Treasure Seed Card");
-            ClickAcceptanceButton("Departure Treasure Seed Option 0");
+            NavalBattleVisualCapture.Capture(controller, "Treasure_05_DepartureSeedPicker.png", "出航界面桌面下拉选择藏宝图种子", "Departure Dock Treasure Selection");
+            yield return SelectDepartureTreasureOption(0);
             yield return null;
             Assert.That(session.SelectedTreasureMap.Seed, Is.EqualTo(seed));
             Assert.That(session.TreasureMaps.Count, Is.EqualTo(1), "Selection alone never consumes the map.");
-            Assert.That(GameObject.Find("Treasure Departure Art").GetComponent<RawImage>().texture.name, Is.EqualTo("treasure_chart_weathered"));
+            Assert.That(GameObject.Find("Departure Dock Treasure Preview").GetComponent<RawImage>().texture.name, Is.EqualTo("treasure_chart_weathered"));
+            Assert.That(session.CanStartTreasureVoyage(out string missingSupplies), Is.False);
+            Assert.That(missingSupplies, Does.Contain("一天口粮"));
+            Assert.That(ActiveButton("Start Voyage").IsInteractable(), Is.False);
+            Assert.That(GameObject.Find("Departure Dock Treasure Status").GetComponent<Text>().text, Does.Contain("一天口粮"));
             yield return PurchaseRecommendedDepartureWaterFood();
             Assert.That(session.CanStartTreasureVoyage(out string reason), Is.True, reason);
+            Assert.That(ActiveButton("Start Voyage").IsInteractable(), Is.True,
+                "Purchasing the required rations must refresh the retained departure button.");
+            Assert.That(GameObject.Find("Departure Dock Treasure Status").GetComponent<Text>().text, Does.Contain("整备完成"));
             NavalBattleVisualCapture.Capture(controller, "Treasure_06_DepartureReady.png", "已选择藏宝种子，从当前港口出发并返回原港", "Voyage Setup");
             ClickAcceptanceButton("Start Voyage");
             yield return null;

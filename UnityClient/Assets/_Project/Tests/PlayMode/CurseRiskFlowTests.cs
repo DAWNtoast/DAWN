@@ -21,18 +21,25 @@ namespace ShatteredSail.Presentation.Tests
             session.Cargo.Curse = 2;
             session.RestoreProfile(60.4321m, session.CurrentPort);
             ClickAcceptanceButton("Port Hotspot Warehouse"); yield return null;
-            AssertCurseStatus("Treasure Curse Status", 20);
+            AssertWarehouseHasNoCurseService(controller, 2, 60.4321m);
+            foreach (string tab in new[] { "Warehouse Tab Storage", "Warehouse Tab Rare", "Warehouse Tab Valuables" })
+            {
+                ClickAcceptanceButton(tab); yield return null;
+                AssertWarehouseHasNoCurseService(controller, 2, 60.4321m);
+            }
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            ClickAcceptanceButton("Port Hotspot Treasure"); yield return null;
+            AssertTreasurePurificationStatus(2);
             Button purification = ActiveButton("Treasure Purify Curse");
             Assert.That(purification.IsInteractable(), Is.True);
-            Assert.That(purification.GetComponentInChildren<Text>().text, Does.Contain("30"));
             Button.ButtonClickedEvent oldPurification = purification.onClick;
             NavalBattleVisualCapture.Capture(controller, "CurseRisk_01_Purification.png",
-                "诅咒两层使战斗承伤增加 20%；净化每层支付 30 金币", "Treasure Curse Panel");
+                "藏宝图桌净化每层支付 30 金币；船长收藏室没有净化入口", "Treasure Workbench");
 
             ClickAcceptanceButton("Treasure Purify Curse"); yield return null;
             Assert.That(session.CurseCount, Is.EqualTo(1));
             Assert.That(session.ProfileGold, Is.EqualTo(30.4321m));
-            AssertCurseStatus("Treasure Curse Status", 10);
+            AssertTreasurePurificationStatus(1);
             AssertSavedCurse(session);
             oldPurification.Invoke(); yield return null;
             Assert.That(session.CurseCount, Is.EqualTo(1), "A retained callback may not purify another layer after the quote changed.");
@@ -46,16 +53,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.CurseCount, Is.EqualTo(1), "A callback from the destroyed controller must not mutate the reloaded save.");
             Assert.That(session.ProfileGold, Is.EqualTo(30.4321m));
             ClickAcceptanceButton("Port Hotspot Warehouse"); yield return null;
+            AssertWarehouseHasNoCurseService(controller, 1, 30.4321m);
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            ClickAcceptanceButton("Port Hotspot Treasure"); yield return null;
             ClickAcceptanceButton("Treasure Purify Curse"); yield return null;
             Assert.That(session.CurseCount, Is.Zero);
             Assert.That(session.ProfileGold, Is.EqualTo(.4321m));
             Button clearedPurification = controller.GetComponentsInChildren<Button>(true)
                 .Single(button => button.name == "Treasure Purify Curse");
-            Assert.That(clearedPurification.gameObject.activeInHierarchy, Is.False);
+            Assert.That(clearedPurification.gameObject.activeInHierarchy, Is.True);
             Assert.That(clearedPurification.interactable, Is.False);
-            RectTransform clearedPanel = controller.GetComponentsInChildren<RectTransform>(true)
-                .Single(rect => rect.name == "Treasure Curse Panel");
-            Assert.That(clearedPanel.rect.height, Is.LessThanOrEqualTo(44f), "Normal status should remain a compact marker.");
+            AssertTreasurePurificationStatus(0);
             clearedPurification.onClick.Invoke(); yield return null;
             Assert.That(session.CurseCount, Is.Zero);
             Assert.That(session.ProfileGold, Is.EqualTo(.4321m));
@@ -67,18 +75,19 @@ namespace ShatteredSail.Presentation.Tests
             session.RestoreProfile(29.9999m, session.CurrentPort);
             SaveCurseFixture(controller);
             RenderRareEventFixture(controller); yield return null;
+            AssertTreasurePurificationStatus(1);
             Assert.That(ActiveButton("Treasure Purify Curse").IsInteractable(), Is.False);
             ActiveButton("Treasure Purify Curse").onClick.Invoke(); yield return null;
             Assert.That(session.CurseCount, Is.EqualTo(1));
             Assert.That(session.ProfileGold, Is.EqualTo(29.9999m));
             AssertSavedCurse(session);
             NavalBattleVisualCapture.Capture(controller, "CurseRisk_02_InsufficientGold.png",
-                "金币不足不能净化，禁用按钮回调也不能扣款或清除诅咒", "Treasure Curse Panel");
+                "金币不足不能净化，禁用按钮回调也不能扣款或清除诅咒", "Treasure Workbench");
             LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest, Timeout(120000)]
-        public IEnumerator CurseRisk_RealGeneratedChoicesPersistThroughReturnCargoStorageAndReload()
+        public IEnumerator CurseRisk_LegacyGeneratedChoicesPersistThroughReturnCargoStorageAndReload()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -93,6 +102,7 @@ namespace ShatteredSail.Presentation.Tests
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
             ClickAcceptanceButton("Start Voyage"); yield return null;
             Assert.That(session.IsTreasureVoyage, Is.True);
+            RestoreLegacyTreasureFlow(session);
             string[] eventIds = { "treasure_false_cache", "treasure_smuggler_jetty" };
             int[] choiceIndices = { 0, 1 };
             int cashBefore = session.Cargo.Gold;
@@ -121,7 +131,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.CurseCount, Is.EqualTo(2), "Cargo protection must not discount the curse paid for the reward.");
             int storedCloth = session.Cargo.Cloth;
             Assert.That(storedCloth, Is.GreaterThan(0));
+            yield return SettlementChestTestActions.ShowOverview();
             ClickAcceptanceButton("Settlement Store All Cargo"); yield return null;
+            yield return SettlementChestTestActions.ShowOverview();
             ClickAcceptanceButton("Return To Port"); yield return null;
             Assert.That(session.Cargo.Cloth, Is.Zero);
             Assert.That(session.PortWarehouse.GetAmount(session.CurrentPort, "cloth"), Is.EqualTo(storedCloth));
@@ -138,7 +150,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.PortWarehouse.Serialize(), Is.EqualTo(warehouseAfterReturn));
             Assert.That(session.Cargo.Cloth, Is.Zero);
             ClickAcceptanceButton("Port Hotspot Warehouse"); yield return null;
-            AssertCurseStatus("Treasure Curse Status", 20);
+            AssertWarehouseHasNoCurseService(controller, 2, goldAfterReturn);
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            ClickAcceptanceButton("Port Hotspot Treasure"); yield return null;
+            AssertTreasurePurificationStatus(2);
             ClickAcceptanceButton("Treasure Purify Curse"); yield return null;
             Assert.That(session.CurseCount, Is.EqualTo(1));
             Assert.That(session.ProfileGold, Is.EqualTo(goldAfterReturn - CoreVoyageSession.CursePurificationCost));
@@ -165,35 +180,55 @@ namespace ShatteredSail.Presentation.Tests
                 .Invoke(session, new object[] { encounter, false });
             RenderRareEventFixture(controller); yield return null;
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Preparation));
-            AssertCurseStatus("Battle Curse Status", 30);
+            yield return WaitForCurseBattleFeedback(controller);
+            AssertCurseStatus(30);
 
             ClickAcceptanceButton("End Battle Turn");
             yield return WaitForCurseBattleFeedback(controller);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
-            AssertCurseStatus("Battle Curse Status", 30);
+            AssertCurseStatus(30);
             NavalBattleVisualCapture.Capture(controller, "CurseRisk_04_NavalWarning.png",
                 "海战持续提示三层诅咒及承伤增加 30%", "Battle Card");
-            session.Battle.DistanceMeters = 50f;
-            session.Battle.Alignment = NavalBattleAlignment.Parallel;
+            ConfigureCloseNavalTestPose(session.Battle, false);
             RenderRareEventFixture(controller); yield return null;
             ClickAcceptanceButton("Battle Board");
             yield return WaitForCurseBattleFeedback(controller);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
-            AssertCurseStatus("Battle Curse Status", 30);
+            AssertCurseStatus(30);
             NavalBattleVisualCapture.Capture(controller, "CurseRisk_05_BoardingWarning.png",
                 "接舷阶段仍提示真实的诅咒承伤风险", "Battle Card");
             LogAssert.NoUnexpectedReceived();
         }
 
-        private static void AssertCurseStatus(string objectName, int damageBonusPercent)
+        private static void AssertWarehouseHasNoCurseService(CoreGameplayDemoController controller, int count, decimal gold)
         {
-            GameObject status = GameObject.Find(objectName);
-            Assert.That(status, Is.Not.Null, objectName);
-            Assert.That(status.activeInHierarchy, Is.True);
+            Assert.That(GameObject.Find("Warehouse Panel"), Is.Not.Null);
+            Assert.That(controller.GetComponentsInChildren<Transform>(true).Any(item =>
+                item.name == "Treasure Curse Panel" || item.name == "Treasure Purify Curse"), Is.False,
+                "The captain's collection room must not retain a visible or hidden purification service.");
+            Assert.That(controller.Session.CurseCount, Is.EqualTo(count));
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+        }
+
+        private static void AssertTreasurePurificationStatus(int count)
+        {
+            GameObject status = GameObject.Find("Treasure Purify Status");
+            Assert.That(status, Is.Not.Null);
             Text label = status.GetComponent<Text>();
             Assert.That(label, Is.Not.Null);
-            Assert.That(label.text, Does.Contain("诅咒"));
-            Assert.That(label.text, Does.Contain(damageBonusPercent + "%"));
+            if (count == 0) Assert.That(label.text, Is.EqualTo("当前无诅咒"));
+            else Assert.That(label.text, Does.Contain(count + " 层").And.Contain("30 金"));
+        }
+
+        private static void AssertCurseStatus(int damageBonusPercent)
+        {
+            GameObject status = GameObject.Find("Status voyage_curse");
+            Assert.That(status, Is.Not.Null, "The player status row must retain the voyage curse badge.");
+            Assert.That(status.activeInHierarchy, Is.True);
+            Text label = status.transform.Find("Amount").GetComponent<Text>();
+            Assert.That(label, Is.Not.Null);
+            Assert.That(label.text, Is.EqualTo(damageBonusPercent + "%"));
+            Assert.That(NavalHudTooltipText(status.name), Does.Contain("诅咒").And.Contain(damageBonusPercent + "%"));
             Canvas.ForceUpdateCanvases();
             Assert.That(label.rectTransform.rect.width, Is.GreaterThan(0));
             Assert.That(label.rectTransform.rect.height, Is.GreaterThan(0));
@@ -226,11 +261,36 @@ namespace ShatteredSail.Presentation.Tests
                 probe.Cargo.Wood = probe.Cargo.Iron = probe.Cargo.Cloth = probe.Cargo.Beer = 0;
                 probe.Cargo.Medicine = probe.Cargo.Powder = probe.Cargo.Cannonballs = 0;
                 if (!probe.TryStartTreasureVoyage(out _)) continue;
+                RestoreLegacyTreasureFlow(probe);
                 if (probe.Map.Nodes.Any(node => node.Encounter.Id == "treasure_false_cache") &&
                     probe.Map.Nodes.Any(node => node.Encounter.Id == "treasure_smuggler_jetty")) return seed;
             }
             Assert.Fail("No generated map containing both authored curse rewards was found in the deterministic fixture seed range.");
             return null;
+        }
+
+        // Fresh departures promote held maps to the new expedition. These old
+        // authored reward chains remain supported only in resumed legacy voyages.
+        // Regenerate that version, round-trip its full checkpoint, then exercise
+        // the same controller/session and real event, return and storage buttons.
+        private static void RestoreLegacyTreasureFlow(CoreVoyageSession session)
+        {
+            const BindingFlags hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+            CoreTreasureMapRecord active = session.ActiveTreasureMap;
+            Assert.That(active, Is.Not.Null);
+            var legacy = (CoreTreasureMapRecord)typeof(CoreTreasureMapRecord).GetConstructors(hidden).Single()
+                .Invoke(new object[] { active.Id, active.Seed, active.RankId, active.MapGeometryVersion, 0 });
+            var map = (CoreVoyageMap)typeof(CoreVoyageSession).GetMethod("GenerateTreasureMap", hidden)
+                .Invoke(session, new object[] { legacy, session.CurrentPort });
+            typeof(CoreVoyageSession).GetProperty("Map").SetValue(session, map);
+            typeof(CoreVoyageSession).GetProperty("ActiveTreasureMap").SetValue(session, legacy);
+            CoreVoyageCheckpoint checkpoint = session.CaptureVoyageCheckpoint();
+            checkpoint.treasureProgress.usedMaps.Single(item => item.seed == active.Seed).contentVersion = 0;
+            typeof(CoreVoyageSession).GetProperty("Phase").SetValue(session, CoreDemoPhase.Port);
+            Assert.That(session.TryRestoreVoyageCheckpoint(JsonUtility.FromJson<CoreVoyageCheckpoint>(
+                JsonUtility.ToJson(checkpoint)), out string reason), Is.True, reason);
+            Assert.That(session.ActiveTreasureMap.ContentVersion, Is.Zero);
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
         }
 
         private static void EnterGeneratedCurseEncounter(CoreVoyageSession session, CoreMapNode node)

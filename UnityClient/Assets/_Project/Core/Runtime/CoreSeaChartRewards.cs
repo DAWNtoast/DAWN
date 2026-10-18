@@ -17,6 +17,12 @@ namespace ShatteredSail.Core.Gameplay
             if (ActiveEncounter == null || choiceIndex < 0 || choiceIndex >= ActiveEncounter.Choices.Count) return null;
             CoreEncounterChoice choice = ActiveEncounter.Choices[choiceIndex];
             VoyageEffect result = CopyVoyageEffect(choice.Effect);
+            // These new expedition choices remove a burden; curse is not a
+            // currency paid for their reward. Cleanse the amount actually held.
+            // Keep old curse-cost events and other voyages on their original rules.
+            if (IsTreasureExpedition && result.Curse < 0 &&
+                (ActiveEncounter.Id == "moonlit_cleanse" || ActiveEncounter.Id == "moonlit_choir"))
+                result.Curse = Math.Max(result.Curse, -Cargo.Curse);
             double multiplier = SeaChartRewardMultiplier(choice);
             if (multiplier >= 1d) return result;
             int Scale(long value) => value > 0 ? (int)Math.Min(int.MaxValue, Math.Floor(value * multiplier)) : (int)value;
@@ -32,6 +38,9 @@ namespace ShatteredSail.Core.Gameplay
             result.Reveal = Scale(result.Reveal); result.MapFragments = Scale(result.MapFragments);
             result.Gem = Scale(result.Gem); result.AncientMaterial = Scale(result.AncientMaterial); result.Relic = Scale(result.Relic);
             result.BlackPearl = Scale(result.BlackPearl); result.AncientCompass = Scale(result.AncientCompass); result.Lantern = Scale(result.Lantern);
+            result.SailingBoostHours *= multiplier;
+            result.SurveyBoostHours *= multiplier;
+            if (multiplier <= 0d) { result.GrantDiscovery = null; result.RevealEncounterId = null; }
             result.CrewBonusesApplied = true;
             return result;
         }
@@ -89,6 +98,10 @@ namespace ShatteredSail.Core.Gameplay
             AncientCompass = source.AncientCompass, Lantern = source.Lantern, Curse = source.Curse, TreasureClues = source.TreasureClues,
             TreasureComplete = source.TreasureComplete, ForceReturn = source.ForceReturn, PostponeTreasureCore = source.PostponeTreasureCore,
             CrewBonusesApplied = source.CrewBonusesApplied,
+            SailingBoostHours = source.SailingBoostHours, SurveyBoostHours = source.SurveyBoostHours,
+            GrantDiscovery = source.GrantDiscovery, RevealEncounterId = source.RevealEncounterId,
+            TreasureMark = source.TreasureMark, TreasureCredit = source.TreasureCredit,
+            TreasureHeat = source.TreasureHeat, TreasureResonance = source.TreasureResonance,
         };
     }
 }

@@ -1,0 +1,90 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-10-17",
+  "portraits": [
+    {
+      "id": "crew_salt_crown_navigator_ashir",
+      "name": "Ashir",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-0ada9516-9eab-4348-9734-011880427fb6.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_navigator_ashir_portrait_v2.png",
+      "visualQA": "Pass: waist-up, face and both eyes visible, age/skin/white eyebrows/indigo braid preserved, salt harbor scene."
+    },
+    {
+      "id": "crew_salt_crown_carpenter_saf",
+      "name": "Saf",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-ace9c51a-eeb4-4e6a-a0c4-04691ebf3c67.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_carpenter_saf_portrait_v2.png",
+      "visualQA": "Pass: waist-up, face and both eyes clear, forehead sunspots and short white dreadlocks, bone support, drying-keel salt-pan setting."
+    },
+    {
+      "id": "crew_salt_crown_doctor_naji",
+      "name": "Naji",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-79604ba2-7374-4452-ac0f-a0a234fe7bfc.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_doctor_naji_portrait_v2.png",
+      "visualQA": "Pass: waist-up, face and both eyes clear, paired dark hair loops, gold under-eye salt, bottle belt, medicine tray and salt pharmacy."
+    },
+    {
+      "id": "crew_salt_crown_gunner_rokan",
+      "name": "Rokan",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-bd910639-3698-4875-81ee-86eca976f062.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_gunner_rokan_portrait_v2.png",
+      "visualQA": "Pass: waist-up, face and both eyes clear, pale mohawk, broad shoulders, scarred hands, ceramic powder pot, chain and cannon setting."
+    },
+    {
+      "id": "crew_salt_crown_cook_maz",
+      "name": "Maz",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-6db8c29c-8326-4711-91b3-82704a7f2edd.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_cook_maz_portrait_v2.png",
+      "visualQA": "Pass: waist-up, clear green eyes, long dark waves and mole beside nose, full-figured adult, silver pot and harbor kitchen."
+    },
+    {
+      "id": "crew_salt_crown_diver_isha",
+      "name": "Isha",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-938d743a-64f4-4c5d-9fc2-44b73d269799.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_diver_isha_portrait_v2.png",
+      "visualQA": "Pass: waist-up, face unobstructed, short white curls, salt crystal earrings, lamp and salt diving-bell passage. Slight departure: helmet/back gear reads as bronze rather than purely soft leather."
+    },
+    {
+      "id": "crew_twilight_tide_navigator_selene",
+      "name": "Selene",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-686cf863-72dd-4d07-b2ef-27ebf4f7eefa.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_navigator_selene_portrait_v2.png",
+      "visualQA": "Pass: waist-up, clearly aged gaunt dark-skinned face, silver eyes, long white hair, stone astrolabe, moonlit sea giant background."
+    },
+    {
+      "id": "crew_twilight_tide_carpenter_orlan",
+      "name": "Orlan",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-93763dc6-72ad-4e21-972f-f401a47c84a8.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_carpenter_orlan_portrait_v2.png",
+      "visualQA": "Pass: waist-up, both eyes clear, pale face and purple-black hair swept to one side, side-neck gill tattoo, bone saw, half-open boat workshop."
+    },
+    {
+      "id": "crew_twilight_tide_doctor_viya",
+      "name": "Viya",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-05f777aa-eab8-459d-bf93-1e936d0578ea.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_doctor_viya_portrait_v2.png",
+      "visualQA": "Pass: waist-up, tired mature olive face, short navy curls and forehead silver dot, removed glass mask at belt, impossible key and dream infirmary harbor."
+    },
+    {
+      "id": "crew_twilight_tide_gunner_yilan",
+      "name": "Yilan",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-ef6981b4-2a2e-4a42-af46-9f85a24304cb.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_gunner_yilan_portrait_v2.png",
+      "visualQA": "Pass: waist-up, clear East Asian face, black/cobalt hair and right-cheek sigil, low-held blue-flame gun, moonlit harbor and distant fog sails."
+    },
+    {
+      "id": "crew_twilight_tide_cook_lume",
+      "name": "Lume",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-ad0109bd-436c-4e87-b50c-3a5fd77b0492.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_cook_lume_portrait_v2.png",
+      "visualQA": "Pass: waist-up, clearly readable blue-black adult round face, voluminous purple hair and glowing freckles, round build, black teapot, cyan mushroom seaside kitchen."
+    },
+    {
+      "id": "crew_twilight_tide_diver_naive",
+      "name": "Naive",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b43-7d12-7401-aaaf-b336abad46be\\exec-48fb3466-b9ea-43dc-999e-442251dd1a6d.png",
+      "output": "UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_diver_naive_portrait_v2.png",
+      "visualQA": "Pass: waist-up, older pale rectangular face, shaved crown with two silver side braids, blue nose-crossing scar, bone tube off face, jellyfish lantern and flooded stone passage."
+    }
+  ]
+}

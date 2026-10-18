@@ -28,9 +28,9 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton("Port Hotspot Market"); yield return null;
                 var retained = CaptureRetainedMarketObjects();
                 AssertMarketIconCatalog(controller);
-                Assert.That(GameObject.Find("Market Summary").GetComponent<Text>().text, Does.Contain("货舱余量"));
+                Assert.That(GameObject.Find("Market Footer"), Is.Null, "The market scene has no bottom information bar.");
                 yield return OpenMarketItem("water");
-                Image readingSurface = AssertLivePaperSurface("Market Item Detail", NauticalSurfaceSkin.ReadingPaper, true);
+                Image readingSurface = AssertLivePaperSurface("Market Item Detail", MarketShopSkin.Paper, true);
                 Sprite readingPaper = readingSurface.sprite;
                 Button inventoryToggle = ActiveButton("Market Inventory Toggle");
                 var oldFold = inventoryToggle.onClick;
@@ -109,11 +109,10 @@ namespace ShatteredSail.Presentation.Tests
 
                 yield return EnterMarketQuantity("water", "7");
                 Button footer = ActiveButton("Close Market Shop");
-                Button investment = ActiveButton("Market Open Investment");
                 Slider modeQuantity = MarketQuantityField("water");
                 Button.ButtonClickedEvent previousQuote = MarketConfirm("water").onClick;
-                Button.ButtonClickedEvent previousMode = ActiveButton("Market Storage Mode").onClick;
-                ClickAcceptanceButton("Market Storage Mode"); yield return null;
+                Button.ButtonClickedEvent previousMode = ActiveButton("Market Detail Storage Mode").onClick;
+                yield return MarketSceneClick("Market Detail Storage Mode");
                 MarketPurchaseStorageMode mode = controller.MarketStorageMode;
                 previousMode.Invoke();
                 Assert.That(controller.MarketStorageMode, Is.EqualTo(mode), "An old queued mode callback cannot cycle a new display.");
@@ -130,7 +129,7 @@ namespace ShatteredSail.Presentation.Tests
                 AssertRetainedMarketObjects(retained);
                 ClickAcceptanceButton("Close Market Shop"); yield return null;
                 Assert.That(retained["Close Market Shop"].GetComponent<Button>(), Is.SameAs(footer), "Closing the drawer retains its close control.");
-                Assert.That(ActiveButton("Market Open Investment"), Is.SameAs(investment), "The investment shortcut remains available outside the drawer.");
+                Assert.That(GameObject.Find("Market Footer"), Is.Null, "Closing a drawer cannot restore the removed footer.");
                 AssertMarketIconCatalog(controller);
                 yield return SelectMarketStorageMode(controller, MarketPurchaseStorageMode.Ask);
                 yield return EnterMarketQuantity("water", "7");
@@ -189,7 +188,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(MarketInfoLabel("Market Holdings wood").gameObject.activeInHierarchy, Is.True);
                 Assert.That(typeof(CoreGameplayDemoController).GetField("marketDisplayedDate", BindingFlags.Instance | BindingFlags.NonPublic)
                     .GetValue(controller), Is.EqualTo(new DateTime(now.Year, now.Month, 1)),
-                    "The retained market must advance its quote month even when the summary only shows cargo space.");
+                    "The retained market must advance its quote month without rebuilding the drawer.");
                 foreach (PortMarketItem item in PortMarketCatalog.AllItems)
                 {
                     string key = PortMarketCatalog.Key(item);
@@ -217,7 +216,7 @@ namespace ShatteredSail.Presentation.Tests
                 typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
                 yield return null;
                 Assert.That(GameObject.Find("Market Panel"), Is.Not.SameAs(sourcePanel));
-                Assert.That(GameObject.Find("Market Title").GetComponent<Text>().text, Is.EqualTo(CorePortEconomy.TradeSummary("白贝港")));
+                Assert.That(GameObject.Find("Port Facility Port").GetComponent<Text>().text, Is.EqualTo("白贝港"));
                 sourceBuy.Invoke();
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
                 yield return EnterMarketQuantity("wood", "1");
@@ -234,7 +233,7 @@ namespace ShatteredSail.Presentation.Tests
             GameObject panel = GameObject.Find("Market Panel");
             Assert.That(panel, Is.Not.Null);
             Transform[] nodes = panel.GetComponentsInChildren<Transform>(true);
-            foreach (string name in new[] { "Market Panel", "Market Board", "Market Summary", "Market Storage Mode",
+            foreach (string name in new[] { "Market Panel", "Market Board", "Market Detail Storage Mode",
                 "Market Catalog Grid", "Market Item Detail", "Market Trade Selection", "Market Inventory Toggle",
                 "Market Shop Title", "Close Market Shop", "Market Detail Buy Price", "Market Detail Sell Price" })
                 objects[name] = name == "Market Panel" ? panel : nodes.Single(node => node.name == name).gameObject;

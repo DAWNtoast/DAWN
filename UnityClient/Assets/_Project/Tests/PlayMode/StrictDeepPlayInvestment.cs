@@ -34,7 +34,8 @@ namespace ShatteredSail.Presentation.Tests
                 }
 
                 string port = Session.CurrentPort;
-                yield return Click("Market Open Investment");
+                yield return EnsureHub();
+                yield return Click("Port Hotspot Maintenance");
                 Match displayedLevel = Regex.Match(PortText("Port Investment Current Level")?.text ?? string.Empty, @"Lv\.(\d+)");
                 Assert.That(displayedLevel.Success, Is.True, "Investment level must be visible to the player.");
                 int level = int.Parse(displayedLevel.Groups[1].Value);
@@ -103,7 +104,8 @@ namespace ShatteredSail.Presentation.Tests
                 decimal goldBeforeProcurement = Session.ProfileGold;
                 foreach (var target in carriedTargets) yield return BuyResource(target.Key, target.Value);
                 Record("Investment material procurement completed through market: spent=" + (goldBeforeProcurement - Session.ProfileGold));
-                yield return Click("Market Open Investment");
+                yield return EnsureHub();
+                yield return Click("Port Hotspot Maintenance");
                 Assert.That(Session.CurrentPort, Is.EqualTo(port));
                 foreach (var requirement in requirements)
                     Assert.That(Session.GetPortInvestmentMaterialAmount(requirement.Key), Is.GreaterThanOrEqualTo((long)requirement.Value));

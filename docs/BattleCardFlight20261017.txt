@@ -1,0 +1,44 @@
+战斗发牌与回合结束弃牌动效（2026-10-17）
+
+参考
+https://clashofslots.com/slots/print-studios/deck-of-divinity/
+针对用户指定的左下角牌堆出牌，读取免费 demo 的公开 free-spins 动画参数：每张移动约 0.40 秒、相邻发牌 0.06 秒、半程翻面、很小的尺度余动；弃牌紧密汇回牌堆。本次浏览器控制环境未能启动，没有录制参考网页的实机动画。实现是项目自己的 UI 运动与航海卡背，没有复制参考源码或美术。
+
+实现
+1. 初始手牌与切换战斗阶段后，从左下抽牌堆依次射出。0.4 秒飞行，0.06 秒错峰，短浅弧、半程翻面、轻微落位余动。
+2. 卡牌效果补抽时，只让新增手牌飞入，已有手牌和战场对象继续复用。
+3. 回合结束时，手牌从当前位置飞往右下弃牌堆，翻成卡背并缩入牌堆。每张 0.4 秒，0.015 秒错峰。完成后再提交原有核心回合逻辑，再显示下一批发牌。
+4. 接舷战的保留牌按实际手牌位置判断，不参加本回合弃牌。同名卡的新抽取仍显示新一次发牌。
+5. 已落位牌或结束回合可以收束尚未结束的发牌，避免额外等待；正在飞行的牌不接收点击。打开牌堆详情/设置会先收束飞牌，保持弹窗层级正确。
+6. 暂停、禁用或重绘时恢复姿态并清理临时卡背；动效本身不改动核心卡组、数值或存档。
+7. 两侧抽牌堆、弃牌堆常驻显示与飞牌相同的深蓝罗盘卡背，三层叠放。保留原有数量、名称、悬停提示和点击查看；飞牌按牌堆顶层卡背的实际中心与宽度起落。
+
+入口
+UnityClient/Assets/_Project/Presentation/Runtime/BattleHandFlightMotion.cs
+UnityClient/Assets/_Project/Presentation/Runtime/BattleCardFlightBackGraphic.cs
+UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayBattleHandFlight.cs
+接入现有 CoreGameplayBattleAnimationController、CoreGameplayBattleViewRefresh、CoreGameplayBattleDeckOverview。
+
+验证与预览
+本任务使用 tmp/battle-card-flight-20261017 独立 Unity 工程，独立 Validation 存档身份。
+脚本：tools/BattleCardFlight20261017/Sync.ps1。
+定向 PlayMode：BattleHandFlight_、BattleResponsive_、BattleLifecycle_、NavalFanHand_。
+真实界面连续帧：BattleHandFlightCaptureTests 的条件采集入口。
+最终结果及录屏保存在 Artifacts/BattleCardFlight20261017。
+
+Play04：18 项中 15 项通过、2 项失败、1 项条件采集跳过。新增五项动效测试全部通过，相关生命周期、扇形手牌和补抽复用检查通过。暂停恢复现在直接还原已存在的手牌，不会再次播放发牌。
+两个未解决的既有断言：BattleResponsive_RealComponentCardRepairsGuardsAndDrawsWithoutSerialFeedbackOrLosingHover 仍期望特殊卡抽 3 张，当前卡牌规则为 2 张；BattleResponsive_SameStageEnemyTurnRefreshesHudAndHandWithoutRebuildingScene 在动作前查找已被紧凑 HUD 隐藏的旧 Resource 能 Value 节点。本次未更改这些无关数值或 HUD 规则。
+详细结果：Artifacts/BattleCardFlight20261017/Play04/results.xml。
+源码对应记录：Artifacts/BattleCardFlight20261017/Play04/source-snapshot.json。
+
+实际画面验收：Capture03 独立采集测试通过（1/1），269 张 1920×1080 真实 Unity 画面，约 4.8 秒；每帧平均 17.82 ms，最大 38.14 ms。开场、弃牌和次回合发牌的前 400 ms 分别有 26、18、18 张采样。逐帧核对了牌堆起点、正背翻转、入手与回收、临时卡背清理；视频解码检查通过。
+视频：Artifacts/BattleCardFlight20261017/card-flight-preview.mp4。
+动作接触表：Artifacts/BattleCardFlight20261017/contact-sheet.png。
+采集报告：Artifacts/BattleCardFlight20261017/Capture03/capture-summary.json。
+画面使用真实战斗 UI：预热后调用实际飞牌组件重放初始发牌，结束回合使用真实按钮回调；没有为录制修改生产动画的时间或路径。
+
+验证快照范围：Play04 与 Capture03 对应本次飞牌实现。采集后工作区另有并行 HUD 修改，在 AnimationController 加入两处状态栏刷新调用。本次视频不宣称覆盖这些后来加入的 HUD 变化。Capture03/source-snapshot.json 保留原始基线与当前文件的比较；采集测试自身未记录独立的运行前历史哈希，不能据此宣称整套当前源码逐项一致。后续 Capture05 仅为隔离工程兼容检查，不作为最终展示或全源码验证。
+
+本次修改游戏源码，不替换已有 Windows 发布包。未使用外部图像 API；未生成或更新已退役的 UIPreviewsForMe。
+
+牌堆卡背追加验收：PileBacks/Run01 共 7 项全部通过（5 项飞牌集成、1 项两堆计数与点击查看、1 项实机采集）。本轮完整同步当前源码，记录见 PileBacks/source-snapshot.json。已检查 frames/0265.png：两堆的常驻卡背与飞牌使用同一图形，张数、标题和周边按钮清楚可见。

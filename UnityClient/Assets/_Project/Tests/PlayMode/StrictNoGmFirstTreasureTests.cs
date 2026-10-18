@@ -382,7 +382,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Session.TreasureMaps[0].Id, Is.EqualTo(FirstCraftedMap.Id));
                 yield return Click("Treasure Close Folio"); yield return EnsureHub(); yield return Click("Port Hotspot Voyage");
                 Assert.That(Session.SelectedTreasureMap, Is.Null);
-                yield return Click("Departure Treasure Seed Picker"); yield return Click("Departure Treasure Seed Option 0");
+                yield return Click("Departure Treasure Seed Picker");
+                yield return SelectDepartureTreasureOption(0);
+                Record("FIRST TREASURE selected seed through departure selector: " + Session.SelectedTreasureMap?.Seed);
                 Assert.That(Session.SelectedTreasureMap.Id, Is.EqualTo(FirstCraftedMap.Id));
                 Record("FIRST TREASURE departure provision action: " + PortButton("Departure Buy Provisions")?.GetComponentInChildren<Text>()?.text);
                 Assert.That(PortButton("Start Voyage")?.IsInteractable(), Is.True, "Only an enabled, ordinarily provisioned departure may consume the first map.");

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Presentation;
+using ShatteredSail.Core.Gameplay;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -214,6 +215,9 @@ namespace ShatteredSail.Core.Tests
                 preview.Controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.TavernCrewDetail, CoreGameplayPreviewPort.BronzeBell, 0);
                 Text[] labels = preview.Host.GetComponentsInChildren<Text>(true);
                 Text effect = labels.Single(label => label.name == "Tavern Special Card Effect");
+                // The navigator now grants action points without a usage prerequisite.
+                // Exercise this card-face typography with the live cannon card instead.
+                effect.text = CardFaceLayout.FormatDescription(CoreVoyageSession.CardLibrary.Single(card => card.Id == "card_chain_shot").Description);
                 string valid = effect.text;
                 Assert.That(valid, Does.Contain("<b>"), "Exercise a real card with a usage condition.");
                 AssertAuthoredText(effect, "Shared card condition");
@@ -332,8 +336,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(label.fontSize, Is.GreaterThan(0), context + " / " + label.name);
         }
 
+        // Clause separators may be rendered as a line break or a semicolon.
+        // This audit checks emphasis; CardDescriptionTextTests separately checks
+        // every visible word and requires each original clause boundary to remain.
         private static string WithoutTypographyWhitespace(string text) =>
-            new string(text.Where(letter => !char.IsWhiteSpace(letter)).ToArray());
+            new string(text.Where(letter => !char.IsWhiteSpace(letter) && letter != '；').ToArray());
 
         private static string NormalizedCardEmphasis(string text) =>
             WithoutTypographyWhitespace(text).Replace("</b><b>", string.Empty);
@@ -350,6 +357,9 @@ namespace ShatteredSail.Core.Tests
         [TestCase("靠近60米并转为平行\n平行且<b>距离不超过60米</b>可接舷", false)]
         [TestCase("靠近60米并转为平行\n平行且距离不超过60米可接舷", false)]
         [TestCase("<b>格挡6</b>", false)]
+        [TestCase("<b>4格内</b>炮击；船体伤害28", true)]
+        [TestCase("<b>4格内</b>炮击；<b>船体伤害28</b>", false)]
+        [TestCase("4格内炮击；船体伤害28", false)]
         public void CardEmphasisAudit_AcceptsWrappedPrerequisitesButRejectsAddedOrMissingEmphasis(string text, bool valid)
         {
             Assert.That(NormalizedCardEmphasis(text) == ExpectedCardEmphasis(text), Is.EqualTo(valid));
@@ -362,6 +372,7 @@ namespace ShatteredSail.Core.Tests
             // every remaining label retains GameTypography's default spacing.
             switch (name)
             {
+                case "Confirmation Body": return 1.35f;
                 case "Component Detail Description":
                 case "Component Detail Effect":
                 case "Component Detail Story Body":
@@ -375,7 +386,6 @@ namespace ShatteredSail.Core.Tests
                 case "Tavern Special Card Growth": return 1.15f;
                 case "Guided Tutorial Instruction":
                 case "Boarding Clash Label":
-                case "Component Detail Quality":
                 case "Component Detail Specialization":
                 case "Component Detail Effect Heading":
                 case "Component Detail Story Chapter":

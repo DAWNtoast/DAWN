@@ -11,72 +11,106 @@ namespace ShatteredSail.Presentation
             int risk, int routeIndex, string location, SeaTerrainType terrain, Texture2D illustration,
             Rect illustrationUv, List<EncounterDossierChoice> choices)
         {
-            // Also supports editor acceptance fixtures that invoke this builder directly.
             if (lookoutViewport == null) BuildSailing();
             for (int i = lookoutViewport.childCount - 1; i >= 0; i--) RetireNavigationChild(lookoutViewport.GetChild(i));
-            RectTransform card = CreateRect("Encounter Card", lookoutViewport, new Vector2(956, 626), Vector2.zero);
-            EncounterDossierRevealMotion reveal = card.gameObject.AddComponent<EncounterDossierRevealMotion>();
-            reveal.Play(card, 0.30f, !editorPreviewBuilding);
-            Color ink = Html("#352415"), muted = Html("#735334");
-            Color accent = routeIndex == 2 ? Html("#504471") : routeIndex == 1 ? Html("#8B3E26") : Html("#2D6860");
-            Texture2D paper = Resources.Load<Texture2D>("CardWorkshopV2/deck_builder_parchment_v2");
-            CreateRawImage("Encounter Parchment", card, new Vector2(956, 626), Vector2.zero, paper, new Rect(0, 0, 1, 1)).raycastTarget = false;
-            RectTransform content = CreateRect("Encounter Paper Content", card, new Vector2(824, 502), Vector2.zero);
-            RectTransform artFrame = CreateFixedPanel("Encounter Illustration Mount", content, new Vector2(246, 288), new Vector2(-282, 24), muted);
-            artFrame.GetComponent<Image>().raycastTarget = false;
-            // Repainted event cells are borderless; only crop for the final layout aspect.
-            CreateRawImage("Demo Event Art", artFrame, new Vector2(238, 280), Vector2.zero,
-                illustration, EncounterCoverUv(illustration, illustrationUv, 4f / 3f)).raycastTarget = false;
-            EncounterText("Encounter Location", content, new Vector2(244, 38), new Vector2(-282, -151), 21, accent, TextAnchor.MiddleCenter).text = location;
-            EncounterText("Encounter Title", content, new Vector2(520, 42), new Vector2(146, 199), 28, ink, TextAnchor.MiddleLeft).text = eventName;
-            EncounterText("Encounter Description", content, new Vector2(520, 64), new Vector2(146, 142), 20, ink, TextAnchor.UpperLeft, FontStyle.Normal).text = description;
-            EncounterText("Encounter Badge", content, new Vector2(350, 24), new Vector2(61, 95), 16,
-                mandatory ? Html("#8C3426") : accent, TextAnchor.MiddleLeft).text = category + " · " + (mandatory ? "必须处理" : "可选择略过") + " · 风险 " + risk;
-            RectTransform viewport = CreateRect("Encounter Decision Viewport", content, new Vector2(520, 296), new Vector2(146, -67));
+            RectTransform card = CreateRect("Encounter Card", lookoutViewport, new Vector2(1096, 906), Vector2.zero);
+            Color ink = MarketShopSkin.Ink, muted = MarketShopSkin.MutedInk;
+            Color accent = mandatory ? Html("#95523B") : Html("#8F6C3E");
+            Image paper = CreateRect("Encounter Parchment", card, card.sizeDelta, Vector2.zero).gameObject.AddComponent<Image>();
+            MarketShopSkin.ApplyPanel(paper);
+            paper.raycastTarget = false;
+            RectTransform content = CreateRect("Encounter Paper Content", card, new Vector2(1024, 834), Vector2.zero);
+            JournalText("Encounter Journal Heading", content, "船 长 航 海 日 志", 18, muted);
+            JournalText("Encounter Badge", content, category + " · " + (mandatory ? "必须处理" : "可选择略过") + " · 风险 " + risk, 16, accent);
+            JournalText("Encounter Title", content, eventName, 32, ink);
+            JournalSurface("Encounter Header Divider", content, new Vector2(1024, 1), new Color(.49f, .37f, .21f, .35f));
+            RectTransform mount = CreateRect("Encounter Illustration Mount", content, new Vector2(328, 248), Vector2.zero);
+            JournalSurface("Illustration Border", mount, mount.sizeDelta, Html("#826849"));
+            JournalSurface("Illustration Mat", mount, mount.sizeDelta - new Vector2(4, 4), Html("#E9DFC9"));
+            bool specialShip = SpecialWarshipArtCatalog.IsSpecialTexture(illustration);
+            CreateRawImage("Demo Event Art", mount,
+                specialShip ? UiImageAspect.FitSize(illustration, illustrationUv, new Vector2(320, 240)) : new Vector2(320, 240),
+                Vector2.zero, illustration, specialShip ? illustrationUv : EncounterCoverUv(illustration, illustrationUv, 4f / 3f)).raycastTarget = false;
+            JournalText("Encounter Location", content, location + " · " + BattleEnvironmentArtCatalog.LabelFor(terrain), 20, muted);
+            RectTransform storyViewport = CreateRect("Encounter Description Viewport", content, new Vector2(620, 226), Vector2.zero);
+            Image storyHit = storyViewport.gameObject.AddComponent<Image>(); storyHit.color = Color.clear;
+            storyViewport.gameObject.AddComponent<RectMask2D>();
+            RectTransform story = CreateRect("Encounter Description Content", storyViewport, new Vector2(620, 226), Vector2.zero);
+            story.anchorMin = story.anchorMax = story.pivot = new Vector2(.5f, 1f);
+            JournalText("Encounter Description", story, description, 24, ink, FontStyle.Normal);
+            ScrollRect storyScroll = storyViewport.gameObject.AddComponent<ScrollRect>();
+            storyScroll.content = story; storyScroll.viewport = storyViewport; storyScroll.horizontal = false;
+            storyScroll.scrollSensitivity = 28f; storyScroll.movementType = ScrollRect.MovementType.Clamped;
+            JournalText("Encounter Description Hint", content, "滚动阅读完整事件", 16, muted);
+            JournalText("Encounter Decision Heading", content, "船长，请下达决定", 24, ink);
+            JournalText("Encounter Decision Footer", content, "", 18, muted);
+            JournalSurface("Encounter Decision Rule", content, new Vector2(1024, 2), new Color(.49f, .37f, .21f, .4f));
+            RectTransform viewport = CreateRect("Encounter Decision Viewport", content, new Vector2(1000, 360), Vector2.zero);
+            Image hit = viewport.gameObject.AddComponent<Image>(); hit.color = Color.clear;
             viewport.gameObject.AddComponent<RectMask2D>();
-            float totalHeight = 0;
-            foreach (var choice in choices) totalHeight += (choice.IsSkip ? 80 : 96) + 10;
-            totalHeight = Mathf.Max(296, totalHeight - 10);
-            RectTransform actions = CreateRect("Encounter Choices", viewport, new Vector2(520, totalHeight), Vector2.zero);
-            actions.anchorMin = actions.anchorMax = new Vector2(0.5f, 1);
-            actions.pivot = new Vector2(0.5f, 1);
-            actions.anchoredPosition = Vector2.zero;
-            float cursor = 0;
-            for (int i = 0; i < choices.Count; i++)
-            {
-                var choice = choices[i];
-                float height = choice.IsSkip ? 80 : 96;
-                Button button = CreateButton(choice.ObjectName, actions, new Vector2(520, height), new Vector2(0, -cursor - height * 0.5f), PanelRaised, Ink, 20);
-                button.GetComponent<RectTransform>().anchorMin = button.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 1);
-                button.interactable = choice.Available;
-                Text label = button.GetComponentInChildren<Text>();
-                label.rectTransform.sizeDelta = new Vector2(340, 25);
-                label.rectTransform.anchoredPosition = new Vector2(-36, choice.IsSkip ? 12 : 18);
-                label.text = choice.Label;
-                label.alignment = TextAnchor.MiddleLeft;
-                FitEncounterText(label, choice.IsSkip ? 18 : 20);
-                Text detail = EncounterText("Detail", button.transform, new Vector2(340, choice.IsSkip ? 20 : 29),
-                    new Vector2(-36, choice.IsSkip ? -13 : -14), 15, Ink, TextAnchor.MiddleLeft, FontStyle.Normal);
-                detail.text = choice.Detail;
-                Text hours = EncounterText("Hours", button.transform, new Vector2(90, height - 8), new Vector2(204, 0), 14, Gold, TextAnchor.MiddleCenter);
-                hours.text = !choice.Available ? "不可选 · " + choice.Hours.ToString("0.#") + " 小时\n" + choice.LockedReason :
-                    choice.IsSkip ? "继续航行" : (choice.StartsBattle ? "进入海战\n" : "耗时\n") + choice.Hours.ToString("0.#") + " 小时";
-                // Longer resource/crew shortages must remain inside this narrow
-                // column instead of being clipped by the decision viewport.
-                hours.resizeTextForBestFit = true;
-                hours.resizeTextMinSize = 10;
-                hours.resizeTextMaxSize = 14;
-                EncounterText("Decision Number", button.transform, new Vector2(34, 32), new Vector2(-235, 0), 18, Gold, TextAnchor.MiddleCenter).text = choice.IsSkip ? "→" : (i + 1).ToString("00");
-                button.onClick.AddListener(() => choice.Resolve?.Invoke());
-                cursor += height + 10;
-            }
+            RectTransform actions = CreateRect("Encounter Choices", viewport, new Vector2(1000, 360), Vector2.zero);
+            actions.anchorMin = actions.anchorMax = actions.pivot = new Vector2(.5f, 1f);
+            RectTransform secondary = CreateRect("Encounter Secondary Actions", content, new Vector2(1024, 88), Vector2.zero);
+            int number = 0;
+            foreach (EncounterDossierChoice choice in choices)
+                BuildJournalChoice(choice.IsSkip ? secondary : actions, choice, choice.IsSkip ? 0 : ++number);
             ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
             scroll.content = actions; scroll.viewport = viewport; scroll.horizontal = false;
-            scroll.vertical = totalHeight > 296; scroll.scrollSensitivity = 24; scroll.movementType = ScrollRect.MovementType.Clamped;
-            // The responsive layout places the reminder above the full-width choices.
-            EncounterText("Encounter Decision Footer", content, new Vector2(156, 24), new Vector2(328, 95), 14, muted, TextAnchor.MiddleRight).text =
-                scroll.vertical ? "上下滚动查看更多" : mandatory ? "选择可行方案继续" : "略过不耗时";
+            scroll.scrollSensitivity = 32f; scroll.movementType = ScrollRect.MovementType.Clamped;
+            RectTransform barRoot = CreateRect("Encounter Decision Scrollbar", content, new Vector2(10, 360), Vector2.zero);
+            Image track = barRoot.gameObject.AddComponent<Image>(); track.color = new Color(.38f, .29f, .18f, .15f);
+            RectTransform handle = CreateRect("Handle", barRoot, Vector2.zero, Vector2.zero);
+            Image thumb = handle.gameObject.AddComponent<Image>(); thumb.color = accent;
+            Scrollbar bar = barRoot.gameObject.AddComponent<Scrollbar>();
+            bar.handleRect = handle; bar.targetGraphic = thumb; bar.direction = Scrollbar.Direction.BottomToTop;
+            scroll.verticalScrollbar = bar; scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            JournalText("Encounter Footer Note", content, mandatory ? "必须处理此事件后才能继续航行" : "略过不耗时，也不会领取事件收益", 18, muted, FontStyle.Normal);
             NavigationDashboardLayout.Attach(contentRoot);
+            card.gameObject.AddComponent<EncounterDossierRevealMotion>().Play(card, .24f, !editorPreviewBuilding);
+        }
+
+        private void BuildJournalChoice(RectTransform parent, EncounterDossierChoice choice, int number)
+        {
+            Button button = CreateButton(choice.ObjectName, parent, new Vector2(560, 112), Vector2.zero,
+                Color.white, MarketShopSkin.Ink, 24);
+            RectTransform row = button.GetComponent<RectTransform>();
+            MarketShopSkin.ApplyLightButton(button);
+            button.interactable = choice.Available;
+            Color rowAccent = choice.Available
+                ? choice.StartsBattle || choice.ObjectName == "Emergency Encounter Return" ? Html("#95523B") : Html("#8F6C3E")
+                : Html("#988C77");
+            Color ink = choice.Available ? MarketShopSkin.Ink : Html("#786D5B");
+            JournalSurface("Choice Accent", row, new Vector2(4, 112), rowAccent);
+            JournalSurface("Time Rule", row, new Vector2(1, 64), new Color(.49f, .37f, .21f, .25f));
+            JournalText("Decision Number", row, choice.IsSkip ? "→" : number.ToString("00"), 24, rowAccent);
+            Text label = button.GetComponentInChildren<Text>();
+            label.text = choice.Label; label.alignment = TextAnchor.MiddleLeft; label.color = ink;
+            JournalText("Detail", row, choice.Detail, 20, MarketShopSkin.MutedInk, FontStyle.Normal);
+            Text hours = JournalText("Hours", row, choice.IsSkip ?
+                choice.ObjectName == "Emergency Encounter Return" ? "返回港口" : "继续航行" :
+                (choice.StartsBattle ? "进入海战\n" : "耗时\n") + choice.Hours.ToString("0.#") + " 小时", 20, rowAccent);
+            hours.alignment = TextAnchor.MiddleCenter;
+            if (!choice.IsSkip)
+                JournalText("Requirement", row, !choice.Available ? "暂不可选 · " + choice.LockedReason :
+                    string.IsNullOrEmpty(choice.Requirement) ? "" : "条件 · " + choice.Requirement, 20,
+                    choice.Available ? MarketShopSkin.MutedInk : Html("#95523B"), FontStyle.Normal);
+            button.onClick.AddListener(() => choice.Resolve?.Invoke());
+        }
+
+        private Text JournalText(string name, Transform parent, string value, int size, Color color, FontStyle style = FontStyle.Bold)
+        {
+            Text text = EncounterText(name, parent, new Vector2(400, 40), Vector2.zero, size, color, TextAnchor.MiddleLeft, style);
+            text.color = color; text.text = value;
+            if (name == "Encounter Badge" || name == "Encounter Decision Footer") text.alignment = TextAnchor.MiddleRight;
+            if (name == "Encounter Description") text.alignment = TextAnchor.UpperLeft;
+            if (name == "Decision Number") text.alignment = TextAnchor.MiddleCenter;
+            return text;
+        }
+
+        private Image JournalSurface(string name, Transform parent, Vector2 size, Color color)
+        {
+            Image image = CreateRect(name, parent, size, Vector2.zero).gameObject.AddComponent<Image>();
+            image.color = color; image.raycastTarget = false; return image;
         }
     }
 }

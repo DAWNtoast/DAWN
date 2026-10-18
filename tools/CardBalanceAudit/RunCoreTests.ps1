@@ -1,7 +1,8 @@
 param(
     [string]$Output = 'D:/Game/UnityClient/Artifacts/CardBalanceAudit20261012/CoreTests',
     [string]$UnityData = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data',
-    [switch]$ExportOnly
+    [switch]$ExportOnly,
+    [string[]]$Fixtures = @()
 )
 $ErrorActionPreference = 'Stop'
 $auditWorkspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -24,8 +25,15 @@ $auditTests = @(Get-ChildItem -LiteralPath $auditTestsRoot -Filter '*.cs' | Wher
     $_.Name -match 'Card|School|Battle|Naval|Boarding|CoreGuidedBossScript' -and $_.Name -notmatch 'Simulator' -and
     [IO.File]::ReadAllText($_.FullName) -notmatch 'UnityEngine|UnityEditor|ShatteredSail.Presentation'
 } | Sort-Object Name)
+if ($Fixtures.Count -gt 0) {
+    $auditTests = @($auditTests | Where-Object { $Fixtures -contains $_.Name })
+    foreach ($auditFixture in $Fixtures) {
+        if ($auditTests.Name -notcontains $auditFixture) { throw "Requested pure Core fixture was not found: $auditFixture" }
+    }
+}
 $auditSources += Get-Item -LiteralPath (Join-Path $auditTestsRoot 'NavalBattleBalanceSimulator.cs')
 $auditSources += $auditTests
+$auditSources += Get-Item -LiteralPath (Join-Path $auditWorkspace 'UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs')
 $auditSources += Get-Item -LiteralPath (Join-Path $PSScriptRoot 'Runner.cs')
 $auditHashes = @($auditSources | ForEach-Object { [pscustomobject]@{ Source=$_.FullName; SHA256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash } })
 $auditHashes |

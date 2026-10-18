@@ -407,7 +407,7 @@ namespace ShatteredSail.Presentation
                     {
                         ComponentArtEntry entry = Art.GetById(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentLoadoutKey(slot), string.Empty));
                         if (entry == null || entry.Slot != slot) continue;
-                        components.Grant(entry, 1f);
+                        components.Grant(entry);
                         count++;
                         hasCannon |= slot == ComponentSlot.Cannon;
                     }

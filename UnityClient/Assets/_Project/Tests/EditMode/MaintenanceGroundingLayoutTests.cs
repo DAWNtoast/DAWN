@@ -99,7 +99,7 @@ namespace ShatteredSail.Core.Tests
                 AssertContained(ledger, Find<Text>(preview, "Port Investment Quantity Header").rectTransform);
                 Assert.That(Find<Text>(preview, "Port Investment Quantity Header").text, Is.EqualTo("拥有 / 需求"));
                 Assert.That(Find<Button>(preview, "Confirm Port Investment").GetComponentInChildren<Text>().text,
-                    Is.EqualTo("升级至 Lv.1"));
+                    Is.EqualTo("材料不足"));
                 Assert.That(Find<Button>(preview, "Open Port Market").GetComponentInChildren<Text>().text,
                     Does.Contain("港口市场"));
             }

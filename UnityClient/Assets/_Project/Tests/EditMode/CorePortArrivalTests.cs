@@ -233,11 +233,17 @@ namespace ShatteredSail.Core.Tests
             // segment lengths then subtracting the first leaves a float
             // remainder just larger than the final segment's own length.
             Assert.That(forecast.PathPoints.Count, Is.GreaterThanOrEqualTo(3));
-            AssertPoint(forecast.Target, session.Map.Destination);
+            Assert.That(forecast.ActualDistanceNm, Is.LessThanOrEqualTo(session.PlannedDistanceNm + .001f));
+            Assert.That(forecast.Hours, Is.LessThanOrEqualTo(24d));
             Assert.That(forecast.Rerouted, Is.True);
             Assert.That(session.Sail(), Is.True);
+            Assert.That(session.HasDirectCourseTarget, Is.True, "The island detour exceeds one leg's budget.");
+            float firstLegDistance = session.TotalDistanceNm;
+            SailingForecast finalApproach = session.GetForecast();
+            AssertPoint(finalApproach.Target, session.Map.Destination);
+            Assert.That(session.Sail(), Is.True);
             AssertArrived(session);
-            Assert.That(session.TotalDistanceNm, Is.EqualTo(forecast.ActualDistanceNm).Within(0.001f));
+            Assert.That(session.TotalDistanceNm, Is.EqualTo(firstLegDistance + finalApproach.ActualDistanceNm).Within(0.001f));
         }
 
         [TestCase(1)]

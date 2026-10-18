@@ -79,7 +79,7 @@ namespace ShatteredSail.Presentation
 
         private IEnumerator AnimateRamComic(Texture2D art, bool enemyInitiated, BattleAnimationSnapshot before, BattleAnimationSnapshot after, int priorBurnDamage)
         {
-            if (art == null || BuildRamComicOverlay(art, enemyInitiated, before.Alignment == NavalBattleAlignment.HeadOn,
+            if (art == null || BuildRamComicOverlay(art, enemyInitiated, false,
                 string.Empty) == null) yield break;
             try
             {
@@ -133,20 +133,12 @@ namespace ShatteredSail.Presentation
             ramComicAdvanceRequested = false;
             CloseComicOverlay(overlay);
             // Page textures are shared Resources assets, never owned here.
+            // Naval combat and boarding share the same resource scope. Closing
+            // the comic must retire its four large pages even when Render does
+            // not change phase. A newly opened sequence retains its own pages
+            // while the existing deferred collector coalesces close/reopen.
+            if (overlay != null) QueueUnusedArtCollection(true);
         }
 
-        private void OnApplicationPause(bool paused)
-        {
-            if (paused && (ramComicOverlay != null || boardingTransitionOverlay != null))
-            {
-                ramComicResumeAfterPause = true;
-                SuspendBattlePresentation();
-            }
-            else if (!paused && ramComicResumeAfterPause && isActiveAndEnabled)
-            {
-                ramComicResumeAfterPause = false;
-                ResumeBattlePresentation();
-            }
-        }
     }
 }

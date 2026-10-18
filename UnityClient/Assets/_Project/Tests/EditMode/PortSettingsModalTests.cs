@@ -49,6 +49,9 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(existingGroup.interactable, Is.False);
                 Assert.That(existingGroup.blocksRaycasts, Is.False);
                 Assert.That(modal.GetComponentsInChildren<RawImage>().Any(item => item.name == "Port Settings Parchment" && item.texture != null), Is.True);
+                Text subtitle = modal.GetComponentsInChildren<Text>(true).Single(item => item.name == "Port Settings Subtitle");
+                Assert.That(subtitle.text, Is.Empty, "The removed apply/close explanation must not remain in the settings view.");
+                Assert.That(subtitle.gameObject.activeSelf, Is.False);
 
                 // Reopening must not create another modal or reset an in-progress draft.
                 Slider master = ReadField<Slider>(controller, "portSettingsMasterSlider");

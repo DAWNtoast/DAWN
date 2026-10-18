@@ -33,7 +33,7 @@ namespace ShatteredSail.Presentation.Tests
             int finalIncrease = System.Math.Min(loading.StrategyAmount, loading.StrategyLimit - schoolReserve - firstIncrease);
             Assert.That(finalIncrease, Is.GreaterThan(0), "The second action must exercise a partial positive increase and its animation.");
             RenderResponsiveBattle(controller);
-            yield return null;
+            yield return WaitResponsiveBattle(controller);
             AssertSchoolLoadedHud(schoolReserve);
             // Let the first rebuilt HUD finish its font/mesh update before capturing pixels.
             yield return new WaitForSecondsRealtime(.1f);
@@ -41,10 +41,21 @@ namespace ShatteredSail.Presentation.Tests
             foreach (int increment in new[] { firstIncrease, finalIncrease })
             {
                 int before = session.PlayerLoadedShotDamageBonus;
+                int playedBefore = session.Battle.CardsPlayedThisTurn;
+                int energyBefore = session.Battle.Energy;
+                int quotedEnergy = session.GetBattleCardEnergyCost(session.Battle.Hand[0]);
                 Button load = RequiredResponsive<Button>("Battle Card 0");
+                Assert.That(load.interactable, Is.True, "Loading input must be ready: played=" + playedBefore +
+                    "; bonus=" + before + "; core=" + session.CanPlayCard(0) + "; reason=" + session.CardUnavailableReason(0) +
+                    "; animation=" + controller.IsBattleAnimationPlaying + "; tutorial=" + controller.IsTutorialActive +
+                    "; parent=" + load.transform.parent.name + "; active=" + controller.isActiveAndEnabled +
+                    "; stage=" + session.Battle.Stage + "; buttons=" + string.Join(" | ",
+                        Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Where(button => button.name == "Battle Card 0")
+                            .Select(button => button.transform.parent.name + ":" + button.interactable)));
                 Assert.That(load.transform.Find("Label").GetComponent<Text>().text,
                     Does.Contain("下次炮击+" + increment).And.Not.Contain("本次实际增加"));
                 load.onClick.Invoke();
+                Assert.That(controller.IsBattleAnimationPlaying, Is.True, "The real loading button must begin feedback before its transient caption is observed.");
                 string seenFloat = null;
                 float deadline = Time.realtimeSinceStartup + 12f;
                 while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
@@ -55,7 +66,14 @@ namespace ShatteredSail.Presentation.Tests
                 }
                 Assert.That(controller.IsBattleAnimationPlaying, Is.False);
                 Assert.That(seenFloat, Is.EqualTo("装填加伤 +" + increment));
+                Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(playedBefore + 1));
+                Assert.That(session.Battle.Energy, Is.EqualTo(energyBefore - quotedEnergy));
+                Assert.That(session.PlayerLoadedShotDamageBonus, Is.EqualTo(before + increment));
                 AssertSchoolLoadedHud(before + increment);
+                // Completion rebinds the retained hand while the animation lock
+                // is still held; the HUD observer releases it in LateUpdate.
+                // Let that real frame finish before clicking the next copy.
+                yield return null;
             }
             Assert.That(session.PlayerLoadedShotDamageBonus, Is.EqualTo(loading.StrategyLimit));
             RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
@@ -67,8 +85,19 @@ namespace ShatteredSail.Presentation.Tests
 
         private static void AssertSchoolLoadedHud(int finalBonus)
         {
-            Assert.That(RequiredResponsive<Text>("Player Ammunition").text, Does.Contain("炮弹 ").And.Contain("木板 "));
-            Assert.That(RequiredResponsive<Text>("Battle Active Buffs").text, Does.Contain("装填加伤 +" + finalBonus + "\n"));
+            CoreVoyageSession session = Object.FindFirstObjectByType<CoreGameplayDemoController>().Session;
+            Assert.That(RequiredResponsive<RectTransform>("Resource Cannonball").Find("Amount").GetComponent<Text>().text,
+                Is.EqualTo(session.Cargo.Cannonballs.ToString()));
+            Assert.That(RequiredResponsive<RectTransform>("Resource Planks").Find("Amount").GetComponent<Text>().text,
+                Is.EqualTo(session.Cargo.Wood.ToString()));
+            Transform slot = RequiredResponsive<BattleStatusRow>("Player Battle Status Row").transform.Find("Status loaded_shot");
+            if (finalBonus == 0) Assert.That(slot, Is.Null, "Spent loading must leave the visible status row.");
+            else
+            {
+                Assert.That(slot, Is.Not.Null);
+                Assert.That(slot.Find("Amount").GetComponent<Text>().text, Is.EqualTo(finalBonus.ToString()));
+                Assert.That(NavalHudTooltipText("Status loaded_shot"), Does.Contain("下次炮击增加 " + finalBonus + " 点伤害"));
+            }
         }
 
         [UnityTest]
@@ -87,10 +116,10 @@ namespace ShatteredSail.Presentation.Tests
             int startingMana = session.Battle.Schools.Mana;
             int manaCost = session.GetBattleCard(ResponsiveCardIndex("card_school_arcane_b03")).SchoolEffect.Threshold;
             RenderResponsiveBattle(controller);
-            yield return null;
+            yield return WaitResponsiveBattle(controller);
             RectTransform battlefield = RequiredResponsive<RectTransform>("Battle Card");
-            Text status = RequiredResponsive<Text>("Battle School Status");
-            int originalBattlefield = battlefield.GetInstanceID(), originalStatus = status.GetInstanceID();
+            RectTransform resources = RequiredResponsive<RectTransform>("Battle Compact Resources");
+            int originalBattlefield = battlefield.GetInstanceID(), originalResources = resources.GetInstanceID();
             foreach (string school in new[] { "fire", "arcane", "curse", "thunder" })
             {
                 Button card = RequiredResponsive<Button>("Battle Card 0");
@@ -99,13 +128,18 @@ namespace ShatteredSail.Presentation.Tests
                 card.onClick.Invoke();
                 yield return WaitResponsiveBattle(controller);
                 Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetInstanceID(), Is.EqualTo(originalBattlefield));
-                status = RequiredResponsive<Text>("Battle School Status");
-                Assert.That(status.GetInstanceID(), Is.EqualTo(originalStatus));
-                Assert.That(status.text, Does.Contain("法力 " + session.Battle.Schools.Mana + "/" + session.Battle.Schools.ManaLimit));
-                Assert.That(status.text, Does.Contain("本回合雷链 " + session.Battle.Schools.ThunderChain + "/6"));
-                Assert.That(status.text, Does.Contain("敌燃烧 " + session.Battle.EnemyBurnDamage + " × " + session.Battle.EnemyBurnTurns));
-                if (session.Battle.Schools.CurseMarks > 0)
-                    Assert.That(status.text, Does.Contain("敌附咒 " + session.Battle.Schools.CurseMarks + " 层"));
+                Assert.That(RequiredResponsive<RectTransform>("Battle Compact Resources").GetInstanceID(), Is.EqualTo(originalResources));
+                Assert.That(RequiredResponsive<RectTransform>("Resource Mana").Find("Amount").GetComponent<Text>().text,
+                    Is.EqualTo(session.Battle.Schools.Mana + "/" + session.Battle.Schools.ManaLimit));
+                Assert.That(RequiredResponsive<RectTransform>("Resource ThunderChain").Find("Amount").GetComponent<Text>().text,
+                    Is.EqualTo(session.Battle.Schools.ThunderChain + "/" + session.Battle.Schools.ThunderLimit));
+                Assert.That(RequiredResponsive<RectTransform>("Resource CurseMark").Find("Amount").GetComponent<Text>().text,
+                    Is.EqualTo(session.Battle.Schools.CurseMarks.ToString()));
+                CoreBattleStatus burn = CoreBattleStatusPresentation.Build(session, false).Single(item => item.Id == "burn");
+                Assert.That(RequiredResponsive<BattleStatusRow>("Enemy Battle Status Row").transform
+                    .Find("Status burn/Amount").GetComponent<Text>().text, Is.EqualTo(burn.Value));
+                Assert.That(System.Text.RegularExpressions.Regex.Replace(NavalHudTooltipText("Status burn"), "<[^>]*>", string.Empty),
+                    Does.Contain(burn.Tooltip));
             }
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(4));
             Assert.That(session.Battle.Schools.Mana, Is.EqualTo(startingMana - manaCost));
@@ -116,7 +150,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreBattleCard blood = session.GetBattleCard(session.Battle.Hand.Single());
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, blood.SchoolEffect.Threshold);
             RenderResponsiveBattle(controller);
-            yield return null;
+            yield return WaitResponsiveBattle(controller);
             Button blocked = RequiredResponsive<Button>("Battle Card 0");
             int energy = session.Battle.Energy, health = session.Hull;
             int powder = session.Cargo.Powder, ammunition = session.Cargo.Cannonballs;

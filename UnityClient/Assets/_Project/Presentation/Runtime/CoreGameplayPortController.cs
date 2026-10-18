@@ -62,6 +62,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildPort()
         {
+            if (!HasInvestmentReturn) ClearInvestmentReturn();
             if (!HasDepartureReturn) ClearDepartureReturn();
             if (!editorPreviewBuilding && Application.isPlaying)
             {
@@ -171,11 +172,7 @@ namespace ShatteredSail.Presentation
                 hotspot.onClick.AddListener(() =>
                 {
                     if (BlockIncompleteDeckBuilderNavigation()) return;
-                    ResetCardWorkshopView();
-                    ResetComponentShopView();
-                    investmentSupplyPanelOpen = false;
-                    activePortFacility = captured;
-                    if (captured == 2) ResetTavernDossierView();
+                    EnterPortFacility(captured);
                     portNotice = "已进入" + PortFacilityArtCatalog.RegionalFacilityTitle(captured, session.CurrentPort, PortFacilityNames[captured]) + "。";
                     Render();
                 });
@@ -315,7 +312,7 @@ namespace ShatteredSail.Presentation
                 "Facility Backdrop Tint", new Color(0.005f, 0.025f, 0.035f, tintAlpha),
                 fullSurface: index == PortFacilityArtCatalog.WarehouseFacilityIndex ||
                     index == PortFacilityArtCatalog.MaintenanceFacilityIndex ||
-                    index == PortFacilityArtCatalog.VoyageFacilityIndex && portName == "断锚港");
+                    index == PortFacilityArtCatalog.VoyageFacilityIndex && PortFacilityArtCatalog.UsesPaintedDepartureScene(portName));
         }
 
         private void BuildFacilityHeader(int index)
@@ -581,12 +578,12 @@ namespace ShatteredSail.Presentation
             if (equipAfterPurchase)
             {
                 PlaySfx("shipyard_equip", 0.56f);
-                EquipComponentWithQuality(offer.Entry, offer.Quality);
+                EquipPurchasedComponent(offer.Entry);
             }
             else
             {
                 PlaySfx("trade_confirm", 0.56f);
-                GrantOwnedComponent(offer.Entry, offer.Quality);
+                GrantOwnedComponent(offer.Entry);
             }
             SaveProgress();
             portNotice = "已在" + session.CurrentPort + "购入「" + offer.Entry.Name + "」，金币 -" +
@@ -886,15 +883,13 @@ namespace ShatteredSail.Presentation
                     new Rect(0f, 0f, 1f, 1f));
                 boardArt.raycastTarget = false;
             }
-            else
-            {
-                CreateFixedPanel(
-                    "Maintenance Supply Board Backing",
-                    supply,
-                    MaintenanceSceneLayoutCatalog.SupplyPaperSafeRect.size,
-                    MaintenanceSceneLayoutCatalog.SupplyPaperSafeRect.center,
-                    new Color(0.12f, 0.07f, 0.025f, 0.92f));
-            }
+            Image supplyPaper = CreateImage("Maintenance Supply Board Backing", supply,
+                new Vector2(584f, 388f), new Vector2(0f, -6f), Color.white);
+            NauticalSurfaceSkin.ApplyReadingPanel(supplyPaper);
+            // The standing board retains its timber, feet and props. Its smaller
+            // writing face uses a finer rim around the existing supply controls.
+            supplyPaper.pixelsPerUnitMultiplier = 4f;
+            supplyPaper.raycastTarget = false;
 
             // The enlarged paper face holds all six supplies at once. This is a
             // fixed ledger: no scrolling state, hidden ammunition rows or scroll rail.
@@ -1171,23 +1166,36 @@ namespace ShatteredSail.Presentation
 
         private void RefreshCrewCapabilities()
         {
+            if (session == null) return;
+            if (HasCurrentDepartureCrewSelection) EnsureDepartureCrewSelection();
+            // Source restoration can initialize the departure roster. Resolve
+            // capabilities afterwards so standby identities and the actual
+            // navigator headcount agree with the cards aboard this ship.
+            RefreshSpecialCardSources();
             session.ConfigureCrewCapabilities(
-                IsCrewAvailableForVoyage(0),
+                AvailableVoyageProfessionCount(0),
                 IsCrewAvailableForVoyage(1),
                 IsCrewAvailableForVoyage(2),
                 IsCrewAvailableForVoyage(3),
                 IsCrewAvailableForVoyage(4),
                 IsCrewAvailableForVoyage(5));
-            RefreshSpecialCardSources();
         }
 
-        private bool IsCrewAvailableForVoyage(int profession)
+        private bool HasCurrentDepartureCrewSelection => session != null && selectedDepartureOrdinaryCrew >= 0 &&
+            departureCrewShipIndex == session.SelectedShipIndex &&
+            string.Equals(departureCrewPort, session.CurrentPort, StringComparison.Ordinal);
+
+        private int AvailableVoyageProfessionCount(int profession)
         {
-            if (!IsCrewRecruited(profession)) return false;
-            CrewVariantDefinition located = ActiveCrewForProfession(profession);
-            if (located != null && !IsCrewAvailableAtCurrentPort(located)) return false;
-            return true;
+            if (session == null) return 0;
+            if (HasCurrentDepartureCrewSelection) return SelectedDepartureProfessionCount(profession);
+            int count = 0;
+            foreach (CrewVariantDefinition crew in CrewNarrativeCatalog.AllCrew)
+                if (crew.ProfessionIndex == profession && IsCrewAvailableAtCurrentPort(crew)) count++;
+            return count;
         }
+
+        private bool IsCrewAvailableForVoyage(int profession) => AvailableVoyageProfessionCount(profession) > 0;
 
         private string BuildCrewCapabilitySummary()
         {
@@ -1201,7 +1209,7 @@ namespace ShatteredSail.Presentation
             return roles.Count > 0 ? string.Join(" / ", roles) + "已登船" : "仅普通水手 · 职业选项未启用";
         }
 
-        private void RestorePortProgression()
+        private bool RestorePortProgression()
         {
             PlayerPrefs.DeleteKey(LegacyWitchRecruitedKey);
             MigrateLegacyCrewIdentities();
@@ -1211,6 +1219,7 @@ namespace ShatteredSail.Presentation
             {
                 selectedShip = 0;
             }
+            if (!RestoreShipPorts(selectedShip)) return false;
             session.SelectShip(selectedShip);
             RefreshComponentBonuses();
             selectedShipPreview = selectedShip;
@@ -1234,6 +1243,7 @@ namespace ShatteredSail.Presentation
             RestoreStageBattleDecks();
             RestoreBattleCardUpgrades();
             RestoreSpecialCardProgress();
+            return true;
         }
 
         private static string FacilityKey(int index)

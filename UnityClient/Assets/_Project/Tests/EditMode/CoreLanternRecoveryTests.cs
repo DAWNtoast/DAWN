@@ -17,7 +17,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("weathered", VoyageOutcome.Failure)]
         [TestCase("gilded", VoyageOutcome.Failure)]
         [TestCase("moonlit", VoyageOutcome.Failure)]
-        public void ActualFogbellReward_SurvivesSettlementStorageAndReload(string rank, VoyageOutcome outcome)
+        public void LegacyFogbellReward_SurvivesSettlementStorageAndReload(string rank, VoyageOutcome outcome)
         {
             CoreVoyageSession session = StartWithFogbell(rank);
             Assert.That(session.Cargo.Lantern, Is.Zero, "The fixture must earn its first lamp, not inject one.");
@@ -79,6 +79,7 @@ namespace ShatteredSail.Core.Tests
                 session.Cargo.Wood = session.Cargo.Iron = session.Cargo.Cloth = session.Cargo.Beer = 0;
                 session.Cargo.Medicine = session.Cargo.Powder = session.Cargo.Cannonballs = 0;
                 Assert.That(session.TryStartTreasureVoyage(out string reason), Is.True, reason);
+                session = LegacyTreasureVoyageFixture.Resume(session);
                 if (session.Map.Nodes.Any(n => n.Encounter.Id == "treasure_clue_fogbell")) return session;
             }
             throw new InvalidOperationException("Could not find a generated fogbell map for " + rank);

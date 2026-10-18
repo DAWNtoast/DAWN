@@ -13,7 +13,7 @@ using Object = UnityEngine.Object;
 namespace ShatteredSail.Presentation.Tests
 {
     // Ship-market UI fixtures share the main fixture's complete preference
-    // snapshot. Public port changes below isolate arrival boundaries; these
+    // snapshot. Public port changes below carry the active hull only; these
     // tests do not claim to sail between the six ports or earn the setup money.
     public sealed partial class CoreGameplayDemoSceneTests
     {
@@ -24,8 +24,8 @@ namespace ShatteredSail.Presentation.Tests
         {
             yield return LoadShipMarketFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            int[][] localStock = { new[] { 0, 1, 4 }, new[] { 0, 5, 6 }, new[] { 1, 2, 7 },
-                new[] { 1, 8, 9 }, new[] { 3, 10 }, new[] { 0, 11 } };
+            int[][] localStock = { new[] { 0, 4 }, new[] { 5, 6 }, new[] { 2, 7 },
+                new[] { 8, 9 }, new[] { 3, 10 }, new[] { 1, 11 } };
             decimal gold = controller.Session.ProfileGold;
             for (int port = 0; port < ShipMarketTestPorts.Length; port++)
             {
@@ -42,7 +42,7 @@ namespace ShatteredSail.Presentation.Tests
                     yield return ClickShipyardControl("Shipyard Next Vessel");
                 }
                 CollectionAssert.AreEquivalent(localStock[port].Concat(new[] { 0 }).Distinct(), visited,
-                    "Only this port's offerings and the already-owned starter should be browsable: " + ShipMarketTestPorts[port]);
+                    "Only this port's offerings and the carried starter should be browsable: " + ShipMarketTestPorts[port]);
                 Assert.That(VisibleShipMarketVessel(), Is.EqualTo(first), "Next must wrap within this port's stock.");
                 yield return ClickShipyardControl("Shipyard Previous Vessel");
                 Assert.That(VisibleShipMarketVessel(), Is.EqualTo(visited[visited.Count - 1]));
@@ -95,7 +95,7 @@ namespace ShatteredSail.Presentation.Tests
             // purchasing, installation, persistence and departure use live UI.
             var catalog = new ComponentArtCatalog();
             ComponentArtEntry bow = catalog.Entries.First(item => item.Slot == ComponentSlot.Bow && item.Rarity == ComponentRarity.Rare);
-            OwnedShipComponent replacement = controller.GrantOwnedComponent(bow, 1.04f);
+            OwnedShipComponent replacement = controller.GrantOwnedComponent(bow);
             yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
             yield return ClickShipyardControl("Shipyard Equipment Owned " + replacement.InstanceId);
             yield return ClickShipyardControl("Shipyard Equip Component");
@@ -109,22 +109,20 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(ship));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold - cost));
             Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow).InstanceId, Is.EqualTo(replacement.InstanceId));
-            Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow).Quality, Is.EqualTo(1.04f).Within(.0001f));
+            Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow).ComponentId, Is.EqualTo(bow.Id));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
             CollectionAssert.AreEqual(componentIds, controller.OwnedComponents.Select(item => item.InstanceId).OrderBy(id => id).ToArray());
 
             controller.Session.RestoreProfile(controller.Session.ProfileGold, ShipMarketTestPorts[1]);
             Assert.That(CoreShipMarketCatalog.IsSoldAtPort(1, ship), Is.False);
             yield return ClickShipyardControl("Port Hotspot Shipyard");
-            yield return BrowseShipMarketTo(0);
-            yield return ClickShipyardControl("Shipyard Ship 0");
-            yield return ClickShipyardControl("Confirm Shipyard Vessel");
-            Assert.That(controller.Session.SelectedShipIndex, Is.Zero);
-            yield return ClickShipyardControl("Back To Shipyard Gallery");
+            yield return AssertShipPortGallery(new[] { 5, 6, ship });
+            Assert.That(controller.Session.SelectShip(0), Is.False, "The starter stayed at the departure port.");
             yield return BrowseShipMarketTo(ship);
             yield return ClickShipyardControl("Shipyard Ship " + ship);
-            yield return ClickShipyardControl("Confirm Shipyard Vessel");
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(ship), "An owned foreign hull remains usable.");
-            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold - cost), "Switching owned vessels is free at every port.");
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold - cost), "Using a locally berthed owned vessel is free.");
+            yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Port Hotspot Voyage");
             yield return ClickShipyardControl("Start Voyage");
@@ -147,6 +145,7 @@ namespace ShatteredSail.Presentation.Tests
             int[] prices = { 0, 800, 1800, 2200 };
             for (int selected = 0; selected < ids.Length; selected++)
             {
+                PlayerPrefs.DeleteKey(CoreGameplayDemoController.ShipPortProgressKey);
                 PlayerPrefs.SetInt(CoreGameplayDemoController.SelectedShipKey, selected);
                 SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -163,30 +162,30 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator PortShipMarket_ArrivalAtBrokenAnchorKeepsAllOwnedHullsOperable() =>
-            VerifyAllOwnedHullsAfterShipMarketArrival(0);
+        public IEnumerator PortShipMarket_ArrivalAtBrokenAnchorKeepsOnlyLocalAndArrivingHullsOperable() =>
+            VerifyLocalOwnedHullsAfterShipMarketArrival(0);
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator PortShipMarket_ArrivalAtWhiteShellKeepsAllOwnedHullsOperable() =>
-            VerifyAllOwnedHullsAfterShipMarketArrival(1);
+        public IEnumerator PortShipMarket_ArrivalAtWhiteShellKeepsOnlyLocalAndArrivingHullsOperable() =>
+            VerifyLocalOwnedHullsAfterShipMarketArrival(1);
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator PortShipMarket_ArrivalAtCopperBellKeepsAllOwnedHullsOperable() =>
-            VerifyAllOwnedHullsAfterShipMarketArrival(2);
+        public IEnumerator PortShipMarket_ArrivalAtCopperBellKeepsOnlyLocalAndArrivingHullsOperable() =>
+            VerifyLocalOwnedHullsAfterShipMarketArrival(2);
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator PortShipMarket_ArrivalAtSaltCrownKeepsAllOwnedHullsOperable() =>
-            VerifyAllOwnedHullsAfterShipMarketArrival(3);
+        public IEnumerator PortShipMarket_ArrivalAtSaltCrownKeepsOnlyLocalAndArrivingHullsOperable() =>
+            VerifyLocalOwnedHullsAfterShipMarketArrival(3);
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator PortShipMarket_ArrivalAtDuskTideKeepsAllOwnedHullsOperable() =>
-            VerifyAllOwnedHullsAfterShipMarketArrival(4);
+        public IEnumerator PortShipMarket_ArrivalAtDuskTideKeepsOnlyLocalAndArrivingHullsOperable() =>
+            VerifyLocalOwnedHullsAfterShipMarketArrival(4);
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator PortShipMarket_ArrivalAtGreyGullKeepsAllOwnedHullsOperable() =>
-            VerifyAllOwnedHullsAfterShipMarketArrival(5);
+        public IEnumerator PortShipMarket_ArrivalAtGreyGullKeepsOnlyLocalAndArrivingHullsOperable() =>
+            VerifyLocalOwnedHullsAfterShipMarketArrival(5);
 
-        private static IEnumerator VerifyAllOwnedHullsAfterShipMarketArrival(int portIndex)
+        private static IEnumerator VerifyLocalOwnedHullsAfterShipMarketArrival(int portIndex)
         {
             // Ownership and the cleared pier are explicit fixtures. The normal
             // sail/settlement/port controls exercise arrival; this is not a
@@ -229,7 +228,12 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Port Hotspot Shipyard");
             Assert.That(VisibleShipMarketVessel(), Is.EqualTo(arrivingShip), "The arriving flagship opens in the shipyard.");
 
-            for (int ship = 0; ship < CoreVoyageSession.Ships.Count; ship++)
+            int[] localShips = CoreShipMarketCatalog.ShipsForPort(portIndex).Concat(new[] { arrivingShip }).Distinct().OrderBy(ship => ship).ToArray();
+            yield return AssertShipPortGallery(localShips);
+            foreach (int remoteShip in Enumerable.Range(0, CoreVoyageSession.Ships.Count).Except(localShips))
+                Assert.That(session.SelectShip(remoteShip), Is.False, "Owned remote ships stay at their home port.");
+
+            foreach (int ship in localShips)
             {
                 string context = ShipMarketTestPorts[portIndex] + " / " + CoreVoyageSession.Ships[ship].Name;
                 yield return BrowseShipMarketTo(ship);
@@ -238,8 +242,8 @@ namespace ShatteredSail.Presentation.Tests
                     Is.EqualTo(CoreVoyageSession.Ships[ship].Name), context);
                 Assert.That(GameObject.Find("Shipyard Dossier Stat 0"), Is.Not.Null, context);
                 yield return ClickShipyardControl("Shipyard Dossier Tab Background");
-                Assert.That(GameObject.Find("Shipyard Dossier Story").GetComponent<Text>().text,
-                    Is.EqualTo(CoreVoyageSession.Ships[ship].Lore), context);
+                Assert.That(GameObject.Find("Shipyard Dossier Story").GetComponent<Text>().text.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                    Is.EqualTo(CoreVoyageSession.Ships[ship].Lore.Replace("\r", string.Empty).Replace("\n", string.Empty)), context);
                 yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
                 Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null, context);
                 OwnedShipComponent installedBow = controller.InstalledShipComponent(ship, ComponentSlot.Bow);
@@ -257,6 +261,8 @@ namespace ShatteredSail.Presentation.Tests
                     yield return ClickShipyardControl("Shipyard Equip Component");
                     Assert.That(controller.InstalledShipComponent(ship, ComponentSlot.Bow).InstanceId, Is.EqualTo(bow), context);
                 }
+                yield return ClickShipyardControl("Close Shipyard Equipment");
+                Assert.That(GameObject.Find("Shipyard Dossier Story"), Is.Not.Null, "Closing equipment returns to the background page it opened from.");
                 yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
                 Assert.That(ActiveButton("Confirm Shipyard Vessel").GetComponentInChildren<Text>().text,
                     Is.EqualTo("设为旗舰"), context + " must offer free use, including foreign hulls.");
@@ -266,27 +272,28 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.ProfileGold, Is.EqualTo(gold), context + " cannot charge for an owned hull or fitting.");
                 Assert.That(controller.OwnedComponents.Count, Is.EqualTo(itemCount), context);
                 CollectionAssert.AreEqual(fittings, ShipMarketInstalledComponentIds(controller), context);
-                yield return ClickShipyardControl("Back To Shipyard Gallery");
+                yield return ClickShipyardControl("Return To Port Hub");
             }
 
             yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Port Hotspot Voyage");
-            AssertDepartureFlagship(controller, CoreVoyageSession.Ships.Count - 1);
+            AssertDepartureFlagship(controller, localShips.Last());
             yield return ClickShipyardControl("Inspect Departure Vessel");
             Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null);
-            yield return ClickShipyardControl("Back To Voyage Departure");
-            AssertDepartureFlagship(controller, CoreVoyageSession.Ships.Count - 1);
+            yield return ClickShipyardControl("Close Shipyard Equipment");
+            AssertDepartureFlagship(controller, localShips.Last());
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
             controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller.Session.CurrentPort, Is.EqualTo(ShipMarketTestPorts[portIndex]));
-            Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(CoreVoyageSession.Ships.Count - 1));
+            Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(localShips.Last()));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(itemCount));
             CollectionAssert.AreEqual(fittings, ShipMarketInstalledComponentIds(controller));
             for (int ship = 1; ship < CoreVoyageSession.Ships.Count; ship++)
                 Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ShipOwnedKey(ship), 0), Is.EqualTo(1));
             yield return ClickShipyardControl("Port Hotspot Shipyard");
-            Assert.That(VisibleShipMarketVessel(), Is.EqualTo(CoreVoyageSession.Ships.Count - 1));
+            Assert.That(VisibleShipMarketVessel(), Is.EqualTo(localShips.Last()));
+            yield return AssertShipPortGallery(localShips);
             LogAssert.NoUnexpectedReceived();
         }
 

@@ -75,7 +75,14 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             int[] unavailable = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
-                .Where(index => !session.GetAvailableBattleCards(stage).Contains(index)).ToArray();
+                .Where(index =>
+                {
+                    CoreBattleCard card = CoreVoyageSession.CardLibrary[index];
+                    // Hidden save-compatible aliases are still usable when restoring an old deck.
+                    if (CoreBattleCardAliases.IsAlias(card.Id)) return false;
+                    return !card.IsAllowedInStage(stage) || card.RequiredCrew.Length > 0 || card.RequiredComponent.Length > 0 ||
+                        !session.IsBattleCardUnlocked(card);
+                }).ToArray();
             Assert.That(session.RestoreBattleDeck(stage, new[] { -1, int.MaxValue }.Concat(unavailable).ToArray()), Is.True);
             CollectionAssert.AreEqual(new CoreVoyageSession().GetBattleDeck(stage).Take(CoreVoyageSession.MinimumBaseBattleDeckSize),
                 session.GetBattleDeck(stage), "Migration fills the ten-card minimum; the twelve-card starter preset may contain more.");
@@ -171,6 +178,42 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetBattleDeck(NavalBattleStage.Naval).Count + session.GetBonusBattleCards(NavalBattleStage.Naval).Count, Is.GreaterThan(20));
         }
 
+        [Test]
+        public void LevelOneBoardingPool_OffersExactlyThirteenCanonicalNeutralDesigns()
+        {
+            var session = new CoreVoyageSession();
+            int[] pool = session.GetAvailableBattleCards(NavalBattleStage.Boarding).ToArray();
+            Assert.That(pool.Length, Is.EqualTo(13));
+            Assert.That(pool.All(index => CoreVoyageSession.CardLibrary[index].Id.StartsWith("card_boarding_basic_", StringComparison.Ordinal)), Is.True);
+            Assert.That(pool.Any(index => CoreBoardingCardCatalog.IsLegacyAlias(CoreVoyageSession.CardLibrary[index])), Is.False);
+        }
+
+        [Test]
+        public void AliasAndCanonicalCards_ShareTwoCopyLimit_AndRestoreTrimsThirdCopy()
+        {
+            var session = new CoreVoyageSession();
+            int canonical = Index("card_boarding_basic_01"), alias = Index("card_crew_thrust");
+            int[] others = session.GetAvailableBattleCards(NavalBattleStage.Boarding)
+                .Where(index => index != canonical).Take(4).SelectMany(index => new[] { index, index }).ToArray();
+            int[] legal = new[] { canonical, alias }.Concat(others).ToArray();
+            Assert.That(session.SetBattleDeck(NavalBattleStage.Boarding, legal), Is.True);
+            int[] tooMany = new[] { canonical, alias, canonical }.Concat(others.Take(7)).ToArray();
+            Assert.That(session.SetBattleDeck(NavalBattleStage.Boarding, tooMany), Is.False);
+            Assert.That(session.GetBattleDeck(NavalBattleStage.Boarding), Is.EqualTo(legal));
+            Assert.That(session.RestoreBattleDeck(NavalBattleStage.Boarding, tooMany), Is.True);
+            Assert.That(session.GetBattleDeck(NavalBattleStage.Boarding).Count(index => index == canonical || index == alias), Is.EqualTo(2));
+            Assert.That(session.GetBattleDeck(NavalBattleStage.Boarding).Count, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void DefaultBoardingDeck_IsValidUnderSharedRulesIdentityCopyLimits()
+        {
+            var session = new CoreVoyageSession();
+            var deck = session.GetBattleDeck(NavalBattleStage.Boarding);
+            Assert.That(deck.Select(index => CoreBoardingCardCatalog.ForBoarding(CoreVoyageSession.CardLibrary[index]))
+                .GroupBy(card => card.BoardingSpec?.Key ?? card.Id).All(group => group.Count() <= 2), Is.True);
+            Assert.That(session.SetBattleDeck(NavalBattleStage.Boarding, deck), Is.True);
+        }
         private static int[] LegacyDeck(CoreVoyageSession session, NavalBattleStage stage)
         {
             int[] available = session.GetAvailableBattleCards(stage).Take(6).ToArray();

@@ -59,8 +59,11 @@ namespace ShatteredSail.Presentation
 
             ComicPageGraphic page = CreateComicPage("Treasure Story Comic Page", overlay, comic);
             page.SetPanel(new Rect(0f, 0f, 1f, 1f), false);
-            page.gameObject.AddComponent<TreasureComicDialogueLayout>().Configure(page,
-                TreasureComicDialogueCatalog.GetPage(chapter.RankId, displayedPage));
+            if (battle == null)
+                page.gameObject.AddComponent<TreasureComicDialogueLayout>().Configure(page,
+                    TreasureComicDialogueCatalog.GetPage(chapter.RankId, displayedPage, session.ActiveTreasureMap.ContentVersion));
+            else
+                BuildLegendaryShipPrelude(overlay, page, battle, displayedPage);
             bool pageChanged = !string.Equals(treasureStoryRenderedKey, key, System.StringComparison.Ordinal) ||
                 treasureStoryRenderedPage != treasureStoryPage;
             treasureStoryRenderedKey = key;
@@ -87,6 +90,44 @@ namespace ShatteredSail.Presentation
             treasureStoryAutoAdvance.Configure(advance, TreasureStorySecondsPerPage, CurrentPage);
             if (!pageChanged && treasureStoryTimerKey == key && treasureStoryTimerPage == displayedPage)
                 treasureStoryAutoAdvance.RestoreRemainingSeconds(treasureStoryRemainingSeconds);
+        }
+
+        private void BuildLegendaryShipPrelude(RectTransform overlay, ComicPageGraphic background,
+            TreasureBattleStory story, int pageIndex)
+        {
+            if (battleEnvironmentArt == null) battleEnvironmentArt = new BattleEnvironmentArtCatalog();
+            Texture2D sea = battleEnvironmentArt.ForTerrain(session.BattleTerrain) ??
+                Resources.Load<Texture2D>("BattleEnvironments/battle_open_ocean_v1");
+            // Never retain a chapter comic with empty dialogue balloons behind
+            // the standalone ship, including a temporarily unavailable import.
+            background.texture = sea;
+            background.SetPanel(new Rect(0f, 0f, 1f, 1f), true);
+            background.color = new Color(.48f, .56f, .64f, 1f);
+            if (SpecialWarshipArtCatalog.TryLoad(story.EncounterId, out Texture2D ship, out Rect uv))
+            {
+                RectTransform viewport = CreateRect("Treasure Legendary Ship Viewport", overlay, Vector2.zero, Vector2.zero);
+                viewport.anchorMin = new Vector2(.10f, .29f); viewport.anchorMax = new Vector2(.90f, .94f);
+                RawImage image = CreateRawImage("Treasure Legendary Ship Art", viewport, Vector2.one, Vector2.zero, ship, uv);
+                image.raycastTarget = false;
+                AspectRatioFitter fit = image.gameObject.AddComponent<AspectRatioFitter>();
+                fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                fit.aspectRatio = ship.width / (float)ship.height;
+            }
+            RectTransform plaque = CreateFixedPanel("Treasure Legendary Story Plaque", overlay,
+                Vector2.zero, Vector2.zero, new Color(.025f, .055f, .075f, .94f));
+            plaque.anchorMin = new Vector2(.10f, .075f); plaque.anchorMax = new Vector2(.90f, .27f);
+            plaque.GetComponent<Image>().raycastTarget = false;
+            Text title = CreateText("Treasure Legendary Story Title", plaque, Vector2.zero, Vector2.zero,
+                29, FontStyle.Bold, TextAnchor.MiddleLeft, Gold);
+            title.rectTransform.anchorMin = new Vector2(.035f, .66f); title.rectTransform.anchorMax = new Vector2(.965f, .96f);
+            title.text = story.ShipName + " · " + (pageIndex + 1) + " / " + story.Pages.Count;
+            title.raycastTarget = false;
+            Text prose = CreateText("Treasure Legendary Story Text", plaque, Vector2.zero, Vector2.zero,
+                24, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
+            prose.rectTransform.anchorMin = new Vector2(.035f, .08f); prose.rectTransform.anchorMax = new Vector2(.965f, .66f);
+            prose.text = story.Pages[Mathf.Clamp(pageIndex, 0, story.Pages.Count - 1)];
+            prose.resizeTextForBestFit = true; prose.resizeTextMinSize = 18; prose.resizeTextMaxSize = 24;
+            prose.raycastTarget = false;
         }
 
         private void CloseTreasureStoryOverlay()

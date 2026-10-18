@@ -67,10 +67,20 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase(0, 2)] [TestCase(1, 2)] [TestCase(2, 2)] [TestCase(3, 2)]
         [TestCase(4, 0)] [TestCase(5, 0)] [TestCase(6, 0)] [TestCase(7, 0)]
         [TestCase(8, 0)] [TestCase(9, 0)] [TestCase(10, 0)] [TestCase(11, 0)]
-        public void DossierSeparatesPagesAndKeepsReadableControlsInsideParchment(int index, int page)
+        [TestCase(8, 1)] [TestCase(8, 2)] [TestCase(10, 1)] [TestCase(10, 2)]
+        public void DossierSeparatesPagesAndKeepsReadableControlsInsideTheirSurface(int index, int page)
         {
             Preview(index, true, page);
             AssertCurrentPage(page);
+            if (page == (int)ShipyardDossierTab.Equipment)
+            {
+                AssertEquipmentWindow(index);
+                controller.RefreshEditorPreview();
+                Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.ShipyardDetail));
+                AssertCurrentPage(page);
+                AssertEquipmentWindow(index);
+                return;
+            }
             foreach (string tab in new[] { "Performance", "Background", "Equipment" })
             {
                 Button button = Find<Button>("Shipyard Dossier Tab " + tab);
@@ -78,6 +88,45 @@ namespace ShatteredSail.Presentation.Tests
             }
             RectTransform detail = Find<RectTransform>("Shipyard Detail");
             Canvas.ForceUpdateCanvases();
+            Button back = Find<Button>("Return To Port Hub");
+            RectTransform header = Find<RectTransform>("Port Facility Header");
+            Assert.That(back.transform.parent, Is.SameAs(header), "The dossier return belongs in the existing upper-left facility header.");
+            Assert.That(back.GetComponentInChildren<Text>().text, Is.EqualTo("返回船坞"));
+            Assert.That(host.GetComponentsInChildren<Button>(true).Count(button => button.name == "Return To Port Hub"), Is.EqualTo(1));
+            Assert.That(detail.GetComponentsInChildren<Button>(true).Any(button =>
+                button.name.StartsWith("Back To ") || button.GetComponentInChildren<Text>(true)?.text.Contains("返回") == true), Is.False,
+                "The scroll must not retain a second return button.");
+            AssertContained(header.rect, BoundsIn(header, back.GetComponent<RectTransform>()), "Return control stays inside the shared header.");
+            RectTransform window = Find<RectTransform>("Shipyard Dossier Ship Window");
+            Rect windowBounds = BoundsIn(detail, window);
+            Image frame = Find<Image>("Shipyard Dossier Frame");
+            Assert.That(frame.sprite, Is.SameAs(MarketShopSkin.Paper),
+                "All dossier pages share the current light paper surface.");
+            Assert.That(frame.type, Is.EqualTo(Image.Type.Sliced));
+            Assert.That(frame.raycastTarget, Is.False, "The ornamental frame must never block controls.");
+            Assert.That(detail.GetComponentsInChildren<Transform>(true).Any(item => item.name.StartsWith("Shipyard Workbench")), Is.False,
+                "The restored parchment dossier must not retain the dark workbench surface, grid or labels.");
+            AssertContained(frame.rectTransform.rect, BoundsIn(frame.rectTransform, window),
+                "The original ship window stays inside the parchment frame.");
+            RawImage[] paintings = window.GetComponentsInChildren<RawImage>(true);
+            Assert.That(paintings, Is.Not.Empty, "Every page retains the inspected vessel in the left frame.");
+            foreach (RawImage painting in paintings)
+            {
+                AssertContained(window.rect, BoundsIn(window, painting.rectTransform), painting.name + " must fit completely inside the portrait window.");
+                Assert.That(painting.raycastTarget, Is.False, "The dossier ship is an illustration, not a button.");
+                float sourceAspect = painting.texture.width * Mathf.Abs(painting.uvRect.width) /
+                    (painting.texture.height * Mathf.Abs(painting.uvRect.height));
+                Assert.That(painting.rectTransform.rect.width / painting.rectTransform.rect.height,
+                    Is.EqualTo(sourceAspect).Within(.025f), painting.name + " must retain its painted aspect ratio.");
+            }
+            foreach (string field in new[] { "Shipyard Dossier Name", "Shipyard Dossier Role" })
+            {
+                Text label = Find<Text>(field);
+                Assert.That(label.preferredWidth, Is.LessThanOrEqualTo(label.rectTransform.rect.width + .1f),
+                    field + " must fit without wrapping or shrinking.");
+                Assert.That(BoundsIn(detail, label.rectTransform).Overlaps(windowBounds), Is.False,
+                    field + " stays in the right writing bay.");
+            }
             foreach (Button button in detail.GetComponentsInChildren<Button>(true))
             {
                 Vector3[] corners = new Vector3[4];
@@ -85,10 +134,17 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (Vector3 corner in corners)
                 {
                     Vector3 local = detail.InverseTransformPoint(corner);
-                    Assert.That(local.y, Is.InRange(-346f, 360f), button.name + " must stay inside the paper margins.");
-                    Assert.That(local.x, Is.InRange(-735.99f, 735.99f), button.name + " must stay inside the paper sides.");
+                    Assert.That(local.y, Is.InRange(-275f, 325f), button.name + " must stay inside the paper margins.");
+                    Assert.That(local.x, Is.InRange(-810f, 780f), button.name + " must stay inside the paper sides.");
                 }
+                Assert.That(BoundsIn(detail, button.GetComponent<RectTransform>()).Overlaps(windowBounds), Is.False,
+                    button.name + " must not cover the framed vessel.");
             }
+            foreach (Graphic content in detail.GetComponentsInChildren<Graphic>(true).Where(item =>
+                item.name.StartsWith("Shipyard Dossier Stat ") || item.name.StartsWith("Shipyard Stat ") ||
+                item.name == "Shipyard Dossier Story" || item.name == "Shipyard Dossier Story Title"))
+                Assert.That(BoundsIn(detail, content.rectTransform).Overlaps(windowBounds), Is.False,
+                    content.name + " must remain separate from the framed vessel.");
             decimal gold = controller.Session.ProfileGold;
             int active = controller.Session.SelectedShipIndex;
             if (page == (int)ShipyardDossierTab.Equipment)
@@ -138,6 +194,51 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
+        [TestCase(0)] [TestCase(4)] [TestCase(10)]
+        public void DossierTabChangesKeepTheOriginalShipWindowAndPaintedVesselPositionAndScale(int index)
+        {
+            Preview(index, true);
+            Canvas.ForceUpdateCanvases();
+            RectTransform originalDetail = Find<RectTransform>("Shipyard Detail");
+            RectTransform originalWindow = Find<RectTransform>("Shipyard Dossier Ship Window");
+            Rect windowBounds = BoundsIn(originalDetail, originalWindow);
+            Vector2 windowPosition = originalWindow.anchoredPosition;
+            Vector2 windowSize = originalWindow.sizeDelta;
+            RawImage[] originalPaintings = originalWindow.GetComponentsInChildren<RawImage>(true);
+            var paintingBounds = originalPaintings.ToDictionary(item => item.name, item => BoundsIn(originalDetail, item.rectTransform));
+            var paintingScales = originalPaintings.ToDictionary(item => item.name, item => item.transform.parent.localScale);
+            // This measured pre-redesign window also protects against moving all
+            // three pages together and accidentally making tab-to-tab checks pass.
+            AssertRect(windowBounds, new Rect(-763.57947f, -254.99884f, 411.28781f, 486.78564f), "Original ship window");
+
+            foreach (string tab in new[] { "Background", "Performance" })
+            {
+                Find<Button>("Shipyard Dossier Tab " + tab).onClick.Invoke();
+                Canvas.ForceUpdateCanvases();
+                RectTransform detail = Find<RectTransform>("Shipyard Detail");
+                RectTransform window = Find<RectTransform>("Shipyard Dossier Ship Window");
+                Assert.That(Vector2.Distance(window.anchoredPosition, windowPosition), Is.LessThan(.01f), tab + " window position");
+                Assert.That(Vector2.Distance(window.sizeDelta, windowSize), Is.LessThan(.01f), tab + " window dimensions");
+                AssertRect(BoundsIn(detail, window), windowBounds, tab + " window bounds");
+                RawImage[] paintings = window.GetComponentsInChildren<RawImage>(true);
+                CollectionAssert.AreEquivalent(paintingBounds.Keys, paintings.Select(item => item.name), tab + " ship layers");
+                foreach (RawImage painting in paintings)
+                {
+                    AssertRect(BoundsIn(detail, painting.rectTransform), paintingBounds[painting.name], tab + " " + painting.name);
+                    Assert.That(Vector3.Distance(painting.transform.parent.localScale, paintingScales[painting.name]), Is.LessThan(.001f),
+                        tab + " must keep the painted vessel scale");
+                }
+            }
+            Find<Button>("Shipyard Dossier Tab Equipment").onClick.Invoke();
+            Canvas.ForceUpdateCanvases();
+            AssertEquipmentWindow(index);
+            Find<Button>("Close Shipyard Equipment").onClick.Invoke();
+            Canvas.ForceUpdateCanvases();
+            AssertCurrentPage((int)ShipyardDossierTab.Performance);
+            AssertRect(BoundsIn(Find<RectTransform>("Shipyard Detail"), Find<RectTransform>("Shipyard Dossier Ship Window")),
+                windowBounds, "Closing the separate equipment window restores the original dossier ship placement");
+        }
+
         [Test]
         public void DossierTabsAreInspectableInPreviewWithoutPurchasingOrChangingTheFlagship()
         {
@@ -151,7 +252,59 @@ namespace ShatteredSail.Presentation.Tests
                 AssertCurrentPage(index % 3);
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
                 Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(flagship));
+                if (tabs[index] == "Equipment")
+                {
+                    Find<Button>("Close Shipyard Equipment").onClick.Invoke();
+                    AssertCurrentPage((int)ShipyardDossierTab.Background);
+                }
             }
+        }
+
+        private void AssertEquipmentWindow(int index)
+        {
+            Canvas.ForceUpdateCanvases();
+            Image background = Find<Image>("Shipyard Equipment Overlay");
+            Assert.That(background.sprite, Is.Null, "The opaque backing must hide scenery beyond the market-style paper.");
+            Assert.That(background.color.a, Is.EqualTo(1f));
+            Assert.That(background.raycastTarget, Is.True, "The full-screen surface must block underlying harbour interaction.");
+            RectTransform canvas = (RectTransform)background.GetComponentInParent<Canvas>().rootCanvas.transform;
+            AssertContained(BoundsIn(canvas, background.rectTransform), canvas.rect, "The background covers the actual canvas.");
+            RectTransform detail = Find<RectTransform>("Shipyard Detail");
+            Assert.That(detail.IsChildOf(background.transform), Is.True);
+            Image paper = Find<Image>("Shipyard Equipment Paper");
+            Assert.That(paper.sprite, Is.SameAs(MarketShopSkin.Paper), "The equipment workspace shares the market's paper surface.");
+            Assert.That(paper.color.a, Is.EqualTo(1f));
+            Assert.That(paper.raycastTarget, Is.False, "The paper decoration must not block the equipment controls.");
+            RectTransform header = Find<RectTransform>("Port Facility Header");
+            Assert.That(header.gameObject.activeInHierarchy, Is.True, "The existing facility header remains visible.");
+            Assert.That(host.GetComponentsInChildren<Image>(true).Any(item => item.name == "Shipyard Dossier Frame"), Is.False,
+                "The equipment window must not reuse the parchment dossier.");
+            Assert.That(detail.GetComponentsInChildren<Button>(true).Any(button => button.name.StartsWith("Shipyard Dossier Tab ")), Is.False);
+            Assert.That(Find<Text>("Shipyard Dossier Name").text, Is.EqualTo(CoreVoyageSession.Ships[index].Name));
+            Assert.That(Find<Button>("Close Shipyard Equipment").GetComponentInChildren<Text>().text, Does.Contain("返回船只档案"));
+            RectTransform vessel = Find<RectTransform>("Shipyard Dossier Ship Window");
+            Rect vesselBounds = BoundsIn(detail, vessel);
+            RawImage[] paintings = vessel.GetComponentsInChildren<RawImage>(true);
+            Assert.That(paintings, Is.Not.Empty);
+            foreach (RawImage painting in paintings)
+            {
+                AssertContained(vessel.rect, BoundsIn(vessel, painting.rectTransform), painting.name + " fits inside the vessel preview.");
+                Assert.That(painting.raycastTarget, Is.False);
+                float sourceAspect = painting.texture.width * Mathf.Abs(painting.uvRect.width) /
+                    (painting.texture.height * Mathf.Abs(painting.uvRect.height));
+                Assert.That(painting.rectTransform.rect.width / painting.rectTransform.rect.height,
+                    Is.EqualTo(sourceAspect).Within(.025f));
+            }
+            foreach (Button button in detail.GetComponentsInChildren<Button>(true))
+            {
+                Rect bounds = BoundsIn(detail, button.GetComponent<RectTransform>());
+                AssertContained(detail.rect, bounds, button.name + " must remain inside the full-screen content area.");
+                AssertContained(paper.rectTransform.rect, BoundsIn(paper.rectTransform, button.GetComponent<RectTransform>()),
+                    button.name + " must stay on the market-style paper.");
+                Assert.That(bounds.Overlaps(vesselBounds), Is.False, button.name + " must not cover the vessel illustration.");
+                Assert.That(bounds.Overlaps(BoundsIn(detail, header)), Is.False, button.name + " leaves the existing facility header clear.");
+            }
+            Assert.That(detail.GetComponentsInChildren<Button>(true).Any(button => button.name == "Confirm Shipyard Vessel"), Is.False);
         }
 
         [Test]
@@ -202,6 +355,31 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(label.resizeTextForBestFit, Is.False);
             Canvas.ForceUpdateCanvases();
             Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height), label.name + " must not truncate.");
+        }
+
+        private static Rect BoundsIn(RectTransform parent, RectTransform child)
+        {
+            Vector3[] corners = new Vector3[4];
+            child.GetWorldCorners(corners);
+            Vector3[] local = corners.Select(parent.InverseTransformPoint).ToArray();
+            return Rect.MinMaxRect(local.Min(point => point.x), local.Min(point => point.y),
+                local.Max(point => point.x), local.Max(point => point.y));
+        }
+
+        private static void AssertRect(Rect actual, Rect expected, string message)
+        {
+            Assert.That(actual.x, Is.EqualTo(expected.x).Within(.01f), message + " x");
+            Assert.That(actual.y, Is.EqualTo(expected.y).Within(.01f), message + " y");
+            Assert.That(actual.width, Is.EqualTo(expected.width).Within(.01f), message + " width");
+            Assert.That(actual.height, Is.EqualTo(expected.height).Within(.01f), message + " height");
+        }
+
+        private static void AssertContained(Rect outer, Rect inner, string message)
+        {
+            Assert.That(inner.xMin, Is.GreaterThanOrEqualTo(outer.xMin - .1f), message);
+            Assert.That(inner.xMax, Is.LessThanOrEqualTo(outer.xMax + .1f), message);
+            Assert.That(inner.yMin, Is.GreaterThanOrEqualTo(outer.yMin - .1f), message);
+            Assert.That(inner.yMax, Is.LessThanOrEqualTo(outer.yMax + .1f), message);
         }
     }
 }

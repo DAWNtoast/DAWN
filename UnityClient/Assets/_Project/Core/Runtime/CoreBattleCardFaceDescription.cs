@@ -13,6 +13,13 @@ namespace ShatteredSail.Core.Gameplay
         public string BattleCardFaceDescription(CoreBattleCard card, NavalBattleStage stage)
         {
             if (card == null) return string.Empty;
+            if (stage == NavalBattleStage.Boarding)
+                card = CoreBoardingCardCatalog.ForBoarding(card);
+            if (card.BoardingSpec != null) return card.Description;
+            // Keep both authored supply alternatives visible, as for boarding healing.
+            // GetBattleCardEffects reports the actual two-point fallback separately.
+            if (CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.Mechanic == CoreNavalExpansionMechanic.TideAnchor)
+                return card.Description;
             int tideWood = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideWard &&
                 (!SchoolBattleActive(stage) || Cargo.Wood >= card.SchoolEffect.WoodCost) ? card.SchoolEffect.WoodCost : 0;
             card = GetSupplyAdjustedBattleCard(card);
@@ -55,6 +62,7 @@ namespace ShatteredSail.Core.Gameplay
             }
 
             string template = FaceCardTemplate(card, SchoolBattleActive(stage));
+            if (SchoolBattleActive(stage)) template = CoreSpecialCardRules.CostDescription(template, card, Battle);
             if (FaceCardUsesRepairSupply(card, stage, effect))
                 template += stage == NavalBattleStage.Boarding ? "\n消耗 {medicine} 药品。" : "\n消耗 {wood} 木板。";
             return CoreBattleCardText.FormatEffects(template
@@ -63,7 +71,9 @@ namespace ShatteredSail.Core.Gameplay
                 .Replace("{boardingBlock}", FaceNumber(card.BoardingBlock ?? card.Block))
                 .Replace("{repair}", FaceNumber(repair))
                 .Replace("{draw}", FaceNumber(card.Draw))
+                .Replace("{energyRecovery}", FaceNumber(CoreBattleUpgradeBalance.EnergyRecovery(card)))
                 .Replace("{movement}", FaceNumber(card.MovementMeters))
+                .Replace("{navalActionPoints}", FaceNumber(card.NavalActionPointGain))
                 .Replace("{strategyAmount}", FaceNumber(strategyAmount))
                 .Replace("{strategyLimit}", FaceNumber(strategyLimit))
                 .Replace("{burnDuration}", FaceNumber(card.BurnDuration))
@@ -72,7 +82,9 @@ namespace ShatteredSail.Core.Gameplay
                 .Replace("{cannonballs}", FaceNumber(card.CannonballCost))
                 .Replace("{schoolPower}", FaceNumber(power))
                 .Replace("{schoolSecondary}", FaceNumber(secondary))
-                .Replace("{schoolThreshold}", FaceNumber(school?.Threshold ?? 0))
+                .Replace("{schoolThreshold}", FaceNumber(SchoolBattleActive(stage) &&
+                    (school?.Mechanic == CoreSchoolMechanic.BloodRisk || school?.Mechanic == CoreSchoolMechanic.BloodWard)
+                    ? CoreSpecialCardRules.HealthCost(card, Battle) : school?.Threshold ?? 0))
                 .Replace("{schoolDuration}", FaceNumber(school?.Duration ?? 0))
                 .Replace("{schoolLimit}", FaceNumber(school?.Limit ?? 0))
                 .Replace("{medicine}", FaceNumber(medicine))
@@ -141,14 +153,23 @@ namespace ShatteredSail.Core.Gameplay
                 case CoreSchoolMechanic.FireHeal:
                     return template.Replace("敌方燃烧时额外恢复 {schoolPower}", "敌方燃烧时强化恢复");
                 case CoreSchoolMechanic.ArcaneRelease:
-                    return template.Replace("伤害额外 +{schoolPower}", "强化伤害");
+                    return template.Replace("伤害额外 +{schoolPower}", "强化伤害")
+                        .Replace("额外伤害 +{schoolPower}", "强化伤害");
                 case CoreSchoolMechanic.ArcaneWard:
-                    return template.Replace("格挡额外 +{schoolPower}", "强化格挡");
+                    return template.Replace("格挡额外 +{schoolPower}", "强化格挡")
+                        .Replace("额外格挡 +{schoolPower}", "强化格挡");
                 case CoreSchoolMechanic.ArcaneMend:
-                    return template.Replace("恢复额外 +{schoolPower}", "强化恢复");
+                    return template.Replace("恢复额外 +{schoolPower}", "强化恢复")
+                        .Replace("额外恢复 {schoolPower} 船体", "强化恢复");
                 case CoreSchoolMechanic.CurseExploit:
                     return template.Replace("伤害额外 +{schoolPower}", "强化伤害");
                 case CoreSchoolMechanic.CurseWard:
+                    if (template.Contains("按消耗前每层咒印获得 {schoolPower} 额外格挡"))
+                    {
+                        if (liveBattle) template = template.Replace("获得 {block} 格挡；", string.Empty);
+                        return template.Replace("按消耗前每层咒印获得 {schoolPower} 额外格挡", liveBattle
+                            ? "合计获得 {block} 格挡" : "按消耗前咒印，每层获得 {schoolPower} 基础格挡");
+                    }
                     if (liveBattle) template = template.Replace("格挡 +{block}；", string.Empty);
                     return template.Replace("每层获得 {schoolPower} 格挡", liveBattle ?
                         "合计获得 {block} 格挡" : "每层获得 {schoolPower} 基础格挡");
@@ -161,7 +182,8 @@ namespace ShatteredSail.Core.Gameplay
                 case CoreSchoolMechanic.TideRenew:
                     return template.Replace("额外恢复 {schoolPower}", "强化恢复");
                 case CoreSchoolMechanic.TideCleanse:
-                    return template.Replace("获得 {schoolPower} 格挡", "获得 {block} 格挡");
+                    return template.Replace("获得 {schoolPower} 格挡", template.Contains("{block}")
+                        ? "强化格挡" : "获得 {block} 格挡");
                 case CoreSchoolMechanic.ThunderChain:
                     return template.Replace("每层已有连锁追加 {schoolPower} 伤害", "已有连锁强化伤害");
                 case CoreSchoolMechanic.ThunderWard:

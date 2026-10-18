@@ -14,7 +14,7 @@ namespace ShatteredSail.Presentation
             public CoreBattleState Battle;
             public int CardId, Index;
             public Button Button;
-            public Text Label, Name, Energy, Powder, Cannonballs, SpecialCost, Explanation, Title, Surcharge;
+            public Text Label, Name, Energy, Powder, Cannonballs, SpecialCost, Explanation, Title;
             public RectTransform Bubble, BubblePointer;
             public Outline Outline;
             public BattleCardSurfaceGraphic Surface;
@@ -50,19 +50,10 @@ namespace ShatteredSail.Presentation
             Text cost = CreateCardCostIcon("Card Energy Cost " + index, "Card Energy Cost Text " + index,
                 play.transform, CardFaceLayout.EnergyIconSize, CardSchoolArtCatalog.CostPosition(data, CardOrnamentKind.Energy),
                 CardOrnamentKind.Energy, data.Type, data.Energy);
-            RectTransform surchargePlate = CreateFixedPanel("Card Repeat Cost Plate " + index, play.transform,
-                new Vector2(30f, 18f), CardFaceLayout.RepeatCostPosition, CardSchoolArtCatalog.Palette(data.SchoolId).Parchment);
-            surchargePlate.GetComponent<Image>().raycastTarget = false;
-            Text surcharge = CreateText("Card Repeat Cost Text " + index, surchargePlate,
-                new Vector2(28f, 18f), Vector2.zero, 11, FontStyle.Bold, TextAnchor.MiddleCenter,
-                CardSchoolArtCatalog.Palette(data.SchoolId).TitleInk);
-            surcharge.raycastTarget = false;
-            RefreshBattleCardCost(cost, surcharge, battle.Hand[index], data);
             CreateCardResourceCostIcons(play.transform, data,
                 "Card Powder Plate " + index, "Card Powder Cost " + index,
                 "Card Cannonball Plate " + index, "Card Cannonball Cost " + index,
                 out Text powder, out Text cannonballs);
-            if (powder != null) powder.text = session.GetBattleCardPowderCost(battle.Hand[index]).ToString();
             Text specialCost = CreateCardSpecialCostIcon(play.transform, data,
                 "Card Special Resource Plate " + index, "Card Special Resource Cost " + index, battle);
             ApplyBattleCardStyle(play, data, available, index);
@@ -76,7 +67,7 @@ namespace ShatteredSail.Presentation
             {
                 Battle = battle, CardId = battle.Hand[index], Index = index, Button = play,
                 Label = label, Energy = cost, Powder = powder, Cannonballs = cannonballs, SpecialCost = specialCost,
-                Bubble = bubble, Surcharge = surcharge,
+                Bubble = bubble,
                 Name = play.transform.Find("Card Name Plate " + index)?.GetComponentInChildren<Text>(),
                 BubblePointer = bubble == null ? null : bubble.Find("Keyword Bubble Pointer") as RectTransform,
                 Explanation = bubble == null ? null : bubble.Find("Keyword Bubble Text")?.GetComponent<Text>(),
@@ -86,16 +77,21 @@ namespace ShatteredSail.Presentation
                 Hover = play.GetComponent<BattleCardHoverFeedback>(), Available = available,
                 IndexedChildren = indexedChildren.ToArray()
             };
+            RefreshBattleCardCosts(view, data);
             ArrangeBattleCardResourceCosts(view, data);
             // The index is deliberately read at click-time: removing an earlier
             // card shifts every later slot, and duplicate IDs are not identities.
             play.onClick.AddListener(() => PlayRetainedBattleCard(view));
+            AttachGuidedBattleCardInspection(play, view);
+            NavalAttackRangePreview attackRange = hand.parent.GetComponentInChildren<NavalAttackRangePreview>();
+            if (attackRange != null)
+                play.gameObject.AddComponent<NavalAttackRangeCardHover>().Configure(attackRange, () => session.GetBattleCard(view.CardId));
             return view;
         }
 
         private void PlayRetainedBattleCard(RetainedBattleHandCard view)
         {
-            if (!isActiveAndEnabled || battleAnimationPlaying || session.Phase != CoreDemoPhase.Battle ||
+            if (!isActiveAndEnabled || battleAnimationPlaying || BattleInspectionBlocksInput || session.Phase != CoreDemoPhase.Battle ||
                 retainedBattleRoot == null || !retainedBattleRoot.gameObject.activeInHierarchy ||
                 !ReferenceEquals(view.Battle, session.Battle) || !ReferenceEquals(retainedBattleState, session.Battle) ||
                 view.Button == null || !view.Button.gameObject.activeInHierarchy || !view.Button.interactable ||
@@ -133,6 +129,7 @@ namespace ShatteredSail.Presentation
                 foreach (Text label in retainedBattleReadouts.GetComponentsInChildren<Text>(true))
                     retainedBattleLabels[label.name] = label;
             }
+            DealInitialBattleHand();
         }
 
         private bool TryRefreshRetainedBattleView()
@@ -162,13 +159,14 @@ namespace ShatteredSail.Presentation
             CoreBossKind bossKind = battle.Profile == null ? (battle.IsBoss ? CoreBossKind.Route : CoreBossKind.None) : battle.Profile.BossKind;
             SetRetainedBattleText("Battle Badge", (bossKind == CoreBossKind.Legendary ? "传奇战舰挑战" : bossKind == CoreBossKind.Treasure ? "藏宝图首领战" : battle.IsBoss ? "区域首领战" : "航路遭遇战") + " · " + BattleEnvironmentArtCatalog.LabelFor(session.BattleTerrain) + " · 回合 " + (session.IsGuidedBossBattle ? battle.PhaseTurn : battle.Turn));
             SetRetainedBattleText("Battle Curse Status", CurseBattleStatus);
-            SetRetainedBattleText("Battle Range", boarding ? "接舷交战" : battle.DistanceMeters.ToString("0") + " 米");
+            SetRetainedBattleText("Battle Range", boarding ? "接舷交战" : session.NavalDistanceCells + " 格 / 炮击4格");
             SetRetainedBattleText("Battle Alignment", boarding ? BoardingConnectionLabel(battle) : battle.Alignment == NavalBattleAlignment.HeadOn ? "→ 舰艏 ⇄ 舰艏 ←\n迎头相对" : battle.Alignment == NavalBattleAlignment.EnemyBroadside ? "→ 舰艏 ⊥ 侧舷\n我方对准敌舰侧面" : "舰艏 →    → 舰艏\n并排行船");
             SetRetainedBattleText("Battle Active Buffs", BattleActiveBuffText(battle));
             SetRetainedBattleText("Player Battle Name", BattleCrewName(battle, true));
             SetRetainedBattleText("Enemy Battle Name", BattleCrewName(battle, false));
             string intent = session.GetEnemyIntent();
-            bool defending = !session.EnemyWillRam && (intent.Contains("格挡设为") || battle.Stage == NavalBattleStage.Preparation);
+            bool defending = !session.EnemyWillRam && (boarding ? session.EnemyBoardingAttackDamage == 0 :
+                intent.Contains("格挡设为") || battle.Stage == NavalBattleStage.Preparation);
             SetRetainedBattleText("Enemy Intent Text", "敌方意图\n" + intent);
             SetRetainedBattleText("Enemy Intent Glyph", session.EnemyWillRam ? "撞" : defending ? "策" : boarding ? "刃" : "攻");
             if (retainedBattleLabels.TryGetValue("Enemy Intent Text", out Text intentLabel))
@@ -183,19 +181,8 @@ namespace ShatteredSail.Presentation
             SetRetainedBattleText("Resource 盾 Value", battle.EnemyBlock.ToString());
             SetRetainedBattleText("Player Ammunition", BattleSupplyReserveText(boarding));
             SetRetainedBattleText("Enemy Burning", "燃烧 " + battle.EnemyBurnTurns + " 回合");
-            if (retainedBattleRam != null)
-            {
-                bool allowed = session.CanRam(out string reason);
-                retainedBattleRam.interactable = allowed;
-                SetRetainedBattleText("Battle Ram Condition", allowed ? "撞击方先手 · 舰艏品质对拼" : reason);
-            }
-            if (retainedBattleBoard != null)
-            {
-                bool allowed = session.CanBoard(out string reason);
-                retainedBattleBoard.interactable = allowed;
-                SetRetainedBattleText("Battle Board Condition", allowed ? "普通水手数决定接舷生命上限；海战船体损伤按一半带入" : reason);
-            }
-            if (retainedBattleEndTurn != null) retainedBattleEndTurn.interactable = true;
+            RefreshNavalSpecialActionControls(retainedBattleRoot);
+            if (retainedBattleEndTurn != null) retainedBattleEndTurn.interactable = !battle.NavalAwaitingHeadingSelection;
             if (retainedBattleRetreat != null)
             {
                 bool emergency = session.CanRequestEmergencyTow();
@@ -205,11 +192,13 @@ namespace ShatteredSail.Presentation
             }
             if (headerStatus != null) headerStatus.text = BuildHeaderStatus();
             ApplyBattleDecisionLayout(retainedBattleRoot, battle);
+            DealPendingBattleHand();
             return true;
         }
 
         private void RefreshRetainedBattleHand(CoreBattleState battle)
         {
+            CompleteBattleHandFlight();
             reusableBattleHandViews.Clear();
             reusableBattleHandViews.AddRange(retainedBattleHandViews);
             retainedBattleHandViews.Clear();
@@ -225,7 +214,11 @@ namespace ShatteredSail.Presentation
                     reusableBattleHandViews.RemoveAt(candidate);
                     break;
                 }
-                if (view == null) view = CreateRetainedBattleHandCard(retainedBattleHand, battle, index);
+                if (view == null)
+                {
+                    view = CreateRetainedBattleHandCard(retainedBattleHand, battle, index);
+                    pendingBattleDealCards.Add((RectTransform)view.Button.transform);
+                }
                 retainedBattleHandViews.Add(view);
                 RefreshRetainedHandCard(view, index, battle.Hand.Count);
                 view.Button.transform.SetSiblingIndex(index);
@@ -239,27 +232,6 @@ namespace ShatteredSail.Presentation
             }
             reusableBattleHandViews.Clear();
             ArrangeBattleHand(retainedBattleHand);
-        }
-
-        private void ArrangeBattleHand(RectTransform hand)
-        {
-            int count = retainedBattleHandViews.Count;
-            if (count == 0) return;
-            const float gap = 8f;
-            float scale = Mathf.Min(1f, hand.rect.height / CardFaceLayout.FrameSize.y,
-                (hand.rect.width - gap * (count - 1)) / (count * CardFaceLayout.FrameSize.x));
-            float step = CardFaceLayout.FrameSize.x * scale + gap;
-            // Align complete frames to one baseline. Their painted corner costs
-            // never overlap another card, including the maximum eight-card hand.
-            float y = hand.rect.yMin + scale * CardFaceLayout.FrameSize.y * .5f;
-            for (int index = 0; index < count; index++)
-            {
-                RetainedBattleHandCard view = retainedBattleHandViews[index];
-                RectTransform rect = (RectTransform)view.Button.transform;
-                rect.anchoredPosition = new Vector2((index - (count - 1) * .5f) * step, y);
-                rect.localScale = Vector3.one * scale;
-                if (view.Hover != null) view.Hover.SetRestingScale(scale);
-            }
         }
 
         private void RefreshRetainedHandCard(RetainedBattleHandCard view, int index, int count)
@@ -285,11 +257,9 @@ namespace ShatteredSail.Presentation
                     CardSpecialCostPresentation.ResourceType(data));
                 view.Available = available;
             }
-            RefreshBattleCardCost(view.Energy, view.Surcharge, view.CardId, data);
-            if (view.Powder != null) view.Powder.text = session.GetBattleCardPowderCost(view.CardId).ToString();
-            if (view.Cannonballs != null) view.Cannonballs.text = data.CannonballCost.ToString();
-            if (view.SpecialCost != null) view.SpecialCost.text = CardSpecialCostPresentation.CostText(data, view.Battle, session.Cargo.Wood);
+            RefreshBattleCardCosts(view, data);
             if (view.Name != null) view.Name.text = CardFaceLayout.DisplayName(data);
+            RefreshCardCatalogNumber(view.Button.transform, data);
             view.Label.text = BattleCardEffectTextForCurrentStage(data);
             RefreshBattleCardTextLayout(view.Label);
             ArrangeBattleCardResourceCosts(view, data);
@@ -301,8 +271,6 @@ namespace ShatteredSail.Presentation
             PlaceResource(view.Powder, CardSchoolArtCatalog.CostPosition(data, CardOrnamentKind.Gunpowder));
             PlaceResource(view.Cannonballs, CardSchoolArtCatalog.CostPosition(data, CardOrnamentKind.Cannonball));
             PlaceResource(view.SpecialCost, CardSchoolArtCatalog.CostPosition(data, CardSpecialCostPresentation.OrnamentKind(data)));
-            RectTransform repeat = view.Surcharge.transform.parent as RectTransform;
-            repeat.anchoredPosition = CardFaceLayout.RepeatCostPosition;
 
             void PlaceResource(Text number, Vector2 position)
             {
@@ -320,13 +288,8 @@ namespace ShatteredSail.Presentation
             if (string.IsNullOrWhiteSpace(explanation))
             {
                 if (view.Hover != null) view.Hover.SetKeywordTooltip(null);
-                if (view.Bubble != null)
-                {
-                    view.Bubble.gameObject.SetActive(false);
-                    Destroy(view.Bubble.gameObject);
-                }
-                view.Bubble = view.BubblePointer = null;
-                view.Explanation = view.Title = null;
+                if (view.Bubble != null) view.Bubble.gameObject.SetActive(false);
+                if (view.Explanation != null) view.Explanation.text = string.Empty;
                 return;
             }
 
@@ -337,7 +300,6 @@ namespace ShatteredSail.Presentation
                 view.BubblePointer = view.Bubble == null ? null : view.Bubble.Find("Keyword Bubble Pointer") as RectTransform;
                 view.Explanation = view.Bubble == null ? null : view.Bubble.Find("Keyword Bubble Text")?.GetComponent<Text>();
                 view.Title = view.Bubble == null ? null : view.Bubble.Find("Keyword Bubble Title")?.GetComponent<Text>();
-                if (view.Hover != null) view.Hover.SetKeywordTooltip(view.Bubble);
             }
             if (view.Bubble == null) return;
             view.Bubble.name = "Card Keyword Bubble " + index;
@@ -347,6 +309,9 @@ namespace ShatteredSail.Presentation
             if (view.Explanation != null) view.Explanation.text = explanation;
             ConfigureCardKeywordBubbleGeometry(view.Bubble, right,
                 session.Battle.Stage == NavalBattleStage.Boarding && data.Repair > 0 ? 110f : 0f);
+            // Bind only after replacing the retained text, so an already-hovered
+            // card cannot reveal the previous reason when its tooltip returns.
+            if (view.Hover != null) view.Hover.SetKeywordTooltip(view.Bubble);
         }
 
         private void SetRetainedBattleText(string name, string value)
@@ -356,13 +321,18 @@ namespace ShatteredSail.Presentation
 
         private void RetreatFromRetainedBattle(RectTransform root, CoreBattleState battle)
         {
-            if (!isActiveAndEnabled || battleAnimationPlaying || root == null || !root.gameObject.activeInHierarchy ||
+            if (!isActiveAndEnabled || battleAnimationPlaying || BattleInspectionBlocksInput || session == null || root == null || !root.gameObject.activeInHierarchy ||
                 root != retainedBattleRoot || session.Phase != CoreDemoPhase.Battle || !ReferenceEquals(session.Battle, battle)) return;
-            if (session.CanRequestEmergencyTow())
+            Button retreat = retainedBattleRetreat;
+            if (retreat == null || retreat.transform.parent != root || !retreat.gameObject.activeInHierarchy || !retreat.IsInteractable() ||
+                tutorialActive && !GuidedTutorialAllowsControl(retreat.name)) return;
+            if (retreat.name == "Emergency Battle Return")
             {
-                if (session.RequestEmergencyTow()) Render();
+                // Revalidate the displayed action: an obsolete tow callback must
+                // never fall through into an ordinary retreat.
+                if (session.CanRequestEmergencyTow() && session.RequestEmergencyTow()) Render();
             }
-            else RetreatCurrentBattle();
+            else if (retreat.name == "Retreat Battle" && session.CanRetreatBattle) RetreatCurrentBattle();
         }
     }
 }

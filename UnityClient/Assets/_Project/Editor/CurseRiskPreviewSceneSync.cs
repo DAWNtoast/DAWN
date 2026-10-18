@@ -22,8 +22,7 @@ namespace ShatteredSail.Editor
                 .Where(path =>
                 {
                     string scene = File.ReadAllText(path).Replace("\r\n", "\n");
-                    return scene.Contains("m_Name: Warehouse Panel\n") ||
-                        scene.Contains("m_Name: Treasure Workbench\n") || scene.Contains("m_Name: Battle Card\n");
+                    return scene.Contains("m_Name: Treasure Workbench\n") || scene.Contains("m_Name: Battle Card\n");
                 }).Select(path => path.Substring(folder.Length + 1).Replace('\\', '/'))
                 .Distinct().ToArray();
             foreach (string reference in references) SyncCurseRiskScene(reference);
@@ -73,8 +72,6 @@ namespace ShatteredSail.Editor
                     PersistGeneratedSceneVisuals(from, spec);
                     CopyTreasureLayer(from, to, control);
                 }
-                if (MonthlyFind(target, "Warehouse Panel") != null)
-                    Copy("Treasure Curse Panel", "Warehouse Panel");
                 if (MonthlyFind(target, "Treasure Workbench") != null)
                     foreach (string name in new[] { "Treasure Craft Map", "Treasure Open Folio", "Treasure Purify Curse" })
                         Copy(name, "Treasure Workbench");

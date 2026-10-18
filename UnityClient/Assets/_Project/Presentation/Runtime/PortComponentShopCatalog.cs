@@ -8,13 +8,12 @@ namespace ShatteredSail.Presentation
 {
     public sealed class PortComponentShopStockItem
     {
-        public PortComponentShopStockItem(string id, string portName, string refreshKey, ComponentArtEntry entry, float quality, int price, int refreshRevision = 0, string refreshScope = "", int investmentLevel = 0)
+        public PortComponentShopStockItem(string id, string portName, string refreshKey, ComponentArtEntry entry, int price, int refreshRevision = 0, string refreshScope = "", int investmentLevel = 0)
         {
             Id = id;
             PortName = portName;
             RefreshKey = refreshKey;
             Entry = entry;
-            Quality = quality;
             Price = price;
             RefreshRevision = refreshRevision;
             RefreshScope = refreshScope ?? string.Empty;
@@ -29,7 +28,6 @@ namespace ShatteredSail.Presentation
         /// <summary>Legacy property name kept for save and test source compatibility.</summary>
         public string MonthKey => RefreshKey;
         public ComponentArtEntry Entry { get; }
-        public float Quality { get; }
         public int Price { get; }
         public int RefreshRevision { get; }
         public string RefreshScope { get; }
@@ -253,43 +251,43 @@ namespace ShatteredSail.Presentation
             for (int index = 0; index < count; index += 1)
             {
                 int unlockLevel = index < StockCount(0) ? 0 : 1 + (index - StockCount(0)) / 2;
-                // Each pair has the quality bonus of its unlock tier. Applying the
+                // Each pair has the rarity bonus of its unlock tier. Applying the
                 // current level to the whole batch would reroll already bought items.
                 float offerRarityShift = PortInvestmentCatalog.RarityThresholdShift(unlockLevel);
                 ComponentSlot slot = rule.Slots[(int)Math.Floor(random.NextDouble() * rule.Slots.Length)];
                 ComponentRarity rarity = RollRarity(random.NextDouble(), offerRarityShift);
                 ComponentArtEntry entry = FindEntry(art, slot, rarity, random, selectedIds, expanded, rule.Slots);
                 selectedIds.Add(entry.Id);
-                float quality = (float)(Math.Round((0.9d + random.NextDouble() * 0.2d) * 100d) / 100d);
-                int price = CalculatePrice(entry, rule.PriceMultiplier, quality);
+                // Preserve the old appraisal roll's RNG position so existing monthly
+                // offer IDs and purchase receipts still refer to the same components.
+                random.NextDouble();
+                int price = CalculatePrice(entry, rule.PriceMultiplier);
                 string scopeSuffix = refreshRevision > 0 && !string.IsNullOrEmpty(refreshScope) ? "|save-" + refreshScope : string.Empty;
                 string id = "mystery|" + refreshKey + "|" + portHash + "|" + index + batchSuffix + scopeSuffix;
-                stock.Add(new PortComponentShopStockItem(id, (portName ?? rule.CanonicalName).Trim(), refreshKey, entry, quality, price, refreshRevision, refreshScope, unlockLevel));
+                stock.Add(new PortComponentShopStockItem(id, (portName ?? rule.CanonicalName).Trim(), refreshKey, entry, price, refreshRevision, refreshScope, unlockLevel));
             }
 
             return stock;
         }
 
-        public static int CalculatePrice(ComponentArtEntry entry, string portName, float quality)
+        public static int CalculatePrice(ComponentArtEntry entry, string portName)
         {
             if (entry == null)
             {
                 throw new ArgumentNullException(nameof(entry));
             }
 
-            return CalculatePrice(entry, ResolveRule(portName).PriceMultiplier, quality);
+            return CalculatePrice(entry, ResolveRule(portName).PriceMultiplier);
         }
 
-        public static int CalculateSalePrice(ComponentArtEntry entry, string portName, float quality)
+        public static int CalculateSalePrice(ComponentArtEntry entry, string portName)
         {
-            return CalculatePrice(entry, portName, quality) / 2;
+            return CalculatePrice(entry, portName) / 2;
         }
 
-        private static int CalculatePrice(ComponentArtEntry entry, float portMultiplier, float quality)
+        private static int CalculatePrice(ComponentArtEntry entry, float portMultiplier)
         {
-            float safeQuality = Math.Max(0.9f, Math.Min(1.1f, quality));
-            float qualityMultiplier = 1f + (safeQuality - 1f) * 0.5f;
-            float rawPrice = entry.Price * GameplayBalance.ComponentPriceMultiplier((int)entry.Rarity) * SlotMultiplier(entry.Slot) * portMultiplier * qualityMultiplier;
+            float rawPrice = entry.Price * GameplayBalance.ComponentPriceMultiplier((int)entry.Rarity) * SlotMultiplier(entry.Slot) * portMultiplier;
             return Math.Max(10, (int)(Math.Floor(rawPrice / 10f + 0.5f) * 10f));
         }
 

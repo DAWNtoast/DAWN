@@ -127,7 +127,16 @@ namespace ShatteredSail.Presentation.Tests
             Image image = host.GetComponent<Image>();
             image.sprite = NauticalSurfaceSkin.InvestmentPaper;
             int investmentId = image.sprite.GetInstanceID();
-            int collectionId = NauticalSurfaceSkin.CollectionPaper.GetInstanceID();
+            Assert.That(NauticalSurfaceSkin.CollectionPaper, Is.SameAs(menuPaper), "Facility papers share the market skin.");
+            Assert.That(image.sprite, Is.SameAs(menuPaper));
+            NauticalSurfaceSkin.ReleaseGameplayPaperReferences();
+            int unusedFillId = NauticalSurfaceSkin.Paper.GetInstanceID();
+            NauticalSurfaceSkin.ReleaseGameplayPaperReferences();
+            var fillHost = new GameObject("Retained Paper Fill Test", typeof(RectTransform), typeof(Image));
+            fillHost.transform.SetParent(host.transform, false);
+            Image fill = fillHost.GetComponent<Image>();
+            fill.sprite = NauticalSurfaceSkin.Paper;
+            int fillId = fill.sprite.GetInstanceID();
             // Do not keep unused Sprite references across yields: coroutine
             // locals become fields on the test runner's retained IEnumerator.
             // Only the live Image should own investment art during this scan.
@@ -138,14 +147,19 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(image.sprite.GetInstanceID(), Is.EqualTo(investmentId));
                 Assert.That(NauticalSurfaceSkin.IsPaperSurface(image.sprite), Is.True);
                 Assert.That(NauticalSurfaceSkin.ReadableTextColor(image.transform, Color.white).grayscale, Is.LessThan(.25f));
-                Assert.That(LoadedSpriteExists(collectionId), Is.False, "The unused generated collection sprite must no longer be pinned.");
-                Assert.That(NauticalSurfaceSkin.ReadingPaper, Is.SameAs(menuPaper));
+                Assert.That(LoadedSpriteExists(unusedFillId), Is.False, "An unreferenced generated paper fill must no longer be pinned.");
+                Assert.That(fill.sprite != null && fill.sprite.GetInstanceID() == fillId, Is.True,
+                    "A live fill Image protects its independent generated sprite.");
+                Assert.That(menuPaper != null && LoadedSpriteExists(investmentId), Is.True,
+                    "Shared reading and facility paper cannot be collected while the live view uses it.");
                 Object.Destroy(host);
                 image = null;
+                fill = null;
+                fillHost = null;
                 host = null;
                 yield return null;
                 yield return CollectMenuArtForTest();
-                Assert.That(LoadedSpriteExists(investmentId), Is.False, "The released sprite is collected when its last UI owner is gone.");
+                Assert.That(LoadedSpriteExists(fillId), Is.False, "The independent fill is collected when its last UI owner is gone.");
                 Sprite reloaded = NauticalSurfaceSkin.InvestmentPaper;
                 Assert.That(reloaded != null && reloaded.texture != null, Is.True);
                 Assert.That(reloaded.border.x, Is.GreaterThan(0f));

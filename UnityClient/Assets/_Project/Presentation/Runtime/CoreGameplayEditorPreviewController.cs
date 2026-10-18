@@ -172,46 +172,6 @@ namespace ShatteredSail.Presentation
             RebuildEditorPreview();
         }
 
-        private void OnEnable()
-        {
-            if (Application.isPlaying && profileSaveBlocked) return;
-            if (Application.isPlaying)
-            {
-                ResumeAudioPresentation();
-                ResumeBattlePresentation();
-                ResumeNavigationPresentation();
-                QueueUnusedArtCollection();
-            }
-            // Saved previews own their authored controls. Explicit editor sync
-            // upgrades old seed fields without overlaying an obsolete dropdown.
-            if (!Application.isPlaying && editorPreviewPersistGeneratedUi)
-            {
-                Canvas previewCanvas = transform.Find(EditorPreviewCanvasName)?.GetComponent<Canvas>();
-                if (previewCanvas != null) FixedGameViewport.Create(previewCanvas);
-            }
-            if (!Application.isPlaying && !editorPreviewSuppressed && !editorPreviewPersistGeneratedUi)
-            {
-                RebuildEditorPreview();
-            }
-        }
-
-        private void OnDisable()
-        {
-            RestoreDeparturePaintedHeader();
-            CloseOpeningComic();
-            CloseVoyageCargo(false);
-            SuspendBattlePresentation();
-            SuspendNavigationPresentation();
-            SuspendScreenTransition();
-            SuspendUnusedArtCollection();
-            CloseGameMaster();
-            if (!Application.isPlaying && !editorPreviewPersistGeneratedUi)
-            {
-                RemoveEditorPreview();
-                ReleaseGeneratedVisualResources();
-            }
-        }
-
         private void UpdateEditorPreviewIfNeeded()
         {
             if (Application.isPlaying || editorPreviewSuppressed || editorPreviewPersistGeneratedUi || !isActiveAndEnabled)
@@ -324,7 +284,6 @@ namespace ShatteredSail.Presentation
             treasureFolioView = 0;
             treasureFolioPage = 0;
             treasureBoardIndex = 0;
-            treasureFragmentNotice = null;
             if (editorPreviewScreen != CoreGameplayPreviewScreen.TreasureMap) return;
             session.SelectRoute(editorPreviewRouteIndex);
             const string seed = "TREASURE-PREVIEW-WEATHERED-01";
@@ -357,12 +316,12 @@ namespace ShatteredSail.Presentation
                 () => "preview-component-" + previewComponentSerial++);
             componentInventory.EnsureLoadout(0);
             ComponentArtEntry sample = componentArt.Entries.First(item => item.Slot == ComponentSlot.Cannon && item.Rarity == ComponentRarity.Rare);
-            OwnedShipComponent installedSample = componentInventory.Grant(sample, 1f);
+            OwnedShipComponent installedSample = componentInventory.Grant(sample);
             componentInventory.TryEquip(0, installedSample.InstanceId);
             // The equipment page also needs visible spare pieces, without creating
             // ownership or replacing the player's inventory when opening a preview scene.
             foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
-                componentInventory.Grant(componentArt.Entries.First(item => item.Slot == slot && item.Rarity == ComponentRarity.Uncommon), 1.02f);
+                componentInventory.Grant(componentArt.Entries.First(item => item.Slot == slot && item.Rarity == ComponentRarity.Uncommon));
             RefreshComponentBonuses();
             session.ConfigureCrewCapabilities(true, true, false, false, false, false);
             string[] crewIds =
@@ -375,6 +334,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildSelectedEditorPreview()
         {
+            RestoreShipyardEquipmentViewport();
             ClearChildren(contentRoot);
             if (headerTitle != null) headerTitle.text = GameClientInfo.DisplayName + " · UI 场景预览";
             string previewPortName = PreviewPortName(editorPreviewPort);
@@ -508,6 +468,7 @@ namespace ShatteredSail.Presentation
                 .Invoke(session, new object[] { sample.Encounter, sample.IsBoss });
             if (session.Phase != CoreDemoPhase.Battle || session.Battle == null || session.Battle.Hand.Count == 0)
                 throw new InvalidOperationException("The editor battle fixture did not construct a playable battle state.");
+            if (session.Battle.Stage == NavalBattleStage.Preparation) session.EndBattleTurn();
         }
 
         private void RemoveEditorPreview()
@@ -527,27 +488,6 @@ namespace ShatteredSail.Presentation
             {
                 DestroyImmediate(preview.gameObject);
             }
-        }
-
-        private void ReleaseGeneratedVisualResources()
-        {
-            if (portHeaderArt != null) portHeaderArt.Dispose();
-            portHeaderArt = null;
-            DestroyGeneratedVisual(seaSprite);
-            DestroyGeneratedVisual(circleSprite);
-            DestroyGeneratedVisual(seaTexture);
-            DestroyGeneratedVisual(circleTexture);
-            seaSprite = null;
-            circleSprite = null;
-            seaTexture = null;
-            circleTexture = null;
-        }
-
-        private static void DestroyGeneratedVisual(UnityEngine.Object value)
-        {
-            if (value == null) return;
-            if (Application.isPlaying) Destroy(value);
-            else DestroyImmediate(value);
         }
 
         private static void SetEditorPreviewFlags(Transform root)

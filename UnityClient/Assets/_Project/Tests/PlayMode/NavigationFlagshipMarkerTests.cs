@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             for (int ship = 1; ship < CoreVoyageSession.Ships.Count; ship++)
                 PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(ship), 1);
+            SeedShipPortLocationsForFixture("断锚港", Enumerable.Range(0, CoreVoyageSession.Ships.Count).ToArray());
             var atlas = new PortArtCatalog();
 
             for (int ship = 0; ship < CoreVoyageSession.Ships.Count; ship++)

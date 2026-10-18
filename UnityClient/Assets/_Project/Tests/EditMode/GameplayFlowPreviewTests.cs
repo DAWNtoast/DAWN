@@ -42,10 +42,36 @@ namespace ShatteredSail.Core.Tests
             if (state == GameplayFlowPreviewState.TreasureCoreLocked)
             {
                 Assert.That(controller.Session.IsChoiceAvailable(0), Is.False);
-                Assert.That(controller.Session.ChoiceUnavailableReason(0), Does.Contain("线索"));
+                Assert.That(controller.Session.ChoiceUnavailableReason(0), Does.Contain("绞盘"));
+                Assert.That(controller.Session.HasTreasureMark("weathered_winch"), Is.False);
+                Assert.That(controller.Session.TreasureClues, Is.Zero);
+            }
+            if (state == GameplayFlowPreviewState.TreasureClue)
+            {
+                Assert.That(controller.Session.IsTreasureExpedition, Is.True);
+                Assert.That(controller.Session.ActiveEncounter.Id, Is.EqualTo("weathered_winch"));
+                Assert.That(controller.Session.HasTreasureMark("weathered_winch"), Is.False);
+                Assert.That(controller.Session.IsChoiceAvailable(2), Is.True);
             }
             if (state == GameplayFlowPreviewState.TreasureCoreReady)
-                Assert.That(controller.Session.IsChoiceAvailable(0), Is.True);
+            {
+                Assert.That(controller.Session.IsChoiceAvailable(0), Is.True, controller.Session.ChoiceUnavailableReason(0));
+                Assert.That(controller.Session.TotalHours, Is.EqualTo(12d), "Both real slow repairs must consume their authored time.");
+                Assert.That(controller.Session.Cargo.Water, Is.LessThan(180), "Tool preparation still consumes the sample crew's rations.");
+                Assert.That(controller.Session.Cargo.UsedVolume + 19f, Is.LessThanOrEqualTo(controller.Session.CargoCapacityValue),
+                    "The legal sample loadout must leave room for all complete-salvage cargo before the final ration deduction.");
+            }
+            if (state == GameplayFlowPreviewState.TreasureCoreReady || state == GameplayFlowPreviewState.TreasureSettlement)
+            {
+                Assert.That(controller.Session.IsTreasureExpedition, Is.True);
+                Assert.That(controller.Session.TreasureClues, Is.Zero, "New previews must not unlock the core by injecting legacy clues.");
+                foreach (string id in new[] { "weathered_winch", "weathered_bell" })
+                {
+                    Assert.That(controller.Session.HasTreasureMark(id), Is.True, id);
+                    Assert.That(controller.Session.Map.Nodes.Single(node => node.Encounter.Id == id).Visited, Is.True,
+                        "Tools must be earned by resolving their real source encounters: " + id);
+                }
+            }
             if (state == GameplayFlowPreviewState.TreasureSettlement)
             {
                 Assert.That(controller.Session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.TreasureRecovered));

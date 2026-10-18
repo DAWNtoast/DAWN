@@ -22,7 +22,10 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = PortSession();
             List<int> original = session.GetBattleDeck(stage).ToList();
             Assert.That(original.Count, Is.InRange(10, 20));
-            Assert.That(original.All(index => session.GetAvailableBattleCards(stage).Contains(index)), Is.True);
+            Assert.That(original.All(index => session.GetAvailableBattleCards(stage).Contains(index) ||
+                stage == NavalBattleStage.Boarding && CoreBoardingCardCatalog.IsLegacyAlias(CoreVoyageSession.CardLibrary[index]) &&
+                CoreVoyageSession.CardLibrary[index].IsAllowedInStage(stage) && session.IsBattleCardUnlocked(CoreVoyageSession.CardLibrary[index])), Is.True,
+                "Historic starter slots remain usable aliases even though new construction offers canonical boarding cards.");
             Assert.That(original.GroupBy(index => index).All(group => group.Count() <= 2), Is.True);
             Assert.That(session.SetBattleDeck(stage, original), Is.True);
 
@@ -106,22 +109,27 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void Maneuvers_ChangeDistanceAlignmentAndWhetherTheShipIsApproaching()
+        public void Maneuvers_GrantPointsWithoutChangingPoseUntilAPlannedMoveCommits()
         {
             CoreVoyageSession session = StartNavalBattle();
-            session.Battle.DistanceMeters = 350f;
+            Pose(session, -300f, 0f, 0f, 0f, 0f, 180f);
             SetHand(session, "card_approach", "card_circle_enemy", "card_parallel_course");
-            float previous = session.Battle.DistanceMeters;
-            Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.DistanceMeters, Is.LessThan(previous));
-            Assert.That(session.Battle.PlayerMovingTowardEnemy, Is.True);
-            Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.Alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside));
-            Assert.That(session.Battle.PlayerMovingTowardEnemy, Is.False,
-                "A turn must be followed by a new approach before a ram.");
-            Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.Alignment, Is.EqualTo(NavalBattleAlignment.Parallel));
-            Assert.That(session.Battle.PlayerMovingTowardEnemy, Is.False);
+            int points = session.Battle.NavalActionPoints;
+            session.Battle.Energy = 10;
+            for (int card = 0; card < 3; card++)
+            {
+                Assert.That(session.PlayCard(0), Is.True);
+                Assert.That(session.Battle.DistanceMeters, Is.EqualTo(300f));
+                Assert.That(session.Battle.PlayerHeadingDegrees, Is.EqualTo(0f));
+                Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(points + card + 1));
+            }
+            Assert.That(session.TryAppendNavalMovementStep(new VoyagePoint(-200f, 0f), out string reason), Is.True, reason);
+            Assert.That(session.CommitNavalMovement(out reason), Is.True, reason);
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(200f));
+            Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.True);
+            Assert.That(session.ConfirmNavalArrivalHeading(90f, out reason), Is.True, reason);
+            Assert.That(session.Battle.PlayerHeadingDegrees, Is.EqualTo(90f));
+            Assert.That(session.Battle.NavalActionPoints, Is.Zero);
         }
 
         private static IEnumerable<TestCaseData> ApproachingCardCases()
@@ -133,7 +141,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCaseSource(nameof(ApproachingCardCases))]
-        public void ApproachingCardsPreserveThirtyMetersInBothShipStages(string id, NavalBattleStage stage, int upgrade)
+        public void ManeuverCardsPreservePoseAndGrantAuthoredPointsInBothShipStages(string id, NavalBattleStage stage, int upgrade)
         {
             CoreVoyageSession session = StartBattle(configure: value =>
             {
@@ -142,14 +150,19 @@ namespace ShatteredSail.Core.Tests
             });
             if (stage == NavalBattleStage.Naval) Assert.That(session.EndBattleTurn(), Is.True);
             session.Battle.DistanceMeters = 40f;
+            int points = session.Battle.NavalActionPoints;
+            int gain = upgrade == 0 ? 1 : 2;
+            session.Battle.Energy = 10;
             SetHand(session, id);
             Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(30f));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(40f));
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(points + gain));
             Assert.That(session.Battle.Stage, Is.EqualTo(stage), "Approaching never initiates boarding.");
 
             SetHand(session, id);
             Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(30f), "A repeated maneuver cannot close the remaining gap.");
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(40f), "A repeated maneuver only grants a future movement point.");
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(points + 2 * gain));
         }
 
         [TestCase(0f)]
@@ -160,67 +173,74 @@ namespace ShatteredSail.Core.Tests
             session.Battle.DistanceMeters = distance;
             SetHand(session, "card_approach");
             Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(distance));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(Math.Max(0f, distance)));
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
             Assert.That(session.CanRam(out string reason), Is.False);
-            Assert.That(reason, Is.EqualTo("距离过近，先拉开距离再冲撞"));
+            Assert.That(reason, Is.EqualTo("冲撞需要与敌舰上下左右相邻（100 米）"));
         }
 
         [Test]
-        public void ZeroRangeCanRecoverByRetreatingThenApproachingBeforeRam()
+        public void ZeroRangeCannotBeRepairedByPlayingMovementCardsWithoutAPlannedRoute()
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.DistanceMeters = 0f;
             SetHand(session, "card_retreat", "card_approach");
             Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(130f));
+            Assert.That(session.Battle.DistanceMeters, Is.Zero);
             Assert.That(session.Battle.PlayerMovingTowardEnemy, Is.False);
             Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(30f));
-            Assert.That(session.CanRam(out string reason), Is.True, reason);
+            Assert.That(session.Battle.DistanceMeters, Is.Zero);
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(3));
+            Assert.That(session.CanRam(out string reason), Is.False);
+            Assert.That(reason, Does.Contain("上下左右相邻"));
         }
 
-        [TestCase(NavalBattleStage.Preparation, 1, 40f, CoreBattleArchetype.Balanced, 10f)]
-        [TestCase(NavalBattleStage.Preparation, 1, 30f, CoreBattleArchetype.Balanced, 0f)]
-        [TestCase(NavalBattleStage.Preparation, 1, 600f, CoreBattleArchetype.Balanced, 150f)]
-        [TestCase(NavalBattleStage.Naval, 2, 40f, CoreBattleArchetype.Balanced, 10f)]
-        [TestCase(NavalBattleStage.Naval, 2, 30f, CoreBattleArchetype.Balanced, 0f)]
-        [TestCase(NavalBattleStage.Naval, 2, 120f, CoreBattleArchetype.Balanced, 90f)]
-        [TestCase(NavalBattleStage.Naval, 1, 80f, CoreBattleArchetype.Balanced, 50f)]
-        [TestCase(NavalBattleStage.Naval, 1, 60f, CoreBattleArchetype.Balanced, 0f)]
-        [TestCase(NavalBattleStage.Naval, 1, 400f, CoreBattleArchetype.Balanced, 180f)]
-        [TestCase(NavalBattleStage.Naval, 1, 400f, CoreBattleArchetype.Tempest, 240f)]
-        public void EnemyApproachPreservesThirtyMetersAndAnnouncesOnlyActualMovement(
+        [TestCase(NavalBattleStage.Preparation, 1, 100f, CoreBattleArchetype.Balanced, 0f)]
+        [TestCase(NavalBattleStage.Preparation, 1, 300f, CoreBattleArchetype.Balanced, 0f)]
+        [TestCase(NavalBattleStage.Preparation, 1, 600f, CoreBattleArchetype.Balanced, 0f)]
+        [TestCase(NavalBattleStage.Naval, 2, 100f, CoreBattleArchetype.Balanced, 0f)]
+        [TestCase(NavalBattleStage.Naval, 2, 200f, CoreBattleArchetype.Balanced, 100f)]
+        [TestCase(NavalBattleStage.Naval, 2, 600f, CoreBattleArchetype.Balanced, 200f)]
+        [TestCase(NavalBattleStage.Naval, 1, 100f, CoreBattleArchetype.Balanced, 0f)]
+        [TestCase(NavalBattleStage.Naval, 1, 300f, CoreBattleArchetype.Balanced, 100f)]
+        [TestCase(NavalBattleStage.Naval, 1, 400f, CoreBattleArchetype.Tempest, 100f)]
+        [TestCase(NavalBattleStage.Naval, 1, 600f, CoreBattleArchetype.Tempest, 200f)]
+        public void EnemyApproachUsesWholeCellsAndStopsBeforeAnOccupiedCell(
             NavalBattleStage stage, int phaseTurn, float distance, CoreBattleArchetype archetype, float movement)
         {
             CoreVoyageSession session = StartBattle();
             if (stage == NavalBattleStage.Naval) Assert.That(session.EndBattleTurn(), Is.True);
             session.Battle.Profile = new CoreBattleProfile(CoreBossKind.None, archetype, 70, 2, 2, 3, 0, 8, 1f, 1f);
-            session.Battle.DistanceMeters = distance;
+            Pose(session, -distance, 0f, 0f, 0f, 0f, 180f);
             session.Battle.PhaseTurn = phaseTurn;
             string intent = session.GetEnemyIntent();
-            if (movement > 0f) Assert.That(intent, Does.Contain("靠近 " + movement.ToString("0") + " 米"));
-            else Assert.That(intent, Does.Not.Contain("靠近"));
+            if (stage == NavalBattleStage.Naval)
+                Assert.That(intent, Does.Contain("整格机动，最多 " + (distance > 400f ? 200 : 100) + " 米"));
+            else Assert.That(intent, Does.Not.Contain("机动"));
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(session.Battle.DistanceMeters, Is.EqualTo(distance - movement));
-            Assert.That(session.Battle.DistanceMeters, Is.GreaterThanOrEqualTo(30f));
+            Assert.That(session.Battle.DistanceMeters, Is.GreaterThanOrEqualTo(100f));
+            Assert.That(session.Battle.EnemyPositionMeters.X % 100f, Is.EqualTo(0f));
+            Assert.That(session.Battle.EnemyPositionMeters.Y % 100f, Is.EqualTo(0f));
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
         }
 
-        [TestCase(101f, NavalBattleAlignment.HeadOn, true, 3)]
-        [TestCase(0f, NavalBattleAlignment.HeadOn, true, 3)]
-        [TestCase(-10f, NavalBattleAlignment.EnemyBroadside, true, 3)]
-        [TestCase(80f, NavalBattleAlignment.HeadOn, false, 3)]
-        [TestCase(80f, NavalBattleAlignment.Parallel, true, 3)]
-        [TestCase(80f, NavalBattleAlignment.HeadOn, true, 0)]
-        public void Ram_RejectsMissingRangeApproachAlignmentOrEnergyWithoutSpending(
-            float distance, NavalBattleAlignment alignment, bool approaching, int energy)
+        [TestCase(101f, 0f, 90f, 1)]
+        [TestCase(0f, 0f, 90f, 1)]
+        [TestCase(-10f, 0f, 90f, 1)]
+        [TestCase(30f, 0f, 90f, 1)]
+        [TestCase(60f, 0f, 90f, 1)]
+        [TestCase(100f, 180f, 90f, 1)]
+        [TestCase(100f, 0f, 0f, 1)]
+        [TestCase(100f, 0f, 90f, 0)]
+        public void Ram_RejectsMissingAdjacentCellCorrectHeadingsOrActionPointWithoutSpending(
+            float distance, float playerHeading, float enemyHeading, int points)
         {
             CoreVoyageSession session = StartNavalBattle();
-            session.Battle.DistanceMeters = distance;
-            session.Battle.Alignment = alignment;
-            session.Battle.PlayerMovingTowardEnemy = approaching;
-            session.Battle.Energy = energy;
+            Pose(session, -Math.Max(0f, distance), 0f, playerHeading, 0f, 0f, enemyHeading);
+            session.Battle.PlayerMovingTowardEnemy = true;
+            SetPrivateProperty(session.Battle, "NavalActionPoints", points);
+            int energy = session.Battle.Energy;
             int playerHull = session.Hull;
             int enemyHull = session.Battle.EnemyHull;
             int morale = session.Morale;
@@ -233,14 +253,13 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHull));
             Assert.That(session.Battle.Energy, Is.EqualTo(energy));
             Assert.That(session.Morale, Is.EqualTo(morale));
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(distance));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(Math.Max(0f, distance)));
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
             Assert.That(session.Battle.Hand, Is.EqualTo(hand));
-            Assert.That(session.Battle.PlayerMovingTowardEnemy, Is.EqualTo(approaching));
+            Assert.That(session.Battle.PlayerMovingTowardEnemy, Is.True);
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(points));
         }
 
-        [TestCase(NavalBattleAlignment.HeadOn, 30f)]
-        [TestCase(NavalBattleAlignment.EnemyBroadside, 30f)]
         [TestCase(NavalBattleAlignment.HeadOn, 100f)]
         [TestCase(NavalBattleAlignment.EnemyBroadside, 100f)]
         public void Ram_AtRangeBoundaryDamagesBothHullsAndStartsBoarding(NavalBattleAlignment alignment, float distance)
@@ -266,11 +285,11 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void Ram_UsesEnemyBowQualityHeadOnAndEnemyHullQualityAgainstItsBroadside()
+        public void Ram_UsesActualBroadsideArmorRegardlessOfLegacyAlignmentMetadata()
         {
             int headOnBaseline = RamDamage(NavalBattleAlignment.HeadOn, 1f, 1f);
-            Assert.That(RamDamage(NavalBattleAlignment.HeadOn, 5f, 1f), Is.LessThan(headOnBaseline));
-            Assert.That(RamDamage(NavalBattleAlignment.HeadOn, 1f, 5f), Is.EqualTo(headOnBaseline));
+            Assert.That(RamDamage(NavalBattleAlignment.HeadOn, 5f, 1f), Is.EqualTo(headOnBaseline));
+            Assert.That(RamDamage(NavalBattleAlignment.HeadOn, 1f, 5f), Is.LessThan(headOnBaseline));
 
             int broadsideBaseline = RamDamage(NavalBattleAlignment.EnemyBroadside, 1f, 1f);
             Assert.That(RamDamage(NavalBattleAlignment.EnemyBroadside, 1f, 5f), Is.LessThan(broadsideBaseline));
@@ -333,12 +352,12 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Hand, Is.EqualTo(hand));
         }
 
-        [TestCase(30f)]
-        [TestCase(60f)]
-        public void Boarding_AtRangeBoundaryReplacesAllPilesAndRestoresEnergy(float distance)
+        [TestCase(0f)]
+        [TestCase(90f)]
+        public void Boarding_AtCardinalNeighborReplacesAllPilesAndRestoresEnergy(float heading)
         {
             CoreVoyageSession session = StartNavalBattle();
-            session.Battle.DistanceMeters = distance;
+            Pose(session, -100f, 0f, heading, 0f, 0f, heading);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             session.Battle.Energy = 0;
             session.Battle.DiscardPile.Add(CardIndex("card_chain_shot"));
@@ -366,7 +385,8 @@ namespace ShatteredSail.Core.Tests
             int enemyDamage = enemyMaxHull / 2;
             SetPrivateProperty(session, "Hull", playerMaxHull - playerDamage);
             session.Battle.EnemyHull = enemyMaxHull - enemyDamage;
-            session.Battle.DistanceMeters = 60f;
+            session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
 
             Assert.That(session.TryBoard(), Is.True);
@@ -521,7 +541,8 @@ namespace ShatteredSail.Core.Tests
         public void EnemyGuardAbsorption_RecordsOnlyTheActualHit_NotExpiredGuard_AndResetsOnNonAttackingTurn()
         {
             CoreVoyageSession session = StartNavalBattle();
-            session.Battle.DistanceMeters = 50f;
+            session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             session.Battle.PhaseTurn = 1;
             session.Battle.EnemyLoadedShot = 0;
@@ -553,7 +574,8 @@ namespace ShatteredSail.Core.Tests
         public void EnemyGuardAbsorption_ResetsBeforeLethalBurnSkipsTheEnemyAction()
         {
             CoreVoyageSession session = StartNavalBattle();
-            session.Battle.DistanceMeters = 50f;
+            session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             session.Battle.PhaseTurn = 1;
             session.Battle.EnemyLoadedShot = 0;
@@ -645,7 +667,8 @@ namespace ShatteredSail.Core.Tests
         private static CoreVoyageSession StartBoardingBattle()
         {
             CoreVoyageSession session = StartNavalBattle();
-            session.Battle.DistanceMeters = 50f;
+            session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(session.TryBoard(), Is.True);
             return session;
@@ -653,10 +676,17 @@ namespace ShatteredSail.Core.Tests
 
         private static void ArrangeRam(CoreVoyageSession session, NavalBattleAlignment alignment)
         {
-            session.Battle.DistanceMeters = 100f;
+            Pose(session, -100f, 0f, 0f, 0f, 0f, 90f);
             session.Battle.Alignment = alignment;
             session.Battle.PlayerMovingTowardEnemy = true;
             session.Battle.EnemyBlock = 0;
+        }
+
+        private static void Pose(CoreVoyageSession session, float px, float py, float ph, float ex, float ey, float eh)
+        {
+            MethodInfo method = typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic);
+            method.Invoke(session.Battle, new object[] { true, new VoyagePoint(px, py), ph });
+            method.Invoke(session.Battle, new object[] { false, new VoyagePoint(ex, ey), eh });
         }
 
         private static int RamDamage(NavalBattleAlignment alignment, float enemyBowQuality, float enemyHullQuality)

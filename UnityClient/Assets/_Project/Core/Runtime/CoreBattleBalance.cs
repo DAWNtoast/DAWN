@@ -12,7 +12,7 @@ namespace ShatteredSail.Core.Gameplay
             int enemyHull, int cannonDamage, int meleeDamage, int guard, int initialGuard,
             int ordinaryCrewCount, float bowQuality, float hullQuality,
             double ramChance = 0d, float ramRangeMeters = 100f, decimal? healthMultiplier = null,
-            decimal? boardingHealthMultiplier = null)
+            decimal? boardingHealthMultiplier = null, int? boardingGuard = null)
         {
             BossKind = bossKind;
             Archetype = archetype;
@@ -22,6 +22,7 @@ namespace ShatteredSail.Core.Gameplay
             CannonDamage = Math.Max(0, cannonDamage);
             MeleeDamage = Math.Max(0, meleeDamage);
             Guard = Math.Max(0, guard);
+            BoardingGuard = Math.Max(0, boardingGuard ?? guard);
             InitialGuard = Math.Max(0, initialGuard);
             OrdinaryCrewCount = Math.Max(0, ordinaryCrewCount);
             BoardingHealth = Math.Max(1, CoreBattleBalance.ScaleBattleValue(
@@ -51,6 +52,7 @@ namespace ShatteredSail.Core.Gameplay
         public int CannonDamage { get; }
         public int MeleeDamage { get; }
         public int Guard { get; }
+        public int BoardingGuard { get; }
         public int InitialGuard { get; }
         public int BoardingHealth { get; }
         public int OrdinaryCrewCount { get; }
@@ -79,23 +81,28 @@ namespace ShatteredSail.Core.Gameplay
             (int)Math.Min(int.MaxValue, decimal.Round(Math.Max(0, value) * multiplier, 0, MidpointRounding.AwayFromZero));
         public static int BoardingHealthForOrdinaryCrew(int ordinaryCrew) =>
             (int)Math.Min(int.MaxValue, CaptainBoardingHealth + (long)Math.Max(0, ordinaryCrew) * BoardingHealthPerSailor);
-        public static string BossVictoryBonusDescription => "另计基础海战奖励：金币 +" + BossVictoryGold + "、声望 +" + BossVictoryFame +
-            "；另有 50% 概率掉落藏宝图碎片 ×1";
+        public static string BossVictoryBonusDescription => "夺船胜利金币、声望×2；物资战利品折为整百金币；" +
+            "另有 50% 概率掉落藏宝图碎片 ×1";
 
         // Tables contain authored stats; profiles apply health scaling once so
         // encounter previews, simulation and live battle share the same values.
+        // Naval hull, cannon fire and guard leave more room for error than boarding.
+        // Early-chart boarding durability is tuned separately from naval hull:
+        // 119 HP for the starter deck, 133 HP for a partially upgraded crew deck.
         public static readonly CoreBattleProfile FirstRouteBoss = new CoreBattleProfile(
-            CoreBossKind.Route, CoreBattleArchetype.Balanced, 75, 12, 11, 6, 0, 9, 1.8f, 1.6f, .12d);
+            CoreBossKind.Route, CoreBattleArchetype.Balanced, 60, 9, 10, 5, 0, 9, 1.8f, 1.6f, .12d,
+            boardingHealthMultiplier: 2.125m, boardingGuard: 4);
         public static readonly CoreBattleProfile SecondRouteBoss = new CoreBattleProfile(
-            CoreBossKind.Route, CoreBattleArchetype.Artillery, 148, 18, 15, 10, 0, 16, 2.4f, 2.5f, .25d);
+            CoreBossKind.Route, CoreBattleArchetype.Artillery, 112, 14, 15, 7, 0, 16, 2.4f, 2.5f, .25d,
+            boardingHealthMultiplier: 19m / 12m, boardingGuard: 6);
         // Finite-energy combat: naval durability/firepower and boarding crew/melee
         // pressure are calibrated independently. Ramming adds a telegraphed threat.
         public static readonly CoreBattleProfile ThirdRouteBoss = new CoreBattleProfile(
-            CoreBossKind.Route, CoreBattleArchetype.Balanced, 220, 25, 24, 14, 0, 25, 3.0f, 3.0f, .35d, 120f,
-            boardingHealthMultiplier: LateBossBoardingHealthMultiplier);
+            CoreBossKind.Route, CoreBattleArchetype.Balanced, 168, 19, 20, 10, 0, 25, 3.0f, 3.0f, .35d, 120f,
+            boardingHealthMultiplier: LateBossBoardingHealthMultiplier, boardingGuard: 8);
         public static readonly CoreBattleProfile ThirdTreasureBoss = new CoreBattleProfile(
-            CoreBossKind.Treasure, CoreBattleArchetype.Ironclad, 280, 29, 29, 18, 12, 31, 3.7f, 3.9f, .40d, 120f,
-            boardingHealthMultiplier: LateBossBoardingHealthMultiplier);
+            CoreBossKind.Treasure, CoreBattleArchetype.Ironclad, 210, 21, 22, 12, 8, 31, 3.7f, 3.9f, .40d, 120f,
+            boardingHealthMultiplier: LateBossBoardingHealthMultiplier, boardingGuard: 12);
 
         public static CoreBossKind Classify(string encounterId)
         {
@@ -118,15 +125,17 @@ namespace ShatteredSail.Core.Gameplay
             }
             CoreLegendaryWarship legendary = CoreLegendaryWarships.Find(id);
             if (legendary != null) return legendary.Profile;
+            CoreRouteBoss routeBoss = CoreRouteBossCatalog.Find(id);
+            if (routeBoss != null) return routeBoss.Profile;
             if (id == TreasureBossId) return ThirdTreasureBoss;
             int tier = Math.Max(0, Math.Min(2, routeIndex));
             if (Classify(id) == CoreBossKind.Route || isBoss)
                 return tier == 0 ? FirstRouteBoss : tier == 1 ? SecondRouteBoss : ThirdRouteBoss;
             int power = Math.Max(0, encounter == null ? 70 : encounter.Power);
             return new CoreBattleProfile(CoreBossKind.None, CoreBattleArchetype.Balanced,
-                Math.Max(38, (int)Math.Round(power * 0.46)), 9 + tier * 3, 8 + tier * 3,
+                Math.Max(38, (int)Math.Round(power * 0.46)), 9 + tier * 3, 6 + tier * 3,
                 6 + tier * 2, 0, 5 + power / 28 + tier * 2,
-                1f + tier * 0.6f, 1f + tier * 0.7f, tier >= 2 ? .15d : 0d);
+                1f + tier * 0.6f, 1f + tier * 0.7f, tier >= 2 ? .15d : 0d, boardingGuard: 4 + tier * 2);
         }
     }
 }

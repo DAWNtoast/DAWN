@@ -2,12 +2,36 @@
 
 在独立 Unity 验证工程运行，避免锁定玩家正在使用的主工程。先通过 EditMode / PlayMode，再构建；不要把 UIPreviews 或 SampleScene 加入成品。
 
+## 现役发布流程
+
+顺序为 `DesktopRelease.ps1 Snapshot` → 完整 EditMode / PlayMode → `Verify.ps1` → 提交并推送 Git → `Windows` → `Smoke` → `Package` → `Seal`。以下是流程说明，不代表本轮测试或发布已经通过。
+
+1. 在 `D:/Game/tmp` 下准备独立 Unity 工程，使用全新的快照、测试、验收和发布目录。调用 `DesktopRelease.ps1 -Stage Snapshot`，显式指定 `-ProjectPath`、`-EvidenceDirectory`、`-ReleaseDirectory`、`-Version`、`-ZipFileName` 与 `-ValidationSummary`；后续各阶段沿用相同参数。`-ValidationSummary` 指向稍后由 `Verify.ps1` 生成的 `verification-summary.json`。不要预先创建 Windows 成品目录，不覆盖历史证据，不恢复 `UIPreviewsForMe`。
+2. 对同一快照分别运行完整 EditMode 和 PlayMode，两次都必须传 `-SourceManifest`，不可带 `-TestFilter`。测试需要图形设备，使用 `RunTests.ps1` 的默认图形参数，不加 `-nographics`。例如下列路径必须先由本轮 Snapshot 准备；每次重跑换新的输出目录：
+
+```powershell
+$project = 'D:/Game/tmp/release-20261018-01'
+$snapshot = 'D:/Game/Artifacts/Release20261018/Snapshot01'
+$editRun = 'D:/Game/Artifacts/Release20261018/Edit01'
+$playRun = 'D:/Game/Artifacts/Release20261018/Play01'
+$verification = 'D:/Game/Artifacts/Release20261018/Verification01'
+& 'D:/Game/tools/ReleaseBuild/RunTests.ps1' -Platform EditMode -ProjectPath $project -Output $editRun -SourceManifest "$snapshot/source-manifest.csv"
+& 'D:/Game/tools/ReleaseBuild/RunTests.ps1' -Platform PlayMode -ProjectPath $project -Output $playRun -SourceManifest "$snapshot/source-manifest.csv"
+& 'D:/Game/tools/ReleaseBuild/Verify.ps1' -EditRun $editRun -PlayRun $playRun -SnapshotDirectory $snapshot -OutputDirectory $verification
+```
+
+3. 只有两套完整测试及 `Verify.ps1` 均成功后，才提交、推送已审核的源码和工具到 Git。校验器核对测试前后的输入清单哈希、结果 XML 哈希和逐项数量；`skipped-tests.json` 单独记录退役及专项条件跳过项，不能把跳过项算作通过。源码有修复时应重新建立快照并验证，不能沿用旧快照的通过结果。
+4. 使用同一快照依次运行 `DesktopRelease.ps1 -Stage Windows`、`-Stage Smoke`。添加准确的发布说明后运行 `-Stage Package`、`-Stage Seal`；每阶段成功再继续。实际成品冒烟与 ZIP 逐文件哈希检查属于出包验收，Git 推送成功不代替这些检查。
+
+每次发布必须明确版本：通用脚本传 `-Version`（例如 `0.3.20261018.1`，四段数字），直接调用 Unity builder 时传 `-releaseVersion`。示例版本仅供说明，发布时使用本轮指定的新版本；不要依赖 builder 的历史默认版本。下面保留的旧示例用于说明单项操作，不代替上述完整流程。
+
 ```powershell
 & 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Unity.exe' `
   -batchmode -quit `
   -projectPath D:/Game/tmp/regional-ports-check-20260906 `
   -executeMethod ShatteredSail.Editor.WindowsReleaseBuilder.BuildFromCommandLine `
   -releaseOutput D:/Game/Builds/ShatteredSail-Windows-20260916/ShatteredSail.exe `
+  -releaseVersion '0.3.20260916.1' `
   -logFile D:/Game/UnityClient/Artifacts/ReleaseAudit20260916/Build.log
 ```
 
@@ -41,6 +65,7 @@
   -projectPath D:/Game/UnityClient `
   -executeMethod ShatteredSail.Editor.WindowsReleaseBuilder.BuildFromCommandLine `
   -releaseOutput 'D:/Game/Builds/第七港口v1/第七港口v1.exe' `
+  -releaseVersion '0.3.20260916.1' `
   -logFile 'D:/Game/Builds/第七港口v1-build.log'
 
 & 'D:/Game/tools/ReleaseBuild/Package.ps1' `

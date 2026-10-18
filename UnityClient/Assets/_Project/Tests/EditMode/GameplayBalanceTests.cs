@@ -80,11 +80,11 @@ namespace ShatteredSail.Core.Tests
             session.Battle.Hand.Clear(); session.Battle.Hand.Add(0);
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
-            // Preserve the existing combat economy: choice reward plus the original 45-gold victory award.
-            Assert.That(session.Cargo.Gold, Is.EqualTo(initial + 110 + 45));
+            // Choice and base victory gold are combined before rounding to a hundred.
+            Assert.That(session.Cargo.Gold, Is.EqualTo(initial + 200));
             Assert.That(session.PlayCard(0), Is.False);
             Assert.That(session.ResolveChoice(0), Is.False);
-            Assert.That(session.Cargo.Gold, Is.EqualTo(initial + 110 + 45));
+            Assert.That(session.Cargo.Gold, Is.EqualTo(initial + 200));
         }
 
         [Test]
@@ -361,7 +361,7 @@ namespace ShatteredSail.Core.Tests
                 double first = 0, previous = 0;
                 foreach (var rarity in slot.GroupBy(entry => entry.Rarity).OrderBy(group => group.Key))
                 {
-                    double average = rarity.Average(entry => PortComponentShopCatalog.CalculatePrice(entry, "断锚港", 1f));
+                    double average = rarity.Average(entry => PortComponentShopCatalog.CalculatePrice(entry, "断锚港"));
                     Assert.That(average, Is.GreaterThan(previous));
                     if (first == 0) first = average;
                     previous = average;

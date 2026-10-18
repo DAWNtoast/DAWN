@@ -69,8 +69,6 @@ namespace ShatteredSail.Presentation.Tests
                 else if (scenario.StartsWith("departure"))
                 {
                     ClickAcceptanceButton("Port Hotspot Voyage");
-                    yield return null;
-                    ClickAcceptanceButton("Configure Voyage Crew");
                 }
                 else
                 {
@@ -128,9 +126,9 @@ namespace ShatteredSail.Presentation.Tests
                         }
                         else if (scenario.StartsWith("departure"))
                         {
-                            Slider slider = GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>();
-                            float next = operation % 2 == 0 ? slider.maxValue - 1 : slider.maxValue;
-                            action = () => slider.value = next;
+                            Button button = ActiveButton(operation % 2 == 0 ?
+                                "DepartureOrdinaryCrewDecreaseButton" : "DepartureOrdinaryCrewIncreaseButton");
+                            action = button.onClick.Invoke;
                         }
                         else if (scenario == "settlement_draw_chart") action = ActiveButton("Draw Sea Chart").onClick.Invoke;
                         else if (scenario == "navigation_distance_20_changes")
@@ -158,7 +156,7 @@ namespace ShatteredSail.Presentation.Tests
                     if (scenario.StartsWith("market"))
                         Assert.That(MarketQuantityField("wood").value, Is.EqualTo(40));
                     if (scenario.StartsWith("departure"))
-                        Assert.That(GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>().value,
+                        Assert.That(session.SelectedOrdinaryCrew,
                             Is.EqualTo(session.CrewCountValue - session.SelectedSpecialCrewCount));
                     if (scenario == "settlement_draw_chart")
                         Assert.That(ActiveButton("Draw Sea Chart").interactable, Is.False);

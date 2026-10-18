@@ -61,6 +61,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(voyage.Phase, Is.EqualTo(CoreDemoPhase.Encounter));
             Assert.That(voyage.IsChoiceAvailable(0), Is.False);
+            int continueChoice = core.Encounter.Choices.ToList().FindIndex(choice => choice.Effect.PostponeTreasureCore);
+            Assert.That(continueChoice, Is.GreaterThanOrEqualTo(0));
             yield return WaitForEncounterDossierPresentationCompletion();
             ScrollRect choices = GameObject.Find("Encounter Decision Viewport").GetComponent<ScrollRect>();
             Assert.That(choices.viewport.GetComponent<RectMask2D>(), Is.Not.Null);
@@ -70,7 +72,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return null;
                 Canvas.ForceUpdateCanvases();
             }
-            ActiveButton("Encounter Choice 3").GetComponent<RectTransform>().GetWorldCorners(corners);
+            ActiveButton("Encounter Choice " + continueChoice).GetComponent<RectTransform>().GetWorldCorners(corners);
             foreach (Vector3 corner in corners)
             {
                 Vector2 local = choices.viewport.InverseTransformPoint(corner);
@@ -78,7 +80,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(local.y, Is.InRange(choices.viewport.rect.yMin - .5f, choices.viewport.rect.yMax + .5f),
                     "The complete continue-exploring choice must be revealed before its real pointer click.");
             }
-            ClickAcceptanceButton("Encounter Choice 3");
+            ClickAcceptanceButton("Encounter Choice " + continueChoice);
             yield return null;
             Assert.That(voyage.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(core.Skipped, Is.True);

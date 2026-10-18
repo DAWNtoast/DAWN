@@ -30,6 +30,7 @@ namespace ShatteredSail.Presentation.Tests
                     if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
                         yield return ClickAchievementIconControl("Skip Settlement Reveal");
                     yield return ClickAchievementIconControl("Return To Port");
+                    yield return SchoolUnlockNoticeTestActions.ConfirmAll();
                     Assert.That(game.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                     Assert.That(VoyageAchievementUnlocked(), Is.EqualTo(completed == 3),
                         "Completions from separate shorter voyages must not accumulate.");
@@ -147,6 +148,7 @@ namespace ShatteredSail.Presentation.Tests
                     yield return ClickAchievementIconControl("Return To Port");
                     Assert.That(game.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                     Assert.That(game.Session.CurrentPort, Is.EqualTo(destination));
+                    yield return SchoolUnlockNoticeTestActions.ConfirmAll();
                     Assert.That(VoyageAchievementUnlocked(), Is.True);
                     Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageEventArrivalId), Is.EqualTo(completed >= 6 && arrive));
                     Assert.That(scope.Store.TryLoad(out _, out string notice), Is.False, notice);

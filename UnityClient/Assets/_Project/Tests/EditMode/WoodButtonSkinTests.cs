@@ -144,11 +144,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(button.colors, Is.EqualTo(before));
         }
 
-        [TestCase(CoreGameplayPreviewScreen.ComponentShopDetail, "Next Component Dossier Page")]
+        [TestCase(CoreGameplayPreviewScreen.ComponentShopDetail, "ComponentDossierPageStory")]
         [TestCase(CoreGameplayPreviewScreen.Battle, "End Battle Turn")]
         [TestCase(CoreGameplayPreviewScreen.Maintenance, "Confirm Port Investment")]
         [TestCase(CoreGameplayPreviewScreen.Navigation, "Execute Sail")]
-        [TestCase(CoreGameplayPreviewScreen.TavernCrewDetail, "Next Tavern Dossier Page")]
+        [TestCase(CoreGameplayPreviewScreen.TavernCrewDetail, "DossierPageStory")]
         [TestCase(CoreGameplayPreviewScreen.DeckBuilder, "Back To Card Workshop Chests")]
         [TestCase(CoreGameplayPreviewScreen.Shipyard, "Shipyard Next Vessel")]
         public void RuntimeFactoryAndEditorPreviewsUseTheSameSkin(CoreGameplayPreviewScreen screen, string name)
@@ -165,13 +165,16 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void MainMenuTextActionsKeepTransparentHitAreasWhileDialogsUseWood()
+        public void MainMenuTextActionsKeepTransparentHitAreasWhileDialogsUsePrimaryAndLightActions()
         {
             host = new GameObject("Wood Main Menu Test");
             host.AddComponent<MainMenuController>();
+            host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Achievements").onClick.Invoke();
             Button[] buttons = host.GetComponentsInChildren<Button>(true);
             Assert.That(buttons.Length, Is.GreaterThan(8));
             string[] actionNames = { "New Game", "Continue Game", "Settings", "Achievements", "Exit Game" };
+            string[] lightActions = { "Back From Settings", "Cancel New Game", "Achievements Previous Page",
+                "Achievements Next Page", "Achievements Filter Locked", "Achievements Filter Unlocked" };
             Button[] menuActions = buttons.Where(button => button.transform.parent.name == "Main Menu Content").ToArray();
             Assert.That(menuActions.Select(button => button.name), Is.EquivalentTo(actionNames));
             foreach (Button button in buttons)
@@ -179,7 +182,15 @@ namespace ShatteredSail.Presentation.Tests
                 Image background = button.GetComponent<Image>();
                 if (!menuActions.Contains(button))
                 {
-                    Assert.That(background.sprite, Is.SameAs(WoodButtonSkin.Face), button.name);
+                    if (lightActions.Contains(button.name))
+                    {
+                        Assert.That(background.sprite, Is.Not.Null, button.name);
+                        Assert.That(background.sprite.name, Is.EqualTo("Market Light Control"), button.name);
+                    }
+                    else Assert.That(background.sprite, Is.SameAs(WoodButtonSkin.Face), button.name);
+                    Assert.That(background.type, Is.EqualTo(Image.Type.Sliced), button.name);
+                    Assert.That(background.raycastTarget, Is.True, button.name);
+                    Assert.That(button.targetGraphic, Is.SameAs(background), button.name);
                     continue;
                 }
                 Assert.That(background.sprite, Is.Not.SameAs(WoodButtonSkin.Face), button.name);

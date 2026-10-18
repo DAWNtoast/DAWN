@@ -57,8 +57,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(GameObject.Find("Workshop Actions"), Is.Null);
             Assert.That(GameObject.Find("Card Upgrade Heading").GetComponent<Text>().text, Is.EqualTo("卡牌强化"));
-            AssertForgePage(controller, 0);
-            AssertForgeComparison(controller, 0);
+            Button[] numberedFirstPage = AssertForgePage(controller, 0);
+            AssertForgeComparison(controller, ForgeCardIndex(numberedFirstPage[0]));
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "WorkshopPreview_02_Upgrade.png",
                 "右侧整块羊皮纸显示卡名、等比例强化前后卡面与底部强化按钮", "Card Workshop Preview Panel");
@@ -260,6 +260,13 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
             yield return null;
+            while (ActiveButton("Select Upgrade Card 0") == null)
+            {
+                Assert.That(ActiveButton("Next Upgrade Cards").interactable, Is.True,
+                    "Chain shot must remain reachable in numbered catalog order.");
+                ActiveButton("Next Upgrade Cards").onClick.Invoke();
+                yield return null;
+            }
             ActiveButton("Select Upgrade Card 0").onClick.Invoke();
             yield return null;
             Button upgrade = ActiveButton("Confirm Battle Card Upgrade");

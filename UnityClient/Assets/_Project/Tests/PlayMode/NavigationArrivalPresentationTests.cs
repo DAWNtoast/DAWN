@@ -114,8 +114,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ActiveButton("Heading South").IsInteractable(), Is.True);
             Assert.That(GameObject.Find("Distance Slider").GetComponent<Slider>().IsInteractable(), Is.True);
             WriteNavigationArrivalAudit("event-resolution", resolutionAudit);
-            AssertNavigationArrivalContinuity(before, audit);
-            AssertNavigationArrivalContinuity(beforeResolution, resolutionAudit);
+            AssertNavigationArrivalContinuity(before, audit, true);
+            AssertNavigationArrivalContinuity(beforeResolution, resolutionAudit, false);
             NavalBattleVisualCapture.Capture(controller, "Navigation_Arrival_Resolution_Settled.png",
                 "事件处理结束后立即恢复航行，不重扣航程、水粮或时间", "Navigation Chart");
             LogAssert.NoUnexpectedReceived();
@@ -244,7 +244,8 @@ namespace ShatteredSail.Presentation.Tests
             return sample;
         }
 
-        private static void AssertNavigationArrivalContinuity(NavigationArrivalFrame before, NavigationArrivalAudit audit)
+        private static void AssertNavigationArrivalContinuity(NavigationArrivalFrame before, NavigationArrivalAudit audit,
+            bool? encounterAfterArrival = null)
         {
             Assert.That(audit.frames.Count, Is.GreaterThan(1));
             foreach (NavigationArrivalFrame frame in audit.frames)
@@ -254,11 +255,21 @@ namespace ShatteredSail.Presentation.Tests
                 for (int index = 0; index < frame.surfaces.Count; index++)
                 {
                     NavigationArrivalSurface actual = frame.surfaces[index], expected = before.surfaces[index];
+                    Rect expectedRect = expected.worldRect;
+                    if (encounterAfterArrival.HasValue && actual.name == "Forward View Panel" && frame.stage != "sailing")
+                    {
+                        // The journal intentionally occupies the entire right column.
+                        // Only the first stopped/resolved visual frame changes its bounds;
+                        // model Phase changes earlier, while the voyage is still animating.
+                        Rect controls = before.surfaces.Find(surface => surface.name == "Navigation Controls").worldRect;
+                        float bottom = encounterAfterArrival.Value ? controls.yMin : controls.yMax;
+                        expectedRect = Rect.MinMaxRect(expectedRect.xMin, bottom, expectedRect.xMax, expectedRect.yMax);
+                    }
                     Assert.That(actual.activeCount, Is.EqualTo(1), context + ": visible copies of " + actual.name);
-                    Assert.That(actual.worldRect.x, Is.EqualTo(expected.worldRect.x).Within(.1f), context + ": panel x");
-                    Assert.That(actual.worldRect.y, Is.EqualTo(expected.worldRect.y).Within(.1f), context + ": panel y");
-                    Assert.That(actual.worldRect.width, Is.EqualTo(expected.worldRect.width).Within(.1f), context + ": panel width");
-                    Assert.That(actual.worldRect.height, Is.EqualTo(expected.worldRect.height).Within(.1f), context + ": panel height");
+                    Assert.That(actual.worldRect.x, Is.EqualTo(expectedRect.x).Within(.1f), context + ": panel x");
+                    Assert.That(actual.worldRect.y, Is.EqualTo(expectedRect.y).Within(.1f), context + ": panel y");
+                    Assert.That(actual.worldRect.width, Is.EqualTo(expectedRect.width).Within(.1f), context + ": panel width");
+                    Assert.That(actual.worldRect.height, Is.EqualTo(expectedRect.height).Within(.1f), context + ": panel height");
                     Assert.That(actual.color, Is.EqualTo(expected.color), context + ": panel color");
                     Assert.That(actual.spriteId, Is.EqualTo(expected.spriteId), context + ": panel sprite");
                     Assert.That(actual.materialId, Is.EqualTo(expected.materialId), context + ": panel material");

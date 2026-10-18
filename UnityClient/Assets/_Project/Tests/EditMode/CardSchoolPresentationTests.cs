@@ -16,7 +16,7 @@ namespace ShatteredSail.Core.Tests
         {
             CardSchoolArtCatalog.ReleaseLoadedTextures();
             CoreBattleCard[] cards = CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None &&
-                !CardSchoolArtCatalog.HasSchoolIllustration(card)).ToArray();
+                !CardSchoolArtCatalog.HasSchoolIllustration(card) && !card.Id.StartsWith("card_boarding_")).ToArray();
             Assert.That(cards.Length, Is.GreaterThan(0));
             Assert.That(cards.Select(card => card.ArtId).Distinct().Count(), Is.LessThan(cards.Length),
                 "This audit must cover older cards that shared atlas cells.");
@@ -28,7 +28,7 @@ namespace ShatteredSail.Core.Tests
                     card.Id == "card_tactical_draw" ? "card_full_sail_turn" : null;
                 Texture2D texture = CardSchoolArtCatalog.Illustration(card, null);
                 Assert.That(texture, Is.Not.Null, card.Id);
-                Assert.That(texture.name, Is.EqualTo(reusedId ?? card.Id), card.Id + " resolves to its dedicated art or one explicit starter-utility reuse.");
+                Assert.That(texture.name, Is.EqualTo(reusedId ?? card.Id), card.Id + " resolves to its dedicated art or an explicit starter reuse.");
                 if (reusedId == null) Assert.That(textures.Add(texture), Is.True, card.Id + " reused another card's illustration.");
                 Assert.That(card.ArtId, Is.EqualTo(originalArtId), "Presentation must not rewrite the saved card definition.");
                 Assert.That(CardSchoolArtCatalog.DedicatedIllustrationPath(card), Is.EqualTo("CardArt/Western/" + (reusedId ?? card.Id)));
@@ -42,13 +42,42 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
+        [TestCase("card_turn_port")]
+        [TestCase("card_turn_starboard")]
+        [TestCase("card_turn_about")]
+        [TestCase("card_sail_forward")]
+        public void RetiredNavalManoeuvres_ResolveToRetainedApproachIllustration(string cardId)
+        {
+            CardSchoolArtCatalog.ReleaseLoadedTextures();
+            int index = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
+                .Single(candidate => CoreVoyageSession.CardLibrary[candidate].Id == cardId);
+            Assert.That(CoreVoyageSession.CardLibrary[index].AllowedStages, Is.EqualTo(NavalBattleStages.None));
+            CoreBattleCard card = new CoreVoyageSession().GetBattleCard(index);
+            Assert.That(card.Id, Is.EqualTo("card_approach"));
+            string expectedPath = "CardArt/Western/card_approach";
+            Texture2D completeArt = Resources.Load<Texture2D>(expectedPath);
+            Assert.That(completeArt, Is.Not.Null, expectedPath + " must be shipped as a complete resource.");
+            Assert.That(card.ArtId, Is.EqualTo("card_full_sail_turn"));
+            Assert.That(CardSchoolArtCatalog.WesternIllustrationPath(card), Is.EqualTo(expectedPath));
+            Assert.That(CardSchoolArtCatalog.DedicatedIllustrationPath(card), Is.EqualTo(expectedPath));
+            Assert.That(CardSchoolArtCatalog.HasDedicatedArt(card), Is.True);
+            Assert.That(CardSchoolArtCatalog.Illustration(card, null), Is.SameAs(completeArt));
+            Assert.That(CardSchoolArtCatalog.IllustrationUv(card, null), Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+        }
+
         [Test]
         public void WesternCardArt_MissingReplacementKeepsLegacyAtlasFallbackForCompatibleCards()
         {
             var card = new CoreBattleCard("card_unshipped_art_compatibility_probe", "兼容检查", "防御", 1,
                 0, 3, 0, 0, 0, "格挡 +3。", NavalBattleStages.Ship, artId: "card_brace");
             var legacy = new LegacyDemoArtCatalog();
+            Assert.That(CardSchoolArtCatalog.WesternIllustrationPath(card),
+                Is.EqualTo("CardArt/Western/card_unshipped_art_compatibility_probe"));
+            Assert.That(CardSchoolArtCatalog.DedicatedIllustrationPath(card),
+                Is.EqualTo("CardArt/Western/card_unshipped_art_compatibility_probe"));
             Assert.That(CardSchoolArtCatalog.HasDedicatedArt(card), Is.False);
+            Assert.That(CardSchoolArtCatalog.Illustration(card, null), Is.Null,
+                "Unapproved reuse must remain missing in the strict packaged-art check.");
             Assert.That(CardSchoolArtCatalog.Illustration(card, legacy), Is.SameAs(legacy.CardSheet));
             Assert.That(CardSchoolArtCatalog.IllustrationUv(card, legacy),
                 Is.EqualTo(CardFaceLayout.IllustrationUv(legacy.CardUv("card_brace"))));
@@ -59,13 +88,28 @@ namespace ShatteredSail.Core.Tests
         public void SchoolCatalog_HasDistinctAuthoredArtAndAllThirtySixIntegratedFrameVariants()
         {
             CardSchoolArtCatalog.ReleaseLoadedTextures();
-            CoreBattleCard[] cards = CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None &&
+            CoreBattleCard[] schoolCards = CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None &&
                 CardSchoolArtCatalog.NormalizeSchool(card.SchoolId) != "neutral").ToArray();
+            var boardingIds = new System.Collections.Generic.HashSet<string>(CoreBoardingCardCatalog.All.Select(card => card.Id));
+            CoreBattleCard[] expansion = CoreNavalSchoolExpansionCatalog.All.ToArray();
+            var expansionIds = new System.Collections.Generic.HashSet<string>(expansion.Select(card => card.Id));
+            CoreBattleCard[] activeExpansion = schoolCards.Where(card => expansionIds.Contains(card.Id)).ToArray();
+            Assert.That(expansion, Has.Length.EqualTo(27));
+            Assert.That(expansionIds, Has.Count.EqualTo(27), "Every naval expansion card needs a distinct stable identity.");
+            Assert.That(activeExpansion, Has.Length.EqualTo(27));
+            Assert.That(activeExpansion.Select(card => card.Id), Is.EquivalentTo(expansionIds),
+                "All naval expansion cards must remain active and classified in a known school.");
+            CoreBattleCard[] cards = schoolCards.Where(card => !boardingIds.Contains(card.Id) && !expansionIds.Contains(card.Id)).ToArray();
             Assert.That(cards, Has.Length.EqualTo(132), "Six schools each contain ten base, two crew, five epic and five legendary cards.");
             Assert.That(cards.Select(card => card.ArtId).Distinct().Count(), Is.EqualTo(132), "Each card needs its own authored illustration.");
+            Assert.That(schoolCards, Has.Length.EqualTo(249));
+            var originalArtIds = new System.Collections.Generic.HashSet<string>(cards.Select(card => card.ArtId));
+            Assert.That(originalArtIds.SetEquals(schoolCards.Select(card => card.ArtId)), Is.True,
+                "Boarding and naval expansion cards must reuse the complete approved set of 132 school illustrations.");
             var legacy = new LegacyDemoArtCatalog();
-            foreach (CoreBattleCard card in cards)
+            foreach (CoreBattleCard card in cards.Concat(expansion))
             {
+                Assert.That(CardSchoolArtCatalog.HasDedicatedArt(card), Is.True, card.Id + " must resolve to a complete approved image.");
                 Texture2D art = CardSchoolArtCatalog.Illustration(card, legacy);
                 Assert.That(art, Is.Not.Null, card.Id + " / " + card.ArtId);
                 Assert.That(art.width, Is.EqualTo(1024), card.Id + " preserves high-density card illustration detail");
@@ -110,6 +154,22 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void BoardingDesigns_ReuseExistingCompleteIllustrationsAndAvailableFrames()
+        {
+            Assert.That(CoreBoardingCardCatalog.All.Count, Is.EqualTo(103));
+            foreach (CoreBattleCard card in CoreBoardingCardCatalog.All)
+            {
+                Texture2D illustration = CardSchoolArtCatalog.Illustration(card, null);
+                Assert.That(illustration, Is.Not.Null, card.Id + " must reuse an existing image");
+                Assert.That(illustration.name, Is.EqualTo(card.ArtId), card.Id);
+                Assert.That(CardSchoolArtCatalog.IllustrationUv(card, null), Is.EqualTo(new Rect(0f, 0f, 1f, 1f)), card.Id);
+                Assert.That(CardSchoolArtCatalog.Frame(card), Is.Not.Null, card.Id + " / " + CardSpecialCostPresentation.ResourceType(card));
+            }
+            Assert.That(CoreBoardingCardCatalog.All.Select(card => card.ArtId).Distinct().Count(), Is.LessThan(103),
+                "The new set intentionally reuses existing art, as requested.");
+        }
+
+        [Test]
         public void ProductionCardFactory_KeepsLiveCostsTextAndIllustrationIndependentOfTheSchoolFrame()
         {
             GameObject host = new GameObject("School Card Production Face Audit");
@@ -149,10 +209,10 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(name.text, Is.EqualTo(CardFaceLayout.DisplayName(card)), card.Id);
                         NavalBattleStage previewStage = card.IsAllowedInStage(NavalBattleStage.Boarding) ? NavalBattleStage.Boarding :
                             card.IsAllowedInStage(NavalBattleStage.Naval) ? NavalBattleStage.Naval : NavalBattleStage.Preparation;
-                        Assert.That(VisibleEffectWithoutLineBreaks(effect.text),
-                            Is.EqualTo(VisibleEffectWithoutLineBreaks(CardFaceLayout.FormatDescription(
-                                controller.Session.BattleCardFaceDescription(card, previewStage)))), card.Id);
-                        Assert.That(effect.text, Does.Not.Contain("实际").And.Not.Contain("当前炮击").And.Not.Contain("无药基础"), card.Id);
+                        CardDescriptionTextTests.AssertVisibleWordsAndClauseBoundaries(
+                            CardFaceLayout.FormatDescription(controller.Session.BattleCardFaceDescription(card, previewStage)),
+                            effect.text, card.Id);
+                        Assert.That(effect.text, Does.Not.Contain("人接舷实际").And.Not.Contain("当前炮击").And.Not.Contain("无药基础"), card.Id);
                         Assert.That(effect.preferredHeight, Is.LessThanOrEqualTo(CardFaceLayout.EffectSize.y + .1f), card.Id);
                         Assert.That(fields.Single(value => value.name == "Audit Energy Cost").text, Is.EqualTo(card.Energy.ToString()));
                         CardOrnamentGraphic energy = face.GetComponentsInChildren<CardOrnamentGraphic>().Single(item => item.Kind == CardOrnamentKind.Energy);
@@ -382,17 +442,16 @@ namespace ShatteredSail.Core.Tests
                 host.SetActive(true);
                 typeof(CoreVoyageSession).GetMethod("EnterBattleStage", BindingFlags.Instance | BindingFlags.NonPublic)
                     .Invoke(controller.Session, new object[] { NavalBattleStage.Boarding });
-                CoreBattleCard card = CoreVoyageSession.CardLibrary.First(value => value.SchoolId == "blood" &&
-                    value.IsAllowedInStage(NavalBattleStage.Boarding) && value.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodRisk);
-                int payment = card.SchoolEffect.Threshold;
+                CoreBattleCard card = CoreBoardingCardCatalog.FindByKey("blood_01");
+                int payment = 3;
                 controller.Session.Battle.PlayerBoardingHealth = payment + 7;
                 MethodInfo method = typeof(CoreGameplayDemoController).GetMethod("SchoolCardKeywordHelp", BindingFlags.Instance | BindingFlags.NonPublic);
                 string permitted = (string)method.Invoke(controller, new object[] { card });
-                Assert.That(permitted, Does.Contain("支付 " + payment + "；支付后 7"));
+                Assert.That(VisibleEffectWithoutLineBreaks(permitted), Does.Contain("支付 " + payment + "；支付后 7"));
                 Assert.That(permitted, Does.Not.Contain("生命不足"));
                 controller.Session.Battle.PlayerBoardingHealth = payment;
                 string blocked = (string)method.Invoke(controller, new object[] { card });
-                Assert.That(blocked, Does.Contain("生命不足，不能出牌"));
+                Assert.That(VisibleEffectWithoutLineBreaks(blocked), Does.Contain("生命不足，不能出牌"));
             }
             finally { Object.DestroyImmediate(host); }
         }

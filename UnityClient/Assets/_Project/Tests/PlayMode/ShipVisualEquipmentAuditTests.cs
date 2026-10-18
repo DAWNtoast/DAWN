@@ -20,6 +20,7 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             for (int ship = 1; ship < CoreVoyageSession.Ships.Count; ship++)
                 PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(ship), 1);
+            SeedShipPortLocationsForFixture("断锚港", Enumerable.Range(0, CoreVoyageSession.Ships.Count).ToArray());
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
             yield return null;
@@ -44,11 +45,11 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
                 {
                     ComponentArtEntry replacement = catalog.Entries.First(entry => entry.Slot == slot && entry.Rarity == ComponentRarity.Rare);
-                    OwnedShipComponent item = controller.GrantOwnedComponent(replacement, 1f);
+                    OwnedShipComponent item = controller.GrantOwnedComponent(replacement);
                     Assert.That(controller.TryEquipOwnedComponent(ship, item.InstanceId), Is.True, ship + " / " + slot);
                 }
                 yield return ClickShipyardControl("Shipyard Ship " + ship);
-                yield return ClickShipyardControl("Back To Shipyard Gallery");
+                yield return ClickShipyardControl("Return To Port Hub");
                 AssertBaseShipVisualWithInstalledComponents(controller, ship, "Shipyard Ship " + ship);
                 AssertGalleryHullWaterContact(ship);
                 yield return new WaitForSecondsRealtime(0.35f);

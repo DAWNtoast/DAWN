@@ -12,6 +12,8 @@ namespace ShatteredSail.Core.Gameplay
         ThunderPrime, ThunderChain, ThunderFinish, ThunderWard, ThunderEcho,
         BloodRisk, BloodDrain, BloodWard, BloodMend, BloodExecute,
         ArcaneCapacity, ArcaneTemporary, ThunderReady,
+        SpecialFireDoctrine, SpecialArcaneDoctrine, SpecialCurseDoctrine,
+        SpecialTideDoctrine, SpecialThunderDoctrine, SpecialBloodDoctrine,
     }
 
     [Flags]
@@ -45,12 +47,13 @@ namespace ShatteredSail.Core.Gameplay
         public int FallbackDamage { get; }
         public int FallbackBlock { get; }
         public int WoodCost { get; }
-        public CoreSchoolCardEffect AtLevel(int level, bool allowExtraDraw = true)
+        public CoreSchoolCardEffect AtLevel(int level, bool allowExtraDraw = true, int utilityMaximumLevel = 3)
         {
             if (level < 1) return this;
             int power = Upgrade(Power, CoreSchoolUpgradeFields.Power, level);
-            if (level >= 3 && allowExtraDraw && (Mechanic == CoreSchoolMechanic.ArcaneEcho || Mechanic == CoreSchoolMechanic.ThunderEcho))
-                power = (int)Math.Min(int.MaxValue, (long)power + 1);
+            if (Mechanic == CoreSchoolMechanic.ArcaneEcho || Mechanic == CoreSchoolMechanic.ThunderEcho)
+                power = (int)Math.Min(int.MaxValue, (long)Power +
+                    (allowExtraDraw ? Math.Max(0, Math.Min(level, utilityMaximumLevel)) : 0));
             return new CoreSchoolCardEffect(Mechanic, power,
                 Upgrade(Secondary, CoreSchoolUpgradeFields.Secondary, level), Upgrade(Threshold, CoreSchoolUpgradeFields.Threshold, level),
                 Upgrade(Duration, CoreSchoolUpgradeFields.Duration, level), Upgrade(Limit, CoreSchoolUpgradeFields.Limit, level),

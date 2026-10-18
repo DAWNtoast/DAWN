@@ -97,6 +97,27 @@ namespace ShatteredSail.Editor
             // texture-level sampling/readability/mipmap property untouched.
         }
 
+        public static bool RequiresUncompressedMipmaps(int width, int height, bool mipmapsEnabled) =>
+            mipmapsEnabled && (!Mathf.IsPowerOfTwo(width) || !Mathf.IsPowerOfTwo(height));
+
+        public static void ConfigureImportedTextureSettings(TextureImporter importer, TextureImporterPlatformSettings settings)
+        {
+            if (importer == null) throw new ArgumentNullException(nameof(importer));
+            ConfigureStandaloneSettings(settings);
+            importer.GetSourceTextureWidthAndHeight(out int width, out int height);
+            // Explicit POT scaling can make a Default texture compressible. Sprite
+            // imports retain their source dimensions regardless of that setting.
+            bool scalesToPowerOfTwo = importer.textureType == TextureImporterType.Default &&
+                importer.npotScale != TextureImporterNPOTScale.None;
+            if (!scalesToPowerOfTwo && RequiresUncompressedMipmaps(width, height, importer.mipmapEnabled))
+            {
+                // BC7 cannot encode NPOT mip chains. Keep the authored resolution
+                // and mip sampling instead of stretching the art or dropping mips.
+                settings.format = TextureImporterFormat.RGBA32;
+                settings.textureCompression = TextureImporterCompression.Uncompressed;
+            }
+        }
+
         /// <summary>Pixel-center, clamped bilinear resampling over the whole normalized UV domain.</summary>
         public static Color32[] Resample(Color32[] source, int width, int height, int targetWidth, int targetHeight)
         {
@@ -136,6 +157,18 @@ namespace ShatteredSail.Editor
         public static void CompressImportedTexture(Texture2D texture, bool mipmapsEnabled)
         {
             if (texture == null) throw new ArgumentNullException(nameof(texture));
+            if (RequiresUncompressedMipmaps(texture.width, texture.height, mipmapsEnabled))
+            {
+                if (texture.format != TextureFormat.RGBA32)
+                {
+                    Color32[] pixels = texture.GetPixels32();
+                    if (!texture.Reinitialize(texture.width, texture.height, TextureFormat.RGBA32, true))
+                        throw new InvalidOperationException("Cannot preserve the NPOT background mip chain.");
+                    texture.SetPixels32(pixels);
+                    texture.Apply(true, false);
+                }
+                return;
+            }
             int width = AlignedDimension(texture.width), height = AlignedDimension(texture.height);
             if (width != texture.width || height != texture.height)
             {
@@ -155,7 +188,7 @@ namespace ShatteredSail.Editor
         [Serializable] private sealed class Audit
         {
             public string generatedUtc, target;
-            public string scope = "Explicit whitelist reimport. Source PNG bytes unchanged; desktop BC7; nearest-four whole-image resampling. Build/package size and visual quality require separate validation.";
+            public string scope = "Explicit whitelist reimport. Source PNG bytes unchanged; desktop BC7 with nearest-four whole-image resampling, or original-resolution RGBA32 for NPOT mip chains. Build/package size and visual quality require separate validation.";
             public int listed, imported, missing, excluded, failed;
             public List<Record> assets = new List<Record>();
         }
@@ -214,7 +247,7 @@ namespace ShatteredSail.Editor
                             // callback-only changes may be too late for format
                             // selection in an already prepared import request.
                             var settings = previous.overridden ? previous : importer.GetDefaultPlatformTextureSettings();
-                            ConfigureStandaloneSettings(settings);
+                            ConfigureImportedTextureSettings(importer, settings);
                             importer.SetPlatformTextureSettings(settings);
                             importer.SaveAndReimport();
                             importer = (TextureImporter)AssetImporter.GetAtPath(path);
@@ -224,8 +257,10 @@ namespace ShatteredSail.Editor
                             record.format = texture.format.ToString(); record.graphicsFormat = texture.graphicsFormat.ToString();
                             record.mipmapCount = texture.mipmapCount; record.readable = texture.isReadable;
                             record.sourceUnchanged = record.sourceSha256 == SourceHash(path);
-                            if (!record.sourceUnchanged || texture.format != TextureFormat.BC7 || texture.width % 4 != 0 || texture.height % 4 != 0)
-                                throw new InvalidOperationException("Source bytes, BC7 format, or aligned dimensions failed verification.");
+                            bool uncompressedMips = RequiresUncompressedMipmaps(texture.width, texture.height, oldMips);
+                            if (!record.sourceUnchanged || (uncompressedMips ? texture.format != TextureFormat.RGBA32 :
+                                texture.format != TextureFormat.BC7 || texture.width % 4 != 0 || texture.height % 4 != 0))
+                                throw new InvalidOperationException("Source bytes or desktop texture format/dimensions failed verification.");
                             if (importer.isReadable != oldReadable || texture.isReadable != oldReadable || importer.mipmapEnabled != oldMips ||
                                 (texture.mipmapCount > 1) != oldMips ||
                                 importer.filterMode != oldFilter || importer.wrapModeU != oldU || importer.wrapModeV != oldV || importer.wrapModeW != oldW ||

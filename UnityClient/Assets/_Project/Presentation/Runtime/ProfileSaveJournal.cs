@@ -13,7 +13,7 @@ namespace ShatteredSail.Presentation
     public static class ProfileSaveJournal
     {
         private const string Format = "ShatteredSail.ProfileSaveJournal";
-        private const int CurrentVersion = 3;
+        private const int CurrentVersion = 5;
         private const string VoyageThreeEventsKey = "ShatteredSail.Achievements.Unlocked.v1.voyage_three_events";
         private static readonly string[] VersionThreeAchievementKeys =
         {
@@ -31,7 +31,9 @@ namespace ShatteredSail.Presentation
             "ShatteredSail.Achievements.Unlocked.v1.dispatch_resolved",
         };
         private static readonly KeySpec[] Specs = BuildSpecs();
-        private static readonly KeySpec[] VersionTwoSpecs = Specs.Where(spec => !VersionThreeAchievementKeys.Contains(spec.Key)).ToArray();
+        private static readonly KeySpec[] VersionFourSpecs = Specs.Where(spec => spec.Key != CoreGameplayDemoController.WarehouseIncomeKey).ToArray();
+        private static readonly KeySpec[] VersionThreeSpecs = VersionFourSpecs.Where(spec => spec.Key != CoreGameplayDemoController.ShipPortProgressKey).ToArray();
+        private static readonly KeySpec[] VersionTwoSpecs = VersionThreeSpecs.Where(spec => !VersionThreeAchievementKeys.Contains(spec.Key)).ToArray();
         private static readonly KeySpec[] VersionOneSpecs = VersionTwoSpecs.Where(spec => spec.Key != VoyageThreeEventsKey).ToArray();
         public static IReadOnlyList<string> ProtectedKeys { get; } = Array.AsReadOnly(Specs.Select(spec => spec.Key).ToArray());
         private static string DirectoryPath => Path.GetFullPath(directoryOverride ?? Path.Combine(Application.persistentDataPath, "ProfileSaveJournal"));
@@ -142,6 +144,12 @@ namespace ShatteredSail.Presentation
                 if (record.version == 1) PlayerPrefs.DeleteKey(VoyageThreeEventsKey);
                 if (record.version < 3)
                     foreach (string key in VersionThreeAchievementKeys) PlayerPrefs.DeleteKey(key);
+                // A pre-location journal predates migration, so an interrupted
+                // newer save must not leave the fleet at its uncommitted ports.
+                if (record.version < 4) PlayerPrefs.DeleteKey(CoreGameplayDemoController.ShipPortProgressKey);
+                // An older journal cannot commit part of a newly introduced
+                // collection-income claim independently of the account balance.
+                if (record.version < 5) PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
                 PlayerPrefs.Save();
                 if (!store.TryClear(out notice)) return false;
                 ForgetActive();
@@ -180,7 +188,8 @@ namespace ShatteredSail.Presentation
                 notice = "角色保存日志损坏、版本不兼容或不属于当前角色，已停止读取和覆盖，原文件已保留。";
                 return false;
             }
-            KeySpec[] expected = candidate.version == 1 ? VersionOneSpecs : candidate.version == 2 ? VersionTwoSpecs : Specs;
+            KeySpec[] expected = candidate.version == 1 ? VersionOneSpecs : candidate.version == 2 ? VersionTwoSpecs :
+                candidate.version == 3 ? VersionThreeSpecs : candidate.version == 4 ? VersionFourSpecs : Specs;
             bool includesRetired = candidate.version == 1 &&
                 candidate.entries.Length == VersionOneSpecs.Length + RetiredAchievementKeys.Length;
             // Each version requires its exact manifest. Missing newer keys
@@ -274,9 +283,11 @@ namespace ShatteredSail.Presentation
             {
                 CoreGameplayDemoController.ComponentInventoryKey, CoreGameplayDemoController.WarehouseOwnedKey,
                 CoreGameplayDemoController.WarehouseDisplayKey, CoreGameplayDemoController.PortWarehouseCargoKey,
+                CoreGameplayDemoController.WarehouseIncomeKey,
                 CoreGameplayDemoController.CollectionProgressKey, CoreGameplayDemoController.TreasureProgressKey,
                 CoreGameplayDemoController.SeaChartProgressKey, CoreGameplayDemoController.GameClockKey,
                 ProfileGoldPersistence.DecimalKey, CoreGameplayDemoController.CurrentPortKey,
+                CoreGameplayDemoController.ShipPortProgressKey,
                 CoreGameplayDemoController.LastVoyageExplorationCoverageKey,
                 CoreGameplayDemoController.BattleDeckKey, CoreGameplayDemoController.BattleCardUpgradeKey,
                 CoreGameplayDemoController.SpecialCardExperienceKey, CoreGameplayDemoController.AcquiredSpecialCardsKey,

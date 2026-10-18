@@ -14,6 +14,7 @@ namespace ShatteredSail.Presentation
     {
         private bool shipyardDetailOpen;
         private ShipyardDossierTab shipyardDossierTab;
+        private bool IsShipyardDossierOpen => activePortFacility == 1 && shipyardDetailOpen;
 
         private static readonly string[] ShipyardHistories =
         {
@@ -39,6 +40,9 @@ namespace ShatteredSail.Presentation
             (index == 0 || (!(editorPreviewBuilding || !Application.isPlaying) &&
             (index == session.SelectedShipIndex || PlayerPrefs.GetInt(ShipOwnedKey(index), 0) == 1)));
 
+        private bool IsShipyardVesselAtCurrentPort(int index) => OwnsShipyardVessel(index) &&
+            session != null && session.IsShipAtCurrentPort(index);
+
         private int ShipyardPortIndex()
         {
             for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
@@ -49,9 +53,10 @@ namespace ShatteredSail.Presentation
         private List<int> VisibleShipyardVessels()
         {
             var visible = new List<int>();
-            foreach (int index in CoreShipMarketCatalog.ShipsForPort(ShipyardPortIndex())) visible.Add(index);
+            foreach (int index in CoreShipMarketCatalog.ShipsForPort(ShipyardPortIndex()))
+                if (!OwnsShipyardVessel(index) || IsShipyardVesselAtCurrentPort(index)) visible.Add(index);
             for (int index = 0; index < CoreVoyageSession.Ships.Count; index++)
-                if (OwnsShipyardVessel(index) && !visible.Contains(index)) visible.Add(index);
+                if (IsShipyardVesselAtCurrentPort(index) && !visible.Contains(index)) visible.Add(index);
             // Authored/editor inspections can name any catalog vessel without
             // borrowing a player's ownership flags or granting purchasing rights.
             if (!Application.isPlaying && editorPreviewShipIndex >= 0 && editorPreviewShipIndex < CoreVoyageSession.Ships.Count &&
@@ -68,8 +73,8 @@ namespace ShatteredSail.Presentation
         private string ShipyardOwnershipLabel(int index)
         {
             bool local = CoreShipMarketCatalog.IsSoldAtPort(ShipyardPortIndex(), index);
-            if (index == session.SelectedShipIndex) return local ? "当前旗舰" : "当前旗舰 · 已拥有外港船";
-            if (OwnsShipyardVessel(index)) return local ? "已拥有" : "已拥有外港船";
+            if (index == session.SelectedShipIndex) return local ? "当前旗舰" : "当前旗舰 · 随航抵港";
+            if (OwnsShipyardVessel(index)) return "已拥有 · 停泊本港";
             return local ? "售价 " + CoreShipMarketCatalog.PurchaseCost(index) + " 金币" : "本港不售 · 所属港 " + ShipyardVesselHomePort(index);
         }
 
@@ -90,6 +95,11 @@ namespace ShatteredSail.Presentation
             CoreVoyageSession owner = session;
             string port = session.CurrentPort;
             int revision = shipyardViewRevision;
+            if (shipyardDetailOpen && shipyardDossierTab == ShipyardDossierTab.Equipment)
+            {
+                BuildShipyardEquipmentWindow(selectedShipPreview);
+                return;
+            }
             RectTransform panel = CreateFixedPanel("Shipyard Panel", contentRoot, new Vector2(1820f, 780f), new Vector2(0f, -55f), Color.clear);
             panel.GetComponent<Image>().raycastTarget = false;
             if (shipyardDetailOpen)
@@ -100,7 +110,7 @@ namespace ShatteredSail.Presentation
 
             int index = selectedShipPreview;
             Vector2 waterline = new Vector2(0f, -145f);
-            CreateShipyardWater("Shipyard Water Shadow", panel, waterline, false);
+            RectTransform waterShadow = CreateShipyardWater("Shipyard Water Shadow", panel, waterline, false);
             Image glow = CreateImage("Shipyard Berth Glow " + index, panel, new Vector2(620f, 40f), waterline, Color.clear, circleSprite);
             glow.raycastTarget = false;
             RectTransform vessel = CreateRect("Shipyard Floating Vessel", panel, new Vector2(780f, 590f), Vector2.zero);
@@ -111,7 +121,8 @@ namespace ShatteredSail.Presentation
             Button inspect = vessel.gameObject.AddComponent<Button>();
             inspect.targetGraphic = shipArt;
             inspect.gameObject.name = "Shipyard Ship " + index;
-            CreateShipyardWater("Shipyard Water Contact", panel, waterline, true);
+            RectTransform waterContact = CreateShipyardWater("Shipyard Water Contact", panel, waterline, true);
+            ConfigureShipyardWaterForHull(panel, (RawImage)shipArt, waterline, waterShadow, waterContact);
 
             // The ship can be inspected regardless of price or ownership. The
             // gallery never invokes payment or silently switches the flagship.
@@ -200,10 +211,25 @@ namespace ShatteredSail.Presentation
             RefreshShipyardDossierView();
         }
 
-        private void CreateShipyardWater(string name, Transform parent, Vector2 waterline, bool foam)
+        private RectTransform CreateShipyardWater(string name, Transform parent, Vector2 waterline, bool foam)
         {
             RectTransform rect = CreateRect(name, parent, new Vector2(650f, 62f), waterline);
             rect.gameObject.AddComponent<BattleShipWaterGraphic>().Configure(foam, 0.5f);
+            return rect;
+        }
+
+        private static void ConfigureShipyardWaterForHull(RectTransform panel, RawImage hull, Vector2 waterline,
+            RectTransform shadow, RectTransform contact)
+        {
+            Vector3 center = panel.InverseTransformPoint(hull.rectTransform.TransformPoint(ShipWaterlineLayout.HullContactLocal(hull)));
+            Vector3 span = panel.InverseTransformVector(hull.rectTransform.TransformVector(
+                new Vector3(ShipWaterlineLayout.HullWidthLocal(hull), 0f, 0f)));
+            float width = Mathf.Max(80f, Mathf.Abs(span.x));
+            foreach (RectTransform effect in new[] { shadow, contact })
+            {
+                effect.anchoredPosition = new Vector2(center.x, waterline.y);
+                effect.sizeDelta = new Vector2(width, Mathf.Clamp(width * .095f, 26f, 62f));
+            }
         }
 
         private Graphic BuildShipyardVessel(Transform parent, int index, Vector2 waterline, float scale, string prefix)
@@ -243,80 +269,63 @@ namespace ShatteredSail.Presentation
             CoreVoyageSession owner = session;
             string port = session.CurrentPort;
             int revision = shipyardViewRevision;
-            RectTransform detail = CreateFixedPanel("Shipyard Detail", panel, new Vector2(1630f, 744f), new Vector2(0f, -10f), Color.clear);
+            RectTransform detail = CreateFixedPanel("Shipyard Detail", panel, new Vector2(1820f, 650f), Vector2.zero, Color.clear);
             detail.GetComponent<Image>().raycastTarget = false;
-            Image paper = CreateImage("Shipyard Dossier Parchment", detail, new Vector2(1620f, 820f), Vector2.zero, Color.white);
-            NauticalSurfaceSkin.ApplyReadingPanel(paper);
-            paper.raycastTarget = false;
+            BuildShipyardDossierArt(detail, index);
+            RectTransform profile = CreateRect("Shipyard Dossier Profile", detail, new Vector2(1060f, 615f), new Vector2(212f, -10f));
             Color ink = Html("#302116");
             Color muted = Html("#76502B");
             CoreShipDefinition definition = CoreVoyageSession.Ships[index];
-            ShipyardText("Shipyard Dossier Name", detail, new Vector2(1440f, 55f), new Vector2(0f, 287f), 36, ink, TextAnchor.MiddleLeft).text = definition.Name;
-            ShipyardText("Shipyard Dossier Role", detail, new Vector2(1440f, 34f), new Vector2(0f, 242f), 23, muted, TextAnchor.MiddleLeft).text =
-                CoreShipMarketCatalog.Role(index) + "　·　所属港：" + ShipyardVesselHomePort(index);
+            Text name = ShipyardText("Shipyard Dossier Name", profile, new Vector2(390f, 52f), new Vector2(-182f, 220f), 36, ink, TextAnchor.MiddleLeft);
+            GameTypography.Apply(name, 36, FontStyle.Bold);
+            name.text = definition.Name;
+            Text role = ShipyardText("Shipyard Dossier Role", profile, new Vector2(450f, 52f), new Vector2(255f, 220f), 22, Html("#862F26"), TextAnchor.MiddleLeft);
+            GameTypography.Apply(role, 22, FontStyle.Bold);
+            role.text =
+                ShipyardVesselHomePort(index) + "　·　" + CoreShipMarketCatalog.Role(index);
             string[] tabLabels = { "船只性能", "船只背景", "配件装配" };
             for (int tabIndex = 0; tabIndex < tabLabels.Length; tabIndex++)
             {
                 ShipyardDossierTab tab = (ShipyardDossierTab)tabIndex;
-                Button tabButton = CreateButton("Shipyard Dossier Tab " + tab, detail, new Vector2(440f, 46f),
-                    new Vector2(-486f + 486f * tabIndex, 192f), Gold, Ink, 25);
+                Button tabButton = CreateButton("Shipyard Dossier Tab " + tab, profile, new Vector2(294f, 42f),
+                    new Vector2((tabIndex - 1) * 318f, 160f), Gold, Ink, 24);
                 tabButton.GetComponentInChildren<Text>().text = tabLabels[tabIndex];
                 WoodButtonSkin.SetSelected(tabButton, shipyardDossierTab == tab);
                 tabButton.onClick.AddListener(() =>
                 {
                     if (!IsCurrentShipyardControl(tabButton, owner, port, revision) ||
                         !shipyardDetailOpen || selectedShipPreview != index) return;
+                    if (tab == ShipyardDossierTab.Equipment) shipyardEquipmentReturnTab = shipyardDossierTab;
                     shipyardDossierTab = tab;
                     ResetShipyardEquipmentSelection();
                     RefreshShipyardDossierView();
                 });
             }
-            if (shipyardDossierTab == ShipyardDossierTab.Equipment)
-                BuildShipyardEquipmentPage(detail, index, ink, muted);
-            else
+            if (shipyardDossierTab == ShipyardDossierTab.Background)
             {
-                BuildShipyardVessel(detail, index, new Vector2(-468f, -151f), 0.60f, "Shipyard Dossier");
-                if (shipyardDossierTab == ShipyardDossierTab.Background)
-                {
-                    RectTransform storyPage = CreateRect("Shipyard Background Page", detail, new Vector2(750f, 350f), new Vector2(326f, -20f));
-                    ShipyardText("Shipyard Dossier Story Title", storyPage, new Vector2(750f, 40f), new Vector2(0f, 130f), 30, muted, TextAnchor.MiddleLeft).text = "船坞旧闻";
-                    ShipyardText("Shipyard Dossier Story", storyPage, new Vector2(750f, 240f), new Vector2(0f, -28f), 29, ink, TextAnchor.UpperLeft).text =
-                        string.IsNullOrWhiteSpace(definition.Lore) ? ShipyardHistories[CoreShipMarketCatalog.ArtworkIndex(index)] : definition.Lore;
-                }
-                else BuildShipyardPerformancePage(detail, index, ink, muted);
+                RectTransform storyPage = CreateRect("Shipyard Background Page", profile, new Vector2(930f, 326f), new Vector2(0f, -42f));
+                string story = string.IsNullOrWhiteSpace(definition.Lore) ? ShipyardHistories[CoreShipMarketCatalog.ArtworkIndex(index)] : definition.Lore;
+                CreateTavernReadingText("Shipyard Dossier Story", storyPage, Vector2.zero,
+                    new Vector2(930f, 326f), 26, 1.22f, ink, TavernSentenceParagraphs(story));
             }
+            else BuildShipyardPerformancePage(profile, index, ink, muted);
             bool owned = OwnsShipyardVessel(index);
             bool selected = index == session.SelectedShipIndex;
             bool local = CoreShipMarketCatalog.IsSoldAtPort(ShipyardPortIndex(), index);
             int purchaseCost = CoreShipMarketCatalog.PurchaseCost(index);
             bool affordable = session.ProfileGold >= purchaseCost;
+            bool present = !owned || IsShipyardVesselAtCurrentPort(index);
             bool cargoFits = session.CanSelectShip(index);
-            Button back = CreateButton(HasWorkshopSpecialCardReturn ? "Back To Workshop Special Cards" :
-                shipyardReturnToDeparture ? "Back To Voyage Departure" : "Back To Shipyard Gallery", detail,
-                new Vector2(236f, 42f), new Vector2(-594f, 338f), Html("#6D4B2C"), Ink, 23);
-            back.GetComponentInChildren<Text>().text = HasWorkshopSpecialCardReturn ? "返回特殊卡牌" :
-                shipyardReturnToDeparture ? "返回出航码头" : "返回船坞";
-            back.onClick.AddListener(() =>
-            {
-                if (!IsCurrentShipyardControl(back, owner, port, revision)) return;
-                shipyardDetailOpen = false;
-                ResetShipyardEquipmentSelection();
-                if (TryReturnToWorkshopSpecialCards()) return;
-                if (shipyardReturnToDeparture) ReturnFromDepartureDossier();
-                else RefreshShipyardDossierView();
-            });
-            // Refitting has its own action beneath the comparison cards. Ship
-            // purchasing and flagship selection remain on the other dossier tabs.
-            if (shipyardDossierTab == ShipyardDossierTab.Equipment) return;
-            ShipyardText("Shipyard Dossier Price", detail, new Vector2(1440f, 32f), new Vector2(0f, -230f), 22, ink, TextAnchor.MiddleRight).text =
+            ShipyardText("Shipyard Dossier Price", detail, new Vector2(450f, 48f), new Vector2(-25f, -242f), 20, muted, TextAnchor.MiddleLeft).text =
+                !present ? "此船停泊在" + session.ShipPort(index) :
                 !cargoFits ? "货舱不足 · 请先将货物存入本港仓库或出售" :
-                (owned ? local ? "已拥有" : "已拥有外港船 · 可在此设为旗舰或改装" :
+                (owned ? "已拥有 · 停泊本港，可设为旗舰或改装" :
                     local ? "购船价 " + purchaseCost + " 金币" : "本港不出售此船型 · 所属港：" + ShipyardVesselHomePort(index));
-            Button confirm = CreateButton("Confirm Shipyard Vessel", detail, new Vector2(414f, 54f), new Vector2(471f, -284f), Html("#28594E"), Ink, 23);
-            confirm.GetComponentInChildren<Text>().text = selected ? "当前旗舰" : !cargoFits ? "货物超过该船舱容" : owned ? "设为旗舰" :
+            Button confirm = CreateButton("Confirm Shipyard Vessel", detail, new Vector2(330f, 44f), new Vector2(427f, -242f), Html("#28594E"), Ink, 22);
+            confirm.GetComponentInChildren<Text>().text = selected ? "当前旗舰" : !present ? "此船未停泊本港" : !cargoFits ? "货物超过该船舱容" : owned ? "设为旗舰" :
                 !local ? "本港不出售此船型" : affordable ? "购买并启用 · " + purchaseCost + " 金币" :
                 "金币不足 · 还需 " + (purchaseCost - session.ProfileGold);
-            confirm.interactable = !selected && cargoFits && (owned || local && affordable);
+            confirm.interactable = !selected && present && cargoFits && (owned || local && affordable);
             var quote = new ShipyardVesselQuote
             {
                 Session = owner, Port = port, ShipIndex = index, Price = purchaseCost,
@@ -328,6 +337,32 @@ namespace ShatteredSail.Presentation
                 if (ReferenceEquals(shipyardVesselQuote, quote) && IsCurrentShipyardControl(confirm, owner, port, revision))
                     ConfirmShipyardVessel(index);
             });
+        }
+
+        private void BuildShipyardDossierArt(RectTransform detail, int index)
+        {
+            RectTransform art = CreateRect("Shipyard Dossier Art", detail, new Vector2(1820f, 650f), Vector2.zero);
+            Image frame = CreateImage("Shipyard Dossier Frame", art, new Vector2(1780f, 705f),
+                new Vector2(0f, -4f), Color.white);
+            NauticalSurfaceSkin.ApplyReadingPanel(frame);
+            frame.raycastTarget = false;
+            RectTransform window = CreateRect("Shipyard Dossier Ship Window", art,
+                TavernDossierLayerWindowSize, TavernDossierLayerWindowPosition);
+            window.gameObject.AddComponent<RectMask2D>();
+            Image backdrop = CreateImage("Shipyard Dossier Ship Backdrop", window,
+                window.sizeDelta, Vector2.zero, Color.clear);
+            backdrop.raycastTarget = false;
+
+            RawImage ship = (RawImage)BuildShipyardVessel(window, index, Vector2.zero, 1f, "Shipyard Dossier");
+            RectTransform vessel = (RectTransform)ship.transform.parent;
+            // The portrait frame is shared with the tavern. Fit the entire
+            // landscape vessel inside it; never crop the bowsprit or masts.
+            Vector2 available = window.sizeDelta - new Vector2(32f, 48f);
+            Vector2 source = ship.rectTransform.sizeDelta;
+            float fit = Mathf.Min(available.x / source.x, available.y / source.y);
+            vessel.anchoredPosition = Vector2.zero;
+            vessel.localScale = new Vector3(fit, fit, 1f);
+
         }
 
         private void BuildShipyardPerformancePage(Transform detail, int index, Color ink, Color muted)
@@ -351,15 +386,15 @@ namespace ShatteredSail.Presentation
                     deltas[3] += installed.SpeedBonus - baseline.SpeedBonus;
                 }
 
-            RectTransform page = CreateRect("Shipyard Performance Page", detail, new Vector2(750f, 350f), new Vector2(326f, -20f));
-            RectTransform stats = CreateRect("Shipyard Performance Stats", page, new Vector2(900f, 330f), new Vector2(-145f, -2f));
+            RectTransform page = CreateRect("Shipyard Performance Page", detail, new Vector2(930f, 326f), new Vector2(0f, -42f));
+            RectTransform stats = CreateRect("Shipyard Performance Stats", page, page.sizeDelta, Vector2.zero);
             stats.gameObject.AddComponent<CanvasGroup>().blocksRaycasts = false;
             string[] captions = { "船体上限", "装甲", "火力", "航速", "货舱容量" };
-            float barWidth = 500f;
-            float barX = 98f;
+            float barWidth = 510f;
+            float barX = 30f;
             for (int stat = 0; stat < captions.Length; stat++)
             {
-                float y = 132f - stat * 58f;
+                float y = 128f - stat * 62f;
                 float value = stat == 0 ? Mathf.Max(1f, values[stat]) : Mathf.Max(0f, values[stat]);
                 float maximum = ShipyardUnmodifiedStatMaximum(stat);
                 bool reachesMaximum = value >= maximum - 0.001f;
@@ -373,15 +408,15 @@ namespace ShatteredSail.Presentation
                 Image fill = CreateImage("Shipyard Stat Bar Fill " + stat, stats, new Vector2(fillWidth, 20f),
                     new Vector2(barX - (innerWidth - fillWidth) * 0.5f, y), fillColor);
                 fill.raycastTarget = false;
-                ShipyardText("Shipyard Dossier Stat " + stat, stats, new Vector2(192f, 32f), new Vector2(-243f, y), 23, ink, TextAnchor.MiddleLeft).text =
+                ShipyardText("Shipyard Dossier Stat " + stat, stats, new Vector2(220f, 32f), new Vector2(-355f, y), 23, ink, TextAnchor.MiddleLeft).text =
                     captions[stat] + "  " + FormatShipyardStatValue(stat, value);
-                Text delta = ShipyardText("Shipyard Stat Delta " + stat, stats, new Vector2(78f, 30f), new Vector2(408f, y), 20,
+                Text delta = ShipyardText("Shipyard Stat Delta " + stat, stats, new Vector2(90f, 30f), new Vector2(350f, y), 20,
                     fillColor, TextAnchor.MiddleLeft);
                 delta.text = FormatShipyardStatDelta(stat, deltas[stat]);
                 // Put the cap on a separate baseline below the delta.  The old
                 // -17 offset overlapped the 30px delta label by several pixels,
                 // which made values such as "+2 / 8" look doubled.
-                Text maximumLabel = ShipyardText("Shipyard Stat Maximum " + stat, stats, new Vector2(86f, 22f), new Vector2(403f, y - 27f), 12,
+                Text maximumLabel = ShipyardText("Shipyard Stat Maximum " + stat, stats, new Vector2(100f, 22f), new Vector2(355f, y - 27f), 18,
                     muted, TextAnchor.MiddleLeft);
                 maximumLabel.text = "/ " + FormatShipyardStatValue(stat, maximum).Replace(" 节", string.Empty);
             }
@@ -434,13 +469,14 @@ namespace ShatteredSail.Presentation
                 session.Phase != CoreDemoPhase.Port || activePortFacility != 1 ||
                 !shipyardDetailOpen || index != selectedShipPreview || index < 0 || index >= CoreVoyageSession.Ships.Count ||
                 index == session.SelectedShipIndex) return;
+            bool owned = OwnsShipyardVessel(index);
+            if (owned && !IsShipyardVesselAtCurrentPort(index)) return;
             if (!session.CanSelectShip(index))
             {
                 portNotice = "货物超过舱容，请先存仓或出售。金币未扣除。";
                 Render();
                 return;
             }
-            bool owned = OwnsShipyardVessel(index);
             if (!owned && (!CoreShipMarketCatalog.IsSoldAtPort(ShipyardPortIndex(), index) ||
                 quote.Price != CoreShipMarketCatalog.PurchaseCost(index))) return;
             quote.Consumed = true;
@@ -448,10 +484,11 @@ namespace ShatteredSail.Presentation
             {
                 if (!session.TrySpendProfileGold(quote.Price, "船坞购船")) { Render(); return; }
                 PlayerPrefs.SetInt(ShipOwnedKey(index), 1);
+                session.RegisterShipAtCurrentPort(index);
                 PlaySfx("shipyard_equip", 0.56f);
             }
             EnsureShipComponentLoadout(index);
-            session.SelectShip(index);
+            if (!session.SelectShip(index)) return;
             RefreshComponentBonuses();
             SaveProgress();
             portNotice = (owned ? "已切换旗舰为「" : "已购入并启用「") + CoreVoyageSession.Ships[index].Name + "」。";

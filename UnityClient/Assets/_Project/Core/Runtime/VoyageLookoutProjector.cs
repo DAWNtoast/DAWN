@@ -7,7 +7,7 @@ namespace ShatteredSail.Core.Gameplay
 
     public sealed class LookoutObservation
     {
-        public string Key, Label;
+        public string Key, Label, EncounterId;
         public LookoutSceneryKind Kind;
         public VoyagePoint Position;
         public float DistanceNm, Horizontal, Proximity, Depth, Visibility, Scale;
@@ -71,6 +71,7 @@ namespace ShatteredSail.Core.Gameplay
                 if (item == null) continue;
                 item.Key = "event-" + node.Id;
                 item.Label = node.Encounter.Name;
+                item.EncounterId = node.Encounter.Id;
                 item.IsEvent = true;
                 item.Variant = node.Id & 3;
                 // A known coastal/weather encounter annotates its actual feature, not a duplicate island.
@@ -80,6 +81,7 @@ namespace ShatteredSail.Core.Gameplay
                     terrain.Label = item.Label;
                     terrain.IsEvent = true;
                     terrain.Key = item.Key;
+                    terrain.EncounterId = item.EncounterId;
                 }
                 else result.Add(item);
             }

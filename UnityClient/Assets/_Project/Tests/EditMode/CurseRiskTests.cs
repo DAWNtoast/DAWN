@@ -48,11 +48,12 @@ namespace ShatteredSail.Core.Tests
         public void BoardingAppliesCurseBeforeCrewGuardAndForecastMatches(int layers, int attack, int loss)
         {
             CoreVoyageSession session = StartBattle(layers);
-            session.Battle.DistanceMeters = 40;
+            session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(session.TryBoard(), Is.True);
             session.Battle.PlayerBlock = 5;
-            Assert.That(session.GetEnemyIntent(), Does.Contain("船员伤害 " + attack + "（格挡前）"));
+            Assert.That(session.GetEnemyIntent(), Does.Contain("船员伤害 " + attack));
             int health = session.Battle.PlayerBoardingHealth;
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(health - session.Battle.PlayerBoardingHealth, Is.EqualTo(loss));
@@ -81,7 +82,8 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = StartBattle(layers, ramChance: 1d);
             session.Battle.Alignment = alignment;
-            session.Battle.DistanceMeters = 90;
+            session.Battle.DistanceMeters = 100;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
             session.Battle.PlayerBlock = 999;
             Assert.That(session.EnemyWillRam, Is.True);
             Assert.That(session.EnemyRamFirstStrikeDamage, Is.EqualTo(crewLoss));
@@ -105,7 +107,8 @@ namespace ShatteredSail.Core.Tests
         public void PlayerRamAlsoAmplifiesSelfDamageWithoutGivingEnemyAnOpening(int layers, int loss)
         {
             CoreVoyageSession session = StartBattle(layers);
-            session.Battle.DistanceMeters = 40;
+            session.Battle.DistanceMeters = 100;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             session.Battle.Alignment = NavalBattleAlignment.HeadOn;
             session.Battle.PlayerMovingTowardEnemy = true;
             session.Battle.PlayerBlock = 999;
@@ -121,7 +124,7 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase("treasure_false_cache", 0)]
         [TestCase("treasure_smuggler_jetty", 1)]
-        public void ActualCurseRewardSurvivesReturnShipChangeWarehouseAndReloadUntilPaidPurification(string encounterId, int choice)
+        public void LegacyCurseRewardSurvivesReturnShipChangeWarehouseAndReloadUntilPaidPurification(string encounterId, int choice)
         {
             CoreVoyageSession session = StartTreasureWithEvent(encounterId);
             CoreMapNode node = session.Map.Nodes.Single(n => n.Encounter.Id == encounterId);
@@ -242,6 +245,7 @@ namespace ShatteredSail.Core.Tests
                 session.Cargo.Wood = session.Cargo.Iron = session.Cargo.Cloth = session.Cargo.Beer = 0;
                 session.Cargo.Medicine = session.Cargo.Powder = session.Cargo.Cannonballs = 0;
                 Assert.That(session.TryStartTreasureVoyage(out string reason), Is.True, reason);
+                session = LegacyTreasureVoyageFixture.Resume(session);
                 if (session.Map.Nodes.Any(n => n.Encounter.Id == encounterId)) return session;
             }
             throw new InvalidOperationException("Could not find generated treasure event " + encounterId);

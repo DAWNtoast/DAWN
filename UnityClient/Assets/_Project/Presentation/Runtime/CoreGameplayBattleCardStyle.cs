@@ -87,7 +87,6 @@ namespace ShatteredSail.Presentation
             play.transform.Find("Card Powder Plate " + index)?.SetAsLastSibling();
             play.transform.Find("Card Cannonball Plate " + index)?.SetAsLastSibling();
             play.transform.Find("Card Special Resource Plate " + index)?.SetAsLastSibling();
-            play.transform.Find("Card Repeat Cost Plate " + index)?.SetAsLastSibling();
         }
 
         private static string BattleHandSummary(CoreBattleCard data)
@@ -146,12 +145,11 @@ namespace ShatteredSail.Presentation
         {
             if (label == null || label.transform.parent == null) return;
             Transform card = label.transform.parent;
-            RectTransform paper = null, art = null, repeat = null, namePlate = null;
+            RectTransform paper = null, art = null, namePlate = null;
             foreach (Transform child in card)
             {
                 if (child.name.StartsWith("Card Description Parchment ")) paper = child as RectTransform;
                 else if (child.name.StartsWith("Card Art ")) art = child as RectTransform;
-                else if (child.name.StartsWith("Card Repeat Cost Plate ")) repeat = child as RectTransform;
                 else if (child.name.StartsWith("Card Name Plate ")) namePlate = child as RectTransform;
             }
             label.rectTransform.sizeDelta = CardFaceLayout.EffectSize;
@@ -163,7 +161,6 @@ namespace ShatteredSail.Presentation
                 paper.sizeDelta = CardFaceLayout.EffectPaperSize;
                 paper.anchoredPosition = CardFaceLayout.EffectPaperPosition;
             }
-            if (repeat != null) repeat.anchoredPosition = CardFaceLayout.RepeatCostPosition;
             if (namePlate != null)
             {
                 Text name = namePlate.GetComponentInChildren<Text>();

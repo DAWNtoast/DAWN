@@ -10,6 +10,7 @@ namespace ShatteredSail.Presentation
     public sealed partial class CoreGameplayDemoController
     {
         private RectTransform lookoutViewport;
+        private NavigationLookoutMotion navigationLookoutMotion;
         private CoreVoyageMap navigationViewedMap;
         private Vector2? navigationMapCenter;
 
@@ -78,6 +79,8 @@ namespace ShatteredSail.Presentation
             if (session.IsTreasureVoyage)
                 NavigationText("Map Course Hint", mapPanel, new Vector2(810f, 22f), new Vector2(0f, -264f), 14, Gold).text =
                     TreasureNavigationReadout();
+            BuildDestinationBossGuidance(mapPanel);
+            BuildNavigationExplorationStatus(mapPanel);
 
             RectTransform controls = NavigationPanel("Navigation Controls", new Vector2(860f, 360f), new Vector2(-500f, -285f));
             BuildNavigationControls(controls);
@@ -112,11 +115,13 @@ namespace ShatteredSail.Presentation
                 });
             }
             NavigationText("Compass", panel, new Vector2(94f, 48f), new Vector2(-247f, 25f), 19, Gold, TextAnchor.MiddleCenter).text = "航向";
-            Text distanceLabel = NavigationText("Distance Label", panel, new Vector2(438f, 32f), new Vector2(169f, 144f), 21, Ink);
+            Text distanceLabel = NavigationText("Distance Label", panel, new Vector2(438f, 48f), new Vector2(169f, 144f), 21, Ink);
             Slider distance = CreateSlider("Distance Slider", panel, new Vector2(438f, 34f), new Vector2(169f, 97f),
-                CoreVoyageSession.MinimumDistanceNm, CoreVoyageSession.MaximumDistanceNm, session.PlannedDistanceNm);
+                CoreVoyageSession.MinimumDistanceNm, Mathf.Max(session.MaximumDistanceNm, session.RequestedDistanceNm), session.RequestedDistanceNm);
             distance.wholeNumbers = true;
             distance.interactable = !tutorialActive && session.Phase == CoreDemoPhase.Sailing && !navigationMotionPlaying;
+            Text distanceLimit = NavigationText("Distance Limit", panel, new Vector2(438f, 18f),
+                new Vector2(169f, 68f), 14, MutedInk);
             Text forecastText = NavigationText("Forecast", panel, new Vector2(438f, 132f), new Vector2(169f, -3f), 20, Ink, TextAnchor.UpperLeft);
             Button detailsButton = CreateButton("Forecast Details", panel, new Vector2(116,32), new Vector2(330,120), PanelRaised, Ink, 16);
             Text detailsCaption = detailsButton.GetComponentInChildren<Text>();
@@ -139,11 +144,25 @@ namespace ShatteredSail.Presentation
             Action updateForecast = () =>
             {
                 SailingForecast forecast = session.GetForecast();
-                distanceLabel.text = session.HasDirectCourseTarget && forecast != null ? "精确航点　" + forecast.ActualDistanceNm.ToString("0") + " 海里" : "计划航程　" + session.PlannedDistanceNm + " 海里";
+                int maximum = session.MaximumDistanceNm, requested = session.RequestedDistanceNm;
+                // Bring the value inside both ranges before changing bounds, so
+                // Slider cannot fire a clamping callback and leave default mode.
+                // Preserve the player's selection when conditions shorten this leg.
+                distance.SetValueWithoutNotify(requested);
+                distance.minValue = CoreVoyageSession.MinimumDistanceNm;
+                distance.maxValue = Mathf.Max(maximum, requested);
+                distance.SetValueWithoutNotify(requested);
+                distanceLimit.text = (requested > maximum ? "本段上限 " : "最大 ") + maximum + " 海里 · 24 小时";
+                bool targetLocked = session.HasDirectCourseTarget && forecast != null;
+                distanceLabel.fontSize = targetLocked ? 18 : 21;
+                distanceLabel.text = targetLocked ? "锁定：" + NavigationCourseTargetName() + "\n设定 " + requested +
+                    " 海里 · 本段 " + forecast.ActualDistanceNm.ToString("0") + " 海里" :
+                    (session.UsesDefaultDistance ? "半日航程　" : "计划航程　") + requested + " 海里";
                 forecastText.text = forecast == null ? "无法计算航程" :
                     "预计 " + forecast.Hours.ToString("0.0") + " 小时\n" +
                     "航速 " + forecast.EffectiveSpeedKnots.ToString("0.0") + " 节" + (forecast.Rerouted ? " · 已绕岛" : "") + "\n" +
                     "淡水 −" + forecast.WaterCost + "　食物 −" + forecast.FoodCost +
+                    (targetLocked ? "\n手动改航向可取消锁定" : "") +
                     (forecast.Blocked ? "\n当前航点无可通行航线" : "") +
                     (forecast.Clipped ? "\n边界航迹可能擦碰暗礁" : "");
                 detailsText.text = forecast == null ? "暂无风流资料" :
@@ -155,18 +174,18 @@ namespace ShatteredSail.Presentation
             distance.onValueChanged.AddListener(value =>
             {
                 if (!CanApplyGuidedNavigationInput(distance, GuidedTutorialNavigationInputStep.Distance)) return;
-                int requested = Mathf.RoundToInt(value / 10f) * 10;
+                int requested = Mathf.RoundToInt(value);
                 // Slider also sends driven-value notifications while Canvas rebuilds.
                 // They are not user course changes and must never destroy UI mid-layout.
                 if (CanvasUpdateRegistry.IsRebuildingLayout() || CanvasUpdateRegistry.IsRebuildingGraphics() ||
-                    (requested == session.PlannedDistanceNm && !session.HasDirectCourseTarget)) return;
+                    requested == session.RequestedDistanceNm) return;
                 session.SetDistance(requested);
                 updateForecast();
                 RefreshDashboardCourse();
             });
             updateForecast();
             Button sail = CreateButton("Execute Sail", panel, new Vector2(438f, 62f), new Vector2(169f, -129f), Gold, Ink, 24);
-            sail.GetComponentInChildren<Text>().text = session.Phase == CoreDemoPhase.Encounter ? "处理右上方事件后继续" : "执行航行";
+            sail.GetComponentInChildren<Text>().text = session.Phase == CoreDemoPhase.Encounter ? "处理右侧事件后继续" : "执行航行";
             sail.interactable = session.Phase == CoreDemoPhase.Sailing && !navigationMotionPlaying;
             sail.onClick.AddListener(() =>
             {
@@ -185,6 +204,27 @@ namespace ShatteredSail.Presentation
                 Render();
             });
         }
+
+        private string NavigationCourseTargetName()
+        {
+            VoyagePoint target = session.DirectCourseTarget;
+            string name = "海上航点";
+            if (!session.IsTreasureVoyage && SameNavigationPoint(target, session.Map.Destination))
+                name = session.Map.DestinationName;
+            else if (!session.IsTreasureVoyage && SameNavigationPoint(target, session.Map.Departure))
+                name = session.Map.DepartureName;
+            else
+                foreach (CoreMapNode node in session.Map.Nodes)
+                    if (node.IsChartVisible && SameNavigationPoint(target, node.Position))
+                    {
+                        name = node.Encounter.Name;
+                        break;
+                    }
+            return name.Length > 10 ? name.Substring(0, 9) + "…" : name;
+        }
+
+        private static bool SameNavigationPoint(VoyagePoint first, VoyagePoint second) =>
+            Mathf.Abs(first.X - second.X) < .01f && Mathf.Abs(first.Y - second.Y) < .01f;
 
         private void RefreshDashboardCourse()
         {
@@ -215,14 +255,15 @@ namespace ShatteredSail.Presentation
             // Crop the panorama to fill, keeping painted objects proportional and
             // its horizon aligned with the separately projected scenery.
             Vector2 panoramaSize = lookoutViewport.rect.size;
-            RawImage ocean = CreateRawImage("Lookout Ocean", lookoutViewport, panoramaSize, Vector2.zero, water,
-                NavigationLookoutArtCatalog.PanoramaUv(panoramaSize, water));
+            NavigationLookoutOceanGraphic ocean = CreateLookoutOcean("Lookout Ocean", panoramaSize, water);
             ocean.color = Color.white;
             ocean.raycastTarget = false;
-            RawImage transition = CreateRawImage("Lookout Ocean Transition", lookoutViewport, panoramaSize, Vector2.zero, nextWater,
-                NavigationLookoutArtCatalog.PanoramaUv(panoramaSize, nextWater));
+            NavigationLookoutOceanGraphic transition = CreateLookoutOcean("Lookout Ocean Transition", panoramaSize, nextWater);
             transition.color = new Color(1f, 1f, 1f, blend.Amount);
             transition.raycastTarget = false;
+            // Retired with the ocean when an event replaces this view; captions stay still.
+            navigationLookoutMotion = ocean.gameObject.AddComponent<NavigationLookoutMotion>();
+            navigationLookoutMotion.Initialize(this, ocean, transition);
             Color environmentTint = NavigationLookoutArtCatalog.EnvironmentTint(localTerrain, blend);
             var observations = VoyageLookoutProjector.Project(session.Map, session.Position, session.Heading,
                 120f + (session.HasNavigator ? 60f : 0f) + session.VisionBonusNm);
@@ -231,11 +272,30 @@ namespace ShatteredSail.Presentation
                 // Local fog/rain is painted into the panorama; keep distant
                 // projected weather and the report without drawing it twice.
                 if (NavigationLookoutArtCatalog.ShouldSkipLocalWeather(item, localTerrain)) continue;
+                RawImage scenery = CreateLookoutScenery(item, environmentTint);
+                navigationLookoutMotion.Register(item, scenery);
+            }
+            BuildLookoutCaptions(observations);
+        }
+
+        private NavigationLookoutOceanGraphic CreateLookoutOcean(string name, Vector2 size, Texture texture)
+        {
+            var image = CreateRect(name, lookoutViewport, size, Vector2.zero).gameObject.AddComponent<NavigationLookoutOceanGraphic>();
+            image.texture = texture;
+            image.uvRect = NavigationLookoutArtCatalog.PanoramaUv(size, texture);
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private RawImage CreateLookoutScenery(LookoutObservation item, Color environmentTint)
+        {
                 string key = item.Kind == LookoutSceneryKind.Island ? "island" : item.Kind == LookoutSceneryKind.Reef ? "reef" :
                     item.Kind == LookoutSceneryKind.Storm ? "storm" : item.Kind == LookoutSceneryKind.Fog ? "fog" : "pirate";
                 bool vessel = item.Kind == LookoutSceneryKind.Vessel;
                 Texture2D texture = vessel ? portArt.ShipSheet : Resources.Load<Texture2D>("NavigationLookout/lookout_" + key + "_v1");
                 Rect uv = vessel ? portArt.ShipUv(1) : new Rect(0, 0, 1, 1);
+                bool specialShip = SpecialWarshipArtCatalog.TryLoad(item.EncounterId, out Texture2D specialArt, out Rect specialUv);
+                if (specialShip) { texture = specialArt; uv = specialUv; }
                 if (!vessel && key != "pirate" && (item.Variant & 1) != 0) uv = new Rect(1, 0, -1, 1);
                 bool weather = item.Kind == LookoutSceneryKind.Storm || item.Kind == LookoutSceneryKind.Fog;
                 float width = (weather ? 920f : vessel || key == "pirate" ? 365f : 730f) * item.Scale;
@@ -245,19 +305,23 @@ namespace ShatteredSail.Presentation
                 float contactUv = key == "pirate" || vessel ? 0.055f : key == "fog" ? 0.30f : 0.18f;
                 Vector2 position = new Vector2(item.Horizontal * 440f, waterline + height * (0.5f - contactUv));
                 RawImage scenery = CreateRawImage("Lookout " + item.Key, lookoutViewport, new Vector2(width, height), position, texture, uv);
-                if (vessel)
+                if (vessel || specialShip)
                 {
                     // Redrawn atlas cells have their own authored keel contact.
                     // Use it rather than the old standalone pirate's padding.
-                    position.y = waterline - ShipWaterlineLayout.HullContactLocal(scenery).y;
+                    position.y = waterline - SpecialWarshipArtCatalog.HullContactLocal(scenery).y;
                     scenery.rectTransform.anchoredPosition = position;
-                    BattleShipCutout.Attach(scenery);
+                    if (!specialShip) BattleShipCutout.Attach(scenery);
                 }
                 // Distant scenery loses contrast in the blue atmospheric haze, not a black matte.
                 scenery.color = Color.Lerp(new Color(0.66f, 0.78f, 0.83f, 1f), Color.white, item.Proximity) * environmentTint;
                 scenery.color = new Color(scenery.color.r, scenery.color.g, scenery.color.b, scenery.color.a * item.Visibility);
                 scenery.raycastTarget = false;
-            }
+                return scenery;
+        }
+
+        private void BuildLookoutCaptions(System.Collections.Generic.IReadOnlyList<LookoutObservation> observations)
+        {
             Image top = CreateFixedPanel("Lookout Heading Plaque", lookoutViewport, new Vector2(956f, 68f), new Vector2(0f, 279f), new Color(0.035f, 0.075f, 0.085f, 0.94f)).GetComponent<Image>();
             top.raycastTarget = false;
             NavigationText("Lookout Heading", lookoutViewport, new Vector2(900f, 40f), new Vector2(0f, 281f), 28, Ink).text =

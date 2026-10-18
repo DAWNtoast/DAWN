@@ -95,6 +95,7 @@ namespace ShatteredSail.Presentation
                 }
             }
             ApplyLayout(header);
+            NauticalHeaderSkin.ApplyVoyage(header, Brass, false);
         }
 
         public static void ApplyLayout(RectTransform header)

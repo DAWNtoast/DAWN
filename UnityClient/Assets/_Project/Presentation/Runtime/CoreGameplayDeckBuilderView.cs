@@ -78,11 +78,12 @@ namespace ShatteredSail.Presentation
             List<int> collectionCards = new List<int>();
             foreach (int index in session.GetAvailableBattleCards(selectedBattleDeckStage))
             {
-                CoreBattleCard data = session.GetBattleCard(index);
+                CoreBattleCard data = session.GetBattleCard(index, selectedBattleDeckStage);
                 if (data != null && !CoreVoyageSession.IsSpecialBattleCard(data.Id) &&
                     string.IsNullOrEmpty(data.RequiredCrew) && string.IsNullOrEmpty(data.RequiredComponent))
                     collectionCards.Add(index);
             }
+            collectionCards.Sort(CoreBattleCardNumbering.CompareLibraryIndices);
             int pages = Mathf.Max(1, (collectionCards.Count + BattleCardCollectionPageSize - 1) / BattleCardCollectionPageSize);
             battleCardCollectionPage = Mathf.Clamp(battleCardCollectionPage, 0, pages - 1);
             RectTransform collection = CreateWorkshopCollection("Deck Builder Collection", paper);
@@ -94,7 +95,7 @@ namespace ShatteredSail.Presentation
                 Button card = CreateDeckBuilderCard(collection, index, "Add Deck Card " + index,
                     "Workshop Card " + index, center, WorkshopCollectionCardScale, true);
                 BindDeckBuilderCard(card, panel, rail, targetGlow, index, false);
-                float height = CardSchoolArtCatalog.FrameBounds(session.GetBattleCard(index)).height * WorkshopCollectionCardScale;
+                float height = CardSchoolArtCatalog.FrameBounds(session.GetBattleCard(index, selectedBattleDeckStage)).height * WorkshopCollectionCardScale;
                 CreateText("Workshop Card Count " + index, collection, new Vector2(240f, 28f),
                     center - new Vector2(0f, height * .5f + 20f), 21, FontStyle.Normal,
                     TextAnchor.MiddleCenter, WorkshopPaperInk).text = "已加入 " + BattleDeckCopies(deck, index) + " / " + session.GetBaseBattleCardOwnedCopies(index) + " 张";
@@ -118,7 +119,7 @@ namespace ShatteredSail.Presentation
         private Button CreateDeckBuilderCard(Transform parent, int index, string name, string prefix,
             Vector2 position, float scale, bool collection = false)
         {
-            CoreBattleCard data = session.GetBattleCard(index);
+            CoreBattleCard data = session.GetBattleCard(index, selectedBattleDeckStage);
             Rect bounds = CardSchoolArtCatalog.FrameBounds(data);
             Button card = CreateButton(name, parent, bounds.size * scale, position, Color.clear, Ink, 16);
             card.GetComponentInChildren<Text>().text = string.Empty;
@@ -143,7 +144,7 @@ namespace ShatteredSail.Presentation
             {
                 HideDeckBuilderHoverPreview();
                 RectTransform ghost = CreateRect("Deck Builder Drag Ghost", panel, new Vector2(240f, 400f), Vector2.zero);
-                CoreBattleCard data = session.GetBattleCard(index);
+                CoreBattleCard data = session.GetBattleCard(index, selectedBattleDeckStage);
                 const float scale = .70f;
                 RectTransform face = CreateCollectionCardFace(ghost, data, "Deck Drag", "Deck Drag Art", "Deck Drag Name",
                     scale, session.BattleCardFaceDescription(data, selectedBattleDeckStage));
@@ -161,11 +162,11 @@ namespace ShatteredSail.Presentation
                 36, FontStyle.Bold, TextAnchor.MiddleCenter, WorkshopPaperInk).text = WorkshopStageName(selectedBattleDeckStage) + "牌组";
             deckBuilderBaseScrollRect = BuildDeckBuilderColumn(panel, rail, targetGlow, deck, false);
             deckBuilderSpecialScrollRect = BuildDeckBuilderColumn(panel, rail, targetGlow, bonus, true);
-            deckBuilderStatus = CreateText("Deck Builder Status", rail, new Vector2(660f, 24f), new Vector2(0f, -405f),
+            deckBuilderStatus = CreateText("Deck Builder Status", rail, new Vector2(660f, 24f), new Vector2(0f, -378f),
                 20, FontStyle.Normal, TextAnchor.MiddleCenter, WorkshopPaperInk);
             deckBuilderStatus.text = DeckBuilderStatusText;
             Button back = CreateButton("Back To Card Workshop Chests", rail, new Vector2(570f, 46f),
-                new Vector2(0f, -443f), PanelRaised, Ink, 24);
+                new Vector2(0f, -418f), PanelRaised, Ink, 24);
             back.GetComponentInChildren<Text>().text = "返回卡组预览";
             back.onClick.AddListener(() =>
             {
@@ -225,8 +226,11 @@ namespace ShatteredSail.Presentation
                 DeckCardPreviewHover hover = card.gameObject.AddComponent<DeckCardPreviewHover>();
                 hover.Bind(() => ShowDeckBuilderHoverPreview(panel, card, index, special),
                     () => { if (deckBuilderHoverSource == card) HideDeckBuilderHoverPreview(); });
-                if (!special) BindDeckBuilderCard(card, panel, rail, targetGlow, index, true);
-                else card.onClick.AddListener(() => SetDeckBuilderNotice("专属牌随船员／部件自动加入，不能手动移除"));
+                // The special collection retains both deck previews. Base edits remain on the
+                // stage collection, where cards can be added back and incomplete drafts are guarded.
+                if (!special && !IsDeckBuilderSpecialCardCollection)
+                    BindDeckBuilderCard(card, panel, rail, targetGlow, index, true);
+                else if (special) card.onClick.AddListener(() => SetDeckBuilderNotice("专属牌随船员／部件自动加入，不能手动移除"));
             }
             if (groups.Count == 0)
                 CreateText(prefix + " Empty", viewport, new Vector2(286f, 140f), Vector2.zero,
@@ -265,7 +269,7 @@ namespace ShatteredSail.Presentation
             if (panel == null || !panel.gameObject.activeInHierarchy || source == null || !source.IsActive()) return;
             if (deckBuilderHoverSource == source && deckBuilderHoverPreview != null) return;
             HideDeckBuilderHoverPreview();
-            CoreBattleCard data = session.GetBattleCard(index);
+            CoreBattleCard data = session.GetBattleCard(index, selectedBattleDeckStage);
             Rect bounds = CardSchoolArtCatalog.FrameBounds(data);
             float scale = Mathf.Min(260f / bounds.width, 390f / bounds.height);
             // Keep the full card vertically centered in the view, independent of the hovered row.
@@ -312,6 +316,7 @@ namespace ShatteredSail.Presentation
                     groups.Add(group);
                 }
             }
+            groups.Sort((left, right) => CoreBattleCardNumbering.CompareLibraryIndices(left.Index, right.Index));
             return groups;
         }
 

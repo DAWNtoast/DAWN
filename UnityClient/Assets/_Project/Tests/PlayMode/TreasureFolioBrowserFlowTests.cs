@@ -41,7 +41,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickTreasureFolioPointer(controller, "Port Hotspot Treasure");
             yield return ClickTreasureFolioPointer(controller, "Treasure Open Folio");
             Assert.That(GameObject.Find("Treasure Folio").GetComponent<Image>().sprite,
-                Is.SameAs(NauticalSurfaceSkin.ReadingPaper));
+                Is.SameAs(MarketShopSkin.Paper));
             Assert.That(GameObject.Find("Treasure Inventory Summary").GetComponent<Text>().text,
                 Is.EqualTo("未使用的藏宝图 · 3 张"));
 

@@ -49,16 +49,23 @@ namespace ShatteredSail.Presentation
                 boarding ? session.BattleCardPortDescription(card) : definition.Lore,
                 loreName: prefix + " Special Card Lore", lore: boarding ? definition.Lore : null, loreColor: muted,
                 textName: prefix + (boarding ? " Special Card Calculation" : " Special Card Lore"));
+            DossierCardText(prefix + " Special Card Growth", page, textWidth, 48f,
+                new Vector2(textCenter, -pageHeight * 0.5f + 44f), 20, muted,
+                SpecialCardGrowthDescription(card) + "\n仅随该来源出海成长，不可金币强化。", TextAnchor.MiddleLeft);
+        }
+
+        private string SpecialCardGrowthDescription(CoreBattleCard card)
+        {
             bool acquired = false;
             foreach (string id in session.AcquiredSpecialCardIds)
                 if (id == card.Id) { acquired = true; break; }
+            if (!acquired) return "尚未获得";
             int experience = session.GetSpecialCardExperience(card.Id);
+            int maximumLevel = session.GetCardMaximumUpgradeLevel(card.Id);
+            int level = session.GetCardUpgradeLevel(card.Id);
             int threshold = session.GetSpecialCardNextThreshold(card.Id);
-            string progress = !acquired ? "尚未获得" : threshold == 0 ? "航海经验 " + experience + " · 已达三阶" :
-                "航海经验 " + experience + " / " + threshold;
-            DossierCardText(prefix + " Special Card Growth", page, textWidth, 48f,
-                new Vector2(textCenter, -pageHeight * 0.5f + 44f), 20, muted,
-                progress + "\n仅随该来源出海成长，不可金币强化。", TextAnchor.MiddleLeft);
+            return "航海经验 " + experience + (level >= maximumLevel || threshold == 0
+                ? " · " + CardMaximumLevelLabel(maximumLevel) : " / " + threshold + " · 上限 +" + maximumLevel);
         }
 
         private string SpecialCardPreviewEffectDescription(CoreBattleCard card)

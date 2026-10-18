@@ -28,6 +28,51 @@ namespace ShatteredSail.Presentation.Tests
             if (host != null) Object.DestroyImmediate(host);
         }
 
+        [TestCase(800, 1000)]
+        [TestCase(1000, 800)]
+        [TestCase(512, 1024)]
+        public void BackgroundPortraitPreservesItsColorsAndAspectWhileCoveringWindow(int width, int height)
+        {
+            Texture2D portraitTexture = new Texture2D(width, height);
+            Texture2D frameTexture = new Texture2D(2, 2);
+            try
+            {
+                host = new GameObject("Portrait layout test");
+                controller = host.AddComponent<CoreGameplayDemoController>();
+                System.Func<string, Texture2D> loader = path => path.EndsWith("_portrait_v2") ? portraitTexture : frameTexture;
+                PortArtCatalog art = (PortArtCatalog)typeof(PortArtCatalog).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
+                    null, new[] { typeof(System.Func<string, Texture2D>) }, null).Invoke(new object[] { loader });
+                typeof(CoreGameplayDemoController).GetField("portArt", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(controller, art);
+                RectTransform detail = new GameObject("Detail", typeof(RectTransform)).GetComponent<RectTransform>();
+                detail.SetParent(host.transform, false);
+                bool built = (bool)typeof(CoreGameplayDemoController).GetMethod("TryBuildTavernDossierPortrait",
+                    BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, new object[] { detail, "test_crew" });
+                Assert.That(built, Is.True);
+                RawImage portrait = Find<RawImage>(detail, "Tavern Dossier Background Portrait");
+                RectTransform viewport = Find<RectTransform>(detail, "Tavern Dossier Portrait Viewport");
+                Assert.That(portrait.texture, Is.SameAs(portraitTexture));
+                Assert.That(portrait.GetComponent<CrewArtChromaKey>(), Is.Null);
+                Assert.That(portrait.GetComponent<TavernPortraitPaperBlend>(), Is.Null);
+                Assert.That(portrait.raycastTarget, Is.False);
+                Assert.That(viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+                Rect bounds = BoundsIn(viewport, portrait.rectTransform);
+                AssertContained(bounds, viewport.rect, "The portrait fills every edge of the window.");
+                Assert.That(bounds.yMax, Is.EqualTo(viewport.rect.yMax).Within(.1f));
+                Assert.That(portrait.rectTransform.rect.width / portrait.rectTransform.rect.height,
+                    Is.EqualTo((float)width / height).Within(.001f));
+                RawImage frame = Find<RawImage>(detail, "Tavern Dossier Parchment");
+                Assert.That(frame.texture, Is.SameAs(frameTexture));
+                Assert.That(frame.GetComponent<CrewArtChromaKey>(), Is.Not.Null);
+                Assert.That(frame.transform.GetSiblingIndex(), Is.GreaterThan(viewport.GetSiblingIndex()));
+            }
+            finally
+            {
+                if (host != null) Object.DestroyImmediate(host);
+                Object.DestroyImmediate(portraitTexture);
+                Object.DestroyImmediate(frameTexture);
+            }
+        }
+
         [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
         [TestCase(CoreGameplayPreviewPort.WhiteShell)]
         [TestCase(CoreGameplayPreviewPort.BronzeBell)]
@@ -62,7 +107,7 @@ namespace ShatteredSail.Presentation.Tests
                 "The dossier body must not contain a second return button.");
             Assert.That(detail.GetComponentsInChildren<Transform>(true).Any(item =>
                 item.name == "Tavern Crew Detail Full Body" || item.name == "Tavern Crew Detail Portrait Frame"), Is.False,
-                "The single integrated painting supplies the portrait without a separate cutout or mask.");
+                "The dossier must not restore the old full-body cutout or portrait frame.");
             Rect nameBounds = BoundsIn(detail, Find<Text>(root, "Tavern Crew Detail Name").rectTransform);
             Rect roleBounds = BoundsIn(detail, Find<Text>(root, "Tavern Crew Detail Role").rectTransform);
             Assert.That(nameBounds.xMin, Is.EqualTo(-165f), "The name retains its original visible left edge.");
@@ -74,17 +119,7 @@ namespace ShatteredSail.Presentation.Tests
             AssertContained(footerPaper, recruit, "Recruit button / bottom-right wax seal");
             Assert.That(recruit.height, Is.GreaterThanOrEqualTo(43.9f));
             Assert.That(Find<Button>(root, "Recruit Tavern Crew 0").GetComponentInChildren<Text>().fontSize, Is.EqualTo(22));
-            Assert.That(back.GetComponentInChildren<Text>().fontSize, Is.EqualTo(22));
-
-            string[] footerNames = { "Previous Tavern Dossier Page", "Tavern Dossier Page Counter", "Next Tavern Dossier Page", "Recruit Tavern Crew 0" };
-            Rect previousFooter = default;
-            for (int index = 0; index < footerNames.Length; index++)
-            {
-                Rect current = BoundsIn(detail, Find<RectTransform>(root, footerNames[index]));
-                AssertContained(footerPaper, current, footerNames[index]);
-                if (index > 0) Assert.That(current.xMin - previousFooter.xMax, Is.GreaterThanOrEqualTo(19.9f), footerNames[index]);
-                previousFooter = current;
-            }
+            Assert.That(back.GetComponentInChildren<Text>().fontSize, Is.EqualTo(20));
 
             for (int page = 0; page < PageKeys.Length; page++)
             {
@@ -111,19 +146,17 @@ namespace ShatteredSail.Presentation.Tests
                         .GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
                     Rect stage = BoundsIn(detail, Find<Text>(root, "Tavern Special Card Stage").rectTransform);
                     Rect details = BoundsIn(detail, Find<RectTransform>(root, "Tavern Special Card Details Viewport"));
-                    Rect growth = BoundsIn(detail, Find<Text>(root, "Tavern Special Card Growth").rectTransform);
                     AssertContained(profilePaper, face, "Complete special card face / dossier bay");
                     Assert.That(face.xMin - portrait.xMax, Is.GreaterThanOrEqualTo(130f));
                     Assert.That(face.yMin - recruit.yMax, Is.GreaterThanOrEqualTo(3.9f));
-                    foreach (Rect region in new[] { stage, details, growth })
+                    foreach (Rect region in new[] { stage, details })
                     {
                         AssertContained(profilePaper, region, "Special card details / right column");
                         Assert.That(region.xMin, Is.GreaterThan(face.xMax), "The details column stays beside the card.");
                         Assert.That(region.Overlaps(face), Is.False);
                     }
                     Assert.That(stage.yMin - details.yMax, Is.GreaterThanOrEqualTo(.9f));
-                    Assert.That(details.yMin - growth.yMax, Is.GreaterThanOrEqualTo(.9f));
-                    Assert.That(growth.yMin - recruit.yMax, Is.GreaterThanOrEqualTo(5.9f));
+                    Assert.That(details.yMin - recruit.yMax, Is.GreaterThanOrEqualTo(5.9f));
                 }
                 foreach (Button tab in root.GetComponentsInChildren<Button>(true).Where(button => button.name.StartsWith("DossierPage")))
                     AssertContained(profilePaper, BoundsIn(detail, tab.GetComponent<RectTransform>()), tab.name);
@@ -172,8 +205,17 @@ namespace ShatteredSail.Presentation.Tests
                 OpenCrew(int.Parse(Read(crew, "ProfessionIndex")));
                 RawImage parchment = Find<RawImage>(root, "Tavern Dossier Parchment");
                 Assert.That(parchment.texture, Is.Not.Null, crewId);
-                Assert.That(parchment.texture.name, Is.EqualTo(crewId + "_dossier_v1"),
-                    "Every crew member must resolve to their own integrated painting, without falling back to another identity.");
+                Assert.That(parchment.texture.name, Is.EqualTo("tavern_crew_dossier_frame_4k_layers_v1"), crewId);
+                RawImage portrait = Find<RawImage>(root, "Tavern Dossier Background Portrait");
+                Assert.That(portrait.texture.name, Is.EqualTo(crewId + "_portrait_v2"),
+                    "Every crew member must resolve to their own background portrait.");
+                Assert.That(portrait.GetComponent<CrewArtChromaKey>(), Is.Null, "Authored blue colors must survive.");
+                RectTransform viewport = Find<RectTransform>(root, "Tavern Dossier Portrait Viewport");
+                Rect portraitBounds = BoundsIn(viewport, portrait.rectTransform);
+                AssertContained(portraitBounds, viewport.rect, crewId + " / portrait covers the window");
+                Assert.That(portraitBounds.yMax, Is.EqualTo(viewport.rect.yMax).Within(.1f), "Keep the head aligned to the top.");
+                Assert.That(portrait.rectTransform.rect.width / portrait.rectTransform.rect.height,
+                    Is.EqualTo((float)portrait.texture.width / portrait.texture.height).Within(.001f), "Do not stretch the face.");
                 Assert.That(parchment.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)), crewId);
                 Assert.That(parchment.GetComponent<Mask>(), Is.Null, crewId);
                 Assert.That(Find<RectTransform>(root, "Tavern Crew Detail").GetComponentsInChildren<TavernPortraitPaperBlend>(true), Is.Empty, crewId);
@@ -253,7 +295,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void PageTabsAndArrowsOnlyChangeVisiblePageWithoutSpendingRecruitingOrSavingCrew()
+        public void PageTabsOnlyChangeVisiblePageWithoutSpendingRecruitingOrSavingCrew()
         {
             Transform root = CreatePreview(CoreGameplayPreviewPort.BrokenAnchor);
             var session = controller.Session;
@@ -261,15 +303,15 @@ namespace ShatteredSail.Presentation.Tests
             string savedCrew = CrewPreferenceSnapshot();
             RectTransform originalDetail = Find<RectTransform>(root, "Tavern Crew Detail");
             AssertPage(root, 0);
-            Find<Button>(root, "Previous Tavern Dossier Page").onClick.Invoke();
+            Find<Button>(root, "DossierPageBackground").onClick.Invoke();
             AssertPage(root, 0);
-            Find<Button>(root, "Next Tavern Dossier Page").onClick.Invoke();
+            Find<Button>(root, "DossierPageStory").onClick.Invoke();
             AssertPage(root, 1);
-            Find<Button>(root, "Next Tavern Dossier Page").onClick.Invoke();
+            Find<Button>(root, "DossierPageSkills").onClick.Invoke();
             AssertPage(root, 2);
-            Find<Button>(root, "Next Tavern Dossier Page").onClick.Invoke();
+            Find<Button>(root, "DossierPageSpecialCards").onClick.Invoke();
             AssertPage(root, 3);
-            Find<Button>(root, "Previous Tavern Dossier Page").onClick.Invoke();
+            Find<Button>(root, "DossierPageSkills").onClick.Invoke();
             AssertPage(root, 2);
             Find<Button>(root, "DossierPageBackground").onClick.Invoke();
             AssertPage(root, 0);
@@ -341,18 +383,18 @@ namespace ShatteredSail.Presentation.Tests
             }
             // A missing card definition keeps an explanation instead of
             // offering acquisition or leaving an empty fourth tab.
-            Text[] specialCardFields = Find<RectTransform>(root, "Tavern Dossier SpecialCards Page")
-                .GetComponentsInChildren<Text>(true);
-            Text growth = specialCardFields.SingleOrDefault(field => field.name == "Tavern Special Card Growth");
-            Text empty = specialCardFields.SingleOrDefault(field => field.name == "Tavern Special Card Empty");
-            Assert.That((growth != null) != (empty != null), Is.True,
-                "The special-card page must show either card growth or the no-card explanation.");
-            Text status = growth != null ? growth : empty;
+            Transform[] specialCardFields = Find<RectTransform>(root, "Tavern Dossier SpecialCards Page")
+                .GetComponentsInChildren<Transform>(true);
+            Transform face = specialCardFields.SingleOrDefault(field => field.name == "Tavern Special Card Face");
+            Transform empty = specialCardFields.SingleOrDefault(field => field.name == "Tavern Special Card Empty");
+            Assert.That((face != null) != (empty != null), Is.True,
+                "The special-card page must show either its card face or the no-card explanation.");
+            Transform status = face != null ? face : empty;
             Assert.That(status.gameObject.activeInHierarchy, Is.EqualTo(selectedPage == 3), status.name);
-            if (empty != null) Assert.That(empty.text, Does.Contain("职业专长"));
-            Assert.That(Find<Text>(root, "Tavern Dossier Page Counter").text, Is.EqualTo("第 " + (selectedPage + 1) + " / 4 页"));
-            Assert.That(Find<Button>(root, "Previous Tavern Dossier Page").interactable, Is.EqualTo(selectedPage > 0));
-            Assert.That(Find<Button>(root, "Next Tavern Dossier Page").interactable, Is.EqualTo(selectedPage < 3));
+            if (empty != null) Assert.That(empty.GetComponent<Text>().text, Does.Contain("职业专长"));
+            foreach (string removed in new[] { "Tavern Special Card Growth", "Tavern Dossier Page Counter",
+                "Previous Tavern Dossier Page", "Next Tavern Dossier Page" })
+                Assert.That(root.GetComponentsInChildren<Transform>(true).Any(item => item.name == removed), Is.False, removed);
         }
 
         private static void AssertText(Transform root, string name, string expected, int minimumSize, string crewId)

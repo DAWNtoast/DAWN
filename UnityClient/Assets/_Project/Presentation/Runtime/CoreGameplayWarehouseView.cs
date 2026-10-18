@@ -59,12 +59,11 @@ namespace ShatteredSail.Presentation
                 return;
             }
             BuildWarehouseCabinet(inventory);
-            BuildWarehouseCurseService(inventory);
-            // The painted cabinet supplies the outer timber frame. All pages use
-            // the same transparent opening and shared summary measurements.
+            // The ledger borrows the market's ivory paper, fine timber edge and
+            // brass corners while the painted cabinet retains its exhibit slots.
             RectTransform ledger = WarehousePanel("Warehouse Ledger", inventory,
-                new Vector2(640f, 832f), new Vector2(538f, -2f), Color.clear);
-            ApplyWarehousePlain(ledger.GetComponent<Image>(), Color.clear);
+                new Vector2(656f, 832f), new Vector2(538f, -2f), Color.clear);
+            MarketShopSkin.ApplyPanel(ledger.GetComponent<Image>());
             Button valuables = WarehouseAction("Warehouse Tab Valuables", ledger, new Vector2(188f, 60f),
                 new Vector2(-204f, 336f), "藏品陈列", () => { warehouseStorageOpen = false; warehouseCatalogOpen = false; warehouseTreasurePage = 0; Render(); });
             Button storage = WarehouseAction("Warehouse Tab Storage", ledger, new Vector2(188f, 60f),
@@ -78,9 +77,9 @@ namespace ShatteredSail.Presentation
                     Render();
                 });
             rare.interactable = WarehouseCargoActionsAllowed;
-            WoodButtonSkin.SetSelected(valuables, !warehouseStorageOpen);
-            WoodButtonSkin.SetSelected(storage, warehouseStorageOpen && !warehouseRareStorageOpen);
-            WoodButtonSkin.SetSelected(rare, warehouseStorageOpen && warehouseRareStorageOpen);
+            MarketShopSkin.SetMode(valuables, !warehouseStorageOpen);
+            MarketShopSkin.SetMode(storage, warehouseStorageOpen && !warehouseRareStorageOpen);
+            MarketShopSkin.SetMode(rare, warehouseStorageOpen && warehouseRareStorageOpen);
             if (warehouseStorageOpen && warehouseRareStorageOpen) BuildPortWarehouseRareStorage(ledger);
             else if (warehouseStorageOpen) BuildPortWarehouseStorage(ledger);
             else BuildWarehouseValuables(ledger);
@@ -91,6 +90,7 @@ namespace ShatteredSail.Presentation
         {
             RectTransform cabinet = WarehouseRect("Warehouse Display Cabinet", parent,
                 new Vector2(1010f, 500f), new Vector2(-314f, 22f));
+            warehouseDragCabinet = cabinet;
 
             Vector2[] slotPositions =
             {
@@ -156,6 +156,9 @@ namespace ShatteredSail.Presentation
                 colors.highlightedColor = colors.selectedColor = Color.clear;
                 colors.pressedColor = Color.clear;
                 target.colors = colors;
+                warehouseDropSlots[slot] = target;
+                warehouseDropHighlights[slot] = CreateWarehouseDropHighlight(target);
+                BindWarehouseTreasureDrag(target, displayed, slot);
                 AddWarehouseAction(target, () =>
                 {
                     selectedWarehouseDisplaySlot = slot;
@@ -179,15 +182,30 @@ namespace ShatteredSail.Presentation
             int pageStart = warehouseTreasurePage * WarehouseTreasuresPerPage;
             int pageEnd = Math.Min(owned, pageStart + WarehouseTreasuresPerPage);
             RectTransform summary = BuildWarehouseSummary(ledger);
-            Text count = WarehouseLabel("Warehouse Collection Count", summary, new Vector2(WarehouseLedgerWidth - 28f, 50f),
-                Vector2.zero, 20, CurrentWarehousePort + "珍藏 " + owned + " 件　·　已陈列 " + displayed + " / 6　·　第 " + (warehouseTreasurePage + 1) + " / " + pageCount + " 页", WarehouseRoomTheme.Ink);
+            Text count = WarehouseLabel("Warehouse Collection Count", summary, new Vector2(WarehouseLedgerWidth - 28f, 28f),
+                new Vector2(0f, 20f), 20, CurrentWarehousePort + "珍藏 " + owned + " 件　·　已陈列 " + displayed + " / 6　·　第 " + (warehouseTreasurePage + 1) + " / " + pageCount + " 页", WarehouseRoomTheme.Ink);
             count.resizeTextForBestFit = true;
             count.resizeTextMinSize = 16;
             count.resizeTextMaxSize = 20;
-            // Three fixed card frames retain the same rhythm even on a sparse page.
-            for (int column = 0; column < WarehouseTreasuresPerPage; column++)
-                WarehouseLinedPanel("Warehouse Collection Card Back " + column, ledger,
-                    new Vector2(188f, 206f), new Vector2(-204f + column * 204f, 106f));
+            // Keep the permanent income rules in the existing summary strip,
+            // separate from the keepsake story and display controls below.
+            Text incomeRules = WarehouseLabel("Warehouse Collection Income Rules", summary,
+                new Vector2(WarehouseLedgerWidth - 28f, 40f), new Vector2(0f, -15f), 16,
+                "所有港口已陈列藏品：每件每现实小时 10 金币\n下次上线弹窗自动发放，合计最多 300 金币", WarehouseRoomTheme.Ink);
+            incomeRules.lineSpacing = 1f;
+            incomeRules.resizeTextForBestFit = false;
+            // Only the empty page needs a full-width message surface. Keep the
+            // inventory slots separate; all keepsake details belong below them.
+            int visibleTreasureCount = pageEnd - pageStart;
+            if (visibleTreasureCount == 0)
+                WarehouseLinedPanel("Warehouse Collection Empty Back", ledger,
+                    new Vector2(WarehouseLedgerWidth, 206f), new Vector2(0f, 106f));
+            else
+            {
+                for (int column = 0; column < WarehouseTreasuresPerPage; column++)
+                    WarehouseLinedPanel("Warehouse Collection Card Back " + column, ledger,
+                        new Vector2(188f, 206f), new Vector2(-204f + column * 204f, 106f));
+            }
 
             for (int itemIndex = pageStart; itemIndex < pageEnd; itemIndex++)
             {
@@ -216,23 +234,13 @@ namespace ShatteredSail.Presentation
                         ownerPort != CurrentWarehousePort ? "已收藏 · " + ownerPort :
                         warehouseCollection.IsDisplayed(id) ? "已陈列 · 唯一藏品" : "已入库 · 可陈列", WarehouseRoomTheme.Brass);
                 AddWarehouseAction(tile, () => { selectedWarehouseTreasureId = id; Render(); });
+                BindWarehouseTreasureDrag(tile, id);
             }
 
             if (owned == 0)
             {
                 WarehouseLabel("Warehouse Empty Collection", ledger, new Vector2(578f, 158f),
                     new Vector2(0f, 106f), 23, CurrentWarehousePort + "尚无藏品\n\n藏品存放在获得它的港口。", WarehouseRoomTheme.Ink);
-            }
-            else if (pageEnd - pageStart == 1)
-            {
-                CoreWarehouseTreasureDefinition inspected = warehouseCollection.Owns(selectedWarehouseTreasureId)
-                    ? FindWarehouseTreasure(selectedWarehouseTreasureId) : null;
-                Text hint = WarehouseLabel("Warehouse Collection Hint", ledger, new Vector2(376f, 164f),
-                    new Vector2(105f, 106f), 18,
-                    inspected == null ? "选择藏品查看来历。" : inspected.Description, WarehouseRoomTheme.Ink);
-                hint.resizeTextForBestFit = true;
-                hint.resizeTextMinSize = 15;
-                hint.resizeTextMaxSize = 18;
             }
             Button previousPage = WarehouseAction("Warehouse Treasure Page Previous", ledger, new Vector2(124f, 44f),
                 new Vector2(-236f, -338f), "上一页", () =>
@@ -308,7 +316,7 @@ namespace ShatteredSail.Presentation
             warehouseTreasurePage = Math.Max(0, Math.Min(warehouseTreasurePage, pageCount - 1));
             RectTransform paper = WarehousePanel("Warehouse Collection Catalog Panel", parent,
                 new Vector2(1180f, 900f), Vector2.zero, new Color(0.9f, 0.8f, 0.62f));
-            NauticalSurfaceSkin.ApplyReadingPanel(paper.GetComponent<Image>());
+            MarketShopSkin.ApplyPanel(paper.GetComponent<Image>());
             Text heading = WarehouseLabel("Warehouse Catalog Heading", paper, new Vector2(1040f, 42f),
                 new Vector2(0f, 360f), 32, "藏品图鉴", WarehouseInk);
             GameTypography.Apply(heading, 32, FontStyle.Bold);
@@ -320,7 +328,6 @@ namespace ShatteredSail.Presentation
             Text itemColumn = WarehouseLabel("Warehouse Catalog Item Column", paper, new Vector2(420f, 28f),
                 new Vector2(-292f, 264f), 20, "藏品", WarehouseInk);
             itemColumn.alignment = TextAnchor.MiddleLeft;
-            // The parchment's centre fold separates the two reading columns.
             // Keep the entire requirement box on the right with a 28px gutter.
             Text sourceColumn = WarehouseLabel("Warehouse Catalog Source Column", paper, new Vector2(480f, 28f),
                 new Vector2(268f, 264f), 20, "解锁方式", WarehouseInk);
@@ -333,8 +340,12 @@ namespace ShatteredSail.Presentation
                 CoreWarehouseTreasureDefinition treasure = catalog[index];
                 string ownerPort = WarehouseTreasureOwnerPort(treasure.Id);
                 bool owned = !string.IsNullOrEmpty(ownerPort);
-                RectTransform row = WarehouseRect("Warehouse Catalog Row " + treasure.Id, paper,
-                    new Vector2(1040f, 70f), new Vector2(0f, 212f - (index - first) * 74f));
+                RectTransform row = WarehousePanel("Warehouse Catalog Row " + treasure.Id, paper,
+                    new Vector2(1040f, 70f), new Vector2(0f, 212f - (index - first) * 74f), Color.clear);
+                ApplyWarehousePlain(row.GetComponent<Image>(), new Color(.57f, .42f, .23f,
+                    (index - first) % 2 == 0 ? .075f : .025f));
+                WarehousePaperRule("Warehouse Catalog Row Rule " + treasure.Id, row,
+                    new Vector2(1040f, 1f), new Vector2(0f, -35f));
                 RawImage icon = WarehouseItemIcon("Warehouse Catalog Icon " + treasure.Id, row,
                     ItemIconCatalog.ForTreasure(treasure), new Vector2(-478f, 0f), 48f);
                 icon.color = owned ? Color.white : new Color(0.78f, 0.78f, 0.78f, 0.9f);
@@ -390,6 +401,10 @@ namespace ShatteredSail.Presentation
             int fontSize, string value, Color color)
         {
             Text text = WarehouseText(name, parent, size, position, fontSize, FontStyle.Normal, TextAnchor.MiddleCenter, color);
+            // Inventory rows are opaque light controls, so resolve their ink here
+            // after creation/reuse instead of inheriting a room's velvet palette.
+            if (!name.StartsWith("Warehouse Display Label ", StringComparison.Ordinal))
+                text.color = color == WarehouseRoomTheme.Muted ? MarketShopSkin.MutedInk : MarketShopSkin.Ink;
             text.text = value;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
@@ -400,6 +415,13 @@ namespace ShatteredSail.Presentation
         {
             Button button = WarehouseButton(name, parent, size, position, Gold, Ink, 21);
             button.GetComponentInChildren<Text>().text = label;
+            if (name == "Warehouse Display Selected" || name == "Warehouse Store All Rare")
+            {
+                WoodButtonSkin.Apply(button, Color.white);
+                WoodButtonSkin.SetSelected(button, false);
+                WoodButtonSkin.SetRole(button, WoodButtonRole.Primary);
+            }
+            else MarketShopSkin.ApplyLightButton(button);
             AddWarehouseAction(button, action);
             return button;
         }
@@ -411,6 +433,11 @@ namespace ShatteredSail.Presentation
             int quotedRevision = warehouseViewRevision;
             button.onClick.AddListener(() =>
             {
+                // Saved UnityEvents can outlive their rendered view or scene.
+                // Validate Unity object lifetime before touching any component.
+                if (this == null || button == null || !button.gameObject.activeInHierarchy || !button.IsInteractable()) return;
+                WarehouseTreasureDrag drag = button.GetComponent<WarehouseTreasureDrag>();
+                if (drag != null && drag.SuppressClick) return;
                 if (!ReferenceEquals(session, quotedSession) || CurrentWarehousePort != quotedPort ||
                     warehouseViewRevision != quotedRevision || session == null ||
                     session.Phase != CoreDemoPhase.Port || activePortFacility != 0) return;

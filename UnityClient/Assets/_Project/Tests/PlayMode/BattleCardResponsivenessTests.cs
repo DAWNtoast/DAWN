@@ -22,7 +22,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadResponsiveBattleScene();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval,
-                new Dictionary<string, int> { { "card_full_sail_turn", 3 } });
+                new Dictionary<string, int> { { "card_full_sail_turn", 1 } });
             SetResponsiveHand(session, "card_full_sail_turn", "card_brace", "card_brace");
             SetResponsiveDrawPile(session, "card_emergency_repair", "card_chain_shot");
             session.Battle.DistanceMeters = 500f;
@@ -32,7 +32,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
 
             int stageId = RequiredResponsive<RectTransform>("Battle Card").GetInstanceID();
-            int oceanId = RequiredResponsive<RawImage>("Battle Scene Art").GetInstanceID();
+            int oceanId = RequiredResponsive<RawImage>("Shared tactical sea").GetInstanceID();
+            int boardId = RequiredResponsive<NavalTacticalBoardView>("Naval Tactical Board").GetInstanceID();
+            int actionPoints = session.Battle.NavalActionPoints;
+            VoyagePoint playerPosition = session.Battle.PlayerPositionMeters;
+            VoyagePoint enemyPosition = session.Battle.EnemyPositionMeters;
             int playerId = RequiredResponsive<RectTransform>("Player Ship Art").GetInstanceID();
             int enemyId = RequiredResponsive<RectTransform>("Enemy Ship Art").GetInstanceID();
             int defenseId = RequiredResponsive<BattleDefenseHud>("Player Battle Hull Bar Track").GetInstanceID();
@@ -42,10 +46,14 @@ namespace ShatteredSail.Presentation.Tests
             int firstGuardId = firstGuard.GetInstanceID();
             int secondGuardId = secondGuard.GetInstanceID();
             CoreBattleCard turn = session.GetBattleCard(session.Battle.Hand[0]);
+            Assert.That(turn.UpgradeLevel, Is.EqualTo(1));
             Assert.That(turn.Energy, Is.EqualTo(1));
             Assert.That(turn.Draw, Is.EqualTo(2));
+            Assert.That(turn.NavalActionPointGain, Is.EqualTo(2), "The authored +1 maneuver adds one draw and one action point to its base rewards.");
             Assert.That(played.interactable, Is.True, "The upgraded maneuver retains its authored one-energy cost.");
 
+            FieldInfo blockingAnimation = typeof(CoreGameplayDemoController).GetField("battleAnimationPlaying", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(blockingAnimation, Is.Not.Null);
             float started = Time.realtimeSinceStartup;
             played.onClick.Invoke();
             played.onClick.Invoke();
@@ -55,23 +63,27 @@ namespace ShatteredSail.Presentation.Tests
             float deadline = started + 12f;
             while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
             {
+                bool blocking = (bool)blockingAnimation.GetValue(controller);
+                Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.EqualTo(!blocking),
+                    "Core action feedback locks input; the subsequent cosmetic hand flight remains interruptible.");
                 if (committed < 0f && session.Battle.CardsPlayedThisTurn > 0)
                     committed = Time.realtimeSinceStartup - started;
                 yield return null;
             }
             float elapsed = Time.realtimeSinceStartup - started;
             yield return null;
-            TestContext.WriteLine("[BattleResponsive timing] upgraded turn lock=" + elapsed.ToString("F3") +
+            TestContext.WriteLine("[BattleResponsive timing] upgraded turn visuals=" + elapsed.ToString("F3") +
                 "s; commit=" + committed.ToString("F3") + "s; same battlefield=" +
                 (RequiredResponsive<RectTransform>("Battle Card").GetInstanceID() == stageId) +
                 "; same player=" + (RequiredResponsive<RectTransform>("Player Ship Art").GetInstanceID() == playerId) +
                 "; same remaining card=" + (RequiredResponsive<Button>("Battle Card 0").GetInstanceID() == firstGuardId));
 
             Assert.That(controller.IsBattleAnimationPlaying, Is.False);
-            Assert.That(elapsed, Is.LessThan(2f), "Turn, guard and extra draws must share one short feedback window instead of serial multi-second locks.");
+            Assert.That(elapsed, Is.LessThan(2f), "The full maneuver feedback, including the cosmetic hand flight, must finish within the response budget.");
             Assert.That(committed, Is.InRange(0f, 0.9f), "The card's core result should follow the short lift, not a prolonged presentation delay.");
             Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetInstanceID(), Is.EqualTo(stageId));
-            Assert.That(RequiredResponsive<RawImage>("Battle Scene Art").GetInstanceID(), Is.EqualTo(oceanId));
+            Assert.That(RequiredResponsive<RawImage>("Shared tactical sea").GetInstanceID(), Is.EqualTo(oceanId));
+            Assert.That(RequiredResponsive<NavalTacticalBoardView>("Naval Tactical Board").GetInstanceID(), Is.EqualTo(boardId));
             Assert.That(RequiredResponsive<RectTransform>("Player Ship Art").GetInstanceID(), Is.EqualTo(playerId));
             Assert.That(RequiredResponsive<RectTransform>("Enemy Ship Art").GetInstanceID(), Is.EqualTo(enemyId));
             Assert.That(RequiredResponsive<BattleDefenseHud>("Player Battle Hull Bar Track").GetInstanceID(), Is.EqualTo(defenseId));
@@ -82,8 +94,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1), "Repeated clicks during the lift cannot resolve twice.");
             Assert.That(session.Battle.Energy, Is.Zero);
             Assert.That(session.Battle.PlayerBlock, Is.EqualTo(turn.Block));
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(500f - turn.MovementMeters));
-            Assert.That(session.Battle.Alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(500f));
+            Assert.That(session.Battle.Alignment, Is.EqualTo(NavalBattleAlignment.HeadOn));
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(actionPoints + 2));
+            Assert.That(session.Battle.PlayerPositionMeters, Is.EqualTo(playerPosition));
+            Assert.That(session.Battle.EnemyPositionMeters, Is.EqualTo(enemyPosition));
             AssertResponsiveHandMatchesCore(session);
             Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.True);
 
@@ -147,35 +162,42 @@ namespace ShatteredSail.Presentation.Tests
             CoreSpecialCardDefinition special = CoreSpecialCardCatalog.ForComponent("instrument_deepwater_abacus");
             Assert.That(special, Is.Not.Null);
             CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval,
-                new Dictionary<string, int> { { special.Card.Id, 3 } }, componentIds: new[] { special.SourceId });
+                new Dictionary<string, int> { { special.Card.Id, 2 } }, componentIds: new[] { special.SourceId });
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, session.MaxHull - 25);
             SetResponsiveHand(session, special.Card.Id, "card_brace");
             SetResponsiveDrawPile(session, "card_chain_shot", "card_emergency_repair");
             RenderResponsiveBattle(controller);
             yield return null;
             CoreBattleCard specialCard = session.GetBattleCard(session.Battle.Hand[0]);
-            Assert.That(specialCard.UpgradeLevel, Is.EqualTo(3));
-            Assert.That(specialCard.Draw, Is.EqualTo(2));
-            Assert.That(specialCard.Repair, Is.EqualTo(10));
-            Assert.That(specialCard.Block, Is.EqualTo(4));
+            // Authored deepwater-abacus +2: draw stays 1, repair 5 * 180% = 9, guard (2 + instrument bonus 3) * 160% = 8.
+            Assert.That(specialCard.UpgradeLevel, Is.EqualTo(2));
+            Assert.That(specialCard.Draw, Is.EqualTo(1));
+            Assert.That(specialCard.Repair, Is.EqualTo(9));
+            Assert.That(specialCard.Block, Is.EqualTo(8));
             Assert.That(session.CanPlayCard(0), Is.True, session.CardUnavailableReason(0));
             int hullBefore = session.Hull;
+            int energyBefore = session.Battle.Energy;
+            int energyCost = session.GetBattleCardEnergyCost(session.Battle.Hand[0]);
             int stageId = RequiredResponsive<RectTransform>("Battle Card").GetInstanceID();
             int retainedId = RequiredResponsive<Button>("Battle Card 1").GetInstanceID();
+            FieldInfo blockingAnimation = typeof(CoreGameplayDemoController).GetField("battleAnimationPlaying", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(blockingAnimation, Is.Not.Null);
             float started = Time.realtimeSinceStartup;
             RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
+            Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.False);
             bool sawSeparatedFeedback = false;
             float deadline = started + 12f;
             while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
             {
+                bool blocking = (bool)blockingAnimation.GetValue(controller);
+                Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.EqualTo(!blocking),
+                    "Input stays locked for the real action; later card-deal visuals do not extend that lock.");
                 Text shield = GameObject.Find("Player Shield Float")?.GetComponent<Text>();
                 Text repair = GameObject.Find("Player Repair Float")?.GetComponent<Text>();
-                if (shield != null && repair != null)
+                if (blocking && shield != null && repair != null && shield.color.a > .01f && repair.color.a > .01f)
                 {
                     Assert.That(Mathf.Abs(shield.rectTransform.anchoredPosition.y - repair.rectTransform.anchoredPosition.y),
                         Is.GreaterThanOrEqualTo(45f), "Concurrent shield and repair numbers must occupy separate readable lines.");
-                    Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.False,
-                        "The shared feedback window keeps input locked until both effects have finished.");
                     sawSeparatedFeedback = true;
                 }
                 yield return null;
@@ -183,14 +205,19 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.IsBattleAnimationPlaying, Is.False);
             yield return null;
             float elapsed = Time.realtimeSinceStartup - started;
-            TestContext.WriteLine("[BattleResponsive timing] component repair/guard/draw lock=" + elapsed.ToString("F3") +
+            TestContext.WriteLine("[BattleResponsive timing] component repair/guard/draw visuals=" + elapsed.ToString("F3") +
                 "s; same battlefield=" + (RequiredResponsive<RectTransform>("Battle Card").GetInstanceID() == stageId));
             Assert.That(elapsed, Is.LessThan(2f));
             Assert.That(sawSeparatedFeedback, Is.True, "Compound component effects should be shown together without overlapping their numbers.");
+            Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.True);
             Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetInstanceID(), Is.EqualTo(stageId));
             Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(retainedId));
             Assert.That(session.Hull, Is.EqualTo(hullBefore + specialCard.Repair));
             Assert.That(session.Battle.PlayerBlock, Is.EqualTo(specialCard.Block));
+            Assert.That(session.Battle.Energy, Is.EqualTo(energyBefore - energyCost));
+            CollectionAssert.AreEqual(new[] { "card_brace", "card_chain_shot" },
+                session.Battle.Hand.Select(index => session.GetBattleCard(index).Id).ToArray(),
+                "The authored one-card draw appends the first draw-pile card while retaining the original brace.");
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
             BattleDefenseHud hud = RequiredResponsive<BattleDefenseHud>("Player Battle Hull Bar Track");
             Assert.That(hud.DisplayedHull, Is.EqualTo(session.Hull));
@@ -223,9 +250,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Battle Board"), Is.Not.Null);
             AssertResponsiveHandMatchesCore(session);
 
-            session.Battle.DistanceMeters = 50f;
-            session.Battle.Alignment = NavalBattleAlignment.Parallel;
-            session.Battle.Energy = session.Battle.MaxEnergy;
+            ConfigureCloseNavalTestPose(session.Battle, false);
+            session.Battle.Energy = 0;
             RenderResponsiveBattle(controller);
             yield return null;
             int navalId = RequiredResponsive<RectTransform>("Battle Card").GetInstanceID();

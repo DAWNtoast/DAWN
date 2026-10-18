@@ -76,84 +76,6 @@ namespace ShatteredSail.Presentation
         private bool pendingVoyageHalfChartAchievement;
         private bool pendingVoyageEventArrivalAchievement;
 
-        private void Awake()
-        {
-            if (!Application.isPlaying)
-            {
-                return;
-            }
-
-            if (!ProfileSaveJournal.TryRecover(out string profileNotice))
-            {
-                profileSaveBlocked = true;
-                ReturnToMenuAfterSuspensionFailure(profileNotice);
-                return;
-            }
-            RemoveEditorPreview();
-            if (!VoyageSuspensionPersistence.TryRead(out VoyageSuspensionRecord suspendedVoyage, out string suspensionNotice))
-            {
-                ReturnToMenuAfterSuspensionFailure(suspensionNotice);
-                return;
-            }
-            Application.targetFrameRate = 60;
-            session = new CoreVoyageSession();
-            RestoreGameCalendar();
-            tutorial = new TutorialVoyageSession();
-            session.RestoreProfile(
-                ProfileGoldPersistence.Load(),
-                PlayerPrefs.GetString(CurrentPortKey, "断锚港"));
-            string previousCoverage = PlayerPrefs.GetString(LastVoyageExplorationCoverageKey, string.Empty);
-            if (float.TryParse(previousCoverage, NumberStyles.Float, CultureInfo.InvariantCulture, out float coverage) &&
-                !float.IsNaN(coverage) && !float.IsInfinity(coverage))
-                session.RestoreLastVoyageExplorationCoverage(coverage);
-            tutorialActive = PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 0;
-            art = new LegacyDemoArtCatalog();
-            portArt = new PortArtCatalog();
-            portMapIcons = new PortMapIconCatalog();
-            battleEnvironmentArt = new BattleEnvironmentArtCatalog();
-            componentArt = new ComponentArtCatalog();
-            componentShopArt = new ComponentShopArtCatalog();
-            cardWorkshopArt = new CardWorkshopArtCatalog();
-            maintenanceArt = new MaintenanceArtCatalog();
-            RestoreComponentLoadout();
-            if (componentInventoryReadFailed)
-            {
-                ReturnToMenuAfterSuspensionFailure(ComponentInventoryReadFailureNotice);
-                return;
-            }
-            RestorePortProgression();
-            RestoreWarehouseCollection();
-            RestoreTreasureProgress();
-            RestoreSeaChartProgress();
-            RestoreCollectionRewards();
-            if (suspendedVoyage != null && !TryRestoreSuspendedVoyage(suspendedVoyage, out suspensionNotice))
-            {
-                ReturnToMenuAfterSuspensionFailure(suspensionNotice);
-                return;
-            }
-            if (suspendedVoyage != null) PersistCrewAtSea();
-            facilityArt = new PortFacilityArtCatalog();
-            interfaceFont = CreateInterfaceFont();
-            seaSprite = CreateSeaSprite();
-            circleSprite = CreateCircleSprite();
-            EnsureEventSystem();
-            BuildCanvas("Core Gameplay Canvas");
-            if (suspendedVoyage == null) InitializeGuidedTutorial();
-            InitializeAudio();
-            Render();
-            InitializeAchievementNotifications();
-            if (OpeningComicCatalog.ConsumePlaybackRequest() && suspendedVoyage == null)
-                BuildOpeningComicOverlay();
-        }
-
-        private void OnDestroy()
-        {
-            RestoreDeparturePaintedHeader();
-            CloseOpeningComic();
-            ClearAchievementNotifications();
-            ReleaseGeneratedVisualResources();
-        }
-
         private void BuildCanvas(string canvasName)
         {
             GameObject canvasObject = new GameObject(canvasName, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -179,6 +101,10 @@ namespace ShatteredSail.Presentation
         private void Render()
         {
             if (profileSaveBlocked) return;
+            RestoreShipyardEquipmentViewport();
+            CloseBattleDeckOverview(false);
+            CloseBoardingCardChoice();
+            CloseNavalCardChoice();
             RestoreDeckBuilderNavigationControls();
             RestoreDeparturePaintedHeader();
             CloseTreasureStoryOverlay();
@@ -670,6 +596,7 @@ namespace ShatteredSail.Presentation
                 ProfileGoldPersistence.Save(session.ProfileGold);
                 PlayerPrefs.SetString(CurrentPortKey, session.CurrentPort);
                 PlayerPrefs.SetInt(SelectedShipKey, session.SelectedShipIndex);
+                SaveShipPorts();
                 PlayerPrefs.SetString(LastVoyageExplorationCoverageKey,
                     session.HasLastVoyageExplorationCoverage
                         ? session.LastVoyageExplorationCoverage.ToString("R", CultureInfo.InvariantCulture)
@@ -741,6 +668,12 @@ namespace ShatteredSail.Presentation
             recover.onClick.AddListener(() =>
             {
                 if (!Application.CanStreamedLevelBeLoaded("MainMenu")) { body.text = "主菜单场景不可用，原日志已保留，请检查安装文件后重试。"; return; }
+                if (warehouseIncomeFailedVoyage != null &&
+                    !VoyageSuspensionPersistence.TrySave(warehouseIncomeFailedVoyage, out string voyageNotice))
+                {
+                    body.text = "尚未保存原航程，请修复存储问题后再次重试：" + voyageNotice;
+                    return;
+                }
                 if (!ProfileSaveJournal.TryRecover(out string notice)) { body.text = notice + "\n\n尚未恢复。修复存储问题后可再次点击重试。"; return; }
                 VoyageSuspensionPersistence.PendingNotice = notice;
                 SceneManager.LoadScene("MainMenu");
@@ -781,7 +714,7 @@ namespace ShatteredSail.Presentation
             DepartureSkin.ApplyPanel(routePanel.GetComponent<Image>());
             BuildDepartureDestinationSelection(routePanel);
             BuildTreasureDepartureRoute(routePanel);
-            for (int index = 0; session.SelectedTreasureMap == null && index < CoreVoyageSession.Routes.Count; index += 1)
+            for (int index = 0; (UsesDepartureDockScene || session.SelectedTreasureMap == null) && index < CoreVoyageSession.Routes.Count; index += 1)
             {
                 int capturedIndex = index;
                 CoreRouteDefinition route = CoreVoyageSession.Routes[index];
@@ -807,13 +740,13 @@ namespace ShatteredSail.Presentation
                 routeLabel.text =
                     (selected ? "◆  " : "◇  ") + "<size=26>" + route.Name + "</size>\n" +
                     route.Theme + "\n" +
-                    "每海图格 " + route.NauticalMilesPerMapUnit.ToString("0") + " 海里\n区域首领：" + route.BossName +
+                    "每海图格 " + route.NauticalMilesPerMapUnit.ToString("0") + " 海里\n区域首领：" + SpecialWarshipArtCatalog.RouteCandidatesLabel(route) +
                     (session.PirateLevel < route.UnlockLevel ? " · 等级 " + route.UnlockLevel + " 开放" : string.Empty);
 
                 routeButton.onClick.AddListener(() =>
                 {
                     if (routeButton == null || !routeButton.gameObject.activeInHierarchy ||
-                        !IsDepartureShipView() || DepartureChartModeActive) return;
+                        !IsDepartureShipView() || departureCrewConfigurationOpen || DepartureChartModeActive || DepartureDockTreasureModeActive) return;
                     if (tutorialActive && capturedIndex != 0) return;
                     if (!session.CanSelectRoute(capturedIndex, out _)) return;
                     session.SelectRoute(capturedIndex);
@@ -830,12 +763,6 @@ namespace ShatteredSail.Presentation
             setupTitle.text = "旗舰 · 出航配置";
             EnsureDepartureCrewSelection();
             BuildDepartureChartControls(routePanel, setupPanel);
-            if (departureCrewConfigurationOpen)
-            {
-                BuildDepartureCrewConfiguration(setupPanel);
-                ApplyDeparturePresentation(routePanel, setupPanel);
-                return;
-            }
             BuildDepartureVesselSelector(setupPanel);
             BuildDepartureOrdinaryCrewControls(setupPanel);
             BuildDepartureProvisionPurchase(setupPanel);
@@ -844,7 +771,7 @@ namespace ShatteredSail.Presentation
             adjustSupplies.onClick.AddListener(() =>
             {
                 if (adjustSupplies == null || !adjustSupplies.gameObject.activeInHierarchy ||
-                    !adjustSupplies.IsInteractable() || !IsDepartureShipView()) return;
+                    !adjustSupplies.IsInteractable() || !IsDepartureShipView() || departureCrewConfigurationOpen) return;
                 OpenFacilityFromDeparture(PortFacilityArtCatalog.MarketFacilityIndex, setupPanel);
                 portNotice = "按预计航程备足补给。";
                 Render();
@@ -856,7 +783,7 @@ namespace ShatteredSail.Presentation
             configureDecks.onClick.AddListener(() =>
             {
                 if (configureDecks == null || !configureDecks.gameObject.activeInHierarchy ||
-                    !configureDecks.IsInteractable() || !IsDepartureShipView()) return;
+                    !configureDecks.IsInteractable() || !IsDepartureShipView() || departureCrewConfigurationOpen) return;
                 ResetCardWorkshopView();
                 OpenFacilityFromDeparture(4, setupPanel);
                 selectedCardWorkshopChest = 3;
@@ -870,9 +797,11 @@ namespace ShatteredSail.Presentation
             configureCrew.GetComponentInChildren<Text>().text = "船员配置";
             configureCrew.onClick.AddListener(() =>
             {
+                if (configureCrew == null || !configureCrew.gameObject.activeInHierarchy ||
+                    !IsDepartureShipView() || departureCrewConfigurationOpen) return;
+                CommitDepartureSeed(setupPanel);
                 departureCrewConfigurationOpen = true;
-                EnsureDepartureCrewSelection();
-                Render();
+                BuildDepartureCrewConfiguration(setupPanel);
             });
 
             Button start = CreateButton("Start Voyage", setupPanel, new Vector2(520f, 44f), new Vector2(0f, -322f), Gold, DeepSea, 20);
@@ -881,6 +810,7 @@ namespace ShatteredSail.Presentation
             {
                 if (start == null || !start.gameObject.activeInHierarchy || !IsDepartureShipView() ||
                     !DepartureChartViewCurrent(setupPanel, departureChartOwner, departureChartRevision)) return;
+                if (DepartureDockTreasureModeActive && session.SelectedTreasureMap == null) return;
                 if (TryGetSeaChartSaveProtectionReason(out string chartReason))
                 {
                     portNotice = chartReason;
@@ -889,6 +819,12 @@ namespace ShatteredSail.Presentation
                 }
                 RefreshCrewCapabilities();
                 ApplyDepartureCrewConfiguration();
+                if (!session.CanStartWithDepartureCrew(out string crewReason))
+                {
+                    portNotice = crewReason;
+                    Render();
+                    return;
+                }
                 if (!PrepareGuidedTutorialDeparture()) return;
                 if (session.SelectedTreasureMap != null && !session.CanStartTreasureVoyage(out string reason))
                 {
@@ -903,10 +839,11 @@ namespace ShatteredSail.Presentation
                     Render();
                     return;
                 }
-                session.StartVoyage();
+                session.StartVoyage(session.SelectedDestinationPort, RecordedDepartureChartLocationIds());
                 if (session.Phase != CoreDemoPhase.Sailing) { Render(); return; }
                 ApplyRecordedSeaChartKnowledge();
                 departureUseChartSeed = false;
+                departureDockTreasureMode = false;
                 PersistCrewAtSea();
                 // Tutorial reloads replay the lesson from its pre-departure port
                 // snapshot. Keep that wallet/cargo snapshot; treasure departures
@@ -918,6 +855,7 @@ namespace ShatteredSail.Presentation
             });
             RefreshDepartureChartControls();
             ApplyDeparturePresentation(routePanel, setupPanel);
+            if (departureCrewConfigurationOpen) BuildDepartureCrewConfiguration(setupPanel);
         }
 
         private void BuildSailing()
@@ -966,6 +904,8 @@ namespace ShatteredSail.Presentation
                 markerGlyph.text = node.Visited ? "✓" : treasureCore ? "X" : nodeBossKind == CoreBossKind.Legendary ? "传" : nodeBossKind == CoreBossKind.Treasure ? "藏" : node.IsBoss ? "首" : "!";
                 markerGlyph.rectTransform.sizeDelta = marker.GetComponent<RectTransform>().sizeDelta - new Vector2(4f, 4f);
                 if (!treasureCore) DecorateVoyageEventMarker(marker, node);
+                DecorateVoyageEventRiskHalo(marker, node);
+                DecorateDestinationBossGuidance(marker, node);
                 if (!node.Visited && (nodeBossKind == CoreBossKind.Legendary || nodeBossKind == CoreBossKind.Treasure || treasureCore))
                 {
                     VoyageEventMarkerPulse pulse = marker.gameObject.AddComponent<VoyageEventMarkerPulse>();
@@ -1174,6 +1114,7 @@ namespace ShatteredSail.Presentation
                 selectPort.interactable = marker.raycastTarget;
                 selectPort.onClick.AddListener(SelectCourseToDestination);
             }
+            ApplyDestinationPortGuidance(marker, halo, portName, destination);
         }
 
         private static Color ProceduralWaterColor(int routeIndex)
@@ -1210,7 +1151,7 @@ namespace ShatteredSail.Presentation
                 choices.Add(new EncounterDossierChoice
                 {
                     ObjectName = "Encounter Choice " + index, Label = choice.Label,
-                    Detail = ChartEncounterChoiceDetail(index) + (string.IsNullOrEmpty(condition) ? string.Empty : " · " + condition),
+                    Detail = ChartEncounterChoiceDetail(index), Requirement = condition,
                     Hours = choice.Hours, Available = available, StartsBattle = choice.StartsBattle,
                     LockedReason = available ? string.Empty : session.ChoiceUnavailableReason(index),
                     Resolve = () => { session.ResolveChoice(captured); PlaySfx("encounter_choice", 0.5f); Render(); }
@@ -1232,10 +1173,11 @@ namespace ShatteredSail.Presentation
                 });
             SeaTerrainType terrain = session.Map == null ? SeaTerrainType.OpenWater : session.CurrentEncounterSeaTerrain;
             string location = session.Map == null ? "航海日志" : session.Map.Route.Name;
+            bool specialShip = SpecialWarshipArtCatalog.TryLoad(encounter.Id, out Texture2D shipArt, out Rect shipUv);
             BuildEncounterDossier("Encounter", encounter.Name, encounter.Category, encounter.Description,
                 encounter.Mandatory, encounter.Risk, session.SelectedRouteIndex, location, terrain,
-                session.IsTreasureVoyage ? Resources.Load<Texture2D>("TreasureHunt/treasure_hunt_event_sheet") : art.EventSheet(session.SelectedRouteIndex),
-                session.IsTreasureVoyage ? TreasureEncounterUv(encounter.Id) : art.EncounterUv(encounter), choices);
+                specialShip ? shipArt : session.IsTreasureVoyage ? Resources.Load<Texture2D>("TreasureHunt/treasure_hunt_event_sheet") : art.EventSheet(session.SelectedRouteIndex),
+                specialShip ? shipUv : session.IsTreasureVoyage ? TreasureEncounterUv(encounter.Id) : art.EncounterUv(encounter), choices);
             UpdateEncounterChartRewardPresentation();
         }
 
@@ -1267,7 +1209,7 @@ namespace ShatteredSail.Presentation
                     NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours))
                 : null;
             bool hasBoardingPainting = battleTexture != null;
-            if (battleTexture == null)
+            if (boarding && battleTexture == null)
                 battleTexture = battleEnvironmentArt == null ? null : battleEnvironmentArt.ForTerrain(session.BattleTerrain);
             if (battleTexture != null)
             {
@@ -1279,6 +1221,8 @@ namespace ShatteredSail.Presentation
                         : BattleViewLayout.BackdropUv(battle.DistanceMeters, new Vector2(1860f, 900f)));
                 battleBackdrop.color = Color.white;
                 battleBackdrop.raycastTarget = false;
+                if (boarding) BoardingDeckBackdrop.Attach(battleBackdrop, session.BattleTerrain,
+                    NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours));
                 Color sceneTint = hasBoardingPainting ? new Color(0.015f, 0.025f, 0.035f, 0.08f)
                     : boarding ? NavigationTimeOfDayUtility.OverlayColor(NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours))
                     : new Color(0.015f, 0.035f, 0.045f, 0.22f);
@@ -1289,9 +1233,11 @@ namespace ShatteredSail.Presentation
             Texture2D combatShipSheet = portArt.ShipSheet != null ? portArt.ShipSheet : art.ShipSheet;
             int enemyShipIndex = battle.IsBoss ? Mathf.Clamp(session.SelectedRouteIndex + 1, 1, 3) : session.SelectedRouteIndex == 2 ? 3 : 1;
             Rect enemyUv = portArt.ShipSheet != null ? portArt.ShipUv(enemyShipIndex) : art.ShipUv(battle.IsBoss ? 3 : 1, battle.IsBoss ? 1 : 0);
+            bool specialEnemy = SpecialWarshipArtCatalog.TryLoad(session.ActiveEncounter?.Id, out Texture2D specialSheet, out Rect specialUv);
+            if (specialEnemy) { combatShipSheet = specialSheet; enemyUv = specialUv; }
             // Exclude the atlas separator, then face the opponent toward the
             // flagship without mirroring its HUD or combat animation offsets.
-            if (combatShipSheet != null)
+            if (combatShipSheet != null && !specialEnemy)
             {
                 // Two compression blocks also exclude dark bleed from the
                 // atlas separators on platforms using block compression.
@@ -1340,6 +1286,7 @@ namespace ShatteredSail.Presentation
             CreateBattleResourceHud(card, battle, false);
 
             Button endTurn = CreateButton("End Battle Turn", card, new Vector2(230f, 52f), new Vector2(735f, -265f), Coral, Ink, 18);
+            endTurn.interactable = !battle.NavalAwaitingHeadingSelection;
             endTurn.GetComponentInChildren<Text>().text = battle.Stage == NavalBattleStage.Preparation ? "备战完成 · 进入炮战" : "结束回合";
             endTurn.onClick.AddListener(() =>
             {
@@ -1358,7 +1305,8 @@ namespace ShatteredSail.Presentation
         private void CreateEnemyIntentHud(RectTransform parent, CoreBattleState battle)
         {
             string intent = session.GetEnemyIntent();
-            bool defending = !session.EnemyWillRam && (intent.Contains("格挡设为") || battle.Stage == NavalBattleStage.Preparation);
+            bool defending = !session.EnemyWillRam && (battle.Stage == NavalBattleStage.Boarding ? session.EnemyBoardingAttackDamage == 0 :
+                intent.Contains("格挡设为") || battle.Stage == NavalBattleStage.Preparation);
             RectTransform hud = CreateFixedPanel("Enemy Intent HUD", parent, new Vector2(340f, 72f), new Vector2(735f, 334f), new Color(0.025f, 0.065f, 0.08f, 0.94f));
             // Intent is a callout board in the same right-hand column as the enemy name. Reuse the Retreat Battle wood face so the board reads as one physical surface rather than a blue overlay.
             ApplyRetreatBattleWoodBoard(hud.GetComponent<Image>());

@@ -129,7 +129,7 @@ namespace ShatteredSail.Presentation
                 ShatteredSail.Core.Gameplay.CoreVoyageSession.Ships.Count + " turned/mirrored ship cutouts and visible foreground, " +
                 packagedAudioClipCount + " verified packaged 48kHz audio clips, " +
                 ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None) +
-                " individual card illustrations, 36 integrated school/wood resource frames and 36 integrated crew dossier paintings." +
+                " card-by-card illustration checks, 36 integrated school/wood resource frames and 36 integrated crew dossier paintings." +
                 "\nSave changes: none. Explicit smoke mode bypasses main-menu profile recovery, voyage-file reads and achievement capture; new-game, continue and settings-apply callbacks are blocked. No GM action invoked.\n" + string.Join("\n", failures);
             try
             {
@@ -154,14 +154,16 @@ namespace ShatteredSail.Presentation
         {
             var crew = ShatteredSail.Content.CrewNarrativeCatalog.AllCrew;
             Require(crew.Count == 36, "Packaged regional crew roster must contain 36 identities.");
+            Require(Resources.Load<Texture2D>("PortArt/UI/tavern_crew_dossier_frame_4k_layers_v1") != null,
+                "Packaged crew dossier frame missing.");
             foreach (var character in crew)
             {
-                string path = "PortArt/CrewDossiers/" + character.Id + "_dossier_v1";
-                Texture2D parchment = Resources.Load<Texture2D>(path);
-                Require(parchment != null, "Packaged crew dossier missing: " + character.Id);
-                if (parchment == null) continue;
-                Require(parchment.width >= 1900 && parchment.height >= 700,
-                    "Packaged crew dossier lost native detail: " + character.Id);
+                string path = "PortArt/CrewDossiers/" + character.Id + "_portrait_v2";
+                Texture2D portrait = Resources.Load<Texture2D>(path);
+                Require(portrait != null, "Packaged crew portrait missing: " + character.Id);
+                if (portrait == null) continue;
+                Require(portrait.width >= 512 && portrait.height >= 640,
+                    "Packaged crew portrait lost native detail: " + character.Id);
             }
         }
 
@@ -170,8 +172,31 @@ namespace ShatteredSail.Presentation
             var cards = ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary
                 .Where(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None &&
                     CardSchoolArtCatalog.NormalizeSchool(card.SchoolId) != "neutral").ToArray();
-            Require(cards.Length == 132 && cards.Select(card => card.ArtId).Distinct().Count() == 132,
-                "Packaged catalog must include 132 distinct school-card illustrations.");
+            var boarding = ShatteredSail.Core.Gameplay.CoreBoardingCardCatalog.All;
+            var boardingIds = new HashSet<string>(boarding.Select(card => card.Id), StringComparer.Ordinal);
+            var activeBoarding = ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary
+                .Where(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None &&
+                    boardingIds.Contains(card.Id)).ToArray();
+            Require(boarding.Count == 103 && boardingIds.Count == 103 && activeBoarding.Length == 103 &&
+                boardingIds.SetEquals(activeBoarding.Select(card => card.Id)),
+                "Packaged catalog must include all 103 distinct canonical boarding cards.");
+            Require(boarding.Count(card => CardSchoolArtCatalog.NormalizeSchool(card.SchoolId) != "neutral") == 90 &&
+                boarding.Count(card => CardSchoolArtCatalog.NormalizeSchool(card.SchoolId) == "neutral") == 13,
+                "Canonical boarding catalog must include 90 school cards and 13 neutral cards.");
+            var expansion = ShatteredSail.Core.Gameplay.CoreNavalSchoolExpansionCatalog.All;
+            var expansionIds = new HashSet<string>(expansion.Select(card => card.Id), StringComparer.Ordinal);
+            var activeExpansion = cards.Where(card => expansionIds.Contains(card.Id)).ToArray();
+            Require(expansion.Count == 27 && expansionIds.Count == 27 && activeExpansion.Length == 27 &&
+                expansionIds.SetEquals(activeExpansion.Select(card => card.Id)),
+                "Packaged catalog must include all 27 distinct naval expansion school cards.");
+            // Boarding and naval expansion cards reuse approved full illustrations.
+            // Preserve the original six-school catalog's 132 independent images.
+            var originalSchoolCards = cards.Where(card => !boardingIds.Contains(card.Id) && !expansionIds.Contains(card.Id)).ToArray();
+            Require(originalSchoolCards.Length == 132 && originalSchoolCards.Select(card => card.ArtId).Distinct().Count() == 132,
+                "Original school catalog must include 132 distinct school-card illustrations.");
+            Require(cards.Length == 249 && new HashSet<string>(originalSchoolCards.Select(card => card.ArtId),
+                StringComparer.Ordinal).SetEquals(cards.Select(card => card.ArtId)),
+                "All 249 school cards must use the complete approved set of 132 school illustrations.");
             var lines = new List<string> { "cardId,school,artId,resourcePath,width,height,fullSourceUv,sourceAspectPreserved" };
             foreach (var card in ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary
                 .Where(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None))

@@ -80,6 +80,10 @@ namespace ShatteredSail.Presentation
             SetBattleSpecialAction(root, "Battle Board", "Battle Board Condition", -68f);
             RectTransform curse = root.Find("Battle Curse Panel") as RectTransform;
             if (curse != null) curse.gameObject.SetActive(session.CurseCount > 0);
+            RefreshBoardingEnemyHud(root, battle);
+            if (battle.Stage != NavalBattleStage.Boarding) ApplyNavalTacticalHudLayout(root, battle);
+            RefreshBattleStatusHud(root, battle);
+            RefreshCompactBattleHud(root, battle);
         }
 
         private static void SetBattleDecisionPanel(RectTransform panel, bool player, float y, float height)

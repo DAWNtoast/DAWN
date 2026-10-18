@@ -9,6 +9,7 @@ namespace ShatteredSail.Presentation
     {
         private const string LayoutName = "Navigation Dashboard Layout";
         private bool applying;
+        private float appliedCanvasScale = -1f;
 
         public static void Attach(RectTransform content)
         {
@@ -35,6 +36,15 @@ namespace ShatteredSail.Presentation
         private void OnEnable() => Apply();
         private void OnRectTransformDimensionsChange() => Apply();
 
+        private void LateUpdate()
+        {
+            // The fixed 1920x1080 game surface keeps the same logical size when
+            // the window changes. CanvasScaler can still change glyph metrics
+            // and wrapping without sending a RectTransform size notification.
+            Canvas canvas = GetComponentInParent<Canvas>();
+            if (canvas != null && !Mathf.Approximately(appliedCanvasScale, canvas.rootCanvas.scaleFactor)) Apply();
+        }
+
         public void Apply()
         {
             if (applying || !isActiveAndEnabled) return;
@@ -55,16 +65,29 @@ namespace ShatteredSail.Presentation
                 if (content.rect.height <= headerHeight) return;
                 Rect bounds = content.rect;
                 float height = bounds.height - headerHeight;
+                bool encounter = Child(Child(lookout, "Forward Viewport"), "Encounter Card") != null;
+                // Events preserve the established chart bounds; only the right
+                // column changes from sailing controls/lookout into a journal.
                 float leftWidth = bounds.width * .6625f;
                 float splitX = bounds.xMin + leftWidth;
                 float rightBottom = height * .48f;
                 Fit(chart, new Rect(bounds.xMin, bounds.yMin, leftWidth, height), new Vector2(1100, 800));
                 Fit(controls, new Rect(splitX, bounds.yMin, bounds.width - leftWidth, rightBottom), new Vector2(660, 470));
-                Fit(lookout, new Rect(splitX, bounds.yMin + rightBottom, bounds.width - leftWidth, height - rightBottom), new Vector2(980, 650));
+                Fit(lookout, new Rect(splitX, encounter ? bounds.yMin : bounds.yMin + rightBottom,
+                    bounds.width - leftWidth, encounter ? height : height - rightBottom),
+                    encounter ? new Vector2(660, 960) : new Vector2(980, 650));
+                CanvasGroup controlsVisibility = controls.GetComponent<CanvasGroup>();
+                if (controlsVisibility == null) controlsVisibility = controls.gameObject.AddComponent<CanvasGroup>();
+                // Keep the current controls discoverable for future resize and
+                // restore passes. Disabling their object would hide it from Child.
+                controlsVisibility.alpha = encounter ? 0f : 1f;
+                controlsVisibility.interactable = !encounter;
+                controlsVisibility.blocksRaycasts = !encounter;
                 NavigationInterfaceSkin.ApplyDashboard(content);
                 LayoutChart(chart);
                 LayoutControls(controls);
                 LayoutLookout(lookout);
+                appliedCanvasScale = canvas == null ? 1f : canvas.rootCanvas.scaleFactor;
             }
             finally { applying = false; }
         }
@@ -95,9 +118,22 @@ namespace ShatteredSail.Presentation
             Box(endurance, new Vector2(enduranceWidth, 34f), new Vector2(size.x * .5f - 24f - enduranceWidth * .5f, headingY));
             ChartTextBox(Child(endurance, "Water Food Endurance"), new Vector2(enduranceWidth, 30f),
                 Vector2.zero, 17, panel.localScale.x);
+            float explorationHeight = LayoutExplorationStatus(panel, headingY - stripHeight * .5f);
             RectTransform hint = Child(panel, "Map Course Hint");
             ChartTextBox(hint, new Vector2(size.x - 48f, 32f),
                 new Vector2(0, -size.y * .5f + 28f), 14, panel.localScale.x);
+            RectTransform bossGuidance = Child(panel, "Destination Boss Guidance");
+            if (bossGuidance != null)
+            {
+                float guidanceWidth = size.x - 24f;
+                Box(bossGuidance, new Vector2(guidanceWidth, 64f), new Vector2(0f, -size.y * .5f + 38f));
+                ChartTextBox(Child(bossGuidance, "Destination Boss Guidance Text"), new Vector2(guidanceWidth - 336f, 52f),
+                    new Vector2(-152f, 0f), 18, panel.localScale.x);
+                ControlBox(Child(bossGuidance, "Locate Blocking Boss"), new Vector2(136f, 44f),
+                    new Vector2(guidanceWidth * .5f - 226f, 0f));
+                ControlBox(Child(bossGuidance, "Plot Blocking Boss Course"), new Vector2(136f, 44f),
+                    new Vector2(guidanceWidth * .5f - 76f, 0f));
+            }
             RectTransform frame = Child(panel, "Procedural Sea Chart Frame"), map = Child(frame, "Map Layer");
             if (map == null) return;
             // Match the old procedural backing to the surrounding fog surface,
@@ -113,8 +149,8 @@ namespace ShatteredSail.Presentation
             }
             // Fit the plotted sea, not the larger logical root's empty margins.
             // Keep the established coordinates for routes, markers and input.
-            float mapTop = headingY - stripHeight * .5f;
-            float mapBottom = -size.y * .5f + padding + (hint == null ? 0f : 40f);
+            float mapTop = headingY - stripHeight * .5f - explorationHeight;
+            float mapBottom = -size.y * .5f + padding + (bossGuidance != null ? 72f : hint == null ? 0f : 40f);
             Vector2 mapSize = new Vector2(size.x - padding * 2f, mapTop - mapBottom);
             RectTransform sea = Child(map, "Ocean Tile Layer");
             if (sea == null) return;
@@ -133,6 +169,22 @@ namespace ShatteredSail.Presentation
             }
             viewport.ApplyLayout(frame, sea);
             ApplyMapMarkerScale(map);
+        }
+
+        private static float LayoutExplorationStatus(RectTransform chart, float top)
+        {
+            RectTransform panel = Child(chart, "Voyage Exploration Status");
+            RectTransform message = Child(panel, "Voyage Exploration Status Text");
+            if (panel == null || message == null) return 0f;
+            float width = chart.sizeDelta.x - 8f;
+            Text text = message.GetComponent<Text>();
+            ChartTextBox(message, new Vector2(width - 28f, 42f), Vector2.zero, 18, chart.localScale.x);
+            // Reserve the complete wrapped summary above the chart. Clues and
+            // remaining buff durations stay visible after closing an event.
+            float height = Mathf.Max(42f, Mathf.Ceil(text.preferredHeight * message.localScale.y) + 16f);
+            Box(panel, new Vector2(width, height), new Vector2(0f, top - height * .5f));
+            ChartTextBox(message, new Vector2(width - 28f, height - 16f), Vector2.zero, 18, chart.localScale.x);
+            return height;
         }
 
         public static void ApplyMapMarkerScale(RectTransform map)
@@ -187,6 +239,7 @@ namespace ShatteredSail.Presentation
             Box(Child(slider, "Background"), new Vector2(forecastWidth,12), Vector2.zero);
             Box(Child(slider, "Fill Area"), new Vector2(forecastWidth-18,10), new Vector2(-9,0));
             Box(Child(slider, "Handle Slide Area"), new Vector2(forecastWidth-24,34), Vector2.zero);
+            Box(Child(panel, "Distance Limit"), new Vector2(forecastWidth,18), new Vector2(forecastCenter,top-119f));
             float forecastTop = top - 130f;
             float forecastHeight = Mathf.Max(132f, forecastTop - bodyBottom);
             Box(Child(panel, "Forecast"), new Vector2(forecastWidth,forecastHeight), new Vector2(forecastCenter,forecastTop-forecastHeight*.5f));
@@ -223,85 +276,7 @@ namespace ShatteredSail.Presentation
 
         public static void LayoutEmbeddedEncounter(RectTransform card)
         {
-            if (card == null) return;
-            Box(Child(card, "Encounter Parchment"), card.sizeDelta, Vector2.zero);
-            RectTransform content = Child(card, "Encounter Paper Content");
-            if (content == null) return;
-            Vector2 size = card.sizeDelta - new Vector2(64,64);
-            Box(content, size, Vector2.zero);
-            float top = size.y * .5f;
-            float heroHeight = Mathf.Clamp(size.y * .44f,246f,304f);
-            float artWidth = Mathf.Min(size.x * .35f,(heroHeight - 36f) * 4f / 3f);
-            float artHeight = (artWidth-6f) * .75f + 6f;
-            float artCenter = -size.x * .5f + artWidth * .5f;
-            RectTransform mount = Child(content,"Encounter Illustration Mount");
-            Box(mount,new Vector2(artWidth,artHeight),new Vector2(artCenter,top-artHeight*.5f));
-            Box(Child(mount,"Demo Event Art"),new Vector2(artWidth-6f,artHeight-6f),Vector2.zero);
-            Box(Child(content,"Encounter Location"),new Vector2(artWidth,28f),new Vector2(artCenter,top-artHeight-20f));
-            float narrativeWidth = size.x-artWidth-28f;
-            float narrativeCenter = size.x*.5f-narrativeWidth*.5f;
-            Box(Child(content,"Encounter Title"),new Vector2(narrativeWidth,48f),new Vector2(narrativeCenter,top-24f));
-            Box(Child(content,"Encounter Description"),new Vector2(narrativeWidth,heroHeight-62f),new Vector2(narrativeCenter,top-62f-(heroHeight-62f)*.5f));
-            float badgeY = top-heroHeight-22f;
-            float footerWidth = 218f;
-            Box(Child(content,"Encounter Badge"),new Vector2(size.x-footerWidth-16f,28f),new Vector2(-(footerWidth+16f)*.5f,badgeY));
-            Box(Child(content,"Encounter Decision Footer"),new Vector2(footerWidth,28f),new Vector2(size.x*.5f-footerWidth*.5f,badgeY));
-            EncounterFont(Child(content,"Encounter Title"),36);
-            EncounterFont(Child(content,"Encounter Description"),24);
-            EncounterFont(Child(content,"Encounter Location"),22);
-            EncounterFont(Child(content,"Encounter Badge"),20);
-            EncounterFont(Child(content,"Encounter Decision Footer"),18);
-
-            RectTransform viewport = Child(content,"Encounter Decision Viewport");
-            RectTransform actions = Child(viewport,"Encounter Choices");
-            if (viewport == null || actions == null) return;
-            ScrollRect scroll = viewport.GetComponent<ScrollRect>();
-            float normalized = scroll == null ? 1f : scroll.verticalNormalizedPosition;
-            float viewportTop = badgeY-28f;
-            float viewportHeight = viewportTop+size.y*.5f;
-            Box(viewport,new Vector2(size.x,viewportHeight),new Vector2(0,viewportTop-viewportHeight*.5f));
-            float cursor = 0;
-            foreach (Transform child in actions)
-            {
-                Button button = child.GetComponent<Button>();
-                if (button == null || !child.gameObject.activeSelf) continue;
-                bool skip = child.name.StartsWith("Skip ");
-                float height = skip ? 80f : 96f;
-                var row = (RectTransform)child;
-                row.anchorMin = row.anchorMax = new Vector2(.5f,1f);
-                Box(row,new Vector2(size.x,height),new Vector2(0,-cursor-height*.5f));
-                float textWidth = size.x-218f;
-                Box(Child(row,"Label"),new Vector2(textWidth,34f),new Vector2(-39f,skip ? 17f : 25f));
-                Box(Child(row,"Detail"),new Vector2(textWidth,skip ? 28f : 48f),new Vector2(-39f,skip ? -19f : -20f));
-                Box(Child(row,"Hours"),new Vector2(132f,height-12f),new Vector2(size.x*.5f-78f,0));
-                Box(Child(row,"Decision Number"),new Vector2(40f,38f),new Vector2(-size.x*.5f+30f,0));
-                EncounterFont(Child(row,"Label"),28);
-                EncounterFont(Child(row,"Detail"),22);
-                EncounterFont(Child(row,"Hours"),20,14);
-                EncounterFont(Child(row,"Decision Number"),24);
-                cursor += height+10f;
-            }
-            float heightNeeded = Mathf.Max(0,cursor-10f);
-            actions.anchorMin = actions.anchorMax = actions.pivot = new Vector2(.5f,1f);
-            Box(actions,new Vector2(size.x,Mathf.Max(viewportHeight,heightNeeded)),actions.anchoredPosition);
-            if (scroll != null)
-            {
-                scroll.vertical = heightNeeded > viewportHeight;
-                scroll.verticalNormalizedPosition = scroll.vertical ? Mathf.Clamp01(normalized) : 1f;
-                Text footer = Child(content,"Encounter Decision Footer")?.GetComponent<Text>();
-                Text badge = Child(content,"Encounter Badge")?.GetComponent<Text>();
-                if (footer != null) footer.text = scroll.vertical ? "上下滚动查看更多" :
-                    badge != null && badge.text.Contains("必须处理") ? "选择可行方案继续" : "略过不耗时";
-            }
-        }
-
-        private static void EncounterFont(RectTransform rect,int size,int minimum = 0)
-        {
-            Text label = rect == null ? null : rect.GetComponent<Text>();
-            if (label == null) return;
-            label.fontSize = label.resizeTextMaxSize = size;
-            label.resizeTextMinSize = minimum > 0 ? minimum : size-3;
-            label.resizeTextForBestFit = true;
+            EncounterJournalLayout.Apply(card);
         }
 
         private static void FitPanorama(RectTransform rect, Vector2 size)

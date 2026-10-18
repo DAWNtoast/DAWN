@@ -113,10 +113,17 @@ namespace ShatteredSail.Presentation.Tests
             ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Not.Null);
-            Assert.That(GameObject.Find("Battle Card Upgrade Panel Texture").GetComponent<RawImage>().texture, Is.Not.Null);
+            Assert.That(GameObject.Find("Battle Card Upgrade Panel Texture").GetComponent<Image>().sprite, Is.Not.Null);
+            Assert.That(GameObject.Find("Battle Card Upgrade Panel Texture").GetComponent<Image>().sprite, Is.SameAs(MarketShopSkin.Paper));
+            AssertForgePage(controller, 0);
+            while (ActiveButton("Select Upgrade Card 0") == null)
+            {
+                Assert.That(ActiveButton("Next Upgrade Cards").interactable, Is.True, "Chain shot remains reachable in numbered catalog order.");
+                ActiveButton("Next Upgrade Cards").onClick.Invoke();
+                yield return null;
+            }
             ActiveButton("Select Upgrade Card 0").onClick.Invoke();
             yield return null;
-            AssertForgePage(controller, 0);
             AssertForgeComparison(controller, 0);
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "18_Card_Forge_Rank0_To1.png",
@@ -139,7 +146,7 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     yield return new WaitForSecondsRealtime(.7f);
                     NavalBattleVisualCapture.Capture(controller, "19_Card_Forge_Rank2_To3.png",
-                        "完整卡面对比二阶到三阶：原始费用不变，伤害由1.5倍提升至2倍", "Battle Card Upgrade Panel");
+                        "完整卡面对比二阶到三阶：原始费用不变，按链弹专属曲线强化伤害", "Battle Card Upgrade Panel");
                 }
             }
             Assert.That(ActiveButton("Confirm Battle Card Upgrade").interactable, Is.False);
@@ -161,6 +168,11 @@ namespace ShatteredSail.Presentation.Tests
             }
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "20_Card_Forge_Rank3.png", "完整三阶卡面与满阶提示，重复点击不再扣费", "Battle Card Upgrade Panel");
+            while (ActiveButton("Previous Upgrade Cards").interactable)
+            {
+                ActiveButton("Previous Upgrade Cards").onClick.Invoke();
+                yield return null;
+            }
             HashSet<int> seen = new HashSet<int>();
             int pageCount = Mathf.Max(1, (controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count + 7) / 8);
             for (int page = 0; page < pageCount; page++)
@@ -208,8 +220,10 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
             RectTransform panel = GameObject.Find("Workshop Preview Collection").GetComponent<RectTransform>();
             Button[] choices = panel.GetComponentsInChildren<Button>()
-                .Where(button => button.name.StartsWith("Select Upgrade Card ")).OrderBy(ForgeCardIndex).ToArray();
-            int[] expected = controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval).Skip(page * 8).Take(8).ToArray();
+                .Where(button => button.name.StartsWith("Select Upgrade Card ")).ToArray();
+            int[] expected = controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval)
+                .OrderBy(index => CoreBattleCardNumbering.Number(CoreVoyageSession.CardLibrary[index]))
+                .ThenBy(index => index).Skip(page * 8).Take(8).ToArray();
             CollectionAssert.AreEqual(expected, choices.Select(ForgeCardIndex).ToArray());
             Assert.That(choices.Length, Is.InRange(1, 8));
             int pages = Mathf.Max(1, (controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count + 7) / 8);
@@ -260,9 +274,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(name.transform.IsChildOf(face), Is.True, side);
                 Assert.That(body.transform.IsChildOf(face), Is.True, side);
                 Assert.That(name.text, Is.EqualTo(CardFaceLayout.DisplayName(expected)), side);
-                Assert.That(ForgeVisibleText(body.text),
-                    Is.EqualTo(ForgeVisibleText(CardDescriptionText.Compact(
-                        controller.Session.BattleCardFaceDescription(expected, NavalBattleStage.Naval)))), side);
+                BattlePresentationTests.AssertVisibleWordsAndClauseBoundaries(CardFaceLayout.FormatDescription(
+                    controller.Session.BattleCardFaceDescription(expected, NavalBattleStage.Naval)), body.text, side);
                 Assert.That(body.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize), side);
                 Assert.That(body.preferredHeight, Is.LessThanOrEqualTo(body.rectTransform.rect.height + .5f), side);
                 CardOrnamentGraphic[] ornaments = face.GetComponentsInChildren<CardOrnamentGraphic>();
@@ -273,10 +286,14 @@ namespace ShatteredSail.Presentation.Tests
                 if (powder.Length > 0) Assert.That(powder[0].GetComponentInChildren<Text>().text, Is.EqualTo(expected.PowderCost.ToString()), side);
             }
             Assert.That(ActiveButton("Confirm Battle Card Upgrade").interactable,
-                Is.EqualTo(current.UpgradeLevel < 3 && controller.Session.ProfileGold >= controller.Session.GetCardUpgradeCost(index)));
+                Is.EqualTo(current.UpgradeLevel < controller.Session.GetCardMaximumUpgradeLevel(index) &&
+                    controller.Session.BattleCardUpgradeUnavailableReason(index).Length == 0));
             Assert.That(GameObject.Find("Upgrade Comparison Heading Current").GetComponent<Text>().text, Does.Contain("强化前"));
             Assert.That(GameObject.Find("Upgrade Comparison Heading Next").GetComponent<Text>().text,
-                Does.Contain(current.UpgradeLevel == 3 ? "已达三阶" : "强化后"));
+                Does.Contain(current.UpgradeLevel < controller.Session.GetCardMaximumUpgradeLevel(index) ? "强化后" :
+                    controller.Session.GetCardMaximumUpgradeLevel(index) == 0 ? "固定效果" :
+                    controller.Session.GetCardMaximumUpgradeLevel(index) == 1 ? "已达一阶" :
+                    controller.Session.GetCardMaximumUpgradeLevel(index) == 2 ? "已达二阶" : "已达三阶"));
         }
 
         private static string ForgeVisibleText(string text) => System.Text.RegularExpressions.Regex.Replace(text, @"</?(?:b|i|size|color)(?:=[^>]*)?>", string.Empty)
@@ -323,8 +340,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(title.text, Is.EqualTo(CardFaceLayout.DisplayName(card)));
             NavalBattleStage previewStage = card.IsAllowedInStage(NavalBattleStage.Boarding) ? NavalBattleStage.Boarding :
                 card.IsAllowedInStage(NavalBattleStage.Naval) ? NavalBattleStage.Naval : NavalBattleStage.Preparation;
-            Assert.That(ForgeVisibleText(effect.text), Is.EqualTo(ForgeVisibleText(CardDescriptionText.Compact(
-                controller.Session.BattleCardFaceDescription(card, previewStage)))));
+            BattlePresentationTests.AssertVisibleWordsAndClauseBoundaries(CardFaceLayout.FormatDescription(
+                controller.Session.BattleCardFaceDescription(card, previewStage)), effect.text, card.Id);
             Assert.That(effect.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));
             Assert.That(effect.preferredHeight, Is.LessThanOrEqualTo(effect.rectTransform.rect.height + .5f));
             Assert.That(face.GetComponentsInChildren<Button>(), Is.Empty, "Reading the card cannot buy, equip or recruit its source.");
@@ -416,7 +433,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(10));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ShipOwnedKey(grayGullLastShip), 0), Is.Zero);
             Assert.That(controller.Session.SelectedShipIndex, Is.Zero);
-            ActiveButton("Back To Shipyard Gallery").onClick.Invoke();
+            ActiveButton("Return To Port Hub").onClick.Invoke();
             yield return null;
             Assert.That(ActiveButton("Shipyard Ship " + grayGullLastShip), Is.Not.Null);
             ActiveButton("Shipyard Next Vessel").onClick.Invoke();
@@ -451,15 +468,15 @@ namespace ShatteredSail.Presentation.Tests
 
                 Assert.That(first.Count, Is.EqualTo(PortComponentShopCatalog.StockCount(0)));
                 Assert.That(first.All(offer => port.Value.Contains(offer.Entry.Slot)), Is.True, port.Key + " exposed an unconfigured component slot.");
-                Assert.That(first.All(offer => offer.Quality >= 0.9f && offer.Quality <= 1.1f), Is.True);
+                Assert.That(first.All(offer => offer.Price == PortComponentShopCatalog.CalculatePrice(offer.Entry, port.Key)), Is.True);
                 Assert.That(first.All(offer => offer.Price >= 10 && offer.Price % 10 == 0), Is.True);
                 CollectionAssert.AreEqual(
-                    first.Select(offer => offer.Id + ":" + offer.Entry.Id + ":" + offer.Quality + ":" + offer.Price).ToArray(),
-                    second.Select(offer => offer.Id + ":" + offer.Entry.Id + ":" + offer.Quality + ":" + offer.Price).ToArray());
+                    first.Select(offer => offer.Id + ":" + offer.Entry.Id + ":" + offer.Price).ToArray(),
+                    second.Select(offer => offer.Id + ":" + offer.Entry.Id + ":" + offer.Price).ToArray());
             }
 
             ComponentArtEntry sail = art.GetById("sail_patched_lateen");
-            Assert.That(PortComponentShopCatalog.CalculatePrice(sail, "白贝港", 1f), Is.EqualTo(200));
+            Assert.That(PortComponentShopCatalog.CalculatePrice(sail, "白贝港"), Is.EqualTo(200));
 
             HashSet<string> firstTemplateIds = new HashSet<string>(art.Entries
                 .GroupBy(entry => new { entry.Slot, entry.Rarity })
@@ -675,10 +692,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ActiveButton("Return To Port Hub"), Is.SameAs(tavernReturn), "Opening a dossier reuses the facility header return button.");
             Assert.That(tavernReturn.GetComponentInChildren<Text>().text, Is.EqualTo("返回酒馆"));
             Assert.That(GameObject.Find("Back To Tavern Crew Lineup"), Is.Null, "The dossier must not duplicate its header return button.");
-            Assert.That(GameObject.Find("Tavern Dossier Parchment").GetComponent<RawImage>().texture.name,
-                Is.EqualTo(regionalNavigator.Id + "_dossier_v1"));
+            Assert.That(GameObject.Find("Tavern Dossier Background Portrait").GetComponent<RawImage>().texture.name,
+                Is.EqualTo(regionalNavigator.Id + "_portrait_v2"));
             Assert.That(GameObject.Find("Tavern Crew Detail Full Body"), Is.Null,
-                "Crew portraits are painted directly into their detail parchment.");
+                "The dossier uses its authored background portrait instead of a full-body cutout.");
             Assert.That(GameObject.Find("Tavern Crew Detail Name").GetComponent<Text>().text, Is.EqualTo(regionalNavigator.DisplayName));
             Text crewBiography = GameObject.Find("Tavern Crew Biography").GetComponent<Text>();
             Assert.That(crewBiography.text.Replace("\r", string.Empty).Replace("\n", string.Empty),
@@ -706,8 +723,10 @@ namespace ShatteredSail.Presentation.Tests
             AssertDossierCardFace(controller, "Tavern", personalTactic);
             Assert.That(GameObject.Find("Tavern Special Card Lore").GetComponent<Text>().text.Replace("\r", string.Empty).Replace("\n", string.Empty),
                 Is.EqualTo(personalTactic.Lore.Replace("\r", string.Empty).Replace("\n", string.Empty)));
-            Assert.That(GameObject.Find("Tavern Special Card Growth").GetComponent<Text>().text, Does.Contain("尚未获得"));
-            Assert.That(GameObject.Find("Tavern Dossier Page Counter").GetComponent<Text>().text, Is.EqualTo("第 4 / 4 页"));
+            Assert.That(GameObject.Find("Tavern Special Card Growth"), Is.Null);
+            Assert.That(GameObject.Find("Tavern Dossier Page Counter"), Is.Null);
+            Assert.That(GameObject.Find("Previous Tavern Dossier Page"), Is.Null);
+            Assert.That(GameObject.Find("Next Tavern Dossier Page"), Is.Null);
             NavalBattleVisualCapture.Capture(controller, "03_Crew_Special_Card_Dossier.png",
                 "船员第四页：个人来历衍生的特殊卡牌，阅读不招募也不扣费", "Tavern Crew Detail");
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforePaging));
@@ -785,6 +804,11 @@ namespace ShatteredSail.Presentation.Tests
                     {
                         ActiveButton("Component Shop Offer " + offer.Id).onClick.Invoke();
                         yield return null;
+                        Assert.That(GameObject.Find("Component Shop Detail"), Is.Null,
+                            "The first catalogue click only previews the component, including after returning from details.");
+                        RawImage hero = GameObject.Find("Component Shop Hero " + offer.Entry.Id).GetComponent<RawImage>();
+                        Assert.That(hero.texture, Is.SameAs(offer.Entry.ShipLayer));
+                        yield return ClickDestinationTestGraphic(hero.gameObject, Vector2.zero);
                         RawImage model = GameObject.Find("Component Detail Model").GetComponent<RawImage>();
                         Assert.That(model.texture, Is.SameAs(offer.Entry.ShipLayer));
                         Assert.That(GameObject.Find("Component Detail Name").GetComponent<Text>().text, Is.EqualTo(offer.Entry.Name));
@@ -813,6 +837,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(componentReturn.GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
             purchasedSceneOffer.onClick.Invoke();
             yield return null;
+            Assert.That(GameObject.Find("Component Shop Detail"), Is.Null,
+                "Selecting the catalogue offer must show its hero before opening details.");
+            Assert.That(GameObject.Find("Component Shop Hero " + purchasedOffer.Entry.Id), Is.Not.Null);
+            purchasedSceneOffer.onClick.Invoke();
+            yield return null;
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforePurchase),
                 "Opening component details must not spend currency.");
             Assert.That(controller.EquippedComponent(purchasedOffer.Entry.Slot)?.Id, Is.EqualTo(equippedBeforePurchase),
@@ -831,8 +860,7 @@ namespace ShatteredSail.Presentation.Tests
             Text detailMeta = GameObject.Find("Component Detail Meta").GetComponent<Text>();
             Assert.That(detailMeta.text, Does.Contain(ComponentArtCatalog.RarityName(purchasedOffer.Entry.Rarity)));
             Assert.That(detailMeta.text, Does.Contain(ComponentArtCatalog.SlotName(purchasedOffer.Entry.Slot)));
-            Assert.That(GameObject.Find("Component Detail Quality").GetComponent<Text>().text,
-                Does.Contain(Mathf.RoundToInt(purchasedOffer.Quality * 100f).ToString()));
+            Assert.That(GameObject.Find("Component Detail Quality"), Is.Null);
             Assert.That(GameObject.Find("Component Detail Specialization").GetComponent<Text>().text,
                 Does.Contain(purchasedOffer.Entry.Specialization));
             Assert.That(DossierTextWithoutWhitespace(GameObject.Find("Component Detail Description").GetComponent<Text>().text),
@@ -945,15 +973,16 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
             RectTransform parchment = GameObject.Find("Deck Builder Parchment")?.GetComponent<RectTransform>();
             RectTransform deckRail = GameObject.Find("Deck Builder Deck Rail")?.GetComponent<RectTransform>();
-            RawImage collectionPaper = GameObject.Find("Deck Builder Parchment Texture")?.GetComponent<RawImage>();
-            RawImage deckPaper = GameObject.Find("Deck Builder Deck Rail Texture")?.GetComponent<RawImage>();
+            Image collectionPaper = GameObject.Find("Deck Builder Parchment Texture")?.GetComponent<Image>();
+            Image deckPaper = GameObject.Find("Deck Builder Deck Rail Texture")?.GetComponent<Image>();
             Assert.That(parchment, Is.Not.Null, "The available-card collection should sit on a parchment surface.");
             Assert.That(collectionPaper, Is.Not.Null);
-            Assert.That(collectionPaper.texture, Is.Not.Null);
+            Assert.That(collectionPaper.sprite, Is.Not.Null);
+            Assert.That(collectionPaper.sprite, Is.SameAs(MarketShopSkin.Paper));
             Assert.That(parchment.anchoredPosition.x, Is.LessThan(0f));
             Assert.That(deckRail, Is.Not.Null, "The selected cards should occupy a full-height parchment rail.");
             Assert.That(deckPaper, Is.Not.Null);
-            Assert.That(deckPaper.texture, Is.SameAs(collectionPaper.texture));
+            Assert.That(deckPaper.sprite, Is.SameAs(collectionPaper.sprite));
             Assert.That(deckRail.anchoredPosition.x, Is.GreaterThan(0f));
             Assert.That(parchment.sizeDelta.x, Is.GreaterThan(deckRail.sizeDelta.x));
             Assert.That(deckRail.sizeDelta.y, Is.EqualTo(parchment.sizeDelta.y));
@@ -1032,11 +1061,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
 
-            // The component market fixture can finish in any port. This part
-            // tests the original 800-gold merchant, sold at Broken Anchor;
-            // White Shell instead stocks hulls 0, 5 and 6.
+            // The component market fixture can finish in any port. Carry the
+            // starter back to its home and buy the second local hull.
             controller.Session.RestoreProfile(controller.Session.ProfileGold, "断锚港");
-            Assert.That(CoreShipMarketCatalog.IsSoldAtPort(0, 1), Is.True);
+            const int purchasedShip = 4;
+            Assert.That(CoreShipMarketCatalog.IsSoldAtPort(0, purchasedShip), Is.True);
             Button shipyardHotspot = ActiveButton("Port Hotspot Shipyard");
             Assert.That(shipyardHotspot, Is.Not.Null);
             shipyardHotspot.onClick.Invoke();
@@ -1048,10 +1077,10 @@ namespace ShatteredSail.Presentation.Tests
             decimal goldBeforeShipInspection = controller.Session.ProfileGold;
             ActiveButton("Shipyard Next Vessel").onClick.Invoke();
             yield return null;
-            Button shipBerth = ActiveButton("Shipyard Ship 1");
-            Assert.That(shipBerth, Is.Not.Null, "The fixture must browse the merchant in its actual regional stock.");
-            GameObject berthGlow = GameObject.Find("Shipyard Berth Glow 1");
-            Assert.That(berthGlow, Is.Not.Null, "The currently browsed merchant retains its authored water contact.");
+            Button shipBerth = ActiveButton("Shipyard Ship " + purchasedShip);
+            Assert.That(shipBerth, Is.Not.Null, "The fixture must browse the salvage vessel in its actual regional stock.");
+            GameObject berthGlow = GameObject.Find("Shipyard Berth Glow " + purchasedShip);
+            Assert.That(berthGlow, Is.Not.Null, "The currently browsed vessel retains its authored water contact.");
             Image shipBerthGlow = berthGlow.GetComponent<Image>();
             Vector3 restingBerthScale = shipBerth.transform.localScale;
             ExecuteEvents.Execute(shipBerth.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
@@ -1064,7 +1093,7 @@ namespace ShatteredSail.Presentation.Tests
             int retainedFirepowerModifier = controller.Session.Firepower - controller.Session.SelectedShip.Firepower;
             float retainedSpeedModifier = controller.Session.SpeedKnots - controller.Session.SelectedShip.SpeedKnots;
             float retainedVisionModifier = controller.Session.VisionBonusNm;
-            ActiveButton("Shipyard Ship 1").onClick.Invoke();
+            ActiveButton("Shipyard Ship " + purchasedShip).onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Shipyard Detail"), Is.Not.Null);
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(0), "Inspection must not switch the flagship.");
@@ -1073,10 +1102,10 @@ namespace ShatteredSail.Presentation.Tests
             purchaseShip.onClick.Invoke();
             purchaseShip.onClick.Invoke();
             yield return null;
-            Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforeShipInspection - 800), "A double click must only charge once.");
-            Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(1));
-            Assert.That(controller.Session.SelectedShip.MaxHull, Is.EqualTo(95), "The new ship's base hull should remain unchanged.");
-            Assert.That(controller.Session.MaxHull, Is.EqualTo(95),
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBeforeShipInspection - CoreShipMarketCatalog.PurchaseCost(purchasedShip)), "A double click must only charge once.");
+            Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(purchasedShip));
+            Assert.That(controller.Session.SelectedShip.MaxHull, Is.EqualTo(CoreVoyageSession.Ships[purchasedShip].MaxHull), "The new ship's base hull should remain unchanged.");
+            Assert.That(controller.Session.MaxHull, Is.EqualTo(CoreVoyageSession.Ships[purchasedShip].MaxHull),
                 "A newly purchased ship has its own original fittings; the previous flagship's upgrades must not be cloned.");
             Assert.That(controller.Session.Armor, Is.EqualTo(controller.Session.SelectedShip.Armor));
             Assert.That(controller.Session.Firepower, Is.EqualTo(controller.Session.SelectedShip.Firepower));
@@ -1086,11 +1115,11 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.EquippedComponent(slot).Id, Is.EqualTo(componentArt.Get((int)slot * ComponentArtCatalog.EntriesPerSlot).Id));
             Assert.That(controller.ShipComponent(0, purchasedOffer.Entry.Slot).Id, Is.EqualTo(purchasedOffer.Entry.Id),
                 "The bought component remains installed on the original ship.");
-            Assert.That(controller.Session.CargoCapacityValue, Is.EqualTo(150f));
-            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ShipOwnedKey(1), 0), Is.EqualTo(1));
-            ActiveButton("Back To Shipyard Gallery").onClick.Invoke();
+            Assert.That(controller.Session.CargoCapacityValue, Is.EqualTo(CoreVoyageSession.Ships[purchasedShip].CargoCapacity));
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ShipOwnedKey(purchasedShip), 0), Is.EqualTo(1));
+            ActiveButton("Return To Port Hub").onClick.Invoke();
             yield return null;
-            Assert.That(ActiveButton("Shipyard Ship 1"), Is.Not.Null, "Returning preserves the browsed vessel.");
+            Assert.That(ActiveButton("Shipyard Ship " + purchasedShip), Is.Not.Null, "Returning preserves the browsed vessel.");
             ActiveButton("Shipyard Previous Vessel").onClick.Invoke();
             yield return null;
             ActiveButton("Shipyard Ship 0").onClick.Invoke();
@@ -1105,6 +1134,8 @@ namespace ShatteredSail.Presentation.Tests
                 Is.EqualTo(controller.Session.SelectedShip.SpeedKnots + retainedSpeedModifier).Within(0.0001f));
             Assert.That(controller.Session.VisionBonusNm, Is.EqualTo(retainedVisionModifier));
             Assert.That(controller.EquippedComponent(purchasedOffer.Entry.Slot).Id, Is.EqualTo(purchasedOffer.Entry.Id));
+            ActiveButton("Return To Port Hub").onClick.Invoke();
+            yield return null;
             ActiveButton("Return To Port Hub").onClick.Invoke();
             yield return null;
 
@@ -1250,6 +1281,15 @@ namespace ShatteredSail.Presentation.Tests
             int revealedTerrainCell = System.Array.FindIndex(controller.Session.Map.ExploredCells, explored => explored);
             Assert.That(revealedTerrainCell, Is.GreaterThanOrEqualTo(0));
             controller.Session.Map.TerrainCells[revealedTerrainCell] = SeaTerrainType.FogBank;
+            // Strait terrain need not have a chart encounter node. Keep this
+            // rendering fixture deterministic even when the route has no strait.
+            int straitCell = System.Array.FindIndex(voyageMap.TerrainCells, terrain => terrain == SeaTerrainType.Strait);
+            if (straitCell < 0)
+            {
+                straitCell = Enumerable.Range(0, voyageMap.CellCount).First(index =>
+                    voyageMap.TerrainCells[index] == SeaTerrainType.OpenWater && voyageMap.AnchorNodeIds[index] < 0);
+                voyageMap.TerrainCells[straitCell] = SeaTerrainType.Strait;
+            }
             courseInput.SelectLocalPoint(new Vector2(250f, -100f));
             yield return null;
             Assert.That(controller.Session.HasDirectCourseTarget, Is.True);
@@ -1279,15 +1319,16 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(terrainFeatures.All(feature => feature.texture != null && feature.texture.name.StartsWith("terrain_")), Is.True);
             Assert.That(terrainArtLayer.GetComponentsInChildren<VoyageMapTileLayerGraphic>(), Is.Empty,
                 "Natural terrain should no longer depend on the custom tile-batch graphic.");
-            CoreMapNode straitNode = controller.Session.Map.Nodes.First(node => node.TerrainConstraint == EventTerrainConstraint.Strait);
-            Assert.That(GameObject.Find("Strait Feature " + straitNode.Id), Is.Null,
+            Assert.That(terrainArtLayer.GetComponentsInChildren<Transform>(true)
+                .Any(item => item.name.StartsWith("Strait Feature ")), Is.False,
                 "The cropped double-bank rectangle must not return; strait banks need closed coastlines.");
             VoyageChartSurfaceGraphic coastSurface = GameObject.Find("Continuous Coast Surface").GetComponent<VoyageChartSurfaceGraphic>();
             Assert.That(coastSurface.Field, Is.Not.Null);
             Assert.That(coastSurface.material.shader.name, Is.EqualTo("Shattered Sail/UI/Continuous Voyage Coast"));
-            VoyageGridCoordinate straitAnchor = controller.Session.Map.PointToCell(straitNode.Position);
-            Assert.That(coastSurface.Field.SampleSignedDistance(straitAnchor.Column + .5f, straitAnchor.Row + .5f), Is.LessThan(0f),
-                "The visible strait anchor remains water, consistent with navigation.");
+            int straitColumn = straitCell % voyageMap.Columns;
+            int straitRow = straitCell / voyageMap.Columns;
+            Assert.That(coastSurface.Field.SampleSignedDistance(straitColumn + .5f, straitRow + .5f), Is.LessThan(0f),
+                "The visible strait cell remains water, consistent with navigation.");
             int terrainColumn = revealedTerrainCell % voyageMap.Columns;
             int terrainRow = revealedTerrainCell / voyageMap.Columns;
             Image terrainCell = GameObject.Find("Sea Terrain " + terrainColumn + " " + terrainRow).GetComponent<Image>();
@@ -1452,6 +1493,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(deck.Length, Is.EqualTo(10));
                 Assert.That(deck.All(index => CoreVoyageSession.CardLibrary[index].IsAllowedInStage(stage)), Is.True);
                 Assert.That(deck.GroupBy(index => index).All(group => group.Count() <= 2), Is.True);
+                Assert.That(deck.GroupBy(index => StageDeckCopyIdentity(controller.Session, index, stage))
+                    .All(group => group.Count() <= CoreVoyageSession.BaseBattleCardCopies), Is.True,
+                    "Migrated aliases and canonical boarding cards share the same owned-copy limit.");
                 if (stage == NavalBattleStage.Boarding) CollectionAssert.AreEqual(boarding, deck.Take(boarding.Length));
                 else
                     foreach (IGrouping<int, int> retained in legacy.Where(index => CoreVoyageSession.CardLibrary[index].IsAllowedInStage(stage)).GroupBy(index => index))
@@ -1472,9 +1516,30 @@ namespace ShatteredSail.Presentation.Tests
             {
                 ActiveButton("Battle Deck Stage Tab " + stage).onClick.Invoke();
                 yield return null;
+                if (stage == NavalBattleStage.Boarding)
+                {
+                    Button fullAlias = Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                        .FirstOrDefault(button => button.name.StartsWith("Add Deck Card ") &&
+                            controller.Session.GetBattleDeck(stage).Count(index => StageDeckCopyIdentity(controller.Session, index, stage) ==
+                                StageDeckCopyIdentity(controller.Session, int.Parse(button.name.Substring("Add Deck Card ".Length)), stage)) ==
+                                CoreVoyageSession.BaseBattleCardCopies &&
+                            controller.Session.GetBattleDeck(stage).Count(index => index == int.Parse(button.name.Substring("Add Deck Card ".Length))) <
+                                CoreVoyageSession.BaseBattleCardCopies);
+                    Assert.That(fullAlias, Is.Not.Null, "The migrated deck exercises a canonical card whose owned copies are legacy aliases.");
+                    int fullAliasIndex = int.Parse(fullAlias.name.Substring("Add Deck Card ".Length));
+                    Assert.That(GameObject.Find("Workshop Card Count " + fullAliasIndex).GetComponent<Text>().text,
+                        Is.EqualTo("已加入 2 / 2 张"), "The UI counts aliases using the same identity as Core.");
+                    fullAlias.onClick.Invoke();
+                    yield return null;
+                    CollectionAssert.AreEqual(expected[stage], controller.Session.GetBattleDeck(stage));
+                    Assert.That(GameObject.Find("Deck Builder Status").GetComponent<Text>().text, Does.Contain("同名卡牌最多加入 2 张"),
+                        "A full-copy click explains the limit instead of silently failing.");
+                }
                 Button add = Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
                     .First(button => button.name.StartsWith("Add Deck Card ") && button.interactable &&
-                        controller.Session.GetBattleDeck(stage).Count(index => index == int.Parse(button.name.Substring("Add Deck Card ".Length))) < 2);
+                        controller.Session.GetBattleDeck(stage).Count(index => StageDeckCopyIdentity(controller.Session, index, stage) ==
+                            StageDeckCopyIdentity(controller.Session, int.Parse(button.name.Substring("Add Deck Card ".Length)), stage)) <
+                            CoreVoyageSession.BaseBattleCardCopies);
                 int cardIndex = int.Parse(add.name.Substring("Add Deck Card ".Length));
                 int countBefore = expected[stage].Count(index => index == cardIndex);
                 add.onClick.Invoke();
@@ -1482,6 +1547,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(AchievementUnlocked("tutorial_deck"), Is.True);
                 Assert.That(controller.Session.GetBattleDeck(stage).Count, Is.EqualTo(expected[stage].Length + 1));
                 Assert.That(controller.Session.GetBattleDeck(stage).Count(index => index == cardIndex), Is.EqualTo(countBefore + 1));
+                Assert.That(controller.Session.GetBattleDeck(stage).Count(index => StageDeckCopyIdentity(controller.Session, index, stage) ==
+                    StageDeckCopyIdentity(controller.Session, cardIndex, stage)), Is.LessThanOrEqualTo(CoreVoyageSession.BaseBattleCardCopies));
                 expected[stage] = controller.Session.GetBattleDeck(stage).ToArray();
                 foreach (NavalBattleStage untouched in stages)
                 {
@@ -1502,6 +1569,12 @@ namespace ShatteredSail.Presentation.Tests
                 CollectionAssert.AreEqual(expected[stage], controller.Session.GetBattleDeck(stage),
                     "Once migrated, each v2 stage must reload its own saved edits independently of the old combined deck.");
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static string StageDeckCopyIdentity(CoreVoyageSession session, int index, NavalBattleStage stage)
+        {
+            CoreBattleCard card = session.GetBattleCard(index, stage);
+            return stage == NavalBattleStage.Boarding ? card.BoardingSpec?.Key ?? card.Id : card.Id;
         }
 
         [UnityTest]
@@ -1762,6 +1835,7 @@ namespace ShatteredSail.Presentation.Tests
 
         private static IEnumerable<string> MetaStringKeys()
         {
+            yield return CoreGameplayDemoController.ShipPortProgressKey;
             yield return CoreGameplayDemoController.GameClockKey;
             yield return CoreGameplayDemoController.WorldEconomyScopeKey;
             yield return ProfileGoldPersistence.DecimalKey;
@@ -1779,6 +1853,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return CoreGameplayDemoController.GameMasterShopScopeKey;
             yield return CoreGameplayDemoController.WarehouseOwnedKey;
             yield return CoreGameplayDemoController.WarehouseDisplayKey;
+            yield return CoreGameplayDemoController.WarehouseIncomeKey;
             yield return CoreGameplayDemoController.ComponentInventoryKey;
             yield return CoreGameplayDemoController.BattleDeckKey;
             yield return CoreGameplayDemoController.BattleCardUpgradeKey;

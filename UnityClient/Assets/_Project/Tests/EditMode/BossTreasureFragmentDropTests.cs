@@ -178,6 +178,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.ConfigureGuidedTutorialVoyage(CoreGuidedTutorialContent.BossVoyageLeg), Is.True);
             session.StartVoyage();
             EnterAndChooseBattle(session, session.Map.Nodes.Single(node => node.Encounter.Id == CoreGuidedTutorialContent.BossEventId));
+            // Exercise victories are deliberately non-rewarding. Finish the
+            // lessons through their real actions before testing the final drop.
+            CoreGuidedBossScriptTests.Reach(session, GuidedBossBattleStep.CourseFinal);
+            Assert.That(session.GuidedBossLesson, Is.EqualTo(GuidedBossLesson.FinalBattle));
             return session;
         }
 

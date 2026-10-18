@@ -186,16 +186,16 @@ namespace ShatteredSail.Presentation.Tests
         {
             if (ActiveButton("Cancel Market Purchase") != null)
             { ClickAcceptanceButton("Cancel Market Purchase"); yield return null; }
-            if (GameObject.Find("Market Detail Icon " + key) != null) yield break;
+            if (GameObject.Find("Market Quantity Input " + key) != null) yield break;
             if (ActiveButton("Market Item Icon " + key) == null)
             {
                 yield return ReturnMarketCatalog();
                 PortMarketItem item = PortMarketCatalog.AllItems.Single(candidate => PortMarketCatalog.Key(candidate) == key);
                 ClickAcceptanceButton("Market Shop " + MarketSceneLayout.ShopForItem(item)); yield return null;
             }
-            if (GameObject.Find("Market Detail Icon " + key) == null)
+            if (GameObject.Find("Market Quantity Input " + key) == null)
             { ClickAcceptanceButton("Market Item Icon " + key); yield return null; }
-            Assert.That(GameObject.Find("Market Detail Icon " + key), Is.Not.Null);
+            Assert.That(GameObject.Find("Market Quantity Input " + key), Is.Not.Null);
             Assert.That(MarketInfoLabel("Market Quota " + key), Is.Not.Null);
             Assert.That(MarketInfoLabel("Market Holdings " + key), Is.Not.Null);
         }

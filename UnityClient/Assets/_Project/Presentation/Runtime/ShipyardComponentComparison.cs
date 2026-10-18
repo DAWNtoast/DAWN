@@ -18,7 +18,7 @@ namespace ShatteredSail.Presentation
         public float Delta { get; }
 
         internal ShipyardComponentComparisonRow(string key, string label, float current, float selected,
-            bool hasCurrent, bool hasSelected, bool comparable, bool percentage = false)
+            bool hasCurrent, bool hasSelected, bool comparable)
         {
             Key = key;
             Label = label;
@@ -26,17 +26,14 @@ namespace ShatteredSail.Presentation
             HasSelected = hasSelected;
             HasDelta = comparable && hasCurrent && hasSelected;
             Delta = HasDelta ? selected - current : 0f;
-            CurrentValue = !hasCurrent ? "—" : percentage
-                ? ShipyardComponentComparison.Number(current) + "%" : ShipyardComponentComparison.SignedNumber(current);
-            SelectedValue = !hasSelected ? "—" : percentage
-                ? ShipyardComponentComparison.Number(selected) + "%" : ShipyardComponentComparison.SignedNumber(selected);
-            if (HasDelta) SelectedValue += " (" + ShipyardComponentComparison.SignedNumber(Delta) + (percentage ? "%" : string.Empty) + ")";
+            CurrentValue = !hasCurrent ? "—" : ShipyardComponentComparison.SignedNumber(current);
+            SelectedValue = !hasSelected ? "—" : ShipyardComponentComparison.SignedNumber(selected);
+            if (HasDelta) SelectedValue += " (" + ShipyardComponentComparison.SignedNumber(Delta) + ")";
         }
     }
 
     /// <summary>
-    /// Compares actual component effects, not parsed dossier prose. Appraisal does not scale
-    /// the five base bonuses in gameplay, so it is kept separate from those numbers here too.
+    /// Compares the five actual component bonuses without parsing dossier prose.
     /// </summary>
     public sealed class ShipyardComponentComparison
     {
@@ -46,15 +43,9 @@ namespace ShatteredSail.Presentation
         public IReadOnlyList<ShipyardComponentComparisonRow> Rows { get; }
         public string CurrentText { get; }
         public string SelectedText { get; }
-        public string CurrentQualityText { get; }
-        public string SelectedQualityText { get; }
-
-        private ShipyardComponentComparison(List<ShipyardComponentComparisonRow> rows,
-            string currentQuality, string selectedQuality)
+        private ShipyardComponentComparison(List<ShipyardComponentComparisonRow> rows)
         {
             Rows = rows.AsReadOnly();
-            CurrentQualityText = currentQuality;
-            SelectedQualityText = selectedQuality;
             StringBuilder current = new StringBuilder();
             StringBuilder selected = new StringBuilder();
             foreach (ShipyardComponentComparisonRow row in rows)
@@ -71,8 +62,7 @@ namespace ShatteredSail.Presentation
             SelectedText = selected.ToString();
         }
 
-        public static ShipyardComponentComparison Build(ComponentArtEntry currentEntry, float currentQuality,
-            ComponentArtEntry selectedEntry, float selectedQuality)
+        public static ShipyardComponentComparison Build(ComponentArtEntry currentEntry, ComponentArtEntry selectedEntry)
         {
             bool comparable = currentEntry != null && selectedEntry != null && currentEntry.Slot == selectedEntry.Slot;
             float[] current = Bonuses(currentEntry);
@@ -88,12 +78,7 @@ namespace ShatteredSail.Presentation
                     hasCurrent, hasSelected, comparable));
             }
 
-            float currentPercent = SafeQuality(currentQuality) * 100f;
-            float selectedPercent = SafeQuality(selectedQuality) * 100f;
-            ShipyardComponentComparisonRow quality = new ShipyardComponentComparisonRow("quality", "品质",
-                currentPercent, selectedPercent, currentEntry != null, selectedEntry != null, comparable, true);
-            if (currentEntry != null || selectedEntry != null) rows.Add(quality);
-            return new ShipyardComponentComparison(rows, quality.CurrentValue, quality.SelectedValue);
+            return new ShipyardComponentComparison(rows);
         }
 
         private static float[] Bonuses(ComponentArtEntry entry)
@@ -103,9 +88,6 @@ namespace ShatteredSail.Presentation
                 (float)entry.HullBonus, entry.ArmorBonus, entry.FirepowerBonus, entry.SpeedBonus, entry.VisionBonus
             };
         }
-
-        private static float SafeQuality(float quality) => float.IsNaN(quality) || float.IsInfinity(quality)
-            ? 1f : Math.Max(0.9f, Math.Min(1.1f, quality));
 
         internal static string SignedNumber(float value)
         {

@@ -11,6 +11,56 @@ namespace ShatteredSail.Core.Tests
     public sealed class CoreVoyageCheckpointTests
     {
         [Test]
+        public void JsonRoundTripPreservesIndependentFleetBerths()
+        {
+            var source = new CoreVoyageSession();
+            source.RestoreProfile(500, "白贝港");
+            Assert.That(source.RestoreShipPortProgress(new CoreShipPortProgress
+            {
+                ships = new[]
+                {
+                    new CoreShipPortLocation { shipIndex = 0, port = "断锚港" },
+                    new CoreShipPortLocation { shipIndex = 4, port = "白贝港" },
+                    new CoreShipPortLocation { shipIndex = 5, port = "铜钟港" },
+                },
+            }, new[] { 0, 4, 5 }, 4), Is.True);
+            Assert.That(source.SelectShip(4), Is.True);
+            source.StartVoyage("暮潮港");
+            CoreVoyageSession restored = RoundTrip(source);
+
+            Assert.That(restored.ShipPort(0), Is.EqualTo("断锚港"));
+            Assert.That(restored.ShipPort(4), Is.EqualTo("白贝港"));
+            Assert.That(restored.ShipPort(5), Is.EqualTo("铜钟港"));
+            restored.SafeReturn();
+            restored.ReturnToPortAfterSettlement();
+            Assert.That(restored.SelectShip(0), Is.False);
+            Assert.That(restored.SelectShip(5), Is.False);
+            Assert.That(restored.SelectShip(4), Is.True);
+        }
+
+        [Test]
+        public void LegacyJsonWithoutFleetFieldKeepsProfileBerths()
+        {
+            var source = new CoreVoyageSession();
+            source.SelectShip(4);
+            source.StartVoyage("白贝港");
+            CoreVoyageCheckpoint checkpoint = source.CaptureVoyageCheckpoint();
+            string json = JsonUtility.ToJson(checkpoint);
+            string fleetField = "\"shipPortProgress\":" + JsonUtility.ToJson(checkpoint.shipPortProgress) + ",";
+            Assert.That(json, Does.Contain(fleetField));
+            CoreVoyageCheckpoint legacy = JsonUtility.FromJson<CoreVoyageCheckpoint>(json.Replace(fleetField, string.Empty));
+            var restored = new CoreVoyageSession();
+            Assert.That(restored.RestoreShipPortProgress(new CoreShipPortProgress
+            {
+                ships = new[] { new CoreShipPortLocation { shipIndex = 5, port = "暮潮港" } },
+            }, new[] { 0, 4, 5 }, 4), Is.True);
+            Assert.That(restored.TryRestoreVoyageCheckpoint(legacy, out string reason), Is.True, reason);
+            Assert.That(restored.ShipPort(0), Is.EqualTo("断锚港"));
+            Assert.That(restored.ShipPort(4), Is.EqualTo("断锚港"));
+            Assert.That(restored.ShipPort(5), Is.EqualTo("暮潮港"));
+        }
+
+        [Test]
         public void PortBattleAndSettlementCannotCaptureUnsafeCheckpoint()
         {
             var session = new CoreVoyageSession();
@@ -35,6 +85,10 @@ namespace ShatteredSail.Core.Tests
             source.ConfigureGuidedTutorialVoyage(CoreGuidedTutorialContent.BossVoyageLeg);
             source.StartVoyage(); EnterNode(source, source.Map.Nodes[0]);
             Assert.That(source.ResolveChoice(0), Is.True);
+            // Practice chapters deliberately intercept a defeated target and offer
+            // a retry. Only the final battle can produce voyage rewards to save.
+            CoreGuidedBossScriptTests.Reach(source, GuidedBossBattleStep.CourseFinal);
+            Assert.That(source.GuidedBossLesson, Is.EqualTo(GuidedBossLesson.FinalBattle));
             // Finish through the production battle terminal-action path. Seed 0
             // deterministically grants a boarding component on a captured ship.
             typeof(CoreVoyageSession).GetField("voyageRandom", BindingFlags.NonPublic | BindingFlags.Instance)
@@ -213,6 +267,8 @@ namespace ShatteredSail.Core.Tests
             CoreSeaChartState chart = source.CaptureSeaChartProgress().charts[0];
             CoreMapNode boss = source.Map.Nodes.First(n => n.IsBoss);
             chart.defeatedBosses = new[] { boss.Encounter.Id };
+            typeof(CoreVoyageSession).GetField("bossDefeated", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(source, true);
+            typeof(CoreVoyageSession).GetField("currentRouteBossDefeated", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(source, true);
             var states = Field<System.Collections.Generic.Dictionary<string, CoreSeaChartState>>(source, "seaChartStates");
             states[chart.seed] = chart;
             Invoke(source, "RemoveDefeatedSeaChartBosses", chart, false);
@@ -220,7 +276,77 @@ namespace ShatteredSail.Core.Tests
             Assert.That(restored.Map.Nodes.Any(n => n.Encounter.Id == boss.Encounter.Id), Is.False);
         }
 
+        [Test]
+        public void HalfDayDistanceModeSurvivesJsonAndFollowsChangedSpeed()
+        {
+            CoreVoyageSession source = ChartSession();
+            source.SetCourseTo(source.Map.Destination);
+            int originalDistance = source.PlannedDistanceNm;
+            CoreVoyageSession restored = RoundTrip(source);
+            Assert.That(restored.UsesDefaultDistance, Is.True);
+            Assert.That(restored.PlannedDistanceNm, Is.EqualTo(originalDistance));
+
+            source.ConfigureComponentContextEffect(0, 0, 0, 3f, 0, 1f);
+            restored.ConfigureComponentContextEffect(0, 0, 0, 3f, 0, 1f);
+            Assert.That(restored.PlannedDistanceNm, Is.GreaterThan(originalDistance));
+            Assert.That(restored.PlannedDistanceNm, Is.EqualTo(source.PlannedDistanceNm));
+            Assert.That(restored.HasDirectCourseTarget, Is.True);
+            Assert.That(restored.DirectCourseTarget.X, Is.EqualTo(source.DirectCourseTarget.X));
+            Assert.That(restored.DirectCourseTarget.Y, Is.EqualTo(source.DirectCourseTarget.Y));
+        }
+
+        [Test]
+        public void JsonPreservesManualBudgetAboveOldCapEvenDuringTemporarySlowdown()
+        {
+            CoreVoyageSession source = ChartSession();
+            source.SetCourseTo(source.Map.Destination);
+            source.ConfigureComponentContextEffect(0, 0, 0, 3f, 0, 1f);
+            int selectedDistance = source.MaximumDistanceNm;
+            Assert.That(selectedDistance, Is.GreaterThan(180));
+            source.SetDistance(selectedDistance);
+            source.ConfigureComponentContextEffect(0, 0, 0, -3f, 0, 1f);
+            Assert.That(source.PlannedDistanceNm, Is.LessThan(selectedDistance));
+            Assert.That(source.CaptureVoyageCheckpoint().plannedDistance, Is.EqualTo(selectedDistance),
+                "Saving while slower must retain the player's requested budget.");
+
+            CoreVoyageSession restored = RoundTrip(source);
+            Assert.That(restored.UsesDefaultDistance, Is.False);
+            Assert.That(restored.PlannedDistanceNm, Is.EqualTo(source.PlannedDistanceNm));
+            Assert.That(restored.RequestedDistanceNm, Is.EqualTo(selectedDistance),
+                "The distance control restores the original selection, not the temporary day limit.");
+            Assert.That(restored.PlannedDistanceNm, Is.LessThanOrEqualTo(restored.MaximumDistanceNm));
+            restored.ConfigureComponentContextEffect(0, 0, 0, 3f, 0, 1f);
+            Assert.That(restored.PlannedDistanceNm, Is.EqualTo(selectedDistance));
+            Assert.That(restored.HasDirectCourseTarget, Is.True);
+        }
+
+        [Test]
+        public void LegacyJsonDistanceLoadsAsManualAndClampsToCurrentDayLimit()
+        {
+            var source = new CoreVoyageSession();
+            source.ConfigureComponentBonuses(0, 0, 0, -11f, 0);
+            source.StartVoyage();
+            source.SetCourseTo(source.Map.Destination);
+            CoreVoyageCheckpoint checkpoint = source.CaptureVoyageCheckpoint();
+            checkpoint.plannedDistance = 180;
+            string json = JsonUtility.ToJson(checkpoint)
+                .Replace("\"distancePlanVersion\":1,", string.Empty)
+                .Replace("\"useDefaultDistance\":true,", string.Empty);
+            Assert.That(json, Does.Not.Contain("distancePlanVersion"));
+            Assert.That(json, Does.Not.Contain("useDefaultDistance"));
+            var restored = new CoreVoyageSession();
+            Assert.That(restored.TryRestoreVoyageCheckpoint(JsonUtility.FromJson<CoreVoyageCheckpoint>(json), out string reason), Is.True, reason);
+            Assert.That(restored.UsesDefaultDistance, Is.False);
+            Assert.That(restored.MaximumDistanceNm, Is.LessThan(180));
+            Assert.That(restored.PlannedDistanceNm, Is.EqualTo(restored.MaximumDistanceNm));
+            Assert.That(restored.RequestedDistanceNm, Is.EqualTo(180));
+            Assert.That(restored.HasDirectCourseTarget, Is.True);
+            Assert.That(restored.DirectCourseTarget.X, Is.EqualTo(source.DirectCourseTarget.X));
+            Assert.That(restored.DirectCourseTarget.Y, Is.EqualTo(source.DirectCourseTarget.Y));
+        }
+
         [TestCase("version")] [TestCase("node")] [TestCase("fog")] [TestCase("cargo")] [TestCase("deck")] [TestCase("nan")]
+        [TestCase("distance-version")] [TestCase("negative-distance")]
         [TestCase("identified-fragments")] [TestCase("identification-sequence")]
         public void InvalidCheckpointLeavesExistingProfileCompletelyUntouched(string corruption)
         {
@@ -228,6 +354,8 @@ namespace ShatteredSail.Core.Tests
             switch (corruption)
             {
                 case "version": checkpoint.version++; break;
+                case "distance-version": checkpoint.distancePlanVersion++; break;
+                case "negative-distance": checkpoint.plannedDistance = -1; break;
                 case "node": checkpoint.nodes[0].encounterId = "unknown"; break;
                 case "fog": checkpoint.exploredCells = new bool[1]; break;
                 case "cargo": checkpoint.cargo.gold = -1; break;

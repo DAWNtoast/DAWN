@@ -27,6 +27,7 @@ namespace ShatteredSail.Presentation
             // There is no facility to return from or cycle while on this page.
             RectTransform header = CreateRegionalPortHeader("Port Hub", "Port Hub Frame", out PortHeaderTheme theme);
             BuildPortHeaderReadouts(header, theme, true);
+            NauticalHeaderSkin.ApplyPort(header, theme.Accent, true);
         }
 
         /// <summary>
@@ -102,6 +103,12 @@ namespace ShatteredSail.Presentation
             if (TryBuildPrefabVoyageHeader(title)) return;
             RectTransform header = CreateVoyageHeader("Voyage Header", "Voyage Header Frame", title,
                 out PortHeaderTheme theme);
+            if (session != null && session.Phase == CoreDemoPhase.Battle)
+            {
+                BuildBattleHeaderControls(header, theme.Accent);
+                NauticalHeaderSkin.ApplyVoyage(header, theme.Accent, true);
+                return;
+            }
             if (session == null || (session.Phase != ShatteredSail.Core.Gameplay.CoreDemoPhase.Sailing &&
                 session.Phase != ShatteredSail.Core.Gameplay.CoreDemoPhase.Encounter)) return;
             // All voyage controls occupy the middle 68 pixels; the tutorial
@@ -202,9 +209,7 @@ namespace ShatteredSail.Presentation
             long minute = now.Ticks / TimeSpan.TicksPerMinute;
             if (force || minute != displayedPortMinute)
             {
-                portHeaderTime.text = activePortFacility == PortFacilityArtCatalog.ComponentShopFacilityIndex
-                    ? CoreVoyageSession.FormatGameDate(now, true)
-                    : "<size=13>游戏日期</size>\n" + CoreVoyageSession.FormatGameDate(now, true);
+                portHeaderTime.text = "<size=13><color=#B8AF98>游戏日期</color></size>\n" + CoreVoyageSession.FormatGameDate(now, true);
                 displayedPortMinute = minute;
             }
             if (force || displayedHeaderPort != session.CurrentPort)
@@ -214,9 +219,7 @@ namespace ShatteredSail.Presentation
             }
             if (force || displayedPortGold != session.ProfileGold)
             {
-                portHeaderGold.text = activePortFacility == PortFacilityArtCatalog.ComponentShopFacilityIndex
-                    ? "金币  " + PortMarketCatalog.FormatPrice(session.ProfileGold)
-                    : "<size=13>总金币</size>\n" + PortMarketCatalog.FormatPrice(session.ProfileGold);
+                portHeaderGold.text = "<size=13><color=#B8AF98>总金币</color></size>\n" + PortMarketCatalog.FormatPrice(session.ProfileGold);
                 displayedPortGold = session.ProfileGold;
             }
         }

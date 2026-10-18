@@ -179,7 +179,7 @@ namespace ShatteredSail.Core.Gameplay
     /// No Unity APIs or process-dependent hashes are used. Identical inputs produce
     /// byte-for-byte identical terrain and ownership arrays on every platform.
     /// </summary>
-    public static class VoyageMapGenerator
+    public static partial class VoyageMapGenerator
     {
         private const int EventSafetyBandCells = 1;
         private const int PlacementAttempts = 768;
@@ -337,6 +337,7 @@ namespace ShatteredSail.Core.Gameplay
             map.MutableEventFootprints.Sort((left, right) => left.NodeId.CompareTo(right.NodeId));
             StampEventGeography(map, placements);
             bool[] guaranteedRoute = BuildGuaranteedNavigableRoute(map);
+            if (!useAuthoredPositions && UsesPacedEventLayout(map)) ProtectPacedSailingCourse(map, guaranteedRoute);
             if (useAuthoredPositions) ProtectAuthoredCourse(map, guaranteedRoute);
             int nextFeatureId = NextFeatureId(map);
             nextFeatureId = GenerateNaturalStraits(map, guaranteedRoute, nextFeatureId);
@@ -423,7 +424,8 @@ namespace ShatteredSail.Core.Gameplay
             // A valid early placement can strand the last footprint even though
             // the chart has enough room. Retry the complete deterministic packing,
             // preserving every safety band and the original layout on first-pass success.
-            for (int restart = 0; restart < 32; restart++)
+            int restartLimit = UsesPacedEventLayout(map) ? 64 : 32;
+            for (int restart = 0; restart < restartLimit; restart++)
             {
                 if (restart > 0)
                 {
@@ -448,12 +450,14 @@ namespace ShatteredSail.Core.Gameplay
             Mulberry32Random random = new Mulberry32Random(placementSeed);
             PlacedEvent[] placements = new PlacedEvent[map.Nodes.Count];
             List<int> order = BuildPlacementOrder(map);
+            Dictionary<int, int> routeBands = UsesPacedEventLayout(map) ? BuildPacedRouteBands(map, order) : null;
             List<PlacedEvent> completed = new List<PlacedEvent>();
 
             for (int orderIndex = 0; orderIndex < order.Count; orderIndex += 1)
             {
                 int nodeIndex = order[orderIndex];
                 CoreMapNode node = map.Nodes[nodeIndex];
+                int routeBand = routeBands != null && routeBands.TryGetValue(node.Id, out int assignedBand) ? assignedBand : -1;
                 uint nodeShapeSeed = Mix(map.Hash ^ ShapeStream, (uint)node.Id, (uint)node.TerrainConstraint);
                 int orientationCount = OrientationCount(node.TerrainConstraint);
                 // A shape depends only on this node's seed and orientation, not
@@ -467,7 +471,7 @@ namespace ShatteredSail.Core.Gameplay
                 {
                     int orientation = (preferredOrientation + attempt) % orientationCount;
                     FootprintPlan plan = orientationPlans[orientation] ??
-                        (orientationPlans[orientation] = BuildPlan(node.TerrainConstraint, orientation, nodeShapeSeed));
+                        (orientationPlans[orientation] = BuildPlacedEventPlan(map, node, orientation, nodeShapeSeed));
                     VoyageGridCoordinate anchor = new VoyageGridCoordinate(
                         1 + NextInt(random, map.Columns - 2),
                         1 + NextInt(random, map.Rows - 2));
@@ -484,7 +488,7 @@ namespace ShatteredSail.Core.Gameplay
                         bossDestinationApproachRadius,
                         portReserved,
                         reservationOwners,
-                        out float score))
+                        out float score, routeBand))
                     {
                         continue;
                     }
@@ -506,7 +510,7 @@ namespace ShatteredSail.Core.Gameplay
                             {
                                 int orientation = (preferredOrientation + orientationOffset) % orientationCount;
                                 FootprintPlan plan = orientationPlans[orientation] ??
-                                    (orientationPlans[orientation] = BuildPlan(node.TerrainConstraint, orientation, nodeShapeSeed));
+                                    (orientationPlans[orientation] = BuildPlacedEventPlan(map, node, orientation, nodeShapeSeed));
                                 VoyageGridCoordinate anchor = new VoyageGridCoordinate(column, row);
                                 if (!IsValidPlacement(
                                     map,
@@ -521,7 +525,7 @@ namespace ShatteredSail.Core.Gameplay
                                     bossDestinationApproachRadius,
                                     portReserved,
                                     reservationOwners,
-                                    out float score) || score <= bestScore)
+                                    out float score, routeBand) || score <= bestScore)
                                 {
                                     continue;
                                 }
@@ -596,7 +600,8 @@ namespace ShatteredSail.Core.Gameplay
             float bossDestinationApproachRadius,
             bool[] portReserved,
             int[] reservationOwners,
-            out float score)
+            out float score,
+            int routeBand = -1)
         {
             score = float.MaxValue;
             for (int index = 0; index < plan.ReservedOffsets.Length; index += 1)
@@ -616,6 +621,7 @@ namespace ShatteredSail.Core.Gameplay
             }
 
             VoyagePoint point = map.CellCenter(anchor.Column, anchor.Row);
+            if (UsesPacedEventLayout(map) && !FitsPacedSailingCourse(map, point, plan, routeBand)) return false;
             float departureDistance = Distance(point, map.Departure);
             float destinationDistance = Distance(point, map.Destination);
             if (node.IsBoss)
@@ -627,7 +633,7 @@ namespace ShatteredSail.Core.Gameplay
                     return false;
                 }
             }
-            else if (departureDistance < minimumEventSpacing || destinationDistance < minimumEventSpacing)
+            else if (departureDistance < (UsesPacedEventLayout(map) ? Math.Min(7f, minimumEventSpacing) : minimumEventSpacing) || destinationDistance < minimumEventSpacing)
             {
                 return false;
             }

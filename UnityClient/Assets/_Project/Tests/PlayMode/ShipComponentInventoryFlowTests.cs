@@ -17,23 +17,36 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadComponentPurchaseFixture();
             ActiveButton("Port Hotspot ComponentShop").onClick.Invoke();
             yield return null;
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             GameObject header = GameObject.Find("Port Facility Header");
             RectTransform title = GameObject.Find("Port Facility Title").GetComponent<RectTransform>();
             Vector2 shopPosition = title.anchoredPosition;
-            Assert.That(ActiveButton("Previous Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("酒馆"));
-            Assert.That(ActiveButton("Next Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("卡组工坊"));
-            Assert.That(GameObject.Find("Port Facility Gold").GetComponent<Text>().text, Does.StartWith("金币  "));
+            Vector2 titleSize = title.sizeDelta;
+            Text gold = GameObject.Find("Port Facility Gold").GetComponent<Text>();
+            string tavernCaption = "← " + controller.Session.CurrentPort.Replace("港", "酒馆");
+            Assert.That(title.GetComponent<Text>().text, Is.EqualTo("部件商店"));
+            Assert.That(ActiveButton("Previous Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo(tavernCaption));
+            Assert.That(ActiveButton("Next Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("卡组工坊 →"));
+            Assert.That(gold.text, Does.Contain("总金币").And.EndsWith(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
             ActiveButton("Next Port Facility").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Port Facility Header"), Is.SameAs(header));
-            Assert.That(title.anchoredPosition, Is.Not.EqualTo(shopPosition));
-            Assert.That(GameObject.Find("Port Facility Gold").GetComponent<Text>().text, Does.Contain("总金币"));
-            Assert.That(ActiveButton("Previous Port Facility").GetComponentInChildren<Text>().text, Does.StartWith("← "));
+            Assert.That(GameObject.Find("Port Facility Title").GetComponent<RectTransform>(), Is.SameAs(title));
+            Assert.That(title.anchoredPosition, Is.EqualTo(shopPosition), "Every facility uses the same retained header layout.");
+            Assert.That(title.sizeDelta, Is.EqualTo(titleSize));
+            Assert.That(title.GetComponent<Text>().text, Is.EqualTo("卡组工坊"));
+            Assert.That(GameObject.Find("Port Facility Gold").GetComponent<Text>(), Is.SameAs(gold));
+            Assert.That(gold.text, Does.Contain("总金币").And.EndsWith(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
+            Assert.That(ActiveButton("Previous Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("← 部件商店"));
             ActiveButton("Previous Port Facility").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Port Facility Header"), Is.SameAs(header));
             Assert.That(title.anchoredPosition, Is.EqualTo(shopPosition));
-            Assert.That(GameObject.Find("Port Facility Gold").GetComponent<Text>().text, Does.StartWith("金币  "));
+            Assert.That(title.sizeDelta, Is.EqualTo(titleSize));
+            Assert.That(title.GetComponent<Text>().text, Is.EqualTo("部件商店"));
+            Assert.That(ActiveButton("Previous Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo(tavernCaption));
+            Assert.That(ActiveButton("Next Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("卡组工坊 →"));
+            Assert.That(gold.text, Does.Contain("总金币").And.EndsWith(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -92,7 +105,7 @@ namespace ShatteredSail.Presentation.Tests
             int shipIndex = controller.Session.SelectedShipIndex;
             OwnedShipComponent previous = controller.InstalledShipComponent(shipIndex, offer.Entry.Slot);
             string previousIdentity = previous.InstanceId;
-            float previousQuality = previous.Quality;
+            string previousComponentId = previous.ComponentId;
             string[] originalIdentities = controller.OwnedComponents.Select(item => item.InstanceId).ToArray();
             float[] originalStats = ComponentPurchaseShipStats(controller);
             string[] originalCards = ComponentPurchaseBonusCards(controller);
@@ -114,10 +127,9 @@ namespace ShatteredSail.Presentation.Tests
             string boughtIdentity = bought.InstanceId;
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(originalIdentities.Length + 1));
             Assert.That(bought.ComponentId, Is.EqualTo(offer.Entry.Id));
-            Assert.That(bought.Quality, Is.EqualTo(offer.Quality).Within(0.0001f));
             Assert.That(bought.ShipIndex, Is.EqualTo(equipAfterPurchase ? shipIndex : -1));
             Assert.That(previous.ShipIndex, Is.EqualTo(equipAfterPurchase ? -1 : shipIndex));
-            Assert.That(previous.Quality, Is.EqualTo(previousQuality));
+            Assert.That(previous.ComponentId, Is.EqualTo(previousComponentId));
             Assert.That(controller.InstalledShipComponent(shipIndex, offer.Entry.Slot).InstanceId,
                 Is.EqualTo(equipAfterPurchase ? boughtIdentity : previousIdentity));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(originalGold - offer.Price));
@@ -141,6 +153,7 @@ namespace ShatteredSail.Presentation.Tests
             // Saved UnityEvents survive the old buttons' deferred destruction.
             // Replaying either route must not charge again or create another item.
             string purchasedInventory = PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey);
+            Assert.That(purchasedInventory, Does.Not.Contain("quality"));
             originalPurchase.Invoke();
             originalEquip.Invoke();
             originalPurchase.Invoke();
@@ -171,10 +184,11 @@ namespace ShatteredSail.Presentation.Tests
             previous = controller.OwnedComponents.Single(item => item.InstanceId == previousIdentity);
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(originalIdentities.Length + 1));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(originalGold - offer.Price));
-            Assert.That(bought.Quality, Is.EqualTo(offer.Quality).Within(0.0001f));
+            Assert.That(bought.ComponentId, Is.EqualTo(offer.Entry.Id));
             Assert.That(bought.ShipIndex, Is.EqualTo(equipAfterPurchase ? shipIndex : -1));
             Assert.That(previous.ShipIndex, Is.EqualTo(equipAfterPurchase ? -1 : shipIndex));
-            Assert.That(previous.Quality, Is.EqualTo(previousQuality));
+            Assert.That(previous.ComponentId, Is.EqualTo(previousComponentId));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
             Assert.That(controller.InstalledShipComponent(shipIndex, offer.Entry.Slot).InstanceId,
                 Is.EqualTo(equipAfterPurchase ? boughtIdentity : previousIdentity));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(offer.Id)), Is.EqualTo(1));
@@ -183,6 +197,9 @@ namespace ShatteredSail.Presentation.Tests
             yield return FindComponentPurchaseOffer(offer);
             Assert.That(ActiveButton("Component Shop Offer " + offer.Id).interactable, Is.True);
             ActiveButton("Component Shop Offer " + offer.Id).onClick.Invoke();
+            yield return null;
+            Assert.That(GameObject.Find("Component Shop Detail"), Is.Null);
+            ActiveButton("Component Shop Hero " + offer.Entry.Id).onClick.Invoke();
             yield return null;
             Assert.That(ActiveButton("Purchase Component " + offer.Id).interactable, Is.False);
             LogAssert.NoUnexpectedReceived();
@@ -284,6 +301,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(display.interactable, Is.True);
             display.onClick.Invoke();
             yield return null;
+            Assert.That(GameObject.Find("Component Shop Detail"), Is.Null,
+                "The first catalogue click previews the offer without opening its purchase dossier.");
+            Assert.That(GameObject.Find("Component Shop Hero " + offer.Entry.Id), Is.Not.Null);
+            display.onClick.Invoke();
+            yield return null;
         }
 
         private static IEnumerator FindComponentPurchaseOffer(PortComponentShopStockItem offer)
@@ -340,7 +362,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator ComponentInventory_MigratesLegacyFlagshipThenPreservesEmptySlotsAndQualityAcrossReload()
+        public IEnumerator ComponentInventory_MigratesLegacyFlagshipThenPreservesEmptySlotsAndIdentityAcrossReload()
         {
             ComponentArtCatalog catalog = new ComponentArtCatalog();
             ComponentArtEntry rare = catalog.Entries.First(item => item.Slot == ComponentSlot.Cannon && item.Rarity == ComponentRarity.Rare);
@@ -357,7 +379,7 @@ namespace ShatteredSail.Presentation.Tests
             OwnedShipComponent item = controller.InstalledShipComponent(1, ComponentSlot.Cannon);
             string identity = item.InstanceId;
             Assert.That(item.ComponentId, Is.EqualTo(rare.Id));
-            Assert.That(item.Quality, Is.EqualTo(0.93f).Within(0.0001f));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
             Assert.That(controller.ShipComponent(0, ComponentSlot.Cannon).Id, Is.Not.EqualTo(rare.Id));
             Assert.That(controller.TryUnequipShipComponent(1, ComponentSlot.Cannon), Is.True);
             Assert.That(controller.TryUnequipShipComponent(1, ComponentSlot.Cannon), Is.False);
@@ -371,7 +393,54 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(10));
             Assert.That(controller.EquippedComponent(ComponentSlot.Cannon), Is.Null);
             Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Cannon).InstanceId, Is.EqualTo(identity));
-            Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Cannon).Quality, Is.EqualTo(0.93f).Within(0.0001f));
+            Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Cannon).ComponentId, Is.EqualTo(rare.Id));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator ComponentInventory_LegacyAppraisalsDoNotAffectBattleStrengthAndRarityStillDoes()
+        {
+            ComponentArtCatalog catalog = new ComponentArtCatalog();
+            ComponentArtEntry rareBow = catalog.Entries.First(item => item.Slot == ComponentSlot.Bow && item.Rarity == ComponentRarity.Rare);
+            ComponentArtEntry rarePlating = catalog.Entries.First(item => item.Slot == ComponentSlot.Plating && item.Rarity == ComponentRarity.Rare);
+            ComponentArtEntry legendaryBow = catalog.Entries.First(item => item.Slot == ComponentSlot.Bow && item.Rarity == ComponentRarity.Legendary);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.SelectedShipKey, 0);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.ComponentInventoryKey);
+            PlayerPrefs.SetString(CoreGameplayDemoController.ComponentLoadoutKey(ComponentSlot.Bow), rareBow.Id);
+            PlayerPrefs.SetString(CoreGameplayDemoController.ComponentLoadoutKey(ComponentSlot.Plating), rarePlating.Id);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.ComponentConditionKey(ComponentSlot.Bow), 90);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.ComponentConditionKey(ComponentSlot.Plating), 110);
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            var equipmentStrength = typeof(CoreGameplayDemoController).GetMethod("BattleEquipmentQuality",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(equipmentStrength, Is.Not.Null);
+            System.Func<ComponentSlot, float> strength = slot => (float)equipmentStrength.Invoke(controller, new object[] { slot });
+            Assert.That(strength(ComponentSlot.Bow), Is.EqualTo(3f), "A legacy 90% appraisal must not weaken a rare bow.");
+            Assert.That(strength(ComponentSlot.Plating), Is.EqualTo(3f), "A legacy 110% appraisal must not strengthen rare plating.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
+
+            string originalBow = controller.InstalledShipComponent(0, ComponentSlot.Bow).InstanceId;
+            OwnedShipComponent upgradedBow = controller.GrantOwnedComponent(legendaryBow);
+            Assert.That(controller.TryEquipOwnedComponent(0, upgradedBow.InstanceId), Is.True);
+            Assert.That(strength(ComponentSlot.Bow), Is.EqualTo(5f), "The authored rarity advantage must remain after appraisal removal.");
+            Assert.That(strength(ComponentSlot.Plating), Is.EqualTo(3f));
+            Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == originalBow).ShipIndex, Is.EqualTo(-1));
+            string[] identities = controller.OwnedComponents.Select(item => item.InstanceId).ToArray();
+
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null;
+            yield return null;
+            controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CollectionAssert.AreEquivalent(identities, controller.OwnedComponents.Select(item => item.InstanceId));
+            Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Bow).InstanceId, Is.EqualTo(upgradedBow.InstanceId));
+            Assert.That(strength(ComponentSlot.Bow), Is.EqualTo(5f));
+            Assert.That(strength(ComponentSlot.Plating), Is.EqualTo(3f));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -385,13 +454,14 @@ namespace ShatteredSail.Presentation.Tests
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             ComponentArtEntry rare = new ComponentArtCatalog().Entries.First(item => item.Slot == ComponentSlot.Cannon && item.Rarity == ComponentRarity.Rare);
             int originalCount = controller.OwnedComponents.Count;
-            OwnedShipComponent first = controller.GrantOwnedComponent(rare, 0.96f);
-            OwnedShipComponent second = controller.GrantOwnedComponent(rare, 1.09f);
+            OwnedShipComponent first = controller.GrantOwnedComponent(rare);
+            OwnedShipComponent second = controller.GrantOwnedComponent(rare);
+            Assert.That(first.InstanceId, Is.Not.EqualTo(second.InstanceId));
             Assert.That(controller.TryEquipOwnedComponent(3, first.InstanceId), Is.False);
             Assert.That(controller.TryEquipOwnedComponent(0, first.InstanceId), Is.True);
             Assert.That(controller.TryEquipOwnedComponent(0, second.InstanceId), Is.True);
             Assert.That(first.ShipIndex, Is.EqualTo(-1));
-            Assert.That(first.Quality, Is.EqualTo(0.96f));
+            Assert.That(first.ComponentId, Is.EqualTo(rare.Id));
             CoreSpecialCardDefinition definition = CoreSpecialCardCatalog.ForComponent(rare.Id);
             Assert.That(System.Enum.GetValues(typeof(NavalBattleStage)).Cast<NavalBattleStage>()
                 .Any(stage => controller.Session.GetBonusBattleCards(stage).Any(index => CoreVoyageSession.CardLibrary[index].Id == definition.Card.Id)), Is.True);

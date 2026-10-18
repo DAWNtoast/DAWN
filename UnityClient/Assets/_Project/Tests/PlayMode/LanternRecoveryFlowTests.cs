@@ -14,7 +14,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest, Timeout(120000)]
-        public IEnumerator LanternRecovery_GeneratedRewardSurvivesReturnStoresAndFundsHighPortInvestment()
+        public IEnumerator LanternRecovery_LegacyGeneratedRewardSurvivesReturnStoresAndFundsHighPortInvestment()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -53,6 +53,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(session.IsTreasureVoyage, Is.True);
             Assert.That(session.HasNavigator, Is.True, "The actual departure must include the recruited navigator located in this port.");
+            RestoreLegacyTreasureFlow(session);
+            Assert.That(session.HasNavigator, Is.True, "Restoring the old voyage must preserve its recruited navigator.");
             CoreMapNode fogbell = session.Map.Nodes.Single(node => node.Encounter.Id == "treasure_clue_fogbell");
             // Skip navigation only; use the map's generated event, not an injected
             // reward/template, and operate the actual encounter and return UI.
@@ -75,6 +77,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.SafeReturn));
             Assert.That(session.Cargo.Lantern, Is.EqualTo(1), "A fractional cargo loss must not floor the single indivisible lantern to zero.");
             Button.ButtonClickedEvent settledAgain = ActiveButton("Return To Port").onClick;
+            yield return SettlementChestTestActions.ShowOverview();
             ClickAcceptanceButton("Return To Port"); yield return null;
             settledAgain.Invoke(); yield return null;
             Assert.That(session.CurrentPort, Is.EqualTo(port));

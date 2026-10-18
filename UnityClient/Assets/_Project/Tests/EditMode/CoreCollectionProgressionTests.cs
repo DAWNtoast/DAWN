@@ -11,7 +11,7 @@ namespace ShatteredSail.Core.Tests
     public sealed class CoreCollectionProgressionTests
     {
         private static IEnumerable<string> AllBosses => new[] { CoreGuidedTutorialContent.BossEventId, CoreBattleBalance.TreasureBossId }
-            .Concat(CoreVoyageSession.Routes.Select(route => "boss_" + route.Id))
+            .Concat(CoreRouteBossCatalog.All.Select(boss => boss.Id))
             .Concat(CoreLegendaryWarships.All.Select(boss => boss.Id));
 
         [TestCaseSource(nameof(AllBosses))]
@@ -138,8 +138,10 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = TreasureReady(rank);
             Assert.That(session.TryStartTreasureVoyage(out string reason), Is.True, reason);
             CoreMapNode node = session.Map.Nodes.Single(item => item.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId);
-            Enter(session, node); Set(session, "TreasureClues", node.Encounter.Choices[0].RequiredTreasureClues);
-            Assert.That(session.ResolveChoice(0), Is.True);
+            Assert.That(session.ActiveTreasureMap.ContentVersion, Is.EqualTo(1));
+            PrepareCurrentTreasureCore(session, rank);
+            Enter(session, node);
+            Assert.That(session.ResolveChoice(0), Is.True, session.ChoiceUnavailableReason(0));
             Assert.That(session.Settlement.TreasureCompleted, Is.True);
             Assert.That(session.CaptureCollectionProgress().completedTreasureSeeds, Is.Empty);
             session.ReturnToPortAfterSettlement();
@@ -254,7 +256,7 @@ namespace ShatteredSail.Core.Tests
             if (id == CoreGuidedTutorialContent.BossEventId)
                 Assert.That(session.ConfigureGuidedTutorialVoyage(CoreGuidedTutorialContent.BossVoyageLeg), Is.True);
             else for (int i = 0; i < CoreVoyageSession.Routes.Count; i++)
-                if (id == "boss_" + CoreVoyageSession.Routes[i].Id)
+                if (CoreRouteBossCatalog.Find(id)?.RouteId == CoreVoyageSession.Routes[i].Id)
                 {
                     session.RestoreTreasureProgress(new CoreTreasureProgress
                         { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(CoreVoyageSession.Routes[i].UnlockLevel) });
@@ -263,12 +265,47 @@ namespace ShatteredSail.Core.Tests
                 }
             session.StartVoyage();
             CoreMapNode node = session.Map.Nodes.FirstOrDefault(item => item.Encounter.Id == id);
+            if (node == null && CoreRouteBossCatalog.Find(id) != null)
+                node = new CoreMapNode { IsBoss = true, Encounter = CoreRouteBossCatalog.Find(id).CreateEncounter() };
             if (node == null) node = new CoreMapNode { Encounter = id == CoreBattleBalance.TreasureBossId
                 ? CoreLegendaryWarships.CreateTreasureEncounter() : CoreLegendaryWarships.Find(id).CreateEncounter() };
             Enter(session, node);
             Assert.That(session.ResolveChoice(0), Is.True);
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
+            if (id == CoreGuidedTutorialContent.BossEventId)
+            {
+                CoreGuidedBossScriptTests.Reach(session, GuidedBossBattleStep.CourseFinal);
+                Assert.That(session.GuidedBossLesson, Is.EqualTo(GuidedBossLesson.FinalBattle));
+            }
             return session;
+        }
+
+        private static void PrepareCurrentTreasureCore(CoreVoyageSession session, string rank)
+        {
+            void Choose(string id, int choice)
+            {
+                Enter(session, session.Map.Nodes.Single(node => node.Encounter.Id == id));
+                Assert.That(session.ResolveChoice(choice), Is.True, session.ChoiceUnavailableReason(choice));
+                Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            }
+            if (rank == "weathered")
+            {
+                Choose("weathered_camp", 0);
+                Choose("weathered_winch", 0);
+                Choose("weathered_bell", 0);
+            }
+            else if (rank == "gilded")
+            {
+                Choose("gilded_manifest", 0);
+                Choose("gilded_witness", 0);
+            }
+            else
+            {
+                Choose("moonlit_dawn", 1);
+                Choose("moonlit_dusk", 1);
+                Choose("moonlit_midnight", 1);
+                Choose("moonlit_cleanse", 0);
+            }
         }
         private static CoreVoyageSession TreasureReady(string rank)
         {
@@ -282,7 +319,7 @@ namespace ShatteredSail.Core.Tests
         }
         private static void DefeatRouteBossAndArrive(CoreVoyageSession session)
         {
-            Enter(session, session.Map.Nodes.Single(node => node.Encounter.Id == "boss_" + session.Map.Route.Id));
+            Enter(session, session.Map.Nodes.Single(node => node.IsBoss));
             Assert.That(session.ResolveChoice(0), Is.True);
             session.Battle.EnemyHull = 0; Assert.That(session.EndBattleTurn(), Is.True);
             Arrive(session);

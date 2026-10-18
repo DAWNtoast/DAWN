@@ -67,14 +67,9 @@ namespace ShatteredSail.Presentation.Tests
                     continue;
                 }
                 yield return routine.Current;
-                // This is the normal on-screen skip-reveal action, so the
-                // reference comparison sees the full settlement rather than a fade.
-                Button reveal = ActiveButton("Skip Settlement Reveal");
-                if (controller.Session.Phase == CoreDemoPhase.Settlement && reveal != null && reveal.IsInteractable())
-                {
-                    reveal.onClick.Invoke();
-                    yield return null;
-                }
+                // The guided driver owns the chest's real skip-pointer action.
+                // Advancing it here could hide the button between that helper's
+                // frame wait and raycast; this wrapper only observes the frames.
                 capture.Observe(controller);
             }
 
@@ -82,6 +77,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.CurrentGuidedTutorialStep, Is.EqualTo(GuidedTutorialStep.Complete));
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
             Assert.That(seen, Does.Contain("TutorialBoss"));
+            AssertGuidedCourseCoverage(seen);
             Assert.That(seen, Does.Contain("DisplayTreasure"));
             Assert.That(seen, Does.Contain("EquipRewardComponent"));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey), Is.EqualTo(1));
@@ -93,9 +89,9 @@ namespace ShatteredSail.Presentation.Tests
 
             // Leave the actual equipment dossier and use the unlocked port map
             // entrance. The settlement's Draw Sea Chart button is a different UI.
-            if (ActiveButton("Back To Shipyard Gallery") != null)
+            if (GameObject.Find("Shipyard Detail") != null)
             {
-                ClickAcceptanceButton("Back To Shipyard Gallery");
+                ClickAcceptanceButton("Return To Port Hub");
                 yield return null;
                 yield return null;
                 capture.Capture(controller, "Completed_Shipyard", "Shipyard Panel", "UI_Shipyard");
@@ -151,10 +147,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Treasure Route Reading Desk"), Is.Null);
             Assert.That(GameObject.Find("Treasure Selected Route"), Is.Null);
             Assert.That(GameObject.Find("Treasure Route Detail"), Is.Null);
-            Text status = GameObject.Find("Treasure Workbench Status").GetComponent<Text>();
-            Assert.That(status.text, Does.Contain("海盗等级").And.Contain("未鉴定碎片").And.Contain("藏宝种子").And.Not.Contain("月蚀"));
+            foreach (string name in new[] { "Treasure Workbench Status Rail", "Treasure Workbench Status", "Treasure Workbench Notice" })
+                Assert.That(GameObject.Find(name), Is.Null, name);
             Assert.That(RequireGuidedButton("Treasure Identify Fragment").GetComponentInChildren<Text>().text, Does.Contain("鉴定碎片"));
-            foreach (string name in new[] { "Treasure Route Name " + rankIndex, "Treasure Route Progress " + rankIndex, "Treasure Workbench Status", "Treasure Workbench Notice" })
+            foreach (string name in new[] { "Treasure Route Name " + rankIndex, "Treasure Route Progress " + rankIndex, "Treasure Identify Status", "Treasure Folio Status" })
             {
                 Text label = GameObject.Find(name).GetComponent<Text>();
                 Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + 1f),

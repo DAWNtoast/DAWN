@@ -84,8 +84,28 @@ namespace ShatteredSail.Presentation
 
         private CardSchoolFrameGraphic AddCardSchoolFrame(Transform card, CoreBattleCard data, bool available)
         {
+            RefreshCardCatalogNumber(card, data);
             return AddCardSchoolFrame(card, data.SchoolId, available, data.PowderCost,
                 data.CannonballCost, CardSpecialCostPresentation.ResourceType(data));
+        }
+
+        private void RefreshCardCatalogNumber(Transform card, CoreBattleCard data)
+        {
+            const string objectName = "Card Catalog Number";
+            Text number = card.Find(objectName)?.GetComponent<Text>();
+            if (number == null)
+            {
+                // The body font's 15 px line is about 24 px tall. Keep a full
+                // line below the effect while staying between the cost emblems.
+                number = CreateText(objectName, card, new Vector2(86f, 26f), new Vector2(0f, -186f),
+                    15, FontStyle.Normal, TextAnchor.MiddleCenter, Color.white);
+                number.raycastTarget = false;
+                Outline shadow = number.gameObject.AddComponent<Outline>();
+                shadow.effectColor = new Color(.08f, .06f, .04f, .95f);
+                shadow.effectDistance = new Vector2(1f, -1f);
+            }
+            number.text = CoreBattleCardNumbering.Label(data);
+            number.color = Color.white;
         }
 
         private CardSchoolFrameGraphic AddCardSchoolFrame(Transform card, string schoolId, bool available,
@@ -157,6 +177,8 @@ namespace ShatteredSail.Presentation
                 CardSchoolArtCatalog.CostPosition(data, CardSpecialCostPresentation.OrnamentKind(data)),
                 CardSpecialCostPresentation.OrnamentKind(data), data.Type, 0);
             number.text = CardSpecialCostPresentation.CostText(data, battle, battle == null ? (int?)null : session.Cargo.Wood);
+            if (number.text.Length > 3) number.fontSize = 18;
+            else if (number.text.Length > 2) number.fontSize = 21;
             return number;
         }
 
@@ -189,6 +211,17 @@ namespace ShatteredSail.Presentation
             outline.effectColor = new Color(0.08f, 0.10f, 0.14f, 0.95f);
             outline.effectDistance = new Vector2(1f, -1f);
             return number;
+        }
+
+        private static void RefreshCardCost(Text number, string actualCost, string baseCost)
+        {
+            if (number == null) return;
+            number.text = actualCost;
+            // Compare with the effective card's normal fee, not the previous
+            // frame. "All" resource costs have no fixed fee to increase from.
+            bool increased = int.TryParse(actualCost, out int actual) &&
+                int.TryParse(baseCost, out int baseline) && actual > baseline;
+            number.color = increased ? new Color(1f, .24f, .2f, 1f) : Color.white;
         }
     }
 }

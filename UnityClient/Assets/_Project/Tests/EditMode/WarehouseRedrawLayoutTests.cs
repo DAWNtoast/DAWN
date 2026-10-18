@@ -51,8 +51,8 @@ namespace ShatteredSail.Presentation.Tests
                         AssertContained(ledger, tab);
                         Assert.That(RelativeBounds(tab, ledger).Overlaps(bounds), Is.False, "Tabs must not cover the information bar.");
                     }
-                    Assert.That(ledger.GetComponent<Image>().color.a, Is.Zero, "The painted cabinet supplies its own frame.");
-                    Assert.That(ledger.GetComponent<Image>().sprite, Is.Null, "No parchment is attached to the ledger.");
+                    Assert.That(ledger.GetComponent<Image>().color.a, Is.EqualTo(1f), "The inventory ledger must remain readable over every port background.");
+                    Assert.That(ledger.GetComponent<Image>().sprite, Is.SameAs(MarketShopSkin.Paper), "The collection ledger shares the market's paper and timber frame.");
                     Assert.That(host.GetComponentsInChildren<Button>().Count(b => b.name.StartsWith("Warehouse Display Slot ", StringComparison.Ordinal)), Is.EqualTo(6));
                     string prefix = page == 1 ? "Warehouse Storage Row " : "Warehouse Rare Row ";
                     if (page > 0)

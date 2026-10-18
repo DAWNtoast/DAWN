@@ -12,8 +12,34 @@ namespace ShatteredSail.Presentation
         private string ChartEncounterChoiceDetail(int index)
         {
             CoreEncounterChoice choice = session.ActiveEncounter.Choices[index];
+            if (choice.StartsBattle)
+            {
+                bool guidedBoss = session.ActiveEncounter.Id == CoreGuidedTutorialContent.BossEventId;
+                bool boss = guidedBoss || session.ActiveEncounter.BossKind != CoreBossKind.None;
+                double multiplier = choice.Renewable ? 1d : session.ActiveEncounterRewardMultiplier;
+                string details;
+                if (guidedBoss && session.GuidedTutorialLeg > 0)
+                    details = "金币 +" + CoreBattleRewardBalance.GoldReward(true, choice.Effect, false, multiplier, session.HasDoctor, session.HasDiver) +
+                        "／夺船 +" + CoreBattleRewardBalance.GoldReward(true, choice.Effect, true, multiplier, session.HasDoctor, session.HasDiver) +
+                        "；碎片×1\n返港领白色部件与「破浪者的罗盘」";
+                else
+                    details = CoreBattleRewardDescriptions.Victory(boss, choice.Effect, multiplier, session.HasDoctor, session.HasDiver)
+                        .Replace("；", "\n");
+                details += CoreBattleRewardDescriptions.AdditionalEffects(choice.Effect, multiplier, session.HasDoctor);
+                var exploration = new List<string>();
+                AppendExplorationChoiceDetails(exploration, session.EffectiveChoiceEffect(index));
+                if (exploration.Count > 0) details += "\n胜利：" + string.Join(" · ", exploration);
+                if (session.ActiveEncounter.BossKind == CoreBossKind.Route) details += "\n胜利后开放新港航道";
+                if (choice.RequiredTreasureClues > 0) details += "\n需要藏宝线索 ≥" + choice.RequiredTreasureClues;
+                return details;
+            }
             if (!ShowingReusableChartEncounter || choice.Renewable || session.ActiveEncounterRewardMultiplier >= 1d)
-                return choice.Detail;
+            {
+                if (!session.IsTreasureVoyage || session.ActiveTreasureMap.ContentVersion == 0) return choice.Detail;
+                string expedition = CoreVoyageSession.TreasureExpeditionEffectSummary(session.EffectiveChoiceEffect(index));
+                return string.IsNullOrEmpty(expedition) || choice.Detail.Contains(expedition)
+                    ? choice.Detail : choice.Detail + "\n" + expedition;
+            }
             VoyageEffect effect = session.EffectiveChoiceEffect(index);
             var values = new List<string>();
             void Add(string label, int value)
@@ -28,7 +54,7 @@ namespace ShatteredSail.Presentation
             Add("宝石", effect.Gem); Add("古代材料", effect.AncientMaterial); Add("遗物", effect.Relic);
             Add("黑珍珠", effect.BlackPearl); Add("古代罗盘", effect.AncientCompass); Add("灯笼", effect.Lantern);
             Add("诅咒", effect.Curse);
-            if (choice.StartsBattle) values.Add("胜利战利品×" + session.ActiveEncounterRewardMultiplier.ToString("0%"));
+            AppendExplorationChoiceDetails(values, effect);
             if (effect.ForceReturn) values.Add("返航");
             return values.Count == 0 ? "本地点收益已耗尽，耗时照常" : string.Join(" · ", values);
         }

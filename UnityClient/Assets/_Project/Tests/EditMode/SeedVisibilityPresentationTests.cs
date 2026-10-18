@@ -44,12 +44,14 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(input.interactable, Is.False, "Random departure is the initial mode; explicit selection enables entry.");
                     Assert.That(Find<Toggle>("Use Chart Seed").isOn, Is.False);
                     Assert.That(input.text, Is.Empty, "Random mode must not silently copy the hidden seed into a chart selection.");
-                    Assert.That(Find<Text>("Seed Label").text, Does.Contain("普通海图"));
+                    Assert.That(Find<Text>("Seed Label").text, Does.Contain("已绘海图"));
+                    Assert.That(Find<Toggle>("Use Chart Seed").IsInteractable(), Is.True);
                 }
                 else
                 {
                     Assert.That(input, Is.Null, "An unavailable seed must not remain in a disabled or hidden input.");
-                    Assert.That(Find<Text>("Seed Label").text, Does.Contain("航海士"));
+                    Assert.That(Find<Toggle>("Use Chart Seed").IsInteractable(), Is.False,
+                        "The painted chart control stays labelled but cannot be used without a navigator.");
                     Assert.That(Find<Button>("Departure Treasure Seed Picker").IsInteractable(), Is.True,
                         "Treasure seeds remain available without a navigator.");
                     AssertNoVisibleValue(PrivateSeed);
@@ -86,10 +88,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(controller.Session.Map.DestinationName, Is.EqualTo(selected));
         }
 
-        [Test]
-        public void Departure_ChartModeReplacesLeftRoutesAndShowsSelectedChartAndDirectionalPorts()
+        [TestCase(CoreGameplayPreviewPort.GrayGull)]
+        [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
+        public void Departure_ChartModeOwnsRoutesAndShowsSelectedChartAndDirectionalPorts(CoreGameplayPreviewPort port)
         {
-            CreatePortPreview();
+            CreatePortPreview(port);
             controller.ConfigureEditorPreviewDepartureChart(0);
             Transform routes = Find<RectTransform>("Route Selection");
             Transform setup = Find<RectTransform>("Voyage Setup");
@@ -99,7 +102,9 @@ namespace ShatteredSail.Core.Tests
             RectTransform toggleRect = toggle.GetComponent<RectTransform>();
             Assert.That(toggleRect.anchoredPosition.y + toggleRect.rect.yMax,
                 Is.LessThan(((RectTransform)routes).rect.yMax), "The chart switch belongs inside the current paper frame.");
-            Assert.That(toggleRect.anchoredPosition.y, Is.GreaterThan(0f), "The switch stays above the route choices.");
+            Assert.That(toggleRect.anchoredPosition.y,
+                Is.GreaterThan(Find<Button>("Route 0").GetComponent<RectTransform>().anchoredPosition.y),
+                "The switch stays above the route choices in both departure layouts.");
             Assert.That(setup.GetComponentsInChildren<Toggle>(true).Any(item => item.name == "Use Chart Seed"), Is.False);
             Assert.That(setup.GetComponentsInChildren<InputField>(true), Is.Empty);
             Assert.That(selection.gameObject.activeSelf, Is.False);
@@ -114,7 +119,14 @@ namespace ShatteredSail.Core.Tests
             Dropdown dropdown = Find<Dropdown>("Seed Input Dropdown");
             Assert.That(dropdown.IsInteractable(), Is.True);
             Assert.That(dropdown.transform.IsChildOf(selection), Is.True);
-            dropdown.value = 1;
+            if (PortFacilityArtCatalog.UsesPaintedDepartureScene(controller.Session.CurrentPort))
+            {
+                Assert.That(dropdown.gameObject.activeInHierarchy, Is.False);
+                Button record = Find<Button>("Departure Dock Chart Record 0");
+                Assert.That(record.IsInteractable(), Is.True);
+                record.onClick.Invoke();
+            }
+            else dropdown.value = 1;
             Canvas.ForceUpdateCanvases();
 
             Assert.That(controller.Session.IsChartSeedSelected, Is.True);
@@ -127,8 +139,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(graphic.Field.GeometryFingerprint,
                 Is.EqualTo(VoyageChartCoastField.Fingerprint(controller.Session.PreviewSelectedSeaChart())),
                 "The thumbnail must use the selected seed's geography.");
-            Assert.That(Find<Text>("Departure Chart Ports").text,
-                Does.Contain("出发港口：" + origin).And.Contain("到达港口：" + destination));
+            Assert.That(Find<Text>("Departure Chart Ports").text, Is.EqualTo(PortFacilityArtCatalog.UsesPaintedDepartureScene(origin)
+                ? origin + " → " + destination : "出发港口：" + origin + "    →    到达港口：" + destination));
             Assert.That(Find<Text>("Departure Chart Route").text,
                 Does.Contain(CoreVoyageSession.Routes[controller.Session.SelectedRouteIndex].Name));
             Assert.That(controller.Session.Map, Is.Null, "Previewing a chart must not start a voyage.");
@@ -138,8 +150,8 @@ namespace ShatteredSail.Core.Tests
 
             controller.Session.RestoreProfile(gold, destination);
             Rebuild("BuildPort");
-            Assert.That(Find<Text>("Departure Chart Ports").text,
-                Does.Contain("出发港口：" + destination).And.Contain("到达港口：" + origin));
+            Assert.That(Find<Text>("Departure Chart Ports").text, Is.EqualTo(PortFacilityArtCatalog.UsesPaintedDepartureScene(destination)
+                ? destination + " → " + origin : "出发港口：" + destination + "    →    到达港口：" + origin));
             Find<Toggle>("Use Chart Seed").isOn = false;
             Assert.That(Find<RectTransform>("Departure Chart Selection").gameObject.activeSelf, Is.False);
             AssertDepartureRandomChoicesVisible(true);
@@ -148,11 +160,20 @@ namespace ShatteredSail.Core.Tests
 
         private void AssertDepartureRandomChoicesVisible(bool visible)
         {
+            bool paintedDock = PortFacilityArtCatalog.UsesPaintedDepartureScene(controller.Session.CurrentPort);
             for (int route = 0; route < CoreVoyageSession.Routes.Count; route++)
-                Assert.That(Find<Button>("Route " + route).gameObject.activeSelf, Is.EqualTo(visible));
+            {
+                Button button = Find<Button>("Route " + route);
+                Assert.That(button.gameObject.activeSelf, Is.EqualTo(visible || paintedDock));
+                if (!visible) Assert.That(button.IsInteractable(), Is.False, "The chart owns its route.");
+            }
             for (int port = 0; port < CoreVoyageSession.DestinationPorts.Count; port++)
-                Assert.That(Find<Button>("Departure Destination " + port).gameObject.activeInHierarchy, Is.EqualTo(visible),
-                    "Manual destination plaques are replaced by the selected chart's endpoints in chart mode.");
+            {
+                Button button = Find<Button>("Departure Destination " + port);
+                Assert.That(button.gameObject.activeInHierarchy, Is.EqualTo(visible || paintedDock),
+                    "Painted regional docks retain their plaques; selecting a chart locks their route and destination.");
+                if (!visible) Assert.That(button.IsInteractable(), Is.False, "The chart owns its destination.");
+            }
         }
 
         [Test]
@@ -174,7 +195,8 @@ namespace ShatteredSail.Core.Tests
                     SetNavigator(navigatorAboard);
                     Rebuild("BuildPort");
                     Assert.That(Find<Button>("Treasure Identify Fragment").GetComponentInChildren<Text>().text, Does.Contain("鉴定碎片"));
-                    Assert.That(Find<Text>("Treasure Workbench Status").text, Does.Contain("未鉴定碎片"));
+                    Assert.That(Find<Text>("Treasure Identify Status").text, Is.EqualTo(controller.Session.PirateLevel < 2
+                        ? "等级 2 解锁" : controller.Session.TreasureFragments + " 片待鉴定"));
                     Assert.That(host.GetComponentsInChildren<Text>(true).Any(label => label.name == "Treasure Route Detail"), Is.False);
                     AssertNoVisibleValue(PrivateSeed);
                 }
@@ -406,13 +428,13 @@ namespace ShatteredSail.Core.Tests
             AssertTutorialSeedsHidden();
         }
 
-        private void CreatePortPreview()
+        private void CreatePortPreview(CoreGameplayPreviewPort port = CoreGameplayPreviewPort.GrayGull)
         {
             Assert.That(Application.isPlaying, Is.False);
             host = new GameObject("Seed Visibility Presentation Test");
             host.SetActive(false);
             controller = host.AddComponent<CoreGameplayDemoController>();
-            controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.PortHub, CoreGameplayPreviewPort.GrayGull, 0);
+            controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.PortHub, port, 0);
             host.SetActive(true);
             Assert.That(controller.Session, Is.Not.Null);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));

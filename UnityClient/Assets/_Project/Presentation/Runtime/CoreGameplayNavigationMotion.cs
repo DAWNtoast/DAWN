@@ -22,6 +22,7 @@ namespace ShatteredSail.Presentation
             if (navigationMotionRoutine != null) StopCoroutine(navigationMotionRoutine);
             navigationMotionRoutine = null;
             navigationMotionPlaying = false;
+            if (navigationLookoutMotion != null) navigationLookoutMotion.CompleteVoyage();
             ClearNavigationWake();
             if (navigationMotionInputGuard != null) navigationMotionInputGuard.gameObject.SetActive(false);
         }
@@ -58,6 +59,8 @@ namespace ShatteredSail.Presentation
             }
 
             VoyagePoint start = session.Position;
+            double startHours = session.ElapsedGameHours;
+            double startVoyageHours = session.TotalHours;
             RectTransform mapRoot = FindNavigationMapRoot();
             RectTransform ship = FindNavigationVisual(mapRoot, "Player Ship");
             List<VoyagePoint> forecastPath = BuildNavigationMotionPath(forecast.PathPoints, start, forecast.Target);
@@ -80,8 +83,31 @@ namespace ShatteredSail.Presentation
                 return;
             }
 
+            PrepareLookoutVoyage(motionPath, startHours, session.TotalHours - startVoyageHours);
             BuildNavigationMotionInputGuard();
             navigationMotionRoutine = StartCoroutine(AnimateNavigationMotion(motionPath, mapRoot, ship));
+        }
+
+        private void PrepareLookoutVoyage(IList<VoyagePoint> path, double startHours, double sailingHours)
+        {
+            if (navigationLookoutMotion == null || !navigationLookoutMotion.isActiveAndEnabled || session.Map == null) return;
+            // A handful of route samples preserves turns and near/far parallax without
+            // allocating a fresh map projection or loading resources in the frame loop.
+            const int samples = 5;
+            var frames = new NavigationLookoutFrame[samples];
+            float vision = 120f + (session.HasNavigator ? 60f : 0f) + session.VisionBonusNm;
+            for (int i = 0; i < samples; i++)
+            {
+                float t = i / (float)(samples - 1);
+                VoyagePoint position = NavigationPointAt(path, t);
+                frames[i] = new NavigationLookoutFrame
+                {
+                    Terrain = session.Map.TerrainAt(position),
+                    Light = NavigationLookoutArtCatalog.BlendForVoyageHours(startHours + sailingHours * t),
+                    Observations = i == 0 ? null : VoyageLookoutProjector.Project(session.Map, position, session.Heading, vision)
+                };
+            }
+            navigationLookoutMotion.PrepareVoyage(frames, CreateLookoutScenery);
         }
 
         private RectTransform FindNavigationMapRoot()
@@ -132,7 +158,12 @@ namespace ShatteredSail.Presentation
             float elapsed = 0f;
             while (elapsed < duration)
             {
-                elapsed += Time.unscaledDeltaTime;
+                if (navigationLookoutMotion != null && navigationLookoutMotion.IsSuspended)
+                {
+                    yield return null;
+                    continue;
+                }
+                elapsed += Mathf.Min(.05f, Time.unscaledDeltaTime);
                 float raw = Mathf.Clamp01(elapsed / duration);
                 float eased = raw * raw * (3f - 2f * raw);
                 UpdateNavigationMotionVisuals(path, eased, ship, origin);
@@ -159,6 +190,7 @@ namespace ShatteredSail.Presentation
             RectTransform ship,
             Vector2 origin)
         {
+            if (navigationLookoutMotion != null) navigationLookoutMotion.ApplyVoyageProgress(progress);
             VoyagePoint current = NavigationPointAt(path, progress);
             Vector2 currentMapPosition = MapPosition(current);
             Vector2 originMapPosition = MapPosition(path[0]);

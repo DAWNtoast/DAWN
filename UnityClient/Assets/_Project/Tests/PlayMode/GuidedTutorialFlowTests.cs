@@ -18,7 +18,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
-        [Timeout(240000)]
+        [Timeout(480000)]
         public IEnumerator GuidedTutorial_TwoVoyagesTeachNavigatorAmbushThenScriptedBossAndDisplayReward()
         {
             yield return LoadGuidedTutorialScene();
@@ -37,6 +37,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.ActiveEncounter.Id, Is.EqualTo(CoreGuidedTutorialContent.BossEventId));
             AssertGuidedDefaultDecks(controller);
             yield return DriveGuidedTutorial(controller, "Warehouse", seen, true, captureKeys);
+            AssertGuidedCourseCoverage(seen);
             AssertGuidedDefaultDecks(controller);
             Assert.That(controller.IsTutorialActive, Is.True);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey, 0), Is.Zero);
@@ -91,7 +92,10 @@ namespace ShatteredSail.Presentation.Tests
 
             Assert.That(controller.IsTutorialActive, Is.False);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
-            Assert.That(GameObject.Find("Shipyard Panel"), Is.Not.Null);
+            GameObject equipmentWindow = GameObject.Find("Shipyard Equipment Overlay");
+            Assert.That(equipmentWindow, Is.Not.Null, "Completing the final fitting keeps the equipment window open.");
+            Assert.That(equipmentWindow.transform.Find("Shipyard Detail/Shipyard Equipment Page"), Is.Not.Null);
+            Assert.That(RequireGuidedButton("Close Shipyard Equipment").IsInteractable(), Is.True);
             Assert.That(seen, Does.Contain("FirstMandatory"));
             Assert.That(seen, Does.Contain("FirstOptional"));
             Assert.That(seen, Does.Contain("FirstCrewEvent"));
@@ -313,6 +317,14 @@ namespace ShatteredSail.Presentation.Tests
                 "Starting a tutorial leg must keep the pre-departure port wallet snapshot.");
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Gold")), Is.EqualTo(departureTravelCash),
                 "Departure travel-cash transfer must not replace the tutorial replay snapshot.");
+            int savedPowder = PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Powder"));
+            ClickAcceptanceButton("Encounter Choice 0");
+            yield return null;
+            yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseLoad);
+            Assert.That(controller.Session.CanCaptureVoyageCheckpoint, Is.False);
+            Assert.That(controller.Session.GuidedTutorialBossDefeated, Is.False);
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Powder")), Is.EqualTo(savedPowder),
+                "Temporary lesson supplies must never replace the settled profile.");
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
             yield return null;
@@ -321,13 +333,14 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(departureGold));
             Assert.That(controller.Session.Cargo.Gold, Is.EqualTo(departureTravelCash));
+            Assert.That(controller.Session.Cargo.Powder, Is.EqualTo(savedPowder));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GuidedTutorialComponentRewardKey, 0), Is.Zero);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey, 0), Is.Zero);
             LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]
-        [Timeout(240000)]
+        [Timeout(480000)]
         public IEnumerator GuidedTutorial_LostBossOpensNormalRecoveryServicesAndCanRetry()
         {
             yield return LoadGuidedTutorialScene();
@@ -346,32 +359,38 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Encounter));
             ClickGuidedButton("Encounter Choice 0");
             yield return null;
-            // Explicit post-entry fault injection, not the normal tutorial
-            // route: legal actions must still pay ram recoil and sink this hull.
+            yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseFinal);
+            // Explicit final-combat fault injection, not the normal tutorial
+            // route: real enemy turns must sink this hull through ordinary combat.
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(controller.Session, 1);
             typeof(CoreGameplayDemoController).GetMethod("Render", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 .Invoke(controller, null);
             yield return null;
+            yield return WaitForGuidedCaptureScreenReveal(controller);
             int actions = 0;
-            while (controller.Session.Phase == CoreDemoPhase.Battle && actions++ < 24)
+            while (controller.Session.Phase == CoreDemoPhase.Battle && actions++ < 12)
             {
-                yield return PlayGuidedBattleAction(controller);
-                yield return null;
-                float deadline = Time.realtimeSinceStartup + 12f;
-                while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
-                {
-                    AdvanceRamComicIfWaiting(controller);
-                    yield return null;
-                }
-                Assert.That(controller.IsBattleAnimationPlaying, Is.False);
+                // Rendering and enemy turns can begin a real scene fade. Wait
+                // until that input block finishes before the normal raycast.
+                yield return WaitForGuidedCaptureScreenReveal(controller);
+                ClickAcceptanceButton("End Battle Turn");
+                yield return WaitGuidedBossAnimation(controller);
             }
+            yield return WaitForGuidedCaptureScreenReveal(controller);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
             Assert.That(controller.Session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GuidedTutorialComponentRewardKey, 0), Is.Zero);
             Assert.That(controller.WarehouseCollection.Owns(CoreWarehouseCollection.TutorialTreasureId), Is.False);
             Assert.That(ActiveButton("Draw Sea Chart"), Is.Null, "A lost ship cannot yield the final tutorial chart.");
+            yield return SettlementChestTestActions.ShowOverview();
             ClickGuidedButton("Return To Port");
             yield return null;
+            // The real failed-voyage settlement can still unlock a school.
+            // Acknowledge its modal before exercising the recovery services.
+            while (ActiveButton("Next School Unlock") != null)
+                yield return ClickGuidedNoticeButton("Next School Unlock");
+            if (ActiveButton("Confirm School Unlock") != null)
+                yield return ClickGuidedNoticeButton("Confirm School Unlock");
 
             Assert.That(controller.IsTutorialActive, Is.True);
             Assert.That(controller.CurrentGuidedTutorialStep.ToString(), Is.EqualTo("ThirdPier"));
@@ -406,6 +425,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold - price), "Recovery supplies use the normal market price.");
             Assert.That(controller.Session.Cargo.Water, Is.EqualTo(water + purchaseQuantity));
+            Assert.That(RequireGuidedButton("Return To Port Hub").GetComponentInChildren<Text>().text,
+                Is.EqualTo("返回港口投资建设"));
+            ClickGuidedButton("Return To Port Hub");
+            yield return null;
+            Assert.That(GameObject.Find("Port Investment Panel"), Is.Not.Null);
             ClickGuidedButton("Return To Port Hub");
             yield return null;
             ClickGuidedButton("Port Hotspot Warehouse");
@@ -663,12 +687,12 @@ namespace ShatteredSail.Presentation.Tests
                 item.ComponentId == CoreGameplayDemoController.GuidedTutorialRewardComponentId);
             string instanceId = reward.InstanceId;
             Assert.That(reward.ShipIndex, Is.EqualTo(controller.Session.SelectedShipIndex));
-            Assert.That(reward.Quality, Is.EqualTo(1.04f).Within(.0001f));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
             // Exercise a migrated inventory where the rewarded common item is
             // not on page one. Guidance must reveal its ordinary inventory row.
             foreach (ComponentArtEntry extra in new ComponentArtCatalog().Entries.Where(entry =>
                 entry.Slot == ComponentSlot.Bow && entry.Id != CoreGameplayDemoController.GuidedTutorialRewardComponentId).Take(6))
-                Assert.That(controller.GrantOwnedComponent(extra, 1f), Is.Not.Null);
+                Assert.That(controller.GrantOwnedComponent(extra), Is.Not.Null);
             int count = controller.OwnedComponents.Count;
             PlayerPrefs.Save();
             var seen = new HashSet<string>();
@@ -695,7 +719,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(count));
             reward = controller.InstalledShipComponent(controller.Session.SelectedShipIndex, ComponentSlot.Bow);
             Assert.That(reward.InstanceId, Is.EqualTo(instanceId));
-            Assert.That(reward.Quality, Is.EqualTo(1.04f).Within(.0001f));
+            Assert.That(reward.ComponentId, Is.EqualTo(CoreGameplayDemoController.GuidedTutorialRewardComponentId));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
             Assert.That(controller.OwnedComponents.Count(item => item.ComponentId ==
                 CoreGameplayDemoController.GuidedTutorialRewardComponentId), Is.EqualTo(1));
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey), Is.False);
@@ -749,6 +774,7 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator ReturnToGuidedResourceRecovery(CoreGameplayDemoController controller,
             int checkpoint, string step)
         {
+            yield return SettlementChestTestActions.ShowOverview();
             Assert.That(ActiveButton("Draw Sea Chart"), Is.Null);
             ClickGuidedButton("Return To Port");
             yield return null;
@@ -833,12 +859,20 @@ namespace ShatteredSail.Presentation.Tests
         {
             var captured = captureKeys ?? new HashSet<string>();
             int actions = 0;
-            while (!GuidedStopReached(controller, stop) && actions++ < 180)
+            while (!GuidedStopReached(controller, stop) && actions++ < 320)
             {
                 yield return WaitForGuidedNavigationPresentation();
+                yield return WaitGuidedBossAnimation(controller);
+                yield return SettlementChestTestActions.ShowOverview();
+                yield return SchoolUnlockNoticeTestActions.ConfirmAll();
                 if (GuidedStopReached(controller, stop)) break;
                 string step = controller.CurrentGuidedTutorialStep.ToString();
                 seen.Add(step);
+                if (controller.Session.IsGuidedBossBattle)
+                {
+                    seen.Add("BattleLesson:" + controller.Session.GuidedBossLesson);
+                    seen.Add("BattleStep:" + controller.Session.GuidedBossStep);
+                }
                 AssertGuidedInstructionsRemainVisible(controller);
                 Assert.That(step, Is.Not.EqualTo("Workshop").And.Not.EqualTo("BuildDeck"),
                     "The guide no longer requires a card-workshop visit or manual deck construction.");
@@ -1078,7 +1112,7 @@ namespace ShatteredSail.Presentation.Tests
                         string target = ActiveButton(shipButton) != null ? shipButton :
                             ActiveButton("Port Hotspot Shipyard") != null ? "Port Hotspot Shipyard" : "Return To Port Hub";
                         AssertGuidedFocusTarget(target);
-                        if (target == "Return To Port Hub" && captured.Add("return-button-clear"))
+                        if (capture && target == "Return To Port Hub" && captured.Add("return-button-clear"))
                             NavalBattleVisualCapture.Capture(controller, "77_Guided_Return_Button_Clear.png",
                                 "羊皮纸自动避开当前需要点击的返回港口按钮及红框箭头", target);
                         ClickGuidedButton(target);
@@ -1247,14 +1281,27 @@ namespace ShatteredSail.Presentation.Tests
             ApplyGuidedBannerLayout(paper);
             Rect paperBounds = GuidedWorldRect(paper.rectTransform);
             Rect canvasBounds = GuidedWorldRect(designSurface);
+            if (controller.Session.IsGuidedBossBattle)
+            {
+                AssertGuidedBattleCourseReadingBar(controller, paper, designSurface);
+                return;
+            }
             Assert.That(paper.transform.parent, Is.SameAs(designSurface), "Each lesson owns its independent paper.");
             Assert.That(NauticalSurfaceSkin.IsPaperSurface(paper.sprite), Is.True);
+            Assert.That(paper.sprite, Is.SameAs(MarketShopSkin.Paper), "Every lesson shares the market reading surface.");
             Assert.That(paper.color.a, Is.EqualTo(1f), "The scene must not bleed through the writing area.");
             Assert.That(paper.raycastTarget, Is.False);
             Assert.That(paperBounds.xMin, Is.GreaterThanOrEqualTo(canvasBounds.xMin - .1f));
             Assert.That(paperBounds.xMax, Is.LessThanOrEqualTo(canvasBounds.xMax + .1f));
             Assert.That(paperBounds.yMin, Is.GreaterThanOrEqualTo(canvasBounds.yMin - .1f));
             Assert.That(paperBounds.yMax, Is.LessThanOrEqualTo(canvasBounds.yMax + .1f));
+            foreach (string portHeaderName in new[] { "Port Hub", "Port Facility Header" })
+            {
+                GameObject portHeader = GameObject.Find(portHeaderName);
+                if (portHeader != null)
+                    Assert.That(paperBounds.Overlaps(GuidedWorldRect(portHeader.GetComponent<RectTransform>())), Is.False,
+                        "The lesson must leave port date, gold and navigation readable.");
+            }
             foreach (GuidedTutorialFocusGraphic focus in controller.GetComponentsInChildren<GuidedTutorialFocusGraphic>())
                 AssertGuidedPaperLeavesFocusClear(paper, designSurface, focus);
             if (header != null)
@@ -1296,6 +1343,67 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
+        private static void AssertGuidedBattleCourseReadingBar(CoreGameplayDemoController controller, Image paper, RectTransform surface)
+        {
+            Rect bounds = GuidedWorldRect(paper.rectTransform);
+            Rect surfaceBounds = GuidedWorldRect(surface);
+            RectTransform hand = GameObject.Find("Battle Hand").GetComponent<RectTransform>();
+            Assert.That(paper.transform.parent, Is.SameAs(hand.parent),
+                "The course reading bar belongs to the retained battle scene.");
+            Assert.That(paper.sprite, Is.SameAs(MarketShopSkin.Paper));
+            Assert.That(paper.raycastTarget, Is.False);
+            Assert.That(paper.color.a, Is.EqualTo(1f));
+            AssertGuidedRectContains(surfaceBounds, bounds, "Course reading bar stays in the design surface.");
+            var readingParts = new List<KeyValuePair<string, Rect>>();
+            foreach (string name in new[] { "Guided Tutorial Objective", "Guided Tutorial Instruction",
+                "Guided Battle Feedback", "Guided Battle Exercise Reset Notice" })
+            {
+                Transform item = paper.transform.Find(name);
+                if (name == "Guided Battle Exercise Reset Notice" && item == null) continue;
+                Assert.That(item, Is.Not.Null, name);
+                Text text = item.GetComponent<Text>();
+                Assert.That(text.text, Is.Not.Empty, name);
+                Assert.That(text.raycastTarget, Is.False, name);
+                Assert.That(text.resizeTextForBestFit, Is.False, name);
+                Assert.That(text.fontSize, Is.GreaterThanOrEqualTo(name == "Guided Tutorial Objective" ||
+                    name == "Guided Tutorial Instruction" ? 20 : 14), name);
+                Assert.That(text.preferredHeight, Is.LessThanOrEqualTo(text.rectTransform.rect.height + .5f), name);
+                Rect part = GuidedWorldRect(text.rectTransform);
+                AssertGuidedRectContains(bounds, part, name);
+                readingParts.Add(new KeyValuePair<string, Rect>(name, part));
+            }
+            foreach (Button button in paper.GetComponentsInChildren<Button>())
+            {
+                Rect part = GuidedWorldRect((RectTransform)button.transform);
+                AssertGuidedRectContains(bounds, part, button.name);
+                readingParts.Add(new KeyValuePair<string, Rect>(button.name, part));
+                Text caption = button.GetComponentInChildren<Text>();
+                Assert.That(caption.preferredHeight, Is.LessThanOrEqualTo(caption.rectTransform.rect.height + .5f), button.name);
+            }
+            for (int i = 0; i < readingParts.Count; i++)
+                for (int j = i + 1; j < readingParts.Count; j++)
+                    Assert.That(readingParts[i].Value.Overlaps(readingParts[j].Value), Is.False,
+                        readingParts[i].Key + " must not cover " + readingParts[j].Key);
+            foreach (string name in new[] { "Naval Tactical Board", "Battle Hand", "Naval movement controls",
+                "Battle Ram", "Battle Board", "End Battle Turn" })
+            {
+                GameObject target = GameObject.Find(name);
+                if (target == null) continue;
+                Assert.That(bounds.Overlaps(GuidedWorldRect(target.GetComponent<RectTransform>())), Is.False,
+                    "Course reading bar must leave " + name + " visible and clickable.");
+            }
+            foreach (GuidedTutorialFocusGraphic focus in controller.GetComponentsInChildren<GuidedTutorialFocusGraphic>())
+                AssertGuidedPaperLeavesFocusClear(paper, surface, focus);
+        }
+
+        private static void AssertGuidedRectContains(Rect outer, Rect inner, string context)
+        {
+            Assert.That(inner.xMin, Is.GreaterThanOrEqualTo(outer.xMin - .1f), context);
+            Assert.That(inner.xMax, Is.LessThanOrEqualTo(outer.xMax + .1f), context);
+            Assert.That(inner.yMin, Is.GreaterThanOrEqualTo(outer.yMin - .1f), context);
+            Assert.That(inner.yMax, Is.LessThanOrEqualTo(outer.yMax + .1f), context);
+        }
+
         private static Rect GuidedWorldRect(RectTransform rect)
         {
             var corners = new Vector3[4];
@@ -1303,7 +1411,7 @@ namespace ShatteredSail.Presentation.Tests
             return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
         }
 
-        private static void AssertGuidedFocusTarget(string controlName)
+        private static void AssertGuidedFocusTarget(string controlName, string context = "")
         {
             Canvas.ForceUpdateCanvases();
             Image paper = GameObject.Find("Guided Tutorial Banner").GetComponent<Image>();
@@ -1311,8 +1419,8 @@ namespace ShatteredSail.Presentation.Tests
             GuidedTutorialFocusGraphic[] graphics = Object.FindObjectsByType<GuidedTutorialFocusGraphic>(
                 FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             GuidedTutorialFocusGraphic focus = graphics.FirstOrDefault(graphic => graphic.Target != null && graphic.Target.name == controlName);
-            Assert.That(focus, Is.Not.Null, "Missing red outline and arrow for " + controlName);
-            Assert.That(focus.HasVisibleTarget, Is.True);
+            Assert.That(focus, Is.Not.Null, "Missing red outline and arrow for " + controlName + " at " + context);
+            Assert.That(focus.HasVisibleTarget, Is.True, controlName + " at " + context);
             foreach (GuidedTutorialFocusGraphic graphic in graphics)
             {
                 Assert.That(graphic.raycastTarget, Is.False, "The red annotation must never intercept the taught action.");
@@ -1353,6 +1461,8 @@ namespace ShatteredSail.Presentation.Tests
 
         private static void ApplyGuidedBannerLayout(Image paper)
         {
+            if (paper.transform.Find("Guided Battle Feedback") != null)
+            { Canvas.ForceUpdateCanvases(); return; }
             GuidedTutorialBannerLayout layout = paper.GetComponent<GuidedTutorialBannerLayout>();
             if (layout == null)
                 Assert.That(paper.transform.parent.GetComponentsInChildren<GuidedTutorialFocusGraphic>()
@@ -1366,6 +1476,12 @@ namespace ShatteredSail.Presentation.Tests
             GuidedTutorialFocusGraphic focus)
         {
             if (!focus.isActiveAndEnabled || !focus.HasVisibleTarget) return;
+            if (paper.transform.Find("Guided Battle Feedback") != null && focus.Target.IsChildOf(paper.transform))
+            {
+                AssertGuidedRectContains(GuidedWorldRect(paper.rectTransform), GuidedWorldRect(focus.VisualTarget),
+                    "Embedded course control must stay inside its reading bar.");
+                return;
+            }
             Assert.That(GuidedWorldRect(paper.rectTransform).Overlaps(GuidedWorldRect(focus.VisualTarget)), Is.False,
                 "The teaching paper visually covers the current action: " + focus.Target.name);
             if (!focus.TryGetProtectedRect(surface, out Rect protectedBounds)) return;
@@ -1382,9 +1498,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(reward, Is.Not.Null,
                 "The pending white component must be attached to the current screen, not a retired navigation object.");
             Assert.That(reward.activeInHierarchy, Is.True);
+            Assert.That(reward.GetComponent<Image>().sprite, Is.SameAs(MarketShopSkin.Paper));
             Text label = reward.GetComponentsInChildren<Text>().FirstOrDefault(text => text.name == "Guided Tutorial Reward Text");
             Assert.That(label, Is.Not.Null);
-            Assert.That(label.text, Does.Contain("白色品质"));
+            Assert.That(label.text, Does.Contain("普通部件"));
             Canvas.ForceUpdateCanvases();
             Rect rewardBounds = GuidedWorldRect(reward.GetComponent<RectTransform>());
             foreach (string name in new[] { "Voyage Supply Endurance", "Voyage Journal Scroll", "Lookout Report",
@@ -1395,6 +1512,29 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(rewardBounds.Overlaps(GuidedWorldRect(readout.GetComponent<RectTransform>())), Is.False,
                         "The tutorial's component reward must leave " + name + " visible.");
             }
+        }
+
+        private static IEnumerator ClickGuidedNoticeButton(string name)
+        {
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            Button button = RequireGuidedButton(name);
+            Assert.That(button.IsInteractable(), Is.True, name);
+            Canvas canvas = button.GetComponentInParent<Canvas>().rootCanvas;
+            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            var rect = (RectTransform)button.transform;
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = RectTransformUtility.WorldToScreenPoint(camera, rect.TransformPoint(rect.rect.center))
+            };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits, Is.Not.Empty, name);
+            Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(button),
+                name + " is covered by another UI control.");
+            ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+            yield return null;
         }
 
         private static void ClickGuidedButton(string name)

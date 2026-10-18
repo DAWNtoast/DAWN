@@ -68,15 +68,54 @@ namespace ShatteredSail.Core.Tests
             Assert.That(controller.Session.TreasureMaps, Is.Empty);
         }
 
-        [Test]
-        public void MissingFragments_WorkbenchKeepsAcquisitionNoticeReadable()
+        [TestCase(100)]
+        [TestCase(260)]
+        [TestCase(900)]
+        public void Identification_IgnoresClickedBoardAndOnlyAssignsUnlockedRank(int experience)
         {
             Create(TreasureMapPreviewState.MapUnopened);
-            controller.Session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 100 });
+            var fixture = new CoreTreasureProgress {
+                pirateExperience = experience, fragments = 1,
+                identificationSeed = "TREASURE-BOARD-SELECTION", identificationSequence = 17,
+            };
+            controller.Session.RestoreTreasureProgress(fixture);
             Render();
-            Text notice = Find<Text>("Treasure Workbench Notice");
-            Assert.That(notice.text, Does.Contain("首领有 50% 概率掉落 1 个"));
-            Assert.That(notice.preferredHeight, Is.LessThanOrEqualTo(notice.rectTransform.rect.height + 1f));
+            Click("Treasure Identify Fragment");
+            string expectedRank = CoreTreasureHuntCatalog.Ranks
+                .Single(rank => controller.Session.GetIdentifiedTreasureFragments(rank.Id) == 1).Id;
+
+            for (int board = 0; board < CoreTreasureHuntCatalog.Ranks.Count; board++)
+            {
+                controller.Session.RestoreTreasureProgress(fixture);
+                Render();
+                Click("Treasure Route " + board);
+                Click("Treasure Identify Fragment");
+                CoreTreasureMapRank assigned = CoreTreasureHuntCatalog.Ranks
+                    .Single(rank => controller.Session.GetIdentifiedTreasureFragments(rank.Id) == 1);
+                Assert.That(assigned.Id, Is.EqualTo(expectedRank), "Clicking a board must not choose the identification result.");
+                Assert.That(assigned.UnlockLevel, Is.LessThanOrEqualTo(controller.Session.PirateLevel));
+                Assert.That(CoreTreasureHuntCatalog.Ranks.Sum(rank => controller.Session.GetIdentifiedTreasureFragments(rank.Id)), Is.EqualTo(1));
+                Assert.That(controller.Session.TreasureFragments, Is.Zero);
+                Assert.That(controller.Session.TreasureMaps, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void Workbench_RemovesUpperStatusRailAndItsText()
+        {
+            Create(TreasureMapPreviewState.MapUnopened);
+            foreach (int fragments in new[] { 0, 4 })
+            {
+                controller.Session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 100, fragments = fragments });
+                Render();
+                foreach (string name in new[] { "Treasure Workbench Status Rail", "Treasure Workbench Status", "Treasure Workbench Notice" })
+                    Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False, name);
+                Assert.That(Find<Text>("Treasure Identify Status").text, Is.EqualTo(fragments + " 片待鉴定"));
+            }
+            Click("Treasure Identify Fragment");
+            foreach (string name in new[] { "Treasure Workbench Status Rail", "Treasure Workbench Status", "Treasure Workbench Notice" })
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False, name);
+            Assert.That(Find<Text>("Treasure Identify Status").text, Is.EqualTo("3 片待鉴定"));
         }
 
         [Test]
@@ -87,7 +126,7 @@ namespace ShatteredSail.Core.Tests
             Render();
             Click("Treasure Open Folio");
             Image paper = Find<Image>("Treasure Folio");
-            Assert.That(paper.sprite, Is.SameAs(NauticalSurfaceSkin.ReadingPaper));
+            Assert.That(paper.sprite, Is.SameAs(MarketShopSkin.Paper));
             Assert.That(paper.type, Is.EqualTo(Image.Type.Sliced));
             Text empty = Find<Text>("Treasure Empty Inventory");
             Assert.That(empty.text, Is.EqualTo("尚未获得藏宝种子"));

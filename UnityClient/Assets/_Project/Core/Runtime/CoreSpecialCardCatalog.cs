@@ -299,6 +299,7 @@ namespace ShatteredSail.Core.Gameplay
                 kind == CoreSpecialCardSourceKind.Crew ? id : string.Empty, artId ?? art,
                 action == A.Cannon ? 1 : 0, kind == CoreSpecialCardSourceKind.Component ? id : string.Empty,
                 boardingBlock: boardingBlock);
+            card = CoreSpecialCardRedesign.Apply(card);
             list.Add(new CoreSpecialCardDefinition(card, id, sourceName, lore,
                 "seventh_berth_" + chapter.ToString("00"), kind));
         }
@@ -313,18 +314,18 @@ namespace ShatteredSail.Core.Gameplay
             var parts = new List<string>();
             switch (action)
             {
-                case A.Turn: parts.Add("靠近 {movement} 米，舰艏转向敌舰侧舷并进入冲撞航行"); break;
-                case A.Approach: parts.Add("靠近 {movement} 米并进入冲撞航行"); break;
-                case A.Retreat: parts.Add("远离 {movement} 米，取消冲撞航行"); break;
-                case A.Circle: parts.Add("靠近 {movement} 米，舰艏转向敌舰侧舷，再次推进后可冲撞"); break;
-                case A.Parallel: parts.Add("靠近 {movement} 米并转为平行，60 米内可接舷"); break;
-                case A.Navigator: parts.Add("靠近 {movement} 米并转为平行，60 米内可从尾舷接舷"); break;
+                case A.Turn: parts.Add("沿敌舰周围绕行 {movement} 米，再将船头转向敌舰"); break;
+                case A.Approach: parts.Add("沿船头前进 {movement} 米；朝敌舰航行时准备冲撞"); break;
+                case A.Retreat: parts.Add("先转向背敌，再远离 {movement} 米，取消冲撞航行"); break;
+                case A.Circle: parts.Add("沿敌舰周围绕行 {movement} 米；再转舵与推进以占据侧翼"); break;
+                case A.Parallel: parts.Add("沿船头前进 {movement} 米，再转为平行，60 米内可接舷"); break;
+                case A.Navigator: parts.Add("沿船头前进 {movement} 米，再转为平行，60 米内可从尾舷接舷"); break;
                 case A.Polish: parts.Add("本场船体防御牌额外格挡 +{strategyAmount}，最多 +{strategyLimit}"); break;
                 case A.Load:
                 case A.PrecisionLoad: parts.Add("额外装药：下次炮击 +{strategyAmount}，最多 +{strategyLimit}；开炮另付弹药并清空增益"); break;
                 case A.FireRounds: parts.Add("获得 {strategyAmount} 发烈焰强化，最多 {strategyLimit} 发；炮击穿过格挡造成伤害后点燃敌舰，连续 {burnDuration} 回合灼烧 {burnDamage} 船体"); break;
             }
-            if (damage > 0) parts.Add((action == A.Cannon ? "350 米内炮击：" : action == A.Sabotage ? "150 米内近距破坏：" : string.Empty) +
+            if (damage > 0) parts.Add((action == A.Cannon ? "4 格内炮击：" : action == A.Sabotage ? "150 米内近距破坏：" : string.Empty) +
                 "造成 {damage} 点" + (stages == S.Boarding ? "船员" : "船体") + "伤害");
             if (block > 0) parts.Add("格挡 +{block}");
             if (repair > 0) parts.Add("恢复 {repair} 点" + (stages == S.Boarding ? "船员生命" : "船体"));

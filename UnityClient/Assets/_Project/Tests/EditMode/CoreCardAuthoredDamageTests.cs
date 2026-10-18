@@ -40,11 +40,11 @@ namespace ShatteredSail.Core.Tests
                 cards++;
                 if (card.SchoolId.Length > 0) schools++;
             }
-            Assert.That(cards, Is.EqualTo(218));
-            Assert.That(schools, Is.EqualTo(132));
-            Assert.That(cards - schools, Is.EqualTo(86));
+            Assert.That(cards, Is.EqualTo(CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != NavalBattleStages.None)));
+            Assert.That(schools, Is.EqualTo(CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != NavalBattleStages.None && card.SchoolId.Length > 0)));
+            Assert.That(cards - schools, Is.EqualTo(CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != NavalBattleStages.None && card.SchoolId.Length == 0)));
             Assert.That(session.GetBattleCardAtLevel(Index("card_chain_shot"), rank).Damage,
-                Is.EqualTo(new[] { 10, 12, 15, 20 }[rank]), "Each rank scales once from the authored value.");
+                Is.EqualTo(new[] { 10, 12, 15, 19 }[rank]), "Each rank scales once along Chain Shot's authored curve.");
         }
 
         [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)]
@@ -122,7 +122,7 @@ namespace ShatteredSail.Core.Tests
             int damage = new[] { 8, 10, 12, 16 }[rank];
             Assert.That(thrust.Damage, Is.EqualTo(damage));
             Assert.That(session.GetBattleCardEffects(thrust, NavalBattleStage.Boarding).Damage, Is.EqualTo(damage));
-            Assert.That(session.BattleCardEffectDescription(thrust, NavalBattleStage.Boarding), Does.Contain("伤害 " + damage));
+            Assert.That(session.BattleCardEffectDescription(thrust, NavalBattleStage.Boarding), Does.Contain(damage + " 点伤害"));
             Play(session, thrust.Id);
             Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(1000 - damage));
         }

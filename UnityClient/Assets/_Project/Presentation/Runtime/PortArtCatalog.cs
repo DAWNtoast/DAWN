@@ -47,18 +47,24 @@ namespace ShatteredSail.Presentation
         public Texture2D UpgradeSheet => Load("upgrade_parts_sheet");
         public Texture2D BattleBackdropSheet => Load("battle_backdrop_sheet");
         public Texture2D TavernCrewDossierParchment => Load("UI/tavern_crew_dossier_parchment_v1");
+        public Texture2D DossierFrame => Load("UI/tavern_crew_dossier_frame_4k_layers_v1");
 
         /// <summary>The crew portrait is painted into its complete parchment; load only the selected identity.</summary>
         public Texture2D CrewDossier(string crewId) => string.IsNullOrWhiteSpace(crewId)
             ? TavernCrewDossierParchment
             : Load("CrewDossiers/" + crewId + "_dossier_v1") ?? TavernCrewDossierParchment;
 
+        /// <summary>Loads only the selected crew's background and half-body portrait.</summary>
+        public Texture2D CrewDossierPortrait(string crewId) => string.IsNullOrWhiteSpace(crewId)
+            ? null
+            : Load("CrewDossiers/" + crewId + "_portrait_v2");
+
         public Texture2D TavernDossierTrialAtlas(string crewId) => TryTavernDossierTrialUv(crewId, out _)
             ? Load("CrewRegional/crew_broken_anchor_portraits_4k_layers_v1")
             : null;
 
         public Texture2D TavernDossierTrialFrame(string crewId) => TryTavernDossierTrialUv(crewId, out _)
-            ? Load("UI/tavern_crew_dossier_frame_4k_layers_v1")
+            ? DossierFrame
             : null;
 
         public static bool TryTavernDossierTrialUv(string crewId, out Rect uv)

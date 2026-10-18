@@ -36,11 +36,14 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase("fire", 2)] [TestCase("arcane", 3)] [TestCase("curse", 4)]
         [TestCase("tide", 5)] [TestCase("thunder", 7)] [TestCase("blood", 10)]
-        public void EachSchool_UnlocksExactlyTenBasicCardsAtItsLevel(string schoolId, int level)
+        public void EachSchool_UnlocksHistoricAndExpandedShipCardsAndFifteenBoardingCardsAtItsLevel(string schoolId, int level)
         {
             CoreBattleCard[] basics = CoreVoyageSession.CardLibrary.Where(card => card.SchoolId == schoolId &&
-                card.RequiredCrew.Length == 0 && card.RequiredComponent.Length == 0).ToArray();
-            Assert.That(basics.Length, Is.EqualTo(10));
+                card.RequiredCrew.Length == 0 && card.RequiredComponent.Length == 0 && !CoreBoardingCardCatalog.IsLegacyAlias(card)).ToArray();
+            int additions = CoreNavalSchoolExpansionCatalog.All.Count(card => card.SchoolId == schoolId);
+            Assert.That(basics.Length, Is.EqualTo(21 + additions));
+            Assert.That(basics.Count(card => card.AllowedStages == NavalBattleStages.Boarding), Is.EqualTo(15));
+            Assert.That(CoreSchoolUnlockCatalog.Find(schoolId).BasicCardCount, Is.EqualTo(21 + additions));
             var locked = Profile(CoreVoyageSession.PirateExperienceForLevel(level) - 1);
             var unlocked = Profile(CoreVoyageSession.PirateExperienceForLevel(level));
             foreach (CoreBattleCard card in basics)
@@ -109,12 +112,20 @@ namespace ShatteredSail.Core.Tests
             Assert.That(CoreSpecialCardCatalog.All.Count(value => value.SourceKind == CoreSpecialCardSourceKind.Component), Is.EqualTo(90));
             Assert.That(CoreSpecialCardCatalog.All.Select(value => value.SourceId).Distinct().Count(), Is.EqualTo(126));
             Assert.That(CoreSpecialCardCatalog.All.Count(value => value.Card.SchoolId.Length > 0), Is.EqualTo(72));
-            Assert.That(CoreVoyageSession.CardLibrary.Count, Is.EqualTo(221));
+            Assert.That(CoreVoyageSession.CardLibrary.Count, Is.EqualTo(221 + CoreBoardingCardCatalog.All.Count + 4 + CoreNavalSchoolExpansionCatalog.All.Count));
+            Assert.That(CoreVoyageSession.CardLibrary.Skip(221).Take(CoreBoardingCardCatalog.All.Count).Select(card => card.Id),
+                Is.EqualTo(CoreBoardingCardCatalog.All.Select(card => card.Id)));
+            Assert.That(CoreVoyageSession.CardLibrary.Skip(221 + CoreBoardingCardCatalog.All.Count).Take(4).Select(card => card.Id),
+                Is.EqualTo(new[] { "card_turn_port", "card_turn_starboard", "card_turn_about", "card_sail_forward" }));
+            Assert.That(CoreVoyageSession.CardLibrary.Skip(221 + CoreBoardingCardCatalog.All.Count).Take(4)
+                .All(card => card.AllowedStages == NavalBattleStages.None && CoreBattleCardAliases.IsAlias(card.Id)), Is.True);
+            Assert.That(CoreVoyageSession.CardLibrary.Skip(221 + CoreBoardingCardCatalog.All.Count + 4).Select(card => card.Id),
+                Is.EqualTo(CoreNavalSchoolExpansionCatalog.All.Select(card => card.Id)), "Expansion appends without renumbering any historical card.");
             Assert.That(CoreVoyageSession.CardLibrary[138].Id, Is.EqualTo("card_special_crew_gray_gull_cook_pepe"));
             Assert.That(CoreVoyageSession.CardLibrary[139].Id, Is.EqualTo("card_special_crew_broken_anchor_cook_tam"));
             Assert.That(CoreVoyageSession.CardLibrary.Take(139).Any(card => card.Id.StartsWith("card_school_", StringComparison.Ordinal)), Is.False);
             Assert.That(CoreVoyageSession.CardLibrary.Skip(159).Take(60).Count(card => card.SchoolId.Length > 0), Is.EqualTo(60));
-            Assert.That(CoreVoyageSession.CardLibrary.Skip(219).Select(card => card.Id),
+            Assert.That(CoreVoyageSession.CardLibrary.Skip(219).Take(2).Select(card => card.Id),
                 Is.EqualTo(new[] { "card_energy_order", "card_tactical_draw" }));
             var session = Profile(0);
             foreach (CoreSpecialCardDefinition source in CoreSpecialCardCatalog.All)

@@ -235,7 +235,7 @@ namespace ShatteredSail.Content
         {
             switch (Math.Max(0, Math.Min(ProfessionCount - 1, professionIndex)))
             {
-                case 0: return "视野 +60 海里、航速 +1 节、伏击预警 +38%；开启领航选项，非失败返航可保存海图。";
+                case 0: return "每位随船航海士在出航时揭示 2 个固定事件点，可叠加；视野 +60 海里、航速 +1 节、伏击预警 +38% 不叠加；开启领航选项，非失败返航可保存海图。";
                 case 1: return "每次赢得海战后恢复 2 点船体；开启需要木匠的事件选项。";
                 case 2: return "事件药品消耗降低 25%（向上取整，至少 1）；事件恢复船体时额外恢复 2 点。";
                 case 3: return "提供炮手专属战斗卡牌；开启需要炮手的事件选项。";
@@ -265,7 +265,7 @@ namespace ShatteredSail.Content
             bool formerOldCaptain = false)
         {
             return new CrewVariantDefinition(id, port, professionIndex, professionIds[professionIndex], name, role, specialty,
-                GameplaySkillForProfession(professionIndex), "同职业能力不叠加", cost, appearance,
+                GameplaySkillForProfession(professionIndex), professionIndex == 0 ? "揭示固定事件点按人数叠加，其他同职业能力不叠加" : "同职业能力不叠加", cost, appearance,
                 biography, storyId, asset, legacy, formerOldCaptain);
         }
 

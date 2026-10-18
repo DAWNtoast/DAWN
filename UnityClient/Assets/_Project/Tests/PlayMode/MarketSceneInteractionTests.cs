@@ -27,14 +27,14 @@ namespace ShatteredSail.Presentation.Tests
             yield return MarketSceneClick("Market Shop Supplies");
             var drawer = GameObject.Find("Market Item Detail").GetComponent<RectTransform>();
             Assert.That(drawer.anchoredPosition.x, Is.GreaterThan(0));
-            Assert.That(GameObject.Find("Market Detail Icon water"), Is.Not.Null);
+            Assert.That(GameObject.Find("Market Quantity Input water"), Is.Not.Null);
             NavalBattleVisualCapture.Capture(controller,"MarketScene_02_Supplies_Right.png","左侧补给铺展开右侧交易面板","Market Panel");
             Assert.That(MarketSceneTopControlAt("Market Shop Ordnance"), Is.Not.EqualTo("Market Shop Ordnance"),
                 "The opaque drawer must intercept the obscured shop's pointer.");
             yield return MarketSceneClick("Market Shop Supplies");
             Assert.That(GameObject.Find("Market Item Detail"), Is.Not.Null, "Clicking the current shop must not close it.");
             yield return MarketSceneClick("Market Shop Medicine");
-            Assert.That(GameObject.Find("Market Detail Icon medicine"), Is.Not.Null);
+            Assert.That(GameObject.Find("Market Quantity Input medicine"), Is.Not.Null);
             Assert.That(GameObject.Find("Market Item Detail").GetComponent<RectTransform>().anchoredPosition.x, Is.GreaterThan(0));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             yield return MarketSceneClick("Market Scene Empty Space");
@@ -45,7 +45,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(MarketSceneTopControlAt("Market Shop Supplies"), Is.Not.EqualTo("Market Shop Supplies"));
             yield return MarketSceneClick("Close Market Shop");
             yield return MarketSceneClick("Market Shop Shipwright");
-            Assert.That(GameObject.Find("Market Detail Icon wood"), Is.Not.Null);
+            Assert.That(GameObject.Find("Market Quantity Input wood"), Is.Not.Null);
             Assert.That(GameObject.Find("Market Item Detail").GetComponent<RectTransform>().anchoredPosition.x, Is.LessThan(0));
             yield return MarketSceneClick("Return To Port Hub");
             Assert.That(ActiveButton("Port Hotspot Market"), Is.Not.Null, "Header back returns directly to the port.");
@@ -163,7 +163,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return MarketSceneClick("Market Quantity Input water");
                 field.text = "7";
                 yield return MarketSceneClick("Market Shop Medicine");
-                Assert.That(GameObject.Find("Market Detail Icon medicine"), Is.Not.Null, "Committing text cannot swallow a shop switch.");
+                Assert.That(GameObject.Find("Market Quantity Input medicine"), Is.Not.Null, "Committing text cannot swallow a shop switch.");
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
                 Assert.That(controller.Session.Cargo.Water, Is.EqualTo(7));
                 LogAssert.NoUnexpectedReceived();

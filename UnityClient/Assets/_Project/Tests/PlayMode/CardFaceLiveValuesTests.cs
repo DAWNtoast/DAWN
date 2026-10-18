@@ -30,7 +30,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreBattleCard definition = session.GetBattleCard(ResponsiveCardIndex("card_chain_shot"));
             int beforeDamage = session.GetBattleCardDamage(definition, NavalBattleStage.Naval);
             string before = ForgeVisibleText(face.text);
-            Assert.That(before, Is.EqualTo("350米内：船体伤害" + beforeDamage + "消耗1火药、1炮弹"));
+            Assert.That(before, Is.EqualTo("4格内：船体伤害" + beforeDamage + "消耗1火药、1炮弹"));
             NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_01_Cannon_Before.png",
                 "无装填增益时炮击卡面只有一个船体伤害值", "Battle Card");
 
@@ -46,7 +46,7 @@ namespace ShatteredSail.Presentation.Tests
             int afterDamage = session.GetBattleCardDamage(definition, NavalBattleStage.Naval);
             Assert.That(afterDamage, Is.EqualTo(beforeDamage + 4));
             string after = ForgeVisibleText(face.text);
-            Assert.That(after, Is.EqualTo("350米内：船体伤害" + afterDamage + "消耗1火药、1炮弹"));
+            Assert.That(after, Is.EqualTo("4格内：船体伤害" + afterDamage + "消耗1火药、1炮弹"));
             Assert.That(Regex.Replace(after, @"\d+", "#"), Is.EqualTo(Regex.Replace(before, @"\d+", "#")));
             Assert.That(after, Does.Not.Contain("实际").And.Not.Contain("当前炮击").And.Not.Contain("命中点燃"));
             Assert.That(face.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));

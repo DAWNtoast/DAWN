@@ -135,7 +135,7 @@ namespace ShatteredSail.Presentation
 
         private void Update()
         {
-            if (!Application.isPlaying || Keyboard.current == null || !Keyboard.current.escapeKey.wasPressedThisFrame)
+            if (!Application.isPlaying || !UiEscapeInput.IsPressed || !UiEscapeInput.TryConsume())
             {
                 return;
             }
@@ -154,6 +154,7 @@ namespace ShatteredSail.Presentation
             }
             else if (achievementsPanel != null && achievementsPanel.gameObject.activeSelf)
             {
+                if (UiEscapeInput.TryCloseDropdown(achievementsPanel)) return;
                 achievementsPanel.gameObject.SetActive(false);
             }
         }
@@ -343,7 +344,7 @@ namespace ShatteredSail.Presentation
             if (TryBuildPrefabSettings(canvasRect)) return;
             settingsPanel = CreateModalBackdrop("Settings Panel", canvasRect);
             RectTransform card = CreatePaperCard("Settings Card", settingsPanel, new Vector2(1040f, 800f));
-            BuildModalHeading(card, "游戏设置", "应用后保存在本机，下次启动自动沿用。", "SETTINGS");
+            BuildModalHeading(card, "游戏设置", string.Empty, "SETTINGS");
 
             float master = PlayerPrefs.GetFloat(MasterVolumeKey, 0.8f);
             float music = PlayerPrefs.GetFloat(MusicVolumeKey, 0.7f);
@@ -373,6 +374,7 @@ namespace ShatteredSail.Presentation
             Button back = CreateButton("Back From Settings", card, new Vector2(300f, 62f), new Vector2(-190f, -317f), PanelRaised, Ink, 24);
             back.GetComponentInChildren<Text>().text = "返回主菜单";
             back.onClick.AddListener(() => settingsPanel.gameObject.SetActive(false));
+            StyleMenuSettings();
             settingsPanel.gameObject.SetActive(false);
         }
 
@@ -448,6 +450,7 @@ namespace ShatteredSail.Presentation
             Button back = CreateButton("Back From Achievements", card, new Vector2(320f, 38f), new Vector2(0f, -406f), Gold, DeepSea, 22);
             back.GetComponentInChildren<Text>().text = "返回主菜单";
             back.onClick.AddListener(() => achievementsPanel.gameObject.SetActive(false));
+            StyleMenuAchievements();
             achievementsPanel.gameObject.SetActive(false);
         }
 
@@ -492,6 +495,7 @@ namespace ShatteredSail.Presentation
             {
                 Text label = achievementStateButtons[index].GetComponentInChildren<Text>();
                 label.text = (index == achievementStateFilter ? "● " : string.Empty) + new[] { "全部", "未解锁", "已解锁" }[index];
+                MarketShopSkin.SetMode(achievementStateButtons[index], index == achievementStateFilter);
             }
             SetAchievementPage(resetPage ? 0 : achievementPage);
         }
@@ -549,13 +553,14 @@ namespace ShatteredSail.Presentation
             Text title = CreateText("Confirmation Title", card, new Vector2(700f, 55f), new Vector2(0f, 92f), 34, FontStyle.Bold, TextAnchor.MiddleCenter, PaperInk);
             title.text = "开始新的航行？";
             Text body = CreateText("Confirmation Body", card, new Vector2(710f, 90f), new Vector2(0f, 5f), 22, FontStyle.Normal, TextAnchor.UpperCenter, PaperMutedInk);
-            body.text = "现有航程、教学进度、金币、贵重藏品及陈列记录将被重置。\n游戏设置与美术资源不会受到影响。";
+            body.text = NewGameConfirmationMessage;
             Button cancel = CreateButton("Cancel New Game", card, new Vector2(280f, 60f), new Vector2(-160f, -135f), PanelRaised, Ink, 22);
             cancel.GetComponentInChildren<Text>().text = "保留存档";
             cancel.onClick.AddListener(() => confirmationPanel.gameObject.SetActive(false));
             Button confirm = CreateButton("Confirm New Game", card, new Vector2(280f, 60f), new Vector2(160f, -135f), Coral, Ink, 22);
             confirm.GetComponentInChildren<Text>().text = "确认重新开始";
             confirm.onClick.AddListener(StartNewGame);
+            StyleMenuNewGameConfirmation();
             confirmationPanel.gameObject.SetActive(false);
         }
 
@@ -611,6 +616,7 @@ namespace ShatteredSail.Presentation
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.GuidedTutorialWarehousePendingKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseOwnedKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseDisplayKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehousePortMigrationKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.CollectionProgressKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseDisplayRecordKey);
@@ -624,6 +630,7 @@ namespace ShatteredSail.Presentation
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.GameMasterShopScopeKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.CurrentPortKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.SelectedShipKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.ShipPortProgressKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.LastVoyageExplorationCoverageKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.ComponentInventoryKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey);
@@ -850,14 +857,14 @@ namespace ShatteredSail.Presentation
         {
             bool unlocked = progress.Unlocked;
             row.Root.name = "Achievement Row " + achievement.Id;
-            row.Face.color = new Color(PaperMutedInk.r, PaperMutedInk.g, PaperMutedInk.b, unlocked ? 0.12f : 0.05f);
+            row.Face.color = new Color(.55f, .42f, .24f, unlocked ? .08f : .025f);
             ItemIconArt art = AchievementIconCatalog.ForId(achievement.Id);
             row.Icon.name = "Achievement Icon " + achievement.Id;
             row.Icon.texture = art.Texture;
             row.Icon.uvRect = art.Uv;
             row.Icon.enabled = art.IsAvailable;
             row.Icon.color = unlocked ? Color.white : new Color(.72f, .76f, .80f, .94f);
-            UiImageAspect.Fit(row.Icon, new Vector2(48f, 48f));
+            UiImageAspect.Fit(row.Icon, new Vector2(60f, 60f));
             row.Title.text = achievement.Title;
             row.Description.text = achievement.Description;
             row.State.color = unlocked ? PaperAccent : PaperMutedInk;

@@ -53,9 +53,7 @@ namespace ShatteredSail.Presentation
                     new Vector2(216f, 42f), new Vector2((index - 1.5f) * 238f, 160f), new Color(0.42f, 0.27f, 0.14f, 0.12f), muted, 24);
                 tabs[index].GetComponentInChildren<Text>().text = pageTitles[index];
             }
-            CreateTavernReadingText("Component Detail Quality", pages[0], new Vector2(20f, 8f), new Vector2(300f, 42f), 24, 1.1f, muted,
-                "本港鉴定品质　" + Mathf.RoundToInt(offer.Quality * 100f) + "%");
-            CreateTavernReadingText("Component Detail Specialization", pages[0], new Vector2(340f, 8f), new Vector2(540f, 42f), 24, 1.1f, muted,
+            CreateTavernReadingText("Component Detail Specialization", pages[0], new Vector2(20f, 8f), new Vector2(880f, 42f), 24, 1.1f, muted,
                 "专精方向　" + entry.Specialization);
             CreateTavernReadingText("Component Detail Description", pages[0], new Vector2(20f, 68f),
                 new Vector2(880f, 240f), 26, 1.25f, ink, TavernSentenceParagraphs(entry.Description));
@@ -74,17 +72,13 @@ namespace ShatteredSail.Presentation
             RectTransform assembly = CreateRect("Component Detail Display Assembly", detail, new Vector2(390f, 422f), new Vector2(-580f, -22f));
             BuildComponentShopDisplay(assembly, entry, "Component Detail ", string.Empty,
                 sold, true, false, false, false, out _, out _, out _);
-            Button previous = CreateButton("Previous Component Dossier Page", detail, new Vector2(110f, 44f), new Vector2(-198f, -242f), new Color(0.42f, 0.27f, 0.14f, 0.18f), ink, 20);
-            previous.GetComponentInChildren<Text>().text = "← 上一页";
-            Text counter = CreateText("Component Dossier Page Counter", detail, new Vector2(110f, 44f), new Vector2(-68f, -242f), 20, FontStyle.Normal, TextAnchor.MiddleCenter, muted);
-            Button next = CreateButton("Next Component Dossier Page", detail, new Vector2(110f, 44f), new Vector2(62f, -242f), new Color(0.42f, 0.27f, 0.14f, 0.18f), ink, 20);
-            next.GetComponentInChildren<Text>().text = "下一页 →";
+            // Page tabs own navigation; center the two purchase actions below the reading column.
             string purchaseStatus = sold ? "已售出" : affordable ? offer.Price + " 金币" : "金币不足";
-            Button purchase = CreateButton("Purchase Component " + offer.Id, detail, new Vector2(190f, 44f), new Vector2(232f, -242f), Gold, buttonPaper, 20);
+            Button purchase = CreateButton("Purchase Component " + offer.Id, detail, new Vector2(240f, 44f), new Vector2(80f, -242f), Gold, buttonPaper, 20);
             purchase.GetComponentInChildren<Text>().text = "购买 · " + purchaseStatus;
             purchase.interactable = !sold && affordable;
             purchase.onClick.AddListener(() => PurchaseComponentOffer(offer, false));
-            Button purchaseAndEquip = CreateButton("Purchase And Equip Component " + offer.Id, detail, new Vector2(240f, 44f), new Vector2(472f, -242f), rarity, buttonPaper, 20);
+            Button purchaseAndEquip = CreateButton("Purchase And Equip Component " + offer.Id, detail, new Vector2(240f, 44f), new Vector2(344f, -242f), rarity, buttonPaper, 20);
             purchaseAndEquip.GetComponentInChildren<Text>().text = "购买后装配 · " + purchaseStatus;
             purchaseAndEquip.interactable = !sold && affordable &&
                 (!Application.isPlaying || editorPreviewBuilding || CanRefitShip(session.SelectedShipIndex));
@@ -92,14 +86,12 @@ namespace ShatteredSail.Presentation
             for (int index = 0; index < pages.Length; index++)
             {
                 int captured = index;
-                tabs[index].onClick.AddListener(() => ShowComponentDossierPage(captured, pages, tabs, previous, next, counter));
+                tabs[index].onClick.AddListener(() => ShowComponentDossierPage(captured, pages, tabs));
             }
-            previous.onClick.AddListener(() => ShowComponentDossierPage(componentDossierPage - 1, pages, tabs, previous, next, counter));
-            next.onClick.AddListener(() => ShowComponentDossierPage(componentDossierPage + 1, pages, tabs, previous, next, counter));
-            ShowComponentDossierPage(componentDossierPage, pages, tabs, previous, next, counter);
+            ShowComponentDossierPage(componentDossierPage, pages, tabs);
         }
 
-        private void ShowComponentDossierPage(int selected, RectTransform[] pages, Button[] tabs, Button previous, Button next, Text counter)
+        private void ShowComponentDossierPage(int selected, RectTransform[] pages, Button[] tabs)
         {
             componentDossierPage = Mathf.Clamp(selected, 0, pages.Length - 1);
             for (int index = 0; index < pages.Length; index++)
@@ -107,9 +99,6 @@ namespace ShatteredSail.Presentation
                 pages[index].gameObject.SetActive(index == componentDossierPage);
                 WoodButtonSkin.SetSelected(tabs[index], index == componentDossierPage);
             }
-            previous.interactable = componentDossierPage > 0;
-            next.interactable = componentDossierPage < pages.Length - 1;
-            counter.text = "第 " + (componentDossierPage + 1) + " / " + pages.Length + " 页";
         }
 
         private static void KeepComponentPunctuationWithSentence(Text label)

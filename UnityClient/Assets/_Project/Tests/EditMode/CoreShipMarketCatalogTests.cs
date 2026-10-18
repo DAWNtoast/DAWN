@@ -43,18 +43,20 @@ namespace ShatteredSail.Core.Tests
                 Is.GreaterThan(CoreGuidedTutorialContent.BossProfile.BoardingHealth));
         }
 
-        [TestCase(0, new[] { 0, 1, 4 })]
-        [TestCase(1, new[] { 0, 5, 6 })]
-        [TestCase(2, new[] { 1, 2, 7 })]
-        [TestCase(3, new[] { 1, 8, 9 })]
+        [TestCase(0, new[] { 0, 4 })]
+        [TestCase(1, new[] { 5, 6 })]
+        [TestCase(2, new[] { 2, 7 })]
+        [TestCase(3, new[] { 8, 9 })]
         [TestCase(4, new[] { 3, 10 })]
-        [TestCase(5, new[] { 0, 11 })]
-        public void EachPortHasItsOwnStockAndAtLeastOneExclusiveHull(int port, int[] expected)
+        [TestCase(5, new[] { 1, 11 })]
+        public void EachPortHasExactlyTwoHullsExclusiveToThatPort(int port, int[] expected)
         {
             IReadOnlyList<int> stock = CoreShipMarketCatalog.ShipsForPort(port);
             CollectionAssert.AreEqual(expected, stock);
+            Assert.That(stock.Count, Is.EqualTo(2));
             Assert.That(stock.Distinct().Count(), Is.EqualTo(stock.Count));
-            Assert.That(stock.Any(ship => Enumerable.Range(0, 6).Count(other => CoreShipMarketCatalog.IsSoldAtPort(other, ship)) == 1), Is.True);
+            Assert.That(stock.All(ship => Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count)
+                .Count(other => CoreShipMarketCatalog.IsSoldAtPort(other, ship)) == 1), Is.True);
             for (int ship = 0; ship < CoreVoyageSession.Ships.Count; ship++)
                 Assert.That(CoreShipMarketCatalog.IsSoldAtPort(port, ship), Is.EqualTo(expected.Contains(ship)));
             Assert.Throws<NotSupportedException>(() => ((IList<int>)stock)[0] = 11);
@@ -81,10 +83,8 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(ship.Lore, Is.Not.Empty);
                 Assert.That(SeventhPortLoreCatalog.ShipLoreFor(ship.Id).Description, Is.EqualTo(ship.Lore));
                 Assert.That(SeventhPortLoreCatalog.StoryLinks.Any(link => link.ShipIds.Contains(ship.Id)), Is.True, ship.Id);
-                if (index >= 4)
-                {
-                    Assert.That(Enumerable.Range(0, 6).Count(port => CoreShipMarketCatalog.IsSoldAtPort(port, index)), Is.EqualTo(1));
-                }
+                Assert.That(Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count)
+                    .Count(port => CoreShipMarketCatalog.IsSoldAtPort(port, index)), Is.EqualTo(1), ship.Id);
             }
             Assert.That(CoreVoyageSession.Ships.Select(ship => ship.Lore).Distinct().Count(), Is.EqualTo(12));
         }

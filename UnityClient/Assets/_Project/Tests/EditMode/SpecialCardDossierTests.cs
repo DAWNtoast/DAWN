@@ -29,7 +29,7 @@ namespace ShatteredSail.Presentation.Tests
             CreatePreview(CoreGameplayPreviewScreen.ComponentShop);
             ComponentArtEntry entry = new ComponentArtCatalog().Entries.First(item => item.Rarity == rarity);
             PortComponentShopStockItem offer = new PortComponentShopStockItem("dossier-test|" + entry.Id,
-                controller.Session.CurrentPort, "2026-09", entry, 0.94f, 230);
+                controller.Session.CurrentPort, "2026-09", entry, 230);
             RectTransform panel = Find<RectTransform>("Component Shop Panel");
             foreach (Transform child in panel.Cast<Transform>().ToArray()) Object.DestroyImmediate(child.gameObject);
             typeof(CoreGameplayDemoController).GetField("selectedComponentShopOfferId", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -49,10 +49,8 @@ namespace ShatteredSail.Presentation.Tests
             bool wasSaved = PlayerPrefs.HasKey(purchaseKey);
             CoreVoyageSession sameSession = controller.Session;
             Button back = Find<Button>("Return To Port Hub");
-            Button previous = Find<Button>("Previous Component Dossier Page");
-            Button next = Find<Button>("Next Component Dossier Page");
             Assert.That(detail.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Read Component Story Chapter"), Is.False,
-                "Component lore is reached through the story tab and page navigation.");
+                "Component lore is reached through the story tab.");
             RectTransform header = Find<RectTransform>("Port Facility Header");
             Assert.That(back.transform.parent, Is.SameAs(header));
             AssertContained(header.rect, BoundsIn(header, back.GetComponent<RectTransform>()), "Return button / facility header");
@@ -64,13 +62,14 @@ namespace ShatteredSail.Presentation.Tests
                 button.GetComponentInChildren<Text>(true)?.text.Contains("返回部件陈列") == true), Is.False,
                 "The component dossier must use only the header return button.");
             Rect footerPaper = Rect.MinMaxRect(-288f, -264f, 600f, -220f);
-            string[] footerNames = { "Previous Component Dossier Page", "Component Dossier Page Counter", "Next Component Dossier Page", purchase.name, purchaseAndEquip.name };
+            string[] footerNames = { purchase.name, purchaseAndEquip.name };
             Rect previousFooter = default;
             for (int index = 0; index < footerNames.Length; index++)
             {
                 Rect current = BoundsIn(detail, Find<RectTransform>(footerNames[index]));
                 AssertContained(footerPaper, current, footerNames[index]);
-                if (index > 0) Assert.That(current.xMin - previousFooter.xMax, Is.GreaterThanOrEqualTo(19.9f), footerNames[index]);
+                if (index > 0) Assert.That(current.xMin - previousFooter.xMax,
+                    Is.GreaterThanOrEqualTo(23.9f), footerNames[index]);
                 previousFooter = current;
             }
 
@@ -123,21 +122,21 @@ namespace ShatteredSail.Presentation.Tests
                     Is.EqualTo(WithoutWhitespace(definition.Lore)));
                 AssertCompleteCardFace("Component", definition.Card, Find<RectTransform>("Component Dossier SpecialCards Page"));
             }
-            next.onClick.Invoke();
+            Find<Button>("ComponentDossierPageSpecialCards").onClick.Invoke();
             AssertComponentPage(3);
-            previous.onClick.Invoke();
+            Find<Button>("ComponentDossierPageStory").onClick.Invoke();
             AssertComponentPage(2);
             Assert.That(Find<Text>("Component Detail Story Body").gameObject.activeInHierarchy, Is.True);
-            previous.onClick.Invoke();
+            Find<Button>("ComponentDossierPageEffects").onClick.Invoke();
             AssertComponentPage(1);
-            previous.onClick.Invoke();
+            Find<Button>("ComponentDossierPageOverview").onClick.Invoke();
             AssertComponentPage(0);
-            previous.onClick.Invoke();
+            Find<Button>("ComponentDossierPageOverview").onClick.Invoke();
             AssertComponentPage(0);
             Assert.That(Find<Text>("Component Detail Description").gameObject.activeInHierarchy, Is.True);
             for (int page = 1; page < ComponentPages.Length; page++)
             {
-                next.onClick.Invoke();
+                Find<Button>("ComponentDossierPage" + ComponentPages[page]).onClick.Invoke();
                 AssertComponentPage(page);
             }
             Assert.That(Find<RectTransform>("Component Shop Detail"), Is.SameAs(detail), "Page navigation must not rebuild the dossier.");
@@ -174,9 +173,9 @@ namespace ShatteredSail.Presentation.Tests
                 int index = CoreVoyageSession.CardLibrary.ToList().FindIndex(card => card.Id == definition.Card.Id);
                 CoreBattleCard card = controller.Session.GetBattleCard(index);
                 string effectText = Find<Text>("Audit Special Card Effect").text;
-                Assert.That(VisibleEffectWithoutLineBreaks(effectText),
-                    Is.EqualTo(VisibleEffectWithoutLineBreaks(ExpectedDossierEffectText(card))),
-                    "The card face quotes the current stage's actual effects, including the player damage multiplier.");
+                ShatteredSail.Core.Tests.CardDescriptionTextTests.AssertVisibleWordsAndClauseBoundaries(
+                    ExpectedDossierEffectText(card), effectText,
+                    card.Id + " quotes the current stage's actual effects, including the player damage multiplier");
                 RectTransform face = AssertCompleteCardFace("Audit", card, page);
                 Text calculation = null;
                 if (card.IsAllowedInStage(NavalBattleStage.Boarding))
@@ -186,7 +185,14 @@ namespace ShatteredSail.Presentation.Tests
                         "Current supply-dependent effects remain readable beside the card face.");
                     Assert.That(calculation.transform.IsChildOf(face), Is.False);
                 }
-                if (card.IsAllowedInStage(NavalBattleStage.Boarding) && (card.Damage > 0 || card.Block > 0 || card.Repair > 0))
+                if (card.BoardingSpec != null)
+                {
+                    Assert.That(calculation, Is.Not.Null, card.Id);
+                    Assert.That(calculation.text, Is.EqualTo(card.Description),
+                        "Canonical boarding descriptions already contain the complete current-rank rules.");
+                    Assert.That(calculation.text, Does.Not.Contain("普通水手").And.Not.Contain("人接舷实际"));
+                }
+                else if (card.IsAllowedInStage(NavalBattleStage.Boarding) && (card.Damage > 0 || card.Block > 0 || card.Repair > 0))
                 {
                     CoreBattleCardEffects actual = controller.Session.GetBattleCardEffects(card, NavalBattleStage.Boarding);
                     Assert.That(calculation.text, Does.Contain("卡牌效果：").And.Contain("当前接舷效果：")
@@ -201,9 +207,13 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Find<Text>("Audit Special Card Growth").text, Does.Contain("不可金币强化"));
                 if (experience > 0)
                 {
-                    Assert.That(Find<Text>("Audit Special Card Name").text, Does.EndWith("+3"));
+                    int maximum = controller.Session.GetCardMaximumUpgradeLevel(card.Id);
+                    Assert.That(card.UpgradeLevel, Is.EqualTo(maximum), card.Id + " reaches its actual authored cap");
+                    Assert.That(Find<Text>("Audit Special Card Name").text,
+                        Is.EqualTo(card.Name + (maximum > 0 ? "+" + maximum : string.Empty)));
                     Assert.That(Find<Text>("Audit Special Card Growth").text, Does.Contain(experience.ToString()));
-                    Assert.That(Find<Text>("Audit Special Card Growth").text, Does.Contain("已达三阶"));
+                    string capLabel = maximum == 0 ? "固定效果" : maximum == 1 ? "已达一阶" : maximum == 2 ? "已达二阶" : "已达三阶";
+                    Assert.That(Find<Text>("Audit Special Card Growth").text, Does.Contain(capLabel));
                 }
                 RectTransform viewport = Find<RectTransform>("Audit Special Card Details Viewport");
                 RectTransform content = Find<RectTransform>("Audit Special Card Details Content");
@@ -341,19 +351,31 @@ namespace ShatteredSail.Presentation.Tests
             decimal gold = controller.Session.ProfileGold;
             string[] acquired = controller.Session.AcquiredSpecialCardIds.ToArray();
             Find<Button>("DossierPageSpecialCards").onClick.Invoke();
-            Assert.That(Find<Text>("Tavern Special Card Name").text, Is.EqualTo(cook.Card.Name));
-            Assert.That(VisibleEffectWithoutLineBreaks(Find<Text>("Tavern Special Card Effect").text),
-                Is.EqualTo(VisibleEffectWithoutLineBreaks(ExpectedDossierEffectText(cook.Card))));
+            int index = CoreVoyageSession.CardLibrary.ToList().FindIndex(card => card.Id == cook.Card.Id);
+            CoreBattleCard current = controller.Session.GetBattleCard(index);
+            Assert.That(current.Id, Is.EqualTo(cook.Card.Id), "The migrated design preserves the cook's collected identity.");
+            Assert.That(current.RequiredCrew, Is.EqualTo(cook.SourceId));
+            Assert.That(current.AllowedStages, Is.EqualTo(NavalBattleStages.Boarding));
+            Assert.That(current.BoardingSpec, Is.Null,
+                "Flora has her own support card; she no longer borrows the basic medicine card's rules.");
+            Assert.That(current.UpgradeLevel, Is.Zero);
+            Assert.That(current.Energy, Is.EqualTo(1));
+            Assert.That(current.Block, Is.EqualTo(2));
+            Assert.That(current.Repair, Is.EqualTo(7));
+            Assert.That(current.Draw, Is.EqualTo(1));
+            Assert.That(Find<Text>("Tavern Special Card Name").text, Is.EqualTo(current.Name));
+            ShatteredSail.Core.Tests.CardDescriptionTextTests.AssertVisibleWordsAndClauseBoundaries(
+                ExpectedDossierEffectText(current), Find<Text>("Tavern Special Card Effect").text, current.Id);
             Assert.That(VisibleEffectWithoutLineBreaks(Find<Text>("Tavern Special Card Lore").text),
                 Is.EqualTo(VisibleEffectWithoutLineBreaks(cook.Lore)));
-            Assert.That(Find<Text>("Tavern Special Card Growth").text, Does.Contain("尚未获得"));
-            Assert.That(Find<Text>("Tavern Dossier Page Counter").text, Is.EqualTo("第 4 / 4 页"));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Tavern Special Card Growth"), Is.False);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Tavern Dossier Page Counter"), Is.False);
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             CollectionAssert.AreEqual(acquired, controller.Session.AcquiredSpecialCardIds);
         }
 
         [Test]
-        public void PepeDossier_ShowsHisSupportCardAndGrowthWithoutRecruitingOrSpending()
+        public void PepeDossier_ShowsHisSupportCardWithoutRecruitingOrSpending()
         {
             CreatePreview(CoreGameplayPreviewScreen.TavernCrewDetail);
             CoreSpecialCardDefinition pepe = CoreSpecialCardCatalog.ForCrew("crew_gray_gull_cook_pepe");
@@ -366,7 +388,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Find<Text>("Tavern Special Card Stage").text, Is.EqualTo("策略 / 远程攻击 / 近战"));
             Assert.That(VisibleEffectWithoutLineBreaks(Find<Text>("Tavern Special Card Lore").text),
                 Is.EqualTo(VisibleEffectWithoutLineBreaks(pepe.Lore)));
-            Assert.That(Find<Text>("Tavern Special Card Growth").text, Does.Contain("尚未获得"));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Tavern Special Card Growth"), Is.False);
             foreach (Text label in Find<RectTransform>("Tavern Dossier SpecialCards Page").GetComponentsInChildren<Text>())
                 AssertTextFits(label);
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
@@ -395,9 +417,8 @@ namespace ShatteredSail.Presentation.Tests
             for (int other = 0; other < ComponentPages.Length; other++)
                 Assert.That(Find<RectTransform>("Component Dossier " + ComponentPages[other] + " Page").gameObject.activeSelf,
                     Is.EqualTo(page == other));
-            Assert.That(Find<Text>("Component Dossier Page Counter").text, Is.EqualTo("第 " + (page + 1) + " / 4 页"));
-            Assert.That(Find<Button>("Previous Component Dossier Page").interactable, Is.EqualTo(page > 0));
-            Assert.That(Find<Button>("Next Component Dossier Page").interactable, Is.EqualTo(page < ComponentPages.Length - 1));
+            foreach (string removed in new[] { "Previous Component Dossier Page", "Component Dossier Page Counter", "Next Component Dossier Page", "Component Special Card Growth" })
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == removed), Is.False, removed);
         }
 
         private static void AssertContained(Rect region, Rect item, string name)
@@ -439,8 +460,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(art.texture, Is.Not.Null);
             Assert.That(name.text, Is.EqualTo(CardFaceLayout.DisplayName(card)));
             Assert.That(name.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.NameSize));
-            Assert.That(VisibleEffectWithoutLineBreaks(effect.text),
-                Is.EqualTo(VisibleEffectWithoutLineBreaks(ExpectedDossierEffectText(card))));
+            ShatteredSail.Core.Tests.CardDescriptionTextTests.AssertVisibleWordsAndClauseBoundaries(
+                ExpectedDossierEffectText(card), effect.text, card.Id);
             Assert.That(effect.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));
             Assert.That(effect.rectTransform.anchoredPosition, Is.EqualTo(CardFaceLayout.EffectPosition));
             Assert.That(effect.supportRichText, Is.True);

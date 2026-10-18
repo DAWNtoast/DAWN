@@ -11,6 +11,7 @@ namespace ShatteredSail.Presentation
     {
         private void BuildGuidedTutorialFocus()
         {
+            if (HasGuidedBossPresentation) { BuildGuidedBattleCourseFocus(); return; }
             var targets = new List<Selectable>();
             CollectGuidedTutorialFocusTargets(targets);
             if (targets.Count == 0) return;
@@ -51,8 +52,12 @@ namespace ShatteredSail.Presentation
                 ? new[] { "Voyage Header", "Player Battle Name", "Enemy Battle Name", "Player Ship Art", "Enemy Ship Art",
                     "Player Battle Hull Bar Track", "Enemy Battle Hull Bar Track", "Player Resource HUD", "Enemy Intent HUD",
                     "Battle Buff Panel", "Enemy Resource HUD" }
-                : session.Phase == CoreDemoPhase.Sailing || session.Phase == CoreDemoPhase.Encounter
+                : session.Phase == CoreDemoPhase.Encounter
+                    ? new[] { "Voyage Header", "Navigation Map Title Strip", "Encounter Title", "Encounter Description Viewport", "Encounter Illustration Mount", "Encounter Secondary Actions" }
+                : session.Phase == CoreDemoPhase.Sailing
                     ? new[] { "Voyage Header", "Navigation Map Title Strip", "Distance Label", "Forecast", "Lookout Report" }
+                : session.Phase == CoreDemoPhase.Port
+                    ? new[] { "Port Hub", "Port Facility Header" }
                     : Array.Empty<string>();
             var context = new List<RectTransform>();
             foreach (RectTransform rect in contentRoot.GetComponentsInChildren<RectTransform>())
@@ -66,7 +71,12 @@ namespace ShatteredSail.Presentation
             {
                 Selectable control = snapshot.Control;
                 if (control == null || !control.gameObject.activeInHierarchy || control.name != name ||
-                    !control.IsInteractable() || !GuidedTutorialAllowsControl(name)) continue;
+                    !control.interactable || !GuidedTutorialAllowsControl(name)) continue;
+                // Dealing temporarily locks a legal hand card through its CanvasGroup.
+                // Register its annotation now: the graphic stays hidden while locked and
+                // follows the same card automatically when the flight restores input.
+                bool awaitingHandDeal = IsBattleHandFlying && control.transform.parent == retainedBattleHand;
+                if (!control.IsInteractable() && !awaitingHandDeal) continue;
                 if (!targets.Contains(control)) targets.Add(control);
                 return true;
             }

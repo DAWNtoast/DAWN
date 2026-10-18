@@ -31,6 +31,7 @@ namespace ShatteredSail.Presentation
             string suffix = column == 0 ? " ↺" : selected ? warehouseCargoSortAscending ? " ↑" : " ↓" : string.Empty;
             Button button = WarehouseButton(name, parent, size, position,
                 selected ? new Color(.65f, .44f, .20f) : new Color(.32f, .22f, .12f), WarehouseRoomTheme.Ink, 18);
+            MarketShopSkin.ApplyLightButton(button, selected);
             Text label = button.GetComponentInChildren<Text>();
             label.text = title + suffix;
             label.resizeTextForBestFit = true;

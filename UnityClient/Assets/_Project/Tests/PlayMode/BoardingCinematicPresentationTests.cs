@@ -40,7 +40,7 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetString("ShatteredSail.Dispatch.CrewIdentities.v2", doctor.Id);
 
             RenderResponsiveBattle(controller);
-            yield return null;
+            yield return WaitResponsiveBattle(controller);
 
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
             RawImage figure = RequiredResponsive<RawImage>("Player Ship Art Sailor 0");
@@ -121,7 +121,7 @@ namespace ShatteredSail.Presentation.Tests
                         enterStage.Invoke(ordinary, new object[] { NavalBattleStage.Boarding });
                         SetResponsiveHand(ordinary, "card_crew_thrust", "card_crew_guard");
                         RenderResponsiveBattle(controller);
-                        yield return null;
+                        yield return WaitResponsiveBattle(controller);
                         Assert.That(NavigationTimeOfDayUtility.FromVoyageHours(ordinary.ElapsedGameHours), Is.EqualTo(times[time]));
                         BoardingCinematicAssertions.AssertScene(ordinary);
                         Assert.That(backgrounds.Add(RequiredResponsive<RawImage>("Battle Scene Art").texture), Is.True,
@@ -152,7 +152,7 @@ namespace ShatteredSail.Presentation.Tests
                         }
                         persistAtSea.Invoke(controller, null);
                         RenderResponsiveBattle(controller);
-                        yield return null;
+                        yield return WaitResponsiveBattle(controller);
                         BoardingCinematicAssertions.AssertScene(specialists, false);
                         Assert.That(GameObject.Find("Player Ship Art Party Illustration"), Is.Null);
                         Assert.That(RequiredResponsive<RectTransform>("Player Ship Art").GetComponentsInChildren<RawImage>(), Has.Length.EqualTo(3),
@@ -197,10 +197,9 @@ namespace ShatteredSail.Presentation.Tests
                 // Use the real departure persistence path: staying at the port
                 // in this fixture would conceal an at-sea roster regression.
                 typeof(CoreGameplayDemoController).GetMethod("PersistCrewAtSea", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
-                session.Battle.DistanceMeters = 50f;
-                session.Battle.Alignment = NavalBattleAlignment.Parallel;
+                ConfigureCloseNavalTestPose(session.Battle, false);
                 RenderResponsiveBattle(controller);
-                yield return null;
+                yield return WaitResponsiveBattle(controller);
                 ClickAcceptanceButton("Battle Board");
                 yield return WaitResponsiveBattle(controller);
                 Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
@@ -226,7 +225,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.BoardingCriticalChancePercent, Is.Zero, "Isolate one authored hit from the separate critical mechanic.");
                 SetResponsiveHand(session, "card_crew_thrust", "card_crew_guard");
                 RenderResponsiveBattle(controller);
-                yield return null;
+                yield return WaitResponsiveBattle(controller);
                 BoardingCinematicAssertions.AssertScene(session, false);
                 NavalBattleVisualCapture.Capture(controller, "Boarding_SpecialCrew.png", "真实海上三名已招募船员：全身身份、非十倍生命值与白色格挡外壳");
 
@@ -236,7 +235,7 @@ namespace ShatteredSail.Presentation.Tests
                 int energy = session.Battle.Energy;
                 int cost = session.GetBattleCardEnergyCost(session.Battle.Hand[0]);
                 int played = session.Battle.CardsPlayedThisTurn;
-                int gridId = RequiredResponsive<Image>("Enemy Battle Hull Bar").GetComponentInChildren<BattleHealthSegmentsGraphic>().GetInstanceID();
+                int healthBarId = RequiredResponsive<Image>("Enemy Battle Hull Bar").GetInstanceID();
                 UnityEvent attack = RequiredResponsive<Button>("Battle Card 0").onClick;
                 ClickAcceptanceButton("Battle Card 0");
                 attack.Invoke();
@@ -244,7 +243,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemyHealth - damage + blocked));
                 Assert.That(session.Battle.Energy, Is.EqualTo(energy - cost));
                 Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(played + 1));
-                Assert.That(RequiredResponsive<Image>("Enemy Battle Hull Bar").GetComponentInChildren<BattleHealthSegmentsGraphic>().GetInstanceID(), Is.EqualTo(gridId));
+                Assert.That(RequiredResponsive<Image>("Enemy Battle Hull Bar").GetInstanceID(), Is.EqualTo(healthBarId));
                 BoardingCinematicAssertions.AssertScene(session, false);
                 int guardBefore = session.Battle.PlayerBlock;
                 int block = session.GetBattleCardEffects(session.Battle.Hand[0], NavalBattleStage.Boarding).Block;
@@ -278,7 +277,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.BoardingCriticalChancePercent, Is.Zero, "Isolate cancellation from the separate critical mechanic.");
                 SetResponsiveHand(session, "card_crew_thrust", "card_crew_guard");
                 RenderResponsiveBattle(controller);
-                yield return null;
+                yield return WaitResponsiveBattle(controller);
                 Vector2 playerPosition = RequiredResponsive<RectTransform>("Player Ship Art").anchoredPosition;
                 Vector2 enemyPosition = RequiredResponsive<RectTransform>("Enemy Ship Art").anchoredPosition;
                 Vector3 playerScale = RequiredResponsive<RectTransform>("Player Ship Art").localScale;
@@ -341,6 +340,16 @@ namespace ShatteredSail.Presentation.Tests
             float deadline = Time.realtimeSinceStartup + 12f;
             while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
             {
+                foreach (BoardingPartyPresentation body in Object.FindObjectsByType<BoardingPartyPresentation>(FindObjectsSortMode.None))
+                {
+                    RectTransform pose = (RectTransform)body.transform;
+                    Assert.That(pose.anchoredPosition.y, Is.EqualTo(BoardingBattleLayout.PartyPosition(false).y).Within(.01f),
+                        "Live sword feedback must keep both parties on the deck.");
+                    Assert.That(Vector3.Distance(pose.localScale, Vector3.one), Is.LessThan(.0001f),
+                        "A boarding character must not inherit the ship squash animation.");
+                    Assert.That(Quaternion.Angle(pose.localRotation, Quaternion.identity), Is.LessThan(.01f),
+                        "A boarding character must not inherit ship roll during sword feedback.");
+                }
                 foreach (BoardingCombatFxGraphic fx in Object.FindObjectsByType<BoardingCombatFxGraphic>(FindObjectsSortMode.None))
                 {
                     Assert.That(fx.raycastTarget, Is.False);
@@ -368,9 +377,9 @@ namespace ShatteredSail.Presentation.Tests
             {
                 yield return LoadResponsiveBattleScene();
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                CoreVoyageSession session = ArrangeRamComicBattle(controller, false, NavalBattleAlignment.HeadOn);
+                CoreVoyageSession session = ArrangeRamComicBattle(controller, false, NavalBattleAlignment.EnemyBroadside);
                 RenderResponsiveBattle(controller);
-                yield return null;
+                yield return WaitResponsiveBattle(controller);
                 UnityEvent oldRam = RequiredResponsive<Button>("Battle Ram").onClick;
                 ClickAcceptanceButton("Battle Ram");
                 yield return WaitForRamComic(controller);
@@ -423,21 +432,34 @@ namespace ShatteredSail.Presentation.Tests
                 NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours));
             Assert.That(expected, Is.Not.Null, "The actual battle's environment and campaign time require an installed painting.");
             Assert.That(background.texture, Is.SameAs(expected));
-            Assert.That(background.uvRect, Is.EqualTo(BoardingBattleLayout.CoverUv(expected, background.rectTransform.rect.size)));
-            Assert.That(background.uvRect.yMin, Is.EqualTo(0f).Within(.00001f),
-                "Cover cropping must retain the foreground deck instead of centering on the sea and railing.");
+            Assert.That(background.uvRect, Is.EqualTo(BoardingBattleLayout.SceneryUv(expected, background.rectTransform.rect.size)));
+            RawImage joinedDeck = Required<RawImage>("Boarding Joined Deck");
+            Assert.That(joinedDeck.texture, Is.Not.Null, "The shared boarding floor must use its installed deck painting.");
+            Assert.That(joinedDeck.texture, Is.Not.SameAs(background.texture), "Environment scenery and joined deck have independent framing.");
+            Assert.That(joinedDeck.raycastTarget, Is.False);
+            Assert.That(joinedDeck.color.a, Is.GreaterThanOrEqualTo(.99f));
+            Assert.That(joinedDeck.transform.parent, Is.SameAs(background.transform.parent));
+            Assert.That(joinedDeck.transform.GetSiblingIndex(), Is.GreaterThan(background.transform.GetSiblingIndex()),
+                "The opaque deck must cover the old scenery floor while its transparent horizon retains the environment.");
             foreach (bool enemy in new[] { false, true })
             {
                 string side = enemy ? "Enemy" : "Player";
                 RectTransform party = Required<RectTransform>(side + " Ship Art");
+                Assert.That(party.GetComponent<BoardingPartyPresentation>(), Is.Not.Null,
+                    "Boarding animation dispatch must survive removal of the decorative formation label.");
+                Assert.That(party.parent, Is.SameAs(joinedDeck.transform.parent));
+                Assert.That(party.GetSiblingIndex(), Is.GreaterThan(joinedDeck.transform.GetSiblingIndex()));
                 // The optional live capture changes the canvas to world space
                 // and restores it; subpixel transform round trips are expected.
                 Assert.That(Vector2.Distance(party.anchoredPosition, BoardingBattleLayout.PartyPosition(enemy)), Is.LessThanOrEqualTo(.01f));
                 Assert.That(Vector3.Distance(party.localScale, Vector3.one), Is.LessThanOrEqualTo(.0001f));
-                Assert.That(party.rect.height, Is.GreaterThanOrEqualTo(300f), "The new view must use full-size actors, not the retired tiny tokens.");
+                Assert.That(party.rect.height, Is.EqualTo(BoardingBattleLayout.PartySize.y).Within(.01f),
+                    "Full-body actors follow the shared layout while reserving room for health and status icons.");
                 Assert.That(party.GetComponent<CanvasGroup>().blocksRaycasts, Is.False);
                 string role = enemy == session.Battle.BoardingInitiatedByEnemy ? "登船队" : "守备队";
-                Assert.That(Required<Text>(side + " Ship Art Formation Label").text, Does.Contain(role));
+                Assert.That(Required<Text>(side + " Battle Name").text, Does.Contain(role),
+                    "The compact name board carries the formation role without duplicating a label over the actors.");
+                Assert.That(GameObject.Find(side + " Ship Art Formation Label"), Is.Null);
                 if (enemy || ordinaryPlayer)
                 {
                     RawImage image = Required<RawImage>(side + " Ship Art Party Illustration");
@@ -447,7 +469,14 @@ namespace ShatteredSail.Presentation.Tests
                     AssertFullBody(image);
                     Assert.That(party.GetComponentsInChildren<RawImage>(), Has.Length.EqualTo(1));
                 }
-                foreach (RawImage figure in party.GetComponentsInChildren<RawImage>()) AssertFeetOnDeck(figure);
+                foreach (RawImage figure in party.GetComponentsInChildren<RawImage>())
+                {
+                    AssertFeetOnDeck(figure);
+                    Graphic contact = Required<Graphic>(figure.name + " Deck Contact Shadow");
+                    Assert.That(contact.transform.parent, Is.SameAs(figure.transform.parent), "Contact shadows must travel with their own party.");
+                    Assert.That(contact.transform.GetSiblingIndex(), Is.LessThan(figure.transform.GetSiblingIndex()));
+                    Assert.That(contact.raycastTarget, Is.False);
+                }
                 BattleDefenseHud hud = Required<BattleDefenseHud>(side + " Battle Hull Bar Track");
                 int maximum = enemy ? session.Battle.EnemyMaxBoardingHealth : session.Battle.PlayerMaxBoardingHealth;
                 int current = enemy ? session.Battle.EnemyBoardingHealth : session.Battle.PlayerBoardingHealth;
@@ -457,9 +486,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(hud.DisplayedGuard, Is.EqualTo(enemy ? session.Battle.EnemyBlock : session.Battle.PlayerBlock));
                 Assert.That(hud.PermanentArmor, Is.Zero, "Ship armor must not become crew health or crew armor.");
                 BattleHealthSegmentsGraphic[] grid = hud.HullBar.GetComponentsInChildren<BattleHealthSegmentsGraphic>();
-                Assert.That(grid, Has.Length.EqualTo(1));
-                Assert.That(grid[0].MaximumHealth, Is.EqualTo(maximum));
-                Assert.That(grid[0].raycastTarget, Is.False);
+                Assert.That(grid, Is.Empty, "The continuous health bar must not create ten-health divider overlays.");
                 Assert.That(hud.HullBar.rectTransform.rect.height, Is.GreaterThanOrEqualTo(20f));
             }
             Assert.That(GameObject.Find("Player Boarding Deck"), Is.Null);
@@ -487,20 +514,57 @@ namespace ShatteredSail.Presentation.Tests
             Vector3 world = figure.rectTransform.TransformPoint(new Vector3(
                 Mathf.Lerp(bounds.xMin, bounds.xMax, foot.x), Mathf.Lerp(bounds.yMin, bounds.yMax, foot.y), 0f));
             Vector3 partyLocal = figure.transform.parent.InverseTransformPoint(world);
-            Assert.That(partyLocal.y, Is.EqualTo(-165f).Within(2f),
+            Assert.That(partyLocal.y, Is.EqualTo(-BoardingBattleLayout.PartySize.y * .5f).Within(2f),
                 figure.name + " / " + figure.texture.name + " / " + figure.uvRect +
                 " must place its opaque feet on the shared floor, including atlas-cell padding.");
             if (!verifyPaintedDeck) return;
 
-            RawImage background = Required<RawImage>("Battle Scene Art");
+            RawImage background = Required<RawImage>("Boarding Joined Deck");
             Rect deck = background.rectTransform.rect;
             Vector3 deckLocal = background.rectTransform.InverseTransformPoint(world);
-            float sourceY = Mathf.Lerp(background.uvRect.yMin, background.uvRect.yMax,
-                (deckLocal.y - deck.yMin) / deck.height);
-            // The independently inspected paintings all have clear decking at
-            // source rows 61%-70% from the top, in both teams' standing areas.
-            Assert.That(sourceY, Is.InRange(.30f, .39f),
-                figure.name + " on " + background.texture.name + " must stand on painted deck below the railing.");
+            Assert.That(deck.Contains(new Vector2(deckLocal.x, deckLocal.y)), Is.True,
+                figure.name + " must remain inside the shared deck plane.");
+            Vector2 source = new Vector2(
+                Mathf.Lerp(background.uvRect.xMin, background.uvRect.xMax, (deckLocal.x - deck.xMin) / deck.width),
+                Mathf.Lerp(background.uvRect.yMin, background.uvRect.yMax, (deckLocal.y - deck.yMin) / deck.height));
+            Assert.That(PaintedDeckAlpha(background.texture, source), Is.GreaterThanOrEqualTo(220),
+                figure.name + " must stand on opaque painted deck, not the transparent horizon or the seam between ships.");
+        }
+
+        private static readonly Dictionary<Texture, Color32[]> DeckPixels = new Dictionary<Texture, Color32[]>();
+
+        private static byte PaintedDeckAlpha(Texture texture, Vector2 uv)
+        {
+            Assert.That(texture, Is.Not.Null);
+            if (!DeckPixels.TryGetValue(texture, out Color32[] pixels))
+            {
+                RenderTexture previous = RenderTexture.active;
+                RenderTexture copy = RenderTexture.GetTemporary(texture.width, texture.height, 0, RenderTextureFormat.ARGB32);
+                var readable = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false);
+                try
+                {
+                    Graphics.Blit(texture, copy);
+                    RenderTexture.active = copy;
+                    readable.ReadPixels(new Rect(0f, 0f, texture.width, texture.height), 0, 0);
+                    readable.Apply();
+                    pixels = readable.GetPixels32();
+                    DeckPixels.Add(texture, pixels);
+                }
+                finally
+                {
+                    RenderTexture.active = previous;
+                    RenderTexture.ReleaseTemporary(copy);
+                    Object.DestroyImmediate(readable);
+                }
+            }
+            int x = Mathf.Clamp(Mathf.FloorToInt(uv.x * texture.width), 0, texture.width - 1);
+            int y = Mathf.Clamp(Mathf.FloorToInt(uv.y * texture.height), 0, texture.height - 1);
+            byte lowestAlpha = 255;
+            for (int offsetY = -1; offsetY <= 1; offsetY++)
+                for (int offsetX = -1; offsetX <= 1; offsetX++)
+                    lowestAlpha = System.Math.Min(lowestAlpha, pixels[
+                        Mathf.Clamp(y + offsetY, 0, texture.height - 1) * texture.width + Mathf.Clamp(x + offsetX, 0, texture.width - 1)].a);
+            return lowestAlpha;
         }
 
         private static Vector2 VisibleFoot(Texture texture, Rect uv)

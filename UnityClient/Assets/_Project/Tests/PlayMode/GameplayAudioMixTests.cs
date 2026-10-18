@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 namespace ShatteredSail.Presentation.Tests
 {
     /// <summary>Exercises real AudioSources without activating gameplay or writing a player profile.</summary>
-    public sealed class GameplayAudioMixTests
+    public sealed partial class GameplayAudioMixTests
     {
         private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
         private readonly string[] volumeKeys =

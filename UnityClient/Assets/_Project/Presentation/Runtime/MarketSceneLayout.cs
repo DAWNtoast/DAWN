@@ -9,7 +9,8 @@ namespace ShatteredSail.Presentation
     /// <summary>Scene-space anchors and the exhaustive market-to-shop mapping.</summary>
     public static class MarketSceneLayout
     {
-        public static readonly Vector2 DrawerSize = new Vector2(560f, 850f);
+        public static readonly Vector2 DrawerSize = new Vector2(420f, 820f);
+        public const float InventoryExpansionHeight = 96f;
         private static readonly IReadOnlyList<PortMarketItem>[] ShopItems =
         {
             Array.AsReadOnly(new[] { PortMarketItem.Water, PortMarketItem.Food, PortMarketItem.Beer }),
@@ -19,7 +20,7 @@ namespace ShatteredSail.Presentation
         };
         public static IReadOnlyList<PortMarketItem> ItemsForShop(MarketShopKind shop) => ShopItems[(int)shop];
         public static bool IsLeftShop(MarketShopKind shop) => shop == MarketShopKind.Supplies || shop == MarketShopKind.Medicine;
-        public static Vector2 DrawerPosition(MarketShopKind shop) => new Vector2(IsLeftShop(shop) ? 650f : -650f, -20f);
+        public static Vector2 DrawerPosition(MarketShopKind shop) => new Vector2(IsLeftShop(shop) ? 720f : -720f, 0f);
         public static string ShopName(MarketShopKind shop)
         {
             switch (shop)

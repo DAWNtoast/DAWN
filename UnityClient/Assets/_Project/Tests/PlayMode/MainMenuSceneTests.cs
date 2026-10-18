@@ -125,7 +125,7 @@ namespace ShatteredSail.Presentation.Tests
                 .Single(slider => slider.name == "Master Volume");
             Assert.That(master.value, Is.EqualTo(savedMaster).Within(0.001f));
             Image settingsPaper = settings.Find("Settings Card").GetComponent<Image>();
-            Assert.That(settingsPaper.sprite, Is.SameAs(NauticalSurfaceSkin.ReadingPaper));
+            Assert.That(settingsPaper.sprite, Is.SameAs(MarketShopSkin.Paper));
             Assert.That(settingsPaper.type, Is.EqualTo(Image.Type.Sliced));
             float draftMaster = savedMaster > 0.5f ? 0.2f : 0.8f;
             master.value = draftMaster;
@@ -146,7 +146,7 @@ namespace ShatteredSail.Presentation.Tests
                 .Single(child => child.name == "New Game Confirmation");
             Assert.That(confirmation.gameObject.activeInHierarchy, Is.True);
             Image confirmationPaper = confirmation.Find("Confirmation Card").GetComponent<Image>();
-            Assert.That(confirmationPaper.sprite, Is.SameAs(NauticalSurfaceSkin.ReadingPaper));
+            Assert.That(confirmationPaper.sprite, Is.SameAs(MarketShopSkin.Paper));
             Assert.That(confirmationPaper.type, Is.EqualTo(Image.Type.Sliced));
             ActiveButton("Cancel New Game").onClick.Invoke();
             Assert.That(confirmation.gameObject.activeSelf, Is.False);
@@ -211,8 +211,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(game.EquippedComponent(ComponentSlot.Sail).Id, Is.EqualTo("sail_last_free_wind"),
                 "An expanded-catalog component must survive save restoration too.");
             Assert.That(game.Session.BattleDeck.Count, Is.EqualTo(10), "Legacy decks fill the current ten-card minimum.");
-            Assert.That(game.Session.GetBattleDeck(NavalBattleStage.Preparation), Is.EqualTo(new[] { 8, 8, 9, 9, 10, 10, 11, 12, 11, 12 }),
-                "The separately saved stage takes precedence, preserves its eight cards, and fills only the missing minimum.");
+            int energyOrder = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
+                .Single(index => CoreVoyageSession.CardLibrary[index].Id == "card_energy_order");
+            Assert.That(game.Session.GetBattleDeck(NavalBattleStage.Preparation), Is.EqualTo(new[] { 8, 8, 9, 9, 10, 10, 11, 11, 7, energyOrder }),
+                "The separately saved stage takes precedence, maps retired circle index 12 to retreat 11, keeps at most two copies, and fills only the missing minimum with brace and energy order.");
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.LegacyWitchRecruitedKey), Is.False,
                 "Continuing a historical save must remove the retired placeholder recruitment flag.");
             Assert.That(CoreVoyageSession.CardLibrary.Any(card => card.Id.StartsWith("card_witch_") || card.RequiredCrew == "crew_witch_jinchao"), Is.False);
@@ -253,7 +255,7 @@ namespace ShatteredSail.Presentation.Tests
             ComponentArtCatalog oldCatalog = new ComponentArtCatalog();
             OwnedShipComponentInventory oldInventory = new OwnedShipComponentInventory(oldCatalog);
             oldInventory.EnsureLoadout(2);
-            oldInventory.Grant(oldCatalog.GetById("bow_last_horizon"), 1.1f);
+            oldInventory.Grant(oldCatalog.GetById("bow_last_horizon"));
             PlayerPrefs.SetString(CoreGameplayDemoController.ComponentInventoryKey, oldInventory.Export());
             PlayerPrefs.SetInt(CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey, 1);
             PlayerPrefs.SetString(CoreGameplayDemoController.BattleDeckKey, "0,0,0,1,2,3,4,5");
@@ -301,6 +303,30 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(game.IsTutorialActive, Is.True);
             Assert.That(game.CurrentGuidedTutorialStep, Is.EqualTo(GuidedTutorialStep.FirstDeparture));
             yield return ClickThroughOpeningComic(game);
+            // Let the ordinary player loop restore the first highlight after the
+            // comic unlocks its target; a forced graphic rebuild hides this bug.
+            yield return new WaitForSecondsRealtime(.3f);
+            yield return null;
+            GuidedTutorialFocusGraphic dockFocus = Object.FindObjectsByType<GuidedTutorialFocusGraphic>(
+                FindObjectsInactive.Exclude, FindObjectsSortMode.None).Single(graphic =>
+                    graphic.Target != null && graphic.Target.name == "Port Hotspot Voyage");
+            Assert.That(dockFocus.HasVisibleTarget, Is.True);
+            Assert.That(dockFocus.raycastTarget, Is.False);
+            CanvasRenderer dockRenderer = dockFocus.canvasRenderer;
+            Assert.That(dockRenderer.materialCount, Is.GreaterThan(0),
+                "The dock outline must retain its render material after the opening comic releases its input lock.");
+            Assert.That(dockRenderer.GetMaterial(0), Is.Not.Null);
+            Assert.That(dockRenderer.cull, Is.False);
+            Assert.That(dockRenderer.GetAlpha(), Is.GreaterThan(.99f));
+            Assert.That(dockRenderer.GetInheritedAlpha(), Is.GreaterThan(.99f));
+            Mesh dockFocusMesh = dockRenderer.GetMesh();
+            Assert.That(dockFocusMesh, Is.Not.Null);
+            Assert.That(dockFocusMesh.vertexCount, Is.GreaterThanOrEqualTo(19),
+                "The dock outline and arrow must be rendered without a manual canvas refresh.");
+            Assert.That(dockFocusMesh.colors32.Any(tint => tint.r > 200 && tint.g < 90 && tint.b < 90 && tint.a > 200),
+                Is.True, "The first actionable port destination must have a visible red annotation.");
+            NavalBattleVisualCapture.Capture(game, "00_New_Game_Dock_Focus.png",
+                "正常新游戏看完开场漫画后，出航码头红框和箭头自动恢复", "Port Hotspot Voyage");
             foreach (string key in AchievementCatalog.PersistenceKeys)
                 Assert.That(PlayerPrefs.HasKey(key), Is.False, "A new save clears the prior captain's achievement: " + key);
             Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
@@ -452,6 +478,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return CoreGameplayDemoController.RecordedSeaChartsKey;
             yield return CoreGameplayDemoController.WarehouseOwnedKey;
             yield return CoreGameplayDemoController.WarehouseDisplayKey;
+            yield return CoreGameplayDemoController.WarehouseIncomeKey;
             yield return CoreGameplayDemoController.BattleDeckKey;
             yield return CoreGameplayDemoController.BattleCardUpgradeKey;
             yield return CoreGameplayDemoController.SpecialCardExperienceKey;

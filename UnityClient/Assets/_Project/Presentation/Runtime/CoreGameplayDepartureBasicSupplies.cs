@@ -36,19 +36,25 @@ namespace ShatteredSail.Presentation
             departureBasicSupplyShip = session.SelectedShipIndex;
             departureBasicSupplyDisplayedDate = MarketMonth(MarketNow);
             departureBasicSupplyOverlay = CreateFixedPanel("Departure Basic Supplies Overlay", contentRoot,
-                PhaseSurfaceLayout.ContentSize, Vector2.zero, new Color(0f, 0f, 0f, .76f));
+                PhaseSurfaceLayout.ContentSize, Vector2.zero, new Color(.025f, .018f, .012f, .68f));
             Image shade = departureBasicSupplyOverlay.GetComponent<Image>();
             shade.sprite = shade.overrideSprite = null;
             shade.type = Image.Type.Simple;
-            shade.color = new Color(0f, 0f, 0f, .76f);
+            shade.color = new Color(.025f, .018f, .012f, .68f);
             shade.raycastTarget = true;
             departureBasicSupplyOverlay.SetAsLastSibling();
             RectTransform card = CreateFixedPanel("Departure Basic Supplies", departureBasicSupplyOverlay,
-                new Vector2(1080f, 660f), Vector2.zero, PanelRaised);
-            NauticalSurfaceSkin.ApplyReadingPanel(card.GetComponent<Image>());
-            Color ink = Html("#352415");
+                new Vector2(1080f, 660f), Vector2.zero, Html("#F0E6CF"));
+            MarketShopSkin.ApplyPanel(card.GetComponent<Image>());
+            Color ink = MarketShopSkin.Ink, muted = MarketShopSkin.MutedInk;
+            BasicSupplyText("Departure Basic Supplies Eyebrow", card, new Vector2(940f, 20f),
+                new Vector2(0f, 298f), 15, muted, TextAnchor.MiddleCenter).text = "BASIC SUPPLIES";
             CreateText("Departure Basic Supplies Title", card, new Vector2(940f, 42f),
-                new Vector2(0f, 264f), 28, FontStyle.Bold, TextAnchor.MiddleCenter, ink).text = "购买基础物资";
+                new Vector2(0f, 264f), 32, FontStyle.Bold, TextAnchor.MiddleCenter, ink).text = "购买基础物资";
+            BasicSupplyRule("Departure Basic Supplies Header Rule", card, new Vector2(976f, 1f), new Vector2(0f, 228f));
+            for (int column = 0; column < 2; column++)
+                BasicSupplyRule("Departure Basic Supplies Column Rule " + column, card,
+                    new Vector2(1f, 396f), new Vector2(-168f + column * 336f, 10f));
             for (int index = 0; index < PortMarketCatalog.AllItems.Count; index++)
             {
                 PortMarketItem item = PortMarketCatalog.AllItems[index];
@@ -61,44 +67,65 @@ namespace ShatteredSail.Presentation
                 CreateText("Departure Basic Supply Name " + key, row, new Vector2(196f, 28f),
                     new Vector2(28f, 43f), 22, FontStyle.Bold, TextAnchor.MiddleLeft, ink).text = PortMarketCatalog.Name(item);
                 departureBasicSupplyHeld[item] = BasicSupplyText("Departure Basic Supply Held " + key, row,
-                    new Vector2(196f, 26f), new Vector2(28f, 13f), 18, ink);
+                    new Vector2(196f, 26f), new Vector2(28f, 13f), 18, muted);
                 departureBasicSupplyQuantityLabels[item] = BasicSupplyText("Departure Basic Supply Quantity " + key, row,
                     new Vector2(68f, 38f), new Vector2(30f, -25f), 22, ink, TextAnchor.MiddleCenter);
+                BasicSupplyRule("Departure Basic Supply Quantity Rule " + key, row,
+                    new Vector2(68f, 1f), new Vector2(30f, -46f));
                 Button decrease = CreateButton("Departure Basic Supply Decrease " + key, row,
                     new Vector2(38f, 38f), new Vector2(-34f, -25f), Gold, DeepSea, 22);
                 decrease.GetComponentInChildren<Text>().text = "−";
+                MarketShopSkin.ApplyLightButton(decrease);
                 decrease.onClick.AddListener(() => AdjustDepartureBasicSupply(identity, item, -1));
                 departureBasicSupplyDecrease[item] = decrease;
                 Button increase = CreateButton("Departure Basic Supply Increase " + key, row,
                     new Vector2(38f, 38f), new Vector2(94f, -25f), Gold, DeepSea, 22);
                 increase.GetComponentInChildren<Text>().text = "+";
+                MarketShopSkin.ApplyLightButton(increase);
                 increase.onClick.AddListener(() => AdjustDepartureBasicSupply(identity, item, 1));
                 departureBasicSupplyIncrease[item] = increase;
                 if (item == PortMarketItem.Water || item == PortMarketItem.Food)
                     departureBasicSupplyEndurance[item] = BasicSupplyText("Departure Basic Supply Endurance " + key, row,
-                        new Vector2(288f, 26f), new Vector2(2f, -61f), 16, ink, TextAnchor.MiddleCenter);
+                        new Vector2(288f, 26f), new Vector2(2f, -61f), 16, muted, TextAnchor.MiddleCenter);
+                if (index < 6)
+                    BasicSupplyRule("Departure Basic Supply Row Rule " + key, row,
+                        new Vector2(292f, 1f), new Vector2(0f, -78f));
             }
             departureBasicSupplyHint = BasicSupplyText("Departure Basic Supplies Hint", card,
-                new Vector2(960f, 26f), new Vector2(0f, -202f), 18, ink, TextAnchor.MiddleCenter);
+                new Vector2(960f, 28f), new Vector2(0f, -218f), 17, muted, TextAnchor.MiddleCenter);
+            BasicSupplyRule("Departure Basic Supplies Footer Rule", card, new Vector2(976f, 1f), new Vector2(0f, -244f));
             Button recommend = CreateButton("Departure Basic Supplies Recommend", card,
-                new Vector2(280f, 54f), new Vector2(-336f, -250f), Gold, DeepSea, 20);
+                new Vector2(280f, 44f), new Vector2(-336f, -280f), Gold, DeepSea, 20);
             recommend.GetComponentInChildren<Text>().text = "设定为推荐数量";
+            MarketShopSkin.ApplyLightButton(recommend);
+            GameTypography.Apply(recommend.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             recommend.interactable = Application.isPlaying && !editorPreviewBuilding;
             recommend.onClick.AddListener(() => RecommendDepartureBasicSupplies(identity));
             Button close = CreateButton("Departure Basic Supplies Close", card,
-                new Vector2(200f, 54f), new Vector2(0f, -250f), Gold, DeepSea, 20);
+                new Vector2(200f, 44f), new Vector2(0f, -280f), Gold, DeepSea, 20);
             close.GetComponentInChildren<Text>().text = "返回出航";
+            MarketShopSkin.ApplyTextButton(close);
+            GameTypography.Apply(close.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             close.onClick.AddListener(() => { if (IsDepartureBasicSupplyViewLive(identity)) CloseDepartureBasicSupplies(); });
             departureBasicSupplyPurchase = CreateButton("Departure Basic Supplies Purchase", card,
-                new Vector2(280f, 54f), new Vector2(336f, -250f), Gold, DeepSea, 20);
+                new Vector2(280f, 44f), new Vector2(336f, -280f), Gold, DeepSea, 20);
+            MarketShopSkin.SetMode(departureBasicSupplyPurchase, true);
+            GameTypography.Apply(departureBasicSupplyPurchase.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             departureBasicSupplyPurchase.onClick.AddListener(() => PurchaseDepartureBasicSupplies(identity));
             RefreshDepartureBasicSupplies(string.Empty);
+        }
+
+        private void BasicSupplyRule(string name, Transform parent, Vector2 size, Vector2 position)
+        {
+            Image rule = CreateImage(name, parent, size, position, new Color(.60f, .47f, .30f, .32f));
+            rule.raycastTarget = false;
         }
 
         private Text BasicSupplyText(string name, Transform parent, Vector2 size, Vector2 position, int fontSize,
             Color ink, TextAnchor alignment = TextAnchor.MiddleLeft)
         {
             Text text = CreateText(name, parent, size, position, fontSize, FontStyle.Normal, alignment, ink);
+            text.color = ink;
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = Math.Max(12, fontSize - 4);
             text.resizeTextMaxSize = fontSize;
@@ -192,7 +219,9 @@ namespace ShatteredSail.Presentation
             decimal cost = QuoteDepartureBasicSupplies(now, out string reason);
             departureBasicSupplyPurchase.GetComponentInChildren<Text>().text = "购买 · " + PortMarketCatalog.FormatPrice(cost) + " 金";
             departureBasicSupplyPurchase.interactable = editable && cost > 0m && reason.Length == 0;
-            departureBasicSupplyHint.text = reason.Length > 0 ? reason : notice;
+            departureBasicSupplyHint.text = reason.Length > 0 ? reason : notice.Length > 0 ? notice :
+                "按需调整物资数量，确认购买后装入船舱。";
+            departureBasicSupplyHint.color = reason.Length > 0 ? new Color(.55f, .23f, .16f, 1f) : MarketShopSkin.MutedInk;
         }
 
         private bool RefreshDepartureBasicSupplyMonth()
@@ -237,6 +266,7 @@ namespace ShatteredSail.Presentation
             portNotice = "基础物资已装入船舱，花费 " + PortMarketCatalog.FormatPrice(cost) + " 金币。";
             UpdatePortHeaderReadouts();
             RefreshDepartureBasicSupplies(portNotice);
+            RefreshDepartureChartControls();
         }
 
         private void CloseDepartureBasicSupplies()

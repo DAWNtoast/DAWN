@@ -51,7 +51,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.ElapsedGameHours, Is.EqualTo(startHours + session.TotalHours).Within(.000001d));
             double afterFirstSail = session.ElapsedGameHours;
             ClickAcceptanceButton("Safe Return"); yield return null;
+            yield return SettlementChestTestActions.ShowOverview();
             ClickAcceptanceButton("Return To Port"); yield return null;
+            yield return SchoolUnlockNoticeTestActions.ConfirmAll();
             Assert.That(session.ElapsedGameHours, Is.GreaterThanOrEqualTo(afterFirstSail));
             double savedHours = session.ElapsedGameHours;
             DateTime savedDate = session.GameDateTime;
@@ -90,6 +92,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.ElapsedGameHours, Is.EqualTo(savedHours + session.TotalHours).Within(.000001d),
                 "Only this voyage's duration resets; the campaign calendar must continue.");
             ClickAcceptanceButton("Safe Return"); yield return null;
+            yield return SettlementChestTestActions.ShowOverview();
             ClickAcceptanceButton("Return To Port"); yield return null;
             LogAssert.NoUnexpectedReceived();
         }

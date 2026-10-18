@@ -21,6 +21,7 @@ namespace ShatteredSail.Presentation.Tests
             ProfileGoldPersistence.Save(9000);
             PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(2), 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(3), 1);
+            SeedShipPortLocationsForFixture("断锚港", 0, 2, 3);
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
             yield return null;
@@ -77,7 +78,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ShipOwnedKey(ship), 0), Is.Zero);
             yield return ClickShipyardControl("Inspect Departure Vessel");
             Assert.That(GameObject.Find("Shipyard Dossier Name").GetComponent<Text>().text, Is.EqualTo(CoreVoyageSession.Ships[0].Name));
-            yield return ClickShipyardControl("Back To Voyage Departure");
+            yield return ClickShipyardControl("Return To Port Hub");
             Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
             Assert.That(ActiveButton("Departure Previous Vessel").interactable, Is.False);
             Assert.That(ActiveButton("Departure Next Vessel").interactable, Is.False);
@@ -93,6 +94,7 @@ namespace ShatteredSail.Presentation.Tests
             // relic (145) and the starter (80) cannot carry the initial load.
             foreach (int ship in new[] { 1, 3, 4 })
                 PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(ship), 1);
+            SeedShipPortLocationsForFixture("断锚港", 0, 1, 3, 4);
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
             yield return null;
@@ -156,6 +158,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(1), 1);
+            SeedShipPortLocationsForFixture("断锚港", 0, 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.CrewRecruitmentKey(0), 1);
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
@@ -168,7 +171,7 @@ namespace ShatteredSail.Presentation.Tests
             controller.Session.RestoreTreasureProgress(progress);
             ComponentArtCatalog catalog = new ComponentArtCatalog();
             ComponentArtEntry rareBow = catalog.Entries.First(entry => entry.Slot == ComponentSlot.Bow && entry.Rarity == ComponentRarity.Rare);
-            OwnedShipComponent replacement = controller.GrantOwnedComponent(rareBow, 0.94f);
+            OwnedShipComponent replacement = controller.GrantOwnedComponent(rareBow);
             string otherShipBow = controller.InstalledShipComponent(0, ComponentSlot.Bow)?.InstanceId;
             string originalBow = controller.InstalledShipComponent(1, ComponentSlot.Bow).InstanceId;
             int itemCount = controller.OwnedComponents.Count;
@@ -187,7 +190,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Departure Next Vessel");
             AssertDepartureFlagship(controller, 1);
             Assert.That(controller.Session.SelectedSeed, Is.EqualTo(arrowSeed),
-                "Switching vessels must commit pending input before rebuilding the departure UI.");
+                "Switching vessels must commit pending input while preserving the departure UI.");
             string seed = CoreVoyageSession.CreateChartSeed(2, controller.Session.CurrentPort, "白贝港");
             yield return EnterDepartureChartSeed(seed, false);
             yield return ClickShipyardControl("Inspect Departure Vessel");
@@ -195,20 +198,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Shipyard Dossier Name").GetComponent<Text>().text, Is.EqualTo(CoreVoyageSession.Ships[1].Name));
             Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null, "Departure opens the selected vessel's fittings directly.");
             Assert.That(controller.Session.SelectedSeed, Is.EqualTo(seed));
-            yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
-            Assert.That(GameObject.Find("Shipyard Dossier Stat 0"), Is.Not.Null);
-            yield return ClickShipyardControl("Shipyard Dossier Tab Background");
-            Assert.That(GameObject.Find("Shipyard Dossier Story"), Is.Not.Null);
-            Assert.That(GameObject.Find("Shipyard Dossier Stat 0"), Is.Null);
-            yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
+            Assert.That(ActiveButton("Close Shipyard Equipment").GetComponentInChildren<Text>().text, Does.Contain("返回出航码头"));
+            Assert.That(GameObject.Find("Shipyard Dossier Tab Performance"), Is.Null, "The departure shortcut opens the separate equipment window.");
             Assert.That(ActiveButton("Shipyard Equip Component").interactable, Is.False);
             yield return ClickShipyardControl("Shipyard Equipment Owned " + replacement.InstanceId);
             yield return ClickShipyardControl("Shipyard Equip Component");
             Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).InstanceId, Is.EqualTo(replacement.InstanceId));
             Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == originalBow).ShipIndex, Is.EqualTo(-1));
             AssertShipyardTactic(controller, rareBow, true);
-            NavalBattleVisualCapture.Capture(controller, "86_Departure_Vessel_Equipment.png", "从出航打开当前旗舰档案并更换船角，底部可直接返回出航码头", "Shipyard Detail");
-            yield return ClickShipyardControl("Back To Voyage Departure");
+            NavalBattleVisualCapture.Capture(controller, "86_Departure_Vessel_Equipment.png", "从出航打开当前旗舰档案并更换船角，左上角可直接返回出航码头", "Shipyard Detail");
+            yield return ClickShipyardControl("Close Shipyard Equipment");
+            Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
             Assert.That(FindRenderedShipLayer("Voyage Setup", rareBow.ShipLayer), Is.Null,
                 "Non-initial flagships retain their original artwork after refitting, without component overlays.");
             RawImage[] departureShipImages = GameObject.Find("Starter Modular Ship").GetComponentsInChildren<RawImage>();
@@ -225,7 +225,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.MaxHull, Is.EqualTo(CoreVoyageSession.Ships[1].MaxHull),
                 "An empty slot leaves the selected hull at its authored base value.");
             AssertShipyardTactic(controller, rareBow, false);
-            yield return ClickShipyardControl("Back To Voyage Departure");
+            yield return ClickShipyardControl("Close Shipyard Equipment");
             Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow), Is.Null);
             Assert.That(GameObject.Find("Upgrade Name 0"), Is.Null);
             Assert.That(GameObject.Find("Upgrade Part 0"), Is.Null, "The departure summary no longer shows equipment slots.");
@@ -234,18 +234,27 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Shipyard Equip Component");
             int expectedHull = CoreVoyageSession.Ships[1].MaxHull + rareBow.HullBonus - catalog.Get(0).HullBonus;
             Assert.That(controller.Session.MaxHull, Is.EqualTo(expectedHull));
-            yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
-            Assert.That(GameObject.Find("Shipyard Dossier Stat 0").GetComponent<Text>().text, Is.EqualTo("船体上限  " + expectedHull));
-            yield return ClickShipyardControl("Back To Voyage Departure");
+            yield return ClickShipyardControl("Close Shipyard Equipment");
 
-            // Leaving the dossier through the shared header must clear its return origin too.
+            // The shared header first returns to this dossier's departure
+            // origin; the next header click leaves departure for the port.
             yield return ClickShipyardControl("Inspect Departure Vessel");
-            Assert.That(ActiveButton("Back To Voyage Departure"), Is.Not.Null);
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航码头"));
+            yield return ClickShipyardControl("Return To Port Hub");
+            Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
+            Assert.That(GameObject.Find("Shipyard Detail"), Is.Null);
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
             yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Port Hotspot Shipyard");
             yield return ClickShipyardControl("Shipyard Ship 1");
-            Assert.That(ActiveButton("Back To Voyage Departure"), Is.Null);
-            yield return ClickShipyardControl("Back To Shipyard Gallery");
+            Assert.That(GameObject.Find("Shipyard Dossier Stat 0").GetComponent<Text>().text, Is.EqualTo("船体上限  " + expectedHull));
+            yield return ClickShipyardControl("Shipyard Dossier Tab Background");
+            Assert.That(GameObject.Find("Shipyard Dossier Story"), Is.Not.Null);
+            Assert.That(GameObject.Find("Shipyard Dossier Stat 0"), Is.Null);
+            yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
+            Assert.That(GameObject.Find("Shipyard Dossier Stat 0").GetComponent<Text>().text, Is.EqualTo("船体上限  " + expectedHull));
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回船坞"));
+            yield return ClickShipyardControl("Return To Port Hub");
             Assert.That(ActiveButton("Shipyard Ship 1"), Is.Not.Null);
             yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Port Hotspot Voyage");
@@ -261,7 +270,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Upgrade Name 0"), Is.Null);
             Assert.That(GameObject.Find("Upgrade Part 0"), Is.Null);
             Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Bow)?.InstanceId, Is.EqualTo(otherShipBow));
-            Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).Quality, Is.EqualTo(0.94f).Within(0.0001f));
+            Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).ComponentId, Is.EqualTo(rareBow.Id));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Does.Not.Contain("quality"));
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(itemCount));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
@@ -297,5 +307,6 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Departure Ship Schematic Caption"), Is.Null);
             Assert.That(GameObject.Find("Ship Stats"), Is.Null);
         }
+
     }
 }

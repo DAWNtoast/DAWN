@@ -42,14 +42,13 @@ namespace ShatteredSail.Presentation
         public static readonly Vector2 CannonballIconPosition = new Vector2(-102.89f, -185.15f);
         public static readonly Vector2 SpecialCostIconSize = new Vector2(52f, 52f);
         public static readonly Vector2 SpecialCostIconPosition = new Vector2(101.46f, 177.9f);
-        public static readonly Vector2 RepeatCostPosition = new Vector2(-40f, 195f);
         public const string ReferenceName = "领航员 · 抢占航线+3";
         public const int EffectFontSize = 16;
         private static string referenceEffect;
         private static readonly Regex UsageConditions = new Regex(
-            @"<b>[\s\S]*?</b>|(?:平行且)?距离不超过[ \u00a0]*[0-9]+(?:\.[0-9]+)?[ \u00a0]*米" +
-            @"|[0-9]+(?:\.[0-9]+)?[ \u00a0]*米(?:以内|以外|内|外)" +
-            @"|须(?:再次推进|推进后)才能冲撞|再次推进后(?=可冲撞)", RegexOptions.CultureInvariant);
+            @"<b>[\s\S]*?</b>|(?:平行且)?距离不超过[ \u00a0]*[0-9]+(?:\.[0-9]+)?[ \u00a0]*(?:米|格)" +
+            @"|[0-9]+(?:\.[0-9]+)?[ \u00a0]*(?:米|格)(?:以内|以外|内|外)" +
+            @"|两舰上下左右相邻且同向(?=时)|须(?:再次推进|推进后)才能冲撞|再次推进后(?=可冲撞)", RegexOptions.CultureInvariant);
 
         public static string DisplayName(CoreBattleCard card) => card.Name +
             (card.UpgradeLevel > 0 ? "+" + card.UpgradeLevel : string.Empty);
@@ -105,6 +104,13 @@ namespace ShatteredSail.Presentation
                 text.fontSize = size;
                 text.text = CardDescriptionText.Wrap(text, source, size);
                 if (Fits(text, text.text, size, false) && text.preferredHeight <= text.rectTransform.rect.height) break;
+                // Short independent clauses can waste whole rows. Preserve their
+                // boundaries with semicolons before reducing the shared type size.
+                if (source.IndexOf('\n') >= 0)
+                {
+                    text.text = CardDescriptionText.Wrap(text, source, size, true);
+                    if (Fits(text, text.text, size, false) && text.preferredHeight <= text.rectTransform.rect.height) break;
+                }
             }
             text.resizeTextMinSize = text.fontSize;
             text.resizeTextMaxSize = EffectFontSize;

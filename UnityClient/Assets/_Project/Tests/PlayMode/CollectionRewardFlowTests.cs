@@ -42,15 +42,21 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator CollectionRewards_RecruitedCrewRequiresOwnLevelThreeCardAndClaimsOnceAcrossReload()
+        public IEnumerator CollectionRewards_RecruitedCrewRequiresOwnFullyUpgradedCardAndClaimsOnceAcrossReload()
         {
             yield return VerifyRecruitmentCollectionCardLevels("crew_broken_anchor_navigator_lorne", "lorne_first_berth_token");
         }
 
         [UnityTest]
-        public IEnumerator CollectionRewards_PepeRequiresHisNewCharacterCardAtLevelThree()
+        public IEnumerator CollectionRewards_PepeRequiresHisNewCharacterCardAtItsAuthoredMaximum()
         {
             yield return VerifyRecruitmentCollectionCardLevels("crew_gray_gull_cook_pepe", "pepe_shared_pot_lid");
+        }
+
+        [UnityTest]
+        public IEnumerator CollectionRewards_HelenRequiresAllThreeAuthoredUpgradesAndClaimsOnceAcrossReload()
+        {
+            yield return VerifyRecruitmentCollectionCardLevels("crew_bronze_bell_gunner_helen", "helen_thirteenth_cannon_coin");
         }
 
         [UnityTest]
@@ -75,6 +81,8 @@ namespace ShatteredSail.Presentation.Tests
             CrewVariantDefinition crew = CrewNarrativeCatalog.FindById(crewId);
             CoreSpecialCardDefinition card = CoreSpecialCardCatalog.ForCrew(crewId);
             Assert.That(card, Is.Not.Null, "Every recruitment keepsake must have an obtainable character card.");
+            int maximumLevel = new CoreVoyageSession().GetCardMaximumUpgradeLevel(card.Card.Id);
+            int requiredExperience = new[] { 0, 120, 360, 840 }[maximumLevel];
             CoreSpecialCardDefinition other = CoreSpecialCardCatalog.ForCrew("crew_white_shell_navigator_saina");
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, crew.PortName);
@@ -88,27 +96,27 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.AcquiredSpecialCardIds, Does.Contain(card.Card.Id));
             Assert.That(controller.Session.GetCardUpgradeLevel(card.Card.Id), Is.Zero);
             Assert.That(controller.WarehouseCollection.Owns(treasureId), Is.False, "Recruitment alone and another character's level three card are insufficient.");
-            foreach (int experience in new[] { 120, 360, 839 })
+            foreach (int experience in new[] { 119, 120, 359, 360, 839 }.Where(value => value < requiredExperience))
             {
                 controller.Session.RestoreSpecialCardExperience(new Dictionary<string, int> { [card.Card.Id] = experience });
                 RenderResponsiveBattle(controller); yield return null;
-                Assert.That(controller.Session.GetCardUpgradeLevel(card.Card.Id), Is.EqualTo(experience < 360 ? 1 : 2));
+                Assert.That(controller.Session.GetCardUpgradeLevel(card.Card.Id), Is.EqualTo(experience < 120 ? 0 : experience < 360 ? 1 : 2));
                 Assert.That(controller.WarehouseCollection.Owns(treasureId), Is.False, "Card experience " + experience + " cannot unlock the keepsake.");
             }
             typeof(CoreGameplayDemoController).GetMethod("SaveProgress", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
             controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            Assert.That(controller.Session.GetCardUpgradeLevel(card.Card.Id), Is.EqualTo(2));
+            Assert.That(controller.Session.GetCardUpgradeLevel(card.Card.Id), Is.EqualTo(maximumLevel - 1));
             Assert.That(controller.WarehouseCollection.Owns(treasureId), Is.False, "Reload must preserve the incomplete card requirement.");
-            controller.Session.RestoreSpecialCardExperience(new Dictionary<string, int> { [card.Card.Id] = 840 });
+            controller.Session.RestoreSpecialCardExperience(new Dictionary<string, int> { [card.Card.Id] = requiredExperience });
             typeof(CoreGameplayDemoController).GetMethod("SaveProgress", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
             CollectionAssert.AreEquivalent(new[] { treasureId }, controller.WarehouseCollection.OwnedIds);
-            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.SpecialCardExperienceKey), Does.Contain(card.Card.Id + "=840"));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.SpecialCardExperienceKey), Does.Contain(card.Card.Id + "=" + requiredExperience));
             for (int load = 0; load < 2; load++)
             {
                 SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
                 controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                Assert.That(controller.Session.GetCardUpgradeLevel(card.Card.Id), Is.EqualTo(3));
+                Assert.That(controller.Session.GetCardUpgradeLevel(card.Card.Id), Is.EqualTo(maximumLevel));
                 CollectionAssert.AreEquivalent(new[] { treasureId }, controller.WarehouseCollection.OwnedIds);
             }
             controller.Session.RestoreProfile(controller.Session.ProfileGold, "白贝港");
@@ -185,7 +193,7 @@ namespace ShatteredSail.Presentation.Tests
             string[] ports = CoreVoyageSession.DestinationPorts.ToArray();
             var progress = new CoreCollectionProgress
             {
-                defeatedBossIds = CoreVoyageSession.Routes.Select(route => "boss_" + route.Id)
+                defeatedBossIds = CoreRouteBossCatalog.All.Select(boss => boss.Id)
                     .Concat(CoreLegendaryWarships.All.Select(ship => ship.Id)).ToArray(),
                 completedChartSeeds = Enumerable.Range(0, 5).Select(i => CoreVoyageSession.CreateChartSeed(i % 3, ports[i], ports[i + 1])).ToArray(),
                 completedRouteIds = CoreVoyageSession.Routes.Select(route => route.Id).ToArray(),

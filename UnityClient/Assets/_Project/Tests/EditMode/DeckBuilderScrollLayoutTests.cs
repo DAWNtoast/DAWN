@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
@@ -63,10 +64,14 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform rail = Find<RectTransform>("Deck Builder Deck Rail");
             Button[] rows = Cards(false);
             Assert.That(rows, Has.Length.EqualTo(10), "Two copies of a card share one row.");
-            CollectionAssert.AreEqual(deck.Distinct(), rows.Select(CardIndex), "Groups retain the first occurrence order.");
+            CollectionAssert.AreEqual(CatalogOrder(deck), rows.Select(CardIndex),
+                "Grouped rows follow the visible card numbers independently of saved deck order.");
+            CollectionAssert.AreEqual(deck, controller.Session.GetBattleDeck(NavalBattleStage.Naval),
+                "Sorting the display must preserve the deck's copy order.");
             AssertColumnTotal(false, deck.Length);
             int[] sourceCards = controller.Session.GetBonusBattleCards(NavalBattleStage.Naval).ToArray();
-            CollectionAssert.AreEqual(sourceCards.Distinct(), Cards(true).Select(CardIndex));
+            CollectionAssert.AreEqual(CatalogOrder(sourceCards), Cards(true).Select(CardIndex),
+                "Source-card rows use the same catalogue order as the base-card column.");
             AssertColumnTotal(true, sourceCards.Length);
             foreach (bool isSpecial in new[] { false, true })
             {
@@ -237,6 +242,10 @@ namespace ShatteredSail.Presentation.Tests
             string expected = (special ? "专属牌 " : "基础卡 ") + total + " 张";
             Assert.That(Find<Text>("Deck Builder " + (special ? "Special" : "Base") + " Column Count").text, Is.EqualTo(expected));
         }
+
+        private static IEnumerable<int> CatalogOrder(IEnumerable<int> cards) => cards.Distinct()
+            .OrderBy(index => CoreBattleCardNumbering.Number(CoreVoyageSession.CardLibrary[index]))
+            .ThenBy(index => index);
 
         private int[] BasePool() => controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval)
             .Where(index => !CoreVoyageSession.IsSpecialBattleCard(controller.Session.GetBattleCard(index).Id) &&

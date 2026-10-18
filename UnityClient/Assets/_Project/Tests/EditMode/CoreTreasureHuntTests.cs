@@ -281,15 +281,20 @@ namespace ShatteredSail.Core.Tests
         [TestCase("weathered")]
         [TestCase("gilded")]
         [TestCase("moonlit")]
-        public void HiddenMaps_AreSeedBoundReachableSpacedAndGuaranteeClues(string rankId)
+        public void LegacyHiddenMaps_AreSeedBoundReachableSpacedAndGuaranteeClues(string rankId)
         {
             CoreTreasureMapRank rank = CoreTreasureHuntCatalog.FindRank(rankId);
             for (int seed = 0; seed < 8; seed++)
             {
                 var a = Ready(rankId, "GEOGRAPHY-" + seed); var b = Ready(rankId, "GEOGRAPHY-" + seed);
+                // This fixture verifies fog and geometry without departure intelligence.
+                // NavigatorDepartureRevealTests separately checks the intentional two-point bonus.
+                a.ConfigureCrewCapabilities(false, false, false, false, false, false);
+                b.ConfigureCrewCapabilities(false, false, false, false, false, false);
                 b.RestoreProfile(500, "灰鸥港");
                 Assert.That(a.TryStartTreasureVoyage(out string reason), Is.True, reason);
                 Assert.That(b.TryStartTreasureVoyage(out reason), Is.True, reason);
+                a = ResumeLegacyVoyage(a); b = ResumeLegacyVoyage(b);
                 Assert.That(a.TreasureMaps, Is.Empty);
                 Assert.That(a.IsTreasureVoyage, Is.True);
                 Assert.That(a.CanDrawSeaChart, Is.False);
@@ -363,10 +368,11 @@ namespace ShatteredSail.Core.Tests
         [TestCase("moonlit", 0)]
         [TestCase("weathered", 1)]
         [TestCase("weathered", 2)]
-        public void CoreOpening_RequiresCluesAndCostsThenSettlesOnceAtNinetyFivePercent(string rankId, int choice)
+        public void LegacyCoreOpening_RequiresCluesAndCostsThenSettlesOnceAtNinetyFivePercent(string rankId, int choice)
         {
             var session = Ready(rankId, "CORE-" + rankId + choice);
             Assert.That(session.TryStartTreasureVoyage(out _), Is.True);
+            session = ResumeLegacyVoyage(session);
             CoreMapNode core = session.Map.Nodes.Single(x => x.Encounter.Id == "treasure_core");
             Enter(session, core);
             Assert.That(session.IsChoiceAvailable(choice), Is.False);
@@ -400,10 +406,11 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CoreOpening_RejectsCargoOverflowLethalBreachAndAbsentDiverWithoutMutations()
+        public void LegacyCoreOpening_RejectsCargoOverflowLethalBreachAndAbsentDiverWithoutMutations()
         {
             var session = Ready("weathered", "CORE-GATES"); session.ConfigureCrewCapabilities(false, false, false, false, false, false);
             Assert.That(session.TryStartTreasureVoyage(out _), Is.True);
+            session = ResumeLegacyVoyage(session);
             CoreMapNode core = session.Map.Nodes.Single(x => x.Encounter.Id == "treasure_core");
             Enter(session, core); Set(session, "TreasureClues", 2);
             session.Cargo.Wood = 75;
@@ -466,10 +473,11 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void EarlyCoreVisit_CanLeaveCollectRealCluesAndRevisitWithoutLosingTheAdventure()
+        public void LegacyEarlyCoreVisit_CanLeaveCollectRealCluesAndRevisitWithoutLosingTheAdventure()
         {
             var session = Ready("weathered", "EARLY-CORE");
             Assert.That(session.TryStartTreasureVoyage(out _), Is.True);
+            session = ResumeLegacyVoyage(session);
             CoreMapNode core = session.Map.Nodes.Single(x => x.Encounter.Id == "treasure_core");
             Enter(session, core);
             Assert.That(session.IsChoiceAvailable(0), Is.False);
@@ -521,7 +529,21 @@ namespace ShatteredSail.Core.Tests
             {
                 var first = new CoreVoyageSession(); first.SetSeed(seed); first.StartVoyage();
                 var same = new CoreVoyageSession(); same.SetSeed(seed); same.StartVoyage();
-                Assert.That(first.Map.Nodes.Count, Is.EqualTo(15));
+                var original = ((IReadOnlyList<CoreEncounter>)typeof(CoreVoyageSession)
+                    .GetMethod("CreateEncounterPool", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(first, new object[] { first.Map.Route })).Select(item => item.Id).Distinct().ToArray();
+                var expansion = new HashSet<string>(CoreVoyageEventCatalog.CreateFixedEncounters(first.Map.Route.Id)
+                    .Select(item => item.Id));
+                int expansionCount = Math.Min(4, expansion.Count);
+                // Current geometry keeps every original event, chooses four additions,
+                // and places exactly one of this route's bosses at the destination.
+                CollectionAssert.AreEquivalent(original, first.Map.Nodes.Where(node => original.Contains(node.Encounter.Id))
+                    .Select(node => node.Encounter.Id));
+                Assert.That(first.Map.Nodes.Count(node => expansion.Contains(node.Encounter.Id)), Is.EqualTo(expansionCount));
+                Assert.That(first.Map.Nodes.Select(node => node.Encounter.Id).Distinct().Count(), Is.EqualTo(first.Map.Nodes.Count));
+                CoreMapNode boss = first.Map.Nodes.Single(node => node.IsBoss);
+                Assert.That(CoreRouteBossCatalog.ForRoute(first.Map.Route.Id).Select(item => item.Id), Does.Contain(boss.Encounter.Id));
+                Assert.That(first.Map.Nodes.Count, Is.EqualTo(original.Length + expansionCount + 1));
                 Assert.That(first.Map.Nodes.Count(x => x.Encounter.Choices.Any(c => c.Effect.MapFragments > 0)), Is.EqualTo(2));
                 Assert.That(first.Map.EventFootprints.Count, Is.EqualTo(first.Map.Nodes.Count), "Failed attempts must not leave duplicate footprints.");
                 var reserved = new HashSet<int>();
@@ -754,6 +776,26 @@ namespace ShatteredSail.Core.Tests
                 maps = new[] { new CoreTreasureMapSave { id = "test:" + seed, seed = seed, rankId = rankId } }, selectedMapId = "test:" + seed });
             EmptyHold(session); session.Cargo.Water = 100; session.Cargo.Food = 100; session.Cargo.Powder = 8;
             return session;
+        }
+        // These tests describe the old four-choice vault and clue pool. Build
+        // its version-zero map, serialize a full voyage, then exercise the real
+        // checkpoint restore path; fresh departures still test current content.
+        private static CoreVoyageSession ResumeLegacyVoyage(CoreVoyageSession source)
+        {
+            const BindingFlags hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+            CoreTreasureMapRecord active = source.ActiveTreasureMap;
+            var legacy = (CoreTreasureMapRecord)typeof(CoreTreasureMapRecord).GetConstructors(hidden).Single()
+                .Invoke(new object[] { active.Id, active.Seed, active.RankId, active.MapGeometryVersion, 0 });
+            var map = (CoreVoyageMap)typeof(CoreVoyageSession).GetMethod("GenerateTreasureMap", hidden)
+                .Invoke(source, new object[] { legacy, source.CurrentPort });
+            Set(source, "Map", map); Set(source, "ActiveTreasureMap", legacy);
+            CoreVoyageCheckpoint checkpoint = source.CaptureVoyageCheckpoint();
+            checkpoint.treasureProgress.usedMaps.Single(m => m.seed == active.Seed).contentVersion = 0;
+            var restored = new CoreVoyageSession();
+            Assert.That(restored.TryRestoreVoyageCheckpoint(UnityEngine.JsonUtility.FromJson<CoreVoyageCheckpoint>(
+                UnityEngine.JsonUtility.ToJson(checkpoint)), out string reason), Is.True, reason);
+            Assert.That(restored.ActiveTreasureMap.ContentVersion, Is.Zero);
+            return restored;
         }
         private static void EmptyHold(CoreVoyageSession session)
         {

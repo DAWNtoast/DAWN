@@ -119,6 +119,14 @@ namespace ShatteredSail.Core.Gameplay
         public bool TreasureComplete { get; set; }
         public bool ForceReturn { get; set; }
         public bool PostponeTreasureCore { get; set; }
+        public double SailingBoostHours { get; set; }
+        public double SurveyBoostHours { get; set; }
+        public string GrantDiscovery { get; set; }
+        public string RevealEncounterId { get; set; }
+        public string TreasureMark { get; set; }
+        public int TreasureCredit { get; set; }
+        public int TreasureHeat { get; set; }
+        public int TreasureResonance { get; set; }
     }
 
     public sealed class CoreEncounterChoice
@@ -137,7 +145,12 @@ namespace ShatteredSail.Core.Gameplay
             CoreVoyageWeather requiredWeather = CoreVoyageWeather.Any,
             EventTerrainConstraint requiredTerrain = EventTerrainConstraint.Any,
             int minimumCurse = 0,
-            int maximumCurse = int.MaxValue)
+            int maximumCurse = int.MaxValue,
+            string requiredDiscovery = "",
+            string requiredTreasureMark = "",
+            int minimumTreasureCredit = 0,
+            int maximumTreasureHeat = 5,
+            int minimumTreasureResonance = 0)
         {
             Label = label;
             Detail = detail;
@@ -153,6 +166,11 @@ namespace ShatteredSail.Core.Gameplay
             RequiredTerrain = requiredTerrain;
             MinimumCurse = Math.Max(0, minimumCurse);
             MaximumCurse = Math.Max(MinimumCurse, maximumCurse);
+            RequiredDiscovery = requiredDiscovery ?? string.Empty;
+            RequiredTreasureMark = requiredTreasureMark ?? string.Empty;
+            MinimumTreasureCredit = Math.Max(0, minimumTreasureCredit);
+            MaximumTreasureHeat = Math.Max(0, maximumTreasureHeat);
+            MinimumTreasureResonance = Math.Max(0, minimumTreasureResonance);
         }
 
         public string Label { get; }
@@ -169,6 +187,11 @@ namespace ShatteredSail.Core.Gameplay
         public EventTerrainConstraint RequiredTerrain { get; }
         public int MinimumCurse { get; }
         public int MaximumCurse { get; }
+        public string RequiredDiscovery { get; }
+        public string RequiredTreasureMark { get; }
+        public int MinimumTreasureCredit { get; }
+        public int MaximumTreasureHeat { get; }
+        public int MinimumTreasureResonance { get; }
     }
 
     public sealed class CoreEncounter
@@ -321,7 +344,7 @@ namespace ShatteredSail.Core.Gameplay
         private static int RowsForGeometry(int geometryVersion)
         {
             if (geometryVersion == 0) return GridRows;
-            if (geometryVersion == 1) return 36;
+            if (geometryVersion >= 1 && geometryVersion <= 3) return 36;
             throw new ArgumentOutOfRangeException(nameof(geometryVersion), "Unknown voyage map geometry.");
         }
 
@@ -663,6 +686,7 @@ namespace ShatteredSail.Core.Gameplay
         public float PlannedDistanceNm { get; set; }
         public float ActualDistanceNm { get; set; }
         public float EffectiveSpeedKnots { get; set; }
+        internal float BaseSpeedKnots { get; set; }
         public double Hours { get; set; }
         public int WaterCost { get; set; }
         public int FoodCost { get; set; }
@@ -753,7 +777,6 @@ namespace ShatteredSail.Core.Gameplay
         public const float CargoCapacity = 80f;
         public const int CrewCount = 10;
         public const int MinimumDistanceNm = 20;
-        public const int MaximumDistanceNm = 180;
         private const float PortArrivalRadiusMapUnits = 1.7f;
         public const float BossMinimumSailingDays = 10f;
         public const float BossBorderMarginMapUnits = 8f;
@@ -806,6 +829,7 @@ namespace ShatteredSail.Core.Gameplay
         private bool bossDefeated;
         private bool randomAmbushOccurred;
         private bool hasNavigator = true;
+        private int navigatorCount = 1;
         private bool hasCarpenter = true;
         private bool hasDoctor = true;
         private bool hasGunner = true;
@@ -837,10 +861,10 @@ namespace ShatteredSail.Core.Gameplay
             SelectedDestinationPort = DefaultDestinationFor(CurrentPort);
             ProfileGold = 500;
             SelectedShipIndex = 0;
+            shipPorts[SelectedShipIndex] = CurrentPort;
             SelectedRouteIndex = 0;
             SelectedSeed = "SHATTERED-SAIL";
             Heading = SailingDirection.East;
-            PlannedDistanceNm = 120;
             Phase = CoreDemoPhase.Port;
             Hull = MaxHull;
             Morale = DefaultStartingMorale;
@@ -914,10 +938,17 @@ namespace ShatteredSail.Core.Gameplay
         public int BoardingCriticalChancePercent => (int)Math.Max(0L, Math.Min(100L, (long)Morale * 3L));
         public VoyageCargo Cargo { get; private set; }
         public CoreVoyageMap Map { get; private set; }
-        public int MapGeometryVersion { get; set; } = 1;
+        public int MapGeometryVersion { get; set; } = 2;
         public VoyagePoint Position { get; private set; }
         public SailingDirection Heading { get; private set; }
-        public int PlannedDistanceNm { get; private set; }
+        // Keep the player's selection separate from this leg's speed-limited budget.
+        // An encounter can change the latter without changing the distance control.
+        public int RequestedDistanceNm => usesDefaultDistance ? DefaultDistanceNm : requestedDistanceNm;
+        public int PlannedDistanceNm => BuildCurrentCoursePlan().PlannedDistanceNm;
+        public int MaximumDistanceNm => BuildCurrentCoursePlan().MaximumDistanceNm;
+        public int DefaultDistanceNm => BuildCurrentCoursePlan().DefaultDistanceNm;
+        public float CurrentSailingSpeedKnots => BuildCurrentCoursePlan().SpeedKnots;
+        public bool UsesDefaultDistance => usesDefaultDistance;
         public bool HasDirectCourseTarget { get; private set; }
         public VoyagePoint DirectCourseTarget { get; private set; }
         public float TotalDistanceNm { get; private set; }
@@ -929,6 +960,8 @@ namespace ShatteredSail.Core.Gameplay
         public IReadOnlyList<string> LogEntries => logEntries;
         public IReadOnlyList<int> BattleDeck => GetBattleDeck(NavalBattleStage.Naval);
         public bool HasNavigator => hasNavigator;
+        /// <summary>Only the departure intelligence bonus stacks per navigator; profession abilities remain boolean.</summary>
+        public int NavigatorCount => Math.Max(0, Math.Min(CrewCountValue, navigatorCount));
         public bool CanDrawSeaChart => HasNavigator && !IsTreasureVoyage;
         public bool HasCarpenter => hasCarpenter;
         public bool HasDoctor => hasDoctor;
@@ -936,30 +969,11 @@ namespace ShatteredSail.Core.Gameplay
         public bool HasCook => hasCook;
         public bool HasDiver => hasDiver;
         public bool BossDefeated => bossDefeated;
-        /// <summary>Boarding victories pay the naval victory loot multiplied by 1.5.</summary>
-        public const int BoardingLootMultiplierPercent = 150;
+        /// <summary>Boarding victories double the naval victory's cash and fame.</summary>
+        public const int BoardingLootMultiplierPercent = 200;
         /// <summary>Probability that a successful capture also yields a component.</summary>
-        public const double BoardingComponentDropChance = 0.35d;
+        public const double BoardingComponentDropChance = 0.50d;
         public bool LastBattleWasCaptured { get; private set; }
-
-        /// <summary>
-        /// Consumes the one-shot component drop selected by a boarding victory.
-        /// The core session exposes only the slot; the presentation layer owns
-        /// the component inventory and art catalog.
-        /// </summary>
-        public bool TryConsumeBoardingComponentDrop(out int slot)
-        {
-            slot = pendingBoardingComponentSlot;
-            if (!pendingBoardingComponentDrop || slot < 0)
-            {
-                slot = -1;
-                return false;
-            }
-
-            pendingBoardingComponentDrop = false;
-            pendingBoardingComponentSlot = -1;
-            return true;
-        }
 
         public void RecordBoardingComponentDrop(string componentName)
         {
@@ -981,6 +995,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!string.IsNullOrWhiteSpace(currentPort))
             {
                 CurrentPort = currentPort.Trim();
+                shipPorts[SelectedShipIndex] = CurrentPort;
             }
             EnsureSelectedDestination();
         }
@@ -1047,6 +1062,14 @@ namespace ShatteredSail.Core.Gameplay
             AddLog((string.IsNullOrWhiteSpace(reason) ? "港口奖励" : reason.Trim()) + "：金币 +" + amount + "。");
         }
 
+        public void GrantCollectionIncome(int gold)
+        {
+            if (gold <= 0 || ProfileGold >= CoreEconomyBalance.MaximumProfileGold) return;
+            // Collection proceeds belong to the account even when resuming a
+            // voyage. They must never become cargo exposed to voyage losses.
+            ProfileGold = Math.Min(CoreEconomyBalance.MaximumProfileGold, ProfileGold + gold);
+        }
+
         public bool SelectShip(int shipIndex)
         {
             if (!CanSelectShip(shipIndex))
@@ -1055,6 +1078,7 @@ namespace ShatteredSail.Core.Gameplay
             }
 
             SelectedShipIndex = shipIndex;
+            shipPorts[shipIndex] = CurrentPort;
             selectedOrdinaryCrew = SelectedShip.CrewCount;
             selectedSpecialCrewCount = 0;
             Hull = MaxHull;
@@ -1064,12 +1088,18 @@ namespace ShatteredSail.Core.Gameplay
 
         public void ConfigureCrewCapabilities(bool navigator, bool carpenter, bool doctor, bool gunner, bool cook, bool diver)
         {
+            ConfigureCrewCapabilities(navigator ? 1 : 0, carpenter, doctor, gunner, cook, diver);
+        }
+
+        public void ConfigureCrewCapabilities(int navigatorCount, bool carpenter, bool doctor, bool gunner, bool cook, bool diver)
+        {
             if (Phase != CoreDemoPhase.Port)
             {
                 return;
             }
 
-            hasNavigator = navigator;
+            this.navigatorCount = Math.Max(0, Math.Min(CrewCountValue, navigatorCount));
+            hasNavigator = this.navigatorCount > 0;
             hasCarpenter = carpenter;
             hasDoctor = doctor;
             hasGunner = gunner;
@@ -1173,19 +1203,8 @@ namespace ShatteredSail.Core.Gameplay
 
         public int GetMarketCargoAmount(string material)
         {
-            switch ((material ?? string.Empty).Trim().ToLowerInvariant())
-            {
-                case "water": return Cargo.Water;
-                case "food": return Cargo.Food;
-                case "beer": return Cargo.Beer;
-                case "medicine": return Cargo.Medicine;
-                case "wood": return Cargo.Wood;
-                case "iron": return Cargo.Iron;
-                case "cloth": return Cargo.Cloth;
-                case "powder": return Cargo.Powder;
-                case "cannonballs": return Cargo.Cannonballs;
-                default: return 0;
-            }
+            string key = (material ?? string.Empty).Trim().ToLowerInvariant();
+            return FindMarketCargo(key)?.Read(Cargo) ?? 0;
         }
 
         public bool TryPurchaseMarketCargo(string material, int quantity, decimal cost, float volumePerUnit)
@@ -1239,71 +1258,32 @@ namespace ShatteredSail.Core.Gameplay
             return current >= 0 && quantity <= int.MaxValue - current;
         }
 
-        private static bool IsMarketMaterial(string material)
+        private static CoreWarehouseItemDefinition FindMarketCargo(string material)
         {
-            switch (material)
-            {
-                case "water":
-                case "food":
-                case "beer":
-                case "medicine":
-                case "wood":
-                case "iron":
-                case "cloth":
-                case "powder":
-                case "cannonballs":
-                    return true;
-                default:
-                    return false;
-            }
+            CoreWarehouseItemDefinition item = CoreWarehouseItemCatalog.Find(material);
+            // Only canonical basic keys enter the internal market operations.
+            // Rare warehouse stock must stay behind its own pricing rules.
+            return item != null && !item.IsRare && item.Key == material ? item : null;
         }
+
+        private static bool IsMarketMaterial(string material) => FindMarketCargo(material) != null;
 
         private static string MarketMaterialName(string material)
         {
-            switch (material)
-            {
-                case "water": return "淡水";
-                case "food": return "食物";
-                case "beer": return "啤酒";
-                case "medicine": return "药品";
-                case "wood": return "木材";
-                case "iron": return "铁矿";
-                case "cloth": return "帆布";
-                case "powder": return "火药";
-                default: return "炮弹";
-            }
+            // Preserve the market's established label and its legacy fallback.
+            return material == "cloth" ? "帆布" : FindMarketCargo(material)?.Name ?? "炮弹";
         }
 
         private void AddMarketCargo(string material, int quantity)
         {
-            switch (material)
-            {
-                case "water": Cargo.Water += quantity; break;
-                case "food": Cargo.Food += quantity; break;
-                case "beer": Cargo.Beer += quantity; break;
-                case "medicine": Cargo.Medicine += quantity; break;
-                case "wood": Cargo.Wood += quantity; break;
-                case "iron": Cargo.Iron += quantity; break;
-                case "cloth": Cargo.Cloth += quantity; break;
-                case "powder": Cargo.Powder += quantity; break;
-                case "cannonballs": Cargo.Cannonballs += quantity; break;
-            }
+            CoreWarehouseItemDefinition item = FindMarketCargo(material);
+            if (item != null) item.Write(Cargo, item.Read(Cargo) + quantity);
         }
 
         private void RemoveMarketCargo(string material, int quantity)
         {
-            switch (material)
-            {
-                case "water": Cargo.Water -= quantity; break;
-                case "food": Cargo.Food -= quantity; break;
-                case "beer": Cargo.Beer -= quantity; break;
-                case "medicine": Cargo.Medicine -= quantity; break;
-                case "wood": Cargo.Wood -= quantity; break;
-                case "iron": Cargo.Iron -= quantity; break;
-                case "cloth": Cargo.Cloth -= quantity; break;
-                case "powder": Cargo.Powder -= quantity; break;
-                case "cannonballs": Cargo.Cannonballs -= quantity; break;
-            }
+            CoreWarehouseItemDefinition item = FindMarketCargo(material);
+            if (item != null) item.Write(Cargo, item.Read(Cargo) - quantity);
         }
 
         public bool TrySellCargoMaterial(string material, int quantity)
@@ -1508,10 +1488,22 @@ namespace ShatteredSail.Core.Gameplay
 
         public void StartVoyage(string destinationPort)
         {
+            StartVoyage(destinationPort, null);
+        }
+
+        /// <summary>Imports the selected chart's known locations before one-time departure intelligence is awarded.</summary>
+        public void StartVoyage(string destinationPort, IReadOnlyList<int> knownLocationIds)
+        {
             if (Phase != CoreDemoPhase.Port)
             {
                 throw new InvalidOperationException("A voyage can only start from port.");
             }
+            if (!IsShipAtCurrentPort(SelectedShipIndex))
+                throw new InvalidOperationException("当前旗舰未停靠本港，无法出航。");
+
+            // Reject before selecting a seed, generating a map or consuming any port resources.
+            if (!CanStartWithDepartureCrew(out string crewFailure))
+                throw new InvalidOperationException(crewFailure);
 
             CoreTreasureMapRecord treasure = SelectedTreasureMap;
             if (treasure != null && !CanStartTreasureVoyage(out string treasureFailure))
@@ -1521,7 +1513,9 @@ namespace ShatteredSail.Core.Gameplay
             // after a route change or an API caller clearing selection state.
             if (treasure == null && GuidedTutorialLeg == 0 && selectedSeaChart == null &&
                 (SelectedSeed.StartsWith("SS2.", StringComparison.OrdinalIgnoreCase) ||
-                    SelectedSeed.StartsWith("SS3.", StringComparison.OrdinalIgnoreCase)) &&
+                    SelectedSeed.StartsWith("SS3.", StringComparison.OrdinalIgnoreCase) ||
+                    SelectedSeed.StartsWith("SS4.", StringComparison.OrdinalIgnoreCase) ||
+                    SelectedSeed.StartsWith("SS5.", StringComparison.OrdinalIgnoreCase)) &&
                 !TrySelectChartSeed(SelectedSeed, out string selectionFailure))
                 throw new InvalidOperationException(selectionFailure);
             if (!CanStartOrdinaryVoyage(out string routeFailure)) throw new InvalidOperationException(routeFailure);
@@ -1536,11 +1530,16 @@ namespace ShatteredSail.Core.Gameplay
                 SelectDestinationPort(destinationPort);
             }
             CoreRouteDefinition route = treasure == null ? routes[SelectedRouteIndex] : TreasureRoute(treasure.Rank);
+            treasure = PromoteTreasureMapForNewVoyage(treasure);
+            shipRosterVersion = 1;
+            voyageRouteBossId = string.Empty;
+            currentRouteBossDefeated = false;
             // Generate before consuming the one-shot record or mutating the port purse.
             CoreVoyageMap nextMap = treasure == null
                 ? (GuidedTutorialLeg > 0 ? GenerateGuidedTutorialMap(CurrentPort) : selectedSeaChart != null ? GenerateSelectedSeaChartMap() :
                     GenerateMap(route, SelectedSeed, CurrentPort, SelectedDestinationPort, geometryVersion: MapGeometryVersion))
                 : GenerateTreasureMap(treasure, CurrentPort);
+            if (treasure == null && GuidedTutorialLeg == 0 && selectedSeaChart?.TutorialWaters != true) AssignNewVoyageRouteBoss(nextMap);
             LockSpecialCardsForVoyage();
             // Voyage rewards and cash remain integer resources; leave the account's
             // fractional balance in port instead of truncating it on departure.
@@ -1556,8 +1555,10 @@ namespace ShatteredSail.Core.Gameplay
             // the chart's deterministic combat draws or sea-event sequence.
             bossTreasureRandom = new Mulberry32Random(unchecked((uint)Guid.NewGuid().GetHashCode()));
             Position = Map.Departure;
+            DestinationPortDiscovered = false;
             Heading = SailingDirection.East;
-            PlannedDistanceNm = 120;
+            requestedDistanceNm = MinimumDistanceNm;
+            usesDefaultDistance = true;
             Hull = MaxHull;
             Morale = hasLastVoyageExplorationCoverage
                 ? StartingMoraleForCoverage(lastVoyageExplorationCoverage)
@@ -1566,10 +1567,10 @@ namespace ShatteredSail.Core.Gameplay
             TotalDistanceNm = 0f;
             TotalHours = 0d;
             rationProgress = 0d;
+            ResetExplorationVoyageState();
+            ResetTreasureExpeditionState();
             departureCargo = SnapshotCargo(Cargo);
             pendingBattleReward = null;
-            pendingBoardingComponentDrop = false;
-            pendingBoardingComponentSlot = -1;
             LastBattleWasCaptured = false;
             bossDefeated = false;
             pendingSeaChartRewardMultiplier = 1d;
@@ -1583,7 +1584,18 @@ namespace ShatteredSail.Core.Gameplay
             BeginSeaChartVoyage(treasure);
             if (activeSeaChart != null)
                 Heading = ClosestDirection(Math.Atan2(Map.Destination.Y - Map.Departure.Y, Map.Destination.X - Map.Departure.X));
+            if (activeSeaChart != null && treasure == null && GuidedTutorialLeg == 0 && knownLocationIds != null)
+            {
+                var known = new HashSet<int>(knownLocationIds);
+                foreach (CoreMapNode node in Map.Nodes)
+                {
+                    if (node.Encounter == null || !known.Contains(node.Id)) continue;
+                    if (node.Encounter.CanRevealByIntel) node.IntelRevealed = true;
+                    else if (node.Encounter.CanDiscoverBySight) node.Discovered = true;
+                }
+            }
             RevealAt(Position);
+            RevealNavigatorDepartureLocations();
             Phase = CoreDemoPhase.Sailing;
             AddLog("驶入" + route.Name + "。");
         }
@@ -1604,9 +1616,8 @@ namespace ShatteredSail.Core.Gameplay
                 return;
             }
 
-            int clamped = Math.Max(MinimumDistanceNm, Math.Min(MaximumDistanceNm, nauticalMiles));
-            PlannedDistanceNm = (int)Math.Round(clamped / 10d) * 10;
-            HasDirectCourseTarget = false;
+            requestedDistanceNm = Math.Max(MinimumDistanceNm, nauticalMiles);
+            usesDefaultDistance = false;
         }
 
         public void SetCourseTo(VoyagePoint target)
@@ -1616,8 +1627,8 @@ namespace ShatteredSail.Core.Gameplay
                 return;
             }
 
-            // Selecting a deferred optional boss is an explicit request to revisit it.
-            // A nearby marker opens its challenge without requiring a zero-length sail.
+            // Selecting a deferred encounter explicitly requests a revisit.
+            // A nearby marker opens it without requiring a zero-length sail.
             foreach (CoreMapNode node in Map.Nodes)
             {
                 if (node.Visited || !CanRevisitEncounter(node.Encounter) || Distance(target, node.Position) > 0.25f) continue;
@@ -1629,36 +1640,29 @@ namespace ShatteredSail.Core.Gameplay
                     ActiveEncounter = node.Encounter;
                     HasDirectCourseTarget = false;
                     Phase = CoreDemoPhase.Encounter;
-                    AddLog("重新查看可选挑战：「" + node.Encounter.Name + "」。");
+                    AddLog("重新查看保留地点：「" + node.Encounter.Name + "」。");
                     return;
                 }
                 break;
             }
 
+            target = NormalizeDirectCourseTarget(target);
             float dx = target.X - Position.X;
             float dy = target.Y - Position.Y;
             if (Math.Sqrt(dx * dx + dy * dy) < 0.2)
             {
-                // A last, short approach to an unlocked port is still a valid course.
-                // Keep arbitrary near-zero sea clicks from replacing the current course.
-                if (bossDefeated && Distance(target, Map.Destination) < 0.0001f)
-                {
-                    DirectCourseTarget = Map.Destination;
-                    HasDirectCourseTarget = true;
-                }
-                return;
+                // Exact port/event selections may need a very short final approach.
+                // Arbitrary near-zero sea clicks still keep the existing course.
+                bool selectedPort = bossDefeated && Distance(target, Map.Destination) < 0.0001f;
+                bool selectedEvent = Map.Nodes.Any(node => !node.Visited && Distance(target, node.Position) < 0.0001f);
+                if (!selectedPort && !selectedEvent) return;
             }
 
-            double angle = Math.Atan2(dy, dx);
-            Heading = ClosestDirection(angle);
-            float requestedMapDistance = (float)Math.Sqrt(dx * dx + dy * dy);
-            int distance = (int)Math.Round(requestedMapDistance * Map.Route.NauticalMilesPerMapUnit / 10d) * 10;
-            SetDistance(distance);
-            float maximumMapDistance = MaximumDistanceNm / Map.Route.NauticalMilesPerMapUnit;
-            float directMapDistance = Math.Min(requestedMapDistance, maximumMapDistance);
-            float scale = directMapDistance / requestedMapDistance;
-            DirectCourseTarget = new VoyagePoint(Position.X + dx * scale, Position.Y + dy * scale);
+            List<VoyagePoint> path = SnapPathToDestination(FindNavigablePath(Position, target));
+            DirectCourseTarget = target;
             HasDirectCourseTarget = true;
+            // Target selection preserves the distance preference and planning mode.
+            UpdateCourseHeading(path);
         }
 
         public SailingForecast GetForecast()
@@ -1668,20 +1672,7 @@ namespace ShatteredSail.Core.Gameplay
                 return null;
             }
 
-            if (HasDirectCourseTarget)
-            {
-                VoyagePoint directTarget = new VoyagePoint(
-                    Clamp(DirectCourseTarget.X, 2f, Map.WorldWidth - 2f),
-                    Clamp(DirectCourseTarget.Y, 2f, Map.WorldHeight - 2f));
-                return CreatePathForecast(Position, directTarget, false);
-            }
-
-            VoyagePoint vector = DirectionVector(Heading);
-            float mapDistance = PlannedDistanceNm / Map.Route.NauticalMilesPerMapUnit;
-            VoyagePoint rawTarget = new VoyagePoint(Position.X + vector.X * mapDistance, Position.Y + vector.Y * mapDistance);
-            VoyagePoint target = new VoyagePoint(Clamp(rawTarget.X, 2f, Map.WorldWidth - 2f), Clamp(rawTarget.Y, 2f, Map.WorldHeight - 2f));
-            float actualMapDistance = Distance(Position, target);
-            return CreatePathForecast(Position, target, actualMapDistance + 0.01f < mapDistance);
+            return CreatePathForecast(BuildCurrentCoursePlan());
         }
 
         public IReadOnlyList<VoyagePoint> PlanNavigablePath(VoyagePoint start, VoyagePoint target)
@@ -1689,29 +1680,21 @@ namespace ShatteredSail.Core.Gameplay
             return FindNavigablePath(start, target);
         }
 
-        private SailingForecast CreatePathForecast(VoyagePoint start, VoyagePoint requestedTarget, bool clipped)
+        private SailingForecast CreatePathForecast(SailingCoursePlan plan)
         {
-            VoyagePoint target = SnapToNearestPassable(requestedTarget);
-            List<VoyagePoint> path = FindNavigablePath(start, target);
+            List<VoyagePoint> path = plan.Path;
             if (path.Count < 2)
             {
-                SailingForecast blocked = CreateForecast(start, start, 0f, clipped);
+                SailingForecast blocked = CreateForecast(Position, Position, 0f, plan);
                 blocked.Blocked = true;
                 blocked.PathPoints = path;
                 return blocked;
             }
-
-            List<VoyagePoint> dockingPath = SnapPathToDestination(path);
-            bool dockingApproach = !ReferenceEquals(dockingPath, path);
-            // Docking stops this leg before its original boundary destination.
-            // Do not apply edge-reef damage to the shortened, safe approach.
-            if (dockingApproach) clipped = false;
-            path = dockingPath;
             float pathMapDistance = PathDistance(path);
-            SailingForecast forecast = CreateForecast(start, path[path.Count - 1], pathMapDistance * Map.Route.NauticalMilesPerMapUnit, clipped);
+            SailingForecast forecast = CreateForecast(Position, path[path.Count - 1], pathMapDistance * Map.Route.NauticalMilesPerMapUnit, plan);
             forecast.PathPoints = path;
-            forecast.Rerouted = !HasNavigableLine(start, path[path.Count - 1]) ||
-                (!dockingApproach && path.Count > 2 && pathMapDistance > Distance(start, path[path.Count - 1]) * 1.025f);
+            forecast.Rerouted = !HasNavigableLine(Position, path[path.Count - 1]) ||
+                (!plan.DockingApproach && path.Count > 2 && pathMapDistance > Distance(Position, path[path.Count - 1]) * 1.025f);
             return forecast;
         }
 
@@ -1788,7 +1771,9 @@ namespace ShatteredSail.Core.Gameplay
             }
             bool reachesDestination = bossDefeated && planned != null &&
                 Distance(planned.Target, Map.Destination) < 0.0001f;
-            if (planned == null || (planned.ActualDistanceNm < 1f && !reachesDestination))
+            bool reachesCourseTarget = HasDirectCourseTarget && planned != null &&
+                Distance(planned.Target, NormalizeDirectCourseTarget(DirectCourseTarget)) < 0.0001f;
+            if (planned == null || (planned.ActualDistanceNm < 1f && !reachesDestination && !reachesCourseTarget))
             {
                 AddLog("已接近海域边界，请调整航向。");
                 return false;
@@ -1809,7 +1794,8 @@ namespace ShatteredSail.Core.Gameplay
 
                 float progress;
                 float distance = DistanceToPath(node.Position, planned.PathPoints, out progress);
-                if (progress > 0.2f && distance <= 1.25f && progress < closestProgress)
+                bool selectedFinalEvent = reachesCourseTarget && Distance(DirectCourseTarget, node.Position) < 0.0001f;
+                if ((progress > 0.2f || selectedFinalEvent) && distance <= 1.25f && progress < closestProgress)
                 {
                     closestProgress = progress;
                     collisionNode = node;
@@ -1850,8 +1836,8 @@ namespace ShatteredSail.Core.Gameplay
             }
 
             float actualMapDistance = closestProgress < float.MaxValue ? closestProgress : PathDistance(planned.PathPoints);
-            float actualDistance = actualMapDistance * Map.Route.NauticalMilesPerMapUnit;
-            SailingForecast forecast = CreateForecast(Position, end, actualDistance, planned.Clipped);
+            float actualDistance = Math.Min(planned.ActualDistanceNm, actualMapDistance * Map.Route.NauticalMilesPerMapUnit);
+            SailingForecast forecast = CreateInterruptedForecast(planned, end, actualDistance);
             if (Cargo.Water < forecast.WaterCost || Cargo.Food < forecast.FoodCost)
             {
                 AddLog("本航段补给不足，需要淡水和食物各 " + forecast.WaterCost + "。");
@@ -1859,13 +1845,16 @@ namespace ShatteredSail.Core.Gameplay
             }
 
             VoyagePoint start = Position;
+            if (HasDirectCourseTarget) UpdateCourseHeading(planned.PathPoints);
+            double sailingBoostAtStart = sailingBoostHoursRemaining;
+            double surveyBoostAtStart = surveyBoostHoursRemaining;
             ConsumeHours(forecast.Hours);
             TotalDistanceNm += actualDistance;
             AwardSpecialCardVoyageDistance(actualDistance);
             Position = end;
-            HasDirectCourseTarget = false;
-            RevealPath(planned.PathPoints, actualMapDistance);
+            RevealPath(planned.PathPoints, actualMapDistance, forecast.BaseSpeedKnots, sailingBoostAtStart, surveyBoostAtStart);
             AddLog("向" + DirectionLabel(Heading) + "航行 " + actualDistance.ToString("0") + " 海里，用时 " + forecast.Hours.ToString("0.0") + " 小时。");
+            RefreshDirectCourse();
 
             if (planned.Clipped && actualMapDistance + 0.001f >= PathDistance(planned.PathPoints))
             {
@@ -1887,6 +1876,7 @@ namespace ShatteredSail.Core.Gameplay
 
             if (collisionNode != null)
             {
+                SpaceRandomEventAfterFixedEncounter();
                 // A trigger position keeps the voyage deterministic, but does not
                 // make an onboard incident a place that can be charted.
                 collisionNode.Discovered = collisionNode.Encounter.HasChartLocation;
@@ -1950,6 +1940,10 @@ namespace ShatteredSail.Core.Gameplay
         public string EncounterChoiceConditionReason(CoreEncounterChoice choice)
         {
             if (choice == null) return "当前选项不存在。";
+            string expeditionReason = TreasureExpeditionConditionReason(choice);
+            if (expeditionReason.Length > 0) return expeditionReason;
+            string explorationReason = ExplorationChoiceConditionReason(choice);
+            if (explorationReason.Length > 0) return explorationReason;
             if (!HasEncounterCrewRequirement(choice.RequiredCrew))
                 return "缺少所需船员：" + CrewRequirementLabel(choice.RequiredCrew) + "。";
             if (!string.IsNullOrWhiteSpace(choice.RequiredShip) && !ShipMatchesRequirement(choice.RequiredShip))
@@ -1957,8 +1951,9 @@ namespace ShatteredSail.Core.Gameplay
                 return "需要船型：" + ShipRequirementLabel(choice.RequiredShip) + "。";
             }
 
-            if (choice.RequiredTime != CoreVoyageTimeBand.Any && CurrentVoyageTimeBand != choice.RequiredTime)
-                return "仅限" + TimeBandLabel(choice.RequiredTime) + "执行（当前为" + TimeBandLabel(CurrentVoyageTimeBand) + "）。";
+            CoreVoyageTimeBand encounterTime = IsTreasureExpedition ? CurrentTreasureExpeditionTimeBand : CurrentVoyageTimeBand;
+            if (choice.RequiredTime != CoreVoyageTimeBand.Any && encounterTime != choice.RequiredTime)
+                return "仅限" + TimeBandLabel(choice.RequiredTime) + "执行（当前为" + TimeBandLabel(encounterTime) + "）。";
             if (choice.RequiredWeather != CoreVoyageWeather.Any && CurrentVoyageWeather != choice.RequiredWeather)
                 return "需要" + WeatherLabel(choice.RequiredWeather) + "（当前为" + WeatherLabel(CurrentVoyageWeather) + "）。";
             if (choice.RequiredTerrain != EventTerrainConstraint.Any && CurrentEncounterTerrain != choice.RequiredTerrain)
@@ -1974,6 +1969,8 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (choice == null) return string.Empty;
             List<string> requirements = new List<string>();
+            AppendTreasureExpeditionRequirements(requirements, choice);
+            if (!string.IsNullOrWhiteSpace(choice.RequiredDiscovery)) requirements.Add("线索：" + DiscoveryLabel(choice.RequiredDiscovery));
             if (!string.IsNullOrWhiteSpace(choice.RequiredCrew)) requirements.Add("需要" + CrewRequirementLabel(choice.RequiredCrew));
             if (!string.IsNullOrWhiteSpace(choice.RequiredShip))
                 requirements.Add("船型：" + ShipRequirementLabel(choice.RequiredShip));
@@ -2281,6 +2278,7 @@ namespace ShatteredSail.Core.Gameplay
                 CurrentPort = Settlement.Destination;
                 EnsureSelectedDestination();
             }
+            shipPorts[SelectedShipIndex] = CurrentPort;
             // The protected gain was removed from the aboard purse at settlement.
             // Put it back before depositing, retaining any account-limit excess aboard.
             Cargo.Gold += Settlement.BankedGold;
@@ -2293,6 +2291,8 @@ namespace ShatteredSail.Core.Gameplay
             }
             Phase = CoreDemoPhase.Port;
             // Remaining voyage principal is not profit, but must be spendable again in port.
+            ResetExplorationVoyageState();
+            ResetTreasureExpeditionState();
             TryDepositTravelCash();
             Map = null;
             ActiveEncounter = null;
@@ -2405,7 +2405,7 @@ namespace ShatteredSail.Core.Gameplay
             return GenerateMap(route, seed, departureName, DefaultDestinationFor(departureName), geometryVersion: MapGeometryVersion);
         }
 
-        private CoreVoyageMap GenerateMap(CoreRouteDefinition route, string seed, string departureName, string destinationName, uint? geographyHash = null, int geometryVersion = 1)
+        private CoreVoyageMap GenerateMap(CoreRouteDefinition route, string seed, string departureName, string destinationName, uint? geographyHash = null, int geometryVersion = 2)
         {
             destinationName = NormalizeDestination(departureName, destinationName);
             uint hash = geographyHash ?? SeedHash.Compute(route.Id + "::" + seed + "::" + departureName + "::" + destinationName);
@@ -2440,6 +2440,24 @@ namespace ShatteredSail.Core.Gameplay
                     encounters.Add(candidate);
                 }
             }
+            if (geometryVersion >= 3)
+            {
+                encounters = SelectVariedChartEncounters(route, hash, encounterPool);
+            }
+            else if (geometryVersion >= 2)
+            {
+                // The expansion owns a separate stream. Old charts retain both
+                // their original event IDs and every subsequent terrain draw.
+                var additions = new List<CoreEncounter>(CoreVoyageEventCatalog.CreateFixedEncounters(route.Id));
+                var selection = new Mulberry32Random(hash ^ 0xE81D47A3u);
+                for (int index = additions.Count - 1; index > 0; index--)
+                {
+                    int swap = (int)(selection.NextDouble() * (index + 1));
+                    CoreEncounter held = additions[index]; additions[index] = additions[swap]; additions[swap] = held;
+                }
+                for (int index = 0; index < Math.Min(4, additions.Count); index++)
+                    if (encounterIds.Add(additions[index].Id)) encounters.Add(additions[index]);
+            }
             for (int index = encounters.Count - 1; index > 0; index -= 1)
             {
                 int swap = (int)(random.NextDouble() * (index + 1));
@@ -2454,7 +2472,7 @@ namespace ShatteredSail.Core.Gameplay
                 map.Nodes.Add(new CoreMapNode
                 {
                     Id = pointIndex,
-                    Encounter = encounter,
+                    Encounter = CoreVoyageEventCatalog.EnrichExploration(encounter, route.Id),
                     TerrainConstraint = TerrainConstraintFor(encounter, false),
                 });
             }
@@ -2466,7 +2484,7 @@ namespace ShatteredSail.Core.Gameplay
                 IsBoss = true,
                 TerrainConstraint = EventTerrainConstraint.Storm,
             });
-            CoreLegendaryWarships.AddThirdChartEncounters(map);
+            CoreLegendaryWarships.AddThirdChartEncounters(map, shipRosterVersion > 0);
             VoyageMapGenerator.Generate(
                 map,
                 route.MinimumEventSpacing,
@@ -2498,6 +2516,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (isBoss) return EventTerrainConstraint.Storm;
             string id = encounter == null ? string.Empty : encounter.Id;
+            if (CoreVoyageEventCatalog.TryGetFixedTerrain(id, out EventTerrainConstraint authoredTerrain)) return authoredTerrain;
             // Event terrain is authored from the scene description where the
             // generated node is placed. Hidden is a discovery flag, not a
             // weather type, so explicit cases must win over the old fallback.
@@ -2601,7 +2620,7 @@ namespace ShatteredSail.Core.Gameplay
                         new CoreEncounterChoice("缴纳通行费", "金币 -30、声望 +4", 2, new VoyageEffect { Gold = -30, Fame = 4 }),
                         // Mandatory encounters keep an unconditional combat
                         // fallback so a low-cash sloop can never be soft-locked.
-                        new CoreEncounterChoice("拒绝检查", "胜利后金币 +70，另计海战奖励", 1, new VoyageEffect { Gold = 70 }, startsBattle: true)),
+                        new CoreEncounterChoice("拒绝检查", CoreBattleRewardDescriptions.Victory(false, new VoyageEffect { Gold = 70 }), 1, new VoyageEffect { Gold = 70 }, startsBattle: true)),
                     new CoreEncounter("gold_wreck", "香料沉船", "打捞", "破裂的商船货舱仍漂着可出售的货箱。", false, true, 2, 0,
                         new CoreEncounterChoice("快速打捞", "金币 +75、船体 -3", 3, new VoyageEffect { Gold = 75, Hull = -3 },
                             requiredShip: "salvage"),
@@ -2622,7 +2641,7 @@ namespace ShatteredSail.Core.Gameplay
                         new CoreEncounterChoice("航海士校准", "显示 3 个隐藏点", 2, new VoyageEffect { Reveal = 3 }, "navigator",
                             requiredTime: CoreVoyageTimeBand.Night)),
                     new CoreEncounter("moon_ghost", "无灯幽舰", "战斗", "一艘没有灯火的古船正横切航迹。", true, false, 3, 155,
-                        new CoreEncounterChoice("进入战斗", "击退幽舰后金币 +90，另计海战奖励", 1, new VoyageEffect { Gold = 90 }, startsBattle: true)),
+                        new CoreEncounterChoice("进入战斗", CoreBattleRewardDescriptions.Victory(false, new VoyageEffect { Gold = 90 }), 1, new VoyageEffect { Gold = 90 }, startsBattle: true)),
                 });
             }
 
@@ -2658,7 +2677,7 @@ namespace ShatteredSail.Core.Gameplay
                     new CoreEncounterChoice("偷拿", "食物 +4、声望 -10", 2, new VoyageEffect { Food = 4, Fame = -10 })),
                 new CoreEncounter("event_reef_coral_ambush", "珊瑚伏击", "战斗", "珊瑚后升起几面破帆，掠夺者早已等在浅水里。", true, false, 3, 95,
                     new CoreEncounterChoice("躲入礁缝", "船体 -4", 2, new VoyageEffect { Hull = -4 }),
-                    new CoreEncounterChoice("迎战", "战斗胜利金币 +110", 2, new VoyageEffect { Gold = 110 }, startsBattle: true,
+                    new CoreEncounterChoice("迎战", CoreBattleRewardDescriptions.Victory(false, new VoyageEffect { Gold = 110 }), 2, new VoyageEffect { Gold = 110 }, startsBattle: true,
                         requiredShip: "patrol|gunship|privateer")),
             });
         }
@@ -2694,8 +2713,10 @@ namespace ShatteredSail.Core.Gameplay
 
         private CoreEncounter CreateBossEncounter(CoreRouteDefinition route)
         {
+            // Keep the original encounter identity and power during placement so
+            // selecting the second guardian never changes the geography of a chart.
             return new CoreEncounter("boss_" + route.Id, route.BossName, "区域首领", "远海首领舰盘踞在十日航程之外，控制着通往新港的关键海域。", true, false, 4, route.BossPower,
-                new CoreEncounterChoice("挑战首领", "胜利后开放新港航道", 1,
+                new CoreEncounterChoice("挑战首领", "胜利后开放新港航道；" + CoreBattleRewardDescriptions.Victory(true, new VoyageEffect { Gold = 180, Fame = 20 }), 1,
                     new VoyageEffect { Gold = 180, Fame = 20 }, startsBattle: true));
         }
 
@@ -2705,58 +2726,48 @@ namespace ShatteredSail.Core.Gameplay
             {
                 return new CoreEncounter("random_ambush_warning", "航路伏击预警", "随机事件", "航海士提前发现敌船，可以绕开或抢先接战。", false, true, 2, Map.Route.RecommendedPower,
                     new CoreEncounterChoice("改变航向", "避开本次伏击", 0, new VoyageEffect()),
-                    new CoreEncounterChoice("抢先开火", "胜利后金币 +65，另计海战奖励", 1,
+                    new CoreEncounterChoice("抢先开火", CoreBattleRewardDescriptions.Victory(false, new VoyageEffect { Gold = 65 }), 1,
                         new VoyageEffect { Gold = 65 }, startsBattle: true));
             }
 
             return new CoreEncounter("random_ambush", "航路伏击", "随机战斗", "敌船从礁影后突然出现，已经无法安全脱离。", true, true, 3, Map.Route.RecommendedPower,
-                new CoreEncounterChoice("正面迎战", "战斗胜利金币 +80，另计海战奖励", 1,
+                new CoreEncounterChoice("正面迎战", CoreBattleRewardDescriptions.Victory(false, new VoyageEffect { Gold = 80 }), 1,
                     new VoyageEffect { Gold = 80 }, startsBattle: true));
         }
 
-        private SailingForecast CreateForecast(VoyagePoint start, VoyagePoint target, float actualDistanceNm, bool clipped)
+        private SailingForecast CreateForecast(VoyagePoint start, VoyagePoint target, float actualDistanceNm, SailingCoursePlan plan)
         {
-            float courseX = target.X - start.X;
-            float courseY = target.Y - start.Y;
-            double headingAngle = courseX * courseX + courseY * courseY > 0.0001f
-                ? Math.Atan2(courseY, courseX)
-                : DirectionAngle(Heading);
-            SeaCondition condition = GetSeaConditionAt(start);
-            double currentProjection = condition.CurrentVector.X * Math.Cos(headingAngle) + condition.CurrentVector.Y * Math.Sin(headingAngle);
-            double windProjection = condition.WindVector.X * Math.Cos(headingAngle) + condition.WindVector.Y * Math.Sin(headingAngle);
-            float currentModifier = condition.CurrentStrength * 0.72f * (float)currentProjection;
-            float windModifier = condition.WindStrength * 0.28f * (float)windProjection;
-            float hullModifier = -(1f - Hull / (float)MaxHull) * 3.5f;
-            float speed = Math.Max(2.5f, EffectiveSpeedKnots + (HasNavigator ? 1f : 0f) + currentModifier + windModifier + hullModifier);
-            double hours = actualDistanceNm / speed;
+            // Polyline interpolation can round a boundary a few float ulps up.
+            actualDistanceNm = Math.Min(actualDistanceNm, plan.MaximumDistanceNm);
+            double hours = ExplorationSailingHours(actualDistanceNm, plan.BaseSpeedKnots);
             int rationCost = RationCostFor(hours);
-            string currentRelation = currentProjection > 0.25d ? "顺流" : currentProjection < -0.25d ? "逆流" : "横流";
-            string windRelation = windProjection > 0.25d ? "顺风" : windProjection < -0.25d ? "逆风" : "侧风";
             return new SailingForecast
             {
                 Start = start,
                 Target = target,
-                PlannedDistanceNm = PlannedDistanceNm,
+                PlannedDistanceNm = plan.PlannedDistanceNm,
                 ActualDistanceNm = actualDistanceNm,
-                EffectiveSpeedKnots = speed,
+                EffectiveSpeedKnots = hours > 0d ? (float)(actualDistanceNm / hours) : plan.SpeedKnots,
+                BaseSpeedKnots = plan.BaseSpeedKnots,
                 Hours = hours,
                 WaterCost = rationCost,
                 FoodCost = rationCost,
-                CurrentStrength = condition.CurrentStrength,
-                CurrentRelation = currentRelation,
-                CurrentDirection = condition.CurrentDirection,
-                CurrentSpeedModifier = currentModifier,
-                WindStrength = condition.WindStrength,
-                WindRelation = windRelation,
-                WindDirection = condition.WindDirection,
-                WindSpeedModifier = windModifier,
-                Clipped = clipped,
+                CurrentStrength = plan.CurrentStrength,
+                CurrentRelation = plan.CurrentRelation,
+                CurrentDirection = plan.CurrentDirection,
+                CurrentSpeedModifier = plan.CurrentSpeedModifier,
+                WindStrength = plan.WindStrength,
+                WindRelation = plan.WindRelation,
+                WindDirection = plan.WindDirection,
+                WindSpeedModifier = plan.WindSpeedModifier,
+                Clipped = plan.Clipped,
             };
         }
 
         private void ConsumeHours(double hours)
         {
             AdvanceGameClock(hours);
+            ConsumeExplorationHours(hours);
             int cost = RationCostFor(hours);
             rationProgress += EffectiveRationCrewCount() * Math.Max(0d, hours) / 24d;
             Cargo.Water = Math.Max(0, Cargo.Water - cost);
@@ -2820,6 +2831,8 @@ namespace ShatteredSail.Core.Gameplay
             Cargo.Gold = Math.Max(0, Cargo.Gold + effect.Gold);
             Cargo.Fame = Math.Max(0, Cargo.Fame + effect.Fame);
             ApplyTreasureEffect(effect);
+            ApplyExplorationEffect(effect);
+            ApplyTreasureExpeditionEffect(effect);
             if (effect.Reveal > 0) RevealNearestHidden(effect.Reveal);
         }
 
@@ -2862,17 +2875,22 @@ namespace ShatteredSail.Core.Gameplay
             {
                 activeNode.Visited = !(skipped && CanRevisitEncounter(activeNode.Encounter));
                 activeNode.Skipped = skipped;
+                if (HasDirectCourseTarget && Distance(DirectCourseTarget, activeNode.Position) < 0.0001f)
+                    HasDirectCourseTarget = false;
             }
             ActiveEncounter = null;
             activeNode = null;
             Phase = CoreDemoPhase.Sailing;
+            RefreshDirectCourse();
         }
 
         private static bool IsOptionalBoss(CoreEncounter encounter) => encounter != null &&
             (encounter.BossKind == CoreBossKind.Treasure || encounter.BossKind == CoreBossKind.Legendary);
 
         private static bool CanRevisitEncounter(CoreEncounter encounter) => IsOptionalBoss(encounter) ||
-            encounter != null && encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId;
+            encounter != null && (encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId ||
+                IsTreasureExpeditionEvent(encounter.Id) ||
+                encounter.Choices.Any(choice => !string.IsNullOrWhiteSpace(choice.RequiredDiscovery)));
 
         private void Shuffle(List<int> values)
         {
@@ -2888,6 +2906,7 @@ namespace ShatteredSail.Core.Gameplay
         private void WinBattle()
         {
             if (Phase != CoreDemoPhase.Battle || Battle == null) return;
+            ClearNavalArrivalContactState();
             RestoreGuidedBossSupplies();
             bool guidedBoss = IsGuidedBossVoyage &&
                 ActiveEncounter?.Id == CoreGuidedTutorialContent.BossEventId;
@@ -2913,57 +2932,41 @@ namespace ShatteredSail.Core.Gameplay
                     AddLog("战利品数量上限：" + resource + " " + (total - int.MaxValue) + " 未能入账；已有余额保留。");
                 return (int)Math.Max(0L, Math.Min(int.MaxValue, total));
             }
-            long Salvage(int amount) => amount > 0 && HasDiver ? (long)amount + Math.Max(1, amount / 4) : amount;
-            long BoardingLoot(long amount) => ScaleSeaChartBattleReward(captured && amount > 0 ?
-                (long)Math.Ceiling(amount * (BoardingLootMultiplierPercent / 100d)) : amount);
-            long gold = BoardingLoot((wasBoss ? CoreBattleBalance.BossVictoryGold : 45) + (long)(pendingBattleReward?.Gold ?? 0));
-            long fame = BoardingLoot((wasBoss ? CoreBattleBalance.BossVictoryFame : 6) + (long)(pendingBattleReward?.Fame ?? 0));
+            long gold = CoreBattleRewardBalance.GoldReward(wasBoss, pendingBattleReward, captured,
+                pendingSeaChartRewardMultiplier, HasDoctor, HasDiver);
+            long fame = CoreBattleRewardBalance.FameReward(wasBoss, pendingBattleReward, captured, pendingSeaChartRewardMultiplier);
+            decimal soldMaterials = CoreBattleRewardBalance.MaterialGoldValue(pendingBattleReward, HasDoctor, HasDiver);
             if (pendingBattleReward != null)
             {
                 VoyageEffect reward = pendingBattleReward;
                 Hull = (int)Math.Max(0L, Math.Min(MaxHull, (long)Hull + ScaleSeaChartBattleReward(reward.Hull + (reward.Hull > 0 && HasDoctor ? 2 : 0))));
                 Morale = ClampMorale((long)Morale + ScaleSeaChartBattleReward(reward.Morale));
-                Cargo.Water = Receive(Cargo.Water, BoardingLoot(reward.Water), "淡水");
-                Cargo.Food = Receive(Cargo.Food, BoardingLoot(reward.Food), "口粮");
-                Cargo.Beer = Receive(Cargo.Beer, BoardingLoot(reward.Beer), "啤酒");
-                Cargo.Medicine = Receive(Cargo.Medicine, BoardingLoot(AdjustedMedicineEffect(reward.Medicine)), "药品");
-                Cargo.Wood = Receive(Cargo.Wood, BoardingLoot(Salvage(reward.Wood)), "木材");
-                Cargo.Iron = Receive(Cargo.Iron, BoardingLoot(Salvage(reward.Iron)), "铁矿");
-                Cargo.Cloth = Receive(Cargo.Cloth, BoardingLoot(reward.Cloth), "帆布");
-                Cargo.Powder = Receive(Cargo.Powder, BoardingLoot(reward.Powder), "火药");
-                Cargo.Cannonballs = Receive(Cargo.Cannonballs, BoardingLoot(reward.Cannonballs), "炮弹");
+                // Physical spoils are included in gold above, never loaded into
+                // the hold. Negative costs were already paid before this battle.
                 if (reward.Reveal > 0) RevealNearestHidden((int)ScaleSeaChartBattleReward(reward.Reveal));
-                // Treasure resources obey the same delayed victory-only reward boundary.
+                // Non-cargo treasure progress retains its victory-only boundary.
                 ApplyTreasureBattleReward(reward, captured);
+                ApplyTreasureExpeditionEffect(reward);
+                ApplyExplorationEffect(new VoyageEffect {
+                    SailingBoostHours = reward.SailingBoostHours * pendingSeaChartRewardMultiplier,
+                    SurveyBoostHours = reward.SurveyBoostHours * pendingSeaChartRewardMultiplier,
+                    GrantDiscovery = pendingSeaChartRewardMultiplier > 0d ? reward.GrantDiscovery : null,
+                    RevealEncounterId = pendingSeaChartRewardMultiplier > 0d ? reward.RevealEncounterId : null,
+                });
             }
             int previousGold = Cargo.Gold, previousFame = Cargo.Fame;
             Cargo.Gold = Receive(Cargo.Gold, gold, "金币");
             Cargo.Fame = Receive(Cargo.Fame, fame, "声望");
             gold = (long)Cargo.Gold - previousGold;
             fame = (long)Cargo.Fame - previousFame;
-            if (captured)
-            {
-                pendingBoardingComponentSlot = -1;
-                pendingBoardingComponentDrop = pendingSeaChartRewardMultiplier > 0d &&
-                    (voyageRandom == null || voyageRandom.NextDouble() < BoardingComponentDropChance * pendingSeaChartRewardMultiplier);
-                if (pendingBoardingComponentDrop)
-                {
-                    int slotCount = ComponentSlotCountForLoot();
-                    int anchorSlot = voyageRandom == null ? 0 : (int)(voyageRandom.NextDouble() * slotCount);
-                    int offset = voyageRandom == null ? 1 : 1 + (int)(voyageRandom.NextDouble() * (slotCount - 1));
-                    pendingBoardingComponentSlot = (anchorSlot + offset) % slotCount;
-                }
-            }
-            else
-            {
-                pendingBoardingComponentDrop = false;
-                pendingBoardingComponentSlot = -1;
-            }
+            QueueBoardingVictoryLoot(captured, ActiveEncounter?.Id, pendingSeaChartRewardMultiplier);
             pendingBattleReward = null;
             // Optional treasure and legendary victories never unlock the route's port.
             bossDefeated |= defeatedKind == CoreBossKind.Route;
+            currentRouteBossDefeated |= defeatedKind == CoreBossKind.Route;
             AddLog((captured ? "夺船胜利" : "击沉敌舰") + "：金币 +" + gold + "、声望 +" + fame +
-                (captured ? "（战利品×1.5）" : string.Empty) + "。");
+                (captured ? "（夺船奖励×2）" : string.Empty) +
+                (soldMaterials > 0m ? "；物资战利品已折为整百金币，不占货舱" : string.Empty) + "。");
             if (wasBoss && (guidedBoss || bossTreasureRandom.NextDouble() < CoreBattleBalance.BossTreasureFragmentDropChance * pendingSeaChartRewardMultiplier))
             {
                 // This additional drop is exactly one fragment for either
@@ -2988,7 +2991,9 @@ namespace ShatteredSail.Core.Gameplay
 
         private void FinishVoyage(VoyageOutcome outcome)
         {
+            ClearNavalArrivalContactState();
             RestoreGuidedBossSupplies();
+            HasDirectCourseTarget = false;
             float protection = outcome == VoyageOutcome.ArrivedAtPort || outcome == VoyageOutcome.TreasureRecovered ? 0.95f : outcome == VoyageOutcome.SafeReturn ? 0.85f : 0.35f;
             string title = outcome == VoyageOutcome.TreasureRecovered ? "秘藏探索完成" : outcome == VoyageOutcome.ArrivedAtPort ? "抵达新港" : outcome == VoyageOutcome.SafeReturn ? "安全返航" : "航行失败";
             int completed = CompletedEventCount();
@@ -3070,20 +3075,32 @@ namespace ShatteredSail.Core.Gameplay
                 MapFragments = Part(source.MapFragments), Gem = Part(source.Gem), AncientMaterial = Part(source.AncientMaterial),
                 Relic = Part(source.Relic), BlackPearl = Part(source.BlackPearl), AncientCompass = Part(source.AncientCompass),
                 Lantern = Part(source.Lantern), Curse = Part(source.Curse), TreasureClues = Part(source.TreasureClues),
+                SailingBoostHours = rewards ? source.SailingBoostHours : 0d,
+                SurveyBoostHours = rewards ? source.SurveyBoostHours : 0d,
+                GrantDiscovery = rewards ? source.GrantDiscovery : null,
+                RevealEncounterId = rewards ? source.RevealEncounterId : null,
+                TreasureMark = rewards ? source.TreasureMark : null,
+                TreasureCredit = Part(source.TreasureCredit),
+                TreasureHeat = rewards ? Math.Min(0, source.TreasureHeat) : Math.Max(0, source.TreasureHeat),
+                TreasureResonance = Part(source.TreasureResonance),
             };
         }
 
-        private void RevealAt(VoyagePoint position)
+        private void RevealAt(VoyagePoint position) => RevealAtWithSurvey(position, surveyBoostHoursRemaining > 0d);
+
+        private void RevealAtWithSurvey(VoyagePoint position, bool surveyActive)
         {
             // Import prior coarse knowledge before this observation updates it.
             // Expanding afterward would turn every newly seen coarse cell into four
             // visible chart cells and erase the finer frontier.
             Map.InitializeChartExploration();
             float visionNm = 120f + (HasNavigator ? 60f : 0f) + VisionBonusNm;
+            if (surveyActive) visionNm *= 1.35f;
             float radius = visionNm / Map.Route.NauticalMilesPerMapUnit;
             RevealVisibleCells(position, radius, Map.Columns, Map.Rows,
                 Map.ExploredCells, 1f, Map.VoyageExploredCells);
             RevealVisibleCells(position, radius, Map.FineColumns, Map.FineRows, Map.ChartExploredCells, 0.5f);
+            ObserveDestinationPort(position, radius);
 
             for (int index = 0; index < Map.Nodes.Count; index += 1)
             {
@@ -3307,16 +3324,7 @@ namespace ShatteredSail.Core.Gameplay
 
         private bool HasNavigableLine(VoyagePoint start, VoyagePoint end)
         {
-            float distance = Distance(start, end);
-            int samples = Math.Max(1, (int)Math.Ceiling(distance / 0.45f));
-            for (int sample = 0; sample <= samples; sample += 1)
-            {
-                float t = sample / (float)samples;
-                VoyagePoint point = new VoyagePoint(start.X + (end.X - start.X) * t, start.Y + (end.Y - start.Y) * t);
-                PointToCell(point, out int column, out int row);
-                if (!Map.IsPassable(column, row)) return false;
-            }
-            return true;
+            return HasNavigableGridLine(start, end);
         }
 
         private static float TerrainNavigationCost(SeaTerrainType terrain)
@@ -3363,20 +3371,25 @@ namespace ShatteredSail.Core.Gameplay
             return bestDistance;
         }
 
-        private void RevealPath(VoyagePoint start, VoyagePoint end, float nauticalMiles)
+        private void RevealPath(VoyagePoint start, VoyagePoint end, float nauticalMiles, double distanceBefore,
+            double baseSpeed, double sailingBoostAtStart, double surveyBoostAtStart)
         {
             int samples = Math.Max(1, (int)Math.Ceiling(nauticalMiles / 10f));
             for (int sample = 0; sample <= samples; sample += 1)
             {
                 float t = sample / (float)samples;
-                RevealAt(new VoyagePoint(start.X + (end.X - start.X) * t, start.Y + (end.Y - start.Y) * t));
+                double elapsed = ExplorationSailingHours(distanceBefore + nauticalMiles * t, baseSpeed, sailingBoostAtStart);
+                RevealAtWithSurvey(new VoyagePoint(start.X + (end.X - start.X) * t, start.Y + (end.Y - start.Y) * t),
+                    elapsed < surveyBoostAtStart);
             }
         }
 
-        private void RevealPath(IReadOnlyList<VoyagePoint> path, float maximumMapDistance)
+        private void RevealPath(IReadOnlyList<VoyagePoint> path, float maximumMapDistance,
+            double baseSpeed, double sailingBoostAtStart, double surveyBoostAtStart)
         {
             if (path == null || path.Count < 2) return;
             float remaining = Math.Max(0f, maximumMapDistance);
+            double travelledNm = 0d;
             for (int index = 1; index < path.Count && remaining > 0f; index += 1)
             {
                 VoyagePoint start = path[index - 1];
@@ -3386,9 +3399,39 @@ namespace ShatteredSail.Core.Gameplay
                 VoyagePoint clippedEnd = segment <= portion + 0.001f
                     ? end
                     : new VoyagePoint(start.X + (end.X - start.X) * portion / segment, start.Y + (end.Y - start.Y) * portion / segment);
-                RevealPath(start, clippedEnd, portion * Map.Route.NauticalMilesPerMapUnit);
+                float nauticalMiles = portion * Map.Route.NauticalMilesPerMapUnit;
+                RevealPath(start, clippedEnd, nauticalMiles, travelledNm, baseSpeed, sailingBoostAtStart, surveyBoostAtStart);
+                travelledNm += nauticalMiles;
                 remaining -= portion;
             }
+        }
+
+        private void RevealNavigatorDepartureLocations()
+        {
+            // These are map annotations, not exploration or event completion. Use
+            // stable geography ordering without consuming any voyage random draws.
+            // Apply only from StartVoyage; checkpoints restore the saved flags.
+            int remaining = NavigatorCount * 2;
+            int revealed = 0;
+            while (remaining-- > 0)
+            {
+                CoreMapNode nearest = null;
+                float nearestDistance = float.MaxValue;
+                foreach (CoreMapNode node in Map.Nodes)
+                {
+                    if (node.Encounter == null || !node.Encounter.HasChartLocation || node.Visited || node.IsChartVisible) continue;
+                    float distance = Distance(Position, node.Position);
+                    if (distance < nearestDistance || distance == nearestDistance && (nearest == null || node.Id < nearest.Id))
+                    {
+                        nearest = node;
+                        nearestDistance = distance;
+                    }
+                }
+                if (nearest == null) break;
+                nearest.IntelRevealed = true;
+                revealed++;
+            }
+            if (revealed > 0) AddLog("航海士预先标注了 " + revealed + " 处固定事件点。");
         }
 
         private void RevealNearestHidden(int count)

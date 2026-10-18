@@ -64,6 +64,16 @@ namespace ShatteredSail.Presentation
             graphic.gameObject.AddComponent<TabletopQuadProjection>().Configure(bottomLeft, bottomRight, topLeft, topRight);
         }
 
+        public Vector2 FragmentCenter(int index)
+        {
+            if (index < 0 || index > 3) throw new System.ArgumentOutOfRangeException(nameof(index));
+            float u = index % 2 * .5f + .25f;
+            float v = index < 2 ? .75f : .25f;
+            Vector2 uv = Vector2.Lerp(Vector2.Lerp(bottomLeft, bottomRight, u),
+                Vector2.Lerp(topLeft, topRight, u), v);
+            return Vector2.Scale(uv - Vector2.one * .5f, Size - Vector2.one * 5f);
+        }
+
         // Each fragment keeps the full paper's perspective, including its shared seams.
         public void ProjectFragment(Graphic graphic, int index)
         {

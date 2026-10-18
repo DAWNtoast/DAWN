@@ -70,9 +70,9 @@ namespace ShatteredSail.Core.Tests
                         encounter.Id + " must not trap a player without a crew or supplies.");
                 }
             }
-            Assert.That(variants.Select(item => item.Id).Distinct().Count(), Is.EqualTo(56));
-            Assert.That(variants.Count, Is.EqualTo(93), "Both random-message variants and all three ranks of 18 treasure templates are checked.");
-            Console.WriteLine("Authored encounter audit: " + variants.Count + " variants / 56 unique IDs / " +
+            Assert.That(variants.Select(item => item.Id).Distinct().Count(), Is.EqualTo(177));
+            Assert.That(variants.Count, Is.EqualTo(214), "All 114 regional catalog events, legacy incidents, guardians, legends, tutorial variants and treasure ranks are checked.");
+            Console.WriteLine("Authored encounter audit: " + variants.Count + " variants / 177 unique IDs / " +
                 choiceCount + " choices / " + battleChoices + " battle entries.");
         }
 
@@ -259,9 +259,16 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(session.CanSelectRoute(route, out string reason), Is.True, reason);
                 session.SelectRoute(route); session.SetSeed("COMPLETE-EVENT-CATALOG-AUDIT"); session.StartVoyage();
                 Assert.That(session.SelectedRouteIndex, Is.EqualTo(route), "The audit must sample every authored route.");
-                // Generation places the complete authored pool, without replacement,
-                // plus each route boss and all six optional third-chart bosses.
+                // Sample legacy fixed places, then include the entire sixteen-entry
+                // expanded catalog; no single chart contains every candidate.
                 foreach (CoreMapNode node in session.Map.Nodes) authored[node.Encounter.Id] = node.Encounter;
+                foreach (CoreEncounter encounter in CoreVoyageEventCatalog.CreateExpandedFixedEncounters(session.Map.Route.Id))
+                    authored[encounter.Id] = encounter;
+                foreach (string id in CoreVoyageEventCatalog.RandomEventIds(session.Map.Route.Id))
+                    authored[id] = CoreVoyageEventCatalog.CreateRandomEncounter(id, session.Map.Route.RecommendedPower);
+                MethodInfo common = typeof(CoreVoyageSession).GetMethod("CreateSeaChartRandomEncounter", BindingFlags.Instance | BindingFlags.NonPublic);
+                foreach (string id in new[] { "random_tailwind", "random_floating_supplies", "random_food_spoilage" })
+                    authored[id] = (CoreEncounter)common.Invoke(session, new object[] { id });
                 MethodInfo ambush = typeof(CoreVoyageSession).GetMethod("CreateRandomAmbush", BindingFlags.Instance | BindingFlags.NonPublic);
                 foreach (bool detected in new[] { false, true })
                 {
@@ -269,6 +276,7 @@ namespace ShatteredSail.Core.Tests
                     authored[encounter.Id] = encounter;
                 }
             }
+            foreach (CoreRouteBoss boss in CoreRouteBossCatalog.All) authored[boss.Id] = boss.CreateEncounter();
             var variants = authored.Values.ToList();
             foreach (string factory in new[] { "FirstEvent", "OptionalEvent", "CrewRequirementEvent", "NavigatorEvent", "AmbushEvent", "BossEvent" })
                 variants.Add((CoreEncounter)typeof(CoreGuidedTutorialContent).GetMethod(factory, BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null));

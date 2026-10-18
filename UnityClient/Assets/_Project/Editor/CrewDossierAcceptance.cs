@@ -34,7 +34,7 @@ namespace ShatteredSail.Editor
             new[] { "Tavern Crew Biography" },
             new[] { "Tavern Crew Story Heading", "Tavern Crew Story" },
             new[] { "Tavern Crew Skill Heading", "Tavern Crew Skill" },
-            new[] { "Tavern Special Card Name", "Tavern Special Card Growth" },
+            new[] { "Tavern Special Card Name" },
         };
         private static readonly string[] BodyNames =
         {

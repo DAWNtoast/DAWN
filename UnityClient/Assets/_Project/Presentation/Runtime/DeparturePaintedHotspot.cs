@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
@@ -42,11 +41,7 @@ namespace ShatteredSail.Presentation
         [SerializeField] private SpriteState originalSpriteState;
         [SerializeField] private List<GraphicState> graphics = new List<GraphicState>();
         [SerializeField] private List<BehaviourState> behaviours = new List<BehaviourState>();
-        [SerializeField] private EventTrigger trigger;
-        [SerializeField] private bool triggerWasEnabled;
-
-        private readonly List<EventTrigger.Entry> bindings = new List<EventTrigger.Entry>();
-        private bool hovered, pressed, focused, lastInteractable;
+        private bool lastInteractable;
 
         public static void Apply(Selectable target, bool selected = false, bool round = false, bool showOutline = true)
         {
@@ -75,7 +70,6 @@ namespace ShatteredSail.Presentation
             rect.anchorMax = Vector2.one;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
             feedback.transform.SetAsLastSibling();
-            feedback.BindEvents();
             feedback.lastInteractable = target.IsInteractable();
             feedback.SetVerticesDirty();
         }
@@ -123,9 +117,6 @@ namespace ShatteredSail.Presentation
                 if (behaviour is Outline || behaviour is NauticalButtonMotion)
                     behaviours.Add(new BehaviourState { behaviour = behaviour, enabled = behaviour.enabled });
             }
-            trigger = target.GetComponent<EventTrigger>();
-            triggerWasEnabled = trigger != null && trigger.enabled;
-            if (trigger == null) trigger = target.gameObject.AddComponent<EventTrigger>();
         }
 
         private void HideCapturedArt()
@@ -153,8 +144,6 @@ namespace ShatteredSail.Presentation
         {
             if (!applied) return;
             applied = false;
-            UnbindEvents();
-            if (trigger != null) trigger.enabled = triggerWasEnabled;
             foreach (GraphicState state in graphics)
             {
                 Graphic graphic = state.graphic;
@@ -188,60 +177,13 @@ namespace ShatteredSail.Presentation
             foreach (BehaviourState state in behaviours)
                 if (state.behaviour != null) state.behaviour.enabled = state.enabled;
             if (addedHit && hit != null) { hit.enabled = false; hit.raycastTarget = false; }
-            hovered = pressed = focused = false;
             enabled = false;
-        }
-
-        private void BindEvents()
-        {
-            if (!applied || target == null || trigger == null || bindings.Count != 0) return;
-            trigger.enabled = true;
-            Bind(EventTriggerType.PointerEnter, () => hovered = true);
-            Bind(EventTriggerType.PointerExit, () => { hovered = false; pressed = false; });
-            Bind(EventTriggerType.PointerDown, () => pressed = true);
-            Bind(EventTriggerType.PointerUp, () => pressed = false);
-            Bind(EventTriggerType.Select, () => focused = true);
-            Bind(EventTriggerType.Deselect, () => { focused = false; pressed = false; });
-        }
-
-        private void Bind(EventTriggerType type, Action action)
-        {
-            var entry = new EventTrigger.Entry { eventID = type };
-            entry.callback.AddListener(_ =>
-            {
-                if (this == null || !applied || !isActiveAndEnabled) return;
-                action();
-                SetVerticesDirty();
-            });
-            trigger.triggers.Add(entry);
-            bindings.Add(entry);
-        }
-
-        private void UnbindEvents()
-        {
-            if (trigger != null)
-                foreach (EventTrigger.Entry entry in bindings) trigger.triggers.Remove(entry);
-            bindings.Clear();
         }
 
         protected override void OnEnable()
         {
             base.OnEnable();
             raycastTarget = false;
-            BindEvents();
-        }
-
-        protected override void OnDisable()
-        {
-            UnbindEvents();
-            hovered = pressed = focused = false;
-            base.OnDisable();
-        }
-
-        protected override void OnDestroy()
-        {
-            UnbindEvents();
-            base.OnDestroy();
         }
 
         private void Update()
@@ -250,7 +192,6 @@ namespace ShatteredSail.Presentation
             bool interactable = target.IsInteractable();
             if (interactable == lastInteractable) return;
             lastInteractable = interactable;
-            if (!interactable) hovered = pressed = focused = false;
             SetVerticesDirty();
         }
 
@@ -259,10 +200,9 @@ namespace ShatteredSail.Presentation
             mesh.Clear();
             if (!applied || target == null) return;
             bool interactable = target.IsInteractable();
+            // Pointer and focus states never add an outline to the painted face.
             Color tint = !interactable ? new Color(.025f, .04f, .04f, .18f) :
-                selected ? new Color(.94f, .73f, .34f, .30f) :
-                hovered || focused ? new Color(.38f, .88f, .86f, .23f) : Color.clear;
-            if (interactable && pressed) tint = new Color(.97f, .84f, .54f, .36f);
+                selected ? new Color(.94f, .73f, .34f, .30f) : Color.clear;
             if (tint.a <= 0f) return;
             Rect rect = rectTransform.rect;
             float inset = 2f;

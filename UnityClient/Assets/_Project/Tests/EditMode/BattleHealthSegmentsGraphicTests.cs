@@ -19,57 +19,31 @@ namespace ShatteredSail.Presentation.Tests
             temporary.Clear();
         }
 
-        [TestCase(27, 2)]
-        [TestCase(20, 1)]
-        [TestCase(10, 0)]
-        [TestCase(1, 0)]
-        public void TenHealthDividers_RepresentTheFinalPartialSegmentWithoutAnExtraBoundary(int maximum, int count)
+        [TestCase(27)]
+        [TestCase(20)]
+        [TestCase(10)]
+        [TestCase(1)]
+        [TestCase(int.MaxValue)]
+        public void LegacyOverlay_NeverDrawsDivisionsOverContinuousHealth(int maximum)
         {
             BattleHealthSegmentsGraphic graphic = Create(maximum);
             Mesh mesh = Populate(graphic);
-            Assert.That(BattleHealthSegmentsGraphic.HealthPerSegment, Is.EqualTo(10));
-            Assert.That(mesh.vertexCount, Is.EqualTo(count * 4));
-            Assert.That(mesh.triangles.Length, Is.EqualTo(count * 6));
-            Vector3[] vertices = mesh.vertices;
-            Rect rect = graphic.rectTransform.rect;
-            for (int line = 0; line < count; line++)
-            {
-                float center = 0f;
-                for (int corner = 0; corner < 4; corner++) center += vertices[line * 4 + corner].x * .25f;
-                float fraction = (center - rect.xMin) / rect.width;
-                Assert.That(fraction, Is.EqualTo((line + 1) * 10f / maximum).Within(.0001f));
-                Assert.That(fraction, Is.InRange(.0001f, .9999f));
-            }
+            Assert.That(mesh.vertexCount, Is.Zero);
+            Assert.That(mesh.triangles, Is.Empty);
             Assert.That(graphic.raycastTarget, Is.False);
         }
 
         [TestCase(0)]
         [TestCase(-10)]
         [TestCase(int.MinValue)]
-        public void InvalidMaximum_ClampsToOneAndHasNoDividers(int maximum)
+        public void Hud_InvalidMaximumStillProducesFiniteContinuousFill(int maximum)
         {
-            BattleHealthSegmentsGraphic graphic = Create(maximum);
-            Assert.That(graphic.MaximumHealth, Is.EqualTo(1));
-            Assert.That(Populate(graphic).vertexCount, Is.Zero);
-        }
-
-        [Test]
-        public void ExtremeMaximum_HasABoundedFiniteMeshInsideTheBar()
-        {
-            BattleHealthSegmentsGraphic graphic = Create(int.MaxValue);
-            Mesh mesh = Populate(graphic);
-            Assert.That(graphic.MaximumHealth, Is.EqualTo(int.MaxValue));
-            Assert.That(mesh.vertexCount, Is.InRange(4, 1024 * 4));
-            Assert.That(mesh.triangles.Length, Is.EqualTo(mesh.vertexCount / 4 * 6));
-            Rect rect = graphic.rectTransform.rect;
-            foreach (Vector3 vertex in mesh.vertices)
-            {
-                Assert.That(float.IsNaN(vertex.x) || float.IsInfinity(vertex.x), Is.False);
-                Assert.That(float.IsNaN(vertex.y) || float.IsInfinity(vertex.y), Is.False);
-                Assert.That(vertex.x, Is.InRange(rect.xMin - .001f, rect.xMax + .001f));
-                Assert.That(vertex.y, Is.InRange(rect.yMin - .001f, rect.yMax + .001f));
-            }
-            Assert.That(graphic.raycastTarget, Is.False);
+            Image hull = MakeImage("Hull"), chip = MakeImage("Chip");
+            BattleDefenseHud hud = hull.gameObject.AddComponent<BattleDefenseHud>();
+            hud.Configure(hull, chip, null, null, null, null, null, 5, maximum, 0, 0);
+            Assert.That(hud.MaximumHull, Is.EqualTo(1));
+            Assert.That(hull.fillAmount, Is.EqualTo(1f));
+            Assert.That(chip.fillAmount, Is.EqualTo(1f));
         }
 
         [TestCase(0)]
@@ -86,16 +60,18 @@ namespace ShatteredSail.Presentation.Tests
             Image hull = MakeImage("Hull"), chip = MakeImage("Chip");
             BattleDefenseHud hud = hull.gameObject.AddComponent<BattleDefenseHud>();
             hud.Configure(hull, chip, null, null, null, null, null, 27, 27, 0, 0);
-            BattleHealthSegmentsGraphic grid = hull.GetComponentInChildren<BattleHealthSegmentsGraphic>(true);
-            Assert.That(grid, Is.Not.Null);
             hud.SetHull(current, 19f);
             Assert.That(hud.DisplayedHull, Is.EqualTo(Mathf.Clamp((float)current, 0f, 27f)));
             Assert.That(hull.fillAmount, Is.EqualTo(hud.DisplayedHull / 27f).Within(.00001f));
             Assert.That(chip.fillAmount, Is.EqualTo(19f / 27f).Within(.00001f));
             Assert.That(hull.type, Is.EqualTo(Image.Type.Filled));
-            Assert.That(hull.GetComponentsInChildren<BattleHealthSegmentsGraphic>(true), Has.Length.EqualTo(1));
-            Assert.That(hull.GetComponentInChildren<BattleHealthSegmentsGraphic>(true), Is.SameAs(grid));
-            Assert.That(grid.MaximumHealth, Is.EqualTo(27));
+            Assert.That(hull.sprite, Is.Not.Null);
+            Assert.That(hull.fillMethod, Is.EqualTo(Image.FillMethod.Horizontal));
+            Assert.That(hull.fillOrigin, Is.EqualTo((int)Image.OriginHorizontal.Left));
+            Assert.That(hull.color.r, Is.GreaterThan(hull.color.g * 3f));
+            Assert.That(hull.GetComponentsInChildren<BattleHealthSegmentsGraphic>(true), Is.Empty);
+            Assert.That(hull.raycastTarget, Is.False);
+            Assert.That(chip.raycastTarget, Is.False);
         }
 
         [TestCase(0)]
@@ -124,23 +100,23 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void Reconfigure_ReusesOneStretchedNonBlockingGridWithTheNewMaximum()
+        public void HealthLabel_ShowsCurrentAndMaximumCenteredAndReusesItsOutline()
         {
             Image hull = MakeImage("Hull");
+            GameObject labelHost = new GameObject("Health Value", typeof(RectTransform), typeof(Text));
+            temporary.Add(labelHost);
+            Text label = labelHost.GetComponent<Text>();
             BattleDefenseHud hud = hull.gameObject.AddComponent<BattleDefenseHud>();
-            hud.Configure(hull, null, null, null, null, null, null, 27, 27, 0, 0);
-            BattleHealthSegmentsGraphic first = hull.GetComponentInChildren<BattleHealthSegmentsGraphic>(true);
-            Assert.That(first, Is.Not.Null);
-            hud.Configure(hull, null, null, null, null, null, null, 55, 55, 0, 0);
-            Assert.That(BattleHealthSegmentsGraphic.Attach(hull, 55), Is.SameAs(first));
-            Assert.That(hull.GetComponentsInChildren<BattleHealthSegmentsGraphic>(true), Has.Length.EqualTo(1));
-            Assert.That(first.MaximumHealth, Is.EqualTo(55));
-            Assert.That(first.transform.parent, Is.SameAs(hull.transform));
-            Assert.That(first.rectTransform.anchorMin, Is.EqualTo(Vector2.zero));
-            Assert.That(first.rectTransform.anchorMax, Is.EqualTo(Vector2.one));
-            Assert.That(first.rectTransform.offsetMin, Is.EqualTo(Vector2.zero));
-            Assert.That(first.rectTransform.offsetMax, Is.EqualTo(Vector2.zero));
-            Assert.That(first.raycastTarget, Is.False);
+            hud.Configure(hull, null, null, null, null, label, null, 21, 27, 0, 0);
+            Assert.That(label.text, Is.EqualTo("21 / 27"));
+            Assert.That(label.alignment, Is.EqualTo(TextAnchor.MiddleCenter));
+            Assert.That(label.raycastTarget, Is.False);
+            Assert.That(label.GetComponents<Outline>(), Has.Length.EqualTo(1));
+            hud.SetHull(10.2f, 19f);
+            Assert.That(label.text, Is.EqualTo("11 / 27"));
+            hud.Configure(hull, null, null, null, null, label, null, 35, 55, 0, 0);
+            Assert.That(label.text, Is.EqualTo("35 / 55"));
+            Assert.That(label.GetComponents<Outline>(), Has.Length.EqualTo(1));
         }
 
         private BattleHealthSegmentsGraphic Create(int maximum)

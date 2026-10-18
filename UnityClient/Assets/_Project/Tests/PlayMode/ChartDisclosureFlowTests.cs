@@ -34,7 +34,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(controller.Session.Map.Seed, Is.Not.EqualTo(internalSeed), "The default random departure must create a fresh chart even without a navigator.");
             string hiddenDepartureSeed = controller.Session.Map.Seed;
-            CoreMapNode leak = controller.Session.Map.Nodes.Single(node => node.Encounter.Id == "event_reef_saltwater_leak");
+            // Current regional maps need not contain this old shipboard event.
+            // Explicitly arrange a stale located incident to test the renderer's
+            // disclosure filter independently of the random encounter selection.
+            var leak = new CoreMapNode {
+                Id = controller.Session.Map.Nodes.Max(node => node.Id) + 1,
+                Position = controller.Session.Position,
+                Encounter = new CoreEncounter("event_reef_saltwater_leak", "舱底进水", "强制事件",
+                    "船内事件披露回归夹具", true, true, 2, 0),
+            };
+            Assert.That(leak.Encounter.HasChartLocation, Is.False);
+            controller.Session.Map.Nodes.Add(leak);
             // Defend against old or incorrectly restored disclosure flags as well.
             leak.Discovered = true;
             leak.IntelRevealed = true;
@@ -44,6 +54,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Event Node " + leak.Id), Is.Null);
             Assert.That(GameObject.Find("Event Label " + leak.Id), Is.Null);
             Assert.That(GameObject.Find("Event Icon " + leak.Id), Is.Null);
+            controller.Session.Map.Nodes.Remove(leak);
             Assert.That(GameObject.Find("Map Seed"), Is.Null);
             string hash = controller.Session.Map.Hash.ToString("X8");
             foreach (Text visibleText in controller.GetComponentsInChildren<Text>())

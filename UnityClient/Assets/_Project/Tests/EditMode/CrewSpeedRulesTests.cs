@@ -118,6 +118,9 @@ namespace ShatteredSail.Core.Tests
             // Keep real generated terrain and currents; isolate this sail from event stops.
             foreach (CoreMapNode node in session.Map.Nodes) node.Visited = true;
             session.SetCourseTo(session.Map.Destination);
+            // Compare crews over the same distance, independently of the new
+            // speed-dependent twelve-hour default selected with a target.
+            session.SetDistance(120);
             return session;
         }
     }

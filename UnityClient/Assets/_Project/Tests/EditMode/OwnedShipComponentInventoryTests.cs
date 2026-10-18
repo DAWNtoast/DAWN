@@ -61,18 +61,20 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void ReplacingMovesTheOldPhysicalItemToInventoryWithoutLosingQuality()
+        public void ReplacingMovesTheOldPhysicalItemToInventoryWithoutLosingIdentity()
         {
             OwnedShipComponentInventory inventory = new OwnedShipComponentInventory(catalog);
             inventory.EnsureLoadout(0);
             ComponentArtEntry entry = catalog.Entries.First(item => item.Slot == ComponentSlot.Bow && item.Rarity == ComponentRarity.Rare);
-            OwnedShipComponent first = inventory.Grant(entry, 0.93f);
-            OwnedShipComponent second = inventory.Grant(entry, 1.08f);
+            OwnedShipComponent first = inventory.Grant(entry);
+            OwnedShipComponent second = inventory.Grant(entry);
+            string firstIdentity = first.InstanceId;
             Assert.That(first.InstanceId, Is.Not.EqualTo(second.InstanceId));
             Assert.That(inventory.TryEquip(0, first.InstanceId), Is.True);
             Assert.That(inventory.TryEquip(0, second.InstanceId), Is.True);
             Assert.That(first.ShipIndex, Is.EqualTo(-1));
-            Assert.That(first.Quality, Is.EqualTo(0.93f));
+            Assert.That(first.InstanceId, Is.EqualTo(firstIdentity));
+            Assert.That(first.ComponentId, Is.EqualTo(entry.Id));
             Assert.That(inventory.Installed(0, ComponentSlot.Bow), Is.SameAs(second));
             Assert.That(inventory.TryEquip(0, second.InstanceId), Is.False, "Repeated callbacks cannot duplicate or re-equip the same item.");
             Assert.That(inventory.Items.Count, Is.EqualTo(7));
@@ -111,14 +113,12 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void ReloadReturnsPartsFromUnownedVesselsToInventoryAndClampsAppraisal()
+        public void ReloadReturnsPartsFromUnownedVesselsToInventory()
         {
             OwnedShipComponentInventory inventory = new OwnedShipComponentInventory(catalog);
             inventory.EnsureLoadout(1);
-            OwnedShipComponent high = inventory.Grant(catalog.Get(0), float.PositiveInfinity);
-            OwnedShipComponent low = inventory.Grant(catalog.Get(0), -5f);
-            Assert.That(high.Quality, Is.EqualTo(1f));
-            Assert.That(low.Quality, Is.EqualTo(0.9f));
+            inventory.Grant(catalog.Get(0));
+            inventory.Grant(catalog.Get(0));
             OwnedShipComponentInventory restored = new OwnedShipComponentInventory(catalog);
             Assert.That(restored.Import(inventory.Export(), index => index == 0), Is.True);
             Assert.That(restored.Items.All(item => item.ShipIndex == -1), Is.True);
@@ -127,14 +127,41 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void LegacySlotFactoriesPreserveActualItemsAndAppraisedQuality()
+        public void LegacySlotFactoriesPreserveActualItems()
         {
             OwnedShipComponentInventory inventory = new OwnedShipComponentInventory(catalog);
             ComponentArtEntry rare = catalog.Entries.First(item => item.Slot == ComponentSlot.Cannon && item.Rarity == ComponentRarity.Rare);
-            inventory.EnsureLoadout(2, slot => slot == ComponentSlot.Cannon ? rare : null, slot => 0.94f);
+            inventory.EnsureLoadout(2, slot => slot == ComponentSlot.Cannon ? rare : null);
             Assert.That(inventory.Installed(2, ComponentSlot.Cannon).ComponentId, Is.EqualTo(rare.Id));
-            Assert.That(inventory.Items.All(item => item.Quality == 0.94f), Is.True);
+            Assert.That(inventory.Items.Count, Is.EqualTo(ComponentArtCatalog.SlotCount));
             Assert.That(inventory.Installed(2, ComponentSlot.Sail).ComponentId, Is.EqualTo(catalog.Get(ComponentArtCatalog.EntriesPerSlot).Id));
+        }
+
+        [Test]
+        public void LegacyAppraisalsAreDiscardedWithoutLosingItemsOrEquipmentAssignments()
+        {
+            ComponentArtEntry entry = catalog.Entries.First(item => item.Slot == ComponentSlot.Cannon && item.Rarity == ComponentRarity.Rare);
+            string legacy = "{\"version\":2,\"initializedShips\":[0],\"items\":[" +
+                "{\"instanceId\":\"legacy-90\",\"componentId\":\"" + entry.Id + "\",\"quality\":0.9,\"shipIndex\":0}," +
+                "{\"instanceId\":\"legacy-110\",\"componentId\":\"" + entry.Id + "\",\"quality\":1.1,\"shipIndex\":-1}]}";
+            var inventory = new OwnedShipComponentInventory(catalog);
+
+            Assert.That(inventory.Import(legacy, ship => ship == 0), Is.True);
+            inventory.EnsureLoadout(0);
+            Assert.That(inventory.Items.Count, Is.EqualTo(2), "Migration must not merge copies or refill empty slots.");
+            Assert.That(inventory.Items.All(item => item.ComponentId == entry.Id), Is.True);
+            Assert.That(inventory.Installed(0, ComponentSlot.Cannon).InstanceId, Is.EqualTo("legacy-90"));
+            Assert.That(inventory.Items.Single(item => item.InstanceId == "legacy-110").ShipIndex, Is.EqualTo(-1));
+            Assert.That(inventory.Installed(0, ComponentSlot.Bow), Is.Null);
+
+            string saved = inventory.Export();
+            Assert.That(saved, Does.Not.Contain("quality"), "New saves must not retain the retired appraisal field.");
+            var restored = new OwnedShipComponentInventory(catalog);
+            Assert.That(restored.Import(saved, ship => ship == 0), Is.True);
+            Assert.That(restored.Export(), Is.EqualTo(saved));
+            Assert.That(restored.TryEquip(0, "legacy-110"), Is.True);
+            Assert.That(restored.Items.Single(item => item.InstanceId == "legacy-90").ShipIndex, Is.EqualTo(-1));
+            Assert.That(restored.Installed(0, ComponentSlot.Cannon).InstanceId, Is.EqualTo("legacy-110"));
         }
 
         [TestCase("not-json")]

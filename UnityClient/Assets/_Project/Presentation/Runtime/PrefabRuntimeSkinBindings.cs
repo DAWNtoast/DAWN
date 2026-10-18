@@ -9,7 +9,7 @@ namespace ShatteredSail.Presentation
     [DisallowMultipleComponent]
     public sealed class PrefabRuntimeSkinBindings : MonoBehaviour
     {
-        private enum Skin { Wood, Paper, ReadingPaper, Canvas, InvestmentPaper, CollectionPaper }
+        private enum Skin { Wood, Paper, ReadingPaper, Canvas, InvestmentPaper, CollectionPaper, MarketPaper }
         [Serializable] private struct Binding
         {
             public Image Image;
@@ -22,16 +22,36 @@ namespace ShatteredSail.Presentation
             foreach (Binding binding in bindings)
             {
                 if (binding.Image == null) continue;
-                binding.Image.sprite = binding.Skin switch
+                Image image = binding.Image;
+                switch (binding.Skin)
                 {
-                    Skin.Wood => WoodButtonSkin.Face,
-                    Skin.Paper => NauticalSurfaceSkin.Paper,
-                    Skin.ReadingPaper => NauticalSurfaceSkin.ReadingPaper,
-                    Skin.Canvas => NauticalSurfaceSkin.Canvas,
-                    Skin.InvestmentPaper => NauticalSurfaceSkin.InvestmentPaper,
-                    Skin.CollectionPaper => NauticalSurfaceSkin.CollectionPaper,
-                    _ => null
-                };
+                    case Skin.MarketPaper:
+                        float paperScale = image.pixelsPerUnitMultiplier;
+                        NauticalSurfaceSkin.ApplyReadingPanel(image);
+                        image.pixelsPerUnitMultiplier = paperScale;
+                        break;
+                    case Skin.ReadingPaper:
+                    case Skin.InvestmentPaper:
+                    case Skin.CollectionPaper:
+                        NauticalSurfaceSkin.ApplyReadingPanel(image);
+                        break;
+                    case Skin.Paper:
+                        Sprite fill = NauticalSurfaceSkin.Paper;
+                        if (fill == null) break;
+                        // Old exported fills use a larger sprite rect. Keep
+                        // their tiling density and semantic tint when migrating.
+                        if (image.sprite != null && image.sprite.rect.width > 0f)
+                            image.pixelsPerUnitMultiplier *= fill.rect.width / image.sprite.rect.width;
+                        image.sprite = fill;
+                        image.overrideSprite = null;
+                        break;
+                    case Skin.Wood:
+                        image.sprite = WoodButtonSkin.Face;
+                        break;
+                    case Skin.Canvas:
+                        image.sprite = NauticalSurfaceSkin.Canvas;
+                        break;
+                }
             }
         }
 
@@ -45,7 +65,9 @@ namespace ShatteredSail.Presentation
                 Skin? skin = image.sprite.name switch
                 {
                     "Carved Walnut Button Face" => Skin.Wood,
+                    NauticalSurfaceSkin.PaperFillName => Skin.Paper,
                     NauticalSurfaceSkin.PaperPath => Skin.Paper,
+                    MarketShopSkin.PaperResourcePath => Skin.MarketPaper,
                     NauticalSurfaceSkin.ReadingPaperPath => Skin.ReadingPaper,
                     NauticalSurfaceSkin.CanvasPath => Skin.Canvas,
                     NauticalSurfaceSkin.InvestmentPaperPath => Skin.InvestmentPaper,

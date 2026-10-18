@@ -26,8 +26,13 @@ namespace ShatteredSail.Core.Tests
                 var deck = session.GetBattleDeck(stage);
                 Assert.That(deck.Count, Is.InRange(CoreVoyageSession.MinimumBaseBattleDeckSize, CoreVoyageSession.MaximumBaseBattleDeckSize));
                 Assert.That(deck.GroupBy(index => index).Max(group => group.Count()), Is.LessThanOrEqualTo(CoreVoyageSession.BaseBattleCardCopies));
-                Assert.That(deck.All(index => session.GetBattleCard(index).IsAllowedInStage(stage)), Is.True);
-                Assert.That(deck.All(index => session.GetBattleCard(index).UpgradeLevel == 2), Is.True);
+                Assert.That(deck.All(index => session.GetBattleCard(index, stage).IsAllowedInStage(stage)), Is.True);
+                foreach (int index in deck)
+                {
+                    CoreBattleCard card = session.GetBattleCard(index, stage);
+                    Assert.That(card.UpgradeLevel, Is.EqualTo(Math.Min(2, session.GetCardMaximumUpgradeLevel(index))), card.Id);
+                    Assert.That(session.CardUpgradeLevels[card.Id], Is.EqualTo(2), "The fixture keeps its authored purchased rank even when an effect has a lower cap.");
+                }
             }
             string[] expected = NavalBattleBalanceSimulator.FixtureCrewIds.Select(id => CoreSpecialCardCatalog.ForCrew(id).Card.Id)
                 .Concat(NavalBattleBalanceSimulator.FixtureComponentIds.Select(id => CoreSpecialCardCatalog.ForComponent(id).Card.Id)).ToArray();
@@ -50,7 +55,8 @@ namespace ShatteredSail.Core.Tests
             foreach (string id in session.AcquiredSpecialCardIds)
             {
                 Assert.That(session.GetSpecialCardExperience(id), Is.EqualTo(experience));
-                Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(level));
+                Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(Math.Min(level, session.GetCardMaximumUpgradeLevel(id))),
+                    "The fixture retains full voyage experience while respecting each source card's authored ceiling: " + id);
                 Assert.That(session.CardUpgradeLevels.ContainsKey(id), Is.False);
             }
             Assert.That(session.GetSpecialCardExperience("card_navigator_course"), Is.Zero, "No legacy paid-card migration is used by this audit.");
@@ -98,19 +104,19 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CalibrationScenarios_IncludeTutorialThreeOrdinaryThreeRegionalVaultAndFiveLegends()
+        public void CalibrationScenarios_IncludeTutorialThreeOrdinarySixRegionalVaultAndSixLegends()
         {
             var scenarios = NavalBattleBalanceSimulator.CalibrationScenarios;
-            Assert.That(scenarios.Count, Is.EqualTo(13));
-            Assert.That(scenarios.Select(x => x.EnemyId).Distinct().Count(), Is.EqualTo(13));
+            Assert.That(scenarios.Count, Is.EqualTo(17));
+            Assert.That(scenarios.Select(x => x.EnemyId).Distinct().Count(), Is.EqualTo(17));
             Assert.That(scenarios.Count(x => x.Tutorial), Is.EqualTo(1));
-            Assert.That(scenarios.Count(x => x.EnemyId.StartsWith("boss_route_")), Is.EqualTo(3));
-            Assert.That(scenarios.Count(x => x.EnemyId.StartsWith("legendary_pirate_")), Is.EqualTo(5));
+            Assert.That(scenarios.Count(x => x.EnemyId.StartsWith("boss_route_")), Is.EqualTo(6));
+            Assert.That(scenarios.Count(x => x.EnemyId.StartsWith("legendary_pirate_")), Is.EqualTo(6));
             foreach (var scenario in scenarios)
             {
                 var session = NavalBattleBalanceSimulator.CreateSession("CALIBRATION-CATALOG", 0, false,
                     NavalBattleBalanceSimulator.Loadout.Starter, scenario.Route, scenario.Tutorial);
-                Assert.That(session.Map.Nodes.Count(x => x.Encounter.Id == scenario.EnemyId), Is.EqualTo(1), scenario.EnemyId);
+                Assert.That(NavalBattleBalanceSimulator.ScenarioNode(session, scenario.EnemyId).Encounter.Id, Is.EqualTo(scenario.EnemyId));
             }
         }
 
@@ -133,13 +139,13 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void AuditUsesAllSevenAuthoredThirdChartBosses()
+        public void AuditUsesAllEightAuthoredThirdChartBosses()
         {
             string[] ids = NavalBattleBalanceSimulator.BossIds();
-            Assert.That(ids.Distinct().Count(), Is.EqualTo(7));
+            Assert.That(ids.Distinct().Count(), Is.EqualTo(8));
             Assert.That(ids.Count(id => id.StartsWith("boss_", StringComparison.Ordinal)), Is.EqualTo(1));
             Assert.That(ids.Count(id => id.StartsWith("treasure_boss_", StringComparison.Ordinal)), Is.EqualTo(1));
-            Assert.That(ids.Count(id => id.StartsWith("legendary_", StringComparison.Ordinal)), Is.EqualTo(5));
+            Assert.That(ids.Count(id => id.StartsWith("legendary_", StringComparison.Ordinal)), Is.EqualTo(6));
         }
     }
 }

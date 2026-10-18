@@ -18,12 +18,13 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadComponentResaleFixture();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             ComponentArtEntry entry = ComponentResaleFixtureEntry();
-            OwnedShipComponent first = controller.GrantOwnedComponent(entry, 0.93f);
-            OwnedShipComponent retained = controller.GrantOwnedComponent(entry, 1.08f);
+            OwnedShipComponent first = controller.GrantOwnedComponent(entry);
+            OwnedShipComponent retained = controller.GrantOwnedComponent(entry);
             int count = controller.OwnedComponents.Count;
             decimal initialGold = controller.Session.ProfileGold;
             int price = controller.OwnedComponentSalePrice(first.InstanceId);
-            Assert.That(price, Is.EqualTo(PortComponentShopCatalog.CalculateSalePrice(entry, controller.Session.CurrentPort, first.Quality)));
+            Assert.That(price, Is.EqualTo(PortComponentShopCatalog.CalculateSalePrice(entry, controller.Session.CurrentPort)));
+            Assert.That(controller.OwnedComponentSalePrice(retained.InstanceId), Is.EqualTo(price), "Copies of the same component have the same resale value.");
             Assert.That(price, Is.GreaterThan(0));
 
             ClickAcceptanceButton("Port Hotspot ComponentShop"); yield return null;
@@ -48,7 +49,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(initialGold + price));
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(count - 1));
             Assert.That(controller.OwnedComponents.Any(item => item.InstanceId == first.InstanceId), Is.False);
-            Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == retained.InstanceId).Quality, Is.EqualTo(1.08f));
+            Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == retained.InstanceId).ComponentId, Is.EqualTo(entry.Id));
             Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(initialGold + price));
             string saved = PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey);
             confirmedCallback.Invoke(); confirmedCallback.Invoke(); yield return null;
@@ -63,11 +64,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(initialGold + price));
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(count - 1));
             Assert.That(controller.OwnedComponents.Any(item => item.InstanceId == first.InstanceId), Is.False);
-            Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == retained.InstanceId).Quality, Is.EqualTo(1.08f));
+            Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == retained.InstanceId).ComponentId, Is.EqualTo(entry.Id));
             ClickAcceptanceButton("Port Hotspot ComponentShop"); yield return null;
             ClickAcceptanceButton("Open Component Resale"); yield return null;
             Assert.That(VisibleComponentSaleButtons().Single().name, Is.EqualTo("Select Component Sale " + retained.InstanceId));
-            CaptureComponentResale(controller, "04_Component_Resale_Reload", "重载保留金币、余下部件品质与已售实例删除状态");
+            CaptureComponentResale(controller, "04_Component_Resale_Reload", "重载保留金币、余下部件身份与已售实例删除状态");
             ClickAcceptanceButton("Back To Component Shop Sales"); yield return null;
             Assert.That(ActiveButton("Open Component Resale"), Is.Not.Null);
             LogAssert.NoUnexpectedReceived();
@@ -79,7 +80,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadComponentResaleFixture();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             for (int index = 0; index < 6; index++)
-                controller.GrantOwnedComponent(ComponentResaleFixtureEntry(), 0.94f + index * 0.02f);
+                controller.GrantOwnedComponent(ComponentResaleFixtureEntry());
             ClickAcceptanceButton("Port Hotspot ComponentShop"); yield return null;
             ClickAcceptanceButton("Open Component Resale"); yield return null;
             Assert.That(VisibleComponentSaleButtons().Length, Is.EqualTo(5));
@@ -106,7 +107,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             yield return LoadComponentResaleFixture();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            OwnedShipComponent spare = controller.GrantOwnedComponent(ComponentResaleFixtureEntry(), 1f);
+            OwnedShipComponent spare = controller.GrantOwnedComponent(ComponentResaleFixtureEntry());
             decimal gold = controller.Session.ProfileGold;
             ClickAcceptanceButton("Port Hotspot ComponentShop"); yield return null;
             ClickAcceptanceButton("Open Component Resale"); yield return null;
@@ -128,7 +129,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             yield return LoadComponentResaleFixture(true);
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            OwnedShipComponent spare = controller.GrantOwnedComponent(ComponentResaleFixtureEntry(), 1.04f);
+            OwnedShipComponent spare = controller.GrantOwnedComponent(ComponentResaleFixtureEntry());
             foreach (OwnedShipComponent installed in controller.OwnedComponents.Where(item => item.ShipIndex >= 0).ToArray())
                 AssertComponentSaleRejected(controller, installed.InstanceId);
             AssertComponentSaleRejected(controller, "unknown-instance");
@@ -160,7 +161,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             yield return LoadComponentResaleFixture();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            OwnedShipComponent spare = controller.GrantOwnedComponent(ComponentResaleFixtureEntry(), 1f);
+            OwnedShipComponent spare = controller.GrantOwnedComponent(ComponentResaleFixtureEntry());
             int price = controller.OwnedComponentSalePrice(spare.InstanceId);
             controller.Session.RestoreProfile(CoreEconomyBalance.MaximumProfileGold - price, controller.Session.CurrentPort);
             Assert.That(controller.TrySellOwnedComponent(spare.InstanceId), Is.True);
@@ -188,13 +189,13 @@ namespace ShatteredSail.Presentation.Tests
         private static void AssertComponentSaleRejected(CoreGameplayDemoController controller, string instanceId)
         {
             decimal gold = controller.Session.ProfileGold;
-            string[] inventory = controller.OwnedComponents.Select(item => item.InstanceId + ":" + item.ShipIndex + ":" + item.Quality)
+            string[] inventory = controller.OwnedComponents.Select(item => item.InstanceId + ":" + item.ShipIndex + ":" + item.ComponentId)
                 .OrderBy(value => value, System.StringComparer.Ordinal).ToArray();
             string savedInventory = PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey);
             decimal savedGold = ProfileGoldPersistence.Load();
             Assert.That(controller.TrySellOwnedComponent(instanceId), Is.False);
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
-            CollectionAssert.AreEqual(inventory, controller.OwnedComponents.Select(item => item.InstanceId + ":" + item.ShipIndex + ":" + item.Quality)
+            CollectionAssert.AreEqual(inventory, controller.OwnedComponents.Select(item => item.InstanceId + ":" + item.ShipIndex + ":" + item.ComponentId)
                 .OrderBy(value => value, System.StringComparer.Ordinal).ToArray());
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Is.EqualTo(savedInventory));
             Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(savedGold));

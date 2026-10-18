@@ -43,8 +43,12 @@ namespace ShatteredSail.Presentation
 
         private void BuildBattleCardUpgradeDetail(RectTransform panel, int index, Color ink, Color muted)
         {
-            CoreBattleCard data = session.GetBattleCard(index);
-            CoreBattleCard next = session.GetBattleCardAtLevel(index, Mathf.Min(3, data.UpgradeLevel + 1));
+            CoreBattleCard data = session.GetBattleCard(index, selectedBattleDeckStage);
+            int maximumLevel = session.GetCardMaximumUpgradeLevel(index);
+            int currentLevel = session.GetCardUpgradeLevel(data.Id);
+            bool atMaximum = currentLevel >= maximumLevel;
+            CoreBattleCard next = session.GetBattleCardAtLevel(index, Mathf.Min(maximumLevel, currentLevel + 1));
+            if (selectedBattleDeckStage == NavalBattleStage.Boarding) next = CoreBoardingCardCatalog.ForBoarding(next);
             int cost = session.GetCardUpgradeCost(index);
             Text name = CreateText("Upgrade Selected Name", panel, new Vector2(660f, 54f), new Vector2(0f, 294f), 34, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
             name.text = CardFaceLayout.DisplayName(data);
@@ -52,18 +56,20 @@ namespace ShatteredSail.Presentation
             name.verticalOverflow = VerticalWrapMode.Truncate;
             name.resizeTextForBestFit = true; name.resizeTextMinSize = 24; name.resizeTextMaxSize = 34;
             CreateUpgradeComparison(panel, "Current", "强化前  +" + data.UpgradeLevel, data, new Vector2(-176f, -34f), muted);
-            CreateUpgradeComparison(panel, "Next", data.UpgradeLevel == 3 ? "已达三阶" : "强化后  +" + next.UpgradeLevel, next, new Vector2(176f, -34f), muted);
+            CreateUpgradeComparison(panel, "Next", atMaximum ? CardMaximumLevelLabel(maximumLevel) : "强化后  +" + next.UpgradeLevel, next, new Vector2(176f, -34f), muted);
             RectTransform arrow = CreateCardOrnament("Upgrade Comparison Arrow", panel, new Vector2(60f, 42f),
                 new Vector2(0f, -34f), CardOrnamentKind.UpgradeArrow, data.Type);
-            if (data.UpgradeLevel == 3) arrow.GetComponent<CardOrnamentGraphic>().color = new Color(1f, 1f, 1f, .3f);
+            if (atMaximum) arrow.GetComponent<CardOrnamentGraphic>().color = new Color(1f, 1f, 1f, .3f);
             string unavailable = session.BattleCardUpgradeUnavailableReason(index);
-            CreateText("Upgrade Availability", panel, new Vector2(640f, 36f), new Vector2(0f, -310f),
-                22, FontStyle.Normal, TextAnchor.MiddleCenter, muted).text = data.UpgradeLevel < 3 ? unavailable : string.Empty;
+            CreateText("Upgrade Limit", panel, new Vector2(640f, 24f), new Vector2(0f, -286f),
+                19, FontStyle.Normal, TextAnchor.MiddleCenter, muted).text = CardUpgradeLimitDescription(data, maximumLevel);
+            CreateText("Upgrade Availability", panel, new Vector2(640f, 26f), new Vector2(0f, -315f),
+                21, FontStyle.Normal, TextAnchor.MiddleCenter, muted).text = atMaximum ? string.Empty : unavailable;
             Button confirm = CreateButton("Confirm Battle Card Upgrade", panel, new Vector2(570f, 64f), new Vector2(0f, -365f), Gold, Ink, 30);
             Text confirmLabel = confirm.GetComponentInChildren<Text>();
             confirmLabel.text = !session.HasBattleCardUpgradeBenefit(index) ? "固定功能牌不支持金币强化" :
-                data.UpgradeLevel == 3 ? "已达三阶" : "强化 · " + cost + " 金币";
-            confirm.interactable = unavailable.Length == 0;
+                atMaximum ? CardMaximumLevelLabel(maximumLevel) : "强化 · " + cost + " 金币";
+            confirm.interactable = !atMaximum && unavailable.Length == 0;
             confirm.onClick.AddListener(() =>
             {
                 // Revalidate the current session and persist only a successful upgrade.
@@ -71,6 +77,32 @@ namespace ShatteredSail.Presentation
                 portNotice = reason;
                 Render();
             });
+        }
+
+        private static string CardMaximumLevelLabel(int maximumLevel) => maximumLevel <= 0 ? "固定效果" :
+            maximumLevel == 1 ? "已达一阶" : maximumLevel == 2 ? "已达二阶" : "已达三阶";
+
+        private static string CardUpgradeLimitDescription(CoreBattleCard card, int maximumLevel)
+        {
+            var parts = new List<string> { maximumLevel <= 0 ? "固定效果，无强化阶级" : "强化上限 +" + maximumLevel };
+            CoreCardUpgradeProfile profile = CoreCardUpgradeDesign.Find(card);
+            CoreSchoolMechanic mechanic = card.SchoolEffect?.Mechanic ?? CoreSchoolMechanic.None;
+            if (card.Draw > 0 || mechanic == CoreSchoolMechanic.ArcaneEcho || mechanic == CoreSchoolMechanic.ThunderEcho)
+            {
+                int lastDraw = profile?.LastDrawGrowthLevel ?? CoreBattleUpgradeBalance.UtilityMaximumLevel(card);
+                parts.Add(lastDraw <= 0 ? "抽牌固定" : "抽牌至 +" + lastDraw);
+            }
+            if (CoreBattleUpgradeBalance.BaseEnergyRecovery(card) > 0)
+            {
+                int lastEnergy = profile?.LastEnergyGrowthLevel ?? CoreBattleUpgradeBalance.UtilityMaximumLevel(card);
+                parts.Add(lastEnergy <= 0 ? "回能固定" : "回能至 +" + lastEnergy);
+            }
+            if (card.NavalActionPointGain > 0)
+            {
+                int lastActionPoints = profile?.LastActionPointGrowthLevel ?? 0;
+                parts.Add(lastActionPoints <= 0 ? "行动点固定" : "行动点至 +" + lastActionPoints);
+            }
+            return string.Join("；", parts);
         }
 
         private string UpgradeCardEffectDescription(CoreBattleCard card)

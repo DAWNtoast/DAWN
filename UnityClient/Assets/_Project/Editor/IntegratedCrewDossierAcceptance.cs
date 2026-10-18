@@ -25,9 +25,10 @@ namespace ShatteredSail.Editor
         }
         [Serializable] private sealed class Record
         {
-            public string id, name, port, page, image, texture;
+            public string id, name, port, page, image, texture, frameTexture;
             public int textureWidth, textureHeight;
-            public bool nameFixed, roleBesideName, textPreserved, noSeparatePortrait, oneIntegratedPainting;
+            public bool nameFixed, roleBesideName, textPreserved, noLegacyCutout, ownBackgroundPortrait;
+            public bool portraitPreservesColors, portraitCoversWindow, portraitTopAligned, portraitAspectPreserved;
         }
 
         public static void CaptureFromCommandLine()
@@ -85,16 +86,32 @@ namespace ShatteredSail.Editor
         {
             Transform detail = Find<RectTransform>(root, "Tavern Crew Detail");
             RawImage paper = Find<RawImage>(detail, "Tavern Dossier Parchment");
-            record.texture = AssetDatabase.GetAssetPath(paper.texture);
-            record.textureWidth = paper.texture == null ? 0 : paper.texture.width;
-            record.textureHeight = paper.texture == null ? 0 : paper.texture.height;
-            string expected = "Assets/_Project/Resources/PortArt/CrewDossiers/" + crew.Id + "_dossier_v1.png";
-            record.oneIntegratedPainting = record.texture == expected;
-            Check(record.oneIntegratedPainting, crew.Id + ": wrong or missing integrated painting " + record.texture, report);
-            Check(record.textureWidth >= 1900 && record.textureHeight >= 700, crew.Id + ": insufficient painting resolution", report);
-            record.noSeparatePortrait = !detail.GetComponentsInChildren<RawImage>(false).Any(image => image.name == "Tavern Crew Detail Full Body") &&
+            RawImage portrait = Find<RawImage>(detail, "Tavern Dossier Background Portrait");
+            RectTransform viewport = Find<RectTransform>(detail, "Tavern Dossier Portrait Viewport");
+            record.texture = AssetDatabase.GetAssetPath(portrait.texture);
+            record.frameTexture = AssetDatabase.GetAssetPath(paper.texture);
+            record.textureWidth = portrait.texture == null ? 0 : portrait.texture.width;
+            record.textureHeight = portrait.texture == null ? 0 : portrait.texture.height;
+            string expected = "Assets/_Project/Resources/PortArt/CrewDossiers/" + crew.Id + "_portrait_v2.png";
+            record.ownBackgroundPortrait = record.texture == expected;
+            Check(record.ownBackgroundPortrait, crew.Id + ": wrong or missing background portrait " + record.texture, report);
+            Check(record.textureWidth >= 512 && record.textureHeight >= 640, crew.Id + ": insufficient portrait resolution", report);
+            Check(record.frameTexture == "Assets/_Project/Resources/PortArt/UI/tavern_crew_dossier_frame_4k_layers_v1.jpg",
+                crew.Id + ": wrong dossier frame", report);
+            Rect portraitBounds = Bounds(viewport, portrait.rectTransform);
+            record.portraitCoversWindow = portraitBounds.xMin <= viewport.rect.xMin + .1f && portraitBounds.xMax >= viewport.rect.xMax - .1f &&
+                portraitBounds.yMin <= viewport.rect.yMin + .1f && portraitBounds.yMax >= viewport.rect.yMax - .1f;
+            record.portraitTopAligned = Mathf.Abs(portraitBounds.yMax - viewport.rect.yMax) < .1f;
+            record.portraitAspectPreserved = Mathf.Abs(portrait.rectTransform.rect.width / portrait.rectTransform.rect.height -
+                (float)record.textureWidth / record.textureHeight) < .001f;
+            record.portraitPreservesColors = portrait.GetComponent<CrewArtChromaKey>() == null &&
+                portrait.GetComponent<TavernPortraitPaperBlend>() == null;
+            Check(record.portraitCoversWindow && record.portraitTopAligned && record.portraitAspectPreserved,
+                crew.Id + ": portrait crop stretches the face, exposes an empty edge, or loses top alignment", report);
+            Check(record.portraitPreservesColors, crew.Id + ": portrait colors are keyed or blended away", report);
+            record.noLegacyCutout = !detail.GetComponentsInChildren<RawImage>(false).Any(image => image.name == "Tavern Crew Detail Full Body") &&
                 !detail.GetComponentsInChildren<TavernPortraitPaperBlend>(false).Any();
-            Check(record.noSeparatePortrait, crew.Id + ": separate portrait/blend remains", report);
+            Check(record.noLegacyCutout, crew.Id + ": legacy portrait cutout/blend remains", report);
             Text name = Find<Text>(detail, "Tavern Crew Detail Name");
             Text role = Find<Text>(detail, "Tavern Crew Detail Role");
             Rect nameBounds = Bounds(detail, name.rectTransform);

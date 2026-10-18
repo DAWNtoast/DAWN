@@ -1,0 +1,80 @@
+第七港口 · 代码结构优化与验收说明
+日期：2026-10-16
+发行版本：0.3.20261016.3
+状态：Release04 完整测试、快照验证、Windows 正式构建、玩家包烟测、ZIP 校验及发布封存全部通过。
+
+范围与归属
+本轮检查以工作区已有游戏内容和规则为基础。开始时工作树已有大量用户改动；已有战术棋盘、拖动航线、冲撞自动接舷、探索和寻宝内容等，不归因于本轮结构优化。保留现有工作，不以 Git 当前全部差异代表本轮新增。
+本轮聚焦三项结构重构、检查发现的文案与界面问题、测试前提适配及发布证据绑定。没有进行整体性能基准，不以代码整理推断帧率、内存或加载速度改善。
+
+三项结构重构
+1. Unity 生命周期集中。
+   新增 Presentation/Runtime/CoreGameplayLifecycle.cs，将 CoreGameplayDemoController 的 Awake、OnEnable、Update、OnApplicationPause、OnDisable、OnDestroy 六个入口集中到同一 partial 文件，保持原方法体与调用顺序。生成的视觉资源释放逻辑归入 CoreGameplayResourceMemory.cs。仍使用原控制器类型和现有场景、预制体引用，功能逻辑保留在各自文件。
+2. 市场基础物品映射统一。
+   Core/Runtime/CoreVoyageSession.cs 的五处市场物品映射改用 CoreWarehouseItemCatalog 的基础物品定义，集中维护对应关系。保留键规范化、帆布的市场显示名及不支持物品的原有处理。仓库独有的宝物、遗物和稀有货物不会因此自动成为普通市场补给。
+3. 桌面构建公共逻辑统一。
+   WindowsReleaseBuilder 与 MacReleaseBuilder 保留原公共批处理入口，共享 DesktopReleaseBuilder。场景清单、资源元数据检查、生产存档身份、构建选项、报告和 PlayerSettings 保存/恢复集中维护；macOS 架构设置也在 finally 中恢复。
+   发布版本通过 -releaseVersion 显式传入，旧调用省略参数时保留历史默认值。拒绝无效/重复参数、非绝对输出路径和会覆盖已有产物的输出位置。发布脚本不再通过替换 C# 版本字符串出包。
+
+检查发现并修复的实际文案与界面问题
+海战行动点文案转换在正则边界中加入中英文冒号，避免转换移动描述时吞掉“木板不足，仅基础效果：”等前置说明。
+CardDescriptionText 在保持效果含义和数值的前提下压缩长说明，将“每回合一次”等限定与所属效果保持关联；CardFaceLayout 加粗棋盘接舷的“相邻且同向”等使用前提。现役 319 张卡的四个等级参与卡面显示检查，保留既有字号、完整显示和可读率超过 90% 的验收门槛，不靠降低门槛消除失败。
+海战行动按钮接入 WoodButtonSkin；探索状态文字行距统一为 1，修正当前布局中的显示问题。这些修复不将用户已有的战术棋盘或行动点玩法重新计作本轮功能。
+
+测试夹具为何调整
+旧规则前提：新教程 Boss 需要完成规定引导阶段，海战需要满足当前行动点、接近、射程、朝向和接舷条件。旧测试中直接进入最终奖励、使用退役移动按钮或假定旧攻击距离的准备步骤，改为符合现行规则的前提。仍验证实际奖励、伤害、资源消耗和战斗状态，不通过修改业务数值迁就旧断言。
+新寻宝内容：新出航会采用当前内容版本，不能继续假定旧种子一定生成旧事件。当前版本奖励测试补齐营地、绞盘、钟声、清单/证人或昼夜线索等对应前置。海图隐藏信息测试使用明确的船内事件夹具，继续断言节点、标签和图标均不披露，并保留导航员招聘、种子入口与出航的真实界面验证。
+海图复用：同一种子的新航次会从该航线的候选首领中独立抽选，不能要求两个新航次的首领 ID 必定相同。海图测试保留地形、坐标与普通事件的一致性检查，并在同一航程保存/恢复时严格核对首领和事件 ID，区分海图复用与航程恢复。
+旧存档兼容：旧雾钟、诅咒奖励场景使用已出航的内容版本 0 航程检查点，经 JSON 往返和正式恢复入口加载；不把新出航强行视作旧版本，也不直接注入待验证奖励。继续验证选择、归港、货物入库、收益及重载。退役卡牌别名按现有映射从 12 转为 11，保留同卡上限与最低十张卡组的精确断言；保存日志清单补入已有仓库收益键，继续逐项检查键名排序与原生类型。
+真实界面：补齐流派解锁通知的实际确认、当前面板入口、展开库存等交互前提；出航返回说明匹配六港当前统一文案。首次贸易从真实教学结束后的所在港口与资产出发，按实际补给、货舱、报价和购买额度准备航行，不硬编码旧教学终点。
+现有首次制图寻宝长流程仍允许通过真实 F10 操作补金作测试准备，因此其通过仅验证该准备条件下的实际界面与奖励流程，不能作为“零 GM 辅助也能完成新手经济进程”的证据。独立的无 GM 经济专项属于下列需另行启用的检查。
+
+跳过的项目与覆盖边界
+以下数量已由 Release04 完整测试结果及 skipped-tests.json 核对；跳过不计作通过，也不代表相应专项已经验收。
+
+EditMode 跳过 45 项，全部为用户于 2026-10-13 退役并清空的 UIPreviewsForMe 历史保存场景检查：
+  BossTreasureDropPreviewSceneTests：5 项，旧教程结算、碎片与制图工作台预览。
+  DepartureProvisionPreviewSceneTests：9 项，旧出航补给和市场交易预览。
+  EditablePreviewScenePersistenceTests：3 项，旧可编辑战斗/制图场景的序列化与布局。
+  NavigationEndurancePreviewSceneTests：21 项，旧航行、遭遇、寻宝和教程航段预览。
+  WarehouseSerializedSceneTests：7 项，旧仓库及教程陈列场景的引用检查。
+该目录保持为空，不运行旧 ForMe 生成器，不恢复或拷回退役场景。
+
+PlayMode 跳过 8 项，为需显式参数启用的专项：
+  1 项全战役经济与画面采集：StrictEconomy_AllLegendsAndThreeTreasureRanks_RealUI，需 -navalVisualCapturePath，可能运行四小时。
+  1 项无 GM 首次制图寻宝经济验收：StrictEconomy_FirstCraftedTreasure_NoGm_RealUI，需 -noGmFirstTreasureAuditPath，预算为最多 40 次实际出航/30 分钟。
+  1 项真实市场、补给、结算及战斗回调性能测量：FlowPerformance_MeasureRealMarketSupplySettlementAndBattleCallbacks，需 -flowPerformanceOutput。
+  1 项成就菜单启动、打开与翻页性能测量：AchievementMenu_PerformanceMeasureStartupOpenAndPaging，需 -achievementMenuBenchmarkPath。
+  4 项原生音频 API 诊断：ListenerOutputProbeTests 1 项、NativeRendererProbeTests 3 项，需 -audioNativeProbe，原生渲染探针另需新音频输出目录。
+普通回归使用图形渲染，并记录首次贸易/寻宝动作日志；不因启用动作日志而启用四小时专项。此次验收不包含上述性能与原生 API 专项，也未做 macOS 实机包构建、启动或签名验证。
+
+源码快照与证据绑定
+冻结快照：Artifacts/CodeStructureRelease20261016/Release04，snapshot.json 记录 PASS。
+source-manifest.csv SHA256：A0E9AE9283F4A1EC638DA1552E66B6F57426982181213F73C81D959C5CFB7EAF
+project-input-manifest.csv SHA256：6FB18250404685DCBC7694B3BA47636E9E2B683AB75EECBD6BC598882B91EE85
+Assets、Packages、ProjectSettings 的源码清单包含 4,371 个文件，隔离工程清单包含 4,373 个文件。隔离工程使用单独的验证公司/产品存档身份，并加入固定哈希的 Editor 资源校验脚本及其 meta。这些差异完整纳入隔离清单，不整体豁免 ProjectSettings。
+正式 EditMode 与 PlayMode 测试必须传入此 source-manifest.csv。运行前后逐文件核对哈希与完整 inventory，拒绝新增、缺失或变化的输入，并记录两份清单 SHA256；完成记录同时保存 results.xml 的 SHA256。Verify 必须核对开始、完成、XML 与同一快照完全一致，不能把同一路径的旧工程测试结果绑定到新源码。
+定向复测用于定位和修复既有失败；最终发布结论必须来自修复后重新运行的完整 EditMode 和 PlayMode，不以定向结果拼接冒充最终全量通过。发布脚本的独立 19 项门禁自检已通过，但不替代 Unity 回归和实际玩家包验收。
+
+完整回归结果与产物验收
+完整 EditMode / FinalEdit04：5,584 项总计，5,539 通过、0 失败、45 跳过；退出码 0，耗时约 143.573 秒。运行前后输入校验 PASS。
+EditMode results.xml SHA256：EC110A0F38EE8C7E577DC4CDAF7AF757C116EA7E332FF5C20E70B16E0F73139A
+完整 PlayMode / FinalPlay04：524 项总计，516 通过、0 失败、8 跳过；退出码 0，耗时约 2,037.981 秒。运行前后输入校验 PASS。
+PlayMode results.xml SHA256：FB935A84FB029A6509354D553374187CBC88F85C70C46A7630003B8322C93C5D
+汇总验证：verification-summary.json 为 PASS，记录时间 2026-10-16T21:16:06.2331163Z；共 6,108 项，6,055 通过、0 失败、53 跳过。两轮完整测试的输入清单及结果 XML 均与 Release04 一致，跳过项目见上述分类及 skipped-tests.json。
+Windows x86_64 / Mono 正式构建：Succeeded；Unity 6000.3.23f1，版本 0.3.20261016.3，耗时约 110.955 秒，0 错误、0 警告。仅包含 MainMenu、CoreGameplayDemo 两个发行场景。880 张资源图片的实际构建引用检查 PASS，无缺失；详见 Windows/build-report.txt 和 Release04/Windows/packaged-images.json。
+实际 Windows 玩家包烟测：PASS，进程退出码 0，耗时约 7.410 秒。1280×720、RTX 5080 环境确认版本 0.3.20261016.3，生产存档身份 ShatteredSail / Shattered Sail；检查启动、打包场景、背景、字体、输入、设置开关、界面离屏帧、12 个转向/镜像船只剪影、60 段 48kHz 音频、319 张逐卡插图、36 个流派/木框与 36 张船员档案画。两个 PNG 经目视复核正常。该专用烟测不改存档，不触发 GM；原始结果见 Release04/Smoke/result.json 与 Smoke/Report/player-smoke-report.txt。
+ZIP 校验：PASS；178 个文件逐项 SHA256 与原目录一致。压缩包大小 1,797,504,413 字节，解压后文件合计 1,985,901,107 字节。
+ZIP SHA256：4F12AAD332503EBA9518EA1BA42085921FCBAFDB7C18B59B3280FBF747C0B855
+EXE SHA256：82EFD5A8C297A5046F6BB72C240DAB8972E64003851935EBA0A46AD121CE0305
+发布封存：Builds/第七港口-代码结构优化20261016/release-manifest.json 为 PASS，关联本次完整测试与两份 Release04 输入清单，并记录 Package PASS、SmokePassed true、880 张图片及产物哈希。Windows 成品和 ZIP 已封存；本说明回填仅发生在源码文档，不改已封存产物。
+
+此前阶段结果仅作排错记录：FinalEdit03 共 5,584 项，5,539 通过、0 失败、45 退役预览跳过，退出码 0，输入前后校验 PASS；FinalPlay03 发现 4 项失败后安排修复与定向复测。旧快照结果不替代 Release04 的完整验证。Unity 可能将含 Ignore 夹具的聚合状态记为 Skipped:Ignored；最终验收同时要求进程退出码 0、失败及不确定结果为 0、总数等于通过加跳过、每个用例只能为 Passed/Skipped，并核对清单及 XML 哈希。
+
+正式产物与复查入口
+Windows 程序：Builds/第七港口-代码结构优化20261016/Windows/第七港口.exe。
+ZIP：Builds/第七港口-代码结构优化20261016/第七港口-Windows-20261016-代码结构优化.zip。
+完整解压 ZIP 后运行 Windows/第七港口.exe，保留程序旁的资源文件，不单独移动 EXE。
+生产存档身份：ShatteredSail / Shattered Sail；发行场景：MainMenu、CoreGameplayDemo。
+完整证据目录：Artifacts/CodeStructureRelease20261016。结构边界说明：UnityClient/Documentation/CodeStructure.md。
+构建、烟测、压缩和封存由 tools/ReleaseBuild/DesktopRelease.ps1 及本次日期 wrapper 执行；以原始日志、XML、清单和实际产物哈希为复查依据。

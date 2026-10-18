@@ -17,19 +17,19 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
-        public IEnumerator RamComic_PlayerHeadOn_ClicksFourFullscreenPanelsBeforeBoarding() =>
-            ExerciseRamComic(false, NavalBattleAlignment.HeadOn);
-
-        [UnityTest]
-        public IEnumerator RamComic_PlayerBroadside_ClicksKeepOneCommittedRamAndPlayerInitiative() =>
+        public IEnumerator RamComic_PlayerPortSide_ClicksFourFullscreenPanelsBeforeBoarding() =>
             ExerciseRamComic(false, NavalBattleAlignment.EnemyBroadside);
 
         [UnityTest]
-        public IEnumerator RamComic_BossHeadOn_ClicksFourPanelsAndAppliesExactlyOneOpening() =>
-            ExerciseRamComic(true, NavalBattleAlignment.HeadOn);
+        public IEnumerator RamComic_PlayerStarboardSide_ClicksKeepOneCommittedRamAndPlayerInitiative() =>
+            ExerciseRamComic(false, NavalBattleAlignment.EnemyBroadside, true);
 
         [UnityTest]
-        public IEnumerator RamComic_BossBroadside_ClicksKeepOneOpeningAndEnemyInitiative() =>
+        public IEnumerator RamComic_BossPortSide_ClicksFourPanelsAndAppliesExactlyOneOpening() =>
+            ExerciseRamComic(true, NavalBattleAlignment.EnemyBroadside, true);
+
+        [UnityTest]
+        public IEnumerator RamComic_BossStarboardSide_ClicksKeepOneOpeningAndEnemyInitiative() =>
             ExerciseRamComic(true, NavalBattleAlignment.EnemyBroadside);
 
         [Test]
@@ -57,7 +57,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 yield return LoadResponsiveBattleScene();
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                CoreVoyageSession session = ArrangeRamComicBattle(controller, false, NavalBattleAlignment.HeadOn);
+                CoreVoyageSession session = ArrangeRamComicBattle(controller, false, NavalBattleAlignment.EnemyBroadside);
                 RenderResponsiveBattle(controller);
                 yield return null;
                 UnityEvent oldRam = RequiredResponsive<Button>("Battle Ram").onClick;
@@ -97,7 +97,7 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     yield return LoadResponsiveBattleScene();
                     var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                    CoreVoyageSession session = ArrangeRamComicBattle(controller, enemy, NavalBattleAlignment.HeadOn, enemy ? 500 : 7);
+                    CoreVoyageSession session = ArrangeRamComicBattle(controller, enemy, NavalBattleAlignment.EnemyBroadside, enemy ? 500 : 7);
                     if (!enemy) session.Battle.EnemyHull = 1;
                     RenderResponsiveBattle(controller);
                     yield return null;
@@ -110,7 +110,7 @@ namespace ShatteredSail.Presentation.Tests
                     int panelCount = enemy ? 4 : 2;
                     for (int panel = 0; panel < panelCount; panel++)
                     {
-                        Texture2D expected = Resources.Load<Texture2D>(RamComicCatalog.ImageResource(enemy, NavalBattleAlignment.HeadOn, panel));
+                        Texture2D expected = Resources.Load<Texture2D>(RamComicCatalog.ImageResource(enemy, NavalBattleAlignment.EnemyBroadside, panel));
                         AssertRamComicPresentation(controller, expected, panel);
                         yield return new WaitForSecondsRealtime(1f);
                         AssertRamComicPresentation(controller, expected, panel);
@@ -138,10 +138,10 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     yield return LoadResponsiveBattleScene();
                     var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                    CoreVoyageSession session = ArrangeRamComicBattle(controller, enemy, NavalBattleAlignment.HeadOn);
+                    CoreVoyageSession session = ArrangeRamComicBattle(controller, enemy, NavalBattleAlignment.EnemyBroadside);
                     // Cover a missing first page and a missing later page: both
                     // must reject the sequence before displaying any artwork.
-                    int index = RamComicCatalog.SequenceIndex(enemy, NavalBattleAlignment.HeadOn) * RamComicCatalog.PagesPerSequence + (enemy ? 2 : 0);
+                    int index = RamComicCatalog.SequenceIndex(enemy, NavalBattleAlignment.EnemyBroadside) * RamComicCatalog.PagesPerSequence + (enemy ? 2 : 0);
                     ((bool[])RamComicField("ramComicLoadAttempted").GetValue(controller))[index] = true;
                     ((Texture2D[])RamComicField("ramComicTextures").GetValue(controller))[index] = null;
                     RenderResponsiveBattle(controller);
@@ -169,18 +169,21 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
-        private static IEnumerator ExerciseRamComic(bool enemy, NavalBattleAlignment alignment)
+        private static IEnumerator ExerciseRamComic(bool enemy, NavalBattleAlignment alignment, bool oppositeSide = false)
         {
             using (var storage = new VoyageCargoStorageScope())
             {
                 yield return LoadResponsiveBattleScene();
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                CoreVoyageSession session = ArrangeRamComicBattle(controller, enemy, alignment);
+                CoreVoyageSession session = ArrangeRamComicBattle(controller, enemy, alignment, oppositeSide: oppositeSide);
                 CoreBattleState battle = session.Battle;
+                // Live rams use actual adjacent poses, including when the old
+                // summary still describes a head-on approach before rendering.
+                if (oppositeSide) battle.Alignment = NavalBattleAlignment.HeadOn;
                 int hull = session.Hull, enemyHull = battle.EnemyHull, crew = battle.PlayerBoardingHealth, turn = battle.Turn;
                 int opening = enemy ? session.EnemyRamFirstStrikeDamage : 0;
                 RenderResponsiveBattle(controller);
-                yield return null;
+                yield return WaitResponsiveBattle(controller);
                 Button underlyingTurn = RequiredResponsive<Button>("End Battle Turn");
                 UnityEvent oldTurn = underlyingTurn.onClick;
                 UnityEvent oldRam = RequiredResponsive<Button>("Battle Ram").onClick;
@@ -227,7 +230,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(controller.IsBattleAnimationPlaying, Is.True, "The page remains open before its reading interval expires.");
                     Assert.That(GameObject.Find("Boarding Scene Transition"), Is.Null);
                     Assert.That(RamComicCoreState(session), Is.EqualTo(committed));
-                    if (!enemy && headOn && panel == 1)
+                    if (!enemy && !oppositeSide && panel == 1)
                     {
                         typeof(CoreGameplayDemoController).GetMethod("ReleaseArtReferences", BindingFlags.Instance | BindingFlags.NonPublic)
                             .Invoke(controller, null);
@@ -236,7 +239,7 @@ namespace ShatteredSail.Presentation.Tests
                         // collection drops the borrowed resource cache mid-comic.
                         AssertRamComicPresentation(controller, expected, panel);
                     }
-                    if ((panel == 1 || panel == 3) && !enemy && headOn)
+                    if ((panel == 1 || panel == 3) && !enemy && !oppositeSide)
                     {
                         timer.RestoreRemainingSeconds(.06f);
                         float autoDeadline = Time.realtimeSinceStartup + 2f;
@@ -329,16 +332,15 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         private static CoreVoyageSession ArrangeRamComicBattle(CoreGameplayDemoController controller, bool enemy,
-            NavalBattleAlignment alignment, int melee = 7)
+            NavalBattleAlignment alignment, int melee = 7, bool oppositeSide = false)
         {
             CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
             CoreBattleState battle = session.Battle;
             var profile = new CoreBattleProfile(enemy ? CoreBossKind.Legendary : CoreBossKind.None, CoreBattleArchetype.Raider,
                 battle.EnemyMaxHull, 1, melee, 0, 0, battle.EnemyOrdinaryCrew, 1f, 1f, enemy ? 1d : 0d, 120f);
             typeof(CoreBattleState).GetProperty("Profile").SetValue(battle, profile);
-            battle.Alignment = alignment;
-            battle.DistanceMeters = 80f;
-            battle.PlayerMovingTowardEnemy = !enemy;
+            Assert.That(alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside), "Live rams require a perpendicular bow-to-side approach.");
+            ConfigureCloseNavalTestPose(battle, true, enemy, oppositeSide);
             battle.EnemyBurnDamage = 0;
             battle.EnemyBurnTurns = 0;
             SetResponsiveHand(session, "card_brace", "card_emergency_repair");
@@ -346,19 +348,68 @@ namespace ShatteredSail.Presentation.Tests
             return session;
         }
 
+        internal static void ConfigureCloseNavalTestPose(CoreBattleState battle, bool ram,
+            bool enemyInitiated = false, bool oppositeSide = false)
+        {
+            // Real adjacent grid positions keep presentation fixtures subject to
+            // the same heading and action-point rules as the tactical board.
+            MethodInfo pose = typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(pose, Is.Not.Null);
+            float sideHeading = oppositeSide ? 270f : 90f;
+            pose.Invoke(battle, new object[] { true, new VoyagePoint(-100f, 0f), ram && enemyInitiated ? sideHeading : 0f });
+            pose.Invoke(battle, new object[] { false, new VoyagePoint(0f, 0f), ram ? (enemyInitiated ? 180f : sideHeading) : 0f });
+            typeof(CoreBattleState).GetProperty("NavalActionPoints").SetValue(battle, 1);
+            battle.Alignment = ram ? NavalBattleAlignment.EnemyBroadside : NavalBattleAlignment.Parallel;
+            battle.PlayerMovingTowardEnemy = ram && !enemyInitiated;
+            battle.EnemyMovingTowardPlayer = ram && enemyInitiated;
+        }
+
         private static IEnumerator WaitForRamComic(CoreGameplayDemoController controller)
         {
             float deadline = Time.realtimeSinceStartup + 3f;
             while (GameObject.Find("Battle Ram Comic Overlay") == null && controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
                 yield return null;
-            Assert.That(GameObject.Find("Battle Ram Comic Overlay"), Is.Not.Null, "A valid ram with installed art must show the comic.");
+            Assert.That(GameObject.Find("Battle Ram Comic Overlay"), Is.Not.Null,
+                "A valid ram with installed art must show the comic. " + RamComicFailureState(controller));
             Assert.That(controller.IsBattleAnimationPlaying, Is.True);
+        }
+
+        private static string RamComicFailureState(CoreGameplayDemoController controller)
+        {
+            // Read only after the normal wait. Preloading resources before the
+            // action could conceal the cache/import problem this reports.
+            if (controller == null) return "controller=null";
+            string ObjectState(Object value)
+            {
+                if (ReferenceEquals(value, null)) return "null";
+                if (value == null) return "destroyed";
+                string active = value is Component component
+                    ? ",active=" + component.gameObject.activeSelf + "/" + component.gameObject.activeInHierarchy : string.Empty;
+                return value.name + "#" + value.GetInstanceID() + active;
+            }
+            var attempted = (bool[])RamComicField("ramComicLoadAttempted").GetValue(controller);
+            var textures = (Texture2D[])RamComicField("ramComicTextures").GetValue(controller);
+            var pages = (Texture2D[])RamComicField("activeRamComicPages").GetValue(controller);
+            var battle = controller.Session?.Battle;
+            string loaded = textures == null ? "null" : string.Join(",", textures.Select((texture, index) => index + ":" + ObjectState(texture)));
+            string pageState = pages == null ? "null" : string.Join(",", pages.Select(ObjectState));
+            string foundOverlays = string.Join(",", Resources.FindObjectsOfTypeAll<RectTransform>()
+                .Where(rect => rect.name == "Battle Ram Comic Overlay").Select(ObjectState));
+            return "playing=" + controller.IsBattleAnimationPlaying + "; phase=" + controller.Session?.Phase +
+                "; stage=" + battle?.Stage + "; alignment=" + battle?.Alignment + "; connection=" + battle?.BoardingConnection +
+                "; panel=" + RamComicField("ramComicPanelIndex").GetValue(controller) +
+                "; attempted=[" + (attempted == null ? "null" : string.Join(",", attempted.Select((value, index) => index + ":" + value))) +
+                "]; textures=[" + loaded + "]; activePages=[" + pageState +
+                "]; overlay=" + ObjectState((Object)RamComicField("ramComicOverlay").GetValue(controller)) +
+                "; foundOverlays=[" + foundOverlays + "]; contentRoot=" + ObjectState((Object)RamComicField("contentRoot").GetValue(controller)) +
+                "; boardingTransition=" + ObjectState((Object)RamComicField("boardingTransitionOverlay").GetValue(controller));
         }
 
         private static void AssertRamComicControlsLocked(Button underneath)
         {
             Assert.That(underneath.interactable, Is.False);
-            Assert.That(RequiredResponsive<Button>("Battle Card 0").interactable, Is.False);
+            foreach (Button card in RequiredResponsive<RectTransform>("Battle Hand").GetComponentsInChildren<Button>())
+                Assert.That(card.IsInteractable(), Is.False, "Every remaining hand card stays locked under the comic.");
             Assert.That(RequiredResponsive<Button>("Battle Ram Comic Advance").IsInteractable(), Is.True);
         }
 
@@ -366,7 +417,8 @@ namespace ShatteredSail.Presentation.Tests
         {
             Button endTurn = RequiredResponsive<Button>("End Battle Turn");
             Assert.That(endTurn.interactable, Is.False);
-            Assert.That(RequiredResponsive<Button>("Battle Card 0").interactable, Is.False);
+            foreach (Button card in RequiredResponsive<RectTransform>("Battle Hand").GetComponentsInChildren<Button>())
+                Assert.That(card.IsInteractable(), Is.False, "Every current hand card stays locked under the transition.");
             Canvas.ForceUpdateCanvases();
             var pointer = new PointerEventData(EventSystem.current)
             {
@@ -549,7 +601,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreBattleState battle = session.Battle;
             string state = session.Phase + ":" + session.Hull + ":" + session.Cargo.Gold + ":" + session.Cargo.Cannonballs + ":" + session.Cargo.Powder;
             return battle == null ? state + ":no-battle" : state + ":" + battle.Stage + ":" + battle.Turn + ":" + battle.PhaseTurn +
-                ":" + battle.Energy + ":" + battle.EnemyHull + ":" + battle.PlayerBoardingHealth + ":" + battle.EnemyBoardingHealth +
+                ":" + battle.Energy + ":" + battle.NavalActionPoints + ":" + battle.EnemyHull + ":" + battle.PlayerBoardingHealth + ":" + battle.EnemyBoardingHealth +
                 ":" + battle.PlayerBlock + ":" + battle.CardsPlayedThisTurn + ":" + string.Join(",", battle.Hand) +
                 ":" + string.Join(",", battle.DrawPile) + ":" + string.Join(",", battle.DiscardPile);
         }

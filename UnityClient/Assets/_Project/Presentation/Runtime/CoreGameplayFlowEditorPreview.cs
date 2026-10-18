@@ -83,7 +83,11 @@ namespace ShatteredSail.Presentation
                     issuedSeeds = new[] { seed },
                 });
                 session.Cargo.Water = 180; session.Cargo.Food = 180;
-                session.Cargo.Wood = 8; session.Cargo.Iron = 0; session.Cargo.Powder = 20;
+                // This noncombat sample needs room for 19 units of recovered
+                // machinery (10 materials, a compass and a lantern). Carrying
+                // the former 20-powder breach loadout filled the 80-unit sloop
+                // before the real complete-salvage choice could be resolved.
+                session.Cargo.Wood = 8; session.Cargo.Iron = 0; session.Cargo.Powder = 8;
                 if (editorPreviewFlowState == GameplayFlowPreviewState.TreasureDeparture)
                 {
                     activePortFacility = PortFacilityArtCatalog.VoyageFacilityIndex;
@@ -95,19 +99,23 @@ namespace ShatteredSail.Presentation
                     if (editorPreviewFlowState != GameplayFlowPreviewState.TreasureNavigation)
                     {
                         bool clue = editorPreviewFlowState == GameplayFlowPreviewState.TreasureClue;
-                        CoreMapNode node = session.Map.Nodes.First(item => clue ? item.Encounter.Category == "线索" : item.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId);
-                        // Deterministic editor staging only. The live driver reaches
-                        // these states by sailing and resolving the real choices.
-                        SetFlowPreviewValue("Position", node.Position);
-                        SetFlowPreviewValue("ActiveEncounter", node.Encounter);
-                        SetFlowPreviewValue("Phase", CoreDemoPhase.Encounter);
-                        typeof(CoreVoyageSession).GetField("activeNode", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(session, node);
-                        node.Discovered = true;
-                        typeof(CoreVoyageSession).GetMethod("RevealAt", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(session, new object[] { node.Position });
                         if (editorPreviewFlowState == GameplayFlowPreviewState.TreasureCoreReady || editorPreviewFlowState == GameplayFlowPreviewState.TreasureSettlement)
-                            SetFlowPreviewValue("TreasureClues", session.TreasureRequiredClues);
+                        {
+                            // Stage the two guaranteed landmarks, then earn the tools
+                            // through their real material-free repair choices. No legacy
+                            // clue counter or expedition progress is injected here.
+                            foreach (string id in new[] { "weathered_winch", "weathered_bell" })
+                            {
+                                StageFlowPreviewEncounter(session.Map.Nodes.Single(item => item.Encounter.Id == id));
+                                if (!session.ResolveChoice(2))
+                                    throw new InvalidOperationException("The treasure tool fixture could not repair " + id + ": " + session.ChoiceUnavailableReason(2));
+                            }
+                        }
+                        CoreMapNode node = session.Map.Nodes.Single(item => item.Encounter.Id ==
+                            (clue ? "weathered_winch" : CoreTreasureHuntCatalog.CoreEncounterId));
+                        StageFlowPreviewEncounter(node);
                         if (editorPreviewFlowState == GameplayFlowPreviewState.TreasureSettlement && !session.ResolveChoice(0))
-                            throw new InvalidOperationException("The treasure settlement fixture could not open the core.");
+                            throw new InvalidOperationException("The treasure settlement fixture could not open the core: " + session.ChoiceUnavailableReason(0));
                     }
                     if (editorPreviewFlowState == GameplayFlowPreviewState.TreasureSettlement)
                         BuildSettlementPresentation(session.Settlement, true);
@@ -120,6 +128,19 @@ namespace ShatteredSail.Presentation
             }
             TextPreviewSampleLabel();
             return true;
+        }
+
+        private void StageFlowPreviewEncounter(CoreMapNode node)
+        {
+            if (Application.isPlaying) throw new InvalidOperationException("Editor fixtures cannot stage a live voyage.");
+            // Deterministic editor staging only. Live validation reaches these
+            // landmarks by sailing and uses the same production choice resolver.
+            SetFlowPreviewValue("Position", node.Position);
+            SetFlowPreviewValue("ActiveEncounter", node.Encounter);
+            SetFlowPreviewValue("Phase", CoreDemoPhase.Encounter);
+            typeof(CoreVoyageSession).GetField("activeNode", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(session, node);
+            node.Discovered = true;
+            typeof(CoreVoyageSession).GetMethod("RevealAt", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(session, new object[] { node.Position });
         }
 
         private void SetFlowPreviewValue(string name, object value)

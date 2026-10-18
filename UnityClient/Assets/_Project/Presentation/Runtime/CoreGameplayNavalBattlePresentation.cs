@@ -14,6 +14,11 @@ namespace ShatteredSail.Presentation
         private void BuildStagedBattleScene(RectTransform root, CoreBattleState battle, Texture2D enemySheet, Rect enemyUv)
         {
             bool boarding = battle.Stage == NavalBattleStage.Boarding;
+            if (!boarding)
+            {
+                BuildTacticalNavalScene(root, battle);
+                return;
+            }
             float width = BattleViewLayout.ShipWidth(battle.DistanceMeters, battle.Stage);
             float separation = BattleViewLayout.ShipX(battle.DistanceMeters, battle.Stage);
             float waterY = BattleViewLayout.WaterY(battle.DistanceMeters, battle.Stage);
@@ -34,7 +39,7 @@ namespace ShatteredSail.Presentation
                 RawImage enemy = CreateRawImage("Enemy Ship Art", root,
                     UiImageAspect.FitSize(enemySheet, enemyUv, new Vector2(BattleShipDesignWidth, BattleShipDesignWidth * 0.75f)),
                     Vector2.zero, enemySheet, enemyUv);
-                BattleShipCutout.Attach(enemy);
+                if (!SpecialWarshipArtCatalog.IsSpecialTexture(enemySheet)) BattleShipCutout.Attach(enemy);
                 enemy.raycastTarget = false;
                 CreateStagedWater(root, "Player Ship Water Contact", -separation, waterY, width, true, 0f);
                 CreateStagedWater(root, "Enemy Ship Water Contact", separation, waterY, width, true, 1.4f);
@@ -58,8 +63,16 @@ namespace ShatteredSail.Presentation
         private void ApplyBattleViewPose(RectTransform root, float distance, NavalBattleStage stage, float enemyYaw)
         {
             if (root == null) return;
+            NavalTacticalBoardView tacticalBoard = root.GetComponentInChildren<NavalTacticalBoardView>();
+            if (stage != NavalBattleStage.Boarding && tacticalBoard != null)
+            {
+                if (!tacticalBoard.IsAnimating) tacticalBoard.SnapToBattle(session.Battle);
+                return;
+            }
             RawImage backdrop = root.Find("Battle Scene Art")?.GetComponent<RawImage>();
-            if (backdrop != null) backdrop.uvRect = stage == NavalBattleStage.Boarding
+            BoardingDeckBackdrop joinedDeck = backdrop == null ? null : backdrop.GetComponent<BoardingDeckBackdrop>();
+            if (stage == NavalBattleStage.Boarding && joinedDeck != null) joinedDeck.RefreshPose();
+            else if (backdrop != null) backdrop.uvRect = stage == NavalBattleStage.Boarding
                 ? BoardingBattleLayout.CoverUv(backdrop.texture, backdrop.rectTransform.rect.size)
                 : BattleViewLayout.BackdropUv(distance, backdrop.rectTransform.rect.size);
             if (stage == NavalBattleStage.Boarding)
@@ -75,6 +88,7 @@ namespace ShatteredSail.Presentation
             {
                 bool enemy = sideIndex == 1;
                 float x = enemy ? separation : -separation;
+                float waterX = x;
                 RectTransform ship = root.Find(enemy ? "Enemy Ship Art" : "Player Ship Art") as RectTransform;
                 RawImage hull = ship == null ? null : ship.GetComponentInChildren<RawImage>();
                 if (ship != null)
@@ -87,16 +101,18 @@ namespace ShatteredSail.Presentation
                     ship.localRotation = Quaternion.Euler(0f, enemy ? enemyYaw : 0f, 0f);
                     if (hull != null)
                     {
-                        Vector3 contact = root.InverseTransformPoint(hull.rectTransform.TransformPoint(ShipWaterlineLayout.HullContactLocal(hull)));
+                        Vector3 contact = root.InverseTransformPoint(hull.rectTransform.TransformPoint(SpecialWarshipArtCatalog.HullContactLocal(hull)));
                         ship.anchoredPosition += Vector2.up * (waterY - contact.y);
+                        waterX = contact.x;
                     }
                 }
                 // Range/heading tweens call this once per frame. Use literal
                 // paths and a single hull lookup per ship to avoid temporary
                 // arrays, concatenated names and repeated hierarchy searches.
                 float projectedWidth = enemy ? Mathf.Max(0.16f, Mathf.Abs(Mathf.Cos(enemyYaw * Mathf.Deg2Rad))) : 1f;
-                float fittedWidth = hull == null ? BattleShipDesignWidth : hull.rectTransform.rect.width;
-                Vector2 waterSize = new Vector2(width * fittedWidth / BattleShipDesignWidth * 0.93f * projectedWidth, 48f);
+                float contactWidth = hull == null ? BattleShipDesignWidth * .8f : SpecialWarshipArtCatalog.HullWidthLocal(hull);
+                float waterWidth = width * contactWidth / BattleShipDesignWidth * projectedWidth;
+                Vector2 waterSize = new Vector2(waterWidth, Mathf.Clamp(waterWidth * .095f, 16f, 48f));
                 for (int effectIndex = 0; effectIndex < 2; effectIndex++)
                 {
                     string path = enemy
@@ -104,7 +120,7 @@ namespace ShatteredSail.Presentation
                         : (effectIndex == 0 ? "Player Ship Water Shadow" : "Player Ship Water Contact");
                     RectTransform water = root.Find(path) as RectTransform;
                     if (water == null) continue;
-                    water.anchoredPosition = new Vector2(x, waterY);
+                    water.anchoredPosition = new Vector2(waterX, waterY);
                     // The wake follows the projected hull width while turning.
                     water.sizeDelta = waterSize;
                 }
@@ -154,6 +170,8 @@ namespace ShatteredSail.Presentation
             int shipIndex = enemy ? (session.Battle.IsBoss ? Mathf.Clamp(session.SelectedRouteIndex + 1, 1, 3) : session.SelectedRouteIndex == 2 ? 3 : 1) : session.SelectedShipIndex;
             Texture2D sheet = portArt.ShipTexture(shipIndex) != null ? portArt.ShipTexture(shipIndex) : art.ShipSheet;
             Rect source = portArt.ShipSheet != null ? portArt.ShipUv(shipIndex) : art.ShipUv(shipIndex, 0);
+            bool specialEnemy = enemy && SpecialWarshipArtCatalog.TryLoad(session.ActiveEncounter?.Id, out _, out _);
+            if (specialEnemy) SpecialWarshipArtCatalog.TryLoad(session.ActiveEncounter.Id, out sheet, out source);
             float insetX = sheet == null ? 0f : 10f / sheet.width;
             float insetY = sheet == null ? 0f : 10f / sheet.height;
             Rect originalHullUv = new Rect(source.x + insetX, source.y + insetY + source.height * 0.10f,
@@ -168,11 +186,12 @@ namespace ShatteredSail.Presentation
                 new Vector2(0f, -96f + originalHullSize.y - hullSize.y * 0.5f), sheet, hullUv);
             hull.raycastTarget = false;
             hull.color = enemy ? new Color(0.84f, 0.80f, 0.77f) : portArt.ShipTint(shipIndex);
-            BattleShipCutout.Attach(hull);
+            if (!specialEnemy) BattleShipCutout.Attach(hull);
             // Preserve the upper hull's exact alignment with the deck/rails;
             // only the water contact moves to the newly retained timber keel.
-            Vector2 waterContact = position + hull.rectTransform.anchoredPosition + ShipWaterlineLayout.HullContactLocal(hull);
-            CreateStagedWater(root, (enemy ? "Enemy" : "Player") + " Boarding Water Contact", waterContact.x, waterContact.y, hullSize.x * (590f / 650f), true, enemy ? 1.4f : 0f);
+            Vector2 waterContact = position + hull.rectTransform.anchoredPosition + SpecialWarshipArtCatalog.HullContactLocal(hull);
+            CreateStagedWater(root, (enemy ? "Enemy" : "Player") + " Boarding Water Contact", waterContact.x, waterContact.y,
+                SpecialWarshipArtCatalog.HullWidthLocal(hull), true, enemy ? 1.4f : 0f);
             Color timberTint = enemy ? new Color(0.92f, 0.88f, 0.83f) : Color.white;
             RectTransform deckSurface = CreateRect(name + " Deck Surface", deck, new Vector2(500f, 52f), new Vector2(0f, 41f));
             deckSurface.gameObject.AddComponent<BoardingTimberGraphic>().Configure(BoardingTimberKind.Deck, timberTint);
@@ -191,7 +210,7 @@ namespace ShatteredSail.Presentation
             ConfigureBoardingDeckGeometry(deck, hullSize.x, enemy);
         }
 
-        private static void FollowBattleShipWaterHorizontal(RectTransform ship)
+        private static void FollowBattleShipWaterHorizontal(RectTransform ship, bool keepKeelOnWater = false)
         {
             // Cannon recoil and ram pitch can lift the keel a few pixels. Keep
             // the foam horizontal on the sea, but follow actual horizontal travel.
@@ -199,7 +218,7 @@ namespace ShatteredSail.Presentation
             RectTransform root = ship.parent as RectTransform;
             RawImage hull = ship.GetComponentInChildren<RawImage>();
             if (root == null || hull == null) return;
-            Vector3 contact = root.InverseTransformPoint(hull.rectTransform.TransformPoint(ShipWaterlineLayout.HullContactLocal(hull)));
+            Vector3 contact = root.InverseTransformPoint(hull.rectTransform.TransformPoint(SpecialWarshipArtCatalog.HullContactLocal(hull)));
             bool enemy = ship.name == "Enemy Ship Art";
             for (int effectIndex = 0; effectIndex < 2; effectIndex++)
             {
@@ -207,7 +226,12 @@ namespace ShatteredSail.Presentation
                     ? (effectIndex == 0 ? "Enemy Ship Water Shadow" : "Enemy Ship Water Contact")
                     : (effectIndex == 0 ? "Player Ship Water Shadow" : "Player Ship Water Contact");
                 RectTransform water = root.Find(path) as RectTransform;
-                if (water != null) water.anchoredPosition = new Vector2(contact.x, water.anchoredPosition.y);
+                if (water == null) continue;
+                // Cannon recoil rotates around the measured keel, including
+                // asymmetric barges whose keel is away from the frame centre.
+                if (keepKeelOnWater && effectIndex == 1)
+                    ship.anchoredPosition += Vector2.up * (water.anchoredPosition.y - contact.y);
+                water.anchoredPosition = new Vector2(contact.x, water.anchoredPosition.y);
             }
         }
 
@@ -286,8 +310,9 @@ namespace ShatteredSail.Presentation
             Vector2 bounds = BoardingBattleLayout.PartySize;
             RectTransform party = CreateRect(name, root, bounds, new Vector2(x, BoardingBattleLayout.PartyPosition(enemy).y));
             party.gameObject.AddComponent<CanvasGroup>().blocksRaycasts = false;
+            party.gameObject.AddComponent<BoardingPartyPresentation>();
             Color teamColor = enemy ? new Color(1f, .72f, .64f) : new Color(.66f, .94f, .93f);
-            Text formationLabel = CreateText(name + " Formation Label", party, new Vector2(440f, 20f), new Vector2(0f, 167f),
+            Text formationLabel = CreateText(name + " Formation Label", party, new Vector2(440f, 20f), new Vector2(0f, bounds.y * .5f + 4f),
                 16, FontStyle.Bold, TextAnchor.MiddleCenter, teamColor);
             bool attacking = enemy == session.Battle.BoardingInitiatedByEnemy;
             formationLabel.text = attacking ? "登船队 · 白刃编队" : "守备队 · 白刃防线";
@@ -322,7 +347,7 @@ namespace ShatteredSail.Presentation
                 CreateBoardingFigure(name + " Sailor " + visibleIndex, party, texture, BoardingBattleArtCatalog.CrewUv(crew),
                     new Vector2(230f, bounds.y), localX);
                 Text role = CreateText(name + " Boarding Crew Role " + visibleIndex, party, new Vector2(170f, 18f),
-                    new Vector2(localX, -bounds.y * .5f - 13f), 13, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
+                    new Vector2(localX, bounds.y * .5f + 12f), 13, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
                 role.text = crew.DisplayName;
                 role.raycastTarget = false;
                 AddSceneLabelOutline(role);
@@ -337,8 +362,17 @@ namespace ShatteredSail.Presentation
             RawImage figure = CreateRawImage(name, party, size,
                 new Vector2(x, 0f), texture, uv);
             BoardingBattleLayout.GroundFigure(figure);
+            // Shadow and actor share the party transform so a forward step
+            // cannot leave its deck contact behind. No baked ground is needed.
+            bool formation = name.EndsWith("Party Illustration", System.StringComparison.Ordinal);
+            RectTransform shadow = CreateRect(name + " Deck Contact Shadow", party,
+                new Vector2(size.x * (formation ? .94f : .58f), formation ? 15f : 12f),
+                new Vector2(x, -BoardingBattleLayout.PartySize.y * .5f + 1f));
+            shadow.gameObject.AddComponent<BoardingContactShadowGraphic>().Configure(formation);
+            shadow.SetSiblingIndex(figure.transform.GetSiblingIndex());
             figure.raycastTarget = false;
-            figure.color = Color.white;
+            figure.color = Color.Lerp(Color.white, BoardingBattleArtCatalog.DeckLight(session.BattleTerrain,
+                NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours)), .35f);
             return figure;
         }
 
@@ -462,7 +496,7 @@ namespace ShatteredSail.Presentation
             bool boarding = battle.Stage == NavalBattleStage.Boarding;
             // Stage progress and instruction banners were removed from the authored layout. The compact range/alignment readouts live in their own top-level overlay so they can render above Voyage Header.
             Text range = CreateText("Battle Range", readoutRoot, new Vector2(250f, 62f) / readoutRoot.localScale.x, new Vector2(-250f, 540f - PhaseSurfaceLayout.GetHeaderHeight(tutorialActive) * .5f) / readoutRoot.localScale.x, 29, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
-            range.text = boarding ? "接舷交战" : battle.DistanceMeters.ToString("0") + " 米";
+            range.text = boarding ? "接舷交战" : session.NavalDistanceCells + " 格 / 炮击4格";
             Text alignment = CreateText("Battle Alignment", readoutRoot, new Vector2(250f, 62f) / readoutRoot.localScale.x, new Vector2(250f, 540f - PhaseSurfaceLayout.GetHeaderHeight(tutorialActive) * .5f) / readoutRoot.localScale.x, 17, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
             alignment.text = boarding ? BoardingConnectionLabel(battle) : battle.Alignment == NavalBattleAlignment.HeadOn ? "→ 舰艏 ⇄ 舰艏 ←\n迎头相对" : battle.Alignment == NavalBattleAlignment.EnemyBroadside ? "→ 舰艏 ⊥ 侧舷\n我方对准敌舰侧面" : "舰艏 →    → 舰艏\n并排行船";
             RectTransform buffPanel = CreateFixedPanel("Battle Buff Panel", root, new Vector2(230f, 90f), new Vector2(-735f, -181f), PanelRaised);
@@ -481,21 +515,72 @@ namespace ShatteredSail.Presentation
             UiLabelBacking.Apply(curse, session.CurseCount > 0);
             if (battle.Stage == NavalBattleStage.Naval)
             {
-                bool ramAllowed = session.CanRam(out string ramReason);
-                bool boardAllowed = session.CanBoard(out string boardReason);
                 Button ram = CreateButton("Battle Ram", root, new Vector2(230f, 48f), new Vector2(735f, -115f), Gold, Ink, 17);
-                ram.GetComponentInChildren<Text>().text = "冲撞并接舷 · 1 能量";
-                ram.interactable = ramAllowed;
-                ram.onClick.AddListener(() => BeginNavalSpecialAction(false));
+                ram.onClick.AddListener(() =>
+                {
+                    if (NavalSpecialActionCallbackIsCurrent(root, battle, ram)) BeginNavalSpecialAction(false);
+                });
                 Button board = CreateButton("Battle Board", root, new Vector2(230f, 48f), new Vector2(735f, -185f), Teal, Ink, 17);
-                board.GetComponentInChildren<Text>().text = "靠近接舷 · 切换近战";
-                board.interactable = boardAllowed;
-                board.onClick.AddListener(() => BeginNavalSpecialAction(true));
-                Text ramHint = CreateText("Battle Ram Condition", root, new Vector2(230f, 25f), new Vector2(735f, -149f), 12, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-                ramHint.text = ramAllowed ? "撞击方先手 · 舰艏品质对拼" : ramReason;
-                Text boardHint = CreateText("Battle Board Condition", root, new Vector2(230f, 25f), new Vector2(735f, -219f), 12, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-                boardHint.text = boardAllowed ? "普通水手数决定接舷生命上限；海战船体损伤按一半带入" : boardReason;
+                board.onClick.AddListener(() =>
+                {
+                    if (NavalSpecialActionCallbackIsCurrent(root, battle, board)) BeginNavalSpecialAction(true);
+                });
+                CreateText("Battle Ram Condition", root, new Vector2(230f, 25f), new Vector2(735f, -149f), 12, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
+                CreateText("Battle Board Condition", root, new Vector2(230f, 25f), new Vector2(735f, -219f), 12, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
+                RefreshNavalSpecialActionControls(root);
             }
+        }
+
+        private void RefreshNavalSpecialActionControls(RectTransform root)
+        {
+            if (root == null || session?.Battle == null) return;
+            CoreBattleState battle = session.Battle;
+            bool arrival = battle.Stage == NavalBattleStage.Naval && battle.NavalAwaitingHeadingSelection;
+            bool inputLocked = NavalSpecialActionInputLocked(root);
+            foreach (bool boarding in new[] { false, true })
+            {
+                string name = boarding ? "Battle Board" : "Battle Ram";
+                Button button = root.Find(name)?.GetComponent<Button>();
+                if (button == null) continue;
+                string reason;
+                float arrivalHeading = 0f;
+                bool allowed = arrival ? session.CanNavalArrivalContact(boarding, out arrivalHeading, out reason) :
+                    boarding ? session.CanBoard(out reason) : session.CanRam(out reason);
+                button.interactable = !inputLocked && allowed && (!tutorialActive || GuidedTutorialAllowsControl(name));
+                Text label = button.GetComponentInChildren<Text>();
+                if (label != null) label.text = boarding ? "接舷" : "冲撞";
+                Text hint = root.Find(name + " Condition")?.GetComponent<Text>();
+                if (hint == null) continue;
+                hint.text = !allowed ? reason : arrival
+                    ? "到达剩余 " + battle.NavalArrivalActionPoints + " 点 · 自动朝" + NavalContactHeadingLabel(arrivalHeading) +
+                        "\n不耗能量 · 普通定向清空余量"
+                    : boarding
+                    ? "上下左右相邻 · 船头同向\n逆向不可 · 不耗能量"
+                    : "上下左右相邻 · 两舰垂直\n我舰船头朝敌 · 不耗能量";
+                ConfigureCompactBattleHover(button.gameObject, root, boarding ? "接舷" : "冲撞并接舷",
+                    "消耗 1 行动点。\n" + hint.text);
+            }
+        }
+
+        private bool NavalSpecialActionInputLocked(RectTransform root)
+        {
+            NavalTacticalBoardView board = root == null ? null : root.GetComponentInChildren<NavalTacticalBoardView>();
+            return !isActiveAndEnabled || root == null || !root.gameObject.activeInHierarchy ||
+                battleAnimationPlaying || BattleInspectionBlocksInput || IsBoardingCardChoiceOpen || IsNavalCardChoiceOpen ||
+                board != null && board.IsAnimating;
+        }
+
+        private bool NavalSpecialActionCallbackIsCurrent(RectTransform root, CoreBattleState battle, Button button)
+        {
+            return session != null && session.Phase == CoreDemoPhase.Battle && ReferenceEquals(session.Battle, battle) &&
+                root != null && button != null && button.gameObject.activeInHierarchy && button.interactable &&
+                !NavalSpecialActionInputLocked(root);
+        }
+
+        private static string NavalContactHeadingLabel(float angle)
+        {
+            int quadrant = Mathf.RoundToInt(Mathf.Repeat(angle, 360f) / 90f) % 4;
+            return new[] { "东", "北", "西", "南" }[quadrant];
         }
 
         private static string BoardingConnectionLabel(CoreBattleState battle)
@@ -519,13 +604,19 @@ namespace ShatteredSail.Presentation
                 return "角对角冲撞已锁定船体 · 横向跳板连接 · 白刃牌组已切换";
             if (battle != null && battle.BoardingConnection == NavalBoardingConnection.RamBowToBroadside)
                 return "角对侧舷冲撞已卡住敌舰 · 斜向钩索连接 · 白刃牌组已切换";
-            return "白刃牌组已切换 · 击败守备队即可夺船，无需击沉";
+            return "击败守备队即可夺船 · 金币与声望×2";
         }
 
         private void BeginNavalSpecialAction(bool boarding)
         {
-            if (!isActiveAndEnabled || battleAnimationPlaying || session.Battle == null) return;
-            if (boarding ? !session.CanBoard(out _) : !session.CanRam(out _)) return;
+            if (session == null || session.Phase != CoreDemoPhase.Battle || session.Battle == null ||
+                session.Battle.Stage != NavalBattleStage.Naval) return;
+            RectTransform root = GameObject.Find("Battle Card")?.GetComponent<RectTransform>();
+            if (NavalSpecialActionInputLocked(root) ||
+                tutorialActive && !GuidedTutorialAllowsControl(boarding ? "Battle Board" : "Battle Ram")) return;
+            bool arrival = session.Battle.NavalAwaitingHeadingSelection;
+            if (arrival ? !session.CanNavalArrivalContact(boarding, out _, out _) :
+                boarding ? !session.CanBoard(out _) : !session.CanRam(out _)) return;
             StartCoroutine(AnimateNavalSpecialAction(boarding));
         }
 
@@ -535,13 +626,19 @@ namespace ShatteredSail.Presentation
             try
             {
                 CoreBattleState battle = session.Battle;
+                bool arrival = battle.NavalAwaitingHeadingSelection;
                 BattleAnimationSnapshot before = new BattleAnimationSnapshot(session, battle);
                 RectTransform root = GameObject.Find("Battle Card").GetComponent<RectTransform>();
                 RectTransform player = GameObject.Find("Player Ship Art").GetComponent<RectTransform>();
                 RectTransform enemy = GameObject.Find("Enemy Ship Art").GetComponent<RectTransform>();
                 LockBattleInput(root);
-                if (!(boarding ? session.TryBoard() : session.TryRam())) yield break;
+                if (!(arrival ? session.TryNavalArrivalContact(boarding, out _) :
+                    boarding ? session.TryBoard() : session.TryRam())) yield break;
                 BattleAnimationSnapshot after = new BattleAnimationSnapshot(session, session.Battle ?? battle);
+                RefreshBattleStateChangePresentation(root, battle);
+                // Core commits the final heading and contact atomically. Show
+                // that turn from the arrival cell before ropes or ram impact.
+                if (arrival) yield return AnimateTacticalNavalMovement(root, before, after);
                 if (boarding)
                 {
                     yield return AnimateBoardingApproach(root, player, enemy, battle.BoardingApproach);
@@ -550,7 +647,9 @@ namespace ShatteredSail.Presentation
                 }
                 else
                 {
-                    Texture2D ramComic = RamComicTexture(false, before.Alignment);
+                    // A legal live ram is always bow-to-broadside. The legacy
+                    // alignment summary can lag behind the actual grid pose.
+                    Texture2D ramComic = RamComicTexture(false, NavalBattleAlignment.EnemyBroadside);
                     if (ramComic != null) yield return AnimateRamComic(ramComic, false, before, after, 0);
                     else
                     {

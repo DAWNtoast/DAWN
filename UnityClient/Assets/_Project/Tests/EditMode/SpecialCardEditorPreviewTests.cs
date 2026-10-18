@@ -42,7 +42,7 @@ namespace ShatteredSail.Presentation.Tests
             controller.ConfigureEditorCrewDossier(0, 3);
             Assert.That(controller.HasCompleteEditorPreview, Is.True);
             Assert.That(Find<RectTransform>("Tavern Dossier SpecialCards Page").gameObject.activeSelf, Is.True);
-            Assert.That(Find<Text>("Tavern Dossier Page Counter").text, Is.EqualTo("第 4 / 4 页"));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Tavern Dossier Page Counter"), Is.False);
             controller.RefreshEditorPreview();
             Assert.That(Find<RectTransform>("Tavern Dossier SpecialCards Page").gameObject.activeSelf, Is.True);
         }
@@ -100,7 +100,7 @@ namespace ShatteredSail.Presentation.Tests
             SetFixturePreference(CoreGameplayDemoController.ComponentLoadoutKey(ComponentSlot.Cannon), savedCannon.Id);
             OwnedShipComponentInventory savedInventory = new OwnedShipComponentInventory(parts);
             savedInventory.EnsureLoadout(0);
-            savedInventory.TryEquip(0, savedInventory.Grant(savedCannon, 0.94f).InstanceId);
+            savedInventory.TryEquip(0, savedInventory.Grant(savedCannon).InstanceId);
             SetFixturePreference(CoreGameplayDemoController.ComponentInventoryKey, savedInventory.Export());
             SetFixturePreference(CoreGameplayDemoController.SpecialCardExperienceKey, "card_special_" + savedCannon.Id + "=840");
             SetFixturePreference(CoreGameplayDemoController.AcquiredSpecialCardsKey, "card_special_" + savedCannon.Id);

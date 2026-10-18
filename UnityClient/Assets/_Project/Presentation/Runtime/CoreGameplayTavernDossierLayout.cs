@@ -176,8 +176,10 @@ namespace ShatteredSail.Presentation
             DossierCardText(prefix + " Special Card Stage", page, 580f, 32f,
                 new Vector2(75f, page.rect.height * .5f - 16f), 22, muted, string.Join(" / ", stages));
 
+            // Reuse the component growth-hint space for effects while keeping the top edge fixed.
+            bool component = prefix == "Component";
             RectTransform viewport = CreateRect(prefix + " Special Card Details Viewport", page,
-                new Vector2(580f, page.rect.height - 144f), new Vector2(75f, 29f));
+                new Vector2(580f, page.rect.height - (component ? 80f : 144f)), new Vector2(75f, component ? -3f : 29f));
             RectTransform content = CreateRect(prefix + " Special Card Details Content", viewport,
                 viewport.rect.size, Vector2.zero);
             PlaceTavernRect(content, Vector2.zero, viewport.rect.size);
@@ -191,20 +193,6 @@ namespace ShatteredSail.Presentation
             content.sizeDelta = new Vector2(580f, Mathf.Max(viewport.rect.height, top));
             if (top > viewport.rect.height)
                 EnableTavernReadingScroll(prefix + " Special Card Details", viewport, content, ink);
-
-            bool acquired = false;
-            foreach (string id in session.AcquiredSpecialCardIds)
-                if (id == card.Id) { acquired = true; break; }
-            int experience = session.GetSpecialCardExperience(card.Id);
-            int threshold = session.GetSpecialCardNextThreshold(card.Id);
-            string progress = !acquired ? "尚未获得" : threshold == 0 ? "航海经验 " + experience + " · 已达三阶" :
-                "航海经验 " + experience + " / " + threshold;
-            // The component sheet has two purchase actions beneath this column.
-            float growthOffset = prefix == "Component" ? 66f : 62f;
-            Text growth = DossierCardText(prefix + " Special Card Growth", page, 580f, 60f,
-                new Vector2(75f, -page.rect.height * .5f + growthOffset), 22, ink,
-                progress + "\n仅随该来源出海成长，不可金币强化。", TextAnchor.MiddleLeft);
-            growth.lineSpacing = 1.15f;
         }
 
         private float AddTavernCardParagraph(RectTransform content, string name, string value, float top,

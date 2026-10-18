@@ -21,8 +21,6 @@ namespace ShatteredSail.Presentation
         private CoreVoyageSession marketViewSession;
         private string marketViewPort;
         private RectTransform marketCatalogGrid;
-        private Text marketViewTitle, marketViewSummary;
-        private Button marketViewStorageMode, marketViewInvestment;
 
         private void ReleaseMarketRetainedView()
         {
@@ -30,10 +28,6 @@ namespace ShatteredSail.Presentation
             marketViewSession = null;
             marketViewPort = null;
             marketCatalogGrid = null;
-            marketViewTitle = null;
-            marketViewSummary = null;
-            marketViewStorageMode = null;
-            marketViewInvestment = null;
             ResetMarketItemDetailView();
             ResetMarketSceneView();
         }
@@ -45,9 +39,8 @@ namespace ShatteredSail.Presentation
                 activePortFacility != PortFacilityArtCatalog.MarketFacilityIndex ||
                 !ReferenceEquals(session, marketViewSession) || session.CurrentPort != marketViewPort ||
                 marketPurchaseView == null || !marketPurchaseView.gameObject.activeInHierarchy ||
-                marketPurchaseView.parent != contentRoot || marketViewTitle == null || marketViewSummary == null ||
-                marketCatalogGrid == null || marketViewStorageMode == null ||
-                marketViewInvestment == null || marketRowViews.Count != PortMarketCatalog.AllItems.Count) return false;
+                marketPurchaseView.parent != contentRoot || marketCatalogGrid == null ||
+                marketRowViews.Count != PortMarketCatalog.AllItems.Count) return false;
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
                 if (!marketRowViews.TryGetValue(item, out MarketRowView row) || !row.IsAlive) return false;
 
@@ -66,18 +59,6 @@ namespace ShatteredSail.Presentation
             marketDisplayedDate = MarketMonth(now);
             marketLastObservedMonth = marketDisplayedDate;
             int level = PortInvestmentLevel(session.CurrentPort);
-            double cargoRoom = Math.Max(0d, session.CargoCapacityValue - session.Cargo.UsedVolume);
-            marketViewSummary.text = "货舱余量 " + cargoRoom.ToString("0.0");
-            int discount = PortMarketCatalog.FamePurchaseDiscountPercent(session.Cargo.Fame);
-            if (discount > 0) marketViewSummary.text += "　·　采购优惠 " + discount + "%";
-            marketViewStorageMode.GetComponentInChildren<Text>().text = MarketStorageModeLabel(EffectiveMarketStorageMode);
-            marketViewStorageMode.interactable = Application.isPlaying && !editorPreviewBuilding && !tutorialActive;
-            marketViewStorageMode.onClick = new Button.ButtonClickedEvent();
-            BindMarketStorageModeAction(marketViewStorageMode);
-            marketViewInvestment.name = "Market Open Investment";
-            marketViewInvestment.GetComponentInChildren<Text>().text = "港口投资 · 提升额度";
-            marketViewInvestment.onClick = new Button.ButtonClickedEvent();
-            BindMarketInvestmentAction(marketViewInvestment);
             foreach (PortMarketItem item in PortMarketCatalog.AllItems) RefreshMarketRow(marketRowViews[item], item, now);
             RefreshMarketSceneShops();
             RefreshMarketItemDetail(now, level);
@@ -99,17 +80,6 @@ namespace ShatteredSail.Presentation
                 tab.onClick = new Button.ButtonClickedEvent();
                 AddMarketViewAction(tab, () => OpenMarketItemDetail(item));
             }
-        }
-
-        private void BindMarketInvestmentAction(Button button)
-        {
-            AddMarketViewAction(button, () =>
-            {
-                activePortFacility = PortFacilityArtCatalog.MaintenanceFacilityIndex;
-                pendingSupplyOrder.Clear();
-                portNotice = "港口投资增加每月库存和额度；升级立即提供新增货量，不重置本月已购记录。";
-                Render();
-            });
         }
 
         private void CloseMarketPurchaseChoiceView()

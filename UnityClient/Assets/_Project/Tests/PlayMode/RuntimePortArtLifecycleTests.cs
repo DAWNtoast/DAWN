@@ -36,6 +36,11 @@ namespace ShatteredSail.Presentation.Tests
             // Set up a new region independently of voyage mechanics. This test
             // exercises the same binding/render path used after actual arrival.
             typeof(CoreVoyageSession).GetProperty("CurrentPort").SetValue(controller.Session, "白贝港");
+            // Arrival moves the flagship as well as the captain. Keep this
+            // fixture consistent with the current per-vessel berth rules.
+            CoreShipPortProgress berths = controller.Session.CaptureShipPortProgress();
+            Assert.That(controller.Session.RestoreShipPortProgress(berths,
+                System.Array.ConvertAll(berths.ships, entry => entry.shipIndex), controller.Session.SelectedShipIndex), Is.True);
             RenderPortArtTest(controller);
             yield return WaitForPortArtCollection(controller);
             Assert.That(hub.Frame.sprite.texture.name, Is.EqualTo("white_shell_header_v1"));

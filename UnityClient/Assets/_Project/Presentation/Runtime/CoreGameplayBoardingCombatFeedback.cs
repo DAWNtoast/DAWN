@@ -9,7 +9,7 @@ namespace ShatteredSail.Presentation
         // can have entered boarding while the old ship artwork is still visible.
         private static bool IsBoardingVisualTarget(RectTransform target)
         {
-            return target != null && target.Find(target.name + " Formation Label") != null;
+            return target != null && target.GetComponent<BoardingPartyPresentation>() != null;
         }
 
         private BoardingCombatFxGraphic CreateBoardingCombatFx(string name, RectTransform stage,
@@ -56,7 +56,7 @@ namespace ShatteredSail.Presentation
                 {
                     if (party == null || dash == null) yield break;
                     float t = Mathf.Clamp01(elapsed / duration);
-                    party.anchoredPosition = origin + Vector2.right * direction * (74f * Mathf.Sin(Mathf.PI * t));
+                    party.anchoredPosition = origin + BoardingPartyPresentation.LungeOffset(t, direction);
                     dash.rectTransform.anchoredPosition = BattleEffectPosition(stage, party);
                     dash.Progress = t;
                     yield return null;

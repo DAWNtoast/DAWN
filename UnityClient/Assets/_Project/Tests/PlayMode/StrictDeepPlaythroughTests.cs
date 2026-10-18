@@ -337,7 +337,7 @@ namespace ShatteredSail.Presentation.Tests
                 if (IsShipAudit) Assert.That(shipsPurchased, Is.LessThanOrEqualTo(shipPurchasePlan.Length));
                 Record("Purchased/select local vessel with earned money: " + Session.SelectedShipIndex);
                 Shot("Local_Ship_Purchased_" + target, "Shipyard Detail");
-                yield return Click("Back To Shipyard Gallery"); yield return EnsureHub();
+                yield return Click("Return To Port Hub"); yield return EnsureHub();
             }
             private IEnumerator SetDeck(NavalBattleStage stage, int[] desired)
             {
@@ -408,7 +408,9 @@ namespace ShatteredSail.Presentation.Tests
                 yield return Click("Treasure Close Folio");
                 yield return Click("Return To Port Hub");
                 yield return Click("Port Hotspot Voyage");
-                yield return Click("Departure Treasure Seed Picker"); yield return Click("Departure Treasure Seed Option " + index);
+                yield return Click("Departure Treasure Seed Picker");
+                yield return SelectDepartureTreasureOption(index);
+                Record("Selected treasure seed through departure selector: " + Session.SelectedTreasureMap?.Seed);
                 Assert.That(Session.SelectedTreasureMap.Id, Is.EqualTo(Session.TreasureMaps[index].Id));
                 Shot("Treasure_Departure", "Voyage Setup");
                 if (ActiveButton("Departure Buy Provisions")?.IsInteractable() == true)

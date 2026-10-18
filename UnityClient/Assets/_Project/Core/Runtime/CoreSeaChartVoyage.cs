@@ -13,6 +13,7 @@ namespace ShatteredSail.Core.Gameplay
         private CoreEncounter[] chartRandomEncounters = Array.Empty<CoreEncounter>();
         private string[] chartRandomOrder = Array.Empty<string>();
         private int chartRandomIndex;
+        private int chartRandomVersion;
         private float nextChartRandomDistance;
         private int seaChartCompletedRemovedNodes;
         public IReadOnlyList<string> CurrentVoyageRandomEventIds => Array.AsReadOnly(chartRandomOrder);
@@ -53,12 +54,16 @@ namespace ShatteredSail.Core.Gameplay
                 out int a, out int b, out int forward))
                 TryParseChartSeed(EncodeChartSeed(0, a, b, forward, 2, Map.Hash, 0), out activeSeaChart);
             chartRandomEncounters = Array.Empty<CoreEncounter>(); chartRandomOrder = Array.Empty<string>();
-            encounterRandom = null; chartRandomIndex = 0;
+            encounterRandom = null; chartRandomIndex = 0; chartRandomVersion = 0;
             if (activeSeaChart == null) return;
             CoreSeaChartState state = GetOrCreateSeaChartState(activeSeaChart);
             state.visits = state.visits == int.MaxValue ? int.MaxValue : state.visits + 1;
             string routeBoss = activeSeaChart.TutorialWaters ? CoreGuidedTutorialContent.BossEventId : "boss_" + Map.Route.Id;
-            bossDefeated = state.defeatedBosses.Contains(routeBoss);
+            // A fresh guardian may sail an already-open route. Preserve port
+            // access independently from whether this voyage's guardian was beaten.
+            bossDefeated = shipRosterVersion == 0 || activeSeaChart.TutorialWaters
+                ? state.defeatedBosses.Contains(routeBoss)
+                : state.defeatedBosses.Any(id => CoreRouteBossCatalog.Find(id)?.RouteId == Map.Route.Id);
             RemoveDefeatedSeaChartBosses(state);
             if (IsGuidedBossVoyage && bossDefeated)
             {
@@ -74,26 +79,17 @@ namespace ShatteredSail.Core.Gameplay
             if (GuidedTutorialLeg == 0)
             {
                 encounterRandom = new Mulberry32Random(unchecked((uint)Guid.NewGuid().GetHashCode()) ^ Map.Hash ^ (uint)state.visits);
-                chartRandomOrder = (string[])SeaChartRandomTemplates.Clone();
-                for (int i = chartRandomOrder.Length - 1; i > 0; i--)
-                {
-                    int j = (int)(encounterRandom.NextDouble() * (i + 1));
-                    string item = chartRandomOrder[i]; chartRandomOrder[i] = chartRandomOrder[j]; chartRandomOrder[j] = item;
-                }
-                // Fresh entropy can still repeat by chance; explicitly avoid
-                // replaying the previous voyage's first dynamic template.
-                if (chartRandomOrder[0] == state.lastRandomEvent)
-                { string item = chartRandomOrder[0]; chartRandomOrder[0] = chartRandomOrder[1]; chartRandomOrder[1] = item; }
+                chartRandomVersion = 2;
+                RefillSeaChartRandomBag(state.lastRandomEvent);
                 state.lastRandomEvent = chartRandomOrder[0];
-                chartRandomEncounters = chartRandomOrder.Select(CreateSeaChartRandomEncounter).ToArray();
-                nextChartRandomDistance = 120f + (float)encounterRandom.NextDouble() * 120f;
+                nextChartRandomDistance = 160f + (float)encounterRandom.NextDouble() * 80f;
             }
             TouchSeaChartProgress();
         }
 
         private void RemoveDefeatedSeaChartBosses(CoreSeaChartState state, bool countCompletedThisVoyage = false)
         {
-            var removed = new HashSet<int>(Map.Nodes.Where(node => state.defeatedBosses.Contains(node.Encounter.Id)).Select(node => node.Id));
+            var removed = new HashSet<int>(Map.Nodes.Where(node => ShouldRemoveDefeatedChartBoss(state, node)).Select(node => node.Id));
             if (removed.Count == 0) return;
             if (countCompletedThisVoyage)
                 seaChartCompletedRemovedNodes += Map.Nodes.Count(node => removed.Contains(node.Id) && node.Visited && !node.Skipped);
@@ -108,7 +104,8 @@ namespace ShatteredSail.Core.Gameplay
         }
 
         private static bool IsKnownChartRandomEvent(string id, bool allowEmpty) =>
-            allowEmpty && string.IsNullOrEmpty(id) || Array.IndexOf(SeaChartRandomTemplates, id) >= 0;
+            allowEmpty && string.IsNullOrEmpty(id) || Array.IndexOf(SeaChartRandomTemplates, id) >= 0 ||
+            CoreVoyageEventCatalog.IsRandomEventId(id);
 
         private CoreEncounter CreateSeaChartRandomEncounter(string id)
         {
@@ -128,7 +125,11 @@ namespace ShatteredSail.Core.Gameplay
                         new CoreEncounterChoice("丢弃坏粮", "食物 -4", 0, new VoyageEffect { Food = -4 }),
                         new CoreEncounterChoice("封闭漏水货格", "船体 -1，不消耗物资", 0, new VoyageEffect { Hull = -1 }));
                     break;
-                default: result = CreateRandomAmbush(encounterRandom.NextDouble() < AmbushDetectionChance); break;
+                case "random_ambush": result = CreateRandomAmbush(encounterRandom.NextDouble() < AmbushDetectionChance); break;
+                default:
+                    result = CoreVoyageEventCatalog.CreateRandomEncounter(id, Map.Route.RecommendedPower);
+                    if (result == null) throw new ArgumentException("Unknown voyage event: " + id, nameof(id));
+                    break;
             }
             result.RepeatPolicy = CoreEncounterRepeatPolicy.RandomVoyage;
             return result;
@@ -137,8 +138,15 @@ namespace ShatteredSail.Core.Gameplay
         private CoreEncounter FindSeaChartTransientEncounter(IReadOnlyList<VoyagePoint> path, out VoyagePoint position, out float progress)
         {
             position = default(VoyagePoint); progress = float.MaxValue;
-            if (activeSeaChart == null || GuidedTutorialLeg > 0 || chartRandomIndex >= chartRandomEncounters.Length || path == null || path.Count < 2)
+            if (activeSeaChart == null || GuidedTutorialLeg > 0 || path == null || path.Count < 2)
                 return null;
+            // Legacy suspended voyages retain their original four-event script.
+            // New voyages refill only after every event in their current bag was seen.
+            if (chartRandomIndex >= chartRandomEncounters.Length)
+            {
+                if (chartRandomVersion == 0) return null;
+                RefillSeaChartRandomBag(null);
+            }
             float remaining = Math.Max(1f, nextChartRandomDistance - TotalDistanceNm) / Map.Route.NauticalMilesPerMapUnit;
             if (remaining >= PathDistance(path) - .001f) return null;
             float traversed = 0f;
@@ -160,10 +168,12 @@ namespace ShatteredSail.Core.Gameplay
 
         private void BeginSeaChartTransientEncounter(CoreEncounter encounter)
         {
+            if (chartRandomVersion > 0) RememberSeaChartRandomEvent(chartRandomOrder[chartRandomIndex]);
             chartRandomIndex++;
-            nextChartRandomDistance = TotalDistanceNm + 180f + (float)encounterRandom.NextDouble() * 240f;
+            nextChartRandomDistance = TotalDistanceNm + (chartRandomVersion == 0
+                ? 180f + (float)encounterRandom.NextDouble() * 240f : NextSeaChartRandomGap());
             ActiveEncounter = encounter; activeNode = null; Phase = CoreDemoPhase.Encounter;
-            AddLog("航行中遭遇「" + encounter.Name + "」；本次出航不会重复触发该随机事件。");
+            AddLog("航行中遭遇「" + encounter.Name + "」。");
         }
     }
 }

@@ -271,7 +271,6 @@ namespace ShatteredSail.Presentation.Tests
             saved.gems = 63;
             PlayerPrefs.SetString(CoreGameplayDemoController.TreasureProgressKey, JsonUtility.ToJson(saved));
             string persistedBefore = TreasureProgressWithoutFragments(saved);
-            Write("treasureFragmentNotice", "旧的碎片提示");
 
             OpenUnlocked();
             yield return null;
@@ -282,7 +281,6 @@ namespace ShatteredSail.Presentation.Tests
             input.text = "0";
             ClickGameMasterGraphic(set);
             Assert.That(session.TreasureFragments, Is.Zero);
-            Assert.That(Read<string>("treasureFragmentNotice"), Is.Null.Or.Empty);
             Assert.That(set.interactable, Is.False);
             Assert.That(TreasureProgressWithoutFragments(session.CaptureTreasureProgress()), Is.EqualTo(sessionBefore));
             CoreTreasureProgress loaded = JsonUtility.FromJson<CoreTreasureProgress>(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey));

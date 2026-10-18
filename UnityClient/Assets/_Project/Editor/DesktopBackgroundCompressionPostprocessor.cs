@@ -5,10 +5,8 @@ namespace ShatteredSail.Editor
 {
     public sealed class DesktopBackgroundCompressionPostprocessor : AssetPostprocessor
     {
-        // Rebuild old importer artifacts after correcting the Sprite-background
-        // exclusion. A selected BC7 enum alone cannot prove the cached texture
-        // was actually encoded with the updated policy.
-        public override uint GetVersion() => 1;
+        // Rebuild artifacts with the resolution-preserving NPOT mip fallback.
+        public override uint GetVersion() => 2;
 
         private bool Eligible(TextureImporter importer) => DesktopBackgroundCompressionPolicy.IsEligible(
             assetPath, context.selectedBuildTarget, importer.isReadable, importer.textureType, importer.textureShape) &&
@@ -22,7 +20,7 @@ namespace ShatteredSail.Editor
             // A disabled override can have stale max-size/resize settings. Copy
             // the effective defaults before enabling this platform override.
             if (!settings.overridden) settings = importer.GetDefaultPlatformTextureSettings();
-            DesktopBackgroundCompressionPolicy.ConfigureStandaloneSettings(settings);
+            DesktopBackgroundCompressionPolicy.ConfigureImportedTextureSettings(importer, settings);
             importer.SetPlatformTextureSettings(settings);
         }
 

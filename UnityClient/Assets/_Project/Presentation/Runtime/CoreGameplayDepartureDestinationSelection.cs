@@ -28,8 +28,8 @@ namespace ShatteredSail.Presentation
                 {
                     if (button == null || !button.gameObject.activeInHierarchy || !button.IsInteractable() ||
                         !ReferenceEquals(session, owner) || session.CurrentPort != origin ||
-                        revision != departureChartRevision || !IsDepartureShipView() ||
-                        DepartureChartModeActive || session.SelectedTreasureMap != null || port == session.CurrentPort) return;
+                        revision != departureChartRevision || !IsDepartureShipView() || departureCrewConfigurationOpen ||
+                        DepartureChartModeActive || DepartureDockTreasureModeActive || session.SelectedTreasureMap != null || port == session.CurrentPort) return;
                     if (!session.SelectDestinationPort(port)) return;
                     OnGuidedTutorialDestinationSelected();
                     Render();
@@ -55,6 +55,9 @@ namespace ShatteredSail.Presentation
 
         private string DepartureRouteSummaryText()
         {
+            if (DepartureDockTreasureModeActive)
+                return session.SelectedTreasureMap == null ? "藏宝海图：选择种子，开启隐藏海域" :
+                    "藏宝航线：" + session.CurrentPort + " → 隐藏海域 → " + session.CurrentPort;
             if (session.SelectedTreasureMap != null)
                 return "隐藏海域航线：" + session.CurrentPort + "——隐藏海域（返航：" + session.CurrentPort + "）";
             if (DepartureChartModeActive)
@@ -71,8 +74,8 @@ namespace ShatteredSail.Presentation
         {
             button.gameObject.SetActive(!DepartureChartModeActive);
             bool origin = port == session.CurrentPort;
-            bool locked = DepartureChartModeActive || session.SelectedTreasureMap != null;
-            bool selected = !origin && session.SelectedTreasureMap == null && port == session.SelectedDestinationPort;
+            bool locked = DepartureChartModeActive || DepartureDockTreasureModeActive || session.SelectedTreasureMap != null;
+            bool selected = !origin && !DepartureDockTreasureModeActive && session.SelectedTreasureMap == null && port == session.SelectedDestinationPort;
             WoodButtonSkin.SetSelected(button, selected);
             button.interactable = !origin && !locked;
             // Manual selection restores all six opaque plaques in their fixed

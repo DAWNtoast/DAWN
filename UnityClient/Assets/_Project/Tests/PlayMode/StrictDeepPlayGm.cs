@@ -169,17 +169,23 @@ namespace ShatteredSail.Presentation.Tests
                         string visible = name + " | " + plaque;
                         if (offer.IsInteractable())
                         {
-                            // The offer root deliberately has no hit surface. Click its
-                            // visible plaque, still requiring the real Button handler.
-                            RawImage sign = offer.GetComponentsInChildren<RawImage>().First(image => image.name.StartsWith("Component Shop Plaque ", StringComparison.Ordinal));
-                            Vector2 point = ((RectTransform)offer.transform).InverseTransformPoint(sign.rectTransform.TransformPoint(sign.rectTransform.rect.center));
+                            Graphic hitSurface = offer.targetGraphic;
+                            Assert.That(hitSurface, Is.Not.Null);
+                            Assert.That(hitSurface.raycastTarget, Is.True);
+                            RectTransform offerRect = (RectTransform)offer.transform;
+                            Vector2 point = (Vector2)offerRect.InverseTransformPoint(
+                                hitSurface.rectTransform.TransformPoint(hitSurface.rectTransform.rect.center)) - offerRect.rect.center;
+                            Record("Preview actual shop offer: " + name);
+                            yield return ClickDestinationTestGraphic(offer.gameObject, point);
+                            Assert.That(PortText("Component Detail Name"), Is.Null,
+                                "The first real catalogue click must stay in the showroom.");
+                            Assert.That(GameObject.Find("Component Shop Panel"), Is.Not.Null);
                             Record("Inspect actual shop offer: " + name);
                             yield return ClickDestinationTestGraphic(offer.gameObject, point);
                             Assert.That(PortText("Component Detail Name"), Is.Not.Null);
-                            Assert.That(PortText("Component Detail Quality"), Is.Not.Null);
+                            Assert.That(PortText("Component Detail Quality"), Is.Null);
                             visible += " | name=" + PortText("Component Detail Name").text +
-                                " | rarity/slot=" + PortText("Component Detail Meta").text +
-                                " | quality=" + PortText("Component Detail Quality").text;
+                                " | rarity/slot=" + PortText("Component Detail Meta").text;
                             yield return Click("Return To Port Hub");
                             Assert.That(PortButton(name), Is.Not.Null);
                         }

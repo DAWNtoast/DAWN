@@ -49,9 +49,11 @@ namespace ShatteredSail.Core.Tests
             int checkedCards = 0, cannonballCards = 0, dualResourceCards = 0, resourceFreeCards = 0;
             for (int index = 0; index < CoreVoyageSession.CardLibrary.Count; index++)
             {
+                if (CoreVoyageSession.CardLibrary[index].AllowedStages == NavalBattleStages.None) continue;
                 CoreBattleCard data = session.GetBattleCard(index);
-                if (data == null) continue;
-                Assert.That(data.UpgradeLevel, Is.EqualTo(level), entry + " / " + data.Id + " must exercise the requested rank");
+                Assert.That(data, Is.Not.Null, CoreVoyageSession.CardLibrary[index].Id);
+                Assert.That(data.UpgradeLevel, Is.EqualTo(Math.Min(level, session.GetCardMaximumUpgradeLevel(index))),
+                    entry + " / " + data.Id + " must exercise the requested rank up to its authored cap");
                 RectTransform face = CreateFace(entry, index);
                 AssertResourceBadges(face, data, entry + " / " + data.Id + " / rank " + level,
                     entry == "Battle" ? session.Battle : null);
@@ -177,14 +179,11 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(CoreSchoolMechanic.ArcaneRelease)]
         [TestCase(CoreSchoolMechanic.ArcaneWard)]
-        [TestCase(CoreSchoolMechanic.ArcaneMend)]
         [TestCase(CoreSchoolMechanic.ArcaneEcho)]
         [TestCase(CoreSchoolMechanic.BloodRisk)]
         [TestCase(CoreSchoolMechanic.BloodWard)]
-        [TestCase(CoreSchoolMechanic.CurseDrain)]
         [TestCase(CoreSchoolMechanic.TideWard)]
         [TestCase(CoreSchoolMechanic.TideRiposte)]
-        [TestCase(CoreSchoolMechanic.TideRenew)]
         [TestCase(CoreSchoolMechanic.TideCleanse)]
         [TestCase(CoreSchoolMechanic.ThunderFinish)]
         public void SpecialResourceNumber_MatchesTheResourceActuallyPaidBySuccessfulPlay(CoreSchoolMechanic mechanic)
@@ -193,9 +192,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase(CoreSchoolMechanic.BloodRisk, NavalBattleStage.Naval)]
-        [TestCase(CoreSchoolMechanic.BloodRisk, NavalBattleStage.Boarding)]
         [TestCase(CoreSchoolMechanic.BloodWard, NavalBattleStage.Naval)]
-        [TestCase(CoreSchoolMechanic.BloodWard, NavalBattleStage.Boarding)]
         public void LifePaymentNumber_TracksTheHealthPoolOfTheActualStage(CoreSchoolMechanic mechanic, NavalBattleStage stage)
         {
             AssertSuccessfulSpecialPayment(mechanic, stage);
@@ -205,6 +202,26 @@ namespace ShatteredSail.Core.Tests
         {
             CoreBattleCard card = CoreVoyageSession.CardLibrary.First(value => value.SchoolEffect?.Mechanic == mechanic &&
                 (!requestedStage.HasValue || value.IsAllowedInStage(requestedStage.Value)));
+            AssertSuccessfulSpecialPayment(card, requestedStage);
+        }
+
+        [TestCase("arcane_05", "mana", 2)]
+        [TestCase("curse_12", "curse", 2)]
+        [TestCase("tide_11", "tide", 6)]
+        [TestCase("blood_01", "health", 3)]
+        [TestCase("blood_03", "health", 3)]
+        public void BoardingResourceNumber_MatchesTheResourceActuallyPaidBySuccessfulPlay(string key, string resource, int cost)
+        {
+            CoreBattleCard card = CoreBoardingCardCatalog.FindByKey(key);
+            Assert.That(card, Is.Not.Null);
+            Assert.That(card.BoardingSpec.Key, Is.EqualTo(key));
+            Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.EqualTo(resource));
+            Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo(cost.ToString()));
+            AssertSuccessfulSpecialPayment(card, NavalBattleStage.Boarding);
+        }
+
+        private void AssertSuccessfulSpecialPayment(CoreBattleCard card, NavalBattleStage? requestedStage)
+        {
             CoreVoyageSession session = CreateBattleSession(0, card);
             Assert.That(session.PirateLevel, Is.EqualTo(10), "Establish unlocks before departure; restore APIs are port-only.");
             NavalBattleStage stage = requestedStage ?? Enum.GetValues(typeof(NavalBattleStage)).Cast<NavalBattleStage>().First(card.IsAllowedInStage);
@@ -219,25 +236,46 @@ namespace ShatteredSail.Core.Tests
             session.Cargo.Powder = session.Cargo.Cannonballs = 100;
             session.Cargo.Medicine = session.Cargo.Wood = 10;
             if (stage == NavalBattleStage.Boarding)
-                session.Battle.PlayerBoardingHealth = Math.Max(card.SchoolEffect.Threshold + 1,
+                session.Battle.PlayerBoardingHealth = Math.Max((card.SchoolEffect?.Threshold ?? 3) + 1,
                     session.Battle.PlayerMaxBoardingHealth - 10);
-            SetSchoolResource(session, "Mana", 12);
+            // The first boarding play initializes a three-point mana cap. Seed a
+            // legal balance so that initialization is not miscounted as payment.
+            SetSchoolResource(session, "Mana", card.BoardingSpec != null ? 3 : 12);
+            if (card.BoardingSpec != null) SetSchoolResource(session, "TemporaryMana", 0);
             SetSchoolResource(session, "CurseMarks", 6);
             SetSchoolResource(session, "ThunderChain", 6);
             SetSchoolResource(session, "TidePower", 20);
+            if (card.BoardingSpec != null)
+            {
+                // Boarding uses timed resource collections; legacy numeric mirrors alone cannot fund a play.
+                typeof(CoreVoyageSession).GetMethod("CTBAddMarks", PrivateInstance).Invoke(session, new object[] { 6 });
+                typeof(CoreVoyageSession).GetMethod("CTBAddTideGuard", PrivateInstance).Invoke(session, new object[] { 12 });
+                session.Battle.PlayerBlock = 0;
+                typeof(CoreVoyageSession).GetMethod("CTBAfterEnemyAttack", PrivateInstance).Invoke(session, new object[] { 12, 0 });
+                Assert.That(session.Battle.Boarding.CurseMarks, Is.EqualTo(6));
+                Assert.That(session.Battle.Boarding.TidePower, Is.EqualTo(12));
+            }
             UseSession(session);
             RectTransform face = CreateFace("Battle", FindCard(card.Id));
             CardOrnamentGraphic marker = FindBadge(face, CardSpecialCostPresentation.OrnamentKind(card));
             Assert.That(marker, Is.Not.Null, card.Id);
             int shown = int.Parse(marker.GetComponentInChildren<Text>().text);
             string resource = CardSpecialCostPresentation.ResourceType(card);
-            int before = PaidResource(session, resource);
+            int before = PaidResource(session, card, resource);
+            if (card.BoardingSpec?.Key == "arcane_05")
+            {
+                Assert.That(session.Battle.Schools.ManaLimit, Is.EqualTo(3));
+                Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(3));
+                Assert.That(shown, Is.EqualTo(2), "This heal pays two mana, not all available mana.");
+            }
             Assert.That(shown, Is.GreaterThan(0));
             Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
             Assert.That(session.Battle, Is.Not.Null, "The fixture enemy survives so payment remains observable.");
-            int refundedChain = mechanic == CoreSchoolMechanic.ThunderFinish ? 1 : 0;
-            Assert.That(before - PaidResource(session, resource) + refundedChain, Is.EqualTo(shown),
+            int refundedChain = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ThunderFinish ? 1 : 0;
+            Assert.That(before - PaidResource(session, card, resource) + refundedChain, Is.EqualTo(shown),
                 card.Id + " / " + resource + ": a thunder finisher pays existing chain, then its attack generates one new chain.");
+            if (card.BoardingSpec?.Key == "arcane_05")
+                Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(1), "The unspent third mana remains available.");
         }
 
         [TestCase(CoreSchoolMechanic.TideRiposte, "TidePower")]
@@ -278,6 +316,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(FindBadge(button.transform, marker.Kind), Is.SameAs(marker));
                 Assert.That(marker.GetComponentInChildren<Text>(), Is.SameAs(number));
                 Assert.That(number.text, Is.EqualTo(amount.ToString()), card.Id);
+                Assert.That(number.color, Is.EqualTo(Color.white), "Consuming all current resources is not a surcharge.");
                 Assert.That((int)typeof(CoreSchoolBattleState).GetProperty(property).GetValue(session.Battle.Schools),
                     Is.EqualTo(amount), "A view refresh must not pay or grant resources.");
             }
@@ -305,11 +344,15 @@ namespace ShatteredSail.Core.Tests
             typeof(CoreSchoolBattleState).GetProperty(property).SetValue(session.Battle.Schools, value);
 
         [Test]
-        public void RetainedFireFallback_RefreshesZeroPowderToFullCostWithoutPayingSupplies()
+        public void RetainedBoardingFireCost_StaysPrintedAndUpdatesAvailabilityWithoutPayingSupplies()
         {
             CoreBattleCard authored = CoreVoyageSession.CardLibrary.Single(card => card.Id == "card_school_fire_b07");
+            Assert.That(authored.BoardingSpec.Key, Is.EqualTo("fire_02"));
+            Assert.That(authored.PowderCost, Is.EqualTo(1));
             CoreVoyageSession session = CreateBattleSession(3, authored);
-            session.Battle.Stage = NavalBattleStage.Boarding;
+            typeof(CoreVoyageSession).GetMethod("EnterBattleStage", PrivateInstance)
+                .Invoke(session, new object[] { NavalBattleStage.Boarding });
+            session.Battle.Energy = 20;
             session.Cargo.Powder = 0;
             UseSession(session);
             session.Battle.Hand.Clear(); session.Battle.Hand.Add(FindCard(authored.Id));
@@ -317,16 +360,26 @@ namespace ShatteredSail.Core.Tests
             Button button = (Button)view.GetType().GetField("Button").GetValue(view);
             CardOrnamentGraphic marker = FindBadge(button.transform, CardOrnamentKind.Gunpowder);
             Text number = marker.GetComponentInChildren<Text>();
-            Assert.That(number.text, Is.EqualTo("0"));
-            Assert.That(button.transform.Find("Label").GetComponent<Text>().text, Does.Contain("仅基础效果"));
+            Assert.That(number.text, Is.EqualTo("1"));
+            Assert.That(number.color, Is.EqualTo(Color.white), "Insufficient supplies do not change the printed cost.");
+            Assert.That(button.interactable, Is.False);
+            Assert.That(session.CanPlayCard(0), Is.False);
+            Assert.That(session.CardUnavailableReason(0), Does.Contain("火药不足"));
+            string effect = button.transform.Find("Label").GetComponent<Text>().text;
+            Assert.That(effect, Does.Not.Contain("仅基础效果"));
             foreach (int powder in new[] { 1, 0 })
             {
                 session.Cargo.Powder = powder;
                 Invoke("RefreshRetainedHandCard", view, 0, 1);
                 Assert.That(FindBadge(button.transform, CardOrnamentKind.Gunpowder), Is.SameAs(marker));
-                Assert.That(number.text, Is.EqualTo(powder.ToString()));
+                Assert.That(marker.GetComponentInChildren<Text>(), Is.SameAs(number));
+                Assert.That(number.text, Is.EqualTo("1"));
+                Assert.That(number.color, Is.EqualTo(Color.white), "Supply availability cannot mark the fixed powder cost as increased.");
+                Assert.That(button.interactable, Is.EqualTo(powder >= 1));
+                Assert.That(session.CanPlayCard(0), Is.EqualTo(powder >= 1));
                 Assert.That(session.Cargo.Powder, Is.EqualTo(powder), "Retained quotation cannot pay powder.");
-                Assert.That(button.transform.Find("Label").GetComponent<Text>().text.Contains("仅基础效果"), Is.EqualTo(powder == 0));
+                Assert.That(button.transform.Find("Label").GetComponent<Text>().text, Is.EqualTo(effect),
+                    "The complete fixed-cost boarding description remains visible at either supply level.");
             }
         }
 
@@ -350,14 +403,14 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(marker.GetComponentInChildren<Text>().text, Is.EqualTo("0"), "Unpaid tide guard is only the free fallback.");
         }
 
-        private static int PaidResource(CoreVoyageSession session, string resource)
+        private static int PaidResource(CoreVoyageSession session, CoreBattleCard card, string resource)
         {
             switch (resource)
             {
                 case "mana": return session.Battle.Schools.Mana;
-                case "curse": return session.Battle.Schools.CurseMarks;
+                case "curse": return card.BoardingSpec != null ? session.Battle.Boarding.CurseMarks : session.Battle.Schools.CurseMarks;
                 case "chain": return session.Battle.Schools.ThunderChain;
-                case "tide": return session.Battle.Schools.TidePower;
+                case "tide": return card.BoardingSpec != null ? session.Battle.Boarding.TidePower : session.Battle.Schools.TidePower;
                 case "wood": return session.Cargo.Wood;
                 case "health": return session.Battle.Stage == NavalBattleStage.Boarding ? session.Battle.PlayerBoardingHealth : session.Hull;
                 default: throw new ArgumentException(resource);
@@ -366,7 +419,7 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(6)]
         [TestCase(8)]
-        public void CrowdedRealHand_CompleteFramesAndAllCostNumbersRemainSeparate(int count)
+        public void CrowdedNavalHand_EachInspectedFrameAndAllCostNumbersRemainUncovered(int count)
         {
             PrepareCrowdedHand(count);
             AssertHandCostsAreUncovered(HandFaces(), "hand of " + count);
@@ -417,10 +470,8 @@ namespace ShatteredSail.Core.Tests
                         ? CardSchoolArtCatalog.CostPosition(controller.Session.GetBattleCard(controller.Session.Battle.Hand[index]), CardOrnamentKind.Cannonball)
                         : CardSchoolArtCatalog.CostPosition(controller.Session.GetBattleCard(controller.Session.Battle.Hand[index]), CardOrnamentKind.Gunpowder)));
                 }
-                RectTransform repeat = restored[index].Find("Card Repeat Cost Plate " + index) as RectTransform;
-                Assert.That(repeat.anchoredPosition, Is.EqualTo(CardFaceLayout.RepeatCostPosition));
-                Assert.That(LocalRect(repeat).Overlaps(CardFaceLayout.IllustrationBounds), Is.False,
-                    "The repeated-play surcharge must stay outside the illustration");
+                Assert.That(restored[index].Find("Card Repeat Cost Plate " + index), Is.Null,
+                    "Retained refresh must not recreate a repeated-play surcharge label.");
             }
             AssertHandCostsAreUncovered(restored, "restored hand of five");
         }
@@ -455,46 +506,76 @@ namespace ShatteredSail.Core.Tests
 
         private static void AssertHandCostsAreUncovered(RectTransform[] faces, string context)
         {
+            // Naval cards deliberately overlap at rest. Every inspected card must
+            // bring its complete face and all costs above the fan and onto screen.
+            Assert.That(faces.Length, Is.GreaterThan(1), context);
+            Assert.That(WorldRect(faces[0].GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform)
+                .Overlaps(WorldRect(faces[1].GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform)), Is.True,
+                context + " exercises the overlapping naval fan");
+            Canvas rootCanvas = faces[0].GetComponentInParent<Canvas>().rootCanvas;
+            Rect viewport = WorldRect(FixedGameViewport.Bounds(rootCanvas));
             for (int index = 0; index < faces.Length; index++)
             {
                 RectTransform face = faces[index];
-                CardSchoolFrameGraphic frame = face.GetComponentInChildren<CardSchoolFrameGraphic>();
-                Assert.That(frame, Is.Not.Null, context);
-                Rect faceBounds = WorldRect(frame.rectTransform);
-                Assert.That(faceBounds.width, Is.GreaterThan(1f), context + " requires real canvas geometry");
-                for (int later = index + 1; later < faces.Length; later++)
+                Vector2 restingPosition = face.anchoredPosition;
+                Vector3 restingScale = face.localScale;
+                Quaternion restingRotation = face.localRotation;
+                MonoBehaviour hover = face.GetComponents<MonoBehaviour>()
+                    .Single(item => item.GetType().Name == "BattleCardHoverFeedback");
+                try
                 {
-                    CardSchoolFrameGraphic other = faces[later].GetComponentInChildren<CardSchoolFrameGraphic>();
-                    Assert.That(faceBounds.Overlaps(WorldRect(other.rectTransform)), Is.False,
-                        context + " complete integrated frame overlaps card " + later);
-                }
-                RectTransform[] badges = face.GetComponentsInChildren<CardOrnamentGraphic>(true)
-                    .Where(item => item.Kind == CardOrnamentKind.Energy || item.Kind == CardOrnamentKind.Gunpowder || item.Kind == CardOrnamentKind.Cannonball)
-                    .Select(item => item.rectTransform).ToArray();
-                RectTransform repeat = face.Find("Card Repeat Cost Plate " + index) as RectTransform;
-                Assert.That(repeat, Is.Not.Null);
-                Assert.That(repeat.gameObject.activeSelf, Is.True, context + " must exercise a visible repeated-use surcharge");
-                Assert.That(repeat.GetComponentInChildren<Text>().text, Is.EqualTo("+1"));
-                RectTransform[] allCosts = badges.Concat(new[] { repeat }).ToArray();
-                for (int cost = 0; cost < allCosts.Length; cost++)
-                {
-                    Rect bounds = WorldRect(allCosts[cost]);
-                    Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(faceBounds.xMin - .01f), context);
-                    Assert.That(bounds.xMax, Is.LessThanOrEqualTo(faceBounds.xMax + .01f), context);
-                    Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(faceBounds.yMin - .01f), context);
-                    Assert.That(bounds.yMax, Is.LessThanOrEqualTo(faceBounds.yMax + .01f), context);
-                    Rect numberBounds = WorldRect(allCosts[cost].GetComponentInChildren<Text>().rectTransform);
-                    for (int later = index + 1; later < faces.Length; later++)
+                    hover.GetType().GetMethod("OnPointerEnter").Invoke(hover, new object[] { null });
+                    hover.GetType().GetMethod("RefreshInspectionLayoutImmediately").Invoke(hover, null);
+                    Canvas.ForceUpdateCanvases();
+                    CardSchoolFrameGraphic frame = face.GetComponentInChildren<CardSchoolFrameGraphic>();
+                    Assert.That(frame, Is.Not.Null, context);
+                    Rect faceBounds = WorldRect(frame.rectTransform);
+                    Assert.That(faceBounds.width, Is.GreaterThan(1f), context + " requires real canvas geometry");
+                    Assert.That(faceBounds.xMin, Is.GreaterThanOrEqualTo(viewport.xMin - .01f), context);
+                    Assert.That(faceBounds.xMax, Is.LessThanOrEqualTo(viewport.xMax + .01f), context);
+                    Assert.That(faceBounds.yMin, Is.GreaterThanOrEqualTo(viewport.yMin - .01f), context);
+                    Assert.That(faceBounds.yMax, Is.LessThanOrEqualTo(viewport.yMin + viewport.height * .32f + .01f),
+                        context + " inspection leaves the tactical sea visible");
+                    Assert.That(Quaternion.Angle(face.localRotation, Quaternion.identity), Is.LessThan(.01f), context);
+                    Canvas inspection = face.GetComponent<Canvas>();
+                    Assert.That(inspection.overrideSorting, Is.True, context + " inspected costs render above the overlapping hand");
+                    Assert.That(inspection.sortingOrder, Is.GreaterThan(0), context);
+                    foreach (RectTransform other in faces.Where(item => item != face))
+                        Assert.That(other.GetComponent<Canvas>().overrideSorting, Is.False, context + " only the inspected card is raised");
+
+                    RectTransform[] badges = face.GetComponentsInChildren<CardOrnamentGraphic>(true)
+                        .Where(item => item.Kind == CardOrnamentKind.Energy || item.Kind == CardOrnamentKind.Gunpowder || item.Kind == CardOrnamentKind.Cannonball)
+                        .Select(item => item.rectTransform).ToArray();
+                    Assert.That(face.Find("Card Repeat Cost Plate " + index), Is.Null,
+                        context + " must display the increased total on its original badge.");
+                    Text energy = face.GetComponentsInChildren<CardOrnamentGraphic>(true)
+                        .Single(item => item.Kind == CardOrnamentKind.Energy).GetComponentInChildren<Text>();
+                    Assert.That(energy.color, Is.EqualTo(new Color(1f, .24f, .2f, 1f)),
+                        context + " must exercise a red increased cost in a crowded hand.");
+                    for (int cost = 0; cost < badges.Length; cost++)
                     {
-                        Rect coveringCard = WorldRect(faces[later].GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
-                        Assert.That(bounds.Overlaps(coveringCard), Is.False,
-                            context + " / " + allCosts[cost].name + " backing covered by card " + later);
-                        Assert.That(numberBounds.Overlaps(coveringCard), Is.False,
-                            context + " / " + allCosts[cost].name + " number covered by card " + later);
+                        Rect bounds = WorldRect(badges[cost]);
+                        Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(faceBounds.xMin - .01f), context);
+                        Assert.That(bounds.xMax, Is.LessThanOrEqualTo(faceBounds.xMax + .01f), context);
+                        Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(faceBounds.yMin - .01f), context);
+                        Assert.That(bounds.yMax, Is.LessThanOrEqualTo(faceBounds.yMax + .01f), context);
+                        Text number = badges[cost].GetComponentInChildren<Text>();
+                        Assert.That(number, Is.Not.Null, badges[cost].name);
+                        Assert.That(number.text, Is.Not.Empty, badges[cost].name);
+                        Rect numberBounds = WorldRect(number.rectTransform);
+                        Assert.That(numberBounds.xMin, Is.GreaterThanOrEqualTo(viewport.xMin - .01f), context);
+                        Assert.That(numberBounds.xMax, Is.LessThanOrEqualTo(viewport.xMax + .01f), context);
+                        Assert.That(numberBounds.yMin, Is.GreaterThanOrEqualTo(viewport.yMin - .01f), context);
+                        for (int previous = 0; previous < cost; previous++)
+                            Assert.That(bounds.Overlaps(WorldRect(badges[previous])), Is.False,
+                                context + " / " + badges[cost].name + " overlaps another cost on the inspected card");
                     }
-                    for (int previous = 0; previous < cost; previous++)
-                        Assert.That(bounds.Overlaps(WorldRect(allCosts[previous])), Is.False,
-                            context + " / " + allCosts[cost].name + " overlaps another cost on the same card");
+                }
+                finally
+                {
+                    hover.GetType().GetMethod("OnPointerExit").Invoke(hover, new object[] { null });
+                    face.anchoredPosition = restingPosition;
+                    hover.GetType().GetMethod("SetRestingPose").Invoke(hover, new object[] { restingScale.x, restingRotation, true });
                 }
             }
         }

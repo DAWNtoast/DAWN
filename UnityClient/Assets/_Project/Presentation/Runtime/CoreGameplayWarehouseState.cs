@@ -103,6 +103,7 @@ namespace ShatteredSail.Presentation
             PlayerPrefs.SetInt(WarehouseDisplayRecordKey, displayedRecord);
             PlayerPrefs.SetString(PortWarehouseCargoKey, session.PortWarehouse.Serialize());
             PlayerPrefs.SetInt(WarehousePortMigrationKey, 1);
+            SaveWarehouseIncome();
         }
 
         // Only the ordinary successful display action invokes this hook. Opening

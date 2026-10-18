@@ -59,34 +59,33 @@ namespace ShatteredSail.Core.Gameplay
         private static readonly string[] legendaryBossIds =
         {
             "legendary_pirate_iron_oath", "legendary_pirate_thunder_crown", "legendary_pirate_red_widow",
-            "legendary_pirate_ember_ark", "legendary_pirate_tide_requiem"
+            "legendary_pirate_ember_ark", "legendary_pirate_tide_requiem", "legendary_pirate_last_horizon"
         };
 
         public static IReadOnlyList<CoreCollectionRewardRule> All { get; } = Array.AsReadOnly(new[]
         {
             Rule("first_victory_compass", "首领 · 首次击败任意首领（含教学首领）",
                 (p, f, o) => CountDistinct(p.defeatedBossIds, IsKnownBoss) >= 1),
-            Boss("boatswain_bell", "boss_" + GoldenRoute, "黄金潮汐商路首领：税金女王号"),
+            RouteBoss("boatswain_bell", GoldenRoute, "黄金潮汐商路任一首领：税金女王号或极光敕令号"),
             Rule("sealed_chart", "海图 · 完成 3 张不同普通海图" + ChartCompletion,
                 (p, f, o) => CountDistinct(p.completedChartSeeds) >= 3),
             Rule("old_captain_free_flag", "海图 · 完成碎帆礁海、黄金潮汐商路、月潮遗迹海各一次" + ChartCompletion,
                 (p, f, o) => ContainsAll(p.completedRouteIds, routeIds)),
             Rule("six_port_anchor_seal", "航海 · 到访全部 6 个港口（含起始港）",
                 (p, f, o) => ContainsAll(p.visitedPorts, CoreVoyageSession.DestinationPorts)),
-            Rule("no_crown_logbook", "首领 · 战胜全部 5 艘传说舰（潮汐镇魂号为切磋）",
+            Rule("no_crown_logbook", "首领 · 战胜全部 6 艘传说舰（潮汐镇魂号为切磋）",
                 (p, f, o) => ContainsAll(p.defeatedBossIds, legendaryBossIds)),
-            Boss("first_stormglass", "boss_" + ReefRoute, "碎帆礁海首领：裂桅号"),
+            RouteBoss("first_stormglass", ReefRoute, "碎帆礁海任一首领：裂桅号或幽礁潜猎号"),
             Rule("starboard_copper_scope", "首领 · 战胜 3 种不同首领（含教学首领）",
                 (p, f, o) => CountDistinct(p.defeatedBossIds, IsKnownBoss) >= 3),
             Rule("saltworn_quartermaster_key", "海图 · 完成 1 张普通海图" + ChartCompletion,
                 (p, f, o) => CountDistinct(p.completedChartSeeds) >= 1),
             Rule("first_berth_drydock_nail", "航海 · 到访 3 个不同港口（含起始港）",
                 (p, f, o) => CountDistinct(p.visitedPorts, IsKnownPort) >= 3),
-            Boss("godbreaker_oar", "boss_" + MoonRoute, "月潮遗迹海首领：月蚀圣骸"),
+            RouteBoss("godbreaker_oar", MoonRoute, "月潮遗迹海任一首领：月蚀圣骸或月织星槎号"),
             TreasureRank("leviathan_bone_whistle", "weathered", "残旧"),
-            Rule("moon_tide_astrolabe", "首领 · 战胜碎帆礁海、黄金潮汐商路、月潮遗迹海的全部区域首领",
-                (p, f, o) => Contains(p.defeatedBossIds, "boss_" + ReefRoute) &&
-                    Contains(p.defeatedBossIds, "boss_" + GoldenRoute) && Contains(p.defeatedBossIds, "boss_" + MoonRoute)),
+            Rule("moon_tide_astrolabe", "首领 · 战胜三个海图的全部 6 位区域首领",
+                (p, f, o) => DefeatedEveryRouteBoss(p.defeatedBossIds)),
             Boss("iron_oath_shackle", "legendary_pirate_iron_oath", "传说舰：铁誓不沉号"),
             Boss("thunder_crown_fuse", "legendary_pirate_thunder_crown", "传说舰：雷冠审判号"),
             Boss("red_widow_grappling_hook", "legendary_pirate_red_widow", "传说舰：绯刃寡妇号"),
@@ -131,8 +130,22 @@ namespace ShatteredSail.Core.Gameplay
         }
 
         public static bool IsKnownBoss(string id) => id == CoreGuidedTutorialContent.BossEventId ||
-            id == CoreBattleBalance.TreasureBossId || id == "boss_" + ReefRoute || id == "boss_" + GoldenRoute ||
-            id == "boss_" + MoonRoute || Contains(legendaryBossIds, id);
+            id == CoreBattleBalance.TreasureBossId || CoreRouteBossCatalog.Find(id) != null || Contains(legendaryBossIds, id);
+
+        private static bool DefeatedEveryRouteBoss(string[] defeated)
+        {
+            foreach (CoreRouteBoss boss in CoreRouteBossCatalog.All)
+                if (!Contains(defeated, boss.Id)) return false;
+            return true;
+        }
+
+        private static CoreCollectionRewardRule RouteBoss(string id, string routeId, string name) =>
+            Rule(id, "首领 · 首次战胜" + name, (p, f, o) =>
+            {
+                foreach (CoreRouteBoss boss in CoreRouteBossCatalog.ForRoute(routeId))
+                    if (Contains(p.defeatedBossIds, boss.Id)) return true;
+                return false;
+            });
 
         private static CoreCollectionRewardRule Rule(string id, string source,
             Func<CoreCollectionProgress, CoreCollectionFacts, IReadOnlyCollection<string>, bool> condition) =>
@@ -141,10 +154,18 @@ namespace ShatteredSail.Core.Gameplay
         private static CoreCollectionRewardRule Boss(string id, string bossId, string name) =>
             Rule(id, "首领 · 首次战胜" + name, (p, f, o) => Contains(p.defeatedBossIds, bossId));
 
-        private static CoreCollectionRewardRule Crew(string id, string crewId, string port, string name) =>
-            Rule(id, "招募 · 在" + port + "酒馆招募“" + name + "”并将其角色卡牌升至 3 级",
-                (p, f, o) => HasCrew(f.recruitedCrewIds, crewId) && f.crewCardLevels != null &&
-                    f.crewCardLevels.TryGetValue(crewId, out int level) && level >= 3);
+        private static CoreCollectionRewardRule Crew(string id, string crewId, string port, string name)
+        {
+            CoreBattleCard card = CoreSpecialCardCatalog.ForCrew(crewId)?.Card;
+            // The saved source rank is shared across stages, with the highest
+            // authored stage cap. Requiring +3 makes lower-cap gifts unreachable.
+            int maximumLevel = card == null ? int.MaxValue : Math.Max(
+                CoreBattleUpgradeBalance.MaximumLevelFor(card),
+                CoreBattleUpgradeBalance.MaximumLevelFor(CoreBoardingCardCatalog.ForBoarding(card)));
+            return Rule(id, "招募 · 在" + port + "酒馆招募“" + name + "”并将其角色卡牌升至满级",
+                (p, f, o) => card != null && HasCrew(f.recruitedCrewIds, crewId) && f.crewCardLevels != null &&
+                    f.crewCardLevels.TryGetValue(crewId, out int level) && level >= maximumLevel);
+        }
 
         private static CoreCollectionRewardRule TreasureRank(string id, string rankId, string name) =>
             Rule(id, "藏宝图 · 完成 1 张" + name + "藏宝图" + TreasureCompletion,

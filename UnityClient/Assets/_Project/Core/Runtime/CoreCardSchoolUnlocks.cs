@@ -10,7 +10,21 @@ namespace ShatteredSail.Core.Gameplay
         public string Id { get; }
         public string Name { get; }
         public int RequiredLevel { get; }
-        public int BasicCardCount => 10;
+        public int BasicCardCount
+        {
+            get
+            {
+                int count = 0;
+                // Ship-stage cards retain their historic definitions; the new
+                // boarding collection replaces four legacy choices with fifteen.
+                foreach (CoreBattleCard card in CoreSchoolCardCatalog.All)
+                    if (card.SchoolId == Id && card.RequiredCrew.Length == 0 && card.RequiredComponent.Length == 0 &&
+                        card.AllowedStages != NavalBattleStages.Boarding && card.AllowedStages != NavalBattleStages.None) count++;
+                foreach (CoreBattleCard card in CoreBoardingCardCatalog.All)
+                    if (card.SchoolId == Id) count++;
+                return count;
+            }
+        }
     }
 
     /// <summary>School access derives from pirate experience; it has no separate save flags.</summary>
@@ -62,9 +76,11 @@ namespace ShatteredSail.Core.Gameplay
 
         public bool CanStartOrdinaryVoyage(out string reason)
         {
+            if (!CanStartWithDepartureCrew(out reason)) return false;
             if (SelectedTreasureMap != null || GuidedTutorialLeg > 0)
             { reason = string.Empty; return true; }
             return CanSelectRoute(SelectedRouteIndex, out reason);
         }
     }
 }
+

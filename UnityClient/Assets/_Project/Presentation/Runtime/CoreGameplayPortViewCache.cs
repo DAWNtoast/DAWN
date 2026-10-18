@@ -194,6 +194,7 @@ namespace ShatteredSail.Presentation
             portHeaderPort = view.Port;
             portHeaderGold = view.Gold;
             if (!hub) ApplyComponentShopHeaderLayout(view.transform, facility == PortFacilityArtCatalog.ComponentShopFacilityIndex);
+            else NauticalHeaderSkin.ApplyPort(rect, theme.Accent, true);
             UpdatePortHeaderReadouts(true);
             view.gameObject.SetActive(true);
             return true;
@@ -208,9 +209,18 @@ namespace ShatteredSail.Presentation
 
         private void ReturnFromCachedFacility()
         {
+            if (departureCrewConfigurationOpen && activePortFacility == PortFacilityArtCatalog.VoyageFacilityIndex) return;
             if (BlockIncompleteDeckBuilderNavigation()) return;
             if (pendingMarketPurchase != null) return;
             if (TryReturnToWorkshopSpecialCards()) return;
+            if (IsShipyardDossierOpen)
+            {
+                shipyardDetailOpen = false;
+                ResetShipyardEquipmentSelection();
+                if (shipyardReturnToDeparture) ReturnFromDepartureDossier();
+                else RefreshShipyardDossierView();
+                return;
+            }
             if (IsTavernDossierOpen)
             {
                 ResetTavernDossierView();
@@ -229,24 +239,28 @@ namespace ShatteredSail.Presentation
                 return;
             }
 
-            bool returnToDeparture = HasDepartureReturn && activePortFacility != PortFacilityArtCatalog.MarketFacilityIndex;
+            bool returnToInvestment = HasInvestmentReturn;
+            bool returnToDeparture = HasDepartureReturn;
             ResetCachedFacilityNavigation();
-            activePortFacility = returnToDeparture ? PortFacilityArtCatalog.VoyageFacilityIndex : -1;
-            portNotice = returnToDeparture ? "继续配置出航。" : "选择港口设施。";
+            activePortFacility = returnToInvestment ? PortFacilityArtCatalog.MaintenanceFacilityIndex :
+                returnToDeparture ? PortFacilityArtCatalog.VoyageFacilityIndex : -1;
+            portNotice = returnToInvestment ? "已返回港口投资建设。" :
+                returnToDeparture ? "继续配置出航。" : "选择港口设施。";
             Render();
         }
         private void PreviousCachedFacility() => NavigateCachedFacility(-1);
         private void NextCachedFacility() => NavigateCachedFacility(1);
         private void NavigateCachedFacility(int delta)
         {
+            if (departureCrewConfigurationOpen && activePortFacility == PortFacilityArtCatalog.VoyageFacilityIndex) return;
             if (BlockIncompleteDeckBuilderNavigation()) return;
             if (pendingMarketPurchase != null) return;
-            ResetCachedFacilityNavigation();
-            activePortFacility = (activePortFacility + PortFacilityNames.Length + delta) % PortFacilityNames.Length;
+            EnterPortFacility((activePortFacility + PortFacilityNames.Length + delta) % PortFacilityNames.Length);
             Render();
         }
         private void ResetCachedFacilityNavigation()
         {
+            ClearInvestmentReturn();
             ClearWorkshopSpecialCardReturn();
             ClearDepartureReturn();
             ResetCardWorkshopView();

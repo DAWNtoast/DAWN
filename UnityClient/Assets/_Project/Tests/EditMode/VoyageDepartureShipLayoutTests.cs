@@ -29,7 +29,7 @@ namespace ShatteredSail.Presentation.Tests
             Preview(port);
             Canvas.ForceUpdateCanvases();
             RectTransform setup = Find<RectTransform>("Voyage Setup");
-            bool painted = port == CoreGameplayPreviewPort.BrokenAnchor;
+            bool painted = PortFacilityArtCatalog.UsesPaintedDepartureScene(controller.Session.CurrentPort);
             string[] separate = { "Departure Previous Vessel", "Inspect Departure Vessel", "Departure Next Vessel" };
             Rect[] bounds = separate.Select(name => BoundsIn(setup, Find<RectTransform>(name))).ToArray();
             for (int index = 0; index < bounds.Length; index++)
@@ -66,14 +66,14 @@ namespace ShatteredSail.Presentation.Tests
                 RectTransform target = inspect.GetComponent<RectTransform>();
                 Assert.That(target.sizeDelta, Is.EqualTo(DepartureDockSceneLayout.ShipHitSize));
                 Assert.That(target.anchoredPosition, Is.EqualTo(DepartureDockSceneLayout.ShipHitPosition));
-                AssertPaintedArtRect(setup, Find<RectTransform>("Departure Previous Vessel"), new Rect(672, 322, 66, 66));
-                AssertPaintedArtRect(setup, Find<RectTransform>("Departure Next Vessel"), new Rect(1598, 322, 68, 68));
+                AssertPaintedArtRect(setup, Find<RectTransform>("Departure Previous Vessel"), new Rect(962, 621, 50, 50));
+                AssertPaintedArtRect(setup, Find<RectTransform>("Departure Next Vessel"), new Rect(1508, 621, 50, 50));
                 foreach (string arrowName in new[] { "Departure Previous Vessel", "Departure Next Vessel" })
                 {
                     Button arrow = Find<Button>(arrowName);
-                    AssertPaintedControl(arrow);
+                    AssertIndependentDockControl(arrow);
                     Assert.That(arrow.transform.GetSiblingIndex(), Is.GreaterThan(inspect.transform.GetSiblingIndex()),
-                        "The painted arrows must receive input above the berth's transparent rectangular target.");
+                        "The independent arrows must receive input above the berth's transparent rectangular target.");
                 }
             }
             RectTransform shipPreview = Find<RectTransform>("Starter Modular Ship");
@@ -88,7 +88,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(arrow.interactable, Is.False, "Editor preview has one deterministic owned vessel.");
                 Rect arrowBounds = BoundsIn(setup, arrow.GetComponent<RectTransform>());
                 Assert.That(arrowBounds.width, Is.GreaterThanOrEqualTo(35.9f));
-                Assert.That(arrowBounds.height, Is.GreaterThanOrEqualTo(49.9f));
+                Assert.That(arrowBounds.height, Is.GreaterThanOrEqualTo(painted ? 43.9f : 49.9f));
             }
 
             RectTransform hitArea = inspect.GetComponent<RectTransform>();
@@ -107,23 +107,25 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase(CoreGameplayPreviewPort.SaltCrown)]
         [TestCase(CoreGameplayPreviewPort.TwilightTide)]
         [TestCase(CoreGameplayPreviewPort.GrayGull)]
-        public void DeparturePreviewOpensEquipmentAndAllTabsReturnToTheSamePortsDeparture(CoreGameplayPreviewPort port)
+        public void DeparturePreviewOpensEquipmentAndBothReturnControlsRestoreTheSamePortsDeparture(CoreGameplayPreviewPort port)
         {
             Preview(port);
             string portName = controller.Session.CurrentPort;
-            foreach (string tab in new[] { "Equipment", "Performance", "Background" })
+            foreach (string close in new[] { "Close Shipyard Equipment", "Return To Port Hub" })
             {
                 Find<Button>("Inspect Departure Vessel").onClick.Invoke();
                 Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.ShipyardDetail));
                 Assert.That(controller.HasCompleteEditorPreview, Is.True);
                 Assert.That(Find<RectTransform>("Shipyard Equipment Page"), Is.Not.Null);
                 Assert.That(Has("Voyage Setup"), Is.False);
-                Assert.That(Has("Back To Shipyard Gallery"), Is.False);
-                Find<Button>("Shipyard Dossier Tab " + tab).onClick.Invoke();
+                Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航码头"));
+                Assert.That(Has("Shipyard Dossier Tab Equipment"), Is.False,
+                    "The current departure shortcut opens the independent equipment window.");
+                Assert.That(Find<Button>("Close Shipyard Equipment").GetComponentInChildren<Text>().text, Does.Contain("返回出航码头"));
                 controller.RefreshEditorPreview();
-                Assert.That(Find<Button>("Back To Voyage Departure"), Is.Not.Null,
-                    "Refreshing a dossier tab must retain its departure return target.");
-                Find<Button>("Back To Voyage Departure").onClick.Invoke();
+                Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航码头"),
+                    "Refreshing the equipment window must retain its departure return target.");
+                Find<Button>(close).onClick.Invoke();
                 Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.VoyageDeparture));
                 Assert.That(controller.HasCompleteEditorPreview, Is.True);
                 Assert.That(controller.Session.CurrentPort, Is.EqualTo(portName));
@@ -143,7 +145,7 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
             RectTransform route = Find<RectTransform>("Route Selection");
             RectTransform setup = Find<RectTransform>("Voyage Setup");
-            bool scene = port == CoreGameplayPreviewPort.BrokenAnchor;
+            bool scene = PortFacilityArtCatalog.UsesPaintedDepartureScene(controller.Session.CurrentPort);
             Rect summaryBounds = BoundsIn(route, Find<Text>("Departure Route Summary").rectTransform);
             if (scene)
             {
@@ -319,13 +321,21 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
             Toggle loadedChartMode = Find<Toggle>("Use Chart Seed");
             Assert.That(loadedChartMode.isOn, Is.True);
-            Assert.That(loadedChartMode.graphic.canvasRenderer.GetAlpha(), Is.EqualTo(1f),
-                "The selected-chart preview must visibly show its active chart mode.");
+            if (scene)
+            {
+                Assert.That(loadedChartMode.GetComponentInChildren<DeparturePaintedHotspot>(true).enabled, Is.True,
+                    "The dock uses painted selection feedback for its active chart mode.");
+                Assert.That(Find<Text>("Seed Label").text, Is.EqualTo("使用已绘海图"));
+                Assert.That(Find<Dropdown>("Seed Input Dropdown").gameObject.activeInHierarchy, Is.False);
+            }
+            else
+                Assert.That(loadedChartMode.graphic.canvasRenderer.GetAlpha(), Is.EqualTo(1f),
+                    "The paper chart preview must visibly show its checked chart toggle.");
             route = Find<RectTransform>("Route Selection");
             string[] chartModules = { "Seed Input", "Departure Chart Route", "Departure Chart Preview",
                 "Departure Chart Ports", "Chart Seed Validation" };
             Rect[] chartBounds = chartModules.Select(name => BoundsIn(route, Find<RectTransform>(name))).ToArray();
-            AssertHiddenDeparturePortRow();
+            AssertChartOwnedDeparturePortRow();
             Rect chartSummaryBounds = BoundsIn(route, Find<Text>("Departure Route Summary").rectTransform);
             for (int index = 0; index < chartBounds.Length; index++)
             {
@@ -369,26 +379,58 @@ namespace ShatteredSail.Presentation.Tests
         public void DepartureCrewConfigurationKeepsTitlesRosterAndFooterSeparated(CoreGameplayPreviewPort port)
         {
             Preview(port);
+            RectTransform originalSetup = Find<RectTransform>("Voyage Setup");
+            Vector2 setupSize = originalSetup.sizeDelta, setupPosition = originalSetup.anchoredPosition;
+            Texture background = Find<RawImage>("Voyage Background").texture;
             Find<Button>("Configure Voyage Crew").onClick.Invoke();
             Canvas.ForceUpdateCanvases();
             RectTransform setup = Find<RectTransform>("Voyage Setup");
+            Assert.That(setup.sizeDelta, Is.EqualTo(setupSize));
+            Assert.That(setup.anchoredPosition, Is.EqualTo(setupPosition));
+            Assert.That(Find<RawImage>("Voyage Background").texture, Is.SameAs(background));
+            RectTransform overlay = Find<RectTransform>("Departure Crew Overlay");
+            RectTransform card = Find<RectTransform>("Departure Crew Configuration");
+            Assert.That(overlay.parent, Is.SameAs(setup.parent));
+            Assert.That(overlay.GetSiblingIndex(), Is.GreaterThan(setup.GetSiblingIndex()));
+            Assert.That(card.parent, Is.SameAs(overlay));
+            Assert.That(card.sizeDelta, Is.EqualTo(new Vector2(840, 500)));
+            Assert.That(card.anchoredPosition, Is.EqualTo(new Vector2(24, -40)));
             string[] modules = {
-                "Setup Title", "Departure Crew Configuration Title", "Departure Ordinary Crew Label",
-                "Departure Ordinary Crew Slider", "Departure Ordinary Crew Hint", "Departure Special Crew Heading",
+                "Departure Crew Configuration Title", "Departure Special Crew Scroll",
                 "Departure Crew Total", "Back To Voyage Setup", "Confirm Departure Crew"
             };
-            Assert.That(Has("Replay Tutorial"), Is.False, "The crew page shares the departure setup without a tutorial button.");
-            modules = modules.Concat(Enumerable.Range(0, 6).Select(index => "Departure Special Crew Toggle " + index)).ToArray();
-            Rect[] bounds = modules.Select(name => BoundsIn(setup, Find<RectTransform>(name))).ToArray();
+            Assert.That(Has("Replay Tutorial"), Is.False, "The crew modal does not add a tutorial action.");
+            Assert.That(card.GetComponent<Image>().sprite, Is.SameAs(MarketShopSkin.Paper));
+            foreach (string removed in new[] { "Departure Ordinary Crew Label", "Departure Ordinary Crew Slider",
+                "Departure Ordinary Crew Hint", "Departure Special Crew Heading", "Departure Special Crew Rules" })
+                Assert.That(Has(removed), Is.False, removed);
+            Rect[] bounds = modules.Select(name => BoundsIn(card, Find<RectTransform>(name))).ToArray();
             for (int index = 0; index < bounds.Length; index++)
             {
-                AssertInside(setup, bounds[index], modules[index]);
+                Assert.That(Find<RectTransform>(modules[index]).IsChildOf(card), Is.True, modules[index]);
+                Assert.That(Find<RectTransform>(modules[index]).IsChildOf(setup), Is.False, modules[index]);
+                AssertInside(card, bounds[index], modules[index]);
                 for (int other = 0; other < index; other++)
                     Assert.That(bounds[index].Overlaps(bounds[other]), Is.False, modules[index] + " / " + modules[other]);
             }
-            for (int index = 0; index < 6; index++)
+            ScrollRect roster = Find<ScrollRect>("Departure Special Crew Scroll");
+            Assert.That(roster.vertical, Is.True);
+            Assert.That(roster.horizontal, Is.False);
+            Assert.That(roster.viewport, Is.Not.Null);
+            Assert.That(roster.content, Is.Not.Null);
+            Assert.That(roster.GetComponent<RectTransform>().sizeDelta, Is.EqualTo(new Vector2(748, 300)));
+            Assert.That(roster.GetComponent<RectTransform>().anchoredPosition, Is.EqualTo(new Vector2(0, 20)));
+            Button[] rows = roster.content.GetComponentsInChildren<Button>(false)
+                .Where(button => button.name.StartsWith("Departure Special Crew Toggle ")).ToArray();
+            Assert.That(rows.All(row => row.transform.IsChildOf(roster.content)), Is.True);
+            foreach (Button row in rows)
             {
-                RectTransform button = Find<RectTransform>("Departure Special Crew Toggle " + index);
+                int index = int.Parse(row.name.Substring("Departure Special Crew Toggle ".Length));
+                RectTransform button = row.GetComponent<RectTransform>();
+                AssertInside(roster.content, BoundsIn(roster.content, button), row.name);
+                Assert.That(button.rect.height, Is.EqualTo(142));
+                Assert.That(Find<RectTransform>("Departure Special Crew Portrait " + index).sizeDelta, Is.EqualTo(new Vector2(82, 108)),
+                    "Portraits should retain the detailed, generous size used in the secondary window.");
                 string[] childNames = { "Departure Special Crew Portrait " + index,
                     "Departure Special Crew Name " + index, "Departure Special Crew State " + index };
                 Rect[] children = childNames.Select(name => BoundsIn(button, Find<RectTransform>(name))).ToArray();
@@ -400,14 +442,13 @@ namespace ShatteredSail.Presentation.Tests
                             childNames[child] + " / " + childNames[previous]);
                 }
             }
-            Rect back = BoundsIn(setup, Find<RectTransform>("Back To Voyage Setup"));
-            Rect confirm = BoundsIn(setup, Find<RectTransform>("Confirm Departure Crew"));
+            Rect back = BoundsIn(card, Find<RectTransform>("Back To Voyage Setup"));
+            Rect confirm = BoundsIn(card, Find<RectTransform>("Confirm Departure Crew"));
             Assert.That(back.yMin, Is.EqualTo(confirm.yMin).Within(.1f));
             Assert.That(back.yMax, Is.EqualTo(confirm.yMax).Within(.1f));
             Assert.That(confirm.xMin - back.xMax, Is.GreaterThanOrEqualTo(7.9f));
-            Assert.That(back.yMin - setup.rect.yMin, Is.GreaterThanOrEqualTo(7.9f));
-            foreach (string name in new[] { "Departure Ordinary Crew Hint", "Departure Crew Total" })
-                AssertReadableHeight(Find<Text>(name), 12);
+            Assert.That(back.yMin - card.rect.yMin, Is.GreaterThanOrEqualTo(7.9f));
+            AssertReadableHeight(Find<Text>("Departure Crew Total"), 12);
         }
 
         [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
@@ -465,10 +506,11 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
-        [Test]
-        public void DepartureChartHidesAllPortButtonsAndRandomModeRestoresOnlyOtherPorts()
+        [TestCase(CoreGameplayPreviewPort.GrayGull)]
+        [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
+        public void DepartureChartOwnsAllPortButtonsAndRandomModeRestoresOnlyOtherPorts(CoreGameplayPreviewPort port)
         {
-            Preview(CoreGameplayPreviewPort.GrayGull);
+            Preview(port);
             string origin = controller.Session.CurrentPort;
             int targetIndex = Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count)
                 .First(index => CoreVoyageSession.DestinationPorts[index] != origin);
@@ -476,17 +518,19 @@ namespace ShatteredSail.Presentation.Tests
             string seed = CoreVoyageSession.CreateChartSeed(0, origin, target);
             Rect[] fixedPortBounds = AssertFixedDeparturePortRow();
             Find<Toggle>("Use Chart Seed").isOn = true;
-            AssertHiddenDeparturePortRow();
-            Assert.That(Find<Text>("Departure Route Summary").text, Is.EqualTo("选择已绘海图，当前航线：待确认"));
+            AssertChartOwnedDeparturePortRow();
+            string emptySummary = PortFacilityArtCatalog.UsesPaintedDepartureScene(origin) ? "选择当前港口可用的已绘海图" : "选择已绘海图，当前航线：待确认";
+            Assert.That(Find<Text>("Departure Route Summary").text, Is.EqualTo(emptySummary));
             Find<InputField>("Seed Input").text = "invalid-chart-seed";
             Assert.That(controller.Session.IsChartSeedSelected, Is.False);
-            AssertHiddenDeparturePortRow();
-            Assert.That(Find<Text>("Departure Route Summary").text, Is.EqualTo("选择已绘海图，当前航线：待确认"));
+            AssertChartOwnedDeparturePortRow();
+            Assert.That(Find<Text>("Departure Route Summary").text, Is.EqualTo(emptySummary));
             Find<InputField>("Seed Input").text = seed;
             Find<InputField>("Seed Input").onEndEdit.Invoke(seed);
             Assert.That(controller.Session.IsChartSeedSelected, Is.True);
-            AssertHiddenDeparturePortRow();
-            string chartSummary = "目标港口由海图确定，当前航线：" + origin + "——" + target;
+            AssertChartOwnedDeparturePortRow();
+            string chartSummary = PortFacilityArtCatalog.UsesPaintedDepartureScene(origin) ? "当前航线：" + origin + " → " + target
+                : "目标港口由海图确定，当前航线：" + origin + "——" + target;
             Assert.That(Find<Text>("Departure Route Summary").text, Is.EqualTo(chartSummary));
 
             for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
@@ -502,16 +546,17 @@ namespace ShatteredSail.Presentation.Tests
             Find<Toggle>("Use Chart Seed").isOn = false;
             AssertFixedDeparturePortRow(fixedPortBounds);
             Assert.That(Find<Text>("Departure Route Summary").text,
-                Is.EqualTo("选择目标港口，当前航线：" + origin + "——" + controller.Session.SelectedDestinationPort));
+                Is.EqualTo(ExpectedRouteSummary(origin, controller.Session.SelectedDestinationPort)));
             for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
                 Assert.That(Find<Button>("Departure Destination " + index).IsInteractable(),
                     Is.EqualTo(CoreVoyageSession.DestinationPorts[index] != origin));
         }
 
-        [Test]
-        public void DepartureSeedInputUsesExplicitModeAndSavedChartMenuWithoutInventedPresets()
+        [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
+        [TestCase(CoreGameplayPreviewPort.GrayGull)]
+        public void DepartureSeedInputUsesExplicitModeAndSavedChartMenuWithoutInventedPresets(CoreGameplayPreviewPort port)
         {
-            Preview(CoreGameplayPreviewPort.BrokenAnchor);
+            Preview(port);
             Dropdown dropdown = Find<Dropdown>("Seed Input Dropdown");
             InputField input = Find<InputField>("Seed Input");
             Toggle mode = Find<Toggle>("Use Chart Seed");
@@ -522,9 +567,23 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(dropdown.options.Select(option => option.text), Does.Not.Contain("GOLDEN-TIDE"));
             Assert.That(dropdown.options[0].text, Does.Contain("海图"));
             Assert.That(Find<Text>("Chart Seed Validation"), Is.Not.Null);
-            RectTransform seed = input.GetComponent<RectTransform>();
-            Rect menu = BoundsIn(seed, dropdown.GetComponent<RectTransform>());
-            Assert.That(menu.xMin, Is.GreaterThan(0f), "The menu sits at the right edge, leaving an actual keyboard input on the left.");
+            if (PortFacilityArtCatalog.UsesPaintedDepartureScene(controller.Session.CurrentPort))
+            {
+                mode.isOn = true;
+                Assert.That(dropdown.gameObject.activeInHierarchy, Is.False);
+                Assert.That(input.IsInteractable(), Is.True);
+                Assert.That(Find<ScrollRect>("Departure Dock Chart Records").gameObject.activeInHierarchy, Is.True);
+                Assert.That(Find<Text>("Departure Dock Chart Records Empty").gameObject.activeInHierarchy, Is.True);
+                Assert.That(host.GetComponentsInChildren<Button>(true)
+                    .Any(button => button.name.StartsWith("Departure Dock Chart Record ")), Is.False,
+                    "The inline picker must not invent presets when the chart archive is empty.");
+            }
+            else
+            {
+                RectTransform seed = input.GetComponent<RectTransform>();
+                Rect menu = BoundsIn(seed, dropdown.GetComponent<RectTransform>());
+                Assert.That(menu.xMin, Is.GreaterThan(0f), "The menu sits at the right edge, leaving an actual keyboard input on the left.");
+            }
         }
         [TestCase(false)]
         [TestCase(true)]
@@ -532,7 +591,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             Preview(CoreGameplayPreviewPort.GrayGull);
             Find<Button>("Inspect Departure Vessel").onClick.Invoke();
-            Assert.That(Find<Button>("Back To Voyage Departure"), Is.Not.Null);
+            Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航码头"));
             if (configureDossier)
                 controller.ConfigureEditorShipyard(0, true, 2);
             else
@@ -540,14 +599,14 @@ namespace ShatteredSail.Presentation.Tests
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Shipyard, CoreGameplayPreviewPort.GrayGull, 0);
                 Find<Button>("Shipyard Ship 0").onClick.Invoke();
             }
-            Assert.That(Has("Back To Voyage Departure"), Is.False, "A newly configured shipyard preview is not a continuation of departure.");
-            Find<Button>("Back To Shipyard Gallery").onClick.Invoke();
+            Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回船坞"), "A newly configured shipyard preview is not a continuation of departure.");
+            Find<Button>("Return To Port Hub").onClick.Invoke();
             Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.Shipyard));
             Assert.That(Find<Button>("Shipyard Ship 0"), Is.Not.Null);
             Assert.That(Has("Voyage Setup"), Is.False);
         }
 
-        private static string ExpectedRouteSummary(string origin, string destination) => origin == "断锚港"
+        private static string ExpectedRouteSummary(string origin, string destination) => PortFacilityArtCatalog.UsesPaintedDepartureScene(origin)
             ? "当前航线：" + origin + " → " + destination
             : "选择目标港口，当前航线：" + origin + "——" + destination;
 
@@ -614,7 +673,7 @@ namespace ShatteredSail.Presentation.Tests
             string[] actions = { "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton",
                 "Departure Buy Provisions", "Adjust Voyage Supplies", "Configure Voyage Battle Decks",
                 "Configure Voyage Crew", "Start Voyage" };
-            Rect[] artwork = { new Rect(1425, 387, 40, 35), new Rect(1474, 387, 40, 35),
+            Rect[] artwork = { new Rect(1896, 598, 44, 40), new Rect(1948, 598, 44, 40),
                 new Rect(1008, 737, 220, 51), new Rect(1854, 535, 178, 48), new Rect(1326, 740, 239, 52),
                 new Rect(1753, 742, 181, 50), new Rect(1573, 998, 473, 110) };
             Rect[] actionBounds = actions.Select(name => BoundsIn(setup, Find<RectTransform>(name))).ToArray();
@@ -623,7 +682,8 @@ namespace ShatteredSail.Presentation.Tests
                 AssertInside(setup, actionBounds[index], actions[index]);
                 Assert.That(Find<Button>(actions[index]).transform.parent, Is.SameAs(setup));
                 AssertPaintedArtRect(setup, Find<RectTransform>(actions[index]), artwork[index]);
-                AssertPaintedControl(Find<Button>(actions[index]));
+                if (index < 2) AssertIndependentDockControl(Find<Button>(actions[index]));
+                else AssertPaintedControl(Find<Button>(actions[index]));
                 for (int other = 0; other < index; other++)
                     Assert.That(actionBounds[index].Overlaps(actionBounds[other]), Is.False,
                         actions[index] + " / " + actions[other]);
@@ -664,6 +724,17 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(label.enabled, Is.EqualTo(!iconOnly), button.name);
         }
 
+        private static void AssertIndependentDockControl(Button button)
+        {
+            Image image = button.GetComponent<Image>();
+            Assert.That(image.enabled && image.raycastTarget, Is.True, button.name);
+            Assert.That(image.color.a, Is.GreaterThan(0f), button.name + " draws its own button face.");
+            Assert.That(button.targetGraphic, Is.SameAs(image));
+            Assert.That(button.GetComponentsInChildren<DeparturePaintedHotspot>(true).All(item => !item.enabled), Is.True,
+                button.name + " must not rely on a painted hotspot.");
+            Assert.That(button.GetComponentInChildren<Text>().enabled, Is.True, button.name);
+        }
+
         private void Preview(CoreGameplayPreviewPort port)
         {
             host = new GameObject("Voyage Departure Ship Layout Test");
@@ -674,14 +745,15 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.HasCompleteEditorPreview, Is.True);
         }
 
-        private void AssertHiddenDeparturePortRow()
+        private void AssertChartOwnedDeparturePortRow()
         {
+            bool paintedDock = PortFacilityArtCatalog.UsesPaintedDepartureScene(controller.Session.CurrentPort);
             for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
             {
                 Button button = Find<Button>("Departure Destination " + index);
-                Assert.That(button.gameObject.activeInHierarchy, Is.False,
-                    "Chart selection hides every manual destination, including empty or invalid chart input.");
-                Assert.That(button.IsInteractable(), Is.False, "Hidden destinations cannot replace the chart endpoints.");
+                Assert.That(button.gameObject.activeInHierarchy, Is.EqualTo(paintedDock),
+                    "The dock retains its plaques while paper layouts hide manual destinations.");
+                Assert.That(button.IsInteractable(), Is.False, "Manual destinations cannot replace chart endpoints, even for empty or invalid input.");
             }
         }
 
@@ -689,7 +761,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             Canvas.ForceUpdateCanvases();
             RectTransform route = Find<RectTransform>("Route Selection");
-            bool painted = controller.Session.CurrentPort == "断锚港" && route.sizeDelta == PhaseSurfaceLayout.ContentSize;
+            bool painted = PortFacilityArtCatalog.UsesPaintedDepartureScene(controller.Session.CurrentPort) && route.sizeDelta == PhaseSurfaceLayout.ContentSize;
             Rect[] bounds = new Rect[CoreVoyageSession.DestinationPorts.Count];
             for (int index = 0; index < bounds.Length; index++)
             {
@@ -750,9 +822,9 @@ namespace ShatteredSail.Presentation.Tests
         private void AssertOrdinaryShipyardReturn()
         {
             Find<Button>("Shipyard Ship 0").onClick.Invoke();
-            Assert.That(Has("Back To Voyage Departure"), Is.False);
+            Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回船坞"));
             Find<Button>("Shipyard Dossier Tab Equipment").onClick.Invoke();
-            Find<Button>("Back To Shipyard Gallery").onClick.Invoke();
+            Find<Button>("Return To Port Hub").onClick.Invoke();
             Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.Shipyard));
             Assert.That(Find<Button>("Shipyard Ship 0"), Is.Not.Null);
             Assert.That(Has("Voyage Setup"), Is.False);

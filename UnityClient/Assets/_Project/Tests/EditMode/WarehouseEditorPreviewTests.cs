@@ -132,7 +132,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(background.sizeDelta, Is.EqualTo(new Vector2(1920f, 1080f)));
             Assert.That(backdrop.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero));
             Assert.That(backdrop.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
-            Assert.That(ledger.GetComponent<Image>().color.a, Is.Zero, "Regional velvet remains visible inside the cabinet.");
+            Assert.That(ledger.GetComponent<Image>().sprite, Is.SameAs(MarketShopSkin.Paper));
+            Assert.That(ledger.GetComponent<Image>().color.a, Is.EqualTo(1f), "The ledger uses an opaque reading surface; exhibits remain on the regional cabinet.");
             Assert.That(backdrop.rectTransform.sizeDelta, Is.EqualTo(background.sizeDelta),
                 "The compatibility layer keeps the same geometry as Warehouse Background.");
             Assert.That(backdrop.transform.parent, Is.EqualTo(background.transform.parent),

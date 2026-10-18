@@ -11,6 +11,7 @@ namespace ShatteredSail.Core.Tests
     {
         private const string FirstCrew = "crew_broken_anchor_navigator_lorne";
         private const string OtherCrew = "crew_white_shell_navigator_saina";
+        private const string ThreeRankCrew = "crew_gray_gull_navigator_evelyn";
 
         [Test]
         public void EmptySuppliesCannotFarmExperienceThroughRepeatedShortFailedReturns()
@@ -123,8 +124,9 @@ namespace ShatteredSail.Core.Tests
         public void ActualSailingDistanceCanReachEveryRankWithinOneVoyage(float distance, int experience, int rank)
         {
             var session = new CoreVoyageSession();
-            CoreSpecialCardDefinition card = CoreSpecialCardCatalog.ForCrew(FirstCrew);
-            session.ConfigureSpecialCardSources(new[] { FirstCrew }, null);
+            CoreSpecialCardDefinition card = CoreSpecialCardCatalog.ForCrew(ThreeRankCrew);
+            session.ConfigureSpecialCardSources(new[] { ThreeRankCrew }, null);
+            Assert.That(session.GetCardMaximumUpgradeLevel(card.Card.Id), Is.EqualTo(3));
             session.StartVoyage();
 
             Award(session, distance);
@@ -136,7 +138,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase(120, 1)]
         [TestCase(360, 2)]
         [TestCase(840, 3)]
-        public void EveryAuthoredSpecialCardUsesTheSameThreeGrowthEffectsAndCannotSpendGold(int experience, int level)
+        public void EveryAuthoredSpecialCardUsesItsEffectLimitsAndCannotSpendGold(int experience, int level)
         {
             var session = new CoreVoyageSession();
             session.RestoreProfile(100000, session.CurrentPort);
@@ -144,17 +146,26 @@ namespace ShatteredSail.Core.Tests
             decimal gold = session.ProfileGold;
             foreach (CoreSpecialCardDefinition definition in CoreSpecialCardCatalog.All)
             {
-                CoreBattleCard original = definition.Card;
+                CoreBattleCard original = CoreBoardingCardCatalog.ReplaceLegacyBoarding(definition.Card);
                 int index = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
                     .First(value => CoreVoyageSession.CardLibrary[value].Id == original.Id);
                 CoreBattleCard grown = session.GetBattleCard(index);
-                Assert.That(grown.UpgradeLevel, Is.EqualTo(level), original.Id);
-                decimal multiplier = level == 1 ? 1.2m : level == 2 ? 1.5m : 2m;
-                Assert.That(grown.Damage, Is.EqualTo((int)Math.Round(original.Damage * multiplier, 0, MidpointRounding.AwayFromZero)), original.Id);
-                Assert.That(grown.Block, Is.EqualTo((int)Math.Round(original.Block * multiplier, 0, MidpointRounding.AwayFromZero)), original.Id);
-                Assert.That(grown.Repair, Is.EqualTo((int)Math.Round(original.Repair * multiplier, 0, MidpointRounding.AwayFromZero)), original.Id);
+                int maximum = session.GetCardMaximumUpgradeLevel(index);
+                CoreCardUpgradeProfile profile = CoreCardUpgradeDesign.Find(original);
+                Assert.That(profile, Is.Not.Null, original.Id);
+                Assert.That(maximum, Is.EqualTo(profile.MaximumLevel), original.Id);
+                int effectiveLevel = Math.Min(level, maximum);
+                Assert.That(grown.UpgradeLevel, Is.EqualTo(effectiveLevel), original.Id);
+                Assert.That(session.GetSpecialCardExperience(original.Id), Is.EqualTo(experience), "Effect caps never erase earned source experience.");
+                int nextThreshold = effectiveLevel >= maximum ? 0 : effectiveLevel == 0 ? 120 : effectiveLevel == 1 ? 360 : 840;
+                Assert.That(session.GetSpecialCardNextThreshold(original.Id), Is.EqualTo(nextThreshold), original.Id);
+                Assert.That(grown.Damage, Is.EqualTo((int)Math.Round(original.Damage * profile.Multiplier(effectiveLevel), 0, MidpointRounding.AwayFromZero)), original.Id);
+                Assert.That(grown.Block, Is.EqualTo((int)Math.Round(original.Block * profile.BlockMultiplier(effectiveLevel), 0, MidpointRounding.AwayFromZero)), original.Id);
+                Assert.That(grown.Repair, Is.EqualTo((int)Math.Round(original.Repair * profile.RepairMultiplier(effectiveLevel), 0, MidpointRounding.AwayFromZero)), original.Id);
                 Assert.That(grown.Energy, Is.EqualTo(original.Energy), original.Id);
-                Assert.That(grown.Draw, Is.EqualTo(original.Draw + (level >= 3 && original.Draw > 0 ? 1 : 0)), original.Id);
+                int drawBonus = profile.DrawBonus(effectiveLevel);
+                Assert.That(grown.Draw, Is.EqualTo(original.Draw + (original.Draw > 0 ? drawBonus : 0)), original.Id);
+                Assert.That(session.GetCardUpgradeCost(index), Is.Zero, original.Id);
                 Assert.That(session.TryUpgradeBattleCard(index, out _), Is.False, original.Id);
             }
             Assert.That(session.ProfileGold, Is.EqualTo(gold));
@@ -166,8 +177,9 @@ namespace ShatteredSail.Core.Tests
         public void RealThresholdCrossingUpdatesTheCardImmediatelyAndLogsTheNewRankOnce(int experience, int level)
         {
             var session = new CoreVoyageSession();
-            CoreSpecialCardDefinition definition = CoreSpecialCardCatalog.ForCrew(FirstCrew);
-            session.ConfigureSpecialCardSources(new[] { FirstCrew }, null);
+            CoreSpecialCardDefinition definition = CoreSpecialCardCatalog.ForCrew(ThreeRankCrew);
+            session.ConfigureSpecialCardSources(new[] { ThreeRankCrew }, null);
+            Assert.That(session.GetCardMaximumUpgradeLevel(definition.Card.Id), Is.EqualTo(3));
             session.RestoreSpecialCardExperience(new Dictionary<string, int> { { definition.Card.Id, experience } });
             session.SetSeed("SPECIAL-XP-THRESHOLD-FEEDBACK-AUDIT");
             session.StartVoyage();

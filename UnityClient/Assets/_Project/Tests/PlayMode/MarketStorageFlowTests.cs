@@ -46,12 +46,12 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(ActiveButton("Confirm Market Buy wood").IsInteractable(), Is.False,
                     "A full hold cannot confirm a ship purchase even though the buy mode remains selectable.");
                 Assert.That(MarketQuantityField("wood").maxValue, Is.Zero);
-                Button detailMode = ActiveButton("Market Storage Mode");
+                Button detailMode = ActiveButton("Market Detail Storage Mode");
                 Assert.That(detailMode, Is.Not.Null, "The same purchase-mode control remains reachable in an item's detail.");
                 for (int attempt = 0; controller.MarketStorageMode != MarketPurchaseStorageMode.Warehouse && attempt < 3; attempt++)
-                { ClickAcceptanceButton("Market Storage Mode"); yield return null; }
+                { ClickAcceptanceButton("Market Detail Storage Mode"); yield return null; }
                 Assert.That(controller.MarketStorageMode, Is.EqualTo(MarketPurchaseStorageMode.Warehouse));
-                Assert.That(ActiveButton("Market Storage Mode"), Is.SameAs(detailMode));
+                Assert.That(ActiveButton("Market Detail Storage Mode"), Is.SameAs(detailMode));
                 Assert.That(MarketInfoLabel("Market Quota wood"), Is.Not.Null, "Changing modes keeps the selected item open.");
                 Assert.That(ActiveButton("Market Buy wood").IsInteractable(), Is.True,
                     "Changing to warehouse immediately enables a purchase despite the full hold.");
@@ -285,8 +285,9 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator SelectMarketStorageMode(CoreGameplayDemoController controller, MarketPurchaseStorageMode desired)
         {
             yield return ReturnMarketCatalog();
+            yield return OpenMarketTrade("water");
             for (int attempt = 0; controller.MarketStorageMode != desired && attempt < 3; attempt++)
-            { ClickAcceptanceButton("Market Storage Mode"); yield return null; }
+            { ClickAcceptanceButton("Market Detail Storage Mode"); yield return null; }
             Assert.That(controller.MarketStorageMode, Is.EqualTo(desired));
         }
 

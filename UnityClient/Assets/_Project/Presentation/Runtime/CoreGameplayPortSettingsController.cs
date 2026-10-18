@@ -99,6 +99,9 @@ namespace ShatteredSail.Presentation
         private void BindPortSettingsView(PortSettingsView view)
         {
             portSettingsOverlay = (RectTransform)view.transform;
+            // Fullscreen secondary windows can leave the fixed game viewport.
+            // A cached settings view must follow the current page's modal host.
+            portSettingsOverlay.SetParent(contentRoot.parent, false);
             portSettingsOverlay.SetAsLastSibling();
             portSettingsSheetGroup = view.Sheet;
             portSettingsSheetGroup.interactable = true;
@@ -118,8 +121,7 @@ namespace ShatteredSail.Presentation
             view.Effects.interactable = SoundEffectsEnabled;
             view.FullScreen.SetIsOnWithoutNotify(PlayerPrefs.GetInt(MainMenuController.FullScreenKey, Screen.fullScreen ? 1 : 0) == 1);
             view.Hint.text = Application.isPlaying ? "" : "编辑预览：不保存设置，不改变音量或全屏。";
-            view.Parchment.texture = cardWorkshopArt?.CollectionParchment ?? Resources.Load<Texture2D>("CardWorkshopV2/deck_builder_parchment_v2");
-            view.Parchment.enabled = view.Parchment.texture != null;
+            ApplyPortSettingsMarketStyle(view);
             BindPortSettingsAction(view.Apply, ApplyPortSettings, revision);
             BindPortSettingsAction(view.Close, ClosePortSettings, revision);
             BindPortSettingsAction(view.ReturnToMenu, OpenReturnToMenuConfirmation, revision);
@@ -151,6 +153,156 @@ namespace ShatteredSail.Presentation
             });
         }
 
+        private void ApplyPortSettingsMarketStyle(PortSettingsView view)
+        {
+            // Apply after prefab bindings so authored and resource-stripped layouts
+            // share the live market finish without rebuilding retained controls.
+            RectTransform sheet = (RectTransform)view.Sheet.transform;
+            sheet.sizeDelta = new Vector2(980f, 780f);
+            Image shade = view.GetComponent<Image>();
+            SetPortSettingsFlatImage(shade, new Color(.025f, .018f, .012f, .68f));
+            Image paper = sheet.GetComponent<Image>();
+            MarketShopSkin.ApplyPanel(paper);
+            paper.raycastTarget = true;
+            // Keep the authored texture binding for resource lifetime bookkeeping;
+            // the sliced Image preserves the narrow frame at every aspect ratio.
+            view.Parchment.texture = paper.sprite != null ? paper.sprite.texture : null;
+            view.Parchment.enabled = false;
+
+            Transform oldSubtitle = sheet.Find("Port Settings Subtitle");
+            if (oldSubtitle != null)
+            {
+                oldSubtitle.GetComponent<Text>().text = string.Empty;
+                oldSubtitle.gameObject.SetActive(false);
+            }
+            Text eyebrow = sheet.Find("Port Settings Eyebrow")?.GetComponent<Text>();
+            if (eyebrow == null)
+                eyebrow = CreateText("Port Settings Eyebrow", sheet, new Vector2(780f, 24f),
+                    new Vector2(0f, 320f), 16, FontStyle.Normal, TextAnchor.MiddleCenter, MarketShopSkin.MutedInk);
+            eyebrow.text = "SETTINGS";
+            StylePortSettingsText(eyebrow, new Vector2(780f, 24f), new Vector2(0f, 320f),
+                16, FontStyle.Normal, TextAnchor.MiddleCenter, MarketShopSkin.MutedInk);
+            StylePortSettingsText(sheet.Find("Port Settings Title").GetComponent<Text>(),
+                new Vector2(780f, 50f), new Vector2(0f, 278f), 34, FontStyle.Bold,
+                TextAnchor.MiddleCenter, MarketShopSkin.Ink);
+            StylePortSettingsRule(sheet, "Port Settings Heading Rule", 240f);
+            StylePortSettingsRule(sheet, "Port Settings Footer Rule", -229f);
+
+            StylePortSettingsSlider(view.Master, view.MasterValue, sheet, "Master", 183f);
+            StylePortSettingsSlider(view.Music, view.MusicValue, sheet, "Music", 83f);
+            StylePortSettingsSlider(view.Effects, view.EffectsValue, sheet, "Effects", -17f);
+
+            Toggle toggle = view.FullScreen;
+            SetPortSettingsRect((RectTransform)toggle.transform, new Vector2(780f, 54f), new Vector2(0f, -153f));
+            Image box = toggle.transform.Find("Toggle Box").GetComponent<Image>();
+            SetPortSettingsRect(box.rectTransform, new Vector2(32f, 32f), new Vector2(-372f, 0f));
+            SetPortSettingsFlatImage(box, new Color(.97f, .94f, .86f, 1f));
+            Outline border = box.GetComponent<Outline>();
+            if (border == null) border = box.gameObject.AddComponent<Outline>();
+            border.effectColor = new Color(.57f, .43f, .27f, 1f);
+            border.effectDistance = new Vector2(1f, -1f);
+            border.useGraphicAlpha = true;
+            Image check = toggle.transform.Find("Toggle Check").GetComponent<Image>();
+            SetPortSettingsRect(check.rectTransform, new Vector2(22f, 22f), new Vector2(-372f, 0f));
+            SetPortSettingsFlatImage(check, Color.white);
+            check.sprite = view.Master.handleRect.GetComponent<Image>().sprite;
+            check.raycastTarget = false;
+            toggle.targetGraphic = box;
+            toggle.graphic = check;
+            toggle.transition = Selectable.Transition.ColorTint;
+            ColorBlock toggleColors = ColorBlock.defaultColorBlock;
+            toggleColors.highlightedColor = toggleColors.selectedColor = new Color(1f, .94f, .80f, 1f);
+            toggleColors.pressedColor = new Color(.83f, .75f, .60f, 1f);
+            toggleColors.disabledColor = new Color(.8f, .78f, .72f, .65f);
+            toggleColors.fadeDuration = .1f;
+            toggle.colors = toggleColors;
+            StylePortSettingsText(toggle.transform.Find("Port Settings Full Screen Label").GetComponent<Text>(),
+                new Vector2(520f, 42f), new Vector2(-74f, 0f), 22, FontStyle.Normal,
+                TextAnchor.MiddleLeft, MarketShopSkin.Ink);
+            StylePortSettingsText(view.Hint, new Vector2(780f, 36f), new Vector2(0f, -200f),
+                16, FontStyle.Normal, TextAnchor.MiddleCenter, MarketShopSkin.MutedInk);
+
+            StylePortSettingsAction(view.Close, new Vector2(-204f, -277f), new Vector2(372f, 54f), false);
+            StylePortSettingsAction(view.Apply, new Vector2(204f, -277f), new Vector2(372f, 54f), true);
+            StylePortSettingsAction(view.ReturnToMenu, new Vector2(0f, -342f), new Vector2(440f, 42f), false);
+        }
+
+        private void StylePortSettingsSlider(Slider slider, Text percent, RectTransform sheet, string key, float labelY)
+        {
+            StylePortSettingsText(sheet.Find("Port Settings " + key + " Label").GetComponent<Text>(),
+                new Vector2(660f, 32f), new Vector2(-60f, labelY), 23, FontStyle.Normal,
+                TextAnchor.MiddleLeft, MarketShopSkin.Ink);
+            StylePortSettingsText(percent, new Vector2(100f, 32f), new Vector2(340f, labelY),
+                22, FontStyle.Normal, TextAnchor.MiddleRight, MarketShopSkin.MutedInk);
+            SetPortSettingsRect((RectTransform)slider.transform, new Vector2(800f, 44f), new Vector2(0f, labelY - 40f));
+            Image track = slider.transform.Find("Track")?.GetComponent<Image>() ??
+                slider.transform.Find("Background")?.GetComponent<Image>();
+            if (track != null)
+            {
+                SetPortSettingsRect(track.rectTransform, new Vector2(756f, 6f), Vector2.zero);
+                SetPortSettingsFlatImage(track, new Color(.76f, .64f, .43f, 1f));
+                track.raycastTarget = false;
+            }
+            SetPortSettingsRect((RectTransform)slider.fillRect.parent, new Vector2(756f, 6f), Vector2.zero);
+            slider.fillRect.sizeDelta = Vector2.zero;
+            slider.fillRect.anchoredPosition = Vector2.zero;
+            SetPortSettingsRect((RectTransform)slider.handleRect.parent, new Vector2(756f, 0f), Vector2.zero);
+            slider.handleRect.sizeDelta = new Vector2(32f, 32f);
+            slider.handleRect.anchoredPosition = Vector2.zero;
+            MarketShopSkin.ApplySlider(slider);
+        }
+
+        private void StylePortSettingsAction(Button button, Vector2 position, Vector2 size, bool primary)
+        {
+            SetPortSettingsRect((RectTransform)button.transform, size, position);
+            Text label = button.GetComponentInChildren<Text>(true);
+            StylePortSettingsText(label, size - new Vector2(24f, 8f), Vector2.zero, 22,
+                FontStyle.Normal, TextAnchor.MiddleCenter, MarketShopSkin.Ink);
+            if (primary)
+            {
+                WoodButtonSkin.Apply(button, Color.white);
+                WoodButtonSkin.SetRole(button, WoodButtonRole.Primary);
+            }
+            else MarketShopSkin.ApplyLightButton(button);
+        }
+
+        private void StylePortSettingsRule(RectTransform sheet, string name, float y)
+        {
+            Image rule = sheet.Find(name)?.GetComponent<Image>();
+            if (rule == null) rule = CreateImage(name, sheet, new Vector2(780f, 1f), new Vector2(0f, y), Color.white);
+            SetPortSettingsRect(rule.rectTransform, new Vector2(780f, 1f), new Vector2(0f, y));
+            SetPortSettingsFlatImage(rule, new Color(.68f, .58f, .43f, .7f));
+            rule.raycastTarget = false;
+        }
+
+        private static void StylePortSettingsText(Text text, Vector2 size, Vector2 position, int fontSize,
+            FontStyle style, TextAnchor alignment, Color color)
+        {
+            SetPortSettingsRect(text.rectTransform, size, position);
+            GameTypography.Apply(text, fontSize, style);
+            text.alignment = alignment;
+            text.color = color;
+            text.raycastTarget = false;
+            text.resizeTextForBestFit = false;
+        }
+
+        private static void SetPortSettingsRect(RectTransform rect, Vector2 size, Vector2 position)
+        {
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+        }
+
+        private static void SetPortSettingsFlatImage(Image image, Color color)
+        {
+            if (image == null) return;
+            image.sprite = null;
+            image.overrideSprite = null;
+            image.type = Image.Type.Simple;
+            image.color = color;
+            image.pixelsPerUnitMultiplier = 1f;
+        }
+
         private void BuildPortSettingsLayout()
         {
             portSettingsOverlay = CreateStretchPanel("Port Settings Overlay", contentRoot.parent, new Color(0.075f, 0.04f, 0.015f, 0.76f));
@@ -158,8 +310,7 @@ namespace ShatteredSail.Presentation
             portSettingsOverlay.gameObject.AddComponent<PortSettingsBackgroundFocusHandler>().OnBackgroundPressed = FocusPortSettingsControl;
             RectTransform sheet = CreateFixedPanel("Port Settings Sheet", portSettingsOverlay, new Vector2(1000f, 800f), Vector2.zero, Html("#DFC591"));
             portSettingsSheetGroup = sheet.gameObject.AddComponent<CanvasGroup>();
-            Texture2D parchment = cardWorkshopArt == null ? null : cardWorkshopArt.CollectionParchment;
-            if (parchment == null) parchment = Resources.Load<Texture2D>("CardWorkshopV2/deck_builder_parchment_v2");
+            Texture2D parchment = MarketShopSkin.Paper != null ? MarketShopSkin.Paper.texture : null;
             RawImage paper = CreateRawImage("Port Settings Parchment", sheet, new Vector2(1000f, 800f), Vector2.zero, parchment, new Rect(0f, 0f, 1f, 1f));
             paper.raycastTarget = false;
             paper.enabled = parchment != null;
@@ -168,8 +319,6 @@ namespace ShatteredSail.Presentation
             Color mutedInk = Html("#665037");
             Text title = CreateText("Port Settings Title", sheet, new Vector2(760f, 48f), new Vector2(0f, 274f), 30, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
             title.text = "船长的航海偏好";
-            Text subtitle = CreateText("Port Settings Subtitle", sheet, new Vector2(760f, 28f), new Vector2(0f, 234f), 16, FontStyle.Normal, TextAnchor.MiddleCenter, mutedInk);
-            subtitle.text = "应用后生效；关闭放弃调整";
             Image divider = CreateImage("Port Settings Heading Rule", sheet, new Vector2(740f, 2f), new Vector2(0f, 206f), Html("#967348"));
             divider.raycastTarget = false;
 
@@ -323,7 +472,17 @@ namespace ShatteredSail.Presentation
                 overlay.SetActive(false);
                 // Keep only this small hierarchy; release the large borrowed paper.
                 PortSettingsView view = overlay.GetComponent<PortSettingsView>();
-                if (view != null && view.Parchment != null) view.Parchment.texture = null;
+                if (view != null)
+                {
+                    if (view.Parchment != null) view.Parchment.texture = null;
+                    Image sheetPaper = view.Sheet != null ? view.Sheet.GetComponent<Image>() : null;
+                    if (sheetPaper != null)
+                    {
+                        sheetPaper.sprite = null;
+                        sheetPaper.overrideSprite = null;
+                    }
+                    MarketShopSkin.ReleaseGameplayPaperReference();
+                }
                 portSettingsOverlay = null;
                 if (cachedPortSettingsView == null || cachedPortSettingsView.gameObject != overlay)
                 {
@@ -356,6 +515,9 @@ namespace ShatteredSail.Presentation
         public void OnCancel(BaseEventData eventData)
         {
             eventData.Use();
+            // Physical Escape is routed by the scene controller even without
+            // focus. Do not also dismiss a newly revealed lower modal here.
+            if (UiEscapeInput.IsPressed) return;
             OnCancelRequested?.Invoke();
         }
     }

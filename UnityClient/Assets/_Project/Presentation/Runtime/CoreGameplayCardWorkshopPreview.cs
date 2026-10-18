@@ -8,7 +8,7 @@ namespace ShatteredSail.Presentation
     public sealed partial class CoreGameplayDemoController
     {
         private const float WorkshopCollectionCardScale = .76f;
-        private const float WorkshopCollectionPagerY = -444f;
+        private const float WorkshopCollectionPagerY = -430f;
         private static readonly Color WorkshopPaperInk = new Color(.19f, .13f, .085f);
         private static readonly Color WorkshopPaperMuted = new Color(.43f, .29f, .15f);
 
@@ -26,8 +26,8 @@ namespace ShatteredSail.Presentation
         private Button CreateWorkshopCollectionPageArrow(string name, RectTransform paper, bool forward)
         {
             // Reserve the paper's narrow side margins for paging, clear of cards and their source actions.
-            float side = paper.rect.width * .5f - 36f;
-            RectTransform rect = CreateRect(name, paper, new Vector2(48f, 92f),
+            float side = paper.rect.width * .5f - 38f;
+            RectTransform rect = CreateRect(name, paper, new Vector2(32f, 76f),
                 new Vector2(forward ? side : -side, 0f));
             WoodenPageArrowGraphic wood = rect.gameObject.AddComponent<WoodenPageArrowGraphic>();
             wood.Configure(forward);
@@ -94,17 +94,17 @@ namespace ShatteredSail.Presentation
                 {
                     int index = SpecialCardIndex(id);
                     if (index >= 0 && CoreVoyageSession.IsSpecialBattleCard(id) && !cards.Contains(index) &&
-                        (!IsDeckBuilderSpecialCardCollection || session.GetBattleCard(index).IsAllowedInStage(selectedBattleDeckStage))) cards.Add(index);
+                        (!IsDeckBuilderSpecialCardCollection || session.GetBattleCard(index, selectedBattleDeckStage).IsAllowedInStage(selectedBattleDeckStage))) cards.Add(index);
                 }
-                cards.Sort();
             }
             else
                 foreach (int index in session.GetAvailableBattleCards(selectedBattleDeckStage))
                 {
-                    CoreBattleCard card = session.GetBattleCard(index);
+                    CoreBattleCard card = session.GetBattleCard(index, selectedBattleDeckStage);
                     if (card != null && !CoreVoyageSession.IsSpecialBattleCard(card.Id) &&
                         string.IsNullOrEmpty(card.RequiredCrew) && string.IsNullOrEmpty(card.RequiredComponent)) cards.Add(index);
                 }
+            cards.Sort(CoreBattleCardNumbering.CompareLibraryIndices);
             int pages = Mathf.Max(1, (cards.Count + BattleCardCollectionPageSize - 1) / BattleCardCollectionPageSize);
             int page = Mathf.Clamp(specialCardCollectionOpen ? specialCardCollectionPage : battleCardUpgradePage, 0, pages - 1);
             if (specialCardCollectionOpen) specialCardCollectionPage = page;
@@ -120,7 +120,7 @@ namespace ShatteredSail.Presentation
             for (int slot = 0; slot < BattleCardCollectionPageSize && first + slot < cards.Count; slot++)
             {
                 int index = cards[first + slot];
-                CoreBattleCard card = session.GetBattleCard(index);
+                CoreBattleCard card = session.GetBattleCard(index, selectedBattleDeckStage);
                 Rect bounds = CardSchoolArtCatalog.FrameBounds(card);
                 Vector2 center = WorkshopCollectionCardCenter(slot);
                 Button select = CreateButton((specialCardCollectionOpen ? "Select Special Card " : "Select Upgrade Card ") + index, collection,
@@ -177,21 +177,23 @@ namespace ShatteredSail.Presentation
                 Render();
             });
 
-            if (battleCardUpgradeOpen && !specialCardCollectionOpen) BuildWorkshopUpgradePanel(panel);
+            if (IsDeckBuilderSpecialCardCollection)
+            {
+                RectTransform rail = CreateWorkshopPreviewPaper("Deck Builder Deck Rail", panel,
+                    new Vector2(744f, 948f), new Vector2(576f, 0f));
+                BuildDeckBuilderCards(panel, rail, null, CurrentDeckBuilderCards);
+            }
+            else if (battleCardUpgradeOpen && !specialCardCollectionOpen) BuildWorkshopUpgradePanel(panel);
             else BuildWorkshopPreviewActions(panel);
         }
 
         private RectTransform CreateWorkshopPreviewPaper(string name, Transform parent, Vector2 size, Vector2 position)
         {
             RectTransform panel = CreateRect(name, parent, size, position);
-            Image backing = panel.gameObject.AddComponent<Image>();
-            backing.color = Html("#B08247");
-            backing.raycastTarget = false;
-            Outline rim = panel.gameObject.AddComponent<Outline>();
-            rim.effectColor = Html("#6A4827");
-            rim.effectDistance = new Vector2(3f, -3f);
-            RawImage paper = CreateRawImage(name + " Texture", panel, size - Vector2.one * 6f,
-                Vector2.zero, cardWorkshopArt?.DeckBuilderCollectionParchment, new Rect(0f, 0f, 1f, 1f));
+            Image paper = CreateImage(name + " Texture", panel, size - Vector2.one * 6f,
+                Vector2.zero, Color.white);
+            NauticalSurfaceSkin.ApplyReadingPanel(paper);
+            if (size.x < 300f || name.EndsWith("Parchment")) paper.pixelsPerUnitMultiplier = 4f;
             paper.raycastTarget = false;
             return panel;
         }
@@ -212,7 +214,7 @@ namespace ShatteredSail.Presentation
                 mark.color = Html("#C0392B");
                 mark.raycastTarget = false;
             }
-            Button open = CreateButton("Open Battle Card Upgrades", forge, new Vector2(570f, 58f), new Vector2(0f, -178f), Gold, Ink, 30);
+            Button open = CreateButton("Open Battle Card Upgrades", forge, new Vector2(570f, 58f), new Vector2(0f, -170f), Gold, Ink, 30);
             open.GetComponentInChildren<Text>().text = "进入卡牌强化";
             open.interactable = !specialCardCollectionOpen && selectedBattleCardUpgrade >= 0;
             open.onClick.AddListener(() =>
@@ -236,7 +238,7 @@ namespace ShatteredSail.Presentation
                 CreateText("Stage Overview Count " + stage, panel, new Vector2(210f, 80f), new Vector2(0f, -82f),
                     25, FontStyle.Normal, TextAnchor.MiddleCenter, WorkshopPaperInk).text =
                     "基础 " + session.GetBattleDeck(stage).Count + "/" + CoreVoyageSession.MaximumBaseBattleDeckSize + "\n专属 " + session.GetBonusBattleCards(stage).Count + " 张";
-                Button edit = CreateButton("Edit Stage Deck " + stage, panel, new Vector2(206f, 56f), new Vector2(0f, -178f), Gold, Ink, 26);
+                Button edit = CreateButton("Edit Stage Deck " + stage, panel, new Vector2(198f, 56f), new Vector2(0f, -170f), Gold, Ink, 26);
                 edit.GetComponentInChildren<Text>().text = "编辑卡组";
                 edit.onClick.AddListener(() => SelectWorkshopBattleStage(stage,
                     !specialCardCollectionOpen && stage == selectedBattleDeckStage ? battleCardUpgradePage : 0));
@@ -250,7 +252,7 @@ namespace ShatteredSail.Presentation
             CreateText("Card Upgrade Heading", panel, new Vector2(660f, 66f), new Vector2(0f, 388f),
                 48, FontStyle.Bold, TextAnchor.MiddleCenter, WorkshopPaperInk).text = "卡牌强化";
             if (selectedBattleCardUpgrade >= 0) BuildBattleCardUpgradeDetail(panel, selectedBattleCardUpgrade, WorkshopPaperInk, WorkshopPaperMuted);
-            Button back = CreateButton("Back From Card Upgrades", panel, new Vector2(260f, 40f), new Vector2(0f, -433f), PanelRaised, Ink, 21);
+            Button back = CreateButton("Back From Card Upgrades", panel, new Vector2(260f, 40f), new Vector2(0f, -419f), PanelRaised, Ink, 21);
             back.GetComponentInChildren<Text>().text = "返回卡组预览";
             back.onClick.AddListener(() => { battleCardUpgradeOpen = false; cardWorkshopDeckBuilderOpen = false; battleDeckOverviewOpen = false; Render(); });
         }

@@ -12,6 +12,28 @@ namespace ShatteredSail.Presentation
         private const string PortInvestmentKeyPrefix = "ShatteredSail.PortInvestment.v1.";
         private bool investmentSupplyPanelOpen;
         private object investmentQuoteToken;
+        private int investmentReturnFacility = -1;
+        private CoreVoyageSession investmentReturnSession;
+        private string investmentReturnPort;
+
+        private bool HasInvestmentReturn => investmentReturnFacility == activePortFacility &&
+            session != null && session.Phase == CoreDemoPhase.Port &&
+            ReferenceEquals(investmentReturnSession, session) && investmentReturnPort == session.CurrentPort;
+
+        private void OpenFacilityFromInvestment(int facility)
+        {
+            EnterPortFacility(facility);
+            investmentReturnFacility = facility;
+            investmentReturnSession = session;
+            investmentReturnPort = session.CurrentPort;
+        }
+
+        private void ClearInvestmentReturn()
+        {
+            investmentReturnFacility = -1;
+            investmentReturnSession = null;
+            investmentReturnPort = null;
+        }
 
         public static string PortInvestmentKey(string portName)
         {
@@ -116,16 +138,12 @@ namespace ShatteredSail.Presentation
                     "本港已享有全部建设收益\n感谢您为港口发展作出的贡献", 21, mutedInk, wrap: true);
             }
             bool canUpgrade = hasNextLevel && CanAffordPortInvestment(nextCost);
-            CreateInvestmentText("Storage Hint", ledger, new Rect(1167f, 601f, 379f, 22f), ledgerBounds,
-                "拥有量：本港仓库 + 船舱 · 优先使用本港仓库", 17, mutedInk);
-            CreateInvestmentText("Readiness", ledger, new Rect(1167f, 626f, 379f, 22f), ledgerBounds,
-                !hasNextLevel ? "建设已完成 · 无需继续投入材料" :
-                canUpgrade ? "材料齐备 · 可立即升级" : "材料不足 · 请补齐红色项目", 19,
-                hasNextLevel && !canUpgrade ? shortfallInk : mutedInk);
 
             Button upgrade = CreateInvestmentButton("Confirm Port Investment", ledger,
                 new Rect(1167f, 655f, 379f, 46f), ledgerBounds, 24,
-                hasNextLevel ? "升级至 Lv." + nextLevel : "港口已达到最高等级");
+                !hasNextLevel ? "港口已达到最高等级" : canUpgrade ? "升级至 Lv." + nextLevel : "材料不足");
+            if (hasNextLevel && !canUpgrade)
+                upgrade.GetComponentInChildren<Text>().color = Html("#F06B58");
             upgrade.interactable = Application.isPlaying && !editorPreviewBuilding && canUpgrade;
             string quotedPort = session.CurrentPort;
             int quotedLevel = level;
@@ -141,8 +159,7 @@ namespace ShatteredSail.Presentation
                 new Rect(1167f, 711f, 184f, 35f), ledgerBounds, 19, "前往港口市场");
             market.onClick.AddListener(() =>
             {
-                investmentSupplyPanelOpen = false;
-                activePortFacility = PortFacilityArtCatalog.MarketFacilityIndex;
+                OpenFacilityFromInvestment(PortFacilityArtCatalog.MarketFacilityIndex);
                 portNotice = "已进入港口市场；本港投资等级会提升每月库存与购买额度。";
                 Render();
             });
@@ -150,7 +167,7 @@ namespace ShatteredSail.Presentation
                 new Rect(1361f, 711f, 185f, 35f), ledgerBounds, 19, "本港仓储");
             warehouse.onClick.AddListener(() =>
             {
-                activePortFacility = 0;
+                OpenFacilityFromInvestment(PortFacilityArtCatalog.WarehouseFacilityIndex);
                 warehouseViewedSession = session;
                 warehouseViewedPort = CurrentWarehousePort;
                 warehouseStorageOpen = true;

@@ -85,6 +85,11 @@ namespace ShatteredSail.Presentation
                 return false;
             }
             if (!session.TryRestoreVoyageCheckpoint(record.voyage, out reason)) return false;
+            // Older snapshots stored rarity multiplied by the retired appraisal.
+            // The restored flagship's actual fittings are the authority; do not
+            // round snapshot floats or alter enemy equipment and voyage stats.
+            session.SynchronizeRestoredBattleEquipment(
+                BattleEquipmentQuality(ComponentSlot.Bow), BattleEquipmentQuality(ComponentSlot.Plating));
             tutorialActive = record.tutorialActive;
             guidedTutorialCheckpoint = record.tutorialCheckpoint;
             guidedTutorialNavigationInputStep = (GuidedTutorialNavigationInputStep)record.navigationInputStep;

@@ -260,7 +260,7 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, collection.ExportOwned());
             var art = new ComponentArtCatalog();
             var inventory = new OwnedShipComponentInventory(art);
-            Assert.That(inventory.Grant(art.Entries[0], 1f), Is.Not.Null);
+            Assert.That(inventory.Grant(art.Entries[0]), Is.Not.Null);
             SaveInventory(inventory);
             AchievementCatalog.CaptureProgress();
             AssertUnlocked("tutorial_checkpoint", "tutorial_reward", "tutorial_component");

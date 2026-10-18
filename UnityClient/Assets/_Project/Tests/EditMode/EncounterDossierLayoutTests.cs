@@ -69,6 +69,34 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void ExplorationChoices_KeepLongRewardsAndClueConditionsReadableInsideTheScroll()
+        {
+            CreatePreview(0);
+            string detail = "木材 -3、古代材料 +2、船体 +8；航速 +25% / 16 小时、瞭望范围 +35% / 18 小时。" +
+                "取得潮工船坞图（本航次），标出潮痕秘藏；调查后可解锁深处的机关，已有线索仍会保留。";
+            ShowCoreEncounter(new CoreEncounter("exploration_layout_test", "潮工留下的航海记录", "线索调查",
+                "船员在旧灯室找到一份需要仔细解读的航海记录。", false, false, 1, 0,
+                new CoreEncounterChoice("逐项核对船坞图并准备深入秘藏的补给", detail, 2, new VoyageEffect()),
+                new CoreEncounterChoice("根据线索打开秘藏深处的机关", detail, 3, new VoyageEffect(),
+                    requiredDiscovery: "reef_dock_chart"),
+                new CoreEncounterChoice("抄录完整调查记录并整理下一次探索的准备事项", detail, 2, new VoyageEffect())));
+
+            AssertDossierLayout(false, 3, true);
+            Button first = Find<Button>(host.transform, "Encounter Choice 0");
+            Text description = Find<Text>(first.transform, "Detail");
+            Assert.That(description.text, Is.EqualTo(detail));
+            Assert.That(description.resizeTextForBestFit, Is.False);
+            Assert.That(description.fontSize, Is.GreaterThanOrEqualTo(20));
+            Assert.That(first.GetComponent<RectTransform>().rect.height, Is.GreaterThan(96f));
+            Assert.That(Find<ScrollRect>(host.transform, "Encounter Decision Viewport").vertical, Is.True);
+            Button locked = Find<Button>(host.transform, "Encounter Choice 1");
+            Assert.That(locked.interactable, Is.False);
+            Assert.That(Find<Text>(locked.transform, "Requirement").text, Does.Contain("潮工船坞图"));
+            Assert.That(Find<Text>(locked.transform, "Hours").text, Does.Not.Contain("潮工船坞图"));
+            Assert.That(Find<Text>(locked.transform, "Detail").text, Is.EqualTo(detail));
+        }
+
+        [Test]
         public void MandatoryEncounter_HasEveryChoiceAndNoSkipAction()
         {
             CreatePreview(0);
@@ -77,6 +105,53 @@ namespace ShatteredSail.Core.Tests
             AssertDossierLayout(false, 3, false);
             Assert.That(controller.Session.SkipEncounter(), Is.False);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Encounter));
+        }
+
+        [Test]
+        public void LongNarrative_ScrollsIndependentlyWithoutMovingChoicesOrFixedActions()
+        {
+            CreatePreview(0);
+            string description = string.Concat(Enumerable.Repeat(
+                "船员将残缺的记录逐行展开，海风掀起纸角，远处的灯塔仍在指引航路。\n", 16));
+            ShowCoreEncounter(new CoreEncounter("long_record", "海风中的航海记录", "线索调查", description,
+                false, false, 1, 0, new CoreEncounterChoice("收好记录", "保留线索并继续航行", 0, new VoyageEffect())));
+            AssertJournalLayout(1, true);
+            ScrollRect narrative = Find<ScrollRect>(host.transform, "Encounter Description Viewport");
+            ScrollRect decisions = Find<ScrollRect>(host.transform, "Encounter Decision Viewport");
+            RectTransform paper = Find<RectTransform>(host.transform, "Encounter Paper Content");
+            RectTransform secondary = Find<RectTransform>(host.transform, "Encounter Secondary Actions");
+            Vector2 choicePosition = decisions.content.anchoredPosition;
+            Rect fixedBounds = BoundsIn(paper, secondary);
+            Text body = Find<Text>(host.transform, "Encounter Description");
+            Assert.That(body.text, Is.EqualTo(description));
+            Assert.That(narrative.vertical, Is.True);
+            Assert.That(narrative.content.rect.height, Is.GreaterThan(narrative.viewport.rect.height));
+            narrative.verticalNormalizedPosition = 0f;
+            Canvas.ForceUpdateCanvases();
+            Assert.That(BoundsIn(narrative.viewport, body.rectTransform).yMin,
+                Is.EqualTo(narrative.viewport.rect.yMin).Within(.5f), "The final narrative line must be reachable.");
+            Assert.That(decisions.content.anchoredPosition, Is.EqualTo(choicePosition));
+            Assert.That(BoundsIn(paper, secondary), Is.EqualTo(fixedBounds));
+        }
+
+        [Test]
+        public void EmergencyTow_StaysOutsideChoiceScrollAndResolvesToFailureSettlement()
+        {
+            CreatePreview(0);
+            SetProperty(controller.Session, "Cargo", new VoyageCargo { Water = 10, Food = 10 });
+            ShowCoreEncounter(new CoreEncounter("blocked_mandatory", "补给耗尽", "强制事件", "船只只能请求拖带。",
+                true, false, 1, 0,
+                new CoreEncounterChoice("支付拖航费", "金币 -100", 0, new VoyageEffect { Gold = -100 })));
+            Assert.That(controller.Session.CanRequestEmergencyTow(), Is.True);
+            AssertJournalLayout(1, false);
+            Button rescue = Find<Button>(host.transform, "Emergency Encounter Return");
+            Assert.That(rescue.transform.parent.name, Is.EqualTo("Encounter Secondary Actions"));
+            Assert.That(Find<Text>(rescue.transform, "Hours").text, Is.EqualTo("返回港口"));
+
+            rescue.onClick.Invoke();
+
+            Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
+            Assert.That(controller.Session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
         }
 
         [TestCase(true)]
@@ -111,23 +186,28 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void EventIllustration_CropMatchesDisplayAspectWithoutStretchingSubjects()
+        public void EventIllustration_UsesLargePaintingWithoutStretchingSubjects()
         {
             CreatePreview(0);
             ShowCoreEncounter(ThreeChoiceEncounter(false));
             RawImage art = Find<RawImage>(host.transform, "Demo Event Art");
+            Assert.That(art.rectTransform.rect.width, Is.GreaterThanOrEqualTo(310f),
+                "The expanded illustration must remain visibly larger than the previous thumbnail.");
+            Assert.That(art.rectTransform.rect.height, Is.GreaterThanOrEqualTo(230f));
             float sourceAspect = art.texture.width * art.uvRect.width / (art.texture.height * art.uvRect.height);
             float displayAspect = art.rectTransform.rect.width / art.rectTransform.rect.height;
+            Assert.That(displayAspect, Is.EqualTo(4f / 3f).Within(.0001f),
+                "Enlarging the painting must preserve the existing 4:3 composition.");
             Assert.That(sourceAspect, Is.EqualTo(displayAspect).Within(0.0001f),
                 "The event crop must preserve painted faces, vessels and objects in the current illustration box.");
             Assert.That(((Texture2D)art.texture).mipmapCount, Is.GreaterThan(1),
-                "High-resolution event paintings must minify cleanly in the compact event window.");
+                "High-resolution event paintings must minify cleanly in the expanded event panel.");
             Assert.That(art.uvRect.width, Is.EqualTo(0.2f - 16f / art.texture.width).Within(0.0001f),
                 "Retain the painting apart from the eight-pixel guard against neighboring atlas cells at small mip levels.");
         }
 
         [Test]
-        public void EveryRoute_UsesPlainParchmentAndNonBlockingIllustrations()
+        public void EveryRoute_UsesMarketPaperAndNonBlockingIllustrations()
         {
             CreatePreview(0);
             for (int routeIndex = 0; routeIndex < 3; routeIndex++)
@@ -135,10 +215,12 @@ namespace ShatteredSail.Core.Tests
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Encounter,
                     CoreGameplayPreviewPort.GrayGull, routeIndex);
                 ShowCoreEncounter(ThreeChoiceEncounter(false));
-                RawImage parchment = Find<RawImage>(host.transform, "Encounter Parchment");
+                Image parchment = Find<Image>(host.transform, "Encounter Parchment");
                 Assert.That(FindOptional<Transform>(host.transform, "Encounter Themed Frame"), Is.Null,
                     "Embedded encounters must leave the parchment visible without the decorative route frame.");
-                Assert.That(parchment.texture, Is.Not.Null, "Route " + routeIndex);
+                Assert.That(parchment.sprite, Is.Not.Null, "Route " + routeIndex);
+                Assert.That(parchment.sprite, Is.SameAs(MarketShopSkin.Paper), "Route " + routeIndex);
+                Assert.That(parchment.type, Is.EqualTo(Image.Type.Sliced));
                 Assert.That(Find<RawImage>(host.transform, "Demo Event Art").texture, Is.Not.Null,
                     "Removing the border must preserve the encounter illustration.");
                 AssertDecorationsDoNotInterceptInput(Find<RectTransform>(host.transform, "Encounter Card"));
@@ -178,6 +260,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(choice.gameObject.activeInHierarchy, Is.True);
             Assert.That(controller.Session.IsChoiceAvailable(0), Is.False, restriction);
             Assert.That(choice.interactable, Is.False, restriction);
+            Assert.That(Find<Text>(choice.transform, "Requirement").text,
+                Does.Contain(controller.Session.ChoiceUnavailableReason(0)), restriction);
             if (requiredCrew.Length > 0)
             {
                 string[] professions = { "navigator", "carpenter", "cook", "doctor", "gunner", "diver" };
@@ -186,11 +270,12 @@ namespace ShatteredSail.Core.Tests
                 string expectedName = profession >= 0 ? names[profession] : "指定职业船员";
                 string expectedReason = "缺少所需船员：" + expectedName + "。";
                 Assert.That(controller.Session.ChoiceUnavailableReason(0), Is.EqualTo(expectedReason));
-                string hours = choice.GetComponentsInChildren<Text>().Single(text => text.name == "Hours").text;
-                Assert.That(hours, Does.Contain(expectedReason), "UI must show the core rule's localized explanation.");
-                Assert.That(hours, Does.Not.Contain(requiredCrew), "Internal profession IDs are not player-facing copy.");
+                string requirement = Find<Text>(choice.transform, "Requirement").text;
+                Assert.That(requirement, Does.Contain(expectedReason), "UI must show the core rule's localized explanation.");
+                Assert.That(requirement, Does.Not.Contain(requiredCrew), "Internal profession IDs are not player-facing copy.");
+                Assert.That(Find<Text>(choice.transform, "Hours").text, Does.Not.Contain(expectedReason));
                 Assert.That(choice.GetComponentsInChildren<Text>().Single(text => text.name == "Detail").text,
-                    Does.Contain("需要" + expectedName));
+                    Is.EqualTo("满足条件后可以执行"));
             }
             Assert.That(controller.Session.ResolveChoice(0), Is.False, restriction);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Encounter));
@@ -275,11 +360,19 @@ namespace ShatteredSail.Core.Tests
 
         private void AssertDossierLayout(bool tutorial, int choiceCount, bool optional)
         {
+            if (!tutorial)
+            {
+                AssertJournalLayout(choiceCount, optional);
+                return;
+            }
             string prefix = tutorial ? "Tutorial Encounter" : "Encounter";
             string choicePrefix = tutorial ? "Tutorial Choice " : "Encounter Choice ";
             string skipName = tutorial ? "Tutorial Skip Encounter" : "Skip Encounter";
             RectTransform card = Find<RectTransform>(host.transform, prefix + " Card");
             RectTransform paper = Find<RectTransform>(card, prefix + " Paper Content");
+            Image surface = Find<Image>(card, prefix + " Parchment");
+            Assert.That(surface.sprite, Is.SameAs(MarketShopSkin.Paper));
+            Assert.That(surface.type, Is.EqualTo(Image.Type.Sliced));
             RectTransform choices = Find<RectTransform>(card, tutorial ? "Tutorial Choices" : "Encounter Choices");
             LayoutRebuilder.ForceRebuildLayoutImmediate(choices);
             Canvas.ForceUpdateCanvases();
@@ -299,7 +392,7 @@ namespace ShatteredSail.Core.Tests
             Rect footerBounds = BoundsIn(paper, footer.rectTransform);
             if (tutorial)
             {
-                // The standalone tutorial still reserves space for its wheel and medallion.
+                // Keep the tutorial's existing reading and footer geometry.
                 AssertContained(Rect.MinMaxRect(160f, 122f, 700f, 153f), badgeBounds, "Badge / hanging jewels");
                 AssertContained(Rect.MinMaxRect(180f, -316f, 650f, -280f), footerBounds, "Footer / lower medallion");
             }
@@ -322,6 +415,8 @@ namespace ShatteredSail.Core.Tests
             AssertClearGap(badgeBounds, titleBounds, "Badge and title");
 
             Button[] buttons = choices.GetComponentsInChildren<Button>(true);
+            foreach (Button button in buttons)
+                Assert.That(button.GetComponent<Image>().sprite.name, Is.EqualTo("Market Light Control"));
             Assert.That(buttons.Length, Is.EqualTo(choiceCount + (optional ? 1 : 0)));
             Assert.That(FindOptional<Button>(card, skipName) != null, Is.EqualTo(optional));
             ScrollRect decisionScroll = tutorial ? null : Find<ScrollRect>(card, "Encounter Decision Viewport");
@@ -383,6 +478,101 @@ namespace ShatteredSail.Core.Tests
                 AssertContained(decisionScroll.viewport.rect,
                     BoundsIn(decisionScroll.viewport, buttons.Last().GetComponent<RectTransform>()), "Last action is reachable by scrolling");
             }
+            AssertDecorationsDoNotInterceptInput(card);
+        }
+
+        private void AssertJournalLayout(int choiceCount, bool optional)
+        {
+            RectTransform card = Find<RectTransform>(host.transform, "Encounter Card");
+            RectTransform paper = Find<RectTransform>(card, "Encounter Paper Content");
+            RectTransform choices = Find<RectTransform>(card, "Encounter Choices");
+            RectTransform secondary = Find<RectTransform>(card, "Encounter Secondary Actions");
+            Canvas.ForceUpdateCanvases();
+            string[] regions = { "Encounter Illustration Mount", "Encounter Location", "Encounter Title",
+                "Encounter Description Viewport", "Encounter Badge", "Encounter Decision Footer", "Encounter Decision Viewport" };
+            Rect[] bounds = regions.Select(name => BoundsIn(paper, Find<RectTransform>(card, name))).ToArray();
+            for (int index = 0; index < regions.Length; index++)
+            {
+                AssertContained(paper.rect, bounds[index], regions[index]);
+                for (int other = index + 1; other < regions.Length; other++)
+                    AssertClearGap(bounds[index], bounds[other], regions[index] + " / " + regions[other]);
+            }
+            foreach (string name in new[] { "Encounter Title", "Encounter Badge", "Encounter Location", "Encounter Decision Footer" })
+                AssertTextFits(Find<Text>(card, name));
+            RectTransform art = Find<RectTransform>(card, "Encounter Illustration Mount");
+            AssertContained(art.rect, BoundsIn(art, Find<RawImage>(art, "Demo Event Art").rectTransform), "Encounter illustration");
+
+            ScrollRect narrative = Find<ScrollRect>(card, "Encounter Description Viewport");
+            Text description = Find<Text>(card, "Encounter Description");
+            Assert.That(narrative.content.name, Is.EqualTo("Encounter Description Content"));
+            Assert.That(description.transform.parent, Is.SameAs(narrative.content));
+            Assert.That(narrative.viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+            Assert.That(narrative.horizontal, Is.False);
+            AssertContained(narrative.content.rect, BoundsIn(narrative.content, description.rectTransform), description.name);
+            AssertTextFits(description);
+
+            ScrollRect decisions = Find<ScrollRect>(card, "Encounter Decision Viewport");
+            Assert.That(decisions.content, Is.SameAs(choices));
+            Assert.That(choices.parent, Is.SameAs(decisions.viewport));
+            Assert.That(decisions.viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+            Assert.That(decisions.horizontal, Is.False);
+            Assert.That(decisions.movementType, Is.EqualTo(ScrollRect.MovementType.Clamped));
+            Assert.That(decisions.vertical, Is.EqualTo(choices.rect.height > decisions.viewport.rect.height + .5f));
+            Scrollbar scrollbar = Find<Scrollbar>(card, "Encounter Decision Scrollbar");
+            Assert.That(decisions.verticalScrollbar, Is.SameAs(scrollbar));
+            Assert.That(scrollbar.gameObject.activeSelf, Is.EqualTo(decisions.vertical));
+            Assert.That(secondary.parent, Is.SameAs(paper), "Fixed actions must not scroll with the choices.");
+            Assert.That(secondary.IsChildOf(choices), Is.False);
+            if (secondary.rect.height > 0f)
+            {
+                AssertContained(paper.rect, BoundsIn(paper, secondary), secondary.name);
+                AssertClearGap(BoundsIn(paper, decisions.viewport), BoundsIn(paper, secondary), "Choices and fixed actions");
+            }
+
+            Button[] buttons = choices.GetComponentsInChildren<Button>(true);
+            Assert.That(buttons.Length, Is.EqualTo(choiceCount));
+            Button skip = FindOptional<Button>(card, "Skip Encounter");
+            Assert.That(skip != null, Is.EqualTo(optional));
+            if (skip != null) Assert.That(skip.transform.parent, Is.SameAs(secondary));
+            var actionBounds = new List<Rect>();
+            foreach (Button button in buttons.Concat(secondary.GetComponentsInChildren<Button>(true)))
+            {
+                RectTransform row = button.GetComponent<RectTransform>();
+                AssertContained(((RectTransform)row.parent).rect, BoundsIn(row.parent, row), button.name);
+                var fields = new List<Rect>();
+                foreach (string field in new[] { "Label", "Detail", "Hours", "Requirement" })
+                {
+                    Text text = FindOptional<Text>(row, field);
+                    if (text == null || string.IsNullOrEmpty(text.text)) continue;
+                    AssertTextFits(text);
+                    Rect fieldBounds = BoundsIn(row, text.rectTransform);
+                    AssertContained(row.rect, fieldBounds, button.name + " / " + field);
+                    foreach (Rect previous in fields) AssertClearGap(previous, fieldBounds, button.name + " text fields");
+                    fields.Add(fieldBounds);
+                }
+                Assert.That(button.targetGraphic, Is.Not.Null, button.name);
+                Assert.That(button.targetGraphic.raycastTarget, Is.True, button.name);
+                Image face = button.GetComponent<Image>();
+                Assert.That(face.sprite, Is.Not.Null, button.name);
+                Assert.That(face.sprite.name, Is.EqualTo("Market Light Control"), button.name);
+                Assert.That(face.type, Is.EqualTo(Image.Type.Sliced), button.name);
+                if (button.transform.parent == choices)
+                {
+                    Rect rowBounds = BoundsIn(choices, row);
+                    foreach (Rect previous in actionBounds) AssertClearGap(previous, rowBounds, "Choices");
+                    actionBounds.Add(rowBounds);
+                }
+            }
+            Rect fixedBounds = BoundsIn(paper, secondary);
+            decisions.verticalNormalizedPosition = 1f;
+            Canvas.ForceUpdateCanvases();
+            Assert.That(BoundsIn(decisions.viewport, buttons.First().GetComponent<RectTransform>()).yMax,
+                Is.EqualTo(decisions.viewport.rect.yMax).Within(.5f), "The first choice starts at the top.");
+            decisions.verticalNormalizedPosition = 0f;
+            Canvas.ForceUpdateCanvases();
+            Rect last = BoundsIn(decisions.viewport, buttons.Last().GetComponent<RectTransform>());
+            Assert.That(last.yMin, Is.GreaterThanOrEqualTo(decisions.viewport.rect.yMin - .5f), "The last choice is reachable.");
+            Assert.That(BoundsIn(paper, secondary), Is.EqualTo(fixedBounds), "Scrolling must leave secondary actions fixed.");
             AssertDecorationsDoNotInterceptInput(card);
         }
 

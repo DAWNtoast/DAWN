@@ -160,11 +160,13 @@ namespace ShatteredSail.Core.Tests
         [TestCase("ada_bronze_bell_bandage", "crew_bronze_bell_doctor_ada")]
         [TestCase("helen_thirteenth_cannon_coin", "crew_bronze_bell_gunner_helen")]
         [TestCase("noya_drowned_diver_lens", "crew_gray_gull_diver_noya")]
-        public void RecruitmentReward_RequiresTheRecruitedCharactersOwnCardAtLevelThree(string treasure, string crewId)
+        public void RecruitmentReward_RequiresTheRecruitedCharactersOwnCardAtItsAuthoredMaximum(string treasure, string crewId)
         {
             CoreCollectionRewardRule rule = CoreCollectionRewardCatalog.Find(treasure);
+            int maximumLevel = new CoreVoyageSession().GetCardMaximumUpgradeLevel(CoreSpecialCardCatalog.ForCrew(crewId).Card.Id);
+            Assert.That(maximumLevel, Is.InRange(1, 3));
             var facts = new CoreCollectionFacts { recruitedCrewIds = new[] { crewId } };
-            Assert.That(rule.Source, Does.Contain("角色卡牌升至 3 级"));
+            Assert.That(rule.Source, Does.Contain("角色卡牌升至满级"));
             Assert.That(rule.IsSatisfied(null, facts, null), Is.False, "Recruitment alone is insufficient.");
             facts.crewCardLevels = null;
             Assert.That(rule.IsSatisfied(null, facts, null), Is.False, "Missing card progress cannot prove the requirement.");
@@ -173,7 +175,7 @@ namespace ShatteredSail.Core.Tests
             for (int level = 0; level <= 4; level++)
             {
                 facts.crewCardLevels = new Dictionary<string, int> { [crewId] = level };
-                Assert.That(rule.IsSatisfied(null, facts, null), Is.EqualTo(level >= 3), "Card level " + level);
+                Assert.That(rule.IsSatisfied(null, facts, null), Is.EqualTo(level >= maximumLevel), "Card level " + level);
             }
             facts.recruitedCrewIds = Array.Empty<string>();
             Assert.That(rule.IsSatisfied(null, facts, null), Is.False, "Card progress cannot replace recruitment.");
@@ -240,7 +242,7 @@ namespace ShatteredSail.Core.Tests
         private static string[] DistinctSeeds(string prefix, int count) =>
             Enumerable.Range(1, count).Select(i => prefix + "-" + i).ToArray();
 
-        private static string[] KnownBosses() => CoreVoyageSession.Routes.Select(r => "boss_" + r.Id)
+        private static string[] KnownBosses() => CoreRouteBossCatalog.All.Select(boss => boss.Id)
             .Concat(CoreLegendaryWarships.All.Select(b => b.Id))
             .Concat(new[] { CoreGuidedTutorialContent.BossEventId, CoreBattleBalance.TreasureBossId }).ToArray();
 
@@ -252,7 +254,11 @@ namespace ShatteredSail.Core.Tests
             "crew_gray_gull_diver_noya"
         };
 
-        private static IReadOnlyDictionary<string, int> RequiredCrewCardLevels() => RequiredCrewIds()
-            .Where(id => CoreSpecialCardCatalog.ForCrew(id) != null).ToDictionary(id => id, id => 3);
+        private static IReadOnlyDictionary<string, int> RequiredCrewCardLevels()
+        {
+            var session = new CoreVoyageSession();
+            return RequiredCrewIds().Where(id => CoreSpecialCardCatalog.ForCrew(id) != null)
+                .ToDictionary(id => id, id => session.GetCardMaximumUpgradeLevel(CoreSpecialCardCatalog.ForCrew(id).Card.Id));
+        }
     }
 }

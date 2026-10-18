@@ -142,6 +142,11 @@ namespace ShatteredSail.Presentation
         public static string WesternIllustrationPath(CoreBattleCard card)
         {
             if (card == null || string.IsNullOrEmpty(card.Id)) return null;
+            // Boarding additions deliberately reuse the complete existing image.
+            // Legacy cards retain their per-card Western replacement first.
+            if (card.BoardingSpec != null && card.Id.StartsWith("card_boarding_", StringComparison.Ordinal) &&
+                !HasSchoolIllustration(card) && !string.IsNullOrEmpty(card.ArtId))
+                return "CardArt/Western/" + card.ArtId;
             // New starter utilities deliberately reuse complete existing art.
             // Keep their identities distinct and avoid falling back to an atlas crop.
             string illustration = card.Id == "card_energy_order" ? "card_brace" :

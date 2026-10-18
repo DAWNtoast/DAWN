@@ -12,17 +12,17 @@ namespace ShatteredSail.Presentation
         public const string ReadingPaperPath = "UISurfaces/aged_reading_parchment_v1";
         public const string InvestmentPaperPath = "UISurfaces/investment_charter_parchment_v1";
         public const string CollectionPaperPath = "UISurfaces/collection_archive_parchment_v1";
+        public const string PaperFillName = "Market Ivory Paper Fill";
         private static Sprite canvas;
         private static Sprite paper;
         private static Sprite timber;
-        private static Sprite readingPaper;
-        private static Sprite investmentPaper;
-        private static Sprite collectionPaper;
         public static Sprite Canvas => Load(ref canvas, CanvasPath);
-        public static Sprite Paper => Load(ref paper, PaperPath);
-        public static Sprite ReadingPaper => Load(ref readingPaper, ReadingPaperPath, true) ?? Paper;
-        public static Sprite InvestmentPaper => Load(ref investmentPaper, InvestmentPaperPath, true) ?? Paper;
-        public static Sprite CollectionPaper => Load(ref collectionPaper, CollectionPaperPath, true) ?? Paper;
+        // Keep the legacy path constants for serialized skin bindings. All live
+        // reading surfaces now share the market's ivory paper and fine frame.
+        public static Sprite Paper => LoadPaperFill();
+        public static Sprite ReadingPaper => MarketShopSkin.Paper;
+        public static Sprite InvestmentPaper => MarketShopSkin.Paper;
+        public static Sprite CollectionPaper => MarketShopSkin.Paper;
 
         static NauticalSurfaceSkin()
         {
@@ -50,7 +50,7 @@ namespace ShatteredSail.Presentation
                 name.Contains("Footer") || name.Contains("Unified Art Frame") ||
                 name == "Left Menu Veil");
             if (name == "Port Investment Summary" || name == "Port Investment Ledger")
-                return ApplyPaperPanel(image, InvestmentPaper);
+                return ApplyReadingPanel(image);
             Sprite face = light ? Paper : wood ? Timber : Paper;
             if (face == null) return false;
             Rect bounds = image.rectTransform.rect;
@@ -60,27 +60,34 @@ namespace ShatteredSail.Presentation
             image.type = Image.Type.Tiled;
             image.pixelsPerUnitMultiplier = face.rect.width / (wood ? 620f : 340f);
             // Reading surfaces use light parchment paired with dark ink.
-            image.color = light ? new Color(1f, 1f, 1f, original.a) :
-                wood ? new Color(0.92f, 0.88f, 0.82f, original.a) : new Color(0.96f, 0.91f, 0.81f, original.a);
+            image.color = wood ? new Color(0.92f, 0.88f, 0.82f, original.a) : new Color(1f, 1f, 1f, original.a);
             if (NeedsFrame(name)) AddFrame(image);
             return true;
         }
 
         /// <summary>Explicit reading surface; preserves layout and hit testing, including atmosphere-exempt callers.</summary>
-        public static bool ApplyReadingPanel(Image image) => ApplyPaperPanel(image, ReadingPaper);
+        public static bool ApplyReadingPanel(Image image)
+        {
+            if (image == null || ReadingPaper == null) return false;
+            MarketShopSkin.ApplyPanel(image);
+            Transform rim = image.transform.Find("Material Timber Rim");
+            if (rim != null) rim.gameObject.SetActive(false);
+            return true;
+        }
 
         /// <summary>Recognizes cached material sprites without loading unrelated textures during a text query.</summary>
         public static bool IsPaperSurface(Sprite sprite) => sprite != null &&
-            (sprite == paper || sprite == readingPaper || sprite == investmentPaper || sprite == collectionPaper ||
+            (sprite == paper || sprite.name == PaperFillName ||
              sprite.name == PaperPath || sprite.name == ReadingPaperPath ||
              sprite.name == InvestmentPaperPath || sprite.name == CollectionPaperPath ||
+             sprite.name == MarketShopSkin.PaperResourcePath ||
              sprite.name == DepartureSkin.PaperResourcePath);
 
         /// <summary>Lets the engine collect facility papers while preserving any live Image references.</summary>
         public static void ReleaseGameplayPaperReferences()
         {
-            ReleasePaperReference(ref investmentPaper);
-            ReleasePaperReference(ref collectionPaper);
+            ReleasePaperReference(ref paper);
+            MarketShopSkin.ReleaseGameplayPaperReference();
             DepartureSkin.ReleaseGameplayPaperReference();
         }
 
@@ -93,23 +100,20 @@ namespace ShatteredSail.Presentation
             cached = null;
         }
 
-        private static bool ApplyPaperPanel(Image image, Sprite face)
+        private static Sprite LoadPaperFill()
         {
-            if (image == null || face == null) return false;
-            bool aged = face == readingPaper || face == investmentPaper || face == collectionPaper;
-            image.sprite = face;
-            image.overrideSprite = null;
-            image.type = aged ? Image.Type.Sliced : Image.Type.Tiled;
-            image.fillCenter = true;
-            image.pixelsPerUnitMultiplier = face.rect.width / (aged ? 800f : 340f);
-            // The PNG owns transparent torn edges. Its opaque centre must not
-            // pick up the busy scene below, or dark reading ink loses contrast.
-            image.color = Color.white;
-            // Authored paper already has its edge treatment; no extra retained
-            // child layer is created. Hide an older preview's optional timber rim.
-            Transform rim = image.transform.Find("Material Timber Rim");
-            if (rim != null) rim.gameObject.SetActive(false);
-            return true;
+            if (paper != null) return paper;
+            Sprite framed = MarketShopSkin.Paper;
+            if (framed == null) return null;
+            Texture2D texture = framed.texture;
+            // Small labels and card text need only the quiet writing surface,
+            // without repeating the outer wood or brass decorations.
+            float side = Mathf.Min(texture.width, texture.height) * .5f;
+            paper = Sprite.Create(texture, new Rect((texture.width - side) * .5f,
+                (texture.height - side) * .5f, side, side), Vector2.one * .5f, 100f);
+            paper.name = PaperFillName;
+            paper.hideFlags = HideFlags.HideAndDontSave;
+            return paper;
         }
 
         // Resolve only known material surfaces; illustrations and semantic badges
@@ -239,14 +243,13 @@ namespace ShatteredSail.Presentation
 
         private static void Release()
         {
-            foreach (Sprite sprite in new[] { canvas, paper, timber, readingPaper, investmentPaper, collectionPaper })
+            foreach (Sprite sprite in new[] { canvas, paper, timber })
             {
                 if (sprite == null) continue;
                 if (Application.isPlaying) UnityEngine.Object.Destroy(sprite);
                 else UnityEngine.Object.DestroyImmediate(sprite);
             }
             canvas = paper = timber = null;
-            readingPaper = investmentPaper = collectionPaper = null;
         }
     }
 }

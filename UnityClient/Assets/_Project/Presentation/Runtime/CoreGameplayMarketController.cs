@@ -100,20 +100,6 @@ namespace ShatteredSail.Presentation
             BuildMarketSceneShops(board);
             BuildMarketItemDetail(board, Html("#2C1B12"));
 
-            RectTransform footer = CreateFixedPanel("Market Footer", board,
-                new Vector2(1860f, 70f), new Vector2(0f, -495f), Html("#211910"));
-            NauticalSurfaceSkin.ApplyPanel(footer.GetComponent<Image>(), Html("#211910"));
-            footer.GetComponent<Image>().raycastTarget = true;
-            marketViewTitle = CreateText("Market Title", footer, new Vector2(650f, 52f),
-                new Vector2(-565f, 0f), 19, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
-            marketViewTitle.text = CorePortEconomy.TradeSummary(session.CurrentPort);
-            marketViewSummary = CreateText("Market Summary", footer, new Vector2(350f, 52f),
-                new Vector2(-42f, 0f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-            BuildMarketStorageModeControl(footer);
-            marketViewStorageMode.GetComponent<RectTransform>().sizeDelta = new Vector2(310f, 46f);
-            marketViewStorageMode.GetComponent<RectTransform>().anchoredPosition = new Vector2(338f, 0f);
-            marketViewInvestment = CreateButton("Market Open Investment", footer,
-                new Vector2(320f, 46f), new Vector2(720f, 0f), PanelRaised, Ink, 20);
             RefreshMarketFacilityContents();
         }
         private void BuyMarketItem(PortMarketItem item)

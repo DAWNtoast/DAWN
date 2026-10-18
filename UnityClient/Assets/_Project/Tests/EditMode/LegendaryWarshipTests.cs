@@ -10,14 +10,14 @@ namespace ShatteredSail.Core.Tests
     public sealed class LegendaryWarshipTests
     {
         [Test]
-        public void Catalog_HasFiveUniqueStoriesArchetypesAndRewardPackages()
+        public void Catalog_HasSixUniqueStoriesArchetypesAndRewardPackages()
         {
             var ships = CoreLegendaryWarships.All;
-            Assert.That(ships.Count, Is.EqualTo(5));
-            Assert.That(ships.Select(x => x.Id).Distinct().Count(), Is.EqualTo(5));
-            Assert.That(ships.Select(x => x.Name).Distinct().Count(), Is.EqualTo(5));
-            Assert.That(ships.Select(x => x.Profile.Archetype).Distinct().Count(), Is.EqualTo(5));
-            Assert.That(ships.Select(x => x.Trophy).Distinct().Count(), Is.EqualTo(5));
+            Assert.That(ships.Count, Is.EqualTo(6));
+            Assert.That(ships.Select(x => x.Id).Distinct().Count(), Is.EqualTo(6));
+            Assert.That(ships.Select(x => x.Name).Distinct().Count(), Is.EqualTo(6));
+            Assert.That(ships.Select(x => x.Profile.Archetype).Distinct().Count(), Is.EqualTo(6));
+            Assert.That(ships.Select(x => x.Trophy).Distinct().Count(), Is.EqualTo(6));
             foreach (CoreLegendaryWarship ship in ships)
             {
                 Assert.That(ship.Description.Length, Is.GreaterThan(35));
@@ -28,15 +28,23 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void OptionalBossRewardLabels_IncludeTheSeparateBaseBattlePayout()
+        public void OptionalBossRewardLabels_IncludeBaseAndMaterialValueInBothVictoryQuotes()
         {
             foreach (CoreLegendaryWarship ship in CoreLegendaryWarships.All)
             {
                 CoreEncounter encounter = ship.CreateEncounter();
-                Assert.That(encounter.Choices[0].Detail, Does.Contain(CoreBattleBalance.BossVictoryBonusDescription));
+                AssertVictoryQuotes(encounter);
             }
-            Assert.That(CoreLegendaryWarships.CreateTreasureEncounter().Choices[0].Detail,
-                Does.Contain(CoreBattleBalance.BossVictoryBonusDescription));
+            AssertVictoryQuotes(CoreLegendaryWarships.CreateTreasureEncounter());
+        }
+
+        private static void AssertVictoryQuotes(CoreEncounter encounter)
+        {
+            CoreEncounterChoice choice = encounter.Choices[0];
+            long gold = CoreBattleRewardBalance.GoldReward(true, choice.Effect, false);
+            long fame = CoreBattleRewardBalance.FameReward(true, choice.Effect, false);
+            Assert.That(choice.Detail, Does.Contain("击沉：金币 +" + gold + "、声望 +" + fame));
+            Assert.That(choice.Detail, Does.Contain("夺船×2：金币 +" + (gold * 2) + "、声望 +" + (fame * 2)));
         }
 
         [Test]
@@ -73,13 +81,13 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void ThirdChart_ContainsAllFiveWarshipsAndSeparateTreasureBoss()
+        public void ThirdChart_ContainsAllSixWarshipsAndSeparateTreasureBoss()
         {
             CoreVoyageMap map = Voyage(2, "ENDGAME-CHART").Map;
             Assert.That(map.Nodes.Count(x => x.IsBoss), Is.EqualTo(1), "Only the route guardian controls port access.");
             Assert.That(map.Nodes.Count(x => x.Encounter.BossKind == CoreBossKind.Route), Is.EqualTo(1));
             Assert.That(map.Nodes.Count(x => x.Encounter.BossKind == CoreBossKind.Treasure), Is.EqualTo(1));
-            Assert.That(map.Nodes.Count(x => x.Encounter.BossKind == CoreBossKind.Legendary), Is.EqualTo(5));
+            Assert.That(map.Nodes.Count(x => x.Encounter.BossKind == CoreBossKind.Legendary), Is.EqualTo(6));
             Assert.That(map.Nodes.Select(x => x.Encounter.Id).Distinct().Count(), Is.EqualTo(map.Nodes.Count));
             foreach (CoreMapNode node in map.Nodes.Where(IsOptionalBoss))
             {
@@ -138,7 +146,8 @@ namespace ShatteredSail.Core.Tests
             session.Battle.EnemyHull = 0;
             Invoke(session, "ResolveBattleOutcome");
             Assert.That(session.BossDefeated, Is.EqualTo(kind == CoreBossKind.Route));
-            Assert.That(session.Cargo.Gold, Is.EqualTo(goldBefore + node.Encounter.Choices[0].Effect.Gold + 120));
+            Assert.That(session.Cargo.Gold, Is.EqualTo(goldBefore + CoreBattleRewardBalance.GoldReward(
+                true, node.Encounter.Choices[0].Effect, false)));
             Assert.That(session.Cargo.Fame, Is.EqualTo(fameBefore + node.Encounter.Choices[0].Effect.Fame + 18));
             Assert.That(node.Visited, Is.True);
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
@@ -163,7 +172,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle, Is.Null);
             Assert.That(session.Map.Nodes.Count(x => x.Encounter.Id == node.Encounter.Id), Is.EqualTo(1));
             Set(session, "Position", node.Position);
+            session.SetDistance(47);
+            Assert.That(session.UsesDefaultDistance, Is.False);
             session.SetCourseTo(node.Position);
+            Assert.That(session.UsesDefaultDistance, Is.False, "Reopening a nearby challenge preserves the chosen sailing distance.");
+            Assert.That(session.RequestedDistanceNm, Is.EqualTo(47));
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Encounter), "Clicking the nearby marker must reopen the challenge.");
             Assert.That(session.ActiveEncounter, Is.SameAs(node.Encounter));
             Assert.That(node.Skipped, Is.False);

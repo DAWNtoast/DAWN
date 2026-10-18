@@ -29,7 +29,14 @@ namespace ShatteredSail.Core.Gameplay
         public int version = 1;
         // Absent in legacy version-1 JSON; never reinterpret an in-flight sea.
         public int mapGeometryVersion;
+        // Missing in legacy JSON: retain the exact old five-legend map layout.
+        public int shipRosterVersion;
+        public string routeBossId;
+        public bool currentRouteBossDefeated;
         public int phase, routeIndex, shipIndex, heading, plannedDistance;
+        // Missing in old JSON: plannedDistance is the former manual sea-mile budget.
+        public int distancePlanVersion;
+        public bool useDefaultDistance;
         public string selectedSeed, selectedDestinationPort, mapSeed, departurePort, destinationPort, profileGold;
         public uint mapHash, voyageRandomState, bossTreasureRandomState, encounterRandomState;
         public bool hasEncounterRandom;
@@ -37,14 +44,23 @@ namespace ShatteredSail.Core.Gameplay
         public float x, y, targetX, targetY, totalDistance;
         public bool hasDirectTarget;
         public double totalHours, elapsedGameHours, rationProgress;
+        // Optional version-1 fields: old saves have no temporary exploration window or clue.
+        public double sailingBoostHoursRemaining, surveyBoostHoursRemaining;
+        public string[] explorationDiscoveries;
+        // Optional expedition state; older voyages restore an empty state.
+        public string[] treasureExpeditionMarks;
+        public int treasureExpeditionCredit, treasureExpeditionHeat, treasureExpeditionResonance;
         public int hull, morale, ordinaryCrew, specialCrew;
         public float lastVoyageExplorationCoverage;
         public bool hasLastVoyageExplorationCoverage;
         public bool navigator, carpenter, doctor, gunner, cook, diver;
+        // Absent in legacy version-1 JSON: the navigator boolean implies one.
+        public int navigatorCount;
         public int componentHull, componentArmor, componentFirepower, contextHull, contextArmor, contextFirepower;
         public float componentSpeed, componentVision, contextSpeed, contextVision, contextRations;
         public float battleBowQuality, battleHullQuality;
         public CoreVoyageCargoCheckpoint cargo, departureCargo;
+        public CoreShipPortProgress shipPortProgress;
         public bool[] exploredCells;
         // Optional in version 1. Missing legacy evidence starts empty rather
         // than treating previously imported chart knowledge as this voyage's work.
@@ -55,11 +71,19 @@ namespace ShatteredSail.Core.Gameplay
         public int activeNodeId = -1;
         public string activeEncounterId;
         public bool bossDefeated, randomAmbushOccurred, lastBattleWasCaptured, lastBattleRetreated;
+        // Missing in older saves: discover only from the restored ship's real sight.
+        public bool destinationPortDiscovered;
+        public int destinationGuidanceVersion;
         public bool pendingBoardingComponentDrop;
         public int pendingBoardingComponentSlot = -1;
+        // Version zero imports the historical single rare-slot reward.
+        public int boardingLootVersion, nextBoardingComponentSequence;
+        public CoreBoardingComponentDropCheckpoint[] pendingBoardingComponents;
         public int battleTerrain;
         public string[] chartRandomOrder, chartRandomEncounterIds;
         public int chartRandomIndex, chartCompletedRemovedNodes;
+        // Missing in old checkpoints keeps their original four-event schedule.
+        public int chartRandomVersion;
         public float nextChartRandomDistance;
         public CoreSeaChartProgress seaChartProgress;
         public CoreTreasureProgress treasureProgress;
@@ -90,31 +114,44 @@ namespace ShatteredSail.Core.Gameplay
         public CoreVoyageCheckpoint CaptureVoyageCheckpoint()
         {
             if (!CanCaptureVoyageCheckpoint) throw new InvalidOperationException("只能在航行或事件选择时保存当前航程。");
+            CoreBoardingComponentDropCheckpoint[] boardingDrops = CaptureBoardingComponentDrops();
             return new CoreVoyageCheckpoint
             {
                 phase = (int)Phase, routeIndex = SelectedRouteIndex, shipIndex = SelectedShipIndex,
                 mapGeometryVersion = Map.GeometryVersion,
+                shipRosterVersion = shipRosterVersion, routeBossId = voyageRouteBossId,
+                currentRouteBossDefeated = currentRouteBossDefeated,
                 selectedSeed = SelectedSeed, selectedDestinationPort = SelectedDestinationPort, mapSeed = Map.Seed, mapHash = Map.Hash,
                 departurePort = Map.DepartureName, destinationPort = Map.DestinationName,
                 profileGold = ProfileGold.ToString(CultureInfo.InvariantCulture),
                 selectedChartSeed = selectedSeaChart?.Seed ?? string.Empty, activeChartSeed = activeSeaChart?.Seed ?? string.Empty,
                 voyageRandomState = voyageRandom.State, bossTreasureRandomState = bossTreasureRandom.State,
                 hasEncounterRandom = encounterRandom != null, encounterRandomState = encounterRandom?.State ?? 0,
-                x = Position.X, y = Position.Y, heading = (int)Heading, plannedDistance = PlannedDistanceNm,
+                x = Position.X, y = Position.Y, heading = (int)Heading,
+                plannedDistance = RequestedDistanceNm,
+                distancePlanVersion = 1, useDefaultDistance = usesDefaultDistance,
                 hasDirectTarget = HasDirectCourseTarget,
                 targetX = HasDirectCourseTarget ? DirectCourseTarget.X : 0f,
                 targetY = HasDirectCourseTarget ? DirectCourseTarget.Y : 0f,
                 totalDistance = TotalDistanceNm, totalHours = TotalHours, elapsedGameHours = ElapsedGameHours, rationProgress = rationProgress,
+                sailingBoostHoursRemaining = sailingBoostHoursRemaining,
+                surveyBoostHoursRemaining = surveyBoostHoursRemaining,
+                explorationDiscoveries = explorationDiscoveries.OrderBy(id => id, StringComparer.Ordinal).ToArray(),
+                treasureExpeditionMarks = treasureExpeditionMarks.OrderBy(id => id, StringComparer.Ordinal).ToArray(),
+                treasureExpeditionCredit = treasureExpeditionCredit, treasureExpeditionHeat = treasureExpeditionHeat,
+                treasureExpeditionResonance = treasureExpeditionResonance,
                 hull = Hull, morale = Morale, lastVoyageExplorationCoverage = lastVoyageExplorationCoverage,
                 hasLastVoyageExplorationCoverage = hasLastVoyageExplorationCoverage,
                 ordinaryCrew = selectedOrdinaryCrew, specialCrew = selectedSpecialCrewCount,
                 navigator = hasNavigator, carpenter = hasCarpenter, doctor = hasDoctor, gunner = hasGunner, cook = hasCook, diver = hasDiver,
+                navigatorCount = NavigatorCount,
                 componentHull = componentHullBonus, componentArmor = componentArmorBonus, componentFirepower = componentFirepowerBonus,
                 componentSpeed = componentSpeedBonus, componentVision = componentVisionBonus,
                 contextHull = componentContextHullBonus, contextArmor = componentContextArmorBonus, contextFirepower = componentContextFirepowerBonus,
                 contextSpeed = componentContextSpeedBonus, contextVision = componentContextVisionBonus, contextRations = componentContextRationMultiplier,
                 battleBowQuality = battleBowQuality, battleHullQuality = battleHullQuality,
                 cargo = CaptureCheckpointCargo(Cargo), departureCargo = CaptureCheckpointCargo(departureCargo),
+                shipPortProgress = CaptureShipPortProgress(),
                 exploredCells = (bool[])Map.ExploredCells.Clone(),
                 voyageExploredCells = (bool[])Map.VoyageExploredCells.Clone(),
                 chartExploredCells = Map.CaptureChartExploration(),
@@ -123,15 +160,19 @@ namespace ShatteredSail.Core.Gameplay
                     visited = n.Visited, skipped = n.Skipped }).ToArray(),
                 activeNodeId = activeNode?.Id ?? -1, activeEncounterId = ActiveEncounter?.Id ?? string.Empty,
                 bossDefeated = bossDefeated, randomAmbushOccurred = randomAmbushOccurred, lastBattleWasCaptured = LastBattleWasCaptured,
+                destinationPortDiscovered = DestinationPortDiscovered, destinationGuidanceVersion = 1,
                 lastBattleRetreated = LastBattleRetreated, battleTerrain = (int)BattleTerrain,
                 pendingBoardingComponentDrop = pendingBoardingComponentDrop, pendingBoardingComponentSlot = pendingBoardingComponentSlot,
+                boardingLootVersion = 1, nextBoardingComponentSequence = boardingDrops.Length == 0 ? nextBoardingComponentSequence :
+                    Math.Max(nextBoardingComponentSequence, boardingDrops[boardingDrops.Length - 1].sequence + 1),
+                pendingBoardingComponents = boardingDrops,
                 chartRandomOrder = (string[])chartRandomOrder.Clone(), chartRandomEncounterIds = chartRandomEncounters.Select(e => e.Id).ToArray(),
-                chartRandomIndex = chartRandomIndex, chartCompletedRemovedNodes = seaChartCompletedRemovedNodes,
+                chartRandomIndex = chartRandomIndex, chartRandomVersion = chartRandomVersion, chartCompletedRemovedNodes = seaChartCompletedRemovedNodes,
                 nextChartRandomDistance = nextChartRandomDistance, seaChartProgress = CaptureSeaChartProgress(), treasureProgress = CaptureTreasureProgress(),
                 isTreasureVoyage = IsTreasureVoyage,
                 activeTreasureMap = ActiveTreasureMap == null ? null : new CoreTreasureMapSave { id = ActiveTreasureMap.Id,
                     seed = ActiveTreasureMap.Seed, rankId = ActiveTreasureMap.RankId,
-                    mapGeometryVersion = ActiveTreasureMap.MapGeometryVersion },
+                    mapGeometryVersion = ActiveTreasureMap.MapGeometryVersion, contentVersion = ActiveTreasureMap.ContentVersion },
                 treasureClues = TreasureClues, voyageTreasureFragments = voyageTreasureFragments, treasureAdventureCompleted = TreasureAdventureCompleted,
                 guidedTutorialLeg = GuidedTutorialLeg, guidedTutorialCompletedIds = guidedTutorialCompletedIds.ToArray(),
                 guidedTutorialLayoutVersion = guidedTutorialLayoutVersion,
@@ -153,6 +194,14 @@ namespace ShatteredSail.Core.Gameplay
             reason = "航程存档损坏或版本不兼容，原存档已保留。";
             if (Phase != CoreDemoPhase.Port) { reason = "只能在载入游戏时恢复航程。"; return false; }
             if (!TryBuildCheckpointSession(checkpoint, out CoreVoyageSession restored)) return false;
+            // Legacy checkpoints did not contain fleet locations. Keep the matching
+            // profile's inactive berths, and place its sailing flagship at departure.
+            if (!HasShipPortProgress(checkpoint.shipPortProgress))
+            {
+                restored.shipPorts.Clear();
+                foreach (var pair in shipPorts) restored.shipPorts.Add(pair.Key, pair.Value);
+                restored.shipPorts[restored.SelectedShipIndex] = restored.CurrentPort;
+            }
             ApplyCheckpointSession(restored);
             reason = string.Empty;
             return true;
@@ -161,7 +210,8 @@ namespace ShatteredSail.Core.Gameplay
         private static bool TryBuildCheckpointSession(CoreVoyageCheckpoint c, out CoreVoyageSession s)
         {
             s = null;
-            if (c == null || !ValidMapGeometryVersion(c.mapGeometryVersion)) return false;
+            if (c == null || !ValidMapGeometryVersion(c.mapGeometryVersion) || c.shipRosterVersion < 0 || c.shipRosterVersion > 1 ||
+                c.destinationGuidanceVersion < 0 || c.destinationGuidanceVersion > 1) return false;
             var geometry = new CoreVoyageMap(c.mapGeometryVersion);
             if (c == null || c.version != 1 || (c.phase != (int)CoreDemoPhase.Sailing && c.phase != (int)CoreDemoPhase.Encounter) ||
                 c.routeIndex < 0 || c.routeIndex >= routes.Count || c.shipIndex < 0 || c.shipIndex >= ships.Count ||
@@ -170,14 +220,16 @@ namespace ShatteredSail.Core.Gameplay
                 string.IsNullOrWhiteSpace(c.selectedSeed) || c.selectedSeed.Length > 512 || string.IsNullOrWhiteSpace(c.mapSeed) || c.mapSeed.Length > 512 ||
                 !decimal.TryParse(c.profileGold, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal gold) || gold < 0 || gold > int.MaxValue ||
                 !CheckpointPoint(c.x, c.y, geometry) || !CheckpointPoint(c.targetX, c.targetY, geometry) || c.heading < 0 || c.heading > 7 ||
-                c.plannedDistance < MinimumDistanceNm || c.plannedDistance > MaximumDistanceNm ||
+                c.distancePlanVersion < 0 || c.distancePlanVersion > 1 || c.plannedDistance < MinimumDistanceNm ||
+                (c.distancePlanVersion == 0 && c.plannedDistance > 180) ||
                 !CheckpointFinite(c.totalDistance) || c.totalDistance < 0 || !IsValidGameDuration(c.totalHours) ||
                 !IsValidGameDuration(c.elapsedGameHours) || c.elapsedGameHours >= GameCalendarCycleHours ||
-                !IsValidGameDuration(c.rationProgress) ||
+                !IsValidGameDuration(c.rationProgress) || !CheckpointExploration(c) ||
                 c.morale < 0 || c.morale > MaxMorale || !CheckpointFinite(c.lastVoyageExplorationCoverage) ||
                 c.lastVoyageExplorationCoverage < 0f || c.lastVoyageExplorationCoverage > 100f ||
                 c.hull <= 0 || c.ordinaryCrew < 0 || c.ordinaryCrew > ships[c.shipIndex].CrewCount ||
                 c.specialCrew < 0 || c.specialCrew > ships[c.shipIndex].CrewCount || c.guidedTutorialLeg < 0 || c.guidedTutorialLeg > CoreGuidedTutorialContent.BossVoyageLeg ||
+                c.navigatorCount < 0 || c.navigatorCount > ships[c.shipIndex].CrewCount || c.navigatorCount > 0 && !c.navigator ||
                 c.guidedTutorialLayoutVersion < 0 || c.guidedTutorialLayoutVersion > 1 ||
                 c.nodes == null || c.nodes.Length > 256 || c.exploredCells == null || c.exploredCells.Length != geometry.Columns * geometry.Rows ||
                 c.voyageExploredCells != null && c.voyageExploredCells.Length != 0 && c.voyageExploredCells.Length != geometry.Columns * geometry.Rows ||
@@ -185,9 +237,11 @@ namespace ShatteredSail.Core.Gameplay
                 c.logs == null || c.logs.Length > 256 || c.logs.Any(log => log == null || log.Length > 8192) ||
                 c.guidedTutorialCompletedIds == null || c.guidedTutorialCompletedIds.Length > 16 ||
                 c.chartRandomOrder == null || c.chartRandomEncounterIds == null || c.chartRandomOrder.Length != c.chartRandomEncounterIds.Length ||
-                c.chartRandomOrder.Length > SeaChartRandomTemplates.Length || c.chartRandomIndex < 0 || c.chartRandomIndex > c.chartRandomOrder.Length ||
+                c.chartRandomVersion < 0 || c.chartRandomVersion > 2 ||
+                c.chartRandomOrder.Length > 64 || c.chartRandomIndex < 0 || c.chartRandomIndex > c.chartRandomOrder.Length ||
                 !CheckpointFinite(c.nextChartRandomDistance) || c.nextChartRandomDistance < 0 || c.chartCompletedRemovedNodes < 0 || c.chartCompletedRemovedNodes > 256 ||
                 c.treasureClues < 0 || c.voyageTreasureFragments < 0 || c.treasureAdventureCompleted ||
+                c.currentRouteBossDefeated && !c.bossDefeated ||
                 c.pendingBoardingComponentDrop && (c.pendingBoardingComponentSlot < 0 || c.pendingBoardingComponentSlot >= ComponentSlotCountForLoot()) ||
                 !c.pendingBoardingComponentDrop && c.pendingBoardingComponentSlot != -1 ||
                 !Enum.IsDefined(typeof(SeaTerrainType), c.battleTerrain) || !CheckpointBonuses(c) ||
@@ -196,7 +250,12 @@ namespace ShatteredSail.Core.Gameplay
 
             var candidate = new CoreVoyageSession();
             candidate.SelectedRouteIndex = c.routeIndex; candidate.SelectedShipIndex = c.shipIndex;
+            candidate.shipRosterVersion = c.shipRosterVersion;
+            candidate.bossDefeated = c.bossDefeated;
+            candidate.currentRouteBossDefeated = c.shipRosterVersion == 0 ? c.bossDefeated : c.currentRouteBossDefeated;
+            candidate.voyageRouteBossId = c.routeBossId ?? string.Empty;
             candidate.SelectedSeed = c.selectedSeed; candidate.CurrentPort = c.departurePort;
+            if (!candidate.RestoreCheckpointShipPorts(c.shipPortProgress)) return false;
             candidate.SelectedDestinationPort = c.selectedDestinationPort;
             candidate.ProfileGold = gold; candidate.GuidedTutorialLeg = c.guidedTutorialLeg;
             candidate.guidedTutorialLayoutVersion = c.guidedTutorialLayoutVersion;
@@ -205,6 +264,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!string.IsNullOrEmpty(c.selectedChartSeed) && !TryParseChartSeed(c.selectedChartSeed, out candidate.selectedSeaChart)) return false;
             if (!string.IsNullOrEmpty(c.activeChartSeed) && !TryParseChartSeed(c.activeChartSeed, out candidate.activeSeaChart)) return false;
             if (candidate.activeSeaChart != null && (!candidate.activeSeaChart.ContainsPort(c.departurePort) ||
+                candidate.activeSeaChart.RouteIndex != c.routeIndex ||
                 candidate.activeSeaChart.OtherPort(c.departurePort) != c.destinationPort || candidate.activeSeaChart.GeographyHash != c.mapHash ||
                 candidate.activeSeaChart.MapGeometryVersion != c.mapGeometryVersion ||
                 candidate.ActiveSeaChartState == null)) return false;
@@ -220,8 +280,8 @@ namespace ShatteredSail.Core.Gameplay
                     !candidate.issuedTreasureSeeds.Contains(map.seed)) return false;
                 CoreUsedTreasureMapRecord archived = candidate.usedTreasureMaps.Find(m => m.Seed == map.seed);
                 if (archived?.Rank != null && (archived.Id != map.id || archived.RankId != map.rankId ||
-                    archived.MapGeometryVersion != map.mapGeometryVersion)) return false;
-                candidate.ActiveTreasureMap = new CoreTreasureMapRecord(map.id, map.seed, map.rankId, map.mapGeometryVersion);
+                    archived.MapGeometryVersion != map.mapGeometryVersion || archived.ContentVersion != map.contentVersion)) return false;
+                candidate.ActiveTreasureMap = new CoreTreasureMapRecord(map.id, map.seed, map.rankId, map.mapGeometryVersion, map.contentVersion);
                 candidate.Map = candidate.GenerateTreasureMap(candidate.ActiveTreasureMap, c.departurePort);
             }
             else if (c.guidedTutorialLeg > 0)
@@ -231,6 +291,14 @@ namespace ShatteredSail.Core.Gameplay
             else
                 candidate.Map = candidate.GenerateMap(routes[c.routeIndex], c.mapSeed, c.departurePort, c.destinationPort,
                     geometryVersion: c.mapGeometryVersion);
+            if (!candidate.ValidateTreasureExpeditionCheckpoint(c)) return false;
+            if (!c.isTreasureVoyage && c.guidedTutorialLeg == 0 && candidate.selectedSeaChart?.TutorialWaters != true && c.shipRosterVersion > 0)
+            {
+                CoreRouteBoss savedBoss = CoreRouteBossCatalog.Find(c.routeBossId);
+                if (savedBoss == null || savedBoss.RouteId != routes[c.routeIndex].Id) return false;
+                AssignRouteBossEncounter(candidate.Map, savedBoss);
+            }
+            else if (!string.IsNullOrEmpty(c.routeBossId)) return false;
             if (candidate.Map.GeometryVersion != c.mapGeometryVersion || candidate.Map.Hash != c.mapHash ||
                 candidate.Map.Seed != c.mapSeed || candidate.Map.DestinationName != c.destinationPort) return false;
             if (candidate.ActiveSeaChartState != null) candidate.RemoveDefeatedSeaChartBosses(candidate.ActiveSeaChartState);
@@ -254,14 +322,26 @@ namespace ShatteredSail.Core.Gameplay
             candidate.UpdateActiveUsedTreasureMapCoverage();
             candidate.Cargo = cargo; candidate.departureCargo = departure;
             candidate.Position = new VoyagePoint(c.x, c.y); candidate.Heading = (SailingDirection)c.heading;
-            candidate.PlannedDistanceNm = c.plannedDistance; candidate.HasDirectCourseTarget = c.hasDirectTarget;
+            candidate.requestedDistanceNm = c.plannedDistance;
+            candidate.usesDefaultDistance = c.distancePlanVersion > 0 && c.useDefaultDistance;
+            candidate.HasDirectCourseTarget = c.hasDirectTarget;
             candidate.DirectCourseTarget = new VoyagePoint(c.targetX, c.targetY);
             candidate.TotalDistanceNm = c.totalDistance; candidate.TotalHours = c.totalHours; candidate.ElapsedGameHours = c.elapsedGameHours;
             candidate.rationProgress = c.rationProgress; candidate.Hull = c.hull; candidate.Morale = c.morale;
+            candidate.sailingBoostHoursRemaining = c.sailingBoostHoursRemaining;
+            candidate.surveyBoostHoursRemaining = c.surveyBoostHoursRemaining;
+            candidate.explorationDiscoveries.Clear();
+            candidate.explorationDiscoveries.UnionWith(c.explorationDiscoveries ?? Array.Empty<string>());
+            candidate.treasureExpeditionMarks.Clear();
+            candidate.treasureExpeditionMarks.UnionWith(c.treasureExpeditionMarks ?? Array.Empty<string>());
+            candidate.treasureExpeditionCredit = c.treasureExpeditionCredit;
+            candidate.treasureExpeditionHeat = c.treasureExpeditionHeat;
+            candidate.treasureExpeditionResonance = c.treasureExpeditionResonance;
             candidate.lastVoyageExplorationCoverage = c.lastVoyageExplorationCoverage;
             candidate.hasLastVoyageExplorationCoverage = c.hasLastVoyageExplorationCoverage;
             candidate.selectedOrdinaryCrew = c.ordinaryCrew; candidate.selectedSpecialCrewCount = c.specialCrew;
             candidate.hasNavigator = c.navigator; candidate.hasCarpenter = c.carpenter; candidate.hasDoctor = c.doctor;
+            candidate.navigatorCount = c.navigatorCount > 0 ? c.navigatorCount : c.navigator ? 1 : 0;
             candidate.hasGunner = c.gunner; candidate.hasCook = c.cook; candidate.hasDiver = c.diver;
             candidate.componentHullBonus = c.componentHull; candidate.componentArmorBonus = c.componentArmor; candidate.componentFirepowerBonus = c.componentFirepower;
             candidate.componentSpeedBonus = c.componentSpeed; candidate.componentVisionBonus = c.componentVision;
@@ -273,11 +353,13 @@ namespace ShatteredSail.Core.Gameplay
             candidate.voyageRandom = new Mulberry32Random(c.voyageRandomState); candidate.bossTreasureRandom = new Mulberry32Random(c.bossTreasureRandomState);
             candidate.encounterRandom = c.hasEncounterRandom ? new Mulberry32Random(c.encounterRandomState) : null;
             candidate.chartRandomOrder = (string[])c.chartRandomOrder.Clone();
+            candidate.chartRandomVersion = c.chartRandomVersion;
             candidate.chartRandomEncounters = new CoreEncounter[c.chartRandomOrder.Length];
+            string[] allowedRandom = c.chartRandomVersion == 0 ? SeaChartRandomTemplates : SeaChartRandomPool(c.routeIndex, c.chartRandomVersion);
             if (c.chartRandomOrder.Distinct().Count() != c.chartRandomOrder.Length ||
                 (candidate.activeSeaChart != null && c.guidedTutorialLeg == 0) != c.hasEncounterRandom ||
-                c.hasEncounterRandom && c.chartRandomOrder.Length != SeaChartRandomTemplates.Length ||
-                !c.hasEncounterRandom && c.chartRandomOrder.Length != 0) return false;
+                c.hasEncounterRandom && (c.chartRandomOrder.Length != allowedRandom.Length || c.chartRandomOrder.Any(id => !allowedRandom.Contains(id))) ||
+                !c.hasEncounterRandom && (c.chartRandomOrder.Length != 0 || c.chartRandomVersion != 0)) return false;
             for (int i = 0; i < c.chartRandomOrder.Length; i++)
             {
                 string key = c.chartRandomOrder[i], id = c.chartRandomEncounterIds[i];
@@ -313,7 +395,7 @@ namespace ShatteredSail.Core.Gameplay
             }
             candidate.bossDefeated = c.bossDefeated; candidate.randomAmbushOccurred = c.randomAmbushOccurred;
             candidate.LastBattleWasCaptured = c.lastBattleWasCaptured; candidate.LastBattleRetreated = c.lastBattleRetreated;
-            candidate.pendingBoardingComponentDrop = c.pendingBoardingComponentDrop; candidate.pendingBoardingComponentSlot = c.pendingBoardingComponentSlot;
+            if (!candidate.RestoreBoardingComponentDrops(c)) return false;
             candidate.BattleTerrain = (SeaTerrainType)c.battleTerrain;
             candidate.TreasureClues = c.treasureClues; candidate.voyageTreasureFragments = c.voyageTreasureFragments;
             candidate.TreasureAdventureCompleted = c.treasureAdventureCompleted;
@@ -327,6 +409,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!RestoreCheckpointCards(candidate, c)) return false;
             candidate.logEntries.Clear(); candidate.logEntries.AddRange(c.logs);
             candidate.Phase = (CoreDemoPhase)c.phase;
+            candidate.RestoreDestinationPortGuidance(c.destinationPortDiscovered, c.destinationGuidanceVersion == 0);
             s = candidate;
             return true;
         }
@@ -337,15 +420,27 @@ namespace ShatteredSail.Core.Gameplay
             // collection records and presentation inventories stay with the loaded profile.
             SelectedRouteIndex = s.SelectedRouteIndex; SelectedShipIndex = s.SelectedShipIndex; SelectedSeed = s.SelectedSeed;
             CurrentPort = s.CurrentPort; SelectedDestinationPort = s.SelectedDestinationPort; ProfileGold = s.ProfileGold;
+            shipPorts.Clear(); foreach (var pair in s.shipPorts) shipPorts.Add(pair.Key, pair.Value);
             Map = s.Map; Cargo = s.Cargo; departureCargo = s.departureCargo;
-            Position = s.Position; Heading = s.Heading; PlannedDistanceNm = s.PlannedDistanceNm;
+            shipRosterVersion = s.shipRosterVersion; voyageRouteBossId = s.voyageRouteBossId;
+            currentRouteBossDefeated = s.currentRouteBossDefeated;
+            Position = s.Position; Heading = s.Heading;
+            requestedDistanceNm = s.requestedDistanceNm; usesDefaultDistance = s.usesDefaultDistance;
             HasDirectCourseTarget = s.HasDirectCourseTarget; DirectCourseTarget = s.DirectCourseTarget;
             TotalDistanceNm = s.TotalDistanceNm; TotalHours = s.TotalHours; ElapsedGameHours = s.ElapsedGameHours;
             rationProgress = s.rationProgress; Hull = s.Hull; Morale = s.Morale;
+            sailingBoostHoursRemaining = s.sailingBoostHoursRemaining;
+            surveyBoostHoursRemaining = s.surveyBoostHoursRemaining;
+            CopyCheckpointSet(explorationDiscoveries, s.explorationDiscoveries);
+            CopyCheckpointSet(treasureExpeditionMarks, s.treasureExpeditionMarks);
+            treasureExpeditionCredit = s.treasureExpeditionCredit;
+            treasureExpeditionHeat = s.treasureExpeditionHeat;
+            treasureExpeditionResonance = s.treasureExpeditionResonance;
             lastVoyageExplorationCoverage = s.lastVoyageExplorationCoverage;
             hasLastVoyageExplorationCoverage = s.hasLastVoyageExplorationCoverage;
             selectedOrdinaryCrew = s.selectedOrdinaryCrew; selectedSpecialCrewCount = s.selectedSpecialCrewCount;
             hasNavigator = s.hasNavigator; hasCarpenter = s.hasCarpenter; hasDoctor = s.hasDoctor; hasGunner = s.hasGunner; hasCook = s.hasCook; hasDiver = s.hasDiver;
+            navigatorCount = s.navigatorCount;
             componentHullBonus = s.componentHullBonus; componentArmorBonus = s.componentArmorBonus; componentFirepowerBonus = s.componentFirepowerBonus;
             componentSpeedBonus = s.componentSpeedBonus; componentVisionBonus = s.componentVisionBonus;
             componentContextHullBonus = s.componentContextHullBonus; componentContextArmorBonus = s.componentContextArmorBonus; componentContextFirepowerBonus = s.componentContextFirepowerBonus;
@@ -355,13 +450,16 @@ namespace ShatteredSail.Core.Gameplay
             activeNode = s.activeNode; ActiveEncounter = s.ActiveEncounter; Battle = null; Settlement = null;
             pendingBattleReward = null; pendingSeaChartClaim = false; pendingSeaChartRewardMultiplier = 1d;
             bossDefeated = s.bossDefeated; randomAmbushOccurred = s.randomAmbushOccurred;
+            DestinationPortDiscovered = s.DestinationPortDiscovered;
             LastBattleWasCaptured = s.LastBattleWasCaptured; LastBattleRetreated = s.LastBattleRetreated; BattleTerrain = s.BattleTerrain;
-            pendingBoardingComponentDrop = s.pendingBoardingComponentDrop; pendingBoardingComponentSlot = s.pendingBoardingComponentSlot;
+            CopyBoardingComponentDrops(s);
             selectedSeaChart = s.selectedSeaChart; activeSeaChart = s.activeSeaChart;
             seaChartStates.Clear(); foreach (var pair in s.seaChartStates) seaChartStates.Add(pair.Key, pair.Value);
+            routeRandomHistory.Clear(); foreach (var pair in s.routeRandomHistory) routeRandomHistory.Add(pair.Key, new List<string>(pair.Value));
             seaChartAliases.Clear(); seaChartAliases.AddRange(s.seaChartAliases); TouchSeaChartProgress();
             chartRandomOrder = s.chartRandomOrder; chartRandomEncounters = s.chartRandomEncounters;
-            chartRandomIndex = s.chartRandomIndex; nextChartRandomDistance = s.nextChartRandomDistance; seaChartCompletedRemovedNodes = s.seaChartCompletedRemovedNodes;
+            chartRandomIndex = s.chartRandomIndex; chartRandomVersion = s.chartRandomVersion;
+            nextChartRandomDistance = s.nextChartRandomDistance; seaChartCompletedRemovedNodes = s.seaChartCompletedRemovedNodes;
             PirateExperience = s.PirateExperience; TreasureFragments = s.TreasureFragments; MoonlitPityCount = s.MoonlitPityCount;
             identifiedTreasureFragments.Clear(); foreach (var pair in s.identifiedTreasureFragments) identifiedTreasureFragments.Add(pair.Key, pair.Value);
             treasureIdentificationSeed = s.treasureIdentificationSeed; treasureIdentificationSequence = s.treasureIdentificationSequence;
@@ -400,7 +498,8 @@ namespace ShatteredSail.Core.Gameplay
                 int[] saved = c.battleDecks[i].cards;
                 // Version 1 saves used 8–10 base cards and up to three copies.
                 // Accept that old shape without accepting corrupt card membership.
-                if (!IsValidBaseDeck(saved, stage) && !IsValidBaseDeck(saved, stage, 8, 10, 3)) return false;
+                if (!IsValidBaseDeck(saved, stage, legacyDuplicateIdentities: true) &&
+                    !IsValidBaseDeck(saved, stage, 8, 10, 3, legacyDuplicateIdentities: true)) return false;
                 List<int> restored = s.BuildRestoredBattleDeck(stage, saved);
                 if (!IsValidBaseDeck(restored, stage)) return false;
                 s.battleDecks[i].Clear(); s.battleDecks[i].AddRange(restored);
@@ -410,11 +509,14 @@ namespace ShatteredSail.Core.Gameplay
                 if (item == null || !IsSpecialBattleCard(item.id) || item.value < 0 || s.specialCardExperience.ContainsKey(item.id)) return false;
                 s.specialCardExperience.Add(item.id, item.value);
             }
+            var savedUpgradeIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (CoreVoyageValueCheckpoint item in c.cardUpgradeLevels)
             {
-                if (item == null || item.id == null || !cardLibrary.Any(card => card.Id == item.id && card.AllowedStages != NavalBattleStages.None) ||
-                    IsSpecialBattleCard(item.id) || item.value < 0 || item.value > CoreBattleUpgradeBalance.MaximumLevel || s.cardUpgradeLevels.ContainsKey(item.id)) return false;
-                s.cardUpgradeLevels.Add(item.id, item.value);
+                string id = CoreBattleCardAliases.CanonicalId(item?.id);
+                if (item == null || id == null || !cardLibrary.Any(card => card.Id == id && card.AllowedStages != NavalBattleStages.None) ||
+                    IsSpecialBattleCard(id) || item.value < 0 || item.value > CoreBattleUpgradeBalance.MaximumLevel || !savedUpgradeIds.Add(item.id)) return false;
+                s.cardUpgradeLevels.TryGetValue(id, out int previous);
+                s.cardUpgradeLevels[id] = Math.Max(previous, item.value);
             }
             s.voyageSpecialCards.UnionWith(c.voyageSpecialCards); s.acquiredSpecialCards.UnionWith(c.acquiredSpecialCards);
             s.activeSpecialCrewIds.UnionWith(c.activeSpecialCrewIds); s.activeSpecialComponentIds.UnionWith(c.activeSpecialComponentIds);
@@ -422,6 +524,13 @@ namespace ShatteredSail.Core.Gameplay
             s.specialCardDistanceRemainder = c.specialCardDistanceRemainder;
             return true;
         }
+
+        private static bool CheckpointExploration(CoreVoyageCheckpoint c) =>
+            IsValidExplorationDuration(c.sailingBoostHoursRemaining) &&
+            IsValidExplorationDuration(c.surveyBoostHoursRemaining) &&
+            (c.explorationDiscoveries == null || c.explorationDiscoveries.Length <= 16 &&
+                c.explorationDiscoveries.All(IsKnownExplorationDiscovery) &&
+                c.explorationDiscoveries.Distinct(StringComparer.Ordinal).Count() == c.explorationDiscoveries.Length);
 
         private static bool CheckpointBonuses(CoreVoyageCheckpoint c) =>
             new[] { c.componentHull, c.componentArmor, c.componentFirepower, c.contextHull, c.contextArmor, c.contextFirepower }.All(value => value >= -100000 && value <= 100000) &&
@@ -439,13 +548,15 @@ namespace ShatteredSail.Core.Gameplay
             p.completedSeeds != null && p.issuedSeeds != null && p.completedSeeds.All(ValidCheckpointSeed) && p.issuedSeeds.All(ValidCheckpointSeed) &&
             !p.maps.Any(m => p.completedSeeds.Contains(m.seed));
         private static bool ValidCheckpointUsedMap(CoreUsedTreasureMapSave m) => m != null && ValidCheckpointSeed(m.id) && ValidCheckpointSeed(m.seed) &&
-            ValidMapGeometryVersion(m.mapGeometryVersion) &&
+            ValidMapGeometryVersion(m.mapGeometryVersion) && ValidTreasureContentVersion(m.contentVersion) &&
             (string.IsNullOrEmpty(m.rankId) || CoreTreasureHuntCatalog.FindRank(m.rankId) != null) &&
             (string.IsNullOrEmpty(m.departurePort) || portNames.Contains(m.departurePort)) &&
             CheckpointFinite(m.explorationCoverage) && m.explorationCoverage >= 0f && m.explorationCoverage <= 100f;
         private static bool ValidCheckpointMap(CoreTreasureMapSave m) => m != null && ValidCheckpointSeed(m.id) && ValidCheckpointSeed(m.seed) &&
-            ValidMapGeometryVersion(m.mapGeometryVersion) && CoreTreasureHuntCatalog.FindRank(m.rankId) != null;
-        private static bool ValidMapGeometryVersion(int version) => version == 0 || version == 1;
+            ValidMapGeometryVersion(m.mapGeometryVersion) && ValidTreasureContentVersion(m.contentVersion) &&
+            CoreTreasureHuntCatalog.FindRank(m.rankId) != null;
+        private static bool ValidMapGeometryVersion(int version) => version >= 0 && version <= 3;
+        private static bool ValidTreasureContentVersion(int version) => version >= 0 && version <= 1;
         private static bool ValidCheckpointSeed(string value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 512;
         private static bool CheckpointFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         private static bool CheckpointPoint(float x, float y, CoreVoyageMap map) => CheckpointFinite(x) && CheckpointFinite(y) &&

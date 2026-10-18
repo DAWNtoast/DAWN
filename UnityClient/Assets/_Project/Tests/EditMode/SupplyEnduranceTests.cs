@@ -76,7 +76,12 @@ namespace ShatteredSail.Core.Tests
         [TestCase(true)]
         public void NoCrew_RequiresNoRationsEvenWithAnEmptyHold(bool empty)
         {
-            var session = Voyage(crew: 0);
+            var session = Voyage();
+            // Older in-progress voyages can have zero crew even though new departures cannot.
+            CoreVoyageCheckpoint checkpoint = session.CaptureVoyageCheckpoint();
+            checkpoint.ordinaryCrew = 0;
+            session = new CoreVoyageSession();
+            Assert.That(session.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
             if (empty) session.Cargo.Water = session.Cargo.Food = 0;
             Assert.That(session.WaterSupplyHours, Is.EqualTo(double.PositiveInfinity));
             Assert.That(session.FoodSupplyHours, Is.EqualTo(double.PositiveInfinity));

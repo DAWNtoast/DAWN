@@ -209,6 +209,16 @@ namespace ShatteredSail.Presentation
             SaveSeaChartProgress();
         }
 
+        private IReadOnlyList<int> RecordedDepartureChartLocationIds()
+        {
+            if (session == null || session.SelectedTreasureMap != null || tutorialActive || session.SelectedChartDefinition == null)
+                return Array.Empty<int>();
+            CoreSeaChartDefinition selected = session.SelectedChartDefinition;
+            DepartureChartRecord chart = recordedDepartureCharts.Find(record => record.seed == selected.Seed &&
+                record.mapGeometryVersion == selected.MapGeometryVersion);
+            return chart?.revealedLocationIds ?? Array.Empty<int>();
+        }
+
         private void ApplyRecordedSeaChartKnowledge()
         {
             if (session == null || session.Map == null || session.IsTreasureVoyage || tutorialActive) return;

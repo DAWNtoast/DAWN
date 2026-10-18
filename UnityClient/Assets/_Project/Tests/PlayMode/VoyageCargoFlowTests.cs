@@ -245,6 +245,10 @@ namespace ShatteredSail.Presentation.Tests
             session.Cargo.Lantern = 0;
             session.StartVoyage();
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            // Match the real departure callback: commit the travel-cash transfer
+            // before taking the port baseline used by discard/resume checks.
+            typeof(CoreGameplayDemoController).GetMethod("SaveProgress", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
             RenderVoyageCargoFixture(controller);
             yield return WaitForItemIconView(controller);
         }
@@ -329,7 +333,10 @@ namespace ShatteredSail.Presentation.Tests
             var grid = GameObject.Find("Voyage Cargo List").GetComponent<RectTransform>();
             Assert.That(VoyageCargoBounds(sheet, details).Overlaps(VoyageCargoBounds(sheet, grid)), Is.False);
             Image quantityBacking = GameObject.Find("Voyage Cargo Quantity").GetComponent<Image>();
-            Assert.That(quantityBacking.color.a, Is.LessThan(.35f), "The quantity field lets the parchment texture show through.");
+            Assert.That(quantityBacking.color, Is.EqualTo(Color.white), "The quantity field uses the market's clean ivory control face.");
+            Assert.That(quantityBacking.sprite, Is.Not.Null);
+            Assert.That(quantityBacking.sprite.name, Is.EqualTo("Market Light Control"));
+            Assert.That(quantityBacking.type, Is.EqualTo(Image.Type.Sliced));
         }
 
         private static Rect VoyageCargoBounds(RectTransform parent, RectTransform child)

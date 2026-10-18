@@ -31,12 +31,16 @@ namespace ShatteredSail.Core.Tests
             new Scenario("boss_route_shattered_sail_reef", 0),
             new Scenario("boss_route_golden_tide_trade", 1),
             new Scenario("boss_route_moon_tide_ruins", 2),
+            new Scenario("boss_route_shattered_sail_reef_tide", 0),
+            new Scenario("boss_route_golden_tide_trade_thunder", 1),
+            new Scenario("boss_route_moon_tide_ruins_arcane", 2),
             new Scenario(CoreBattleBalance.TreasureBossId, 2),
             new Scenario("legendary_pirate_red_widow", 2),
             new Scenario("legendary_pirate_thunder_crown", 2),
             new Scenario("legendary_pirate_iron_oath", 2),
             new Scenario("legendary_pirate_ember_ark", 2),
             new Scenario("legendary_pirate_tide_requiem", 2),
+            new Scenario("legendary_pirate_last_horizon", 2),
         });
         public sealed class Result
         {
@@ -106,7 +110,7 @@ namespace ShatteredSail.Core.Tests
                 SetDeck(session, NavalBattleStage.Preparation,
                     "card_deck_polish", "card_deck_polish", "card_load_shot", "card_load_shot",
                     "card_full_sail_turn", "card_full_sail_turn", "card_approach", "card_approach",
-                    "card_brace", "card_parallel_course");
+                    "card_brace", "card_tactical_draw");
                 SetDeck(session, NavalBattleStage.Naval,
                     "card_chain_shot", "card_chain_shot", "card_load_shot",
                     "card_cannon_barrage", "card_cannon_barrage", "card_deck_polish",
@@ -137,10 +141,20 @@ namespace ShatteredSail.Core.Tests
         public static Result Run(string seed, string enemyId, int upgrade, Tactic tactic, bool focusedDeck) =>
             Run(seed, new Scenario(enemyId, 2), upgrade, tactic, focusedDeck, Loadout.Patrol);
 
+        public static CoreMapNode ScenarioNode(CoreVoyageSession session, string enemyId)
+        {
+            CoreRouteBoss guardian = CoreRouteBossCatalog.Find(enemyId);
+            // A calibration names its opponent explicitly; live departures pick one
+            // of the two guardians. Use the authored definition, never edited stats.
+            if (guardian != null && guardian.RouteId == session.Map.Route.Id)
+                return new CoreMapNode { IsBoss = true, Encounter = guardian.CreateEncounter() };
+            return session.Map.Nodes.Single(value => value.Encounter.Id == enemyId);
+        }
+
         public static Result Run(string seed, Scenario scenario, int upgrade, Tactic tactic, bool focusedDeck, Loadout loadout)
         {
             CoreVoyageSession session = CreateSession(seed, upgrade, focusedDeck, loadout, scenario.Route, scenario.Tutorial);
-            CoreMapNode node = session.Map.Nodes.Single(value => value.Encounter.Id == scenario.EnemyId);
+            CoreMapNode node = ScenarioNode(session, scenario.EnemyId);
             if (StartBattle == null) throw new InvalidOperationException("Core battle entry point missing.");
             // The sole bypass skips navigation. Never rewrite hands, HP, RNG or enemy stats.
             StartBattle.Invoke(session, new object[] { node.Encounter, node.IsBoss });
@@ -217,7 +231,7 @@ namespace ShatteredSail.Core.Tests
                 if (session.Phase == CoreDemoPhase.Battle)
                 {
                     bool ram = session.EnemyWillRam;
-                    bool attack = ram || IncomingAttack(session.GetEnemyIntent()) > 0;
+                    bool attack = ram || IncomingAttack(session) > 0;
                     int hullBefore = session.Hull, crewBefore = battle.PlayerBoardingHealth;
                     if (!session.EndBattleTurn()) throw new InvalidOperationException("Legal end-turn was rejected.");
                     if (attack) result.EnemyAttackTurns++;
@@ -293,7 +307,7 @@ namespace ShatteredSail.Core.Tests
                 }
                 else if (kind == GuidedBossActionKind.EndTurn)
                 {
-                    bool attack = session.EnemyWillRam || IncomingAttack(session.GetEnemyIntent()) > 0;
+                    bool attack = session.EnemyWillRam || IncomingAttack(session) > 0;
                     if (!session.EndBattleTurn()) throw new InvalidOperationException("Authored legal end-turn was rejected.");
                     if (attack) result.EnemyAttackTurns++;
                 }
@@ -344,7 +358,7 @@ namespace ShatteredSail.Core.Tests
             int enemyHealth = boarding ? battle.EnemyBoardingHealth : battle.EnemyHull;
             int health = boarding ? battle.PlayerBoardingHealth : session.Hull;
             int maxHealth = boarding ? battle.PlayerMaxBoardingHealth : session.MaxHull;
-            int attack = IncomingAttack(session.GetEnemyIntent());
+            int attack = IncomingAttack(session);
             int defenseNeed = preparing ? Math.Max(0, 14 - battle.PlayerBlock) : Math.Max(0, attack - battle.PlayerBlock);
             int repair = Math.Min(maxHealth - health, effect.Repair);
             int block = Math.Min(defenseNeed, effect.Block + (card.Block > 0 && !boarding ? battle.PlayerDeckBuff : 0));
@@ -402,8 +416,10 @@ namespace ShatteredSail.Core.Tests
             return score / divisor;
         }
 
-        private static int IncomingAttack(string intent)
+        private static int IncomingAttack(CoreVoyageSession session)
         {
+            if (session.Battle?.Stage == NavalBattleStage.Boarding) return session.EnemyBoardingAttackDamage;
+            string intent = session.GetEnemyIntent();
             Match match = Regex.Match(intent ?? "", "(?:炮击：伤害 |白刃突击：船员伤害 )(\\d+)");
             return match.Success ? int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) : 0;
         }

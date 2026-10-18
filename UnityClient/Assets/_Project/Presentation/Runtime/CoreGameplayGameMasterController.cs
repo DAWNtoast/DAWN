@@ -49,7 +49,7 @@ namespace ShatteredSail.Presentation
         }
 
         private bool CanOpenGameMaster => Application.isPlaying && !tutorialActive && pendingMarketPurchase == null &&
-            session != null && session.Phase == CoreDemoPhase.Port && !DeckBuilderNeedsMoreCards;
+            schoolUnlockNotice == null && session != null && session.Phase == CoreDemoPhase.Port && !DeckBuilderNeedsMoreCards;
 
         private bool CanUseGameMaster => CanOpenGameMaster && gameMasterOverlay != null &&
             string.Equals(gameMasterPortAtOpen, session.CurrentPort, StringComparison.Ordinal) &&
@@ -73,8 +73,6 @@ namespace ShatteredSail.Presentation
                 if (gameMasterOverlay != null) CloseGameMaster();
                 else OpenGameMaster();
             }
-            else if (gameMasterOverlay != null && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-                CloseGameMaster();
             if (gameMasterOverlay != null) RefreshGameMasterControls();
         }
 
@@ -85,6 +83,7 @@ namespace ShatteredSail.Presentation
             if (gameMasterOverlay != null) return;
             CloseVoyageCargo(false);
             // Two independent modals must not each restore the other's input barrier.
+            CloseBattleDeckOverview(false);
             if (portSettingsOverlay != null) ClosePortSettings();
             gameMasterPortAtOpen = session.CurrentPort;
             gameMasterPreviousSelection = EventSystem.current == null ? null : EventSystem.current.currentSelectedGameObject;
@@ -253,7 +252,6 @@ namespace ShatteredSail.Presentation
             if (!BeginGameMasterAction() || !session.TryGameMasterSetTreasureFragments(fragments)) return;
             PlayerPrefs.SetString(TreasureProgressKey, json);
             PlayerPrefs.Save();
-            treasureFragmentNotice = null;
             gameMasterPageChanged = true;
             gameMasterStatus.text = "碎片数量已保存，关闭工具后显示。" + GameMasterCurrentState();
             RefreshGameMasterControls();

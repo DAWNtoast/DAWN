@@ -6,6 +6,27 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
+        private void ReleaseGeneratedVisualResources()
+        {
+            if (portHeaderArt != null) portHeaderArt.Dispose();
+            portHeaderArt = null;
+            DestroyGeneratedVisual(seaSprite);
+            DestroyGeneratedVisual(circleSprite);
+            DestroyGeneratedVisual(seaTexture);
+            DestroyGeneratedVisual(circleTexture);
+            seaSprite = null;
+            circleSprite = null;
+            seaTexture = null;
+            circleTexture = null;
+        }
+
+        private static void DestroyGeneratedVisual(UnityEngine.Object value)
+        {
+            if (value == null) return;
+            if (Application.isPlaying) Destroy(value);
+            else DestroyImmediate(value);
+        }
+
         private string runtimeArtScope;
         private int runtimeArtRevision;
         private int runtimeArtCollectionCount;
@@ -41,8 +62,15 @@ namespace ShatteredSail.Presentation
             {
                 int revision = runtimeArtRevision;
                 yield return new WaitForSecondsRealtime(.35f);
+                // A comic closes before the boarding reveal finishes. Its
+                // animation iterators can still hold the first page until the
+                // presentation exits; scan after those owners retire, without
+                // interrupting the transition with resource collection.
+                while (battleAnimationPlaying && revision == runtimeArtRevision) yield return null;
                 yield return null;
-                if (revision != runtimeArtRevision) continue;
+                // An action may start in the extra frame above, after the first
+                // animation check but before its comic pins the loaded pages.
+                if (revision != runtimeArtRevision || battleAnimationPlaying) continue;
                 ReleaseArtReferences();
                 yield return Resources.UnloadUnusedAssets();
                 runtimeArtCollectionCount++;
@@ -73,7 +101,9 @@ namespace ShatteredSail.Presentation
             System.Array.Clear(ramComicTextures, 0, ramComicTextures.Length);
             System.Array.Clear(ramComicLoadAttempted, 0, ramComicLoadAttempted.Length);
             BoardingBattleArtCatalog.ReleaseLoadedTextures();
+            SpecialWarshipArtCatalog.ReleaseLoadedTextures();
             NavigationLookoutArtCatalog.ReleaseLoadedTextures();
+            ReleaseAudioClipReferences();
             RegionalShopFurniture.ReleaseUnusedGeneratedResources(session.Phase == CoreDemoPhase.Port &&
                 activePortFacility == PortFacilityArtCatalog.ComponentShopFacilityIndex ? session.CurrentPort : null);
         }
@@ -86,6 +116,7 @@ namespace ShatteredSail.Presentation
             yield return null;
             yield return null;
             BoardingBattleArtCatalog.ReleaseLoadedTextures();
+            SpecialWarshipArtCatalog.ReleaseLoadedTextures();
             NavigationLookoutArtCatalog.ReleaseLoadedTextures();
             CardSchoolArtCatalog.ReleaseLoadedTextures();
             DeckListArtCatalog.ReleaseLoadedTextures();

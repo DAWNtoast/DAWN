@@ -100,6 +100,10 @@ namespace ShatteredSail.Presentation
         /// <summary>The facility indices that may provide a distinct composition for every port.</summary>
         public static IReadOnlyList<int> SupportedRegionalFacilities => RegionalFacilityContract;
 
+        /// <summary>Only the six authored regional docks share the painted interaction layout.</summary>
+        public static bool UsesPaintedDepartureScene(string portName) =>
+            PortSlugs.ContainsKey(portName ?? string.Empty);
+
         /// <summary>Successfully loaded regional textures; reading this count never loads art.</summary>
         public int LoadedRegionalBackgroundCount => loadedRegionalBackgroundCount;
 
@@ -245,8 +249,7 @@ namespace ShatteredSail.Presentation
                 case MaintenanceFacilityIndex:
                     return "PortFacilities/Regional/Maintenance/maintenance_" + portSlug + "_side_v2";
                 case VoyageFacilityIndex:
-                    if (portName == "断锚港") return "PortFacilities/Regional/Voyage/voyage_broken_anchor_scene_v4";
-                    return "PortFacilities/Regional/Voyage/voyage_" + portSlug + "_v1";
+                    return "PortFacilities/Regional/Voyage/voyage_" + portSlug + "_open_berth_v1";
                 default:
                     return string.Empty;
             }

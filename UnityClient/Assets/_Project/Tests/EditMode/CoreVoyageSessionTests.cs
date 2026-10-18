@@ -7,6 +7,53 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class CoreVoyageSessionTests
     {
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CollectionIncomeCreditsTheAccountWithoutChangingVoyageCargo(bool sailing)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreProfile(127.5m, "断锚港");
+            if (sailing) session.StartVoyage();
+            CoreDemoPhase phase = session.Phase;
+            int cargoGold = session.Cargo.Gold;
+            float cargoVolume = session.Cargo.UsedVolume;
+
+            session.GrantCollectionIncome(300);
+            session.GrantCollectionIncome(0);
+            session.GrantCollectionIncome(-10);
+
+            Assert.That(session.ProfileGold, Is.EqualTo(427.5m));
+            Assert.That(session.Phase, Is.EqualTo(phase));
+            if (sailing) Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            Assert.That(session.Cargo.Gold, Is.EqualTo(cargoGold));
+            Assert.That(session.Cargo.UsedVolume, Is.EqualTo(cargoVolume));
+        }
+
+        [Test]
+        public void CollectionIncomeAtTheAccountLimitDoesNotOverflowIntoCargo()
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreProfile(CoreEconomyBalance.MaximumProfileGold - 5m, "断锚港");
+            int cargoGold = session.Cargo.Gold;
+
+            session.GrantCollectionIncome(300);
+
+            Assert.That(session.ProfileGold, Is.EqualTo(CoreEconomyBalance.MaximumProfileGold));
+            Assert.That(session.Cargo.Gold, Is.EqualTo(cargoGold));
+        }
+
+        [Test]
+        public void CollectionIncomeDoesNotReduceALegacyAccountAboveTheCurrentLimit()
+        {
+            var session = new CoreVoyageSession();
+            decimal legacyBalance = CoreEconomyBalance.MaximumProfileGold + 15m;
+            session.RestoreProfile(legacyBalance, "断锚港");
+
+            session.GrantCollectionIncome(300);
+
+            Assert.That(session.ProfileGold, Is.EqualTo(legacyBalance));
+        }
+
         [Test]
         public void NewCampaignProvisionsLeaveSpaceForCargoWithoutChangingItsBudget()
         {
@@ -98,7 +145,15 @@ namespace ShatteredSail.Core.Tests
             {
                 Assert.That(first.Map.Nodes[index].Position.X, Is.EqualTo(second.Map.Nodes[index].Position.X));
                 Assert.That(first.Map.Nodes[index].Position.Y, Is.EqualTo(second.Map.Nodes[index].Position.Y));
-                Assert.That(first.Map.Nodes[index].Encounter.Id, Is.EqualTo(second.Map.Nodes[index].Encounter.Id));
+                if (!first.Map.Nodes[index].IsBoss)
+                    Assert.That(first.Map.Nodes[index].Encounter.Id, Is.EqualTo(second.Map.Nodes[index].Encounter.Id));
+                else
+                {
+                    // The current guardian is selected independently on departure;
+                    // its seeded geography and reserved footprint must still match.
+                    Assert.That(CoreRouteBossCatalog.Find(first.Map.Nodes[index].Encounter.Id).RouteId, Is.EqualTo(first.Map.Route.Id));
+                    Assert.That(CoreRouteBossCatalog.Find(second.Map.Nodes[index].Encounter.Id).RouteId, Is.EqualTo(second.Map.Route.Id));
+                }
                 Assert.That(first.Map.Nodes[index].Footprint.CellIndices,
                     Is.EqualTo(second.Map.Nodes[index].Footprint.CellIndices));
                 Assert.That(first.Map.Nodes[index].Footprint.ReservedCellIndices,
@@ -412,8 +467,8 @@ namespace ShatteredSail.Core.Tests
 
             Assert.That(voyage.Heading, Is.EqualTo(SailingDirection.NorthEast));
             Assert.That(voyage.HasDirectCourseTarget, Is.True);
-            Assert.That(voyage.PlannedDistanceNm, Is.InRange(CoreVoyageSession.MinimumDistanceNm, CoreVoyageSession.MaximumDistanceNm));
-            Assert.That(voyage.PlannedDistanceNm % 10, Is.EqualTo(0));
+            Assert.That(voyage.PlannedDistanceNm, Is.InRange(CoreVoyageSession.MinimumDistanceNm, voyage.MaximumDistanceNm));
+            Assert.That(voyage.PlannedDistanceNm, Is.EqualTo(voyage.DefaultDistanceNm));
         }
 
         [Test]

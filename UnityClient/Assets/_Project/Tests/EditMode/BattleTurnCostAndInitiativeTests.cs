@@ -28,7 +28,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetBattleCardEnergyCost(1), Is.EqualTo(3));
             Assert.That(session.Battle.Hand, Is.EqualTo(new[] { 1 }));
             Assert.That(session.Battle.Energy, Is.EqualTo(1));
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(distance));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(Math.Max(0f, distance)));
         }
 
         [Test]
@@ -73,7 +73,9 @@ namespace ShatteredSail.Core.Tests
             SetHand(session, 23);
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.GetBattleCardEnergyCost(23), Is.EqualTo(session.GetBattleCard(23).Energy + 1));
-            session.Battle.DistanceMeters = 40;
+            session.Battle.DistanceMeters = 100;
+            typeof(CoreBattleState).GetProperty(ram ? "EnemyHeadingDegrees" : "PlayerHeadingDegrees")
+                .SetValue(session.Battle, ram ? 90f : session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = ram ? NavalBattleAlignment.HeadOn : NavalBattleAlignment.Parallel;
             session.Battle.PlayerMovingTowardEnemy = ram;
             int health = session.Battle.PlayerBoardingHealth, hull = session.Hull, turn = session.Battle.Turn;
@@ -92,7 +94,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = Start(true);
             session.Battle.Profile = RamProfile(1d);
-            session.Battle.DistanceMeters = 90;
+            session.Battle.DistanceMeters = 100; typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
             session.Battle.Alignment = alignment;
             session.Battle.PlayerBlock = 999;
             int health = session.Battle.PlayerBoardingHealth, hull = session.Hull, turn = session.Battle.Turn;
@@ -132,19 +134,19 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetEnemyIntent(), Does.Not.Contain("冲撞").And.Not.Contain("靠近"));
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(distance));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(Math.Max(0f, distance)));
             Assert.That(session.Hull, Is.EqualTo(playerHull));
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHull));
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health));
         }
 
-        [TestCase(30f)]
-        [TestCase(120f)]
-        public void EnemyRamRemainsAvailableAtPositiveRangeBoundaries(float distance)
+        [TestCase(100f)]
+        public void EnemyRamIsAvailableAtExactCardinalNeighbor(float distance)
         {
             CoreVoyageSession session = Start(true);
             session.Battle.Profile = RamProfile(1d);
             session.Battle.DistanceMeters = distance;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
             Assert.That(session.EnemyWillRam, Is.True);
             Assert.That(session.GetEnemyIntent(), Does.Contain("冲撞→接舷"));
             Assert.That(session.EndBattleTurn(), Is.True);
@@ -157,10 +159,15 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = Start(true);
             session.Battle.Profile = RamProfile(1d);
-            session.Battle.DistanceMeters = 90;
+            session.Battle.DistanceMeters = 100; typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
             Assert.That(session.EnemyWillRam, Is.True);
             SetHand(session, 11);
             Assert.That(session.PlayCard(0), Is.True);
+            Assert.That(session.EnemyWillRam, Is.True, "The action-point card itself does not move the ship.");
+            var next = new VoyagePoint(session.Battle.PlayerPositionMeters.X, session.Battle.PlayerPositionMeters.Y + 100f);
+            Assert.That(session.TryAppendNavalMovementStep(next, out string reason), Is.True, reason);
+            Assert.That(session.CommitNavalMovement(out reason), Is.True, reason);
+            Assert.That(session.ConfirmNavalArrivalHeading(90f, out reason), Is.True, reason);
             Assert.That(session.Battle.DistanceMeters, Is.GreaterThan(session.EnemyRamRangeMeters));
             Assert.That(session.EnemyWillRam, Is.False);
             Assert.That(session.GetEnemyIntent(), Does.Not.Contain("冲撞"));
@@ -177,7 +184,7 @@ namespace ShatteredSail.Core.Tests
                 CoreVoyageSession observed = Start(true, seed: "RAM-DETERMINISM-" + seed);
                 CoreVoyageSession control = Start(true, seed: "RAM-DETERMINISM-" + seed);
                 foreach (CoreVoyageSession session in new[] { observed, control })
-                { session.Battle.Profile = RamProfile(.5d); session.Battle.DistanceMeters = 90; }
+                { session.Battle.Profile = RamProfile(.5d); session.Battle.DistanceMeters = 100; typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f); }
                 bool decision = observed.EnemyWillRam;
                 sawRam |= decision; sawNonRam |= !decision;
                 string intent = observed.GetEnemyIntent();
@@ -202,7 +209,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = Start(true);
             session.Battle.Profile = RamProfile(1d, 500);
-            session.Battle.DistanceMeters = 90;
+            session.Battle.DistanceMeters = 100; typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
             Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
@@ -214,7 +221,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = Start(true);
             session.Battle.Profile = RamProfile(1d);
-            session.Battle.DistanceMeters = 90;
+            session.Battle.DistanceMeters = 100; typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
             session.Battle.EnemyHull = 5;
             session.Battle.EnemyBurnDamage = 5;
             session.Battle.EnemyBurnTurns = 1;
@@ -278,7 +285,17 @@ namespace ShatteredSail.Core.Tests
             if (armorBonus != 0) session.ConfigureComponentBonuses(0, armorBonus, 0, 0, 0);
             if (upgrades != null) session.ConfigureCardUpgrades(upgrades);
             session.SetSeed(seed);
-            session.StartVoyage();
+            // Exercise legacy low-crew battle states without bypassing the departure guard.
+            if (!session.HasEnoughOrdinaryCrewForDeparture)
+            {
+                session.ConfigureDepartureCrew(session.MinimumDepartureOrdinaryCrew, specialists);
+                session.StartVoyage();
+                CoreVoyageCheckpoint checkpoint = session.CaptureVoyageCheckpoint();
+                checkpoint.ordinaryCrew = ordinary;
+                session = new CoreVoyageSession();
+                Assert.That(session.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
+            }
+            else session.StartVoyage();
             typeof(CoreVoyageSession).GetMethod("StartBattle", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(session, new object[] { new CoreEncounter("turn_cost_fixture", "机制测试敌舰", "海战", "隔离核心夹具", true, false, 1, 70), false });
             if (naval) Assert.That(session.EndBattleTurn(), Is.True);

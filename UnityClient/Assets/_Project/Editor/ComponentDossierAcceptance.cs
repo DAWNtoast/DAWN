@@ -185,8 +185,7 @@ namespace ShatteredSail.Editor
                     .SequenceEqual(new[] { "没有专属卡牌" });
             Require(record.textPreserved, "Source description/effect/story/card text changed or lost", record);
             Rect footerLane = Rect.MinMaxRect(-288f, -264f, 600f, -220f);
-            string[] footerNames = { "Previous Component Dossier Page", "Component Dossier Page Counter", "Next Component Dossier Page",
-                "Purchase Component " + preview.Offer.Id, "Purchase And Equip Component " + preview.Offer.Id };
+            string[] footerNames = { "Purchase Component " + preview.Offer.Id, "Purchase And Equip Component " + preview.Offer.Id };
             record.footerInsidePaper = true;
             record.footerSeparated = true;
             float right = float.NegativeInfinity;
@@ -283,7 +282,7 @@ namespace ShatteredSail.Editor
 
             public void SelectEntry(ComponentArtEntry entry)
             {
-                Offer = new PortComponentShopStockItem("component-layout-review|" + entry.Id, Controller.Session.CurrentPort, "2026-10", entry, 0.94f, entry.Price);
+                Offer = new PortComponentShopStockItem("component-layout-review|" + entry.Id, Controller.Session.CurrentPort, "2026-10", entry, entry.Price);
                 RectTransform panel = Find<RectTransform>(Root, "Component Shop Panel");
                 foreach (Transform child in panel.Cast<Transform>().ToArray()) Object.DestroyImmediate(child.gameObject);
                 typeof(CoreGameplayDemoController).GetField("selectedComponentShopOfferId", PrivateInstance).SetValue(Controller, Offer.Id);

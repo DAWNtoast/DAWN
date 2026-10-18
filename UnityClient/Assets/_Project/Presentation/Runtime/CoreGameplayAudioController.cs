@@ -147,6 +147,7 @@ namespace ShatteredSail.Presentation
                 case "legendary_pirate_red_widow": return "battle_legendary_red_widow";
                 case "legendary_pirate_ember_ark": return "battle_legendary_ember_ark";
                 case "legendary_pirate_tide_requiem": return "battle_legendary_tide_requiem";
+                case "legendary_pirate_last_horizon": return "battle_legendary_tide_requiem";
                 case "legendary_pirate_iron_oath": return "battle_legendary_iron_oath";
                 default: return "battle_nonboss";
             }
@@ -267,28 +268,6 @@ namespace ShatteredSail.Presentation
             else cachedAudioListener.enabled = true;
         }
 
-        private void Update()
-        {
-            UpdatePortHeaderReadouts();
-            if (!Application.isPlaying)
-            {
-                UpdateEditorPreviewIfNeeded();
-                return;
-            }
-
-            if (UnityEngine.InputSystem.Keyboard.current != null &&
-                UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame) TryHandleMarketEscape();
-            RefreshMarketMonthIfNeeded();
-            EnsureAudioListener();
-            UpdateBattleEntryCue();
-            UpdateWorldPhaseCue();
-            string desiredKey = ResolveDesiredMusicKey();
-            if (desiredKey != activeMusicKey && musicCrossfade <= 0f) SetMusic(desiredKey, false);
-            UpdateMusicCrossfade();
-            UpdateAmbience();
-            UpdateEffectVoices();
-        }
-
         private string ResolveDesiredMusicKey()
         {
             if (session == null) return string.Empty;
@@ -387,6 +366,19 @@ namespace ShatteredSail.Presentation
             musicClipCache[key] = clip;
             if (clip == null) Debug.LogWarning("Background music was not found: " + MusicResourcesPrefix + key);
             return clip;
+        }
+
+        private void ReleaseAudioClipReferences()
+        {
+            // AudioSources own both sides of a crossfade and every playing
+            // effect. Pending closing cues retain their Clip until dispatched.
+            // Clear only borrowed lookup references during the existing view
+            // collection; never unload or stop a clip that may still be heard.
+            musicClipCache.Clear();
+            ambienceClipCache.Clear();
+            battleSfxClipCache.Clear();
+            worldSfxClipCache.Clear();
+            interfaceSfxClipCache.Clear();
         }
 
         private float MusicVolume => Mathf.Clamp01(PlayerPrefs.GetFloat(MainMenuController.MusicVolumeKey, 0.7f)) *

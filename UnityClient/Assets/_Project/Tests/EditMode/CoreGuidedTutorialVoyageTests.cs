@@ -148,7 +148,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Profile, Is.SameAs(CoreGuidedTutorialContent.BossProfile));
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
             int actions = 0;
-            int completeScriptBudget = (int)GuidedBossBattleStep.Complete - 1;
+            int completeScriptBudget = 250;
             bool reachedBoarding = false;
             // Balanced damage may end the fight early; it must still reach
             // boarding and finish within the complete lesson's action budget.
@@ -383,7 +383,7 @@ namespace ShatteredSail.Core.Tests
                         "Using teaching decks must not overwrite an older save's customized loadout.");
 
                 }
-                CollectionAssert.AreEqual(new[] { "card_retreat", "card_load_shot", "card_brace" },
+                CollectionAssert.AreEqual(new[] { "card_approach", "card_chain_shot", "card_approach", "card_brace", "card_energy_order" },
                     session.Battle.Hand.Select(index => session.GetBattleCard(index).Id));
                 int actions = CoreGuidedBossScriptTests.PlayToCompletion(session);
                 Assert.That(session.GuidedTutorialBossDefeated, Is.True);

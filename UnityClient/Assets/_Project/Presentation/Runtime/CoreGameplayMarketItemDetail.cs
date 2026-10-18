@@ -12,13 +12,14 @@ namespace ShatteredSail.Presentation
         private PortMarketItem? marketSelectedItem;
         private bool marketTradeSelecting, marketTradeBuying;
         private bool marketInventoryExpanded;
-        private RectTransform marketItemDetailRoot, marketTradeSelectionRoot;
-        private RawImage marketDetailIcon;
-        private Text marketDetailName, marketDetailBuyPrice, marketDetailSellPrice, marketDetailDescription;
+        private RectTransform marketItemDetailRoot, marketTradeSelectionRoot, marketTradeFooter;
+        private RawImage marketShopEmblem;
+        private Text marketDetailBuyPrice, marketDetailSellPrice;
         private Text marketDetailStock, marketDetailCargo;
         private Text marketQuantityLabel, marketQuantityValue, marketTradeTotal;
         private Button marketDetailBuy, marketDetailSell, marketDetailBack, marketTradeConfirm, marketTradeCancel;
         private Button marketInventoryToggle, marketQuantityMinus, marketQuantityPlus, marketQuantityMax;
+        private Button marketDetailStorageMode;
         private InputField marketQuantityInput;
         private Slider marketQuantitySlider;
 
@@ -27,13 +28,14 @@ namespace ShatteredSail.Presentation
             marketSelectedItem = null;
             marketTradeSelecting = marketTradeBuying = false;
             marketInventoryExpanded = false;
-            marketItemDetailRoot = marketTradeSelectionRoot = null;
-            marketDetailIcon = null;
-            marketDetailName = marketDetailBuyPrice = marketDetailSellPrice = marketDetailDescription = null;
+            marketItemDetailRoot = marketTradeSelectionRoot = marketTradeFooter = null;
+            marketShopEmblem = null;
+            marketDetailBuyPrice = marketDetailSellPrice = null;
             marketDetailStock = marketDetailCargo = null;
             marketQuantityLabel = marketQuantityValue = marketTradeTotal = null;
             marketDetailBuy = marketDetailSell = marketDetailBack = marketTradeConfirm = marketTradeCancel = null;
             marketInventoryToggle = marketQuantityMinus = marketQuantityPlus = marketQuantityMax = null;
+            marketDetailStorageMode = null;
             marketQuantitySlider = null;
             marketQuantityInput = null;
         }
@@ -41,36 +43,46 @@ namespace ShatteredSail.Presentation
         private void BuildMarketItemDetail(RectTransform board, Color ink)
         {
             marketItemDetailRoot = CreateFixedPanel("Market Item Detail", board,
-                MarketSceneLayout.DrawerSize, new Vector2(650f, -20f), Html("#E1CAA2"));
+                MarketSceneLayout.DrawerSize, MarketSceneLayout.DrawerPosition(MarketShopKind.Supplies), Html("#E1CAA2"));
             Image paper = marketItemDetailRoot.GetComponent<Image>();
-            NauticalSurfaceSkin.ApplyReadingPanel(paper);
+            MarketShopSkin.ApplyPanel(paper);
             paper.raycastTarget = true; // The whole drawer consumes hits, including its blank parchment.
-            Outline edge = marketItemDetailRoot.gameObject.AddComponent<Outline>();
-            edge.effectColor = Html("#684324");
-            edge.effectDistance = new Vector2(2f, -2f);
-            marketShopTitle = CreateText("Market Shop Title", marketItemDetailRoot, new Vector2(420f, 48f),
-                new Vector2(-20f, 353f), 32, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
-            marketCloseShop = CreateButton("Close Market Shop", marketItemDetailRoot, new Vector2(46f, 46f),
-                new Vector2(216f, 353f), PanelRaised, Ink, 27);
+            // Keep the header, goods and quantity controls still when the ledger expands.
+            RectTransform ledger = CreateRect("Market Shop Ledger", marketItemDetailRoot, MarketSceneLayout.DrawerSize,
+                new Vector2(0f, -MarketSceneLayout.DrawerSize.y * .5f));
+            ledger.anchorMin = ledger.anchorMax = new Vector2(.5f, 1f);
+            CreateImage("Market Shop Emblem Rim", ledger, new Vector2(64f, 64f),
+                new Vector2(-146f, 342f), Html("#9A7139"), circleSprite).raycastTarget = false;
+            CreateImage("Market Shop Emblem Backing", ledger, new Vector2(58f, 58f),
+                new Vector2(-146f, 342f), Html("#493018"), circleSprite).raycastTarget = false;
+            marketShopEmblem = CreateItemIcon("Market Shop Emblem", ledger, ItemIconCatalog.ForCargo("water"),
+                new Vector2(-146f, 342f), 52f);
+            marketShopEmblem.raycastTarget = false;
+            marketShopTitle = CreateText("Market Shop Title", ledger, new Vector2(220f, 48f),
+                new Vector2(12f, 342f), 30, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
+            marketCloseShop = CreateButton("Close Market Shop", ledger, new Vector2(40f, 44f),
+                new Vector2(160f, 342f), PanelRaised, Ink, 30);
             marketCloseShop.GetComponentInChildren<Text>().text = "×";
+            MarketShopSkin.ApplyTextButton(marketCloseShop);
             marketDetailBack = marketCloseShop;
-            marketCatalogGrid = CreateRect("Market Catalog Grid", marketItemDetailRoot,
-                new Vector2(490f, 108f), new Vector2(0f, 265f));
+            marketCatalogGrid = CreateRect("Market Catalog Grid", ledger,
+                new Vector2(360f, 112f), new Vector2(0f, 246f));
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
             {
                 string key = PortMarketCatalog.Key(item);
-                RectTransform row = CreateRect("Market Row " + key, marketCatalogGrid, new Vector2(146f, 106f), Vector2.zero);
+                RectTransform row = CreateRect("Market Row " + key, marketCatalogGrid, new Vector2(112f, 112f), Vector2.zero);
                 Image tabFace = row.gameObject.AddComponent<Image>();
                 tabFace.color = new Color(.45f, .29f, .13f, .06f);
                 tabFace.raycastTarget = true;
                 Button tabButton = row.gameObject.AddComponent<Button>();
                 tabButton.targetGraphic = tabFace;
+                MarketShopSkin.ApplyLightButton(tabButton);
                 RawImage icon = CreateItemIcon("Market Item Icon " + key, row, ItemIconCatalog.ForCargo(key), new Vector2(0f, 16f), 66f);
                 icon.raycastTarget = true;
                 Button select = icon.gameObject.AddComponent<Button>();
                 select.targetGraphic = icon;
-                Text name = CreateText("Market Item Name " + key, row, new Vector2(140f, 27f),
-                    new Vector2(0f, -32f), 21, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
+                Text name = CreateText("Market Item Name " + key, row, new Vector2(104f, 27f),
+                    new Vector2(0f, -34f), 21, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
                 name.raycastTarget = false;
                 // The retained row contract remains exhaustive; prices now live in
                 // the selected item's ledger rather than cluttering the scene.
@@ -80,49 +92,44 @@ namespace ShatteredSail.Presentation
                 unit.gameObject.SetActive(false);
                 marketRowViews[item] = new MarketRowView { Root = row, Name = name, BuyPrice = buy, BuyUnit = unit, Icon = select };
             }
-            Image rule = CreateImage("Market Ledger Divider", marketItemDetailRoot, new Vector2(482f, 2f), new Vector2(0f, 215f), Html("#99774F"));
+            Image rule = CreateImage("Market Ledger Divider", ledger, new Vector2(348f, 1f), new Vector2(0f, 180f), Html("#AD956E"));
             rule.raycastTarget = false;
-            marketDetailIcon = CreateItemIcon("Market Detail Icon", marketItemDetailRoot,
-                ItemIconCatalog.ForCargo("water"), new Vector2(-172f, 148f), 112f);
-            marketDetailIcon.raycastTarget = false;
-            marketDetailName = CreateText("Market Detail Name", marketItemDetailRoot, new Vector2(300f, 40f),
-                new Vector2(67f, 181f), 28, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
-            marketDetailDescription = CreateText("Market Item Description", marketItemDetailRoot, new Vector2(300f, 64f),
-                new Vector2(67f, 135f), 18, FontStyle.Normal, TextAnchor.MiddleLeft, Html("#70583D"));
-            marketDetailDescription.horizontalOverflow = HorizontalWrapMode.Wrap;
-            marketDetailDescription.verticalOverflow = VerticalWrapMode.Truncate;
-            marketDetailBuyPrice = CreateText("Market Detail Buy Price", marketItemDetailRoot, new Vector2(466f, 28f),
-                new Vector2(0f, 70f), 22, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
-            marketDetailSellPrice = CreateText("Market Detail Sell Price", marketItemDetailRoot, new Vector2(466f, 28f),
-                new Vector2(0f, 40f), 22, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
-            marketDetailBuy = CreateButton("Market Detail Buy", marketItemDetailRoot, new Vector2(233f, 44f),
-                new Vector2(-123f, -8f), Gold, DeepSea, 21);
-            marketDetailSell = CreateButton("Market Detail Sell", marketItemDetailRoot, new Vector2(233f, 44f),
-                new Vector2(123f, -8f), PanelRaised, Ink, 21);
+            marketDetailBuyPrice = CreateText("Market Detail Buy Price", ledger, new Vector2(344f, 30f),
+                new Vector2(0f, 145f), 23, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
+            marketDetailSellPrice = CreateText("Market Detail Sell Price", ledger, new Vector2(344f, 30f),
+                new Vector2(0f, 108f), 23, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
+            CreateImage("Market Trade Divider", ledger, new Vector2(348f, 1f), new Vector2(0f, 77f), Html("#AD956E")).raycastTarget = false;
+            marketDetailBuy = CreateButton("Market Detail Buy", ledger, new Vector2(174f, 46f),
+                new Vector2(-93f, 34f), Gold, DeepSea, 23);
+            marketDetailSell = CreateButton("Market Detail Sell", ledger, new Vector2(174f, 46f),
+                new Vector2(93f, 34f), PanelRaised, Ink, 23);
 
-            marketTradeSelectionRoot = CreateRect("Market Trade Selection", marketItemDetailRoot,
-                new Vector2(500f, 390f), new Vector2(0f, -210f));
-            marketQuantityLabel = CreateText("Market Quantity Label", marketTradeSelectionRoot, new Vector2(466f, 28f),
-                new Vector2(0f, 157f), 19, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
-            marketQuantityMinus = CreateButton("Market Quantity Minus", marketTradeSelectionRoot, new Vector2(56f, 44f),
-                new Vector2(-212f, 112f), PanelRaised, Ink, 26);
+            marketTradeSelectionRoot = CreateRect("Market Trade Selection", ledger,
+                new Vector2(360f, 820f), Vector2.zero);
+            marketQuantityLabel = CreateText("Market Quantity Label", marketTradeSelectionRoot, new Vector2(344f, 28f),
+                new Vector2(0f, -21f), 19, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
+            marketQuantityMinus = CreateButton("Market Quantity Minus", marketTradeSelectionRoot, new Vector2(46f, 46f),
+                new Vector2(-157f, -63f), PanelRaised, Ink, 26);
             marketQuantityMinus.GetComponentInChildren<Text>().text = "−";
             marketQuantityInput = CreateInputField("Market Quantity Input", marketTradeSelectionRoot,
-                new Vector2(218f, 44f), new Vector2(-67f, 112f), "0");
+                new Vector2(142f, 46f), new Vector2(-55f, -63f), "0");
             marketQuantityInput.contentType = InputField.ContentType.IntegerNumber;
             marketQuantityInput.characterLimit = 10;
             marketQuantityInput.textComponent.alignment = TextAnchor.MiddleCenter;
             marketQuantityInput.textComponent.fontSize = 24;
+            marketQuantityInput.textComponent.resizeTextForBestFit = true;
+            marketQuantityInput.textComponent.resizeTextMinSize = 18;
+            marketQuantityInput.textComponent.resizeTextMaxSize = 24;
             ((Text)marketQuantityInput.placeholder).text = "数量";
             marketQuantityValue = marketQuantityInput.textComponent;
-            marketQuantityPlus = CreateButton("Market Quantity Plus", marketTradeSelectionRoot, new Vector2(56f, 44f),
-                new Vector2(78f, 112f), PanelRaised, Ink, 26);
+            marketQuantityPlus = CreateButton("Market Quantity Plus", marketTradeSelectionRoot, new Vector2(46f, 46f),
+                new Vector2(47f, -63f), PanelRaised, Ink, 26);
             marketQuantityPlus.GetComponentInChildren<Text>().text = "+";
-            marketQuantityMax = CreateButton("Market Quantity Max", marketTradeSelectionRoot, new Vector2(126f, 44f),
-                new Vector2(179f, 112f), PanelRaised, Ink, 20);
+            marketQuantityMax = CreateButton("Market Quantity Max", marketTradeSelectionRoot, new Vector2(102f, 46f),
+                new Vector2(129f, -63f), PanelRaised, Ink, 20);
             marketQuantityMax.GetComponentInChildren<Text>().text = "最大";
             marketQuantitySlider = CreateSlider("Market Quantity Slider", marketTradeSelectionRoot,
-                new Vector2(478f, 32f), new Vector2(0f, 65f), 0f, 1f, 0f);
+                new Vector2(358f, 32f), new Vector2(0f, -110f), 0f, 1f, 0f);
             marketQuantitySlider.wholeNumbers = true;
             RectTransform handleTrack = (RectTransform)marketQuantitySlider.handleRect.parent;
             handleTrack.sizeDelta = new Vector2(handleTrack.sizeDelta.x, 0f);
@@ -130,20 +137,33 @@ namespace ShatteredSail.Presentation
             Image sliderTarget = marketQuantitySlider.gameObject.AddComponent<Image>();
             sliderTarget.color = Color.clear;
             sliderTarget.raycastTarget = true;
-            marketTradeTotal = CreateText("Market Trade Total", marketTradeSelectionRoot, new Vector2(466f, 36f),
-                new Vector2(0f, 18f), 26, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
-            marketTradeConfirm = CreateButton("Confirm Market Trade", marketTradeSelectionRoot, new Vector2(480f, 46f),
-                new Vector2(0f, -109f), Gold, DeepSea, 23);
-            marketTradeCancel = CreateButton("Cancel Market Trade", marketTradeSelectionRoot, new Vector2(480f, 26f),
-                new Vector2(0f, -149f), PanelRaised, Ink, 18);
-            marketTradeCancel.GetComponentInChildren<Text>().text = "收起店铺";
+            MarketShopSkin.ApplyInput(marketQuantityInput);
+            foreach (Button quantityButton in new[] { marketQuantityMinus, marketQuantityPlus, marketQuantityMax })
+                MarketShopSkin.ApplyLightButton(quantityButton);
+            MarketShopSkin.ApplySlider(marketQuantitySlider);
+            marketTradeTotal = CreateText("Market Trade Total", marketTradeSelectionRoot, new Vector2(344f, 38f),
+                new Vector2(0f, -155f), 26, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
+            marketTradeTotal.resizeTextForBestFit = true;
+            marketTradeTotal.resizeTextMinSize = 19;
+            marketTradeTotal.resizeTextMaxSize = 26;
+            marketTradeFooter = CreateRect("Market Trade Footer", marketTradeSelectionRoot, new Vector2(360f, 160f), new Vector2(0f, -310f));
+            marketDetailStorageMode = CreateButton("Market Detail Storage Mode", marketTradeFooter, new Vector2(360f, 42f),
+                new Vector2(0f, 59f), PanelRaised, ink, 20);
+            MarketShopSkin.ApplyLightButton(marketDetailStorageMode);
+            marketTradeConfirm = CreateButton("Confirm Market Trade", marketTradeFooter, new Vector2(360f, 52f),
+                new Vector2(0f, -5f), Gold, DeepSea, 25);
+            marketTradeCancel = CreateButton("Cancel Market Trade", marketTradeFooter, new Vector2(360f, 30f),
+                new Vector2(0f, -54f), PanelRaised, Ink, 20);
+            marketTradeCancel.GetComponentInChildren<Text>().text = "取消";
+            MarketShopSkin.ApplyTextButton(marketTradeCancel);
 
-            marketInventoryToggle = CreateButton("Market Inventory Toggle", marketItemDetailRoot,
-                new Vector2(480f, 30f), new Vector2(0f, -231f), PanelRaised, Ink, 18);
-            marketDetailStock = CreateText("Market Detail Stock", marketItemDetailRoot, new Vector2(286f, 48f),
-                new Vector2(-82f, -272f), 17, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
-            marketDetailCargo = CreateText("Market Detail Cargo", marketItemDetailRoot, new Vector2(170f, 48f),
-                new Vector2(161f, -272f), 17, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
+            marketInventoryToggle = CreateButton("Market Inventory Toggle", ledger,
+                new Vector2(360f, 38f), new Vector2(0f, -199f), PanelRaised, Ink, 19);
+            MarketShopSkin.ApplyLightButton(marketInventoryToggle);
+            marketDetailStock = CreateText("Market Detail Stock", ledger, new Vector2(344f, 48f),
+                new Vector2(0f, -244f), 17, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
+            marketDetailCargo = CreateText("Market Detail Cargo", ledger, new Vector2(344f, 26f),
+                new Vector2(0f, -286f), 17, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
             marketDetailStock.lineSpacing = marketDetailCargo.lineSpacing = 1.15f;
             foreach (Text text in new[] { marketDetailStock, marketDetailCargo })
             {
@@ -203,8 +223,16 @@ namespace ShatteredSail.Presentation
             if (marketItemDetailRoot == null) return;
             marketItemDetailRoot.gameObject.SetActive(detail);
             if (!detail) return;
-            marketItemDetailRoot.anchoredPosition = MarketSceneLayout.DrawerPosition(marketSelectedShop.Value);
+            float expansion = marketInventoryExpanded ? MarketSceneLayout.InventoryExpansionHeight : 0f;
+            marketItemDetailRoot.sizeDelta = MarketSceneLayout.DrawerSize + new Vector2(0f, expansion);
+            marketItemDetailRoot.anchoredPosition = MarketSceneLayout.DrawerPosition(marketSelectedShop.Value) - new Vector2(0f, expansion * .5f);
+            marketTradeFooter.anchoredPosition = new Vector2(0f, -310f - expansion);
             marketShopTitle.text = MarketSceneLayout.ShopName(marketSelectedShop.Value);
+            ItemIconArt shopArt = ItemIconCatalog.ForCargo(PortMarketCatalog.Key(MarketSceneLayout.ItemsForShop(marketSelectedShop.Value)[0]));
+            marketShopEmblem.texture = shopArt.Texture;
+            marketShopEmblem.uvRect = shopArt.Uv;
+            marketShopEmblem.enabled = shopArt.IsAvailable;
+            UiImageAspect.Fit(marketShopEmblem, new Vector2(52f, 52f));
             marketCloseShop.onClick = new Button.ButtonClickedEvent();
             AddMarketViewAction(marketCloseShop, CloseMarketShop);
             var shopItems = MarketSceneLayout.ItemsForShop(marketSelectedShop.Value);
@@ -215,9 +243,11 @@ namespace ShatteredSail.Presentation
                 for (int i = 0; i < shopItems.Count; i++) if (shopItems[i] == catalogItem) tab = i;
                 row.Root.gameObject.SetActive(tab >= 0);
                 if (tab < 0) continue;
-                row.Root.anchoredPosition = new Vector2((tab - (shopItems.Count - 1) * .5f) * 162f, 0f);
-                row.Root.GetComponent<Image>().color = catalogItem == marketSelectedItem
-                    ? new Color(.54f, .32f, .10f, .22f) : new Color(.45f, .29f, .13f, .04f);
+                row.Root.anchoredPosition = new Vector2((tab - (shopItems.Count - 1) * .5f) * 120f, 0f);
+                bool selected = catalogItem == marketSelectedItem;
+                MarketShopSkin.ApplyLightButton(row.Root.GetComponent<Button>(), selected);
+                row.Name.fontStyle = selected ? FontStyle.Bold : FontStyle.Normal;
+                row.Name.color = selected ? Html("#382410") : Html("#70583D");
             }
             PortMarketItem item = marketSelectedItem.Value;
             string key = PortMarketCatalog.Key(item);
@@ -231,27 +261,19 @@ namespace ShatteredSail.Presentation
             int maximum = marketTradeBuying ? buyMaximum : sellMaximum;
             int quantity = Math.Min(Math.Max(0, MarketQuantity(item)), maximum);
             marketQuantities[item] = quantity;
-            ItemIconArt art = ItemIconCatalog.ForCargo(key);
-            marketDetailIcon.name = "Market Detail Icon " + key;
-            marketDetailIcon.texture = art.Texture;
-            marketDetailIcon.uvRect = art.Uv;
-            marketDetailIcon.enabled = art.IsAvailable;
-            UiImageAspect.Fit(marketDetailIcon, new Vector2(112f, 112f));
-            marketDetailName.text = PortMarketCatalog.Name(item);
-            marketDetailDescription.text = MarketItemDescription(item);
             int buyLot = Math.Max(PortMarketCatalog.PurchaseStep(item), PortMarketCatalog.SaleStep(item));
             int sellLot = PortMarketCatalog.SaleStep(item);
-            marketDetailBuyPrice.text = "买入　" + PortMarketCatalog.FormatPrice(
-                PortMarketCatalog.CalculateBuyCost(port, item, now, buyLot, session.Cargo.Fame)) + " 金 / " + buyLot + " 单位";
-            marketDetailSellPrice.text = "卖出　" + PortMarketCatalog.FormatPrice(
-                PortMarketCatalog.CalculateSellRevenue(port, item, now, sellLot)) + " 金 / " + sellLot + " 单位";
+            marketDetailBuyPrice.text = "买入　　" + PortMarketCatalog.FormatPrice(
+                PortMarketCatalog.CalculateBuyCost(port, item, now, buyLot, session.Cargo.Fame)) + " 金 <size=19>/ " + buyLot + " 单位</size>";
+            marketDetailSellPrice.text = "卖出　　" + PortMarketCatalog.FormatPrice(
+                PortMarketCatalog.CalculateSellRevenue(port, item, now, sellLot)) + " 金 <size=19>/ " + sellLot + " 单位</size>";
             marketDetailStock.name = "Market Quota " + key;
             marketDetailCargo.name = "Market Holdings " + key;
             marketDetailStock.gameObject.SetActive(marketInventoryExpanded);
             marketDetailCargo.gameObject.SetActive(marketInventoryExpanded);
             marketDetailStock.text = "本月配货 " + PortMarketCatalog.DayState(port, item, now, level).Stock + " · 可购 " + remaining +
                 "\n已购 " + purchased + " / 月额度 " + PortMarketCatalog.MaxPurchaseQuota(item, level);
-            marketDetailCargo.text = "随船 " + carried + "\n本港仓储 " + stored;
+            marketDetailCargo.text = "随船 " + carried + " · 本港仓储 " + stored;
             marketInventoryToggle.GetComponentInChildren<Text>().text = marketInventoryExpanded ? "库存与额度  ▲" : "库存与额度  ▼";
             decimal cost = PortMarketCatalog.CalculateBuyCost(port, item, now, quantity, session.Cargo.Fame);
             decimal revenue = PortMarketCatalog.CalculateSellRevenue(port, item, now, quantity);
@@ -266,8 +288,17 @@ namespace ShatteredSail.Presentation
             });
             marketDetailBuy.name = "Market Buy " + key;
             marketDetailSell.name = "Market Sell " + key;
-            marketDetailBuy.GetComponentInChildren<Text>().text = buying ? "●  买入" : "买入";
-            marketDetailSell.GetComponentInChildren<Text>().text = buying ? "卖出" : "●  卖出";
+            marketDetailBuy.GetComponentInChildren<Text>().text = "买入";
+            marketDetailSell.GetComponentInChildren<Text>().text = "卖出";
+            MarketShopSkin.SetMode(marketDetailBuy, buying);
+            MarketShopSkin.SetMode(marketDetailSell, !buying);
+            marketDetailStorageMode.GetComponentInChildren<Text>().text = buying
+                ? "收货：" + (EffectiveMarketStorageMode == MarketPurchaseStorageMode.Ship ? "船只仓库" :
+                    EffectiveMarketStorageMode == MarketPurchaseStorageMode.Warehouse ? "本港仓库" : "每次询问") + "　›"
+                : "出售：随船货物";
+            marketDetailStorageMode.interactable = buying && live && !tutorialActive;
+            marketDetailStorageMode.onClick = new Button.ButtonClickedEvent();
+            BindMarketStorageModeAction(marketDetailStorageMode);
             marketDetailBuy.interactable = marketDetailSell.interactable = live;
             BindMarketDetailAction(marketDetailBuy, quote, marketTradeSelecting, buying, () => StartMarketTrade(true));
             BindMarketDetailAction(marketDetailSell, quote, marketTradeSelecting, buying, () => StartMarketTrade(false));
@@ -331,22 +362,6 @@ namespace ShatteredSail.Presentation
                 marketQuantities[quote.Item] = quantity;
                 RefreshMarketItemDetailPage();
             });
-        }
-
-        private static string MarketItemDescription(PortMarketItem item)
-        {
-            switch (item)
-            {
-                case PortMarketItem.Water: return "清洁的淡水，是远航的基础。";
-                case PortMarketItem.Food: return "装船前备足口粮，让船员安心远航。";
-                case PortMarketItem.Beer: return "为漫长的海上生活添一份慰藉。";
-                case PortMarketItem.Medicine: return "妥善储备药品，应对航途中的伤病。";
-                case PortMarketItem.Wood: return "结实的船用木材，用于修补与建设。";
-                case PortMarketItem.Iron: return "坚固的铁料，是船舶维护的重要物资。";
-                case PortMarketItem.Cloth: return "耐用的帆布，为船帆与维修备料。";
-                case PortMarketItem.Powder: return "保持干燥的火药，为舰炮提供火力。";
-                default: return "铸造结实的炮弹，出航前检查储备。";
-            }
         }
 
         private void BindMarketDetailAction(Button button, MarketPurchaseQuote quote, bool selecting, bool buying, Action action)

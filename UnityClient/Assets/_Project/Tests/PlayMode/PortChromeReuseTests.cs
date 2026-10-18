@@ -89,7 +89,8 @@ namespace ShatteredSail.Presentation.Tests
             ClickAcceptanceButton("Port Hotspot Market"); yield return null;
             Assert.That(GameObject.Find("Port Facility Header"), Is.SameAs(header));
             Assert.That(facilityPort.text, Is.EqualTo("白贝港"));
-            Assert.That(GameObject.Find("Market Title").GetComponent<Text>().text, Is.EqualTo(CorePortEconomy.TradeSummary("白贝港")));
+            Assert.That(GameObject.Find("Market Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Market Footer"), Is.Null);
             LogAssert.NoUnexpectedReceived();
         }
 

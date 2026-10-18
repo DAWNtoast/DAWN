@@ -266,7 +266,7 @@ namespace ShatteredSail.Core.Tests
 
         private static string Describe(PortComponentShopStockItem item)
         {
-            return item.Id + ":" + item.Entry.Id + ":" + item.Quality + ":" + item.Price;
+            return item.Id + ":" + item.Entry.Id + ":" + item.Price;
         }
     }
 }

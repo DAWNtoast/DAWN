@@ -60,15 +60,18 @@ namespace ShatteredSail.Presentation.Tests
         public void BattleSceneArt_CoversTheBattleSurface()
         {
             CreateBattlePreview();
-            RectTransform art = Find<RectTransform>("Battle Scene Art");
+            RectTransform art = Find<RectTransform>("Shared tactical sea");
+            RectTransform board = Find<RectTransform>("Naval Tactical Board");
+            Assert.That(board.GetComponent<RectMask2D>(), Is.Not.Null, "The rotating sea is clipped to the battlefield.");
             RectTransform battleCard = Find<RectTransform>("Battle Card");
             RectTransform overlay = Find<RectTransform>("Battle Overlay");
 
             Rect artBounds = WorldRect(art);
             AssertContains(artBounds, WorldRect(battleCard), 1.5f,
                 "The scene art must cover the full battle card after the authored scale is applied.");
-            Assert.That(art.sizeDelta.x, Is.EqualTo(1860f).Within(0.1f));
-            Assert.That(art.sizeDelta.y, Is.GreaterThanOrEqualTo(900f));
+            AssertContains(artBounds, WorldRect(board), 1.5f, "The sea also covers the full tactical grid.");
+            Assert.That(board.sizeDelta.x, Is.EqualTo(1860f).Within(0.1f));
+            Assert.That(board.sizeDelta.y, Is.EqualTo(900f).Within(0.1f));
             Assert.That(battleCard.sizeDelta.x, Is.EqualTo(1740f).Within(0.1f));
             Assert.That(battleCard.sizeDelta.y, Is.EqualTo(900f).Within(0.1f));
             Assert.That(overlay.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.BackgroundSize).Within(0.1f));
@@ -80,9 +83,10 @@ namespace ShatteredSail.Presentation.Tests
             Image battleCardSurface = battleCard.GetComponent<Image>();
             Assert.That(battleCardSurface.sprite, Is.Null, "The authored battle card surface keeps the parchment image cleared.");
             Assert.That(battleCardSurface.type, Is.EqualTo(Image.Type.Tiled));
-            RawImage backdrop = Find<RawImage>("Battle Scene Art");
-            Assert.That(backdrop.uvRect.y, Is.EqualTo(0.07012101f).Within(0.0001f));
-            Assert.That(backdrop.uvRect.height, Is.EqualTo(0.85975796f).Within(0.0001f));
+            RawImage backdrop = Find<RawImage>("Shared tactical sea");
+            Assert.That(backdrop.texture, Is.SameAs(Resources.Load<Texture2D>("NavalTactics/tactical_sea_v1")));
+            Assert.That(backdrop.texture, Is.Not.Null);
+            Assert.That(backdrop.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
         }
 
         [TestCase(false)]
@@ -144,6 +148,7 @@ namespace ShatteredSail.Presentation.Tests
                 Rect paperBounds = WorldRect(paper.rectTransform);
                 Assert.That(paper.transform.parent, Is.SameAs(header.parent), "The lesson owns an independent reading surface.");
                 Assert.That(NauticalSurfaceSkin.IsPaperSurface(paper.sprite), Is.True);
+                Assert.That(paper.sprite, Is.SameAs(MarketShopSkin.Paper));
                 Assert.That(paper.color.a, Is.EqualTo(1f), "The battle artwork must not bleed through the reading area.");
                 Assert.That(paper.raycastTarget, Is.False);
                 AssertContains(WorldRect((RectTransform)header.parent), paperBounds, 0.1f, "The full paper must stay on screen.");
@@ -176,21 +181,26 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void BattleSidePanels_UseRetreatWoodAndShareACommonWidth()
+        public void BattleResources_UseThreeIconRowsWithoutTheRetiredTextPanels()
         {
             CreateBattlePreview();
             Image retreat = Find<Button>("Retreat Battle").GetComponent<Image>();
-            Image player = Find<Image>("Player Resource HUD");
-            Image buff = Find<Image>("Battle Buff Panel");
-            Image enemy = Find<Image>("Enemy Resource HUD");
-
             Assert.That(retreat.sprite, Is.Not.Null, "Retreat Battle needs its wood board face.");
-            Assert.That(player.sprite, Is.SameAs(retreat.sprite));
-            Assert.That(buff.sprite, Is.SameAs(retreat.sprite));
-            Assert.That(enemy.sprite, Is.SameAs(retreat.sprite));
-            Assert.That(player.rectTransform.sizeDelta.x, Is.EqualTo(buff.rectTransform.sizeDelta.x).Within(0.1f));
-            Assert.That(player.rectTransform.sizeDelta.x, Is.EqualTo(enemy.rectTransform.sizeDelta.x).Within(0.1f));
-            Assert.That(player.rectTransform.sizeDelta.x, Is.EqualTo(retreat.rectTransform.sizeDelta.x).Within(0.1f));
+            RectTransform resources = Find<RectTransform>("Battle Compact Resources");
+            for (int line = 1; line <= 3; line++)
+            {
+                RectTransform row = Find<RectTransform>("Battle Resource Line " + line);
+                Assert.That(row.parent, Is.SameAs(resources));
+                Assert.That(row.rect.width, Is.EqualTo(resources.rect.width).Within(.1f));
+                Assert.That(row.GetComponentsInChildren<BattleCommandIconGraphic>(false).Length, Is.EqualTo(line == 1 ? 2 : 4));
+            }
+            foreach (string name in new[] { "Player Resource HUD", "Enemy Resource HUD", "Enemy Intent HUD", "Battle School Status Panel" })
+                Assert.That(Find<RectTransform>(name).gameObject.activeInHierarchy, Is.False, name + " was replaced by compact icons.");
+            Assert.That(host.GetComponentsInChildren<Transform>(true)
+                .Any(item => item.name == "Battle Buff Panel" && item.gameObject.activeInHierarchy), Is.False,
+                "Combat effects now belong to the icon rows under the health bars.");
+            Assert.That(host.GetComponentsInChildren<BattleStatusRow>(true), Has.Length.EqualTo(2),
+                "Both combatants need a retained status row.");
         }
 
         [Test]
@@ -198,30 +208,61 @@ namespace ShatteredSail.Presentation.Tests
         {
             CreateBattlePreview();
             Rect hand = WorldRect(Find<RectTransform>("Battle Hand"));
-            RectTransform player = Find<RectTransform>("Player Resource HUD");
-            RectTransform enemy = Find<RectTransform>("Enemy Resource HUD");
-            RectTransform buff = Find<RectTransform>("Battle Buff Panel");
+            RectTransform player = Find<RectTransform>("Battle Compact Resources");
+            RectTransform enemy = Find<RectTransform>("Battle Discard Pile");
             RectTransform retreat = Find<RectTransform>("Retreat Battle");
-            foreach (RectTransform panel in new[] { player, enemy, buff, retreat })
+            foreach (RectTransform panel in new[] { player, enemy, retreat })
                 Assert.That(WorldRect(panel).Overlaps(hand), Is.False, panel.name + " must not cover the hand.");
-            Assert.That(WorldRect(player).yMin, Is.GreaterThan(WorldRect(buff).yMax),
-                "Current resources precede the distinct buff panel.");
-            Assert.That(WorldRect(buff).yMin, Is.GreaterThan(WorldRect(retreat).yMax),
-                "Retreat keeps its own clickable row below buffs.");
+            Assert.That(WorldRect(player).yMin, Is.GreaterThan(WorldRect(Find<RectTransform>("Battle Draw Pile")).yMax),
+                "The three resource rows remain above the clickable draw pile.");
+            foreach (string side in new[] { "Player", "Enemy" })
+            {
+                BattleStatusRow row = Find<BattleStatusRow>(side + " Battle Status Row");
+                PopulateStatusRow(row, side == "Player");
+                row.FollowHealthBar(Find<RectTransform>(side + " Battle Hull Bar Track"));
+                row.RefreshVisibility();
+                Assert.That(WorldRect((RectTransform)row.transform).Overlaps(hand), Is.False,
+                    row.name + " must keep the hand readable and clickable.");
+            }
         }
 
         [Test]
-        public void BattleHullBars_AreCenteredDirectlyUnderTheirShips()
+        public void BattleHullBars_FollowTheirShipsWithinTheStatusLanesAndCenterTheirHealthValues()
         {
             CreateBattlePreview();
             foreach (string side in new[] { "Player", "Enemy" })
             {
-                Rect ship = WorldRect(Find<RectTransform>(side + " Ship Art"));
-                Rect bar = WorldRect(Find<RectTransform>(side + " Battle Hull Bar Track"));
-                Assert.That(bar.center.x, Is.EqualTo(ship.center.x).Within(3f), side + " hull bar should follow the ship center.");
+                RectTransform shipRoot = Find<RectTransform>(side + " Ship Art");
+                Rect ship = WorldRect(shipRoot);
+                Image hull = shipRoot.GetComponent<Image>();
+                Assert.That(hull, Is.Not.Null, side + " uses the top-down tactical ship.");
+                Assert.That(hull.sprite, Is.SameAs(Resources.Load<Sprite>("NavalTactics/tactical_ship_v1")));
+                Assert.That(hull.sprite, Is.Not.Null);
+                float hullContactY = ship.yMin;
+                RectTransform barRoot = Find<RectTransform>(side + " Battle Hull Bar Track");
+                Rect bar = WorldRect(barRoot);
+                Vector3 localShipCenter = barRoot.parent.InverseTransformPoint(shipRoot.position);
+                float expectedX = side == "Player" ? Mathf.Clamp(localShipCenter.x, -430f, -185f) :
+                    Mathf.Clamp(localShipCenter.x, 185f, 430f);
+                Assert.That(barRoot.localPosition.x, Is.EqualTo(expectedX).Within(3f),
+                    side + " health follows the ship while keeping both status lanes apart.");
+                Assert.That(barRoot.rect.width, Is.EqualTo(318f).Within(.1f), "The track includes the border around the health fill.");
+                BattleDefenseHud hud = barRoot.GetComponent<BattleDefenseHud>();
+                Assert.That(hud, Is.Not.Null);
+                Assert.That(hud.HullBar.rectTransform.rect.width, Is.EqualTo(310f).Within(.1f));
                 Assert.That(bar.center.y, Is.LessThan(ship.center.y), side + " hull bar should be below the ship.");
-                Assert.That(bar.yMax, Is.LessThanOrEqualTo(ship.yMin + 3f), side + " hull bar must not cover the hull artwork.");
-                Assert.That(bar.yMin, Is.GreaterThan(ship.yMin - 85f), side + " hull bar should remain close to the hull.");
+                Assert.That(bar.yMax, Is.LessThanOrEqualTo(hullContactY), side + " hull bar must not cover the hull artwork.");
+                Assert.That(bar.yMin, Is.GreaterThan(hullContactY - 85f), side + " hull bar should remain close to the hull.");
+                Text numeric = Find<Text>(side + " Hull Numeric");
+                Assert.That(numeric.alignment, Is.EqualTo(TextAnchor.MiddleCenter));
+                Assert.That(WorldRect(numeric.rectTransform).center, Is.EqualTo(bar.center).Within(.1f),
+                    "Current / maximum health stays centered on the continuous bar.");
+                BattleStatusRow status = Find<BattleStatusRow>(side + " Battle Status Row");
+                PopulateStatusRow(status, side == "Player");
+                status.FollowHealthBar(barRoot);
+                Rect statusBounds = WorldRect((RectTransform)status.transform);
+                Assert.That(statusBounds.yMax, Is.LessThan(bar.yMin), "Status icons belong below health.");
+                Assert.That(statusBounds.center.x, Is.EqualTo(bar.center.x).Within(.1f));
             }
         }
 
@@ -242,22 +283,22 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform voyageStatus = Find<RectTransform>("Voyage Header Status");
             Assert.That(voyageTitle.anchoredPosition, Is.EqualTo(new Vector2(-734f, 0f)).Within(0.1f));
             Assert.That(voyageTitle.sizeDelta, Is.EqualTo(new Vector2(234.8733f, 60f)).Within(0.1f));
-            Assert.That(voyageStatus.anchoredPosition, Is.EqualTo(new Vector2(660f, 0f)).Within(0.1f));
-            Assert.That(voyageStatus.sizeDelta, Is.EqualTo(new Vector2(420f, 60f)).Within(0.1f));
+            Assert.That(voyageStatus.anchoredPosition, Is.EqualTo(new Vector2(600f, 0f)).Within(0.1f));
+            Assert.That(voyageStatus.sizeDelta, Is.EqualTo(new Vector2(316f, 60f)).Within(0.1f));
 
             Image retreat = Find<Button>("Retreat Battle").GetComponent<Image>();
-            Image intent = Find<Image>("Enemy Intent HUD");
-            Assert.That(intent.sprite, Is.SameAs(retreat.sprite));
-            Assert.That(Find<RectTransform>("Player Battle Name").anchoredPosition,
-                Is.EqualTo(new Vector2(-727f, 410f)).Within(0.1f));
-            Assert.That(Find<RectTransform>("Enemy Battle Name").anchoredPosition,
-                Is.EqualTo(new Vector2(727f, 410f)).Within(0.1f));
-            Assert.That(intent.rectTransform.anchoredPosition, Is.EqualTo(new Vector2(735f, -196f)).Within(0.1f));
-            Assert.That(intent.rectTransform.sizeDelta, Is.EqualTo(new Vector2(230f, 120f)).Within(0.1f));
+            RectTransform intent = Find<RectTransform>("Enemy Intent Icons");
+            typeof(BattleIntentAnchor).GetMethod("LateUpdate", BindingFlags.NonPublic | BindingFlags.Instance)
+                .Invoke(intent.GetComponent<BattleIntentAnchor>(), null);
+            Assert.That(intent.GetComponentsInChildren<BattleCommandIconGraphic>(false), Is.Not.Empty);
+            Assert.That(WorldRect(intent).yMin, Is.GreaterThan(WorldRect(Find<RectTransform>("Enemy Ship Art")).yMax),
+                "The compact enemy intents remain above the enemy ship.");
+            Assert.That(Find<RectTransform>("Player Battle Name").anchoredPosition.x, Is.EqualTo(-735f).Within(.1f));
+            Assert.That(Find<RectTransform>("Enemy Battle Name").anchoredPosition.x, Is.EqualTo(735f).Within(.1f));
             Assert.That(Find<Image>("Player Battle Name Board").sprite, Is.SameAs(retreat.sprite));
             Assert.That(Find<Image>("Enemy Battle Name Board").sprite, Is.SameAs(retreat.sprite));
             Assert.That(Find<RectTransform>("Retreat Battle").anchoredPosition.y,
-                Is.EqualTo(-414f).Within(0.1f));
+                Is.GreaterThan(0f), "Retreat stays above the lower resource and deck controls.");
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Header"), Is.False,
                 "Battle previews should not keep the obsolete generic Header.");
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Ocean Backdrop"), Is.False,
@@ -269,6 +310,14 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Status"), Is.False);
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Collision Quality"), Is.False);
         }
+        private void PopulateStatusRow(BattleStatusRow row, bool player)
+        {
+            var statuses = CoreBattleStatusPresentation.Build(host.GetComponent<CoreGameplayDemoController>().Session, player).ToList();
+            if (!statuses.Any(status => status.Id == "guard"))
+                statuses.Add(new CoreBattleStatus("guard", "格挡", "12", "吸收伤害。", CoreBattleStatusKind.Guard));
+            row.SetStatuses(statuses);
+        }
+
         private void CreateBattlePreview(CoreGameplayPreviewPort port = CoreGameplayPreviewPort.GrayGull)
         {
             host = new GameObject("Battle HUD Layout Test");

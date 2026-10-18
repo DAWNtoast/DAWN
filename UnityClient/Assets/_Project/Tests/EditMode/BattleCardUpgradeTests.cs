@@ -13,7 +13,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(3)]
-        public void EveryCard_UsesTheSameCumulativeThreeUpgradeRules(int level)
+        public void EveryCard_UsesItsAuthoredChannelsAndKeepsCostsFixed(int level)
         {
             CoreVoyageSession session = new CoreVoyageSession();
             for (int index = 0; index < CoreVoyageSession.CardLibrary.Count; index++)
@@ -21,17 +21,22 @@ namespace ShatteredSail.Core.Tests
                 CoreBattleCard original = CoreVoyageSession.CardLibrary[index];
                 if (original.AllowedStages == NavalBattleStages.None) continue;
                 CoreBattleCard effective = session.GetBattleCardAtLevel(index, level);
+                int effectiveLevel = Math.Min(level, session.GetCardMaximumUpgradeLevel(index));
+                CoreCardUpgradeProfile profile = CoreCardUpgradeDesign.Find(original);
+                Assert.That(profile, Is.Not.Null, original.Id);
                 Assert.That(effective.Id, Is.EqualTo(original.Id));
-                Assert.That(effective.UpgradeLevel, Is.EqualTo(level));
-                Assert.That(effective.Damage, Is.EqualTo(Scaled(original.Damage, level)), original.Id);
-                Assert.That(effective.Block, Is.EqualTo(Scaled(original.Block, level)), original.Id);
-                Assert.That(effective.Repair, Is.EqualTo(Scaled(original.Repair, level)), original.Id);
+                Assert.That(effective.UpgradeLevel, Is.EqualTo(effectiveLevel), original.Id);
+                Assert.That(effective.Damage, Is.EqualTo(Scaled(original.Damage, profile.Multiplier(effectiveLevel))), original.Id);
+                Assert.That(effective.Block, Is.EqualTo(Scaled(original.Block, profile.BlockMultiplier(effectiveLevel))), original.Id);
+                Assert.That(effective.Repair, Is.EqualTo(Scaled(original.Repair, profile.RepairMultiplier(effectiveLevel))), original.Id);
                 Assert.That(effective.MovementMeters, Is.EqualTo(original.MovementMeters), original.Id);
-                Assert.That(effective.StrategyAmount, Is.EqualTo(original.Action == NavalBattleCardAction.FireRounds ? original.StrategyAmount : Scaled(original.StrategyAmount, level)), original.Id);
+                Assert.That(effective.NavalActionPointGain, Is.EqualTo(original.NavalActionPointGain + profile.ActionPointBonus(effectiveLevel)), original.Id);
+                Assert.That(effective.StrategyAmount, Is.EqualTo(original.Action == NavalBattleCardAction.FireRounds ? original.StrategyAmount : Scaled(original.StrategyAmount, profile.EffectMultiplier(effectiveLevel))), original.Id);
                 Assert.That(effective.StrategyLimit, Is.EqualTo(original.StrategyLimit), original.Id);
                 Assert.That(effective.Energy, Is.EqualTo(original.Energy), original.Id);
-                Assert.That(effective.Draw, Is.EqualTo(original.Draw + (level == 3 && original.Draw > 0 ? 1 : 0)), original.Id);
-                Assert.That(effective.BurnDamage, Is.EqualTo(Scaled(original.BurnDamage, level)), original.Id);
+                Assert.That(effective.Draw, Is.EqualTo(original.Draw + (original.Draw > 0 ? profile.DrawBonus(effectiveLevel) : 0)), original.Id);
+                if (original.Action == NavalBattleCardAction.FireRounds)
+                    Assert.That(effective.BurnDamage, Is.EqualTo(Scaled(original.BurnDamage, profile.EffectMultiplier(effectiveLevel))), original.Id);
                 Assert.That(effective.BurnDuration, Is.EqualTo(original.BurnDuration), original.Id);
                 Assert.That(effective.PowderCost, Is.EqualTo(original.PowderCost));
                 Assert.That(effective.CannonballCost, Is.EqualTo(original.CannonballCost));
@@ -45,7 +50,7 @@ namespace ShatteredSail.Core.Tests
             int index = Find("card_chain_shot");
             CoreVoyageSession first = new CoreVoyageSession();
             first.ConfigureCardUpgrades(new Dictionary<string, int> { { "card_chain_shot", 3 } });
-            Assert.That(first.GetBattleCard(index).Damage, Is.EqualTo(20));
+            Assert.That(first.GetBattleCard(index).Damage, Is.EqualTo(19));
             Assert.That(first.GetBattleCard(index).Draw, Is.Zero);
             Assert.That(first.GetBattleCard(index).Energy, Is.EqualTo(1));
             Assert.That(first.GetBattleDeck(NavalBattleStage.Naval).Count(value => value == index), Is.EqualTo(2));
@@ -120,9 +125,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.TryUpgradeBattleCard(0, out _), Is.False);
         }
 
-        [TestCase("card_approach")]
-        [TestCase("card_parallel_course")]
-        [TestCase("card_school_blood_b09")]
+        [TestCase("card_boarding_arcane_12")]
         public void FixedFunctionCards_CannotChargeGoldForRanksWithNoBenefit(string id)
         {
             var session = new CoreVoyageSession();
@@ -141,20 +144,21 @@ namespace ShatteredSail.Core.Tests
         [TestCase("card_school_arcane_b01")]
         [TestCase("card_school_arcane_b06")]
         [TestCase("card_school_arcane_b02")]
-        public void DeferredThirdRankDraw_RemainsPurchasableDespiteFlatEarlyRanks(string id)
+        public void OneCostUtilityDraw_GainsOneImmediatelyAndCannotSellRedundantRanks(string id)
         {
             var session = new CoreVoyageSession();
             session.RestoreProfile(5000, session.CurrentPort);
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
             int index = Find(id);
             Assert.That(session.HasBattleCardUpgradeBenefit(index), Is.True);
-            for (int rank = 1; rank <= 3; rank++)
-            {
-                Assert.That(session.GetCardUpgradeCost(index), Is.GreaterThan(0));
-                Assert.That(session.TryUpgradeBattleCard(index, out string reason), Is.True, reason);
-                Assert.That(session.GetBattleCard(index).Draw,
-                    Is.EqualTo(CoreVoyageSession.CardLibrary[index].Draw + (rank == 3 ? 1 : 0)));
-            }
+            Assert.That(session.GetCardMaximumUpgradeLevel(index), Is.EqualTo(1));
+            Assert.That(session.GetCardUpgradeCost(index), Is.GreaterThan(0));
+            Assert.That(session.TryUpgradeBattleCard(index, out string reason), Is.True, reason);
+            Assert.That(session.GetBattleCard(index).Draw, Is.EqualTo(CoreVoyageSession.CardLibrary[index].Draw + 1));
+            decimal gold = session.ProfileGold;
+            Assert.That(session.GetCardUpgradeCost(index), Is.Zero);
+            Assert.That(session.TryUpgradeBattleCard(index, out _), Is.False);
+            Assert.That(session.ProfileGold, Is.EqualTo(gold));
         }
 
         [Test]
@@ -163,7 +167,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = new CoreVoyageSession();
             session.ConfigureComponentBattleCards(new[] { "bow", "sail", "cannon", "plating", "instrument", "bow", "invalid" });
             Assert.That(session.GetComponentBattleCards(NavalBattleStage.Naval).Count, Is.EqualTo(5));
-            Assert.That(session.GetComponentBattleCards(NavalBattleStage.Preparation).Count, Is.EqualTo(3));
+            Assert.That(session.GetComponentBattleCards(NavalBattleStage.Preparation), Is.Empty);
             Assert.That(session.GetComponentBattleCards(NavalBattleStage.Boarding), Is.Empty);
             foreach (int index in session.GetComponentBattleCards(NavalBattleStage.Naval))
                 Assert.That(session.GetAvailableBattleCards(NavalBattleStage.Naval), Has.No.Member(index));
@@ -177,9 +181,9 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(pile.Count(value => value == index), Is.EqualTo(1));
         }
 
-        [TestCase("card_deck_polish", 2, 6)]
+        [TestCase("card_deck_polish", 3, 6)]
         [TestCase("card_load_shot", 6, 12)]
-        [TestCase("card_gunner_precision", 6, 12)]
+        [TestCase("card_gunner_precision", 7, 12)]
         [TestCase("card_special_crew_salt_crown_gunner_rokan", 2, 4)]
         public void FirstUpgrade_ScalesDirectStrategyAmountsButKeepsCapsAndFireRoundCount(string id, int amount, int cap)
         {
@@ -197,17 +201,19 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void FirstUpgrade_KeepsManeuverDistanceAndScalesGunnerBurnDamage()
+        public void FirstUpgrade_IncreasesManeuverActionPointsAndScalesGunnerBurnDamage()
         {
             CoreVoyageSession session = new CoreVoyageSession();
             session.ConfigureSpecialCardSources(new[] { "crew_salt_crown_gunner_rokan" }, null);
             session.ConfigureCardUpgrades(new Dictionary<string, int> { { "card_approach", 1 }, { "card_special_crew_salt_crown_gunner_rokan", 1 } });
             EnterCombat(session);
             SetHand(session, Find("card_approach"), Find("card_special_crew_salt_crown_gunner_rokan"));
+            int actionPoints = session.Battle.NavalActionPoints;
             Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(450f));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(600f));
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(actionPoints + 2));
             Assert.That(session.PlayCard(0), Is.True);
-            int expectedBurn = Scaled(session.GetBattleCardAtLevel(Find("card_special_crew_salt_crown_gunner_rokan"), 0).BurnDamage, 1);
+            int expectedBurn = 5;
             Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(expectedBurn));
             session.EndBattleTurn();
             session.Battle.EnemyHull = session.Battle.EnemyMaxHull = 500;
@@ -232,6 +238,7 @@ namespace ShatteredSail.Core.Tests
             session.ConfigureComponentBattleCards(new[] { "instrument" });
             session.ConfigureCardUpgrades(new Dictionary<string, int> { { id, 3 } });
             EnterCombat(session);
+            if (id == "card_component_instrument") Assert.That(session.EndBattleTurn(), Is.True);
             session.Battle.DrawPile.Clear();
             session.Battle.DiscardPile.Clear();
             int index = Find(id);
@@ -261,7 +268,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(CoreBattleUpgradeBalance.ScaleNumerical(value, level), Is.EqualTo(expected));
 
         [TestCase(CoreSchoolMechanic.ArcaneEcho)] [TestCase(CoreSchoolMechanic.ThunderEcho)]
-        public void ThirdRank_EchoDrawKeepsItsConditionAndAddsOnlyOneCard(CoreSchoolMechanic mechanic)
+        public void EchoDraw_KeepsItsConditionAndUsesOnlyOneCappedDrawRoute(CoreSchoolMechanic mechanic)
         {
             var session = new CoreVoyageSession();
             CoreBattleCard[] originals = CoreVoyageSession.CardLibrary.Where(card => card.SchoolEffect?.Mechanic == mechanic).ToArray();
@@ -270,8 +277,9 @@ namespace ShatteredSail.Core.Tests
                 for (int level = 0; level <= 3; level++)
                 {
                     CoreBattleCard upgraded = session.GetBattleCardAtLevel(Find(original.Id), level);
-                    Assert.That(upgraded.Draw, Is.EqualTo(original.Draw + (original.Draw > 0 && level == 3 ? 1 : 0)));
-                    Assert.That(upgraded.SchoolEffect.Power, Is.EqualTo(original.SchoolEffect.Power + (original.Draw == 0 && level == 3 ? 1 : 0)));
+                    int bonus = CoreCardUpgradeDesign.Find(original).DrawBonus(level);
+                    Assert.That(upgraded.Draw, Is.EqualTo(original.Draw + (original.Draw > 0 ? bonus : 0)));
+                    Assert.That(upgraded.SchoolEffect.Power, Is.EqualTo(original.SchoolEffect.Power + (original.Draw == 0 ? bonus : 0)));
                     Assert.That(upgraded.SchoolEffect.Threshold, Is.EqualTo(original.SchoolEffect.Threshold));
                     Assert.That(upgraded.SchoolEffect.Mechanic, Is.EqualTo(mechanic));
                 }
@@ -280,11 +288,11 @@ namespace ShatteredSail.Core.Tests
             var result = (CoreBattleCard)typeof(CoreVoyageSession).GetMethod("BuildUpgradedCardDefinition", BindingFlags.Static | BindingFlags.NonPublic)
                 .Invoke(null, new object[] { mixed, 3 });
             Assert.That(result.Draw, Is.EqualTo(2));
-            Assert.That(result.SchoolEffect.Power, Is.EqualTo(2), "One card with both draw routes receives only one third-rank bonus.");
+            Assert.That(result.SchoolEffect.Power, Is.EqualTo(2), "A card with both draw routes receives the upgrade on only one route.");
         }
 
-        private static int Scaled(int value, int level) => (int)decimal.Round(value *
-            (level == 0 ? 1m : level == 1 ? 1.2m : level == 2 ? 1.5m : 2m), 0, MidpointRounding.AwayFromZero);
+        private static int Scaled(int value, decimal multiplier) =>
+            (int)decimal.Round(value * multiplier, 0, MidpointRounding.AwayFromZero);
 
         private static int Find(string id) => Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).First(index => CoreVoyageSession.CardLibrary[index].Id == id);
         private static void SetHand(CoreVoyageSession session, params int[] cards) { session.Battle.Hand.Clear(); session.Battle.Hand.AddRange(cards); }

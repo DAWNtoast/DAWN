@@ -12,14 +12,14 @@ namespace ShatteredSail.Presentation.Tests
             var catalog = new ComponentArtCatalog();
             var inventory = new OwnedShipComponentInventory(catalog);
             inventory.EnsureLoadout(0);
-            OwnedShipComponent first = inventory.Grant(catalog.Get(0), 0.93f);
-            OwnedShipComponent second = inventory.Grant(catalog.Get(0), 1.08f);
+            OwnedShipComponent first = inventory.Grant(catalog.Get(0));
+            OwnedShipComponent second = inventory.Grant(catalog.Get(0));
             string equippedId = inventory.Installed(0, ComponentSlot.Bow).InstanceId;
 
             Assert.That(inventory.TryRemoveUninstalled(first.InstanceId), Is.True);
             Assert.That(inventory.Items.Any(item => item.InstanceId == first.InstanceId), Is.False);
             Assert.That(inventory.Items.Single(item => item.InstanceId == second.InstanceId), Is.SameAs(second));
-            Assert.That(second.Quality, Is.EqualTo(1.08f));
+            Assert.That(second.InstanceId, Is.Not.EqualTo(first.InstanceId));
             Assert.That(inventory.Installed(0, ComponentSlot.Bow).InstanceId, Is.EqualTo(equippedId));
             Assert.That(inventory.Items.Count, Is.EqualTo(6));
             string unchanged = inventory.Export();
@@ -71,27 +71,22 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void EveryAppraisalAndPort_PaysHalfRetailAndNeverAllowsCrossPortPurchaseResaleProfit()
+        public void EveryComponentAndPort_PaysHalfRetailAndNeverAllowsCrossPortPurchaseResaleProfit()
         {
             var catalog = new ComponentArtCatalog();
             string[] ports = { "断锚港", "白贝港", "铜钟港", "盐冠港", "暮潮港", "灰鸥港" };
             foreach (ComponentArtEntry entry in catalog.ExpandedEntries)
             {
-                // Shop appraisals have 1% steps, from 90% through 110%.
-                for (int appraisal = 90; appraisal <= 110; appraisal++)
+                int cheapestPurchase = ports.Min(port => PortComponentShopCatalog.CalculatePrice(entry, port));
+                foreach (string port in ports)
                 {
-                    float quality = appraisal / 100f;
-                    int cheapestPurchase = ports.Min(port => PortComponentShopCatalog.CalculatePrice(entry, port, quality));
-                    foreach (string port in ports)
-                    {
-                        int retail = PortComponentShopCatalog.CalculatePrice(entry, port, quality);
-                        int resale = PortComponentShopCatalog.CalculateSalePrice(entry, port, quality);
-                        string context = entry.Id + " / " + port + " / " + appraisal;
-                        Assert.That(resale, Is.EqualTo(retail / 2), context);
-                        Assert.That(resale, Is.GreaterThan(0), context);
-                        Assert.That(resale, Is.LessThan(cheapestPurchase),
-                            context + ": a bought fitting cannot generate profit by immediate or cross-port resale.");
-                    }
+                    int retail = PortComponentShopCatalog.CalculatePrice(entry, port);
+                    int resale = PortComponentShopCatalog.CalculateSalePrice(entry, port);
+                    string context = entry.Id + " / " + port;
+                    Assert.That(resale, Is.EqualTo(retail / 2), context);
+                    Assert.That(resale, Is.GreaterThan(0), context);
+                    Assert.That(resale, Is.LessThan(cheapestPurchase),
+                        context + ": a bought fitting cannot generate profit by immediate or cross-port resale.");
                 }
             }
         }

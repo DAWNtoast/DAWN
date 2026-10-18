@@ -31,6 +31,7 @@ namespace ShatteredSail.Core.Gameplay
         public bool CanSelectShip(int shipIndex)
         {
             return Phase == CoreDemoPhase.Port && shipIndex >= 0 && shipIndex < ships.Count &&
+                (!shipPorts.ContainsKey(shipIndex) || IsShipAtCurrentPort(shipIndex)) &&
                 CoreEconomyBalance.HasNonNegativeCargo(Cargo) &&
                 Cargo.UsedVolume <= ships[shipIndex].CargoCapacity + 0.001f;
         }

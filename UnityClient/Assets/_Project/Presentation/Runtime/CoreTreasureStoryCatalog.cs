@@ -39,7 +39,7 @@ namespace ShatteredSail.Presentation
     }
 
     /// <summary>
-    /// The three two-page treasure chapters and the five ship-specific pre-battle
+    /// The three two-page treasure chapters and the six ship-specific pre-battle
     /// readings share stable ids with the core encounter catalog.
     /// </summary>
     public static class CoreTreasureStoryCatalog
@@ -74,15 +74,15 @@ namespace ShatteredSail.Presentation
                 new TreasureStoryChapter("moonlit", "月蚀", "月潮偿还",
                     new[]
                     {
-                        "月蚀图的潮线正慢慢合拢。沉月王庭外没有守门人，只有一艘幽灵船，仍在替旧船长偿还未尽的归途。",
-                        "潮汐镇魂号转过最后一座残塔，没有索要货物。船上传来问话：宝库找到以后，谁还会替海浪记着死者的名字？"
+                        "月蚀图的潮线正慢慢合拢。沉月王庭外，潮汐镇魂号仍替旧船长偿还未尽的归途；终界观星号则在塔影之后测读失落的星轨。",
+                        "潮汐镇魂号转过最后一座残塔，终界观星号的透镜照亮了沉门。海上传来问话：宝库找到以后，谁还会替海浪记着死者的名字？"
                     },
                     new[]
                     {
                         "TreasureHunt/Comics/moonlit_page01",
                         "TreasureHunt/Comics/moonlit_page02"
                     },
-                    new[] { "legendary_pirate_tide_requiem" })
+                    new[] { "legendary_pirate_tide_requiem", "legendary_pirate_last_horizon" })
             });
 
         private static readonly IReadOnlyList<TreasureBattleStory> battles =
@@ -112,6 +112,11 @@ namespace ShatteredSail.Presentation
                 {
                     "潮汐·塞勒涅还在寻找老船长。她借得月潮的航线，却将自己的回程押给了海巨人，至今没有赎回。",
                     "她不会先开炮，只让潮水反复推偏你们的船头。赢下这场切磋，替她在图上续回那条归路。"
+                }),
+                new TreasureBattleStory("legendary_pirate_last_horizon", "终界观星号", new[]
+                {
+                    "终界观星号的学者曾在沉月王庭找到一幅没有终点的星图。末风帆展开时，世界树皮甲板上的每一道年轮都指向不同的海。",
+                    "观测舱传来最后一次校准。终界炮沿透镜投下的星轨转向，学者只问：若地平线真的有尽头，你们准备带谁一起抵达？"
                 })
             });
 

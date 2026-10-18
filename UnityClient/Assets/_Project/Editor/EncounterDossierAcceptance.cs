@@ -171,12 +171,11 @@ namespace ShatteredSail.Editor
                 if (canvas == null) throw new InvalidOperationException("The preview Canvas was not created.");
                 string prefix = record.tutorial ? "Tutorial Encounter" : "Encounter";
                 Find<RectTransform>(root, prefix + " Card");
-                RawImage frame = Find<RawImage>(root, prefix + " Themed Frame");
-                RawImage paper = Find<RawImage>(root, prefix + " Parchment");
+                Image paper = Find<Image>(root, prefix + " Parchment");
                 RawImage picture = Find<RawImage>(root, record.tutorial ? "Tutorial Event Art" : "Demo Event Art");
-                if (frame.texture == null || paper.texture == null || picture.texture == null)
-                    throw new InvalidOperationException("The themed frame, parchment, or event illustration is missing.");
-                record.frameTexture = frame.texture.name;
+                if (paper.sprite != MarketShopSkin.Paper || picture.texture == null)
+                    throw new InvalidOperationException("The light paper frame or event illustration is missing.");
+                record.frameTexture = paper.sprite.texture.name;
                 record.illustrationTexture = picture.texture.name;
                 string choicesName = record.tutorial ? "Tutorial Choices" : "Encounter Choices";
                 string skipName = record.tutorial ? "Tutorial Skip Encounter" : "Skip Encounter";

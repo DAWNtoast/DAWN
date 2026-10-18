@@ -22,55 +22,48 @@ namespace ShatteredSail.Presentation.Tests
             session.Cargo.Medicine = 1;
             SetResponsiveHand(session, "card_crew_bandage", "card_crew_bandage");
             RenderResponsiveBattle(controller);
-            yield return null;
+            yield return WaitResponsiveBattle(controller);
             Assert.That(session.Battle.PlayerOrdinaryCrew, Is.EqualTo(10));
             CoreBattleCard bandage = session.GetBattleCard(ResponsiveCardIndex("card_crew_bandage"));
             const int enhanced = 6;
             Assert.That(bandage.Repair, Is.EqualTo(enhanced), "The authored full treatment is unchanged by the ten-sailor roster.");
             int baseline = 2;
             BoardingCinematicAssertions.AssertScene(session);
-            int gridId = RequiredResponsive<Image>("Player Battle Hull Bar").GetComponentInChildren<BattleHealthSegmentsGraphic>().GetInstanceID();
-            Assert.That(RequiredResponsive<Text>("Resource 药 Value").text, Is.EqualTo("1"));
-            Assert.That(RequiredResponsive<Text>("Player Ammunition").text,
-                Is.EqualTo("火药 " + session.Cargo.Powder + " · 木板 " + session.Cargo.Wood));
+            int healthBarId = RequiredResponsive<Image>("Player Battle Hull Bar").GetInstanceID();
+            AssertBoardingMedicineResources(session, 1);
             Button retained = RequiredResponsive<Button>("Battle Card 1");
             int retainedId = retained.GetInstanceID();
             Text face = RequiredResponsive<Button>("Battle Card 0").transform.Find("Label").GetComponent<Text>();
-            AssertStableMedicineFace(face, enhanced, 1);
-            string enhancedStructure = MedicineFaceWords(face.text);
-            NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_03_Medicine_Enhanced.png", "有药时固定卡面恢复" + enhanced + "、消耗1药品", "Battle Card");
+            AssertStableMedicineFace(face, bandage);
+            string authoredFace = ForgeVisibleText(face.text);
+            NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_03_Medicine_Enhanced.png", "固定卡面完整展示有药恢复6与无药恢复2的两条规则", "Battle Card");
             yield return HoverMedicineCard(0);
             Text explanation = RequiredResponsive<Button>("Battle Card 0").transform
                 .Find("Card Keyword Bubble 0/Keyword Bubble Text").GetComponent<Text>();
-            Assert.That(CompactMedicineText(explanation.text), Does.Contain("本次实际恢复 " + enhanced).And.Contain("药品 -1").And.Contain("无药保底 " + baseline));
-            Assert.That(CompactMedicineText(explanation.text), Does.Contain("卡牌效果不受人数影响")
-                .And.Contain("有药完整 " + enhanced).And.Not.Contain("35.7%").And.Not.Contain("人为基准"));
-            AssertCalculationTooltipOmitsGeneralKeywords(explanation.text);
+            AssertCurrentBoardingRules(explanation.text, bandage, "medicine available hover");
+            AssertMedicineQuoteIsReadOnly(session, bandage, enhanced, 1);
             AssertBattleRuleTooltipFits(explanation, 11);
             Assert.That(session.Cargo.Medicine, Is.EqualTo(1), "Pointer preview must not spend medicine.");
-            NavalBattleVisualCapture.Capture(controller, "Medicine_01_Enhanced_Hover.png", "有药接舷包扎的上限、实际治疗与药品成本", "Battle Card");
+            NavalBattleVisualCapture.Capture(controller, "Medicine_01_Enhanced_Hover.png", "悬停展示完整包扎与接舷规则，预览不消耗药物", "Battle Card");
 
             ClickAcceptanceButton("Battle Card 0");
             yield return WaitBoardingFeedback(controller, "BoardingFX", BoardingCombatFxKind.Heal);
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(10 + enhanced));
             BoardingCinematicAssertions.AssertScene(session);
-            Assert.That(RequiredResponsive<Image>("Player Battle Hull Bar").GetComponentInChildren<BattleHealthSegmentsGraphic>().GetInstanceID(), Is.EqualTo(gridId));
+            Assert.That(RequiredResponsive<Image>("Player Battle Hull Bar").GetInstanceID(), Is.EqualTo(healthBarId));
             Assert.That(session.Cargo.Medicine, Is.Zero);
-            Assert.That(RequiredResponsive<Text>("Player Ammunition").text,
-                Is.EqualTo("火药 " + session.Cargo.Powder + " · 木板 " + session.Cargo.Wood));
-            Assert.That(RequiredResponsive<Text>("Resource 药 Value").text, Is.EqualTo("0"));
+            AssertBoardingMedicineResources(session, 0);
             Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(retainedId));
             face = RequiredResponsive<Button>("Battle Card 0").transform.Find("Label").GetComponent<Text>();
-            AssertStableMedicineFace(face, baseline, 0);
-            Assert.That(MedicineFaceWords(face.text), Is.EqualTo(enhancedStructure), "The retained card changes values, not its words.");
-            NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_04_Medicine_Empty.png", "药品耗尽后同一卡面仅改恢复" + baseline + "、消耗0药品", "Battle Card");
+            AssertStableMedicineFace(face, bandage);
+            Assert.That(ForgeVisibleText(face.text), Is.EqualTo(authoredFace), "The retained card keeps both fixed supply branches visible.");
+            NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_04_Medicine_Empty.png", "药品耗尽后保留同一完整卡面，HUD药品刷新为0", "Battle Card");
             Assert.That(RequiredResponsive<Text>("Card Energy Cost Text 0").text, Is.EqualTo("2"));
             yield return HoverMedicineCard(0);
             explanation = RequiredResponsive<Button>("Battle Card 0").transform
                 .Find("Card Keyword Bubble 0/Keyword Bubble Text").GetComponent<Text>();
-            Assert.That(CompactMedicineText(explanation.text), Does.Contain("本次实际恢复 " + baseline).And.Contain("不耗药")
-                .And.Contain("无药保底 " + baseline).And.Not.Contain("药品增疗 +"));
-            AssertCalculationTooltipOmitsGeneralKeywords(explanation.text);
+            AssertCurrentBoardingRules(explanation.text, bandage, "medicine exhausted hover");
+            AssertMedicineQuoteIsReadOnly(session, bandage, baseline, 0);
             AssertBattleRuleTooltipFits(explanation, 11);
             ClickAcceptanceButton("Battle Card 0");
             yield return WaitResponsiveBattle(controller);
@@ -90,55 +83,94 @@ namespace ShatteredSail.Presentation.Tests
             CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Preparation);
             session.Battle.Stage = NavalBattleStage.Boarding;
             session.Cargo.Medicine = 2;
+            session.Battle.PlayerBoardingHealth = session.Battle.PlayerMaxBoardingHealth;
             SetResponsiveHand(session, "card_crew_bandage", "card_crew_bandage");
             RenderResponsiveBattle(controller);
-            yield return null;
+            yield return WaitResponsiveBattle(controller);
+            CoreBattleCard bandage = session.GetBattleCard(ResponsiveCardIndex("card_crew_bandage"));
             Text face = RequiredResponsive<Button>("Battle Card 0").transform.Find("Label").GetComponent<Text>();
-            AssertStableMedicineFace(face, 0, 0);
-            string fullHealthStructure = MedicineFaceWords(face.text);
-            NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_05_Medicine_Full.png", "满血时同一卡面仅改恢复0、消耗0药品", "Battle Card");
+            AssertStableMedicineFace(face, bandage);
+            string fullHealthFace = ForgeVisibleText(face.text);
+            NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_05_Medicine_Full.png", "满血时保留固定卡牌规则，实际出牌不消耗药物", "Battle Card");
             yield return HoverMedicineCard(0);
             Text explanation = RequiredResponsive<Button>("Battle Card 0").transform
                 .Find("Card Keyword Bubble 0/Keyword Bubble Text").GetComponent<Text>();
-            Assert.That(CompactMedicineText(explanation.text), Does.Contain("本次实际恢复 0").And.Contain("不耗药"));
-            AssertCalculationTooltipOmitsGeneralKeywords(explanation.text);
+            AssertCurrentBoardingRules(explanation.text, bandage, "full health hover");
+            AssertMedicineQuoteIsReadOnly(session, bandage, 0, 0);
             AssertBattleRuleTooltipFits(explanation, 11);
-            NavalBattleVisualCapture.Capture(controller, "Medicine_03_Full_Health.png", "满血卡面固定显示恢复0与药品0，规则气泡保留详细解释", "Battle Card");
-            ClickAcceptanceButton("Battle Card 0");
-            yield return WaitResponsiveBattle(controller);
+            NavalBattleVisualCapture.Capture(controller, "Medicine_03_Full_Health.png", "满血规则气泡完整展示包扎规则，悬停不改变生命或药物", "Battle Card");
+            Button fullHealthCard = RequiredResponsive<Button>("Battle Card 0");
+            Assert.That(fullHealthCard.IsInteractable(), Is.False, "A full-health bandage cannot be played.");
+            Assert.That(session.CardUnavailableReason(0), Is.EqualTo("当前生命已满"));
+            Assert.That(explanation.text, Does.Contain("当前不能使用").And.Contain("当前生命已满"));
+            int fullHealthEnergy = session.Battle.Energy;
+            int[] fullHealthHand = session.Battle.Hand.ToArray();
+            // Exercise the disabled control through an actual raycast without
+            // bypassing Button's interactability guard via onClick.Invoke.
+            PointerEventData blockedPointer = DeckBuilderPointer(fullHealthCard);
+            ExecuteEvents.Execute(fullHealthCard.gameObject, blockedPointer, ExecuteEvents.pointerClickHandler);
+            yield return null;
+            CollectionAssert.AreEqual(fullHealthHand, session.Battle.Hand, "A rejected click cannot discard the card.");
+            Assert.That(session.Battle.Energy, Is.EqualTo(fullHealthEnergy));
+            Assert.That(session.GetBoardingHandEnergyCost(0), Is.EqualTo(bandage.Energy), "A rejected click cannot increase repeat fees.");
             Assert.That(session.Cargo.Medicine, Is.EqualTo(2));
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(session.Battle.PlayerMaxBoardingHealth));
 
             session.Battle.PlayerBoardingHealth -= 1;
             RenderResponsiveBattle(controller);
-            yield return null;
+            yield return WaitResponsiveBattle(controller);
             face = RequiredResponsive<Button>("Battle Card 0").transform.Find("Label").GetComponent<Text>();
-            AssertStableMedicineFace(face, 1, 0);
-            Assert.That(MedicineFaceWords(face.text), Is.EqualTo(fullHealthStructure), "Taking damage changes only the same numeric slots.");
+            AssertStableMedicineFace(face, bandage);
+            Assert.That(ForgeVisibleText(face.text), Is.EqualTo(fullHealthFace), "A small wound does not rewrite the authored card rules.");
             yield return HoverMedicineCard(0);
             explanation = RequiredResponsive<Button>("Battle Card 0").transform
                 .Find("Card Keyword Bubble 0/Keyword Bubble Text").GetComponent<Text>();
-            Assert.That(CompactMedicineText(explanation.text), Does.Contain("本次实际恢复 1").And.Contain("不耗药"));
-            AssertCalculationTooltipOmitsGeneralKeywords(explanation.text);
+            AssertCurrentBoardingRules(explanation.text, bandage, "small wound hover");
+            AssertMedicineQuoteIsReadOnly(session, bandage, 1, 0);
             AssertBattleRuleTooltipFits(explanation, 11);
+            Assert.That(session.CardUnavailableReason(0), Is.Empty, "A real wound makes the bandage playable again.");
             ClickAcceptanceButton("Battle Card 0");
             yield return WaitResponsiveBattle(controller);
+            Assert.That(session.Battle.Hand.Count, Is.EqualTo(fullHealthHand.Length - 1));
+            Assert.That(session.Battle.Energy, Is.EqualTo(fullHealthEnergy - bandage.Energy));
+            Assert.That(session.GetBoardingHandEnergyCost(0), Is.EqualTo(bandage.Energy + 1), "Only the successful treatment increases repeat fees.");
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(session.Battle.PlayerMaxBoardingHealth));
             Assert.That(session.Cargo.Medicine, Is.EqualTo(2));
-            Assert.That(RequiredResponsive<Text>("Resource 药 Value").text, Is.EqualTo("2"));
+            AssertBoardingMedicineResources(session, 2);
             LogAssert.NoUnexpectedReceived();
         }
 
-        private static void AssertStableMedicineFace(Text face, int healing, int medicine)
+        private static void AssertBoardingMedicineResources(CoreVoyageSession session, int medicine)
         {
-            Assert.That(ForgeVisibleText(face.text), Is.EqualTo("恢复" + healing + "点己方船员生命消耗" + medicine + "药品"));
+            Assert.That(RequiredResponsive<RectTransform>("Resource Medicine").Find("Amount").GetComponent<Text>().text,
+                Is.EqualTo(medicine.ToString()));
+            Assert.That(RequiredResponsive<RectTransform>("Resource Powder").Find("Amount").GetComponent<Text>().text,
+                Is.EqualTo(session.Cargo.Powder.ToString()));
+            Assert.That(RequiredResponsive<RectTransform>("Resource Planks").Find("Amount").GetComponent<Text>().text,
+                Is.EqualTo(session.Cargo.Wood.ToString()));
+        }
+
+        private static void AssertStableMedicineFace(Text face, CoreBattleCard bandage)
+        {
+            Assert.That(bandage.BoardingSpec.Key, Is.EqualTo("basic_06"));
+            Assert.That(bandage.Repair, Is.EqualTo(6));
+            Assert.That(ForgeVisibleText(face.text), Is.EqualTo("使用1药物恢复6生命，无药物恢复2"));
+            Assert.That(ForgeVisibleText(face.text), Is.EqualTo(ForgeVisibleText(CardDescriptionText.Compact(bandage.Description))));
             Assert.That(face.text, Does.Not.Contain("实际").And.Not.Contain("本次恢复").And.Not.Contain("无药基础"));
             Assert.That(face.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));
             Assert.That(face.preferredHeight, Is.LessThanOrEqualTo(face.rectTransform.rect.height + .5f));
         }
-        private static string MedicineFaceWords(string text) =>
-            System.Text.RegularExpressions.Regex.Replace(ForgeVisibleText(text), @"\d+", "#");
-        private static string CompactMedicineText(string text) => text.Replace("\n", string.Empty).Replace('\u00a0', ' ');
+        private static void AssertMedicineQuoteIsReadOnly(CoreVoyageSession session, CoreBattleCard bandage, int healing, int medicine)
+        {
+            int beforeHealth = session.Battle.PlayerBoardingHealth, beforeMedicine = session.Cargo.Medicine;
+            CoreBattleCardEffects quote = session.GetBattleCardEffects(bandage, NavalBattleStage.Boarding);
+            Assert.That(quote.FullRepair, Is.EqualTo(6));
+            Assert.That(quote.FallbackRepair, Is.EqualTo(2));
+            Assert.That(quote.ActualRepair, Is.EqualTo(healing));
+            Assert.That(quote.MedicineCost, Is.EqualTo(medicine));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(beforeHealth));
+            Assert.That(session.Cargo.Medicine, Is.EqualTo(beforeMedicine));
+        }
         private static IEnumerator HoverMedicineCard(int index)
         {
             Button card = RequiredResponsive<Button>("Battle Card " + index);

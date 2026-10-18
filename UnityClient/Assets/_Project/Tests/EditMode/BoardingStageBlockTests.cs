@@ -25,30 +25,34 @@ namespace ShatteredSail.Core.Tests
             s.ConfigureSpecialCardSources(new[]{crew},Array.Empty<string>());
             s.RestoreSpecialCardExperience(new Dictionary<string,int>{{source.Card.Id,new[]{0,120,360,840}[rank]}});
             var card=s.GetBattleCard(index);
-            int shipBlock=new[]{5,6,8,10}[rank],boardingBlock=new[]{3,4,5,6}[rank];
-            int block=stage==NavalBattleStage.Boarding?boardingBlock:shipBlock;
-            int draw=rank==3?2:1;
-            Assert.That(card.Block,Is.EqualTo(shipBlock));
-            Assert.That(card.BoardingBlock,Is.EqualTo(boardingBlock));
-            Assert.That(card.Description,Does.Contain("格挡 +"+shipBlock).And.Contain("接舷时格挡改为 "+boardingBlock).And.Not.Contain("{"));
+            bool pepe=crew=="crew_gray_gull_cook_pepe";
+            int block=(pepe?new[]{6,8,8,8}:new[]{6,8,11,11})[rank];
+            int energy=pepe?1:2;
+            int draw=pepe?1:new[]{2,3,4,4}[rank];
+            Assert.That(card.UpgradeLevel,Is.EqualTo(Math.Min(rank,pepe?1:2)));
+            Assert.That(card.Block,Is.EqualTo(block));
+            Assert.That(card.BoardingBlock,Is.Null);
+            Assert.That(card.Description,Does.Contain("获得 "+block+" 格挡").And.Not.Contain("{"));
             Assert.That(s.GetBattleCardEffects(card,stage).Block,Is.EqualTo(block));
-            Assert.That(s.BattleCardFaceDescription(card,stage),Does.Contain("格挡 +"+block).And.Not.Contain("{"));
+            string guardText="获得 "+block+" 格挡";
+            Assert.That(s.BattleCardFaceDescription(card,stage),Does.Contain(guardText).And.Not.Contain("{"));
             Assert.That(s.StartTrainingBattle(CoreTrainingTargets.All[0]),Is.True);
             var b=s.Battle;b.Stage=stage;b.PlayerBlock=0;b.Energy=3;b.Hand.Clear();b.Hand.Add(index);
             int filler=s.GetBattleDeck(stage)[0];b.DrawPile.Clear();for(int i=0;i<4;i++)b.DrawPile.Add(filler);
             int hull=s.Hull,health=b.PlayerBoardingHealth,medicine=s.Cargo.Medicine,wood=s.Cargo.Wood;
             Assert.That(s.GetBattleCardEffects(card,stage).Block,Is.EqualTo(block));
-            Assert.That(s.BattleCardFaceDescription(card,stage),Does.Contain("格挡 +"+block).And.Not.Contain("{"));
-            Assert.That(s.BattleCardEffectDescription(card,stage),Does.Contain("格挡 +"+block).And.Not.Contain("{"));
-            Assert.That(s.GetBattleCardEnergyCost(index),Is.EqualTo(1));
+            Assert.That(s.BattleCardFaceDescription(card,stage),Does.Contain(guardText).And.Not.Contain("{"));
+            string effectGuardText=stage==NavalBattleStage.Boarding?"格挡 +"+block:guardText;
+            Assert.That(s.BattleCardEffectDescription(card,stage),Does.Contain(effectGuardText).And.Not.Contain("{"));
+            Assert.That(s.GetBattleCardEnergyCost(index),Is.EqualTo(energy));
             Assert.That(s.PlayCard(0),Is.True);
             Assert.That(b.PlayerBlock,Is.EqualTo(block));
             Assert.That(b.Hand,Has.Count.EqualTo(draw));
-            Assert.That(b.Energy,Is.EqualTo(2));
-            Assert.That(s.GetBattleCardEnergyCost(index),Is.EqualTo(2));
+            Assert.That(b.Energy,Is.EqualTo(3-energy));
+            Assert.That(s.GetBattleCardEnergyCost(index),Is.EqualTo(energy+1));
             Assert.That(new[]{s.Hull,b.PlayerBoardingHealth,s.Cargo.Medicine,s.Cargo.Wood},Is.EqualTo(new[]{hull,health,medicine,wood}));
-            Assert.That(source.Card.Block,Is.EqualTo(5),"Quoting/upgrading must leave the catalogue immutable.");
-            Assert.That(source.Card.BoardingBlock,Is.EqualTo(3));
+            Assert.That(source.Card.Block,Is.EqualTo(6),"Quoting/upgrading must leave the catalogue immutable.");
+            Assert.That(source.Card.BoardingBlock,Is.Null);
         }
 
         [Test]

@@ -25,69 +25,62 @@ namespace ShatteredSail.Core.Tests
             session.ConfigureCrewCapabilities(false, false, true, false, false, false);
             session.ConfigureSpecialCardSources(new[] { crewId }, null);
             session.RestoreSpecialCardExperience(new Dictionary<string, int> { { definition.Card.Id, experience } });
-            Start(session);
+            Start(ref session);
+            Invoke(session, "BInitialize");
             int index = Index(definition.Card.Id);
             session.Battle.Hand.Clear(); session.Battle.Hand.Add(index);
             session.Battle.PlayerBoardingHealth = 1;
-            typeof(CoreVoyageSession).GetProperty(nameof(CoreVoyageSession.Hull)).SetValue(session, session.MaxHull - 5);
-            int hull = session.Hull;
             CoreBattleCard card = session.GetBattleCard(index);
-            bool arcaneMend = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ArcaneMend;
-            bool tideMend = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideRenew;
-            bool bloodMend = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodMend;
-            int manaCost = arcaneMend ? card.SchoolEffect.Threshold : 0;
-            typeof(CoreSchoolBattleState).GetProperty(nameof(CoreSchoolBattleState.Mana)).SetValue(session.Battle.Schools, manaCost);
-            if (tideMend) typeof(CoreSchoolBattleState).GetProperty(nameof(CoreSchoolBattleState.TidePower))
-                .SetValue(session.Battle.Schools, card.SchoolEffect.Threshold);
-            int energy = session.Battle.Energy;
-
+            string key = card.BoardingSpec?.Key ?? string.Empty;
+            bool delayed = key == "basic_07" || key == "tide_12";
+            bool arcane = key == "arcane_05", tide = key == "tide_12", blood = key == "blood_09";
+            int energy = session.Battle.Energy, hull = session.Hull;
             session.Battle.Stage = NavalBattleStage.Naval;
-            Assert.That(session.PlayCard(0), Is.False, "The doctor's aid is for boarding crew, not ship repair.");
+            Assert.That(session.PlayCard(0), Is.False);
             Assert.That(session.Cargo.Medicine, Is.EqualTo(medicine));
-            Assert.That(session.Hull, Is.EqualTo(hull));
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1));
             Assert.That(session.Battle.Energy, Is.EqualTo(energy));
-            Assert.That(session.Battle.Schools.Mana, Is.EqualTo(manaCost));
             session.Battle.Stage = NavalBattleStage.Boarding;
-            Assert.That(session.Battle.PlayerOrdinaryCrew, Is.EqualTo(28), "The configured ordinary crew snapshot is preserved.");
-            int missing = session.Battle.PlayerMaxBoardingHealth - 1;
-            int baseHealing = bloodMend
-                ? (int)Math.Min(card.SchoolEffect.Limit, (long)missing * card.SchoolEffect.Power / 100)
-                : card.Repair + (arcaneMend || tideMend ? card.SchoolEffect.Power : 0);
-            int fallback = bloodMend ? baseHealing : Math.Min(2, baseHealing);
-            bool medicineBoost = !bloodMend && medicine > 0 && baseHealing > fallback;
-            int healingCeiling = bloodMend || medicineBoost ? baseHealing : fallback;
-            int expectedHealing = Math.Min(missing, healingCeiling);
-            int medicineCost = medicineBoost && missing > fallback ? 1 : 0;
-            if (arcaneMend)
+            if (medicine > 0 && (arcane || tide))
             {
-                typeof(CoreSchoolBattleState).GetProperty(nameof(CoreSchoolBattleState.Mana)).SetValue(session.Battle.Schools, manaCost - 1);
-                Assert.That(session.CardUnavailableReason(0), Does.StartWith("法力不足"));
-                Assert.That(session.PlayCard(0), Is.False);
-                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1));
-                Assert.That(session.Battle.Energy, Is.EqualTo(energy));
+                Assert.That(session.PlayCard(0), Is.False, "Full treatment must pay its fixed school resource.");
                 Assert.That(session.Cargo.Medicine, Is.EqualTo(medicine));
-                Assert.That(session.Battle.Schools.Mana, Is.EqualTo(manaCost - 1));
-                typeof(CoreSchoolBattleState).GetProperty(nameof(CoreSchoolBattleState.Mana)).SetValue(session.Battle.Schools, manaCost);
+                Assert.That(session.Battle.Energy, Is.EqualTo(energy));
             }
+            if (medicine > 0 && arcane)
+                typeof(CoreSchoolBattleState).GetProperty("Mana").SetValue(session.Battle.Schools, 2);
+            if (medicine > 0 && tide)
+            {
+                Invoke(session, "CTBAddTideGuard", 8);
+                session.Battle.PlayerBlock -= 8;
+                Invoke(session, "CTBAfterEnemyAttack", 8, 0);
+            }
+            int full = blood ? new[] { 9, 12, 15 }[card.UpgradeLevel] : card.Repair;
+            int fallback = blood ? 3 : 2;
+            int heal = medicine > 0 ? full : fallback;
             CoreBattleCardEffects quote = session.GetBattleCardEffects(card, NavalBattleStage.Boarding);
-            Assert.That(quote.FullRepair, Is.EqualTo(baseHealing));
+            Assert.That(quote.FullRepair, Is.EqualTo(full));
             Assert.That(quote.FallbackRepair, Is.EqualTo(fallback));
-            Assert.That(quote.Repair, Is.EqualTo(healingCeiling));
-            Assert.That(quote.ActualRepair, Is.EqualTo(expectedHealing));
-            Assert.That(quote.HasMedicineBoost, Is.EqualTo(medicineBoost));
-            Assert.That(quote.MedicineCost, Is.EqualTo(medicineCost));
-            int expectedCost = session.GetBattleCardEnergyCost(index);
+            Assert.That(quote.Repair, Is.EqualTo(heal));
+            Assert.That(quote.MedicineCost, Is.EqualTo(medicine));
             Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1 + expectedHealing));
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(card.Block));
-            Assert.That(session.Battle.Energy, Is.EqualTo(energy - expectedCost));
-            Assert.That(session.Cargo.Medicine, Is.EqualTo(medicine - medicineCost));
-            Assert.That(session.Battle.Schools.Mana, Is.Zero);
-            Assert.That(session.Battle.Schools.TidePower, Is.Zero);
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(delayed ? 1 : 1 + heal));
+            Assert.That(session.Cargo.Medicine, Is.Zero);
+            Assert.That(session.Battle.Energy, Is.EqualTo(energy - card.Energy));
+            Assert.That(session.Battle.Schools.AvailableMana, Is.Zero);
+            Assert.That(session.Battle.Boarding.TidePower, Is.Zero);
+            if (delayed)
+            {
+                Invoke(session, "BPlayerEnd");
+                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1 + heal));
+                Invoke(session, "BPlayerEnd");
+                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1 + 2 * heal));
+                Invoke(session, "BPlayerEnd");
+                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1 + 2 * heal));
+                Assert.That(session.Cargo.Medicine, Is.Zero, "Two ticks pay medicine only once.");
+            }
             Assert.That(session.Hull, Is.EqualTo(hull));
         }
-
         [TestCase(0)]
         [TestCase(1)]
         public void RealBandageNeedsMedicineForFullAuthoredHealing(int medicine)
@@ -121,7 +114,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(quote.Repair, Is.EqualTo(baseline), "The available healing ceiling is separate from this wound.");
             Assert.That(quote.ActualRepair, Is.EqualTo(expectedHealing));
             Assert.That(quote.MedicineCost, Is.EqualTo(missing > 2 ? 1 : 0));
-            Assert.That(session.PlayCard(0), Is.True);
+            Assert.That(session.PlayCard(0), Is.EqualTo(missing > 0));
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(session.Battle.PlayerMaxBoardingHealth - missing + expectedHealing));
             Assert.That(session.Cargo.Medicine, Is.EqualTo(missing > 2 ? 1 : 2));
         }
@@ -167,8 +160,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(effect.Repair, Is.EqualTo(enhanced));
             int expectedMedicineCost = baseline > 2 ? 1 : 0;
             Assert.That(effect.MedicineCost, Is.EqualTo(expectedMedicineCost), "Medicine is paid only when full healing exceeds the fixed fallback.");
-            Assert.That(session.GetBattleCard(Bandage).Repair, Is.EqualTo((int)decimal.Round(CoreVoyageSession.CardLibrary[Bandage].Repair *
-                (level == 0 ? 1m : level == 1 ? 1.2m : level == 2 ? 1.5m : 2m), 0, MidpointRounding.AwayFromZero)));
+            Assert.That(session.GetBattleCard(Bandage).Repair, Is.EqualTo(new[] { 6, 8, 11, 11 }[level]));
+            Assert.That(session.GetBattleCard(Bandage).UpgradeLevel, Is.EqualTo(Math.Min(2, level)));
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(Math.Min(session.Battle.PlayerMaxBoardingHealth, 10 + enhanced)));
             Assert.That(session.Cargo.Medicine, Is.EqualTo(1 - expectedMedicineCost));
@@ -192,7 +185,7 @@ namespace ShatteredSail.Core.Tests
             var huge = new CoreBattleCard("huge_heal", "上限治疗", "治疗", 1, 0, 0, int.MaxValue, 0, 0, "测试", NavalBattleStages.Boarding);
             Assert.That(session.GetBattleCardEffects(huge, NavalBattleStage.Boarding).Repair, Is.GreaterThan(0));
             // A real battle snapshot verifies saturation without allowing a wrapped negative quote.
-            Start(session);
+            Start(ref session);
             typeof(CoreBattleState).GetProperty(nameof(CoreBattleState.PlayerOrdinaryCrew)).SetValue(session.Battle, 28);
             CoreBattleCardEffects fullHealth = session.GetBattleCardEffects(huge, NavalBattleStage.Boarding);
             Assert.That(fullHealth.FullRepair, Is.EqualTo(int.MaxValue));
@@ -217,7 +210,7 @@ namespace ShatteredSail.Core.Tests
             {
                 CoreBattleCard card = session.GetBattleCardAtLevel(Bandage, rank);
                 CoreBattleCardEffects quote = session.GetBattleCardEffects(card, NavalBattleStage.Boarding);
-                int expectedFull = new[] { 6, 7, 9, 12 }[rank];
+                int expectedFull = new[] { 6, 8, 11, 11 }[rank];
                 Assert.That(quote.FullRepair, Is.EqualTo(expectedFull));
                 Assert.That(card.Repair, Is.EqualTo(expectedFull));
                 Assert.That(quote.Repair, Is.EqualTo(2));
@@ -238,11 +231,11 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(quote.IsRepairPreview, Is.True);
                 Assert.That(quote.ActualRepair, Is.Zero);
                 Assert.That(quote.MedicineCost, Is.Zero);
-                Assert.That(session.BattleCardPortDescription(card), Does.Contain("有药完整 " + enhanced).And.Contain("无药保底 2").And.Contain("预览不消耗"));
+                Assert.That(session.BattleCardPortDescription(card), Is.EqualTo(card.Description));
                 Assert.That(session.Cargo.Medicine, Is.EqualTo(1));
             }
-            Start(session);
-            Assert.That(session.BattleCardDescription(card), Does.Contain("本次实际恢复 0").And.Contain("不耗药").And.Contain("有药完整 " + enhanced));
+            Start(ref session);
+            Assert.That(session.BattleCardDescription(card), Does.Contain("恢复 " + enhanced).And.Contain("无药物恢复2"));
             Assert.That(session.Cargo.Medicine, Is.EqualTo(1));
         }
 
@@ -311,7 +304,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = Port(2, 14);
             Assert.That(session.TryDepositPortCargo("medicine", 2), Is.True);
             session.ConfigureCrewCapabilities(false, false, false, false, true, false);
-            Start(session);
+            Start(ref session);
             int mixed = Index("card_cook_rations");
             session.Battle.Hand.Clear(); session.Battle.Hand.Add(mixed);
             CoreBattleCardEffects effects = session.GetBattleCardEffects(mixed, NavalBattleStage.Boarding);
@@ -342,13 +335,25 @@ namespace ShatteredSail.Core.Tests
         private static CoreVoyageSession Battle(int medicine, int crew = 14, int level = 0)
         {
             CoreVoyageSession session = Port(medicine, crew, level);
-            Start(session);
+            Start(ref session);
             session.Battle.PlayerBoardingHealth = 10;
             return session;
         }
-        private static void Start(CoreVoyageSession session)
+        private static void Start(ref CoreVoyageSession session)
         {
-            session.SetSeed("BOARDING-MEDICINE-REGRESSION"); session.StartVoyage();
+            session.SetSeed("BOARDING-MEDICINE-REGRESSION");
+            if (!session.HasEnoughOrdinaryCrewForDeparture)
+            {
+                // Preserve low-crew legacy voyage coverage; new departures require 40% staffing.
+                int ordinary = session.SelectedOrdinaryCrew;
+                session.ConfigureDepartureCrew(session.MinimumDepartureOrdinaryCrew, session.SelectedSpecialCrewCount);
+                session.StartVoyage();
+                CoreVoyageCheckpoint checkpoint = session.CaptureVoyageCheckpoint();
+                checkpoint.ordinaryCrew = ordinary;
+                session = new CoreVoyageSession();
+                Assert.That(session.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
+            }
+            else session.StartVoyage();
             Invoke(session, "StartBattle", new CoreEncounter("medicine_fixture", "隔离敌舰", "海战", "药品回归", true, false, 1, 500), false);
             session.Battle.Stage = NavalBattleStage.Boarding;
             session.Battle.Hand.Clear(); session.Battle.Hand.Add(Bandage);

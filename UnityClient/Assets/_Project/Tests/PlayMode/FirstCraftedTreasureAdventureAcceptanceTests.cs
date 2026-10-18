@@ -77,7 +77,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return driver.Click("Port Hotspot Voyage");
                 Assert.That(session.SelectedTreasureMap, Is.Null, "Opening departure must not silently equip a seed.");
                 yield return driver.Click("Departure Treasure Seed Picker");
-                yield return driver.Click("Departure Treasure Seed Option " + (session.TreasureMaps.Count - 1));
+                yield return SelectDepartureTreasureOption(session.TreasureMaps.Count - 1);
                 Assert.That(session.SelectedTreasureMap.Id, Is.EqualTo(crafted.Id));
                 Assert.That(session.TreasureMaps.Any(map => map.Id == crafted.Id), Is.True);
                 Assert.That(session.CanStartTreasureVoyage(out string reason), Is.True, reason);
@@ -94,7 +94,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.Settlement.TreasureCompleted, Is.True);
                 Assert.That(session.Settlement.ProtectionRatio, Is.EqualTo(.95f).Within(.001f));
                 Assert.That(session.TreasureAdventureCompleted, Is.True);
-                Assert.That(driver.ClueChoices, Is.GreaterThanOrEqualTo(crafted.Rank.RequiredClues));
+                if (session.IsTreasureExpedition) driver.AssertFullExpeditionCompleted(crafted.RankId);
+                else Assert.That(driver.ClueChoices, Is.GreaterThanOrEqualTo(crafted.Rank.RequiredClues));
                 yield return driver.ConfirmSettlement(true);
                 Assert.That(session.CompletedTreasureSeeds, Does.Contain(crafted.Seed));
                 Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Does.Contain(crafted.Seed));
@@ -109,6 +110,8 @@ namespace ShatteredSail.Presentation.Tests
                 CoreGameplayDemoController reloaded = Object.FindFirstObjectByType<CoreGameplayDemoController>();
                 Assert.That(reloaded.Session.CompletedTreasureSeeds, Does.Contain(crafted.Seed));
                 Assert.That(reloaded.Session.TreasureMaps.Any(map => map.Id == crafted.Id), Is.False);
+                Assert.That(reloaded.Session.UsedTreasureMaps.Single(map => map.Id == crafted.Id).ContentVersion,
+                    Is.EqualTo(crafted.ContentVersion));
                 Assert.That(reloaded.IsTutorialActive, Is.False);
                 LogAssert.NoUnexpectedReceived();
             }
@@ -125,6 +128,9 @@ namespace ShatteredSail.Presentation.Tests
             private int shot, encounters;
             private bool chartClickAccepted;
             private int fragmentsFromChoices, fragmentsFromBattles, settledFragments;
+            private readonly HashSet<string> earnedExpeditionMarks = new HashSet<string>(StringComparer.Ordinal);
+            private int expeditionProgressChoices;
+            private bool fullExpeditionCoreOpened;
             public int EarnedFragments => fragmentsFromChoices + fragmentsFromBattles;
             public string FragmentSources => "Choice fragments=" + fragmentsFromChoices +
                 ", battle fragments=" + fragmentsFromBattles + ", settled fragments=" + settledFragments;
@@ -140,6 +146,8 @@ namespace ShatteredSail.Presentation.Tests
                 moonlitFragments = Session.GetIdentifiedTreasureFragments("moonlit"),
                 pendingFragments = Session.VoyageTreasureFragments, maps = Session.TreasureMaps.Count,
                 clues = Session.TreasureClues, requiredClues = Session.TreasureRequiredClues,
+                expedition = Session.TreasureExpeditionStatusSummary, credit = Session.TreasureExpeditionCredit,
+                heat = Session.TreasureExpeditionHeat, resonance = Session.TreasureExpeditionResonance, curse = Session.Cargo.Curse,
                 distance = Session.TotalDistanceNm, x = Session.Position.X, y = Session.Position.Y,
                 rank = (Session.ActiveTreasureMap ?? Session.SelectedTreasureMap)?.RankId ?? "",
                 crew = Session.EffectiveCrewCount, capacity = Session.CargoCapacityValue, usedVolume = Session.Cargo.UsedVolume,
@@ -166,6 +174,7 @@ namespace ShatteredSail.Presentation.Tests
             }
             public IEnumerator Click(string name)
             {
+                yield return SchoolUnlockNoticeTestActions.ConfirmAll();
                 if (name.StartsWith("Event Node ", StringComparison.Ordinal))
                 {
                     GameObject marker = GameObject.Find(name);
@@ -320,24 +329,35 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Session.SelectedShipIndex, Is.EqualTo(supplyShip));
                 Assert.That(Session.ProfileGold, Is.EqualTo(purchaseGold - shipCost));
                 Shot("Purchased_Local_Supply_Ship", "Shipyard Detail", "UI_ShipyardDetail");
-                yield return Click("Back To Shipyard Gallery");
+                yield return Click("Return To Port Hub");
                 yield return Click("Return To Port Hub");
                 yield return Click("Port Hotspot CardWorkshop");
                 yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
-                foreach (int index in new[] { 0, 5, 6 })
+                foreach (int index in new[] { 0, 5, 6 }
+                    .OrderBy(value => CoreBattleCardNumbering.Number(CoreVoyageSession.CardLibrary[value])))
                 {
-                    for (int page = 0; ActiveButton("Select Upgrade Card " + index) == null && page < 8; page++) yield return Click("Next Upgrade Cards");
+                    int pageCount = Math.Max(1, (Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count + 7) / 8);
+                    for (int page = 0; ActiveButton("Select Upgrade Card " + index) == null && page < pageCount; page++)
+                        yield return Click("Next Upgrade Cards");
                     yield return Click("Select Upgrade Card " + index);
                     Shot("Upgrade_Preview_" + index, "Battle Card Upgrade Panel", "UICardWorkshop/UICardWorkshop_UpgradePreview");
-                    while (Session.GetBattleCard(index).UpgradeLevel < 3)
+                    int maximumLevel = Session.GetCardMaximumUpgradeLevel(index);
+                    Assert.That(maximumLevel, Is.GreaterThan(0), "The preparation card must have an authored upgrade path.");
+                    while (Session.GetBattleCard(index).UpgradeLevel < maximumLevel)
                     {
                         int rank = Session.GetBattleCard(index).UpgradeLevel;
                         int cost = Session.GetCardUpgradeCost(index);
+                        Assert.That(cost, Is.GreaterThan(0));
                         decimal gold = Session.ProfileGold;
                         yield return Click("Confirm Battle Card Upgrade");
                         Assert.That(Session.GetBattleCard(index).UpgradeLevel, Is.EqualTo(rank + 1));
                         Assert.That(Session.ProfileGold, Is.EqualTo(gold - cost));
+                        Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey).Split(';'),
+                            Does.Contain(Session.GetBattleCard(index).Id + "=" + (rank + 1)));
                     }
+                    Assert.That(Session.GetBattleCard(index).UpgradeLevel, Is.EqualTo(maximumLevel));
+                    Assert.That(ActiveButton("Confirm Battle Card Upgrade").IsInteractable(), Is.False,
+                        "The real forge disables payment at this card's authored maximum.");
                     Shot("Upgrade_Complete_" + index, "Battle Card Upgrade Panel", "UICardWorkshop/UICardWorkshop_UpgradeComplete");
                 }
                 yield return Click("Back From Card Upgrades");
@@ -455,7 +475,8 @@ namespace ShatteredSail.Presentation.Tests
                     }
                     if (GameObject.Find("Cancel Market Trade") != null) yield return Click("Cancel Market Trade");
                     if (GameObject.Find("Market Detail Back") != null) yield return Click("Market Detail Back");
-                    yield return Click("Market Open Investment");
+                    yield return Click("Return To Port Hub");
+                    yield return Click("Port Hotspot Maintenance");
                     decimal gold = Session.ProfileGold;
                     int wood = Session.Cargo.Wood;
                     yield return Click("Confirm Port Investment");
@@ -478,6 +499,8 @@ namespace ShatteredSail.Presentation.Tests
                         }
                     }
                     Shot("Supplies_After_Port_Investment", "Market Panel", "UI_Market");
+                    yield return Click("Return To Port Hub");
+                    Assert.That(GameObject.Find("Port Investment Panel"), Is.Not.Null);
                 }
                 yield return Click("Return To Port Hub");
             }
@@ -494,7 +517,8 @@ namespace ShatteredSail.Presentation.Tests
                         string location = Session.ActiveEncounter.Id + ":" + Session.Position.X.ToString("F1") + ":" + Session.Position.Y.ToString("F1");
                         encounterVisits.TryGetValue(location, out int visits);
                         encounterVisits[location] = visits + 1;
-                        Assert.That(visits, Is.LessThan(5), "Encounter repeatedly reopened without being resolved: " + location);
+                        int visitLimit = Session.IsTreasureExpedition && IsMoonlitAltar(Session.ActiveEncounter) ? 10 : 5;
+                        Assert.That(visits, Is.LessThan(visitLimit), "Encounter repeatedly reopened without being resolved: " + location);
                         yield return Encounter(); continue;
                     }
                     Assert.That(Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
@@ -586,23 +610,28 @@ namespace ShatteredSail.Presentation.Tests
             {
                 CoreVoyageMap map = Session.Map;
                 Dictionary<int,VoyagePoint> known = observedNodes[map.Hash];
-                bool needsRations = treasure && Session.TreasureClues < Session.TreasureRequiredClues &&
+                bool fullCoreReady = treasure && FullTreasureCoreReady();
+                bool needsRations = treasure && !fullCoreReady &&
                     Math.Min(Session.Cargo.Water, Session.Cargo.Food) <
                     Session.CrewCountValue * Session.ActiveTreasureMap.Rank.RecommendedVoyageDays / 2;
                 bool VisibleSupply(CoreMapNode node) => needsRations && node.Discovered &&
-                    node.Encounter.Choices.Any(c => !c.StartsBattle && (c.Effect.Water > 0 || c.Effect.Food > 0));
+                    node.Encounter.Choices.Any(c => !c.StartsBattle && (c.Effect.Water > 0 || c.Effect.Food > 0) &&
+                        (!Session.IsTreasureExpedition || c.Effect.TreasureHeat <= 0 && c.Effect.Curse <= 0));
                 bool Useful(CoreMapNode node)
                 {
-                    bool readyCore = treasure && node.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId && Session.TreasureClues >= Session.TreasureRequiredClues;
-                    if (node.Visited || (node.Skipped && !readyCore) || !known.ContainsKey(node.Id)) return false;
-                    if (!node.Discovered) return !treasure || Session.TreasureClues < Session.TreasureRequiredClues;
+                    if (node.Visited || !known.ContainsKey(node.Id)) return false;
+                    bool readyCore = fullCoreReady && node.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId;
+                    bool expeditionObjective = Session.IsTreasureExpedition && ExpeditionGoalScore(node) > 0;
+                    if (node.Skipped && !readyCore && !expeditionObjective) return false;
+                    if (!node.Discovered) return !treasure || !fullCoreReady;
                     if (VisibleSupply(node)) return true;
-                    if (treasure) return Session.TreasureClues >= Session.TreasureRequiredClues ?
+                    if (Session.IsTreasureExpedition) return fullCoreReady ? readyCore : expeditionObjective;
+                    if (treasure) return fullCoreReady ?
                         node.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId : node.Encounter.Choices.Any(c => c.Effect.TreasureClues > 0);
                     return node.Encounter.Choices.Any(c => c.Effect.MapFragments > 0 || c.Effect.Reveal > 0);
                 }
                 CoreMapNode selected = map.Nodes.Where(Useful).Where(n => !rejected.Contains("node:" + n.Id))
-                    .OrderByDescending(n => VisibleSupply(n) ? 10000 : n.Discovered ?
+                    .OrderByDescending(n => VisibleSupply(n) ? 1000000 : Session.IsTreasureExpedition ? ExpeditionGoalScore(n) : n.Discovered ?
                         n.Encounter.Choices.Max(c => c.Effect.MapFragments * 100 + c.Effect.TreasureClues * 100 + c.Effect.Reveal) : 0)
                     .ThenBy(n => Distance(Session.Position, known[n.Id])).FirstOrDefault();
                 if (selected != null) return new AdventureGoal { node = selected, point = known[selected.Id], key = "node:" + selected.Id };
@@ -632,7 +661,7 @@ namespace ShatteredSail.Presentation.Tests
             }
             private bool CrossesLockedCore(SailingForecast forecast)
             {
-                if (!Session.IsTreasureVoyage || Session.TreasureClues >= Session.TreasureRequiredClues) return false;
+                if (!Session.IsTreasureVoyage || FullTreasureCoreReady()) return false;
                 CoreMapNode core = Session.Map.Nodes.FirstOrDefault(n => n.IsChartVisible && n.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId);
                 if (core == null) return false;
                 Vector2 p = new Vector2(core.Position.X, core.Position.Y);
@@ -652,15 +681,26 @@ namespace ShatteredSail.Presentation.Tests
                 int index;
                 if (encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId)
                 {
-                    if (Session.TreasureClues < Session.TreasureRequiredClues)
+                    if (!FullTreasureCoreReady())
                     {
                         Assert.That(Session.IsChoiceAvailable(0), Is.False);
-                        yield return Click("Encounter Choice 3");
+                        int postpone = encounter.Choices.ToList().FindIndex(choice => choice.Effect.PostponeTreasureCore);
+                        Assert.That(postpone, Is.GreaterThanOrEqualTo(0));
+                        yield return Click("Encounter Choice " + postpone);
                         Assert.That(Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
                         yield break;
                     }
                     Assert.That(Session.IsChoiceAvailable(0), Is.True, Session.ChoiceUnavailableReason(0));
                     index = 0;
+                }
+                else if (Session.IsTreasureExpedition && IsMoonlitAltar(encounter))
+                {
+                    // Pay the real waiting action and revisit the real marker;
+                    // neither advance the clock directly nor force a cursed ritual.
+                    index = Session.CurrentTreasureExpeditionTimeBand == encounter.Choices[0].RequiredTime ? 0 :
+                        encounter.Choices.ToList().FindIndex(choice => choice.Effect.PostponeTreasureCore);
+                    Assert.That(index, Is.GreaterThanOrEqualTo(0));
+                    Assert.That(Session.IsChoiceAvailable(index), Is.True, Session.ChoiceUnavailableReason(index));
                 }
                 else
                 {
@@ -676,6 +716,9 @@ namespace ShatteredSail.Presentation.Tests
                 CoreEncounterChoice chosen = encounter.Choices[index];
                 VoyageEffect effective = Session.EffectiveChoiceEffect(index);
                 int fragments = Session.VoyageTreasureFragments, clues = Session.TreasureClues;
+                int credit = Session.TreasureExpeditionCredit, heat = Session.TreasureExpeditionHeat,
+                    resonance = Session.TreasureExpeditionResonance;
+                bool alreadyMarked = Session.HasTreasureMark(effective.TreasureMark);
                 yield return Click("Encounter Choice " + index);
                 Record(encounter.Id + " choice " + index + ": " + chosen.Label, "");
                 if (!chosen.StartsBattle)
@@ -690,10 +733,88 @@ namespace ShatteredSail.Presentation.Tests
                     "A battle choice must not pay its fragment reward before victory: " + encounter.Id);
                 if (!chosen.StartsBattle && chosen.Effect.TreasureClues > 0)
                 { ClueChoices++; Assert.That(Session.TreasureClues, Is.EqualTo(clues + chosen.Effect.TreasureClues)); }
+                if (!chosen.StartsBattle && Session.IsTreasureExpedition)
+                {
+                    if (!string.IsNullOrEmpty(effective.TreasureMark))
+                    {
+                        Assert.That(alreadyMarked, Is.False, "One-use expedition progress must be newly earned.");
+                        Assert.That(Session.HasTreasureMark(effective.TreasureMark), Is.True);
+                        Assert.That(earnedExpeditionMarks.Add(effective.TreasureMark), Is.True);
+                    }
+                    Assert.That(Session.TreasureExpeditionCredit, Is.EqualTo(Math.Max(0, Math.Min(6, credit + effective.TreasureCredit))));
+                    Assert.That(Session.TreasureExpeditionHeat, Is.EqualTo(Math.Max(0, Math.Min(5, heat + effective.TreasureHeat))));
+                    Assert.That(Session.TreasureExpeditionResonance, Is.EqualTo(Math.Max(0, Math.Min(3, resonance + effective.TreasureResonance))));
+                    if (!string.IsNullOrEmpty(effective.TreasureMark) || effective.TreasureCredit > 0 || effective.TreasureHeat < 0 || effective.TreasureResonance > 0)
+                        expeditionProgressChoices++;
+                    if (encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId)
+                    {
+                        Assert.That(index, Is.Zero, "The acceptance must open the complete vault, never the fallback reward.");
+                        Assert.That(Session.Settlement?.TreasureCompleted, Is.True);
+                        fullExpeditionCoreOpened = true;
+                    }
+                    Record("Verified expedition effect: " + CoreVoyageSession.TreasureExpeditionEffectSummary(effective), "");
+                }
             }
-            private static double ChoiceScore(CoreEncounterChoice c) => c.Effect.MapFragments * 10000 + c.Effect.TreasureClues * 5000 +
+            private double ChoiceScore(CoreEncounterChoice c) => c.Effect.MapFragments * 10000 + c.Effect.TreasureClues * 5000 +
                 c.Effect.Reveal * 300 + Math.Max(0,c.Effect.Water) + Math.Max(0,c.Effect.Food) + c.Effect.Hull * 3 + c.Effect.Gold * .1 -
-                c.Hours * 3 - (c.StartsBattle ? 1000 : 0) - (c.Effect.ForceReturn ? 100000 : 0);
+                c.Hours * 3 - (c.StartsBattle ? 1000 : 0) - (c.Effect.ForceReturn ? 100000 : 0) +
+                (Session.IsTreasureExpedition ? ExpeditionProgressScore(c.Effect) - Math.Max(0, c.Effect.TreasureHeat) * 200000 -
+                    Math.Max(0, c.Effect.Curse) * 200000 - Math.Max(0, -c.Effect.TreasureCredit) * 200000 : 0);
+
+            private bool FullTreasureCoreReady()
+            {
+                if (!Session.IsTreasureExpedition) return Session.TreasureClues >= Session.TreasureRequiredClues;
+                CoreMapNode core = Session.Map.Nodes.Single(n => n.IsChartVisible && n.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId);
+                return Session.EncounterChoiceConditionReason(core.Encounter.Choices[0]).Length == 0;
+            }
+
+            private static bool IsMoonlitAltar(CoreEncounter encounter) => encounter != null &&
+                (encounter.Id == "moonlit_dawn" || encounter.Id == "moonlit_dusk" || encounter.Id == "moonlit_midnight");
+
+            private bool NeedsExpeditionMark(string mark)
+            {
+                if (string.IsNullOrEmpty(mark) || Session.HasTreasureMark(mark)) return false;
+                return mark == "weathered_winch" || mark == "weathered_bell" || mark == "gilded_manifest" ||
+                    mark == "moonlit_dawn" || mark == "moonlit_dusk" || mark == "moonlit_midnight";
+            }
+
+            private double ExpeditionProgressScore(VoyageEffect effect)
+            {
+                double score = NeedsExpeditionMark(effect.TreasureMark) ? 100000 : 0;
+                if (Session.ActiveTreasureMap.RankId == "gilded")
+                {
+                    score += Math.Min(Math.Max(0, 3 - Session.TreasureExpeditionCredit), Math.Max(0, effect.TreasureCredit)) * 10000;
+                    if (Session.TreasureExpeditionHeat > 1) score += Math.Max(0, -effect.TreasureHeat) * 10000;
+                }
+                if (Session.ActiveTreasureMap.RankId == "moonlit" && Session.Cargo.Curse > 1)
+                    score += Math.Max(0, -effect.Curse) * 10000;
+                return score;
+            }
+
+            private double ExpeditionGoalScore(CoreMapNode node)
+            {
+                if (node.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId) return 0;
+                return node.Encounter.Choices.Max(choice => ExpeditionProgressScore(choice.Effect));
+            }
+
+            public void AssertFullExpeditionCompleted(string rank)
+            {
+                Assert.That(fullExpeditionCoreOpened, Is.True, "The actual full-reward core button must complete the expedition.");
+                string[] requiredMarks = rank == "weathered" ? new[] { "weathered_winch", "weathered_bell" } :
+                    rank == "gilded" ? new[] { "gilded_manifest" } : new[] { "moonlit_dawn", "moonlit_dusk", "moonlit_midnight" };
+                foreach (string mark in requiredMarks)
+                {
+                    Assert.That(earnedExpeditionMarks, Does.Contain(mark), "Progress must come from a verified real choice: " + mark);
+                    Assert.That(Session.HasTreasureMark(mark), Is.True);
+                }
+                Assert.That(expeditionProgressChoices, Is.GreaterThanOrEqualTo(rank == "moonlit" ? 3 : 2));
+                if (rank == "gilded") Assert.That(Session.TreasureExpeditionHeat, Is.LessThanOrEqualTo(1));
+                if (rank == "moonlit")
+                {
+                    Assert.That(Session.TreasureExpeditionResonance, Is.EqualTo(3));
+                    Assert.That(Session.Cargo.Curse, Is.LessThanOrEqualTo(1));
+                }
+            }
             private IEnumerator Battle()
             {
                 int fragmentsBefore = Session.VoyageTreasureFragments;
@@ -729,6 +850,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
                 Button reveal = ActiveButton("Skip Settlement Reveal");
                 if (reveal != null && reveal.IsInteractable()) yield return Click("Skip Settlement Reveal");
+                yield return SettlementChestTestActions.ShowOverview();
                 int fragments = Session.TreasureFragments, experience = Session.PirateExperience;
                 int earned = Session.Settlement.BankedFragments, xp = Session.Settlement.BankedPirateExperience;
                 Assert.That(earned, Is.EqualTo(EarnedFragments - settledFragments),
@@ -764,8 +886,9 @@ namespace ShatteredSail.Presentation.Tests
         }
         [Serializable] private sealed class AdventureAction { public int sequence; public float realtime; public string action,before,after; }
         [Serializable] private sealed class AdventureState
-        { public string phase,encounter,seed,rank; public double gold,gameHours; // JSON display only; actual balance assertions remain decimal.
+        { public string phase,encounter,seed,rank,expedition; public double gold,gameHours; // JSON display only; actual balance assertions remain decimal.
             public int voyageGold,water,food,hull,experience,level,fragments,weatheredFragments,gildedFragments,moonlitFragments,pendingFragments,maps,clues,requiredClues,crew;
+            public int credit,heat,resonance,curse;
             public float distance,x,y,capacity,usedVolume; }
     }
 }

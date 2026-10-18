@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation.Tests
             Image collectionSurface = AssertLiveWarehouseCabinetSurface();
             Vector2 ledgerSize = collectionSurface.rectTransform.sizeDelta;
             Vector2 ledgerPosition = collectionSurface.rectTransform.anchoredPosition;
-            Assert.That(GameObject.Find("Warehouse Collection Count").GetComponent<Text>().color.grayscale, Is.GreaterThan(.6f));
+            Assert.That(GameObject.Find("Warehouse Collection Count").GetComponent<Text>().color.grayscale, Is.LessThan(.4f));
             Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty);
             Assert.That(RequireWarehouseButton("Warehouse Display Selected").IsInteractable(), Is.False);
             Assert.That(RequireWarehouseButton("Warehouse Remove Selected").IsInteractable(), Is.False);
@@ -52,7 +52,7 @@ namespace ShatteredSail.Presentation.Tests
             ClickWarehouseButton("Warehouse Tab Valuables");
             yield return null;
             Assert.That(AssertLiveWarehouseCabinetSurface(), Is.SameAs(collectionSurface));
-            Assert.That(GameObject.Find("Warehouse Collection Count").GetComponent<Text>().color.grayscale, Is.GreaterThan(.6f));
+            Assert.That(GameObject.Find("Warehouse Collection Count").GetComponent<Text>().color.grayscale, Is.LessThan(.4f));
             Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty);
             Assert.That(RequireWarehouseButton("Warehouse Display Selected").IsInteractable(), Is.False);
             Assert.That(ActiveButton("Warehouse Storage Row wood"), Is.Null);
@@ -63,8 +63,8 @@ namespace ShatteredSail.Presentation.Tests
         private static Image AssertLiveWarehouseCabinetSurface()
         {
             Image surface = GameObject.Find("Warehouse Ledger").GetComponent<Image>();
-            Assert.That(surface.sprite, Is.Null, "Regional cabinet supplies the outer framing.");
-            Assert.That(surface.color.a, Is.Zero);
+            Assert.That(surface.sprite, Is.SameAs(MarketShopSkin.Paper), "The ledger shares the market's readable paper surface.");
+            Assert.That(surface.color.a, Is.EqualTo(1f));
             Assert.That(GameObject.Find("Warehouse Summary Bar"), Is.Not.Null);
             return surface;
         }
@@ -94,7 +94,8 @@ namespace ShatteredSail.Presentation.Tests
             string detail = string.Join("\n", GameObject.Find("Warehouse Panel")
                 .GetComponentsInChildren<Text>().Select(label => label.text));
             Assert.That(detail, Does.Contain(treasure.Name));
-            Assert.That(detail, Does.Contain(treasure.Description));
+            Assert.That(GameObject.Find("Warehouse Collection Hint"), Is.Null,
+                "Inventory slots must not show an extra description above the selected keepsake details.");
             Assert.That(detail, Does.Contain(treasure.Story));
             Assert.That(detail, Does.Contain(treasure.Source));
             Assert.That(controller.WarehouseCollection.IsDisplayed(id), Is.False);

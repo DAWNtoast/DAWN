@@ -49,8 +49,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(icon.uvRect, Is.EqualTo(art.Uv), definition.Id);
                 Assert.That(icon.raycastTarget, Is.False, definition.Id);
                 Rect picture = BoundsIn(row, icon.rectTransform);
-                Assert.That(picture.width, Is.GreaterThan(0f).And.LessThanOrEqualTo(48.01f), definition.Id);
-                Assert.That(picture.height, Is.GreaterThan(0f).And.LessThanOrEqualTo(48.01f), definition.Id);
+                Assert.That(picture.width, Is.GreaterThan(0f).And.LessThanOrEqualTo(60.01f), definition.Id);
+                Assert.That(picture.height, Is.GreaterThan(0f).And.LessThanOrEqualTo(60.01f), definition.Id);
                 Assert.That(picture.xMin, Is.GreaterThanOrEqualTo(row.rect.xMin), definition.Id);
                 Assert.That(picture.yMin, Is.GreaterThanOrEqualTo(row.rect.yMin), definition.Id);
                 Assert.That(picture.xMax, Is.LessThanOrEqualTo(row.rect.xMax), definition.Id);

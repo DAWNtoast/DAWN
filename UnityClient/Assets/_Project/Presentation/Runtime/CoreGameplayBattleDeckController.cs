@@ -147,6 +147,7 @@ namespace ShatteredSail.Presentation
 
         private void AdjustBattleDeck(int cardIndex, int delta)
         {
+            cardIndex = CoreVoyageSession.CanonicalBattleCardIndex(cardIndex);
             if (session.Phase != CoreDemoPhase.Port || cardIndex < 0 || cardIndex >= CoreVoyageSession.CardLibrary.Count) return;
             CoreBattleCard card = CoreVoyageSession.CardLibrary[cardIndex];
             if (!card.IsAllowedInStage(selectedBattleDeckStage) || !session.IsBattleCardUnlocked(card) ||
@@ -200,11 +201,19 @@ namespace ShatteredSail.Presentation
             return BattleDeckCopies(CurrentDeckBuilderCards, cardIndex);
         }
 
-        private static int BattleDeckCopies(IReadOnlyList<int> cards, int cardIndex)
+        private int BattleDeckCopies(IReadOnlyList<int> cards, int cardIndex)
         {
+            cardIndex = CoreVoyageSession.CanonicalBattleCardIndex(cardIndex);
             int count = 0;
+            CoreBattleCard target = session.GetBattleCard(cardIndex, selectedBattleDeckStage);
+            string key = selectedBattleDeckStage == NavalBattleStage.Boarding && target != null &&
+                target.RequiredCrew.Length == 0 && target.RequiredComponent.Length == 0 ? target.BoardingSpec?.Key : null;
             for (int index = 0; index < cards.Count; index += 1)
-                if (cards[index] == cardIndex) count += 1;
+            {
+                CoreBattleCard other = key == null ? null : session.GetBattleCard(cards[index], selectedBattleDeckStage);
+                if (CoreVoyageSession.CanonicalBattleCardIndex(cards[index]) == cardIndex || (key != null && other?.BoardingSpec?.Key == key &&
+                    other.RequiredCrew.Length == 0 && other.RequiredComponent.Length == 0)) count += 1;
+            }
             return count;
         }
     }

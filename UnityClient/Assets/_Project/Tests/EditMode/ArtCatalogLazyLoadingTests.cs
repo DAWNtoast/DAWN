@@ -192,16 +192,18 @@ namespace ShatteredSail.Presentation.Tests
             finally { UnityEngine.Object.DestroyImmediate(texture); }
         }
 
-        [Test]
-        public void CrewDossiers_LoadOnlyTheRequestedIdentityAndReleaseBorrowedReferences()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CrewDossiers_LoadOnlyTheRequestedIdentityAndReleaseBorrowedReferences(bool redesignedPortrait)
         {
             var requests = new List<string>();
             var lorne = new Texture2D(2, 2);
             var saina = new Texture2D(2, 2);
             const string lorneId = "crew_broken_anchor_navigator_lorne";
             const string sainaId = "crew_white_shell_navigator_saina";
-            string lornePath = "PortArt/CrewDossiers/" + lorneId + "_dossier_v1";
-            string sainaPath = "PortArt/CrewDossiers/" + sainaId + "_dossier_v1";
+            string suffix = redesignedPortrait ? "_portrait_v2" : "_dossier_v1";
+            string lornePath = "PortArt/CrewDossiers/" + lorneId + suffix;
+            string sainaPath = "PortArt/CrewDossiers/" + sainaId + suffix;
             try
             {
                 var catalog = Create<PortArtCatalog>(path =>
@@ -209,17 +211,18 @@ namespace ShatteredSail.Presentation.Tests
                     requests.Add(path);
                     return path == lornePath ? lorne : path == sainaPath ? saina : null;
                 });
+                Texture2D Request(string id) => redesignedPortrait ? catalog.CrewDossierPortrait(id) : catalog.CrewDossier(id);
                 Assert.That(requests, Is.Empty);
-                Assert.That(catalog.CrewDossier(lorneId), Is.SameAs(lorne));
-                Assert.That(catalog.CrewDossier(lorneId), Is.SameAs(lorne));
+                Assert.That(Request(lorneId), Is.SameAs(lorne));
+                Assert.That(Request(lorneId), Is.SameAs(lorne));
                 CollectionAssert.AreEqual(new[] { lornePath }, requests);
-                Assert.That(catalog.CrewDossier(sainaId), Is.SameAs(saina));
+                Assert.That(Request(sainaId), Is.SameAs(saina));
                 CollectionAssert.AreEqual(new[] { lornePath, sainaPath }, requests);
                 Assert.That(lorne.filterMode, Is.EqualTo(FilterMode.Bilinear));
                 Assert.That(lorne.wrapMode, Is.EqualTo(TextureWrapMode.Clamp));
                 catalog.ReleaseLoadedTextures();
                 Assert.That(lorne != null && saina != null, Is.True, "The visible UI borrows these assets.");
-                Assert.That(catalog.CrewDossier(lorneId), Is.SameAs(lorne));
+                Assert.That(Request(lorneId), Is.SameAs(lorne));
                 CollectionAssert.AreEqual(new[] { lornePath, sainaPath, lornePath }, requests);
             }
             finally

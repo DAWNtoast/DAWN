@@ -151,6 +151,43 @@ namespace ShatteredSail.Presentation.Tests
             profile.AssertUnchanged();
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LegacyAppraisalSnapshotRestoresRarityStrengthFromPhysicalLoadout(bool emptyLoadout)
+        {
+            CoreGameplayDemoController source = CreateInactiveController(CreateVoyage(false, 2.7f, 3.3f));
+            CoreVoyageCheckpoint expected = source.Session.CaptureVoyageCheckpoint();
+            Assert.That(Save(source, out string reason), Is.True, reason);
+            Assert.That(TryRead(out object record, out string notice), Is.True, notice);
+            Assert.That(ReadRecord<CoreVoyageCheckpoint>(record, "voyage").battleBowQuality, Is.EqualTo(2.7f));
+            Assert.That(ReadRecord<CoreVoyageCheckpoint>(record, "voyage").battleHullQuality, Is.EqualTo(3.3f));
+            CoreGameplayDemoController restored = CreateInactiveController(new CoreVoyageSession());
+            var catalog = new ComponentArtCatalog();
+            var inventory = new OwnedShipComponentInventory(catalog);
+            if (emptyLoadout) inventory.InitializeEmptyLoadout(0);
+            else
+            {
+                ComponentArtEntry bow = catalog.Entries.First(item => item.Slot == ComponentSlot.Bow && item.Rarity == ComponentRarity.Rare);
+                ComponentArtEntry plating = catalog.Entries.First(item => item.Slot == ComponentSlot.Plating && item.Rarity == ComponentRarity.Rare);
+                string legacy = "{\"version\":2,\"initializedShips\":[0],\"items\":[" +
+                    "{\"instanceId\":\"old-bow\",\"componentId\":\"" + bow.Id + "\",\"quality\":0.9,\"shipIndex\":0}," +
+                    "{\"instanceId\":\"old-plating\",\"componentId\":\"" + plating.Id + "\",\"quality\":1.1,\"shipIndex\":0}]}";
+                Assert.That(inventory.Import(legacy, ship => ship == 0), Is.True);
+            }
+            WriteField(restored, "componentArt", catalog);
+            WriteField(restored, "componentInventory", inventory);
+
+            Assert.That(Restore(restored, record, out reason), Is.True, reason);
+
+            expected.battleBowQuality = expected.battleHullQuality = emptyLoadout ? 1f : 3f;
+            Assert.That(JsonUtility.ToJson(restored.Session.CaptureVoyageCheckpoint()), Is.EqualTo(JsonUtility.ToJson(expected)),
+                "Resume changes only retired appraisal strengths; the voyage, cargo, hull and random state must survive intact.");
+            Assert.That(inventory.Items.Count, Is.EqualTo(emptyLoadout ? 0 : 2));
+            Assert.That(inventory.Export(), Does.Not.Contain("quality"));
+            Assert.That(HasCheckpoint(), Is.False);
+            profile.AssertUnchanged();
+        }
+
         [Test]
         public void CorruptPrimaryUsesRedundantSnapshotAndReportsRecovery()
         {
@@ -232,9 +269,10 @@ namespace ShatteredSail.Presentation.Tests
             return controller;
         }
 
-        private static CoreVoyageSession CreateVoyage(bool tutorial)
+        private static CoreVoyageSession CreateVoyage(bool tutorial, float bowStrength = 1f, float platingStrength = 1f)
         {
             var session = new CoreVoyageSession();
+            session.ConfigureBattleEquipment(bowStrength, platingStrength);
             session.RestoreProfile(731.2468m, "断锚港");
             session.SetSeed("SUSPENSION-FLOW-ISOLATED");
             session.Cargo.Water = 73;
@@ -333,7 +371,7 @@ namespace ShatteredSail.Presentation.Tests
                 CoreGameplayDemoController.TutorialRewardGrantedKey,
                 CoreGameplayDemoController.GuidedTutorialCheckpointKey,
             }).ToArray();
-            private static readonly string[] StringKeys = { ProfileGoldPersistence.DecimalKey, CoreGameplayDemoController.CurrentPortKey };
+            private static readonly string[] StringKeys = { ProfileGoldPersistence.DecimalKey, CoreGameplayDemoController.CurrentPortKey, CoreGameplayDemoController.WarehouseIncomeKey };
             private bool[] integerExists;
             private int[] integers;
             private bool[] stringExists;

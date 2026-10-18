@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return null;
                 yield return WaitForGuidedCaptureScreenReveal(controller);
                 Assert.That(controller.Session.IsGuidedBossBattle, Is.True);
-                Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.NavalRetreat));
+                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseActionCard);
 
                 // Initialize the existing opt-in capture directory before adding
                 // the actual viewport images beneath it. Ordinary runs write none.
@@ -51,6 +51,7 @@ namespace ShatteredSail.Presentation.Tests
                         Assert.That(frame.rectTransform.rect.width, Is.GreaterThan(focus.Target.rect.width),
                             "The regression needs the current frame, which extends beyond the selectable body.");
                         Rect restingBounds = AssertGuidedBattleCardFocus(controller, focus, card, frame, size + " rest");
+                        Vector2 restingEdges = GuidedBattleCardWorldEdgeLengths(frame.rectTransform);
                         CaptureGuidedBattleViewport(controller, viewport,
                             "TutorialLayout_Battle_" + size.x + "x" + size.y + "_Rest.png");
 
@@ -63,9 +64,14 @@ namespace ShatteredSail.Presentation.Tests
                         ExecuteEvents.Execute(card.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
                         yield return new WaitForSecondsRealtime(.4f);
                         viewport.Render();
-                        Rect hoveringBounds = AssertGuidedBattleCardFocus(controller, focus, card, frame, size + " hover");
-                        Assert.That(hoveringBounds.width, Is.GreaterThan(restingBounds.width + 5f),
-                            "The red outline must expand with the inspected card, not stay around its old hit rectangle.");
+                        Rect hoveringBounds = AssertGuidedBattleCardFocus(controller, focus, card, frame, size + " hover", true);
+                        Vector2 hoveringEdges = GuidedBattleCardWorldEdgeLengths(frame.rectTransform);
+                        // Uprighting a rotated fan card can narrow its AABB even
+                        // while the actual card grows. Compare its own edges.
+                        Assert.That(hoveringEdges.x, Is.GreaterThan(restingEdges.x * 1.01f),
+                            "Inspection enlarges the actual card width, independent of fan rotation.");
+                        Assert.That(hoveringEdges.y, Is.GreaterThan(restingEdges.y * 1.01f),
+                            "Inspection enlarges the actual card height, independent of fan rotation.");
                         Assert.That(Vector2.Distance(hoveringBounds.center, restingBounds.center), Is.GreaterThan(5f),
                             "The teaching annotation must follow the card's inspection movement.");
                         Canvas cardCanvas = card.GetComponent<Canvas>();
@@ -93,13 +99,21 @@ namespace ShatteredSail.Presentation.Tests
                 // all the resizes and inspection transitions.
                 yield return null;
                 yield return PlayGuidedScriptAction(controller, false, null);
-                Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.NavalLoad));
+                Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseSecondMove));
                 LogAssert.NoUnexpectedReceived();
             }
         }
 
+        private static Vector2 GuidedBattleCardWorldEdgeLengths(RectTransform frame)
+        {
+            var corners = new Vector3[4];
+            frame.GetWorldCorners(corners);
+            return new Vector2(Vector3.Distance(corners[0], corners[3]),
+                Vector3.Distance(corners[0], corners[1]));
+        }
+
         private static Rect AssertGuidedBattleCardFocus(CoreGameplayDemoController controller,
-            GuidedTutorialFocusGraphic focus, Button card, CardSchoolFrameGraphic frame, string context)
+            GuidedTutorialFocusGraphic focus, Button card, CardSchoolFrameGraphic frame, string context, bool hovering = false)
         {
             Canvas.ForceUpdateCanvases();
             Assert.That(focus.VisualTarget, Is.SameAs(frame.rectTransform), context);
@@ -110,11 +124,31 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(focus.TryGetProtectedRect(surface, out Rect protectedBounds), Is.True, context);
             var corners = new Vector3[4];
             frame.rectTransform.GetWorldCorners(corners);
+            Vector2 min = new Vector2(float.MaxValue, float.MaxValue);
+            Vector2 max = new Vector2(float.MinValue, float.MinValue);
             foreach (Vector3 corner in corners)
             {
                 Vector2 point = surface.InverseTransformPoint(corner);
+                min = Vector2.Min(min, point); max = Vector2.Max(max, point);
                 Assert.That(point.x, Is.InRange(protectedBounds.xMin - .5f, protectedBounds.xMax + .5f), context);
-                Assert.That(point.y, Is.InRange(protectedBounds.yMin - .5f, protectedBounds.yMax + .5f), context);
+                Assert.That(point.x, Is.InRange(surface.rect.xMin - .5f, surface.rect.xMax + .5f), context + " horizontal visibility");
+                if (hovering)
+                {
+                    Assert.That(point.y, Is.InRange(surface.rect.yMin - .5f, surface.rect.yMax + .5f), context + " complete inspected card");
+                    Assert.That(point.y, Is.InRange(protectedBounds.yMin - .5f, protectedBounds.yMax + .5f), context);
+                }
+            }
+            Assert.That(max.y, Is.LessThanOrEqualTo(surface.rect.yMax + .5f), context + " visible card top");
+            Assert.That(max.y, Is.LessThanOrEqualTo(protectedBounds.yMax + .5f), context + " outlined card top");
+            if (!hovering)
+            {
+                // The fan rests partly below the screen. Its upper half and
+                // energy emblem remain visible/selectable; hover reveals it all.
+                float visibleBottom = Mathf.Max(min.y, surface.rect.yMin);
+                float visibleHeight = max.y - visibleBottom;
+                Assert.That(visibleHeight, Is.GreaterThanOrEqualTo((max.y - min.y) * .5f), context + " selectable resting fan");
+                Assert.That(protectedBounds.Contains(new Vector2((min.x + max.x) * .5f,
+                    visibleBottom + visibleHeight * .5f)), Is.True, context + " outline follows visible card");
             }
             AssertGuidedInstructionsRemainVisible(controller);
             AssertSingleGuidedLayoutFocus(card.name);

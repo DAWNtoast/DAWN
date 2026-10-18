@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -14,61 +15,72 @@ namespace ShatteredSail.Presentation.Tests
         [TearDown] public void Cleanup() { if (host != null) Object.DestroyImmediate(host); }
 
         [Test]
-        public void MaterialsHaveDetailAndMinificationLevels()
+        public void SharedMaterialsKeepCanvasDetailAndUseTheMarketPaperTexture()
         {
-            foreach (Sprite sprite in new[] { NauticalSurfaceSkin.Canvas, NauticalSurfaceSkin.Paper })
+            foreach (Sprite sprite in new[] { NauticalSurfaceSkin.Canvas })
             {
                 Assert.That(sprite, Is.Not.Null);
                 Assert.That(sprite.texture.width, Is.GreaterThanOrEqualTo(1024));
                 Assert.That(sprite.texture.mipmapCount, Is.GreaterThan(1));
                 Assert.That(sprite.texture.wrapMode, Is.EqualTo(TextureWrapMode.Repeat));
             }
+            Sprite paper = NauticalSurfaceSkin.Paper;
+            Assert.That(paper, Is.Not.Null);
+            Assert.That(paper.texture, Is.SameAs(MarketShopSkin.Paper.texture));
+            Assert.That(paper.texture.wrapMode, Is.EqualTo(TextureWrapMode.Clamp));
+            Assert.That(paper.name, Is.EqualTo(NauticalSurfaceSkin.PaperFillName));
+            Assert.That(paper.rect.size, Is.EqualTo(new Vector2(512f, 512f)));
+            Assert.That(paper.rect.center, Is.EqualTo(new Vector2(paper.texture.width, paper.texture.height) * .5f));
+            Assert.That(paper.border, Is.EqualTo(Vector4.zero));
         }
 
         [Test]
-        public void GameplayPaperRelease_AllowsCollectionWithoutDestroyingLiveUiOrSharedMenuPaper()
+        public void GameplayPaperRelease_UnpinsSharedPaperWithoutDestroyingLiveUi()
         {
             Sprite menuPaper = NauticalSurfaceSkin.ReadingPaper;
             Sprite investment = NauticalSurfaceSkin.InvestmentPaper;
             Sprite collection = NauticalSurfaceSkin.CollectionPaper;
+            Sprite fill = NauticalSurfaceSkin.Paper;
+            Assert.That(investment, Is.SameAs(menuPaper));
+            Assert.That(collection, Is.SameAs(menuPaper));
             host = new GameObject("Retained Investment Paper", typeof(RectTransform), typeof(Image));
             Image image = host.GetComponent<Image>();
             image.sprite = investment;
-            try
-            {
-                NauticalSurfaceSkin.ReleaseGameplayPaperReferences();
-                NauticalSurfaceSkin.ReleaseGameplayPaperReferences();
-                Assert.That(investment != null && collection != null, Is.True,
-                    "Releasing the cache must let the engine decide whether any UI still needs a sprite.");
-                Assert.That(image.sprite, Is.SameAs(investment));
-                Assert.That(investment.hideFlags & HideFlags.DontUnloadUnusedAsset, Is.EqualTo(HideFlags.None));
-                Assert.That(collection.hideFlags & HideFlags.DontUnloadUnusedAsset, Is.EqualTo(HideFlags.None));
-                foreach (string field in new[] { "investmentPaper", "collectionPaper" })
-                    Assert.That(typeof(NauticalSurfaceSkin).GetField(field, BindingFlags.Static | BindingFlags.NonPublic).GetValue(null), Is.Null);
-                Assert.That(NauticalSurfaceSkin.ReadingPaper, Is.SameAs(menuPaper));
-                Assert.That(NauticalSurfaceSkin.IsPaperSurface(image.sprite), Is.True);
-                Assert.That(NauticalSurfaceSkin.ReadableTextColor(image.transform, Color.white).grayscale, Is.LessThan(.25f));
-                Sprite reopened = NauticalSurfaceSkin.InvestmentPaper;
-                Assert.That(reopened, Is.Not.SameAs(investment));
-                Assert.That(reopened.texture, Is.SameAs(investment.texture));
-                Assert.That(reopened.border, Is.EqualTo(investment.border));
-            }
-            finally
-            {
-                image.sprite = null;
-                Object.DestroyImmediate(investment);
-                Object.DestroyImmediate(collection);
-            }
+            var fillHost = new GameObject("Retained Fill", typeof(RectTransform), typeof(Image));
+            fillHost.transform.SetParent(host.transform, false);
+            Image fillImage = fillHost.GetComponent<Image>();
+            fillImage.sprite = fill;
+            NauticalSurfaceSkin.ReleaseGameplayPaperReferences();
+            NauticalSurfaceSkin.ReleaseGameplayPaperReferences();
+            Assert.That(investment != null && collection != null, Is.True,
+                "Releasing the cache must let the engine decide whether any UI still needs a sprite.");
+            Assert.That(image.sprite, Is.SameAs(investment));
+            Assert.That(fillImage.sprite, Is.SameAs(fill));
+            Assert.That(investment.hideFlags & HideFlags.DontUnloadUnusedAsset, Is.EqualTo(HideFlags.None));
+            Assert.That(collection.hideFlags & HideFlags.DontUnloadUnusedAsset, Is.EqualTo(HideFlags.None));
+            Assert.That(fill.hideFlags & HideFlags.DontUnloadUnusedAsset, Is.EqualTo(HideFlags.None));
+            Assert.That(NauticalSurfaceSkin.IsPaperSurface(image.sprite), Is.True);
+            Assert.That(NauticalSurfaceSkin.ReadableTextColor(image.transform, Color.white).grayscale, Is.LessThan(.25f));
+            Sprite reopened = NauticalSurfaceSkin.InvestmentPaper;
+            Assert.That(reopened, Is.Not.SameAs(investment));
+            Assert.That(reopened, Is.SameAs(NauticalSurfaceSkin.ReadingPaper));
+            Assert.That(reopened, Is.SameAs(NauticalSurfaceSkin.CollectionPaper));
+            Assert.That(reopened.texture, Is.SameAs(investment.texture));
+            Assert.That(reopened.border, Is.EqualTo(investment.border));
+            Assert.That(NauticalSurfaceSkin.Paper, Is.Not.SameAs(fill));
+            Assert.That(NauticalSurfaceSkin.Paper.texture, Is.SameAs(fill.texture));
+            Assert.That(NauticalSurfaceSkin.Paper.rect, Is.EqualTo(fill.rect));
         }
 
         [TestCase("UISurfaces/aged_reading_parchment_v1")]
         [TestCase("UISurfaces/investment_charter_parchment_v1")]
         [TestCase("UISurfaces/collection_archive_parchment_v1")]
-        public void DedicatedPapersUseTheirResourcesAndHaveUsableNineSliceBorders(string path)
+        public void LegacyPaperEntrypointsShareMarketPaperAndUsableNineSliceBorders(string path)
         {
             Sprite sprite = DedicatedPaper(path);
             Assert.That(sprite, Is.Not.Null, path);
-            Assert.That(sprite.texture, Is.SameAs(Resources.Load<Texture2D>(path)));
+            Assert.That(sprite, Is.SameAs(MarketShopSkin.Paper));
+            Assert.That(sprite.texture, Is.SameAs(Resources.Load<Texture2D>(MarketShopSkin.PaperResourcePath)));
             Assert.That(sprite.texture.width, Is.GreaterThanOrEqualTo(1024));
             Assert.That(sprite.texture.height, Is.GreaterThanOrEqualTo(512));
             Assert.That(NauticalSurfaceSkin.IsPaperSurface(sprite), Is.True);
@@ -79,9 +91,166 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(sprite.border.x + sprite.border.z, Is.LessThan(sprite.rect.width));
             Assert.That(sprite.border.y + sprite.border.w, Is.LessThan(sprite.rect.height));
             Assert.That(NauticalSurfaceSkin.IsPaperSurface(NauticalSurfaceSkin.Paper), Is.True,
-                "The original paper remains a supported small-card and control surface.");
+                "The market paper centre remains a supported small-card and control surface.");
             Assert.That(NauticalSurfaceSkin.IsPaperSurface(null), Is.False);
             Assert.That(NauticalSurfaceSkin.IsPaperSurface(NauticalSurfaceSkin.Canvas), Is.False);
+        }
+
+        [Test]
+        public void LivePaperEntrypointsDoNotLoadLegacyPaperTextures()
+        {
+            string[] legacyNames = { "journal_parchment_v1", "aged_reading_parchment_v1",
+                "investment_charter_parchment_v1", "collection_archive_parchment_v1" };
+            int[] loadedBefore = Resources.FindObjectsOfTypeAll<Texture2D>()
+                .Where(texture => legacyNames.Contains(texture.name)).Select(texture => texture.GetInstanceID()).ToArray();
+            NauticalSurfaceSkin.ReleaseGameplayPaperReferences();
+            foreach (Sprite paper in new[] { NauticalSurfaceSkin.Paper, NauticalSurfaceSkin.ReadingPaper,
+                NauticalSurfaceSkin.InvestmentPaper, NauticalSurfaceSkin.CollectionPaper })
+                Assert.That(paper.texture, Is.SameAs(MarketShopSkin.Paper.texture));
+            foreach (Texture2D texture in Resources.FindObjectsOfTypeAll<Texture2D>().Where(texture => legacyNames.Contains(texture.name)))
+                Assert.That(loadedBefore, Does.Contain(texture.GetInstanceID()), texture.name + " must not be loaded by the live paper API.");
+        }
+
+        [TestCase(2)]
+        [TestCase(4)]
+        [TestCase(5)]
+        public void SerializedLegacyReadingBindingsMigrateTheCompleteStyle(int serializedSkin)
+        {
+            host = new GameObject("Legacy Paper Binding", typeof(RectTransform), typeof(Image), typeof(PrefabRuntimeSkinBindings));
+            Image image = host.GetComponent<Image>();
+            image.rectTransform.sizeDelta = new Vector2(620f, 380f);
+            image.rectTransform.anchoredPosition = new Vector2(17f, -23f);
+            image.raycastTarget = false;
+            image.sprite = NauticalSurfaceSkin.Canvas;
+            image.overrideSprite = WoodButtonSkin.Face;
+            image.type = Image.Type.Tiled;
+            image.pixelsPerUnitMultiplier = 7f;
+            image.color = new Color(.65f, .5f, .35f, .8f);
+            PrefabRuntimeSkinBindings bindings = host.GetComponent<PrefabRuntimeSkinBindings>();
+            SetSerializedSkinBinding(bindings, image, serializedSkin);
+            for (int pass = 0; pass < 2; pass++)
+            {
+                bindings.Apply();
+                AssertDedicatedPaperStyle(image, MarketShopSkin.Paper);
+                Assert.That(image.overrideSprite, Is.SameAs(MarketShopSkin.Paper));
+                Assert.That(image.rectTransform.sizeDelta, Is.EqualTo(new Vector2(620f, 380f)));
+                Assert.That(image.rectTransform.anchoredPosition, Is.EqualTo(new Vector2(17f, -23f)));
+                Assert.That(image.raycastTarget, Is.False);
+            }
+        }
+
+        [TestCase(Image.Type.Simple)]
+        [TestCase(Image.Type.Tiled)]
+        public void SerializedPaperFillBindingPreservesTintGeometryAndTilingDensity(Image.Type type)
+        {
+            host = new GameObject("Legacy Fill Binding", typeof(RectTransform), typeof(Image), typeof(PrefabRuntimeSkinBindings));
+            Image image = host.GetComponent<Image>();
+            Texture2D texture = MarketShopSkin.Paper.texture;
+            Sprite legacy = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * .5f, 100f);
+            legacy.name = NauticalSurfaceSkin.PaperPath;
+            try
+            {
+                image.sprite = legacy;
+                image.overrideSprite = WoodButtonSkin.Face;
+                image.type = type;
+                image.rectTransform.sizeDelta = new Vector2(240f, 32f);
+                image.color = new Color(.35f, .65f, .48f, .4f);
+                Color tint = image.color;
+                image.raycastTarget = false;
+                image.pixelsPerUnitMultiplier = legacy.rect.width / 160f;
+                PrefabRuntimeSkinBindings bindings = host.GetComponent<PrefabRuntimeSkinBindings>();
+                SetSerializedSkinBinding(bindings, image, 1);
+                for (int pass = 0; pass < 3; pass++)
+                {
+                    bindings.Apply();
+                    Assert.That(image.sprite, Is.SameAs(NauticalSurfaceSkin.Paper));
+                    Assert.That(image.overrideSprite, Is.SameAs(NauticalSurfaceSkin.Paper));
+                    Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(NauticalSurfaceSkin.Paper.rect.width / 160f).Within(.0001f));
+                    Assert.That(image.type, Is.EqualTo(type));
+                    Assert.That(image.color, Is.EqualTo(tint));
+                    Assert.That(image.raycastTarget, Is.False);
+                    Assert.That(image.rectTransform.sizeDelta, Is.EqualTo(new Vector2(240f, 32f)));
+                }
+            }
+            finally { Object.DestroyImmediate(legacy); }
+        }
+
+        [TestCase(NauticalSurfaceSkin.PaperPath, 1)]
+        [TestCase(NauticalSurfaceSkin.PaperFillName, 1)]
+        [TestCase(NauticalSurfaceSkin.ReadingPaperPath, 2)]
+        [TestCase(NauticalSurfaceSkin.InvestmentPaperPath, 4)]
+        [TestCase(NauticalSurfaceSkin.CollectionPaperPath, 5)]
+        [TestCase(MarketShopSkin.PaperResourcePath, 6)]
+        public void PrefabCaptureRecognizesLegacyNamesAndCurrentMarketSkins(string name, int serializedSkin)
+        {
+            host = new GameObject("Paper Capture", typeof(RectTransform), typeof(Image), typeof(PrefabRuntimeSkinBindings));
+            Image image = host.GetComponent<Image>();
+            Sprite example = MarketShopSkin.Paper;
+            Sprite named = Sprite.Create(example.texture, example.rect, Vector2.one * .5f, 100f);
+            named.name = name;
+            try
+            {
+                image.sprite = named;
+                PrefabRuntimeSkinBindings bindings = host.GetComponent<PrefabRuntimeSkinBindings>();
+                bindings.CaptureBindings();
+                var serialized = new SerializedObject(bindings);
+                SerializedProperty captured = serialized.FindProperty("bindings");
+                Assert.That(captured.arraySize, Is.EqualTo(1));
+                Assert.That(captured.GetArrayElementAtIndex(0).FindPropertyRelative("Skin").intValue, Is.EqualTo(serializedSkin));
+                image.sprite = null;
+                bindings.Apply();
+                Assert.That(image.sprite, Is.SameAs(serializedSkin == 1 ? NauticalSurfaceSkin.Paper : MarketShopSkin.Paper));
+            }
+            finally { Object.DestroyImmediate(named); }
+        }
+
+        [Test]
+        public void CapturedMarketPaperPreservesItsCustomFourTimesBorderScale()
+        {
+            host = new GameObject("Market Paper Capture", typeof(RectTransform), typeof(Image), typeof(PrefabRuntimeSkinBindings));
+            Image image = host.GetComponent<Image>();
+            MarketShopSkin.ApplyPanel(image);
+            image.pixelsPerUnitMultiplier = 4f;
+            PrefabRuntimeSkinBindings bindings = host.GetComponent<PrefabRuntimeSkinBindings>();
+            bindings.CaptureBindings();
+            image.sprite = null;
+            image.type = Image.Type.Simple;
+            for (int pass = 0; pass < 2; pass++)
+            {
+                bindings.Apply();
+                Assert.That(image.sprite, Is.SameAs(MarketShopSkin.Paper));
+                Assert.That(image.type, Is.EqualTo(Image.Type.Sliced));
+                Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(4f),
+                    "A current market panel must keep its authored border scale across prefab binding replay.");
+            }
+        }
+
+        [TestCase("UI/MainMenuSettings", "Settings Card")]
+        [TestCase("UI/MainMenuAchievements", "Achievements Card")]
+        [TestCase("UI/MainMenuNewGameConfirmation", "Confirmation Card")]
+        [TestCase("UI/MainMenuSaveNotice", "Voyage Save Notice Card")]
+        [TestCase("UI/PortSettings", "Port Settings Sheet")]
+        public void CachedDialogPrefabsReplayTheMarketSkinWithoutChangingLayout(string resource, string surfaceName)
+        {
+            GameObject prefab = Resources.Load<GameObject>(resource);
+            Assert.That(prefab, Is.Not.Null, resource);
+            host = Object.Instantiate(prefab);
+            PrefabRuntimeSkinBindings bindings = host.GetComponent<PrefabRuntimeSkinBindings>();
+            Assert.That(bindings, Is.Not.Null, resource);
+            Image surface = host.GetComponentsInChildren<Image>(true).Single(image => image.name == surfaceName);
+            Vector2 size = surface.rectTransform.sizeDelta, position = surface.rectTransform.anchoredPosition;
+            bool hitTesting = surface.raycastTarget;
+            for (int pass = 0; pass < 2; pass++)
+            {
+                bindings.Apply();
+                AssertDedicatedPaperStyle(surface, MarketShopSkin.Paper);
+                Assert.That(surface.rectTransform.sizeDelta, Is.EqualTo(size));
+                Assert.That(surface.rectTransform.anchoredPosition, Is.EqualTo(position));
+                Assert.That(surface.raycastTarget, Is.EqualTo(hitTesting));
+                foreach (Image image in host.GetComponentsInChildren<Image>(true))
+                    if (NauticalSurfaceSkin.IsPaperSurface(image.sprite))
+                        Assert.That(image.sprite.texture, Is.SameAs(MarketShopSkin.Paper.texture), resource + " / " + image.name);
+            }
         }
 
         [TestCase("Warehouse Ledger", false)]
@@ -192,7 +361,7 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
-        [TestCase(CoreGameplayPreviewScreen.Market, "Market Item Detail", "UISurfaces/aged_reading_parchment_v1", "Market Shop Title")]
+        [TestCase(CoreGameplayPreviewScreen.Market, "Market Item Detail", MarketShopSkin.PaperResourcePath, "Market Shop Title")]
         public void RealPreviewPapersKeepTheirStyleReadableInkAndBoundsAfterRefresh(CoreGameplayPreviewScreen screen,
             string surfaceName, string resourcePath, string labelName)
         {
@@ -283,7 +452,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Image surface = images.Single(image => image.name == name);
                 Assert.That(surface.sprite, Is.Not.Null, name);
-                AssertDedicatedPaperStyle(surface, NauticalSurfaceSkin.ReadingPaper);
+                AssertDedicatedPaperStyle(surface, MarketShopSkin.Paper);
             }
             foreach (string name in new[] { "Settings Panel", "Achievements Panel", "New Game Confirmation" })
                 Assert.That(images.Single(image => image.name == name).sprite, Is.Null, name);
@@ -323,6 +492,7 @@ namespace ShatteredSail.Presentation.Tests
                 controller.ConfigureEditorPreview(screen, CoreGameplayPreviewPort.GrayGull, 0);
                 foreach (Button button in host.GetComponentsInChildren<Button>(true))
                 {
+                    if (!button.gameObject.activeInHierarchy) continue;
                     Image face = button.GetComponent<Image>();
                     if (face == null || face.color.a <= .01f || button.name.StartsWith("Event Node ")) continue;
                     if (button.GetComponentInChildren<BattleCardSurfaceGraphic>(true) != null) continue;
@@ -358,8 +528,20 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(rect.GetComponent<Image>().sprite, Is.Not.Null);
         }
 
+        private static void SetSerializedSkinBinding(PrefabRuntimeSkinBindings bindings, Image image, int skin)
+        {
+            var serialized = new SerializedObject(bindings);
+            SerializedProperty entries = serialized.FindProperty("bindings");
+            entries.arraySize = 1;
+            SerializedProperty entry = entries.GetArrayElementAtIndex(0);
+            entry.FindPropertyRelative("Image").objectReferenceValue = image;
+            entry.FindPropertyRelative("Skin").intValue = skin;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static Sprite DedicatedPaper(string path)
         {
+            if (path == MarketShopSkin.PaperResourcePath) return MarketShopSkin.Paper;
             if (path == NauticalSurfaceSkin.ReadingPaperPath) return NauticalSurfaceSkin.ReadingPaper;
             if (path == NauticalSurfaceSkin.InvestmentPaperPath) return NauticalSurfaceSkin.InvestmentPaper;
             if (path == NauticalSurfaceSkin.CollectionPaperPath) return NauticalSurfaceSkin.CollectionPaper;
@@ -372,6 +554,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(paper, Is.Not.Null);
             Assert.That(surface.sprite, Is.SameAs(paper), surface.name);
             Assert.That(surface.type, Is.EqualTo(Image.Type.Sliced), surface.name);
+            Assert.That(surface.pixelsPerUnitMultiplier, Is.EqualTo(2f), surface.name);
             Assert.That(surface.color.r, Is.EqualTo(1f));
             Assert.That(surface.color.g, Is.EqualTo(1f));
             Assert.That(surface.color.b, Is.EqualTo(1f));

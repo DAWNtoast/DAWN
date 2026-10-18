@@ -56,7 +56,7 @@ namespace ShatteredSail.Core.Tests
                 "Facilities outside the regional contract should retain their existing background lookup.");
             Assert.That(PortFacilityArtCatalog.RegionalBackgroundResourcePath(
                     PortFacilityArtCatalog.VoyageFacilityIndex, "断锚港"),
-                Is.EqualTo("PortFacilities/Regional/Voyage/voyage_broken_anchor_scene_v4"),
+                Is.EqualTo("PortFacilities/Regional/Voyage/voyage_broken_anchor_open_berth_v1"),
                 "The scene uses its empty berth painting so the active vessel remains an independent layer.");
         }
 
@@ -169,7 +169,7 @@ namespace ShatteredSail.Core.Tests
                     "Regional facility scenes should not be recolored by the legacy dark overlay.");
 
                 if (screen == CoreGameplayPreviewScreen.Warehouse || screen == CoreGameplayPreviewScreen.Maintenance ||
-                    screen == CoreGameplayPreviewScreen.VoyageDeparture && port == CoreGameplayPreviewPort.BrokenAnchor)
+                    screen == CoreGameplayPreviewScreen.VoyageDeparture && PortFacilityArtCatalog.UsesPaintedDepartureScene(portName))
                 {
                     Assert.That(background.rectTransform.sizeDelta, Is.EqualTo(new Vector2(1920f, 1080f)));
                     Assert.That(background.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero));

@@ -326,6 +326,7 @@ namespace ShatteredSail.Presentation
             session.ConfigureGuidedTutorialVoyage(0);
             portNotice = "引导完成！罗盘已陈列，白色部件「漂木锯齿首」已亲自装上旗舰，海图已收录。现在可以自由探索。";
             SaveProgress();
+            ShowGuidedTutorialCompletionNotice();
         }
 
         private bool PrepareGuidedTutorialDeparture()
@@ -383,11 +384,22 @@ namespace ShatteredSail.Presentation
         private void BuildGuidedTutorialRewardPlaque(Transform parent, Vector2 position)
         {
             ComponentArtEntry reward = componentArt.GetById(GuidedTutorialRewardComponentId);
-            RectTransform plaque = CreateFixedPanel("Guided Tutorial Component Reward", parent, new Vector2(630, 76), position, PanelRaised);
-            plaque.GetComponent<Image>().raycastTarget = false;
-            if (reward != null) CreateRawImage("Guided Tutorial Reward Art", plaque, new Vector2(84, 66), new Vector2(-257, 0), reward.Texture, new Rect(0, 0, 1, 1)).raycastTarget = false;
-            Text label = CreateText("Guided Tutorial Reward Text", plaque, new Vector2(514, 70), new Vector2(50, 0), 20, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
-            label.text = "老船长遗物 · 白色品质部件 ＋ 贵重藏品\n漂木锯齿首 ＋ 破浪者的罗盘 · 归港后入库";
+            RectTransform plaque = CreateFixedPanel("Guided Tutorial Component Reward", parent, new Vector2(630, 76), position, Color.white);
+            Image paper = plaque.GetComponent<Image>();
+            MarketShopSkin.ApplyPanel(paper);
+            // This compact reward strip keeps its existing lookout/settlement
+            // footprint; thinner sliced borders leave room for both reward lines.
+            paper.pixelsPerUnitMultiplier = 4f;
+            paper.raycastTarget = false;
+            if (reward != null)
+                CreateRawImage("Guided Tutorial Reward Art", plaque, new Vector2(56, 56),
+                    new Vector2(-266, 0), reward.Texture, new Rect(0, 0, 1, 1)).raycastTarget = false;
+            Image divider = CreateImage("Guided Tutorial Reward Divider", plaque, new Vector2(1, 42),
+                new Vector2(-226, 0), new Color(.53f, .40f, .24f, .35f));
+            divider.sprite = divider.overrideSprite = null;
+            divider.raycastTarget = false;
+            Text label = CreateText("Guided Tutorial Reward Text", plaque, new Vector2(512, 54), new Vector2(44, 0), 20, FontStyle.Bold, TextAnchor.MiddleLeft, MarketShopSkin.Ink);
+            label.text = "老船长遗物 · 普通部件 ＋ 贵重藏品\n<size=18><color=#6B543D>漂木锯齿首 ＋ 破浪者的罗盘 · 归港后入库</color></size>";
             label.raycastTarget = false;
         }
 
@@ -460,6 +472,7 @@ namespace ShatteredSail.Presentation
                 settledResult, tutorialActive || leg > 0, session.IsTreasureVoyage);
             bool returnedWithDamage = session.Hull < session.MaxHull;
             bool navigatorVoyageComplete = success && session.HasNavigator;
+            int previousPirateLevel = session.PirateLevel;
             session.ReturnToPortAfterSettlement();
             if (session.Phase != CoreDemoPhase.Port) return;
             if (Application.isPlaying && !editorPreviewBuilding)
@@ -487,7 +500,7 @@ namespace ShatteredSail.Presentation
                         ComponentArtEntry reward = componentArt.GetById(GuidedTutorialRewardComponentId);
                         // Inventory and the one-off grant marker are flushed together.
                         // The player fits this part in the final shipyard lesson.
-                        if (reward != null && GrantOwnedComponent(reward, 1f) != null)
+                        if (reward != null && GrantOwnedComponent(reward) != null)
                         {
                             PlayerPrefs.SetInt(GuidedTutorialComponentRewardKey, 1);
                         }
@@ -544,6 +557,7 @@ namespace ShatteredSail.Presentation
             SaveProgress();
             if (tutorialActive) ResetGuidedTutorialPortStep();
             Render();
+            ShowSchoolUnlockNotice(previousPirateLevel);
         }
 
         private string LastDrawnChartSummary(int routeIndex = -1)

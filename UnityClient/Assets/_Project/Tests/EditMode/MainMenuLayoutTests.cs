@@ -75,25 +75,56 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void PaperDialogs_UseDarkReadableInkWhileWoodButtonsKeepLightLabels()
+        public void PaperDialogs_UseReadableInkAndMatchLabelsToLightOrWoodButtons()
         {
             using (var fixture = new MenuFixture(1280, 720))
             {
-                ColorUtility.TryParseHtmlString("#BEA16A", out Color conservativePaper);
+                ColorUtility.TryParseHtmlString("#E8DFC7", out Color marketPaper);
                 foreach (string state in new[] { "Settings Panel", "Achievements Panel", "New Game Confirmation" })
                 {
                     fixture.Show(state);
                     fixture.Render();
                     Transform panel = fixture.Find<RectTransform>(state);
+                    if (state == "Settings Panel")
+                    {
+                        Text subtitle = panel.GetComponentsInChildren<Text>(true).Single(label => label.name == "Modal Subtitle");
+                        Assert.That(subtitle.text, Is.Empty, "The removed local-save explanation must not remain in either prefab or procedural settings.");
+                        Assert.That(subtitle.gameObject.activeSelf, Is.False);
+                    }
+                    if (state == "New Game Confirmation")
+                    {
+                        RectTransform card = fixture.Find<RectTransform>("Confirmation Card");
+                        Assert.That(card.GetComponent<Image>().sprite, Is.SameAs(MarketShopSkin.Paper));
+                        Text body = fixture.Find<Text>("Confirmation Body");
+                        Assert.That(body.text, Does.Contain("现有航程、教学进度、金币、贵重藏品及陈列记录将被重置。"));
+                        Assert.That(body.text, Does.Contain("游戏设置将保留。"));
+                        Assert.That(body.text, Does.Not.Contain("美术资源"));
+                        Assert.That(body.preferredHeight, Is.LessThanOrEqualTo(body.rectTransform.rect.height));
+                        Rect cancel = RectIn(card, fixture.Find<Button>("Cancel New Game").GetComponent<RectTransform>());
+                        Rect confirm = RectIn(card, fixture.Find<Button>("Confirm New Game").GetComponent<RectTransform>());
+                        Assert.That(cancel.xMax, Is.LessThan(confirm.xMin));
+                        Assert.That(cancel.yMax, Is.LessThan(RectIn(card, body.rectTransform).yMin));
+                        WoodButtonRoleState cancelWood = fixture.Find<Button>("Cancel New Game").GetComponent<WoodButtonRoleState>();
+                        WoodButtonRoleState confirmWood = fixture.Find<Button>("Confirm New Game").GetComponent<WoodButtonRoleState>();
+                        Assert.That(cancelWood == null || !cancelWood.enabled, Is.True);
+                        Assert.That(confirmWood != null && confirmWood.enabled, Is.True);
+                    }
                     foreach (Text label in panel.GetComponentsInChildren<Text>(false))
                     {
                         if (label.GetComponentInParent<Button>() != null || label.name == "Symbol") continue;
-                        Assert.That(Contrast(label.color, conservativePaper), Is.GreaterThanOrEqualTo(4.5f), label.name + " on parchment");
+                        Assert.That(Contrast(label.color, marketPaper), Is.GreaterThanOrEqualTo(4.5f), label.name + " on parchment");
                         Assert.That(label.color.a, Is.EqualTo(1f), label.name + " must not become faded body text");
                         Assert.That(label.fontSize * fixture.Canvas.scaleFactor, Is.GreaterThanOrEqualTo(12f), label.name + " at 720p");
                     }
                     foreach (Button button in panel.GetComponentsInChildren<Button>(false))
-                        Assert.That(Luminance(button.GetComponentInChildren<Text>().color), Is.GreaterThan(0.5f), button.name + " remains light on wood");
+                    {
+                        Text label = button.GetComponentInChildren<Text>();
+                        WoodButtonRoleState wood = button.GetComponent<WoodButtonRoleState>();
+                        if (wood != null && wood.enabled)
+                            Assert.That(Luminance(label.color), Is.GreaterThan(0.5f), button.name + " remains light on wood");
+                        else
+                            Assert.That(Contrast(label.color, button.colors.normalColor), Is.GreaterThanOrEqualTo(4.5f), button.name + " remains dark on ivory");
+                    }
                 }
             }
         }

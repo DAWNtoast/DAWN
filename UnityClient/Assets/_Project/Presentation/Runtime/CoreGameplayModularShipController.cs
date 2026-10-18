@@ -39,49 +39,28 @@ namespace ShatteredSail.Presentation
             SaveComponentInventory();
         }
 
-        public OwnedShipComponent GrantOwnedComponent(ComponentArtEntry entry, float quality)
+        public OwnedShipComponent GrantOwnedComponent(ComponentArtEntry entry)
         {
             if (!Application.isPlaying || editorPreviewBuilding || componentInventoryReadFailed || componentInventory == null) return null;
-            OwnedShipComponent item = componentInventory.Grant(entry, quality);
+            OwnedShipComponent item = componentInventory.Grant(entry);
             SaveComponentInventory();
             return item;
         }
 
         /// <summary>
-        /// Converts the core session's one-shot boarding drop into a physical
-        /// inventory item. The session chooses a slot different from its
-        /// internal anchor slot; this layer selects the actual art entry.
+        /// Grants each queued reward before acknowledging it. Missing inventory or
+        /// catalog data leaves the exact saved reward available for a later retry.
         /// </summary>
         private void ResolveBoardingComponentDrop()
         {
-            if (!Application.isPlaying || editorPreviewBuilding || session == null || componentArt == null)
+            if (!Application.isPlaying || editorPreviewBuilding || session == null || componentArt == null ||
+                componentInventoryReadFailed || componentInventory == null)
                 return;
-            if (!session.TryConsumeBoardingComponentDrop(out int slot)) return;
-
-            ComponentSlot targetSlot = (ComponentSlot)Mathf.Clamp(slot, 0, ComponentArtCatalog.SlotCount - 1);
-            List<ComponentArtEntry> candidates = new List<ComponentArtEntry>();
-            foreach (ComponentArtEntry entry in componentArt.ExpandedEntries)
-                if (entry != null && entry.Slot == targetSlot) candidates.Add(entry);
-            if (candidates.Count == 0) return;
-
-            // Rare fittings make a capture feel meaningful without handing out
-            // a legendary every time. The small rotation keeps repeated wins
-            // from producing the same catalogue entry on every voyage.
-            int rotation = Mathf.Abs(Mathf.RoundToInt((float)session.TotalHours) + session.LogEntries.Count * 13 + session.SelectedRouteIndex * 7);
-            ComponentArtEntry selected = null;
-            for (int offset = 0; offset < candidates.Count; offset++)
+            while (BoardingComponentDropSelection.TryGrantNext(session, componentArt.ExpandedEntries,
+                selected => GrantOwnedComponent(selected) != null, out ComponentArtEntry granted))
             {
-                ComponentArtEntry candidate = candidates[(rotation + offset) % candidates.Count];
-                if (candidate.Rarity == ComponentRarity.Rare)
-                {
-                    selected = candidate;
-                    break;
-                }
-                if (selected == null) selected = candidate;
+                session.RecordBoardingComponentDrop(granted.Name);
             }
-
-            OwnedShipComponent item = GrantOwnedComponent(selected, 1f);
-            if (item != null) session.RecordBoardingComponentDrop(selected.Name);
         }
 
         public bool TryEquipOwnedComponent(int shipIndex, string instanceId)
@@ -99,7 +78,8 @@ namespace ShatteredSail.Presentation
         }
 
         private bool CanRefitShip(int index) => Application.isPlaying && !editorPreviewBuilding &&
-            session != null && session.Phase == CoreDemoPhase.Port && !componentInventoryReadFailed && componentInventory != null && OwnsComponentVessel(index);
+            session != null && session.Phase == CoreDemoPhase.Port && !componentInventoryReadFailed && componentInventory != null &&
+            OwnsComponentVessel(index) && session.IsShipAtCurrentPort(index);
 
         private void CommitShipRefit(int shipIndex)
         {
@@ -120,10 +100,10 @@ namespace ShatteredSail.Presentation
 
         public static string ComponentConditionKey(ComponentSlot slot) => "ShatteredSail.ComponentCondition.v1." + slot;
 
-        private void EquipComponentWithQuality(ComponentArtEntry entry, float quality)
+        private void EquipPurchasedComponent(ComponentArtEntry entry)
         {
             if (entry == null || !CanRefitShip(session.SelectedShipIndex)) return;
-            OwnedShipComponent item = GrantOwnedComponent(entry, quality);
+            OwnedShipComponent item = GrantOwnedComponent(entry);
             if (item != null) TryEquipOwnedComponent(session.SelectedShipIndex, item.InstanceId);
         }
 
@@ -131,7 +111,7 @@ namespace ShatteredSail.Presentation
         {
             ComponentArtEntry entry = EquippedComponent(slot);
             OwnedShipComponent item = InstalledShipComponent(session.SelectedShipIndex, slot);
-            return entry == null || item == null ? 0f : (1f + (int)entry.Rarity) * item.Quality;
+            return entry == null || item == null ? 0f : 1f + (int)entry.Rarity;
         }
 
         private void RestoreComponentLoadout()
@@ -171,9 +151,7 @@ namespace ShatteredSail.Presentation
             {
                 if (!OwnsComponentVessel(ship)) continue;
                 if (!restored && ship == previousFlagship && hasLegacyFittings)
-                    componentInventory.EnsureLoadout(ship,
-                        slot => legacyFittings[(int)slot],
-                        slot => Mathf.Clamp(PlayerPrefs.GetInt(ComponentConditionKey(slot), 100), 90, 110) / 100f);
+                    componentInventory.EnsureLoadout(ship, slot => legacyFittings[(int)slot]);
                 else if (!restored && ship == previousFlagship)
                     componentInventory.InitializeEmptyLoadout(ship);
                 else componentInventory.EnsureLoadout(ship);

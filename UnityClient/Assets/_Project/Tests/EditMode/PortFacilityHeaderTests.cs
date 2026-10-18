@@ -179,7 +179,8 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(preview.Find(control).parent, Is.SameAs(facilityHeader));
                     }
                     Assert.That(facilityHeader.Cast<Transform>().Count(item => item.GetComponent<Text>() != null || item.GetComponent<Button>() != null),
-                        Is.EqualTo(8), "Facility navigation must keep all eight controls.");
+                        Is.EqualTo(9), "Facility navigation keeps all eight controls plus the section caption.");
+                    Assert.That(preview.Require<Text>("Port Header Section").raycastTarget, Is.False);
                     AssertTitle(preview, index);
                     Assert.That(preview.Require<Image>("Port Facility Frame").sprite.texture, Is.SameAs(regionalTexture));
                     preview.Require<Button>("Return To Port Hub").onClick.Invoke();
@@ -223,7 +224,7 @@ namespace ShatteredSail.Core.Tests
                         "Phase Content must use the full 1920 x 1080 reference surface: " + context);
 
                     Rect? preceding = null;
-                    foreach (string objectName in index == PortFacilityArtCatalog.ComponentShopFacilityIndex ? new[] { "Return To Port Hub", "Previous Port Facility", "Next Port Facility", "Port Facility Title", "Port Facility Port", "Port Facility Time", "Port Facility Gold", "Port Facility Settings" } : HeaderOrder)
+                    foreach (string objectName in HeaderOrder)
                     {
                         RectTransform control = preview.Require<RectTransform>(objectName);
                         Assert.That(control.parent, Is.SameAs(header), objectName + " must belong to the facility bar.");
@@ -428,7 +429,8 @@ namespace ShatteredSail.Core.Tests
             foreach (string facilityControl in HeaderOrder)
                 Assert.That(preview.Find(facilityControl), Is.Null, "Facility navigation is not part of the four-item hub header.");
             Assert.That(header.Cast<Transform>().Count(item => item.GetComponent<Text>() != null || item.GetComponent<Button>() != null),
-                Is.EqualTo(4), "The hub header must contain exactly time, port, gold and settings.");
+                Is.EqualTo(5), "The hub contains time, port, gold, settings and the section caption.");
+            Assert.That(preview.Require<Text>("Port Header Section").raycastTarget, Is.False);
 
             Rect? preceding = null;
             foreach (string name in HubHeaderOrder)
@@ -531,12 +533,6 @@ namespace ShatteredSail.Core.Tests
 
         private static void AssertNavigationLabels(PreviewFixture preview, int index)
         {
-            if (index == PortFacilityArtCatalog.ComponentShopFacilityIndex)
-            {
-                AssertButtonText(preview, "Previous Port Facility", "酒馆");
-                AssertButtonText(preview, "Next Port Facility", "卡组工坊");
-                return;
-            }
             int previousIndex = (index + Screens.Length - 1) % Screens.Length;
             int nextIndex = (index + 1) % Screens.Length;
             string port = preview.Controller.Session.CurrentPort;
@@ -566,7 +562,8 @@ namespace ShatteredSail.Core.Tests
             // facility header overlaid. Older room paintings fill the area below it.
             bool fullSurface = Screens[index] == CoreGameplayPreviewScreen.Warehouse ||
                 Screens[index] == CoreGameplayPreviewScreen.Maintenance ||
-                Screens[index] == CoreGameplayPreviewScreen.VoyageDeparture && preview.Controller.Session.CurrentPort == "断锚港";
+                Screens[index] == CoreGameplayPreviewScreen.VoyageDeparture &&
+                    PortFacilityArtCatalog.UsesPaintedDepartureScene(preview.Controller.Session.CurrentPort);
             Assert.That(background.rectTransform.rect.size,
                 Is.EqualTo(fullSurface ? new Vector2(1920f, 1080f) : new Vector2(1920f, 972f)),
                 "The room art must retain its authored full-surface or below-header composition: " + context);

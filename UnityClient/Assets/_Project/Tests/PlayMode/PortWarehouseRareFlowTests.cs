@@ -240,7 +240,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ActiveButton("Warehouse Store All Rare").IsInteractable(), Is.True);
             CaptureRareWarehouse(controller, "07_Before_Store_All", "六类珍稀可一键卸货，诅咒和金币不是仓储货物");
             ClickAcceptanceButton("Warehouse Store All Rare"); yield return null;
-            oldAll.Invoke(); yield return null;
+            Assert.DoesNotThrow(oldAll.Invoke, "A saved callback from the replaced warehouse view must be inert."); yield return null;
             CollectionAssert.AreEqual(new int[6], RareWarehouseCargo(session));
             for (int i = 0; i < RareWarehouseTestKeys.Length; i++)
                 Assert.That(session.PortWarehouse.GetAmount(port, RareWarehouseTestKeys[i]), Is.EqualTo(original[i] + (i == 0 ? 2 : 0)));
@@ -257,7 +257,7 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton("Return To Port Hub"); yield return null;
                 SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
                 controller = Object.FindFirstObjectByType<CoreGameplayDemoController>(); session = controller.Session;
-                oldAll.Invoke(); yield return null;
+                Assert.DoesNotThrow(oldAll.Invoke, "A saved callback from a destroyed scene must be inert."); yield return null;
                 CollectionAssert.AreEqual(new int[6], RareWarehouseCargo(session));
                 Assert.That(session.PortWarehouse.Serialize(), Is.EqualTo(stored));
                 Assert.That(session.Cargo.UsedVolume, Is.EqualTo(beforeUsed - released).Within(.001d));

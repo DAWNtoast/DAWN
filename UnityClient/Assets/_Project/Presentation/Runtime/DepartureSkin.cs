@@ -10,52 +10,19 @@ namespace ShatteredSail.Presentation
         public static readonly Color Ink = new Color(.20f, .13f, .08f, 1f);
         public static readonly Color SelectedInk = new Color(.10f, .28f, .25f, 1f);
         private static readonly Color Bronze = new Color(.62f, .39f, .16f, 1f);
-        private static Sprite paper;
-
-        static DepartureSkin()
-        {
-            Application.quitting += Release;
-#if UNITY_EDITOR
-            UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += Release;
-#endif
-        }
-
-        public static Sprite Paper
-        {
-            get
-            {
-                if (paper != null) return paper;
-                Texture2D texture = Resources.Load<Texture2D>(PaperResourcePath);
-                if (texture == null) return null;
-                // Preserve the faint compass corners while the quiet centre resizes.
-                Vector4 border = new Vector4(texture.width * .22f, texture.height * .22f,
-                    texture.width * .22f, texture.height * .22f);
-                paper = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
-                    Vector2.one * .5f, 100f, 0, SpriteMeshType.FullRect, border);
-                paper.name = PaperResourcePath;
-                paper.hideFlags = HideFlags.HideAndDontSave;
-                return paper;
-            }
-        }
+        public static Sprite Paper => MarketShopSkin.Paper;
 
         public static void ApplyPanel(Image image)
         {
             if (image == null || Paper == null) return;
-            image.sprite = Paper;
-            image.overrideSprite = null;
-            image.type = Image.Type.Sliced;
-            image.fillCenter = true;
-            image.preserveAspect = false;
-            image.pixelsPerUnitMultiplier = Paper.rect.width / 800f;
-            image.color = Color.white;
+            MarketShopSkin.ApplyPanel(image);
             Transform rim = image.transform.Find("Material Timber Rim");
             if (rim != null) rim.gameObject.SetActive(false);
         }
 
         public static void ReleaseGameplayPaperReference()
         {
-            if (paper != null) paper.hideFlags &= ~HideFlags.DontUnloadUnusedAsset;
-            paper = null;
+            // MarketShopSkin owns this shared sprite and its release lifecycle.
         }
 
         public static void Apply(RectTransform route, RectTransform setup)
@@ -242,12 +209,5 @@ namespace ShatteredSail.Presentation
             plate.raycastTarget = false;
         }
 
-        private static void Release()
-        {
-            if (paper == null) return;
-            if (Application.isPlaying) Object.Destroy(paper);
-            else Object.DestroyImmediate(paper);
-            paper = null;
-        }
     }
 }

@@ -39,10 +39,32 @@ namespace ShatteredSail.Presentation
             HullBar = hull; ChipBar = chip; topGuard = top; bottomGuard = bottom;
             frame = armorFrame; hullLabel = hp; defenseLabel = defense;
             MaximumHull = Mathf.Max(1, maximum); PermanentArmor = Mathf.Max(0, armor);
-            BattleHealthSegmentsGraphic.Attach(hull, MaximumHull);
+            ConfigureContinuousBar(hull, new Color(.91f, .12f, .17f, 1f));
+            ConfigureContinuousBar(chip, new Color(1f, .49f, .3f, .95f));
+            if (hullLabel != null)
+            {
+                hullLabel.alignment = TextAnchor.MiddleCenter;
+                hullLabel.color = new Color(1f, .98f, .93f, 1f);
+                hullLabel.raycastTarget = false;
+                Outline outline = hullLabel.GetComponent<Outline>();
+                if (outline == null) outline = hullLabel.gameObject.AddComponent<Outline>();
+                outline.effectColor = new Color(.17f, .025f, .035f, .95f);
+                outline.effectDistance = new Vector2(1.5f, -1.5f);
+            }
             guardCapacity = Mathf.Max(1, guard);
             SetHull(current, current);
             SetGuard(guard);
+        }
+
+        private static void ConfigureContinuousBar(Image bar, Color tint)
+        {
+            if (bar == null) return;
+            bar.sprite = FillSprite;
+            bar.type = Image.Type.Filled;
+            bar.fillMethod = Image.FillMethod.Horizontal;
+            bar.fillOrigin = (int)Image.OriginHorizontal.Left;
+            bar.color = tint;
+            bar.raycastTarget = false;
         }
 
         public void SetHull(float value, float trailingValue)

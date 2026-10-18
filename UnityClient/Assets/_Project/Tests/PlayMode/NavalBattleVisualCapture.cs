@@ -233,7 +233,7 @@ namespace ShatteredSail.Presentation.Tests
         private static void RefreshInspectedCards(Canvas canvas)
         {
             foreach (MonoBehaviour behaviour in canvas.GetComponentsInChildren<MonoBehaviour>(true))
-                if (behaviour.GetType().Name == "BattleCardHoverFeedback")
+                if (behaviour.isActiveAndEnabled && behaviour.GetType().Name == "BattleCardHoverFeedback")
                     behaviour.SendMessage("RefreshInspectionLayoutImmediately", SendMessageOptions.RequireReceiver);
             RectTransform canvasRect = canvas.GetComponent<RectTransform>();
             foreach (Canvas layer in canvas.GetComponentsInChildren<Canvas>())

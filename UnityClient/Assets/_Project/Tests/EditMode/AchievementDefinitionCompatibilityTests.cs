@@ -262,6 +262,7 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "ShatteredSail.ProfileGold.v1", "int" },
             new[] { "ShatteredSail.SeaChart.Progress.v1", "string" },
             new[] { "ShatteredSail.SelectedShip.v1", "int" },
+            new[] { "ShatteredSail.ShipPortProgress.v1", "string" },
             new[] { "ShatteredSail.SpecialCards.Acquired.v1", "string" },
             new[] { "ShatteredSail.SpecialCards.Experience.v1", "string" },
             new[] { "ShatteredSail.TreasureProgress.v1", "string" },
@@ -273,6 +274,7 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "ShatteredSail.Warehouse.DisplayByPort.v1.盐冠港", "string" },
             new[] { "ShatteredSail.Warehouse.DisplayByPort.v1.铜钟港", "string" },
             new[] { "ShatteredSail.Warehouse.DisplayRecord.v1", "int" },
+            new[] { "ShatteredSail.Warehouse.Income.v1", "string" },
             new[] { "ShatteredSail.Warehouse.Owned.v1", "string" },
             new[] { "ShatteredSail.Warehouse.OwnedByPort.v1.断锚港", "string" },
             new[] { "ShatteredSail.Warehouse.OwnedByPort.v1.暮潮港", "string" },
@@ -350,18 +352,18 @@ namespace ShatteredSail.Presentation.Tests
         [Test]
         public void PendingJournalCompatibility_PreservesAllCurrentSortedKeysAndNativeTypes()
         {
-            Assert.That(JournalKeysBefore.Length, Is.EqualTo(102));
+            Assert.That(JournalKeysBefore.Length, Is.EqualTo(104));
             string[] expectedKeys = JournalKeysBefore.Select(row => row[0]).ToArray();
-            Assert.That(expectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(102));
+            Assert.That(expectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(104));
             Assert.That(expectedKeys, Is.EqualTo(expectedKeys.OrderBy(key => key, StringComparer.Ordinal)));
-            Assert.That(JournalKeysBefore.Count(row => row[1] == "string"), Is.EqualTo(30));
+            Assert.That(JournalKeysBefore.Count(row => row[1] == "string"), Is.EqualTo(32));
             Assert.That(JournalKeysBefore.Count(row => row[1] == "int"), Is.EqualTo(72));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Is.EqualTo(expectedKeys));
 
             FieldInfo specsField = typeof(ProfileSaveJournal).GetField("Specs", BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(specsField, Is.Not.Null, "The actual journal schema must be compared, not just its exported key names.");
             Array specs = (Array)specsField.GetValue(null);
-            Assert.That(specs.Length, Is.EqualTo(102));
+            Assert.That(specs.Length, Is.EqualTo(104));
             for (int index = 0; index < specs.Length; index++)
             {
                 object spec = specs.GetValue(index);

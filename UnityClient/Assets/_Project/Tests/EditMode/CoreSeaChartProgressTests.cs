@@ -204,14 +204,16 @@ namespace ShatteredSail.Core.Tests
         public void RepeatedOrdinaryBattleScalesBaseLootAndDelayedRewardTogether(bool captured)
         {
             CoreVoyageSession session = ChartReady(route: 1);
-            for (int visit = 0; visit < 2; visit++)
+            for (int visit = 0; visit < 4; visit++)
             {
                 Refill(session); session.StartVoyage(); Enter(session, "gold_customs");
                 Assert.That(session.ResolveChoice(1), Is.True);
                 int before = session.Cargo.Gold;
                 Win(session, captured);
-                int first = captured ? 173 : 115;
-                Assert.That(session.Cargo.Gold - before, Is.EqualTo(visit == 0 ? first : first / 2));
+                // 115, 57.5 and 28.75 all pay the positive minimum of 100;
+                // the fourth claim is zero before rounding. Capture doubles last.
+                int expected = visit < 3 ? (captured ? 200 : 100) : 0;
+                Assert.That(session.Cargo.Gold - before, Is.EqualTo(expected));
                 Assert.That(session.CaptureSeaChartProgress().charts.Single().events.Single(item => item.eventId == "gold_customs").count, Is.EqualTo(visit + 1));
                 Return(session);
             }
@@ -227,13 +229,13 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void DefeatedRouteBossRemainsGoneAfterFailureReloadAndReverseVoyage()
+        public void DefeatedRouteBossStaysGoneThisVoyageButNextVoyageSelectsANewGuardian()
         {
             CoreVoyageSession session = ChartReady(); string seed = session.SelectedSeed;
             session.StartVoyage();
             SeaTerrainType[] terrain = (SeaTerrainType[])session.Map.TerrainCells.Clone();
             int totalEvents = session.TotalEventCount();
-            Enter(session, "boss_" + session.Map.Route.Id); Assert.That(session.ResolveChoice(0), Is.True); Win(session, false);
+            Enter(session, session.CurrentRouteBossId); Assert.That(session.ResolveChoice(0), Is.True); Win(session, false);
             Assert.That(session.BossDefeated, Is.True);
             Assert.That(session.Map.Nodes.Any(node => node.IsBoss), Is.False);
             Assert.That(session.CompletedEventCount(), Is.EqualTo(1));
@@ -248,8 +250,9 @@ namespace ShatteredSail.Core.Tests
             var restored = ChartReady(seed: seed, port: "白贝港");
             Assert.That(restored.RestoreSeaChartProgress(saved), Is.True);
             restored.StartVoyage();
-            Assert.That(restored.BossDefeated, Is.True);
-            Assert.That(restored.Map.Nodes.Any(node => node.IsBoss), Is.False);
+            Assert.That(restored.BossDefeated, Is.True, "Previously opened port access survives another guardian's appearance.");
+            Assert.That(restored.CurrentRouteBossDefeated, Is.False);
+            Assert.That(restored.Map.Nodes.Count(node => node.IsBoss), Is.EqualTo(1));
             Assert.That(restored.VoyageTreasureFragments, Is.Zero);
             CollectionAssert.AreEqual(terrain, restored.Map.TerrainCells);
         }
@@ -382,18 +385,20 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession { MapGeometryVersion = 0 }; Refill(session); session.SetSeed("LEGACY-CHART"); session.StartVoyage();
             uint hash = session.Map.Hash; Assert.That(session.CurrentChartSeed, Is.Empty);
             Enter(session, "event_reef_sunken_boat"); Assert.That(session.ResolveChoice(0), Is.True);
-            Enter(session, "boss_" + session.Map.Route.Id); Assert.That(session.ResolveChoice(0), Is.True); Win(session, false);
+            string defeatedBoss = session.CurrentRouteBossId;
+            Enter(session, defeatedBoss); Assert.That(session.ResolveChoice(0), Is.True); Win(session, false);
             Assert.That(session.SafeReturn(), Is.True);
             Assert.That(session.TryImportLegacyChart(session.Map.Seed, 0, session.Map.DepartureName, session.Map.DestinationName,
                 hash, false, out string seed), Is.True);
             Assert.That(session.CurrentChartSeed, Is.EqualTo(seed));
             CoreSeaChartState state = session.CaptureSeaChartProgress().charts.Single();
             Assert.That(state.events.Single(item => item.eventId == "event_reef_sunken_boat").count, Is.EqualTo(1));
-            Assert.That(state.defeatedBosses, Does.Contain("boss_" + session.Map.Route.Id));
+            Assert.That(state.defeatedBosses, Does.Contain(defeatedBoss));
             session.ReturnToPortAfterSettlement();
             Assert.That(session.TrySelectChartSeed("LEGACY-CHART", out _), Is.True);
             Refill(session); session.StartVoyage();
             Assert.That(session.Map.Hash, Is.EqualTo(hash)); Assert.That(session.BossDefeated, Is.True);
+            Assert.That(session.CurrentRouteBossDefeated, Is.False);
             Enter(session, "event_reef_sunken_boat"); Assert.That(session.ActiveEncounterRewardMultiplier, Is.EqualTo(.5d));
         }
 
@@ -424,7 +429,14 @@ namespace ShatteredSail.Core.Tests
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 1500 });
             session.RestoreProfile(1000, port);
             Refill(session);
-            Assert.That(session.TrySelectChartSeed(seed ?? CoreVoyageSession.CreateChartSeed(route, "断锚港", "白贝港"), out string reason), Is.True, reason);
+            // Reward and claim tests target named legacy locations. SS5 deliberately
+            // samples these locations, so use a stable historical chart here.
+            if (seed == null)
+            {
+                string payload = "SS3." + route + ".0.1.0.1." + SeedHash.Compute("PROGRESS-FIXTURE-" + route).ToString("X8") + ".00000000";
+                seed = payload + "." + SeedHash.Compute(payload).ToString("X8");
+            }
+            Assert.That(session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
             return session;
         }
         private static void Refill(CoreVoyageSession session)
@@ -446,6 +458,13 @@ namespace ShatteredSail.Core.Tests
         }
         private static void Win(CoreVoyageSession session, bool captured)
         {
+            if (session.IsGuidedBossBattle)
+            {
+                // The current lesson guards its health until the teaching actions
+                // finish; play those actions before asserting reward persistence.
+                CoreGuidedBossScriptTests.PlayToCompletion(session);
+                return;
+            }
             if (captured) { session.Battle.Stage = NavalBattleStage.Boarding; session.Battle.EnemyBoardingHealth = 0; }
             else session.Battle.EnemyHull = 0;
             Assert.That(session.EndBattleTurn(), Is.True);

@@ -37,7 +37,7 @@ namespace ShatteredSail.Presentation.Tests
                 session.Battle.EnemyHull = 1;
                 session.Battle.EnemyBlock = 0;
                 RenderResponsiveBattle(controller);
-                yield return null;
+                yield return WaitResponsiveBattle(controller);
 
                 int expected = seed == 0u ? 1 : 0;
                 bool sawBanner = false;

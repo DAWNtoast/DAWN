@@ -24,6 +24,8 @@ namespace ShatteredSail.Core.Gameplay
 
         public static bool TryClassify(string encounterId, out EncounterDiscoveryKind kind)
         {
+            if (CoreVoyageEventCatalog.TryClassifyDiscovery(encounterId, out kind)) return true;
+            if (CoreTreasureExpeditionCatalog.TryClassifyDiscovery(encounterId, out kind)) return true;
             switch (encounterId)
             {
                 // No external location exists for a hull failure or interpreting
@@ -37,6 +39,9 @@ namespace ShatteredSail.Core.Gameplay
                 // chart destinations. The navigator's ambush warning still triggers.
                 case "random_ambush":
                 case "random_ambush_warning":
+                case "random_tailwind":
+                case "random_floating_supplies":
+                case "random_food_spoilage":
                 case "tutorial_ambush_event":
                 case "guided_tutorial_random_event":
                     kind = EncounterDiscoveryKind.TransientEncounter;
@@ -89,12 +94,16 @@ namespace ShatteredSail.Core.Gameplay
                 case "boss_route_shattered_sail_reef":
                 case "boss_route_golden_tide_trade":
                 case "boss_route_moon_tide_ruins":
+                case "boss_route_shattered_sail_reef_tide":
+                case "boss_route_golden_tide_trade_thunder":
+                case "boss_route_moon_tide_ruins_arcane":
                 case "treasure_boss_moon_vault":
                 case "legendary_pirate_iron_oath":
                 case "legendary_pirate_thunder_crown":
                 case "legendary_pirate_red_widow":
                 case "legendary_pirate_ember_ark":
                 case "legendary_pirate_tide_requiem":
+                case "legendary_pirate_last_horizon":
                 case "tutorial_first_event":
                 case "tutorial_optional_event":
                 case "tutorial_navigator_event":

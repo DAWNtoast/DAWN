@@ -9,7 +9,7 @@ namespace ShatteredSail.Core.Tests
     public sealed class PortMarketPreviewTests
     {
         [Test]
-        public void MarketPreview_ShowsFreeCargoAndOnlyAnEarnedPurchaseDiscount()
+        public void MarketPreview_HasNoFooterAndRetainsEarnedPurchaseDiscountsInQuotes()
         {
             GameObject host = new GameObject("Monthly Market Preview Test Host");
             try
@@ -18,27 +18,25 @@ namespace ShatteredSail.Core.Tests
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Market,
                     CoreGameplayPreviewPort.WhiteShell, 0);
                 Text[] labels = host.GetComponentsInChildren<Text>(true);
-                Text summary = labels.Single(label => label.name == "Market Summary");
-                string cargoSummary = "货舱余量 " + System.Math.Max(0d,
-                    controller.Session.CargoCapacityValue - controller.Session.Cargo.UsedVolume).ToString("0.0");
-                int discount = PortMarketCatalog.FamePurchaseDiscountPercent(controller.Session.Cargo.Fame);
-                Assert.That(summary.text, Is.EqualTo(cargoSummary + (discount > 0 ? "　·　采购优惠 " + discount + "%" : "")));
-                Assert.That(summary.fontSize, Is.GreaterThanOrEqualTo(18));
-                Assert.That(summary.font, Is.SameAs(GameTypography.BodyFont));
-                Assert.That(summary.fontStyle, Is.EqualTo(FontStyle.Normal));
-                Assert.That(summary.alignment, Is.EqualTo(TextAnchor.MiddleCenter));
-                Assert.That(summary.gameObject.activeInHierarchy, Is.True);
-                Assert.That(summary.text, Does.Not.Contain("月行情").And.Not.Contain("投资")
-                    .And.Not.Contain("下次补货").And.Not.Contain("\n"));
+                foreach (string name in new[] { "Market Footer", "Market Title", "Market Summary",
+                    "Market Storage Mode", "Market Open Investment" })
+                    Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == name),
+                        Is.False, name + " was removed from the market scene.");
                 var refresh = typeof(CoreGameplayDemoController).GetMethod("RefreshMarketFacilityContents",
                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                controller.Session.Cargo.Fame = 0;
-                refresh.Invoke(controller, null);
-                Assert.That(summary.text, Is.EqualTo(cargoSummary), "No zero-percent discount creates an extra readout.");
-                controller.Session.Cargo.Fame = 1000;
-                refresh.Invoke(controller, null);
-                Assert.That(summary.text, Is.EqualTo(cargoSummary + "　·　采购优惠 " +
-                    PortMarketCatalog.FamePurchaseDiscountPercent(1000) + "%"));
+                foreach (int fame in new[] { 0, 1000 })
+                {
+                    controller.Session.Cargo.Fame = fame;
+                    refresh.Invoke(controller, null);
+                    foreach (PortMarketItem item in PortMarketCatalog.AllItems)
+                    {
+                        int lot = System.Math.Max(PortMarketCatalog.PurchaseStep(item), PortMarketCatalog.SaleStep(item));
+                        decimal cost = PortMarketCatalog.CalculateBuyCost(controller.Session.CurrentPort, item,
+                            controller.Session.GameDateTime, lot, fame);
+                        Assert.That(labels.Single(label => label.name == "Market Buy Price " + PortMarketCatalog.Key(item)).text,
+                            Is.EqualTo(PortMarketCatalog.FormatPrice(cost) + " 金"), item + " / fame " + fame);
+                    }
+                }
                 Assert.That(labels.Any(label => label.name == "Market Storage Mode Hint"), Is.False);
                 Assert.That(labels.Any(label => label.name.StartsWith("Market Column Header ")),
                     Is.False, "The icon catalog has no legacy ledger columns.");
@@ -135,7 +133,7 @@ namespace ShatteredSail.Core.Tests
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Market,
                     CoreGameplayPreviewPort.WhiteShell, 0);
                 Transform preview = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName);
-                string[] names = new[] { "Market Title", "Market Summary" }
+                string[] names = new[] { "Market Shop Title", "Market Detail Buy Price", "Market Detail Sell Price" }
                     .Concat(PortMarketCatalog.AllItems.SelectMany(item => new[]
                     {
                         "Market Item Name " + PortMarketCatalog.Key(item),
@@ -254,43 +252,44 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(detail.rect.xMin));
                         Assert.That(bounds.xMax, Is.LessThanOrEqualTo(detail.rect.xMax));
                     }
-                    RectTransform investment = host.GetComponentsInChildren<RectTransform>(true).Single(rect => rect.name == "Market Open Investment");
-                    Assert.That(BoundsIn(board,investment).yMax, Is.LessThan(BoundsIn(board,detail).yMin), "Persistent footer sits outside the drawer.");
+                    RectTransform delivery = host.GetComponentsInChildren<RectTransform>(true).Single(rect => rect.name == "Market Detail Storage Mode");
+                    Assert.That(delivery.gameObject.activeInHierarchy, Is.True, "Delivery selection belongs inside the open shop.");
+                    Rect deliveryBounds = BoundsIn(detail, delivery);
+                    Assert.That(deliveryBounds.xMin, Is.GreaterThanOrEqualTo(detail.rect.xMin));
+                    Assert.That(deliveryBounds.xMax, Is.LessThanOrEqualTo(detail.rect.xMax));
+                    Assert.That(deliveryBounds.yMin, Is.GreaterThanOrEqualTo(detail.rect.yMin));
+                    Assert.That(deliveryBounds.yMax, Is.LessThanOrEqualTo(detail.rect.yMax));
                 }
                 CollectionAssert.AreEquivalent(PortMarketCatalog.AllItems,goods);
             }
             finally { Object.DestroyImmediate(host); }
         }
         [Test]
-        public void MarketInvestmentShortcut_OpensInvestmentWithoutSpendingOrChangingQuota()
+        public void Market_ReturnToPortThenOpenInvestmentWithoutSpendingOrChangingQuota()
         {
-            GameObject host = new GameObject("Market Investment Shortcut Test");
+            GameObject host = new GameObject("Market Return To Port Investment Test");
             try
             {
                 var controller = host.AddComponent<CoreGameplayDemoController>();
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Market, CoreGameplayPreviewPort.WhiteShell, 0);
                 var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-                var order = (ShatteredSail.Core.Gameplay.VoyageSupplyOrder)typeof(CoreGameplayDemoController)
-                    .GetField("pendingSupplyOrder", flags).GetValue(controller);
-                order[ShatteredSail.Core.Gameplay.VoyageSupplyType.Water] = 100;
                 decimal gold = controller.Session.ProfileGold;
                 int water = controller.Session.Cargo.Water;
                 string key = CoreGameplayDemoController.MarketPurchaseKey(controller.Session.CurrentPort,
                     controller.Session.GameDateTime, PortMarketItem.Water);
                 int quota = PlayerPrefs.GetInt(key, 0);
-                Button shortcut = host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Market Open Investment");
-                RectTransform board = (RectTransform)shortcut.transform.parent;
-                RectTransform buttonRect = (RectTransform)shortcut.transform;
-                Assert.That(buttonRect.gameObject.activeInHierarchy, Is.True, "Investment stays reachable while the shop drawer is closed.");
-                Assert.That(BoundsIn(board, buttonRect).yMin, Is.GreaterThanOrEqualTo(board.rect.yMin));
-                shortcut.onClick.Invoke();
-                Assert.That(typeof(CoreGameplayDemoController).GetField("activePortFacility", flags).GetValue(controller), Is.EqualTo(6));
-                Assert.That(order.TotalUnits, Is.Zero);
+                Button back = host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Return To Port Hub");
+                Assert.That(back.gameObject.activeInHierarchy, Is.True);
+                back.onClick.Invoke();
+                Button investment = host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Port Hotspot Maintenance");
+                Assert.That(investment.gameObject.activeInHierarchy, Is.True, "Investment remains available from the port's main entrance.");
+                investment.onClick.Invoke();
+                Assert.That(typeof(CoreGameplayDemoController).GetField("activePortFacility", flags).GetValue(controller),
+                    Is.EqualTo(PortFacilityArtCatalog.MaintenanceFacilityIndex));
                 Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
                 Assert.That(controller.Session.Cargo.Water, Is.EqualTo(water));
                 Assert.That(PlayerPrefs.GetInt(key, 0), Is.EqualTo(quota));
                 Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Port Investment Panel"), Is.True);
-                Assert.That((string)typeof(CoreGameplayDemoController).GetField("portNotice", flags).GetValue(controller), Does.Contain("增加每月库存和额度"));
             }
             finally { Object.DestroyImmediate(host); }
         }

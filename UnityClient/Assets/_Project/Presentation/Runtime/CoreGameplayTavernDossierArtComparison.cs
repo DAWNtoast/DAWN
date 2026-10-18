@@ -45,6 +45,8 @@ namespace ShatteredSail.Presentation
             tavernDossierOriginalArtButton = null;
             tavernDossierAtlasArtButton = null;
 
+            if (TryBuildTavernDossierPortrait(detail, crew.Id)) return;
+
             bool supportsComparison = PortArtCatalog.TryTavernDossierTrialUv(crew.Id, out _);
             // Defer the original painting while entering a supported dossier in
             // B mode. Apply below falls back to A if either new layer is missing.
@@ -71,6 +73,33 @@ namespace ShatteredSail.Presentation
             tavernDossierAtlasArtButton.GetComponentInChildren<Text>().text = "分层组合";
             tavernDossierAtlasArtButton.onClick.AddListener(() => SetTavernDossierAtlasComparison(true));
             ApplyTavernDossierArtComparison();
+        }
+
+        private bool TryBuildTavernDossierPortrait(RectTransform detail, string crewId)
+        {
+            Texture2D portrait = portArt.CrewDossierPortrait(crewId);
+            Texture2D frame = portrait != null ? portArt.DossierFrame : null;
+            if (portrait == null || frame == null) return false;
+
+            RectTransform viewport = CreateRect("Tavern Dossier Portrait Viewport", detail,
+                TavernDossierLayerWindowSize, TavernDossierLayerWindowPosition);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            Vector2 sourceSize = new Vector2(portrait.width, portrait.height);
+            float scale = Mathf.Max(TavernDossierLayerWindowSize.x / sourceSize.x,
+                TavernDossierLayerWindowSize.y / sourceSize.y);
+            RawImage painting = CreateRawImage("Tavern Dossier Background Portrait", viewport,
+                sourceSize * scale, Vector2.zero, portrait, new Rect(0f, 0f, 1f, 1f));
+            painting.raycastTarget = false;
+            painting.rectTransform.anchorMin = painting.rectTransform.anchorMax = new Vector2(.5f, 1f);
+            painting.rectTransform.pivot = new Vector2(.5f, 1f);
+            painting.rectTransform.anchoredPosition = Vector2.zero;
+            // Preserve the authored face and scene colors. Only the old frame
+            // uses a blue screen; the new portrait is an opaque painting.
+            RawImage parchment = CreateRawImage("Tavern Dossier Parchment", detail,
+                new Vector2(1780f, 705f), new Vector2(0f, -4f), frame, new Rect(0f, 0f, 1f, 1f));
+            parchment.raycastTarget = false;
+            CrewArtChromaKey.Attach(parchment, tolerance: .12f);
+            return true;
         }
 
         private void ApplyTavernDossierArtComparison()

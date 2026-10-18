@@ -164,13 +164,15 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator BattleOverlay_UsesLocalTerrainAndFireEmblemStyleComposition()
+        public IEnumerator BattleOverlay_UsesTacticalSeaAndKeepsTerrainAndCardComposition()
         {
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller, Is.Not.Null);
             controller.Session.StartVoyage();
             EnterBattle(controller.Session, EventTerrainConstraint.Reef);
             ArrangeOneCardPerType(controller.Session.Battle);
+            Assert.That(controller.Session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
+            controller.Session.Battle.Energy = 0; // Exercise the real unavailable-card tooltip in the active naval stage.
             InvokePrivate(controller, "Render");
             yield return null;
 
@@ -182,32 +184,28 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(battleSurface.localScale.x, Is.EqualTo(972f / 900f).Within(0.001f));
             Assert.That(battleSurface.localScale.y, Is.EqualTo(972f / 900f).Within(0.001f));
             Assert.That(controller.Session.BattleTerrain, Is.EqualTo(SeaTerrainType.Reef));
-            RawImage backdrop = GameObject.Find("Battle Scene Art").GetComponent<RawImage>();
-            Assert.That(backdrop.texture.name, Does.Contain("battle_coral_reef"));
-            Rect expectedBackdropUv = BattleViewLayout.BackdropUv(
-                controller.Session.Battle.DistanceMeters,
-                backdrop.rectTransform.rect.size);
-            Assert.That(backdrop.uvRect.x, Is.EqualTo(expectedBackdropUv.x).Within(0.0001f));
-            Assert.That(backdrop.uvRect.y, Is.EqualTo(expectedBackdropUv.y).Within(0.0001f));
-            Assert.That(backdrop.uvRect.width, Is.EqualTo(expectedBackdropUv.width).Within(0.0001f));
-            Assert.That(backdrop.uvRect.height, Is.EqualTo(expectedBackdropUv.height).Within(0.0001f));
+            RawImage backdrop = GameObject.Find("Shared tactical sea").GetComponent<RawImage>();
+            Assert.That(backdrop.texture, Is.SameAs(Resources.Load<Texture2D>("NavalTactics/tactical_sea_v1")));
+            Assert.That(backdrop.raycastTarget, Is.False);
+            Assert.That(GameObject.Find("Naval Tactical Board").GetComponent<RectMask2D>(), Is.Not.Null);
+            Assert.That(GameObject.Find("100 metre grid").GetComponent<NavalTacticalGridGraphic>(), Is.Not.Null);
             Assert.That(GameObject.Find("Demo Route Map"), Is.Null, "The battle overlay must use a local environment rather than the full voyage chart.");
 
             RectTransform playerShip = GameObject.Find("Player Ship Art").GetComponent<RectTransform>();
             RectTransform enemyShip = GameObject.Find("Enemy Ship Art").GetComponent<RectTransform>();
             RectTransform hand = GameObject.Find("Battle Hand").GetComponent<RectTransform>();
-            Assert.That(hand.sizeDelta, Is.EqualTo(CardFaceLayout.HandSize));
-            Assert.That(hand.anchoredPosition, Is.EqualTo(CardFaceLayout.HandPosition));
-            RectTransform intent = GameObject.Find("Enemy Intent HUD").GetComponent<RectTransform>();
+            Assert.That(hand.sizeDelta.y, Is.LessThan(CardFaceLayout.HandSize.y), "The naval fan returns space to the tactical sea.");
+            Assert.That(hand.anchoredPosition.y, Is.LessThan(CardFaceLayout.HandPosition.y));
+            RectTransform intent = GameObject.Find("Enemy Intent Icons").GetComponent<RectTransform>();
             Assert.That(WorldRect(hand).yMax, Is.LessThan(WorldRect(playerShip).yMin), "The resting hand must sit below the ships.");
             Assert.That(WorldRect(hand).yMax, Is.LessThan(WorldRect(enemyShip).yMin));
             Assert.That(WorldRect(intent).Overlaps(WorldRect(enemyShip)), Is.False, "Enemy intent remains separate from the enemy ship art.");
             Assert.That(WorldRect(intent).Overlaps(WorldRect(hand)), Is.False, "Intent must not intercept the hand area.");
             Assert.That(WorldRect(intent).Overlaps(WorldRect(GameObject.Find("Enemy Battle Hull Bar Track").GetComponent<RectTransform>())),
-                Is.False, "Intent stays adjacent to the segmented defense bar without covering it.");
-            Assert.That(GameObject.Find("Player Resource HUD").GetComponent<RectTransform>().anchoredPosition.x, Is.LessThan(0f));
-            Assert.That(GameObject.Find("Enemy Resource HUD").GetComponent<RectTransform>().anchoredPosition.x, Is.GreaterThan(0f));
-            AssertBattleSurfaces(controller);
+                Is.False, "Intent stays above the health bar without covering it.");
+            Assert.That(GameObject.Find("Battle Compact Resources").GetComponent<RectTransform>().anchoredPosition.x, Is.LessThan(0f));
+            Assert.That(GameObject.Find("Battle Discard Pile").GetComponent<RectTransform>().anchoredPosition.x, Is.GreaterThan(0f));
+            yield return AssertBattleSurfaces(controller);
             Assert.That(controller.Session.Battle.Hand.Select(index => CoreVoyageSession.CardLibrary[index].Type).Distinct().Count(), Is.EqualTo(6));
             for (int slot = 0; slot < controller.Session.Battle.Hand.Count; slot++)
             {
@@ -231,15 +229,22 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform bubble = GameObject.Find("Card Keyword Bubble 0")?.GetComponent<RectTransform>();
             Assert.That(bubble, Is.Null, "Inactive tooltip should stay hidden before hover.");
             Vector2 restingPosition = cardRect.anchoredPosition;
+            float restingCardScale = cardRect.localScale.x;
             Rect restingFrame = WorldRect(firstCard.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
             ExecuteEvents.Execute(firstCard.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
             yield return new WaitForSecondsRealtime(0.16f);
             Rect inspectedFrame = WorldRect(firstCard.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
-            Assert.That(inspectedFrame.height, Is.GreaterThan(restingFrame.height * 1.08f));
+            Assert.That(cardRect.localScale.x, Is.GreaterThan(restingCardScale));
             Assert.That(inspectedFrame.yMax, Is.GreaterThan(restingFrame.yMax + 1f), "The inspected upper edge rises while the whole taller frame stays visible");
-            Assert.That(firstCard.transform.Find("Card Keyword Bubble 0"), Is.Null,
-                "Naval card inspection retains its lift without creating an empty calculation tooltip.");
-            AssertBattleSurfaces(controller);
+            Transform inspectedBubble = firstCard.transform.Find("Card Keyword Bubble 0");
+            string unavailableReason = controller.Session.CardUnavailableReason(0);
+            Assert.That(firstCard.interactable, Is.False, "The naval cannon requires energy before it can be played.");
+            Assert.That(unavailableReason, Does.Contain("能量不足"), "The fixture deliberately has zero energy.");
+            Assert.That(inspectedBubble, Is.Not.Null);
+            Assert.That(inspectedBubble.gameObject.activeInHierarchy, Is.True);
+            Assert.That(inspectedBubble.Find("Keyword Bubble Text").GetComponent<Text>().text,
+                Does.Contain("当前不能使用").And.Contain(unavailableReason));
+            yield return AssertBattleSurfaces(controller);
 
             ExecuteEvents.Execute(firstCard.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerExitHandler);
             yield return new WaitForSecondsRealtime(0.24f);
@@ -254,7 +259,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller, Is.Not.Null);
             string[] cardIds =
             {
-                "card_full_sail_turn", "card_navigator_course", "card_cannon_barrage", "card_special_cannon_dragonbreath_battery"
+                "card_full_sail_turn", "card_navigator_course", "card_cannon_barrage",
+                "card_special_cannon_dragonbreath_battery", "card_boarding_curse_08"
             };
             CoreVoyageSession session = new CoreVoyageSession();
             session.ConfigureCrewCapabilities(true, false, false, false, false, false);
@@ -268,34 +274,41 @@ namespace ShatteredSail.Presentation.Tests
             {
                 int index = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
                     .Single(candidate => CoreVoyageSession.CardLibrary[candidate].Id == id);
-                Assert.That(session.GetBattleCard(index).UpgradeLevel, Is.EqualTo(3), id + " uses actual session progression");
+                Assert.That(session.GetBattleCard(index).UpgradeLevel, Is.EqualTo(session.GetCardMaximumUpgradeLevel(index)),
+                    id + " applies its authored upgrade cap to the requested rank");
                 session.Battle.Hand.Add(index);
             }
             InvokePrivate(controller, "Render");
             yield return new WaitForSecondsRealtime(.7f);
-            AssertBattleSurfaces(controller);
+            yield return AssertBattleSurfaces(controller);
             Text referenceName = GameObject.Find("Card Name 1").GetComponent<Text>();
             Text referenceEffect = GameObject.Find("Battle Card 0").transform.Find("Label").GetComponent<Text>();
-            Text longEffect = GameObject.Find("Battle Card 3").transform.Find("Label").GetComponent<Text>();
-            Assert.That(referenceName.text, Is.EqualTo(CardFaceLayout.ReferenceName));
-            Assert.That(CompactCardText(referenceEffect.text), Is.EqualTo(CompactCardText(CardDescriptionText.Compact(
-                session.BattleCardFaceDescription(session.GetBattleCard(session.Battle.Hand[0]), session.Battle.Stage)))));
+            Text dragonbreathEffect = GameObject.Find("Battle Card 3").transform.Find("Label").GetComponent<Text>();
+            Text longEffect = GameObject.Find("Battle Card 4").transform.Find("Label").GetComponent<Text>();
+            CoreBattleCard navigator = session.GetBattleCard(session.Battle.Hand[1]);
+            Assert.That(referenceName.text, Is.EqualTo(navigator.Name + (navigator.UpgradeLevel > 0 ? "+" + navigator.UpgradeLevel : string.Empty)));
+            AssertVisibleWordsAndClauseBoundaries(CardFaceLayout.FormatDescription(
+                session.BattleCardFaceDescription(session.GetBattleCard(session.Battle.Hand[0]), session.Battle.Stage)),
+                referenceEffect.text, "reference card");
+            Assert.That(referenceEffect.fontSize, Is.EqualTo(CardFaceLayout.EffectFontSize));
+            Assert.That(dragonbreathEffect.fontSize, Is.InRange(12, CardFaceLayout.EffectFontSize),
+                "The conditional dragonbreath effect fits its fixed window at a readable adaptive size.");
             Assert.That(longEffect.fontSize, Is.LessThan(referenceEffect.fontSize),
                 "The long strategy effect reduces only its own text size while retaining the shared card geometry.");
             Assert.That(GameObject.Find("Card Powder Cost 2").GetComponent<Text>().text, Is.EqualTo("1"));
             Assert.That(GameObject.Find("Battle Card 2").transform.Find("Label").GetComponent<Text>().text,
-                Does.Contain("<b>350米内</b>"), "The actual cannon card emphasizes its range condition.");
+                Does.Contain("<b>4格内</b>"), "The actual cannon card emphasizes its range condition.");
             NavalBattleVisualCapture.Capture(controller, "reference-card-layouts.png",
-                "Actual rank-three cards with corner-aligned blue/red square crystals, matching resource HUD crystals, bold cannon range and a long strategy effect in fixed windows.");
+                "Actual capped upgrades with corner-aligned blue/red square crystals, matching resource HUD crystals, bold cannon range and a long strategy effect in fixed windows.");
             LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]
-        public IEnumerator AllRouteBosses_UseTransparentCutoutAndMaintainSeaContact()
+        public IEnumerator AllRouteBosses_UseTacticalShipMarkersAndKeepBossState()
         {
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller, Is.Not.Null);
-            HashSet<Rect> bossUvRegions = new HashSet<Rect>();
+            HashSet<int> checkedRoutes = new HashSet<int>();
             for (int routeIndex = 0; routeIndex < CoreVoyageSession.Routes.Count; routeIndex += 1)
             {
                 // Each route uses fresh in-memory state, not profile mutation or a saved voyage.
@@ -311,14 +324,14 @@ namespace ShatteredSail.Presentation.Tests
                 InvokePrivate(controller, "Render");
                 yield return null;
                 Assert.That(session.Battle.IsBoss, Is.True);
-                RawImage enemy = GameObject.Find("Enemy Ship Art").GetComponent<RawImage>();
-                Assert.That(enemy.texture, Is.Not.Null);
-                Assert.That(enemy.GetComponent("BattleShipCutout"), Is.Not.Null, "Every route boss needs the non-destructive navy-background cutout.");
-                Assert.That(enemy.material.shader.name, Is.EqualTo("Shattered Sail/UI/Battle Ship Cutout"));
-                bossUvRegions.Add(enemy.uvRect);
-                AssertBattleSurfaces(controller);
+                Image enemy = GameObject.Find("Enemy Ship Art").GetComponent<Image>();
+                Assert.That(enemy.sprite, Is.SameAs(Resources.Load<Sprite>("NavalTactics/tactical_ship_v1")));
+                Assert.That(enemy.preserveAspect, Is.True);
+                Assert.That(enemy.GetComponent<Outline>().effectColor.r, Is.GreaterThan(.9f), "Enemy markers remain visually distinct from the player's marker.");
+                checkedRoutes.Add(session.SelectedRouteIndex);
+                yield return AssertBattleSurfaces(controller);
             }
-            Assert.That(bossUvRegions.Count, Is.EqualTo(CoreVoyageSession.Routes.Count), "Each route should retain its own boss ship artwork.");
+            Assert.That(checkedRoutes.Count, Is.EqualTo(CoreVoyageSession.Routes.Count), "Every unlocked route's real boss state must render on the tactical board.");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -332,7 +345,7 @@ namespace ShatteredSail.Presentation.Tests
             ArrangeOneCardPerType(controller.Session.Battle);
             InvokePrivate(controller, "Render");
             yield return null;
-            AssertBattleSurfaces(controller);
+            yield return AssertBattleSurfaces(controller);
 
             int playableIndex = Enumerable.Range(0, controller.Session.Battle.Hand.Count)
                 .First(index => controller.Session.CanPlayCard(index) &&
@@ -342,7 +355,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(firstCard.interactable, Is.True, "The animation fixture must exercise an available card in the active stage.");
             ExecuteEvents.Execute(firstCard.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
             yield return new WaitForSecondsRealtime(0.18f);
-            AssertBattleSurfaces(controller);
+            yield return AssertBattleSurfaces(controller);
             ExecuteEvents.Execute(firstCard.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerExitHandler);
             yield return new WaitForSecondsRealtime(0.24f);
             firstCard.onClick.Invoke();
@@ -350,7 +363,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitForBattleAnimation(controller);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
             Assert.That(controller.Session.Battle.Energy, Is.LessThan(energyBefore));
-            AssertBattleSurfaces(controller);
+            yield return AssertBattleSurfaces(controller);
 
             int turnBefore = controller.Session.Battle.Turn;
             Button endTurn = GameObject.Find("End Battle Turn").GetComponent<Button>();
@@ -360,7 +373,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitForBattleAnimation(controller);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
             Assert.That(controller.Session.Battle.Turn, Is.GreaterThan(turnBefore));
-            AssertBattleSurfaces(controller);
+            yield return AssertBattleSurfaces(controller);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -397,9 +410,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Battle Stage Progress"), Is.Null);
             Assert.That(GameObject.Find("Battle Stage Instructions"), Is.Null);
 
-            session.Battle.DistanceMeters = 80f;
-            session.Battle.Alignment = NavalBattleAlignment.EnemyBroadside;
-            session.Battle.PlayerMovingTowardEnemy = true;
+            CoreGameplayDemoSceneTests.ConfigureCloseNavalTestPose(session.Battle, true);
             InvokePrivate(controller, "Render");
             yield return null;
             Button ram = GameObject.Find("Battle Ram").GetComponent<Button>();
@@ -433,8 +444,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller, Is.Not.Null);
             CoreVoyageSession session = UseFreshBattleSession(controller);
             EnterBattle(session, EventTerrainConstraint.OpenSea);
-            session.Battle.DistanceMeters = 50f;
-            session.Battle.Alignment = NavalBattleAlignment.Parallel;
+            CoreGameplayDemoSceneTests.ConfigureCloseNavalTestPose(session.Battle, false);
             int playerHull = session.Hull;
             int enemyHull = session.Battle.EnemyHull;
             InvokePrivate(controller, "Render");
@@ -473,7 +483,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator EightCardHand_FitsCompleteFramesAndInspectsHoveredCardAtLargestClearSize()
+        public IEnumerator EightCardHand_FansWithinBottomAreaAndRevealsHoveredCard()
         {
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller, Is.Not.Null);
@@ -483,7 +493,7 @@ namespace ShatteredSail.Presentation.Tests
             session.Battle.Hand.AddRange(session.GetBattleDeck(NavalBattleStage.Naval).Take(8));
             Assert.That(session.Battle.Hand.Count, Is.EqualTo(8));
             InvokePrivate(controller, "Render");
-            yield return null;
+            yield return WaitForBattleAnimation(controller);
             Canvas.ForceUpdateCanvases();
             RectTransform hand = GameObject.Find("Battle Hand").GetComponent<RectTransform>();
             LayoutRebuilder.ForceRebuildLayoutImmediate(hand);
@@ -492,10 +502,7 @@ namespace ShatteredSail.Presentation.Tests
             Button hovered = GameObject.Find("Battle Card 3").GetComponent<Button>();
             Canvas hoverCanvas = hovered.GetComponent<Canvas>();
             Vector3 restingScale = hovered.transform.localScale;
-            float expectedScale = Mathf.Min(1f, hand.rect.height / CardFaceLayout.FrameSize.y,
-                (hand.rect.width - 8f * 7f) / (8f * CardFaceLayout.FrameSize.x));
-            Assert.That(restingScale.x, Is.EqualTo(expectedScale).Within(.001f));
-            Assert.That(restingScale.x, Is.LessThan(1f), "Eight complete frames fit by scaling each whole card.");
+            Assert.That(restingScale.x, Is.InRange(.55f, .70f), "Overlapping cards retain readable artwork in a compact fan.");
             Assert.That(hoverCanvas, Is.Not.Null);
             Assert.That(hoverCanvas.overrideSorting, Is.False);
             ExecuteEvents.Execute(hovered.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
@@ -515,7 +522,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator IntegratedCostCorners_RaycastToTheirOwnButtonBeforeAndAfterHoverLift()
+        public IEnumerator NavalFanCostCorners_VisibleTabsAndLiftedCostsAddressTheSameCard()
         {
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = UseFreshBattleSession(controller);
@@ -526,17 +533,18 @@ namespace ShatteredSail.Presentation.Tests
             session.Battle.DistanceMeters = 200f;
             session.Battle.Energy = 30;
             session.Cargo.Powder = session.Cargo.Cannonballs = 100;
+            float minimumInspectionScale = float.PositiveInfinity;
             foreach (int count in new[] { 4, 6, 8 })
             {
                 session.Battle.Hand.Clear();
                 for (int index = 0; index < count; index++) session.Battle.Hand.Add(shot);
                 InvokePrivate(controller, "Render");
-                yield return null;
+                yield return WaitForBattleAnimation(controller);
                 Canvas.ForceUpdateCanvases();
                 RectTransform hand = GameObject.Find("Battle Hand").GetComponent<RectTransform>();
                 AssertHandFitsArea(hand, count);
                 NavalBattleVisualCapture.Capture(controller, "integrated-frame-hand-" + count + "-rest.png",
-                    "Actual " + count + "-card hand at resting scale; complete PNG frames and all cost corners remain visible. Geometry diagnostic until the final paper-frame PNGs are installed.");
+                    "Actual " + count + "-card naval fan; overlapping existing card faces leave the tactical sea visible.");
 
                 foreach (int index in new[] { 0, count / 2, count - 1 })
                 {
@@ -556,22 +564,25 @@ namespace ShatteredSail.Presentation.Tests
                         Assert.That(card.rect.Contains(localPoint), Is.False, kind + " must exercise the expanded frame hit area");
                         Canvas canvas = card.GetComponentInParent<Canvas>().rootCanvas;
                         Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
-                        Vector2 screen = RectTransformUtility.WorldToScreenPoint(camera, card.TransformPoint(localPoint));
+                        RectTransform energyTab = button.GetComponentsInChildren<CardOrnamentGraphic>()
+                            .Single(item => item.Kind == CardOrnamentKind.Energy).rectTransform;
+                        Vector2 screen = RectTransformUtility.WorldToScreenPoint(camera, energyTab.position);
                         string context = count + "-card hand / " + index + " / " + kind;
                         AssertTopRaycastButton(screen, button, "resting " + context);
                         var pointer = new PointerEventData(EventSystem.current) { position = screen };
+                        float restScale = card.localScale.x;
                         ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
                         yield return WaitForInspectionConvergence(card);
-                        float restScale = Mathf.Min(1f, hand.rect.height / CardFaceLayout.FrameSize.y,
-                            (hand.rect.width - 8f * (count - 1)) / (count * CardFaceLayout.FrameSize.x));
-                        AssertInspectionFitsClearSpace(card, restScale);
+                        minimumInspectionScale = Mathf.Min(minimumInspectionScale, InspectionTargetScale(card));
+                        AssertInspectionFitsClearSpace(card, restScale, enforcePreferredScale: false);
                         Assert.That(button.GetComponent<Canvas>().sortingOrder, Is.EqualTo(30));
-                        Assert.That(Mathf.Abs(card.anchoredPosition.x), Is.LessThanOrEqualTo(416.1f), "Full-size inspection stays clear of both decision columns");
                         AssertFrameInsideRootCanvas(card, context);
                         AssertTopRaycastButton(screen, button, "original pointer after lift " + context);
+                        Vector2 liftedCost = RectTransformUtility.WorldToScreenPoint(camera, card.TransformPoint(localPoint));
+                        AssertTopRaycastButton(liftedCost, button, "lifted cost corner " + context);
                         if (index == count / 2 && kind == CardOrnamentKind.Energy)
                             NavalBattleVisualCapture.Capture(controller, "integrated-frame-hand-" + count + "-hover.png",
-                                "Actual " + count + "-card hand at the largest clear inspection scale, preferring 1x. Complete-frame screen and actor bounds plus cost-corner raycasts are checked.");
+                                "Naval fan inspection straightens and raises one complete card above its neighbors while preserving the original pointer target.");
                         ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerExitHandler);
                         yield return new WaitForSecondsRealtime(.4f);
                     }
@@ -583,6 +594,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Cargo.Powder, Is.EqualTo(100));
             Assert.That(session.Cargo.Cannonballs, Is.EqualTo(100));
             LogAssert.NoUnexpectedReceived();
+            TestContext.WriteLine("Minimum inspection target across all 4/6/8-card corner checks: " + minimumInspectionScale);
+            // Keep the readability target, but do not let it prevent the full
+            // input, overlap, viewport and no-payment checks from executing.
+            Assert.That(minimumInspectionScale, Is.GreaterThanOrEqualTo(.60f),
+                "Inspection preserves legibility while keeping the upper tactical sea unobstructed");
         }
 
         private static IEnumerator WaitForInspectionConvergence(RectTransform card)
@@ -604,11 +620,13 @@ namespace ShatteredSail.Presentation.Tests
             return (float)hover.GetType().GetField("inspectionScale", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(hover);
         }
 
-        private static void AssertInspectionFitsClearSpace(RectTransform card, float restingScale)
+        private static void AssertInspectionFitsClearSpace(RectTransform card, float restingScale, bool enforcePreferredScale = true)
         {
             Assert.That(card.localScale.x, Is.GreaterThan(restingScale + .05f), "Inspection must substantially enlarge the resting card");
             float inspectionScale = InspectionTargetScale(card);
-            Assert.That(inspectionScale, Is.InRange(.80f, 1.01f), "Prefer 1x and retain at least 80% size beside a ship or boarding party");
+            if (enforcePreferredScale)
+                Assert.That(inspectionScale, Is.InRange(.60f, 1.01f), "Inspection fits the complete card within the reserved bottom area");
+            else Assert.That(inspectionScale, Is.LessThanOrEqualTo(1.01f), "Inspection must not enlarge beyond its preferred full size");
             // Exponential hover easing approaches the target without reaching
             // it exactly after 0.35 seconds. Keep the exact design-size guard
             // above and allow only a subpixel residual on the rendered frame.
@@ -671,6 +689,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             Canvas.ForceUpdateCanvases();
             Rect handBounds = WorldRect(hand);
+            Rect viewport = WorldRect(FixedGameViewport.Bounds(hand.GetComponentInParent<Canvas>()));
             for (int index = 0; index < count; index++)
             {
                 RectTransform card = GameObject.Find("Battle Card " + index).GetComponent<RectTransform>();
@@ -681,12 +700,13 @@ namespace ShatteredSail.Presentation.Tests
                 const float tolerance = 1f;
                 Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(handBounds.xMin - tolerance));
                 Assert.That(bounds.xMax, Is.LessThanOrEqualTo(handBounds.xMax + tolerance));
-                Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(handBounds.yMin - tolerance));
-                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(handBounds.yMax + tolerance));
-                for (int later = index + 1; later < count; later++)
+                Assert.That(bounds.yMax, Is.GreaterThan(viewport.yMin + 60f), "Every resting card exposes an interactive upper portion.");
+                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(viewport.yMin + viewport.height * .26f),
+                    "The resting fan leaves the large tactical chart unobstructed.");
+                if (index + 1 < count)
                 {
-                    CardSchoolFrameGraphic other = GameObject.Find("Battle Card " + later).GetComponentInChildren<CardSchoolFrameGraphic>();
-                    Assert.That(bounds.Overlaps(WorldRect(other.rectTransform)), Is.False, "Resting complete frames must not overlap.");
+                    CardSchoolFrameGraphic other = GameObject.Find("Battle Card " + (index + 1)).GetComponentInChildren<CardSchoolFrameGraphic>();
+                    Assert.That(bounds.Overlaps(WorldRect(other.rectTransform)), Is.True, "Adjacent naval cards form an overlapping fan.");
                 }
             }
         }
@@ -716,34 +736,46 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
-        private static void AssertBattleSurfaces(CoreGameplayDemoController controller)
+        private static IEnumerator AssertBattleSurfaces(CoreGameplayDemoController controller)
         {
+            yield return WaitForBattleAnimation(controller);
             Canvas.ForceUpdateCanvases();
             AssertPlayerResourceCrystals(controller.Session.Battle.Stage);
             RectTransform player = GameObject.Find("Player Ship Art").GetComponent<RectTransform>();
             RectTransform enemy = GameObject.Find("Enemy Ship Art").GetComponent<RectTransform>();
+            NavalTacticalBoardView board = GameObject.Find("Naval Tactical Board").GetComponent<NavalTacticalBoardView>();
+            Assert.That(board, Is.Not.Null);
             foreach (string side in new[] { "Player", "Enemy" })
             {
-                GameObject contactObject = GameObject.Find(side + " Ship Water Contact");
-                Assert.That(contactObject, Is.Not.Null, side + " ship needs a local waterline/wake rather than hovering over the background.");
-                Graphic contact = contactObject.GetComponent<Graphic>();
-                Assert.That(contact, Is.Not.Null);
-                Assert.That(contact.canvasRenderer, Is.Not.Null, "Water meshes must actually render on the Canvas.");
-                Assert.That(contact.raycastTarget, Is.False, "Sea contact decorations cannot intercept cards or sailing controls.");
-                Rect shipBounds = WorldRect(side == "Player" ? player : enemy);
-                Rect contactBounds = WorldRect(contact.rectTransform);
-                Assert.That(contactBounds.center.y, Is.LessThan(shipBounds.center.y));
-                Assert.That(contactBounds.Overlaps(shipBounds), Is.True, "The contact effect must meet the lower part of its ship.");
+                RectTransform ship = side == "Player" ? player : enemy;
+                Image marker = ship.GetComponent<Image>();
+                Assert.That(marker.sprite, Is.SameAs(Resources.Load<Sprite>("NavalTactics/tactical_ship_v1")));
+                Assert.That(marker.preserveAspect, Is.True);
+                Assert.That(marker.raycastTarget, Is.EqualTo(side == "Player"), "Only the player marker captures route selection.");
+                Vector2 expected = side == "Player" ? board.PlayerScreenPosition : board.EnemyScreenPosition;
+                Assert.That(Vector2.Distance(ship.anchoredPosition, expected), Is.LessThan(.1f));
             }
-            RawImage enemyArt = enemy.GetComponent<RawImage>();
-            Assert.That(enemyArt.material.shader.name, Is.EqualTo("Shattered Sail/UI/Battle Ship Cutout"));
-            Assert.That(enemyArt.raycastTarget, Is.False);
+            Assert.That(player.anchoredPosition.x, Is.LessThan(enemy.anchoredPosition.x));
+            Assert.That(player.anchoredPosition.y, Is.EqualTo(enemy.anchoredPosition.y).Within(.1f));
 
             Rect endTurn = WorldRect(GameObject.Find("End Battle Turn").GetComponent<RectTransform>());
-            Rect enemyStatus = WorldRect(GameObject.Find("Enemy Resource HUD").GetComponent<RectTransform>());
-            Assert.That(endTurn.yMax, Is.LessThan(enemyStatus.yMin), "End turn stays in its separate row below enemy status.");
-            Assert.That(endTurn.xMin, Is.LessThan(enemyStatus.xMax));
-            Assert.That(endTurn.xMax, Is.GreaterThan(enemyStatus.xMin));
+            Rect discard = WorldRect(GameObject.Find("Battle Discard Pile").GetComponent<RectTransform>());
+            Assert.That(endTurn.yMin, Is.GreaterThan(discard.yMax), "End turn stays in its separate row above the discard pile.");
+            Assert.That(endTurn.xMin, Is.LessThan(discard.xMax));
+            Assert.That(endTurn.xMax, Is.GreaterThan(discard.xMin));
+            RectTransform hand = GameObject.Find("Battle Hand").GetComponent<RectTransform>();
+            Button priorInspection = hand.GetComponentsInChildren<Button>()
+                .SingleOrDefault(button => button.GetComponent<Canvas>().overrideSorting);
+            var pointer = new PointerEventData(EventSystem.current);
+            if (priorInspection != null)
+            {
+                ExecuteEvents.Execute(priorInspection.gameObject, pointer, ExecuteEvents.pointerExitHandler);
+                yield return new WaitForSecondsRealtime(.4f);
+            }
+            int[] originalHand = controller.Session.Battle.Hand.ToArray();
+            int originalEnergy = controller.Session.Battle.Energy;
+            int originalPowder = controller.Session.Cargo.Powder;
+            int originalCannonballs = controller.Session.Cargo.Cannonballs;
             for (int index = 0; index < controller.Session.Battle.Hand.Count; index += 1)
             {
                 CoreBattleCard data = CoreVoyageSession.CardLibrary[controller.Session.Battle.Hand[index]];
@@ -753,11 +785,42 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(surface.CardType, Is.EqualTo(data.Type));
                 Assert.That(surface.raycastTarget, Is.False);
                 Assert.That(card.colors.normalColor, Is.EqualTo(Color.white), "Selectable must not multiply the category palette into black.");
+                RectTransform cardRect = card.GetComponent<RectTransform>();
+                CardOrnamentGraphic energyTab = card.GetComponentsInChildren<CardOrnamentGraphic>()
+                    .Single(marker => marker.Kind == CardOrnamentKind.Energy);
+                Canvas root = card.GetComponentInParent<Canvas>().rootCanvas;
+                Camera camera = root.renderMode == RenderMode.ScreenSpaceOverlay ? null : root.worldCamera;
+                pointer.position = RectTransformUtility.WorldToScreenPoint(camera, energyTab.rectTransform.position);
+                AssertTopRaycastButton(pointer.position, card, "resting energy tab " + index);
+                ExecuteEvents.Execute(card.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+                yield return WaitForInspectionConvergence(cardRect);
+                Assert.That(card.GetComponent<Canvas>().overrideSorting, Is.True);
+                Assert.That(card.GetComponent<Canvas>().sortingOrder, Is.EqualTo(30));
+                foreach (Button other in hand.GetComponentsInChildren<Button>())
+                    if (other != card) Assert.That(other.GetComponent<Canvas>().overrideSorting, Is.False);
+                Assert.That(Quaternion.Angle(cardRect.localRotation, Quaternion.identity), Is.LessThan(.1f),
+                    "Inspection straightens each fan card for reading.");
+                AssertFrameInsideRootCanvas(cardRect, "inspected card " + index);
+                Assert.That(WorldRect(card.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform).yMax,
+                    Is.LessThanOrEqualTo(WorldRect(FixedGameViewport.Bounds(root)).yMin +
+                        WorldRect(FixedGameViewport.Bounds(root)).height * .32f), "Inspection preserves the tactical chart area.");
                 AssertCardFaceFields(controller.Session, card, index);
-                Rect cardBounds = WorldRect(card.GetComponent<RectTransform>());
+                Rect cardBounds = WorldRect(cardRect);
                 Assert.That(endTurn.Overlaps(cardBounds), Is.False, "The end-turn button cannot cover cards, including lifted cards.");
                 Assert.That(cardBounds.Overlaps(WorldRect(player)), Is.False, "Cards must not cover the player ship.");
                 Assert.That(cardBounds.Overlaps(WorldRect(enemy)), Is.False, "Cards must not cover the enemy ship.");
+                ExecuteEvents.Execute(card.gameObject, pointer, ExecuteEvents.pointerExitHandler);
+                yield return new WaitForSecondsRealtime(.4f);
+                Assert.That(card.GetComponent<Canvas>().overrideSorting, Is.False);
+            }
+            CollectionAssert.AreEqual(originalHand, controller.Session.Battle.Hand, "Inspection cannot play or replace any card.");
+            Assert.That(controller.Session.Battle.Energy, Is.EqualTo(originalEnergy));
+            Assert.That(controller.Session.Cargo.Powder, Is.EqualTo(originalPowder));
+            Assert.That(controller.Session.Cargo.Cannonballs, Is.EqualTo(originalCannonballs));
+            if (priorInspection != null)
+            {
+                ExecuteEvents.Execute(priorInspection.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+                yield return WaitForInspectionConvergence(priorInspection.GetComponent<RectTransform>());
             }
         }
 
@@ -795,15 +858,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ribbonTitle.RenderedBounds.height, Is.GreaterThanOrEqualTo(16f), data.Id + " actual title strokes remain comparable to the body text");
             Assert.That(effect.preferredHeight, Is.LessThanOrEqualTo(effect.rectTransform.rect.height + .01f), data.Id);
             Assert.That(effect.text, Does.Not.Contain("<size=20>"), "The name belongs on its own ribbon, outside the effect body.");
-            Assert.That(CompactCardText(effect.text), Is.EqualTo(CompactCardText(CardDescriptionText.Compact(
-                session.BattleCardFaceDescription(data, session.Battle.Stage)))), data.Id);
-            Assert.That(effect.text, Does.Not.Contain("实际").And.Not.Contain("当前炮击").And.Not.Contain("无药基础"), data.Id);
+            AssertVisibleWordsAndClauseBoundaries(CardFaceLayout.FormatDescription(
+                session.BattleCardFaceDescription(data, session.Battle.Stage)), effect.text, data.Id);
+            Assert.That(effect.text, Does.Not.Contain("实际伤害").And.Not.Contain("当前炮击").And.Not.Contain("无药基础"), data.Id);
 
             CardOrnamentGraphic[] ornaments = card.GetComponentsInChildren<CardOrnamentGraphic>();
             CardOrnamentGraphic energy = ornaments.Single(item => item.Kind == CardOrnamentKind.Energy);
             Text energyNumber = fields.Single(item => item.name == "Card Energy Cost Text " + index);
             AssertCornerCostMarker(energy, card.GetComponent<RectTransform>(), data);
-            Assert.That(energyNumber.text, Is.EqualTo(session.GetBattleCardEnergyCost(session.Battle.Hand[index]).ToString()));
+            int actualEnergy = session.GetBattleCardEnergyCost(session.Battle.Hand[index]);
+            Assert.That(energyNumber.text, Is.EqualTo(actualEnergy.ToString()));
+            Assert.That(energyNumber.color, Is.EqualTo(actualEnergy > data.Energy ? new Color(1f, .24f, .2f, 1f) : Color.white));
             CardOrnamentGraphic[] powder = ornaments.Where(item => item.Kind == CardOrnamentKind.Gunpowder).ToArray();
             Assert.That(powder.Length, Is.EqualTo(data.PowderCost > 0 ? 1 : 0), data.Id + " shows a powder icon only when it has a powder cost.");
             if (data.PowderCost > 0)
@@ -827,18 +892,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(integratedFrame.mainTexture, Is.SameAs(CardSchoolArtCatalog.Frame(data)), data.Id);
             Assert.That(integratedFrame.rectTransform.sizeDelta, Is.EqualTo(CardSchoolArtCatalog.FrameBounds(data).size), data.Id);
             Assert.That(integratedFrame.rectTransform.anchoredPosition, Is.EqualTo(CardSchoolArtCatalog.FrameBounds(data).center), data.Id);
-            AssertResourceCrystals(card.GetComponent<RectTransform>(), energy, powder.Concat(cannonballs).ToArray(),
-                session.Battle.Hand.Count, index, data);
+            AssertResourceCrystals(card.GetComponent<RectTransform>(), energy, powder.Concat(cannonballs).Concat(specialCosts).ToArray(), index, data);
             foreach (CardOrnamentGraphic ornament in ornaments)
                 Assert.That(ornament.raycastTarget, Is.False, ornament.name + " must not intercept card hover or clicks.");
         }
 
         private static void AssertResourceCrystals(RectTransform card, CardOrnamentGraphic energy,
-            CardOrnamentGraphic[] resources, int handCount, int index, CoreBattleCard data)
+            CardOrnamentGraphic[] resources, int index, CoreBattleCard data)
         {
             Assert.That(energy.rectTransform.localScale, Is.EqualTo(Vector3.one), "The complete frame and all numbers scale with their card together");
             Assert.That(energy.rectTransform.anchoredPosition, Is.EqualTo(CardSchoolArtCatalog.CostPosition(data, CardOrnamentKind.Energy)));
-            bool inspectingHand = card.parent.GetComponentsInChildren<Canvas>().Any(canvas => canvas.overrideSorting);
+            Assert.That(card.GetComponent<Canvas>().overrideSorting, Is.True, "Cost visibility is checked on the actual inspected card.");
             var costs = new List<RectTransform> { energy.rectTransform };
             for (int slot = 0; slot < resources.Length; slot++)
             {
@@ -848,32 +912,36 @@ namespace ShatteredSail.Presentation.Tests
                 AssertCornerCostMarker(resource, card, data);
                 costs.Add(rect);
             }
-            if (resources.Length == 2)
-                Assert.That(ScaledCardLocalRect(resources[1].rectTransform).xMax,
-                    Is.LessThan(ScaledCardLocalRect(resources[0].rectTransform).xMin), "Cannonballs occupy the lower-left corner; powder occupies the lower-right");
-            RectTransform repeat = card.Find("Card Repeat Cost Plate " + index) as RectTransform;
-            if (repeat != null && repeat.gameObject.activeSelf) costs.Add(repeat);
+            CardOrnamentGraphic cannonball = resources.SingleOrDefault(item => item.Kind == CardOrnamentKind.Cannonball);
+            CardOrnamentGraphic powder = resources.SingleOrDefault(item => item.Kind == CardOrnamentKind.Gunpowder);
+            if (cannonball != null && powder != null)
+                Assert.That(ScaledCardLocalRect(cannonball.rectTransform).xMax,
+                    Is.LessThan(ScaledCardLocalRect(powder.rectTransform).xMin), "Cannonballs occupy the lower-left corner; powder occupies the lower-right");
+            Assert.That(card.Find("Card Repeat Cost Plate " + index), Is.Null,
+                "Increased costs use red numbers without an adjacent surcharge label.");
             foreach (RectTransform cost in costs)
             {
                 foreach (RectTransform other in costs)
                     if (other != cost)
                         Assert.That(ScaledCardLocalRect(cost).Overlaps(ScaledCardLocalRect(other)), Is.False,
                             cost.name + " must not overlap another fee on the same card");
-                if (inspectingHand) continue;
                 Rect backing = WorldRect(cost);
-                Rect number = WorldRect(cost.GetComponentInChildren<Text>().rectTransform);
-                // The resting hand fits complete integrated frames without overlap.
-                // Hover is an intentional full-size inspection layer.
-                foreach (Transform sibling in card.parent)
+                Text costText = cost.GetComponentInChildren<Text>();
+                Assert.That(costText, Is.Not.Null);
+                Assert.That(costText.text, Is.Not.Empty);
+                Rect number = WorldRect(costText.rectTransform);
+                Canvas root = card.GetComponentInParent<Canvas>().rootCanvas;
+                Rect viewport = WorldRect(FixedGameViewport.Bounds(root));
+                foreach (Rect visible in new[] { backing, number })
                 {
-                    if (sibling.GetSiblingIndex() <= card.GetSiblingIndex() || !sibling.gameObject.activeSelf ||
-                        sibling.GetComponent<Button>() == null) continue;
-                    CardSchoolFrameGraphic otherFrame = sibling.GetComponentInChildren<CardSchoolFrameGraphic>();
-                    Assert.That(otherFrame, Is.Not.Null);
-                    Rect covering = WorldRect(otherFrame.rectTransform);
-                    Assert.That(backing.Overlaps(covering), Is.False, cost.name + " backing must remain visible in a crowded hand");
-                    Assert.That(number.Overlaps(covering), Is.False, cost.name + " number must remain visible in a crowded hand");
+                    Assert.That(visible.xMin, Is.GreaterThanOrEqualTo(viewport.xMin - .5f), cost.name);
+                    Assert.That(visible.xMax, Is.LessThanOrEqualTo(viewport.xMax + .5f), cost.name);
+                    Assert.That(visible.yMin, Is.GreaterThanOrEqualTo(viewport.yMin - .5f), cost.name);
+                    Assert.That(visible.yMax, Is.LessThanOrEqualTo(viewport.yMax + .5f), cost.name);
                 }
+                Camera camera = root.renderMode == RenderMode.ScreenSpaceOverlay ? null : root.worldCamera;
+                AssertTopRaycastButton(RectTransformUtility.WorldToScreenPoint(camera, costText.rectTransform.position),
+                    card.GetComponent<Button>(), cost.name + " inspected number remains above neighboring cards");
             }
         }
 
@@ -909,28 +977,21 @@ namespace ShatteredSail.Presentation.Tests
 
         private static void AssertPlayerResourceCrystals(NavalBattleStage stage)
         {
-            Transform resources = GameObject.Find("Player Resource HUD").transform;
-            CardOrnamentGraphic energy = resources.Find("Resource 能 Icon").GetComponent<CardOrnamentGraphic>();
+            Transform resources = GameObject.Find("Battle Compact Resources").transform;
+            BattleCommandIconGraphic energy = resources.Find("Battle Resource Line 1/Resource Energy/Icon").GetComponent<BattleCommandIconGraphic>();
             Assert.That(energy, Is.Not.Null);
-            Assert.That(energy.Kind, Is.EqualTo(CardOrnamentKind.Energy));
+            Assert.That(energy.Kind, Is.EqualTo(BattleCommandIconKind.Energy));
             AssertHudCrystal(energy);
-            Transform supply = resources.Find("Resource 药 Icon");
-            if (stage == NavalBattleStage.Boarding)
-            {
-                Assert.That(supply.GetComponent<CardOrnamentGraphic>(), Is.Null,
-                    "Boarding medicine retains its own symbol and must not be mislabelled as gunpowder.");
-                Assert.That(supply.GetComponentInChildren<Text>().text, Is.EqualTo("药"));
-            }
-            else
-            {
-                CardOrnamentGraphic powder = supply.GetComponent<CardOrnamentGraphic>();
-                Assert.That(powder, Is.Not.Null);
-                Assert.That(powder.Kind, Is.EqualTo(CardOrnamentKind.Gunpowder));
-                AssertHudCrystal(powder);
-            }
+            BattleCommandIconGraphic powder = resources.Find("Battle Resource Line 3/Resource Powder/Icon").GetComponent<BattleCommandIconGraphic>();
+            BattleCommandIconGraphic medicine = resources.Find("Battle Resource Line 3/Resource Medicine/Icon").GetComponent<BattleCommandIconGraphic>();
+            Assert.That(powder.Kind, Is.EqualTo(BattleCommandIconKind.Powder));
+            Assert.That(medicine.Kind, Is.EqualTo(BattleCommandIconKind.Medicine),
+                "Boarding medicine retains its own symbol and must not be mislabelled as gunpowder.");
+            AssertHudCrystal(powder);
+            AssertHudCrystal(medicine);
         }
 
-        private static void AssertHudCrystal(CardOrnamentGraphic crystal)
+        private static void AssertHudCrystal(BattleCommandIconGraphic crystal)
         {
             Assert.That(crystal.rectTransform.rect.width, Is.EqualTo(crystal.rectTransform.rect.height).Within(.01f), crystal.name);
             Assert.That(crystal.GetComponent<Image>(), Is.Null, crystal.name + " replaces the old circular badge");
@@ -940,6 +1001,15 @@ namespace ShatteredSail.Presentation.Tests
 
         private static string CompactCardText(string value) => Regex.Replace(value, @"</?(?:b|i|size|color|material)(?:=[^>]*)?>", string.Empty)
             .Replace("\u00a0", " ").Replace("\n", string.Empty).Replace("\r", string.Empty);
+
+        internal static void AssertVisibleWordsAndClauseBoundaries(string source, string rendered, string context)
+        {
+            string visibleSource = Regex.Replace(source, "<[^>]*>", string.Empty).Replace("\r", string.Empty);
+            string pattern = "\\A" + string.Join("(?:\\n+|；\\n*)", visibleSource.Split('\n')
+                .Select(paragraph => string.Join("\\n*", paragraph.Select(character => Regex.Escape(character.ToString()))))) + "\\z";
+            Assert.That(Regex.Replace(rendered, "<[^>]*>", string.Empty), Does.Match(pattern),
+                context + " preserves every visible character and every original clause boundary as a newline or semicolon");
+        }
 
         private static Rect WorldRect(RectTransform rect)
         {

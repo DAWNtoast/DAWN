@@ -38,7 +38,7 @@ namespace ShatteredSail.Presentation.Tests
             foreach (ComponentArtEntry entry in entries)
             {
                 var offer = new PortComponentShopStockItem("component-layout|" + entry.Id,
-                    controller.Session.CurrentPort, "2026-10", entry, .94f, 230);
+                    controller.Session.CurrentPort, "2026-10", entry, 230);
                 string purchaseKey = CoreGameplayDemoController.ComponentShopPurchaseKey(offer.Id);
                 bool hadPurchaseKey = PlayerPrefs.HasKey(purchaseKey);
                 int purchaseValue = PlayerPrefs.GetInt(purchaseKey, -1);
@@ -65,7 +65,7 @@ namespace ShatteredSail.Presentation.Tests
 
                 AssertText("Component Detail Name", entry.Name, 36, entry.Id);
                 AssertText("Component Detail Meta", ComponentArtCatalog.RarityName(entry.Rarity) + " · " + ComponentArtCatalog.SlotName(entry.Slot), 22, entry.Id);
-                Assert.That(Find<Text>("Component Detail Quality").text, Does.Contain("94%"), entry.Id);
+                Assert.That(detail.GetComponentsInChildren<Text>(true).Any(label => label.name == "Component Detail Quality"), Is.False, entry.Id);
                 Assert.That(WithoutWhitespace(Find<Text>("Component Detail Specialization").text),
                     Does.Contain(WithoutWhitespace(entry.Specialization)), entry.Id);
                 AssertText("Component Detail Description", entry.Description, 25, entry.Id);
@@ -104,15 +104,15 @@ namespace ShatteredSail.Presentation.Tests
                     pagesChecked++;
                 }
 
-                // Both arrow paths and direct tabs must only change the visible page.
-                Find<Button>("Next Component Dossier Page").onClick.Invoke();
+                // Repeated and reverse tab selections only change the visible page.
+                Find<Button>("ComponentDossierPage" + Pages[3]).onClick.Invoke();
                 AssertPage(3);
                 for (int page = 2; page >= 0; page--)
                 {
-                    Find<Button>("Previous Component Dossier Page").onClick.Invoke();
+                    Find<Button>("ComponentDossierPage" + Pages[page]).onClick.Invoke();
                     AssertPage(page);
                 }
-                Find<Button>("Previous Component Dossier Page").onClick.Invoke();
+                Find<Button>("ComponentDossierPage" + Pages[0]).onClick.Invoke();
                 AssertPage(0);
                 Assert.That(Find<RectTransform>("Component Shop Detail"), Is.SameAs(detail));
                 Assert.That(controller.Session, Is.SameAs(session));
@@ -135,7 +135,7 @@ namespace ShatteredSail.Presentation.Tests
             ComponentArtEntry entry = new ComponentArtCatalog().ExpandedEntries.Last();
             int price = affordable ? 1 : decimal.ToInt32(controller.Session.ProfileGold) + 1000;
             var offer = new PortComponentShopStockItem("component-layout-state|" + sold + "|" + affordable,
-                controller.Session.CurrentPort, "2026-10", entry, 1f, price);
+                controller.Session.CurrentPort, "2026-10", entry, price);
             string key = CoreGameplayDemoController.ComponentShopPurchaseKey(offer.Id);
             bool hadKey = PlayerPrefs.HasKey(key);
             int previous = PlayerPrefs.GetInt(key, 0);
@@ -203,21 +203,29 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(tab.anchoredPosition.y, Is.EqualTo(160f));
                 AssertContained(WritingPaper, BoundsIn(detail, tab), tab.name);
             }
-            string[] footer = { "Previous Component Dossier Page", "Component Dossier Page Counter", "Next Component Dossier Page",
-                "Purchase Component " + offer.Id, "Purchase And Equip Component " + offer.Id };
+            string[] footer = { "Purchase Component " + offer.Id, "Purchase And Equip Component " + offer.Id };
             Rect previous = default;
             for (int index = 0; index < footer.Length; index++)
             {
                 Rect current = BoundsIn(detail, Find<RectTransform>(footer[index]));
                 AssertContained(FooterPaper, current, footer[index]);
                 Assert.That(current.height, Is.GreaterThanOrEqualTo(43.9f));
-                if (index > 0) Assert.That(current.xMin - previous.xMax, Is.GreaterThanOrEqualTo(19.9f), footer[index]);
+                Assert.That(current.width, Is.EqualTo(240f).Within(.1f));
+                if (index > 0) Assert.That(current.xMin - previous.xMax,
+                    Is.EqualTo(24f).Within(.1f), footer[index]);
                 previous = current;
             }
+            Rect purchase = BoundsIn(detail, Find<RectTransform>(footer[0]));
+            Rect equip = BoundsIn(detail, Find<RectTransform>(footer[1]));
+            Assert.That((purchase.xMin + equip.xMax) * .5f,
+                Is.EqualTo(Find<RectTransform>("Component Detail Profile").anchoredPosition.x).Within(.1f),
+                "The two purchase actions stay centered beneath the reading column.");
         }
 
         private void AssertSpecialCard(RectTransform detail, RectTransform page, ComponentArtEntry entry)
         {
+            Assert.That(page.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Component Special Card Growth"),
+                Is.False, "Component dossiers omit ownership and growth hints.");
             CoreSpecialCardDefinition definition = CoreSpecialCardCatalog.ForComponent(entry.Id);
             Assert.That(definition != null, Is.EqualTo(entry.Rarity >= ComponentRarity.Rare), entry.Id);
             if (definition == null)
@@ -237,25 +245,21 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(face.GetComponentsInChildren<Button>(), Is.Empty, "Reading a card cannot acquire its source.");
             Rect stage = BoundsIn(detail, Find<Text>("Component Special Card Stage").rectTransform);
             Rect details = BoundsIn(detail, Find<RectTransform>("Component Special Card Details Viewport"));
-            Rect growth = BoundsIn(detail, Find<Text>("Component Special Card Growth").rectTransform);
-            foreach (Rect region in new[] { stage, details, growth })
+            foreach (Rect region in new[] { stage, details })
             {
                 AssertContained(WritingPaper, region, entry.Id + " / card explanation column");
                 Assert.That(region.xMin, Is.GreaterThan(frame.xMax));
             }
             Assert.That(stage.yMin - details.yMax, Is.GreaterThanOrEqualTo(.9f));
-            Assert.That(details.yMin - growth.yMax, Is.GreaterThanOrEqualTo(.9f));
-            Assert.That(growth.yMin - FooterPaper.yMax, Is.GreaterThanOrEqualTo(5.9f));
-            Assert.That(Find<Text>("Component Special Card Growth").fontSize, Is.GreaterThanOrEqualTo(22));
+            Assert.That(details.yMin - FooterPaper.yMax, Is.GreaterThanOrEqualTo(10.9f));
         }
 
         private void AssertPage(int selected)
         {
             for (int page = 0; page < Pages.Length; page++)
                 Assert.That(Find<RectTransform>("Component Dossier " + Pages[page] + " Page").gameObject.activeSelf, Is.EqualTo(page == selected));
-            Assert.That(Find<Text>("Component Dossier Page Counter").text, Is.EqualTo("第 " + (selected + 1) + " / 4 页"));
-            Assert.That(Find<Button>("Previous Component Dossier Page").interactable, Is.EqualTo(selected > 0));
-            Assert.That(Find<Button>("Next Component Dossier Page").interactable, Is.EqualTo(selected < 3));
+            foreach (string removed in new[] { "Previous Component Dossier Page", "Component Dossier Page Counter", "Next Component Dossier Page" })
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == removed), Is.False, removed);
         }
 
         private void AssertText(string name, string expected, int minimumSize, string item)

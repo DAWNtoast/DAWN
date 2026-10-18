@@ -191,9 +191,8 @@ namespace ShatteredSail.Presentation.Tests
             foreach (string name in new[] { "Treasure Route Reading Desk", "Treasure Selected Route", "Treasure Route Detail" })
                 Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False,
                     "The lower reading desk and its information have been removed.");
-            Text status = Find<Text>(preview, "Treasure Workbench Status");
-            Assert.That(status.text, Does.Not.Contain("月蚀"));
-            Assert.That(status.preferredHeight, Is.LessThanOrEqualTo(status.rectTransform.rect.height + 1f));
+            foreach (string name in new[] { "Treasure Workbench Status Rail", "Treasure Workbench Status", "Treasure Workbench Notice" })
+                Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False, name);
             float previousRight = float.NegativeInfinity;
             for (int index = 0; index < 3; index++)
             {

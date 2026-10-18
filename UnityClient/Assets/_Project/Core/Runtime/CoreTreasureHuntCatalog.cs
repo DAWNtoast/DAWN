@@ -37,12 +37,13 @@ namespace ShatteredSail.Core.Gameplay
 
     public sealed class CoreTreasureMapRecord
     {
-        internal CoreTreasureMapRecord(string id, string seed, string rankId, int geometryVersion = 1)
-        { Id = id; Seed = seed; RankId = rankId; MapGeometryVersion = geometryVersion; }
+        internal CoreTreasureMapRecord(string id, string seed, string rankId, int geometryVersion = 1, int contentVersion = 0)
+        { Id = id; Seed = seed; RankId = rankId; MapGeometryVersion = geometryVersion; ContentVersion = contentVersion; }
         public string Id { get; }
         public string Seed { get; }
         public string RankId { get; }
         public int MapGeometryVersion { get; }
+        public int ContentVersion { get; }
         public CoreTreasureMapRank Rank => CoreTreasureHuntCatalog.FindRank(RankId);
         public string Name => Rank.Name + "藏宝图";
     }
@@ -51,16 +52,18 @@ namespace ShatteredSail.Core.Gameplay
     public sealed class CoreUsedTreasureMapRecord
     {
         internal CoreUsedTreasureMapRecord(string id, string seed, string rankId, string departurePort,
-            bool hasExplorationCoverage, float explorationCoverage, int geometryVersion = 0)
+            bool hasExplorationCoverage, float explorationCoverage, int geometryVersion = 0, int contentVersion = 0)
         {
             Id = id; Seed = seed; RankId = rankId ?? string.Empty; DeparturePort = departurePort ?? string.Empty;
             HasExplorationCoverage = hasExplorationCoverage; ExplorationCoverage = explorationCoverage;
             MapGeometryVersion = geometryVersion;
+            ContentVersion = contentVersion;
         }
         public string Id { get; }
         public string Seed { get; }
         public string RankId { get; }
         public int MapGeometryVersion { get; }
+        public int ContentVersion { get; }
         // Legacy seed-only saves did not record the map's rank or exploration.
         public CoreTreasureMapRank Rank => CoreTreasureHuntCatalog.FindRank(RankId);
         public string Name => Rank == null ? "藏宝图" : Rank.Name + "藏宝图";
@@ -108,7 +111,7 @@ namespace ShatteredSail.Core.Gameplay
                 CoreVoyageWeather weather = CoreVoyageWeather.Any,
                 EventTerrainConstraint terrain = EventTerrainConstraint.Any,
                 int minimumCurse = 0, int maximumCurse = int.MaxValue) =>
-                new CoreEncounterChoice(label, detail, hours, effect, crew, battle, clues, false,
+                new CoreEncounterChoice(label, battle ? CoreBattleRewardDescriptions.Victory(false, effect) : detail, hours, effect, crew, battle, clues, false,
                     ship, time, weather, terrain, minimumCurse, maximumCurse);
             CoreEncounter E(string id, string name, string category, bool hidden, bool mandatory,
                 int risk, int power, params CoreEncounterChoice[] choices) =>

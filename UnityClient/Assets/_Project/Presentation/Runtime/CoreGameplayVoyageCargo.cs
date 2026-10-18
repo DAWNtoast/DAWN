@@ -63,30 +63,35 @@ namespace ShatteredSail.Presentation
             Func<bool> current = () => VoyageCargoViewCurrent(owner, revision, capturedSession, map, phase);
             voyageCargoCurrent = current;
             ClearChildren(owner);
-            Color ink = Html("#382819"), muted = Html("#695039");
-            RectTransform sheet = CreateFixedPanel("Voyage Cargo Sheet", owner, new Vector2(1280,920), Vector2.zero, Html("#DFC591"));
-            CargoLabel("Voyage Cargo Title", sheet, new Vector2(820,50), new Vector2(-80,380), 32, "船舱", ink);
-            voyageCargoCapacity = CargoLabel("Voyage Cargo Capacity", sheet, new Vector2(1120,40), new Vector2(0,330), 22,"",ink);
-            Button close = CargoButton("Close Voyage Cargo", sheet, new Vector2(96,46), new Vector2(542,380), "关闭", current,
+            Color ink = MarketShopSkin.Ink, muted = MarketShopSkin.MutedInk;
+            RectTransform sheet = CreateFixedPanel("Voyage Cargo Sheet", owner, new Vector2(1280,920), Vector2.zero, Html("#F0E6CF"));
+            MarketShopSkin.ApplyPanel(sheet.GetComponent<Image>());
+            CargoLabel("Voyage Cargo Eyebrow", sheet, new Vector2(820,24), new Vector2(0,410), 15, "SHIP HOLD", muted);
+            Text title = CargoLabel("Voyage Cargo Title", sheet, new Vector2(820,48), new Vector2(0,374), 34, "船舱", ink);
+            GameTypography.Apply(title, 34, FontStyle.Bold);
+            voyageCargoCapacity = CargoLabel("Voyage Cargo Capacity", sheet, new Vector2(1120,34), new Vector2(0,328), 21,"",muted);
+            CargoRule("Voyage Cargo Header Rule", sheet, new Vector2(1160,1), new Vector2(0,304));
+            Button close = CargoButton("Close Voyage Cargo", sheet, new Vector2(96,44), new Vector2(542,382), "关闭", current,
                 () => CloseVoyageCargo(true));
-            voyageCargoBasicTab = CargoButton("Voyage Cargo Basic Tab", sheet, new Vector2(220,46), new Vector2(-322,274), "普通物品", current,
+            MarketShopSkin.ApplyTextButton(close);
+            voyageCargoBasicTab = CargoButton("Voyage Cargo Basic Tab", sheet, new Vector2(220,44), new Vector2(-322,266), "普通物品", current,
                 () => SwitchVoyageCargoTab(false));
-            voyageCargoSpecialTab = CargoButton("Voyage Cargo Special Tab", sheet, new Vector2(220,46), new Vector2(-78,274), "特殊物品", current,
+            voyageCargoSpecialTab = CargoButton("Voyage Cargo Special Tab", sheet, new Vector2(220,44), new Vector2(-78,266), "特殊物品", current,
                 () => SwitchVoyageCargoTab(true));
-            WoodButtonSkin.SetSelected(voyageCargoBasicTab, !voyageCargoSpecial);
-            WoodButtonSkin.SetSelected(voyageCargoSpecialTab, voyageCargoSpecial);
-            voyageCargoList = CreateRect("Voyage Cargo List", sheet, new Vector2(790,548), new Vector2(-200,-36));
+            MarketShopSkin.SetMode(voyageCargoBasicTab, !voyageCargoSpecial);
+            MarketShopSkin.SetMode(voyageCargoSpecialTab, voyageCargoSpecial);
+            voyageCargoList = CreateRect("Voyage Cargo List", sheet, new Vector2(790,584), new Vector2(-200,-62));
             BuildVoyageCargoGrid();
-            RectTransform divider = CreateRect("Voyage Cargo Details Divider", sheet, new Vector2(2,548), new Vector2(217,-36));
-            Image dividerInk = divider.gameObject.AddComponent<Image>();
-            dividerInk.color = new Color(.38f,.27f,.15f,.24f);
-            dividerInk.raycastTarget = false;
-            RectTransform details = CreateRect("Voyage Cargo Details", sheet, new Vector2(350,548), new Vector2(415,-36));
-            voyageCargoSelectionHint = CargoLabel("Voyage Cargo Selection Hint", details, new Vector2(306,110), new Vector2(0,32),23,
-                "选择物品",ink);
+            CargoRule("Voyage Cargo Details Divider", sheet, new Vector2(1,642), new Vector2(217,-33));
+            CargoLabel("Voyage Cargo Details Heading", sheet, new Vector2(310,40), new Vector2(415,266),20,"物品详情",muted);
+            RectTransform details = CreateRect("Voyage Cargo Details", sheet, new Vector2(350,584), new Vector2(415,-62));
+            voyageCargoSelectionHint = CargoLabel("Voyage Cargo Selection Hint", details, new Vector2(306,160), new Vector2(0,24),23,
+                "<b>选择物品</b>\n<size=18>查看随船数量、舱容占用\n与物品详情</size>",muted);
+            voyageCargoSelectionHint.lineSpacing = 1.35f;
             voyageCargoSelectionRoot = CreateRect("Voyage Cargo Selection", details, details.sizeDelta, Vector2.zero);
             BuildVoyageCargoSelection(voyageCargoSelectionRoot, current);
-            voyageCargoNotice = CargoLabel("Voyage Cargo Notice", sheet, new Vector2(1120,60), new Vector2(0,-374),18,
+            CargoRule("Voyage Cargo Footer Rule", sheet, new Vector2(1160,1), new Vector2(0,-378));
+            voyageCargoNotice = CargoLabel("Voyage Cargo Notice", sheet, new Vector2(1120,44), new Vector2(0,-410),18,
                 Application.isPlaying && !editorPreviewBuilding ? "" :
                 "编辑预览 · 舍弃与保存已禁用",muted);
             SelectVoyageCargoItem(voyageCargoSelectedKey, true);
@@ -98,8 +103,8 @@ namespace ShatteredSail.Presentation
         {
             if (voyageCargoCurrent == null || !voyageCargoCurrent() || voyageCargoSpecial == special) return;
             voyageCargoSpecial = special;
-            WoodButtonSkin.SetSelected(voyageCargoBasicTab, !special);
-            WoodButtonSkin.SetSelected(voyageCargoSpecialTab, special);
+            MarketShopSkin.SetMode(voyageCargoBasicTab, !special);
+            MarketShopSkin.SetMode(voyageCargoSpecialTab, special);
             BuildVoyageCargoGrid();
             SelectVoyageCargoItem(null, true);
             if (!Application.isPlaying) SetEditorPreviewFlags(voyageCargoOverlay);
@@ -113,16 +118,18 @@ namespace ShatteredSail.Presentation
             Func<bool> current = () => viewCurrent() && voyageCargoGridRevision == gridRevision;
             ClearChildren(voyageCargoList);
             voyageCargoRows.Clear();
-            Color ink = Html("#382819");
+            Color ink = MarketShopSkin.Ink, muted = MarketShopSkin.MutedInk;
             var items = voyageCargoSpecial ? CoreWarehouseItemCatalog.RareItems : CoreWarehouseItemCatalog.BasicItems;
             for (int i = 0; i < 9; i++)
             {
-                Vector2 slotPosition = new Vector2((i % 3 - 1) * 266, (1 - i / 3) * 184);
-                Vector2 slotSize = new Vector2(250,172);
+                Vector2 slotPosition = new Vector2((i % 3 - 1) * 266, (1 - i / 3) * 198);
+                Vector2 slotSize = new Vector2(250,184);
                 if (i >= items.Count)
                 {
                     RectTransform empty = CreateRect("Voyage Cargo Empty Slot " + i, voyageCargoList, slotSize, slotPosition);
                     FrameVoyageCargoSlot(empty, false, true);
+                    CargoLabel("Voyage Cargo Empty Mark " + i, empty, new Vector2(200,40), new Vector2(0,14),26,"—",muted);
+                    CargoLabel("Voyage Cargo Empty Caption " + i, empty, new Vector2(200,28), new Vector2(0,-22),17,"暂无物品",muted);
                     continue;
                 }
                 CoreWarehouseItemDefinition item = items[i];
@@ -132,12 +139,19 @@ namespace ShatteredSail.Presentation
                     current, () => SelectVoyageCargoItem(key));
                 voyageCargoRows.Add(key, row);
                 StyleVoyageCargoSlot(row, key == voyageCargoSelectedKey);
-                CreateItemIcon("Voyage Cargo Item Icon " + key, row.transform, ItemIconCatalog.ForCargo(key), new Vector2(0,27),80);
-                CargoLabel("Voyage Cargo Item Name " + key, row.transform, new Vector2(224,24), new Vector2(0,-28),18,item.Name,ink);
-                Text amountLabel = CargoLabel("Voyage Cargo Item Amount " + key, row.transform, new Vector2(112,24), new Vector2(-63,-62),18,
+                CreateItemIcon("Voyage Cargo Item Icon " + key, row.transform, ItemIconCatalog.ForCargo(key), new Vector2(0,40),80);
+                Text nameLabel = CargoLabel("Voyage Cargo Item Name " + key, row.transform, new Vector2(224,24), new Vector2(0,-16),18,item.Name,ink);
+                GameTypography.Apply(nameLabel, 18, FontStyle.Bold);
+                CargoRule("Voyage Cargo Item Rule " + key, row.transform, new Vector2(220,1), new Vector2(0,-33));
+                Text amountCaption = CargoLabel("Voyage Cargo Metric Caption Amount " + key, row.transform, new Vector2(108,18), new Vector2(-64,-47),13,"数量",muted);
+                Text volumeCaption = CargoLabel("Voyage Cargo Metric Caption Volume " + key, row.transform, new Vector2(108,18), new Vector2(64,-47),13,"占用",muted);
+                amountCaption.alignment = TextAnchor.MiddleLeft;
+                volumeCaption.alignment = TextAnchor.MiddleRight;
+                Text amountLabel = CargoLabel("Voyage Cargo Item Amount " + key, row.transform, new Vector2(108,26), new Vector2(-64,-70),21,
                     amount.ToString(CultureInfo.InvariantCulture),ink);
-                Text volumeLabel = CargoLabel("Voyage Cargo Item Volume " + key, row.transform, new Vector2(112,24), new Vector2(63,-62),18,
-                    (amount*item.UnitVolume).ToString("0.##",CultureInfo.InvariantCulture),ink);
+                Text volumeLabel = CargoLabel("Voyage Cargo Item Volume " + key, row.transform, new Vector2(108,26), new Vector2(64,-70),20,
+                    (amount*item.UnitVolume).ToString("0.##",CultureInfo.InvariantCulture),muted);
+                GameTypography.Apply(amountLabel, 21, FontStyle.Bold);
                 amountLabel.alignment = TextAnchor.MiddleLeft;
                 volumeLabel.alignment = TextAnchor.MiddleRight;
                 foreach (Text metric in new[] { amountLabel, volumeLabel })
@@ -145,7 +159,7 @@ namespace ShatteredSail.Presentation
                     metric.horizontalOverflow = HorizontalWrapMode.Overflow;
                     metric.resizeTextForBestFit = true;
                     metric.resizeTextMinSize = 12;
-                    metric.resizeTextMaxSize = 18;
+                    metric.resizeTextMaxSize = metric.fontSize;
                 }
             }
         }
@@ -184,20 +198,11 @@ namespace ShatteredSail.Presentation
 
         private void StyleVoyageCargoSlot(Button button, bool selected)
         {
-            Image face = button.GetComponent<Image>();
-            face.overrideSprite = null;
-            face.sprite = null;
-            face.type = Image.Type.Simple;
-            face.color = Color.white;
-            WoodButtonRoleState woodRole = button.GetComponent<WoodButtonRoleState>();
-            if (woodRole != null) woodRole.enabled = false;
-            ColorBlock colors = button.colors;
-            colors.normalColor = new Color(.38f,.23f,.10f, selected ? .12f : .025f);
-            colors.highlightedColor = new Color(.38f,.23f,.10f, selected ? .18f : .10f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.pressedColor = new Color(.38f,.23f,.10f,.23f);
-            colors.disabledColor = Color.clear;
-            button.colors = colors;
+            MarketShopSkin.ApplyLightButton(button, selected);
+            foreach (Text label in button.GetComponentsInChildren<Text>(true))
+                if (label.name.StartsWith("Voyage Cargo Metric Caption", StringComparison.Ordinal) ||
+                    label.name.StartsWith("Voyage Cargo Item Volume", StringComparison.Ordinal))
+                    label.color = MarketShopSkin.MutedInk;
             FrameVoyageCargoSlot((RectTransform)button.transform, selected, false);
         }
 
@@ -205,7 +210,7 @@ namespace ShatteredSail.Presentation
         {
             float width = slot.sizeDelta.x, height = slot.sizeDelta.y;
             float line = selected ? 2f : 1f;
-            Color color = new Color(.38f,.23f,.10f, empty ? .24f : selected ? .85f : .48f);
+            Color color = new Color(.60f,.44f,.24f, empty ? .24f : selected ? .85f : .48f);
             Vector2[] sizes = { new Vector2(width,line), new Vector2(width,line),
                 new Vector2(line,height), new Vector2(line,height) };
             Vector2[] positions = { new Vector2(0,(height-line)/2), new Vector2(0,-(height-line)/2),
@@ -225,15 +230,19 @@ namespace ShatteredSail.Presentation
 
         private void BuildVoyageCargoSelection(RectTransform details, Func<bool> viewCurrent)
         {
-            Color ink = Html("#302012"), muted = Html("#4D321E");
-            RawImage icon = CreateItemIcon("Voyage Cargo Selected Icon",details,ItemIconCatalog.ForCargo("water"),new Vector2(0,216),90);
-            Text name = CargoLabel("Voyage Cargo Selected Item",details,new Vector2(310,40),new Vector2(0,144),26,"",ink);
-            Text amountLabel = CargoLabel("Voyage Cargo Selected Amount",details,new Vector2(310,30),new Vector2(0,101),22,"",ink);
-            Text unitVolume = CargoLabel("Voyage Cargo Unit Volume",details,new Vector2(310,28),new Vector2(0,70),20,"",muted);
-            Text description = CargoLabel("Voyage Cargo Item Description",details,new Vector2(310,84),new Vector2(0,10),18,"",muted);
-            CargoLabel("Voyage Cargo Quantity Label",details,new Vector2(310,26),new Vector2(0,-57),20,"舍弃数量",ink);
-            RectTransform field = CreateRect("Voyage Cargo Quantity",details,new Vector2(166,44),new Vector2(0,-94));
-            Image background = field.gameObject.AddComponent<Image>(); background.color = new Color(.38f,.27f,.15f,.12f);
+            Color ink = MarketShopSkin.Ink, muted = MarketShopSkin.MutedInk;
+            RawImage icon = CreateItemIcon("Voyage Cargo Selected Icon",details,ItemIconCatalog.ForCargo("water"),new Vector2(0,236),90);
+            Text name = CargoLabel("Voyage Cargo Selected Item",details,new Vector2(310,40),new Vector2(0,169),28,"",ink);
+            GameTypography.Apply(name, 28, FontStyle.Bold);
+            Text amountLabel = CargoLabel("Voyage Cargo Selected Amount",details,new Vector2(310,30),new Vector2(0,123),22,"",ink);
+            Text unitVolume = CargoLabel("Voyage Cargo Unit Volume",details,new Vector2(310,28),new Vector2(0,87),19,"",muted);
+            Text description = CargoLabel("Voyage Cargo Item Description",details,new Vector2(330,90),new Vector2(0,20),18,"",muted);
+            description.alignment = TextAnchor.MiddleLeft;
+            description.lineSpacing = 1.2f;
+            CargoRule("Voyage Cargo Selection Rule", details, new Vector2(310,1), new Vector2(0,-42));
+            CargoLabel("Voyage Cargo Quantity Label",details,new Vector2(310,26),new Vector2(0,-66),19,"舍弃数量",ink);
+            RectTransform field = CreateRect("Voyage Cargo Quantity",details,new Vector2(166,46),new Vector2(0,-105));
+            Image background = field.gameObject.AddComponent<Image>();
             InputField quantity = field.gameObject.AddComponent<InputField>();
             voyageCargoQuantity = quantity;
             Text inputText = CargoLabel("Voyage Cargo Quantity Text",field,new Vector2(150,36),Vector2.zero,23,string.Empty,ink);
@@ -242,14 +251,19 @@ namespace ShatteredSail.Presentation
             quantity.contentType = InputField.ContentType.IntegerNumber;
             quantity.lineType = InputField.LineType.SingleLine;
             quantity.characterLimit = 10;
+            inputText.resizeTextForBestFit = true;
+            inputText.resizeTextMinSize = 16;
+            inputText.resizeTextMaxSize = 23;
+            MarketShopSkin.ApplyInput(quantity);
             quantity.gameObject.AddComponent<PortSettingsCancelHandler>().OnCancelRequested =
                 () => { if (viewCurrent()) CloseVoyageCargo(true); };
-            Button decrease = CargoButton("Voyage Cargo Quantity Decrease",details,new Vector2(60,44),new Vector2(-121,-94),"−",viewCurrent, null);
-            Button increase = CargoButton("Voyage Cargo Quantity Increase",details,new Vector2(60,44),new Vector2(121,-94),"+",viewCurrent, null);
-            Button all = CargoButton("Voyage Cargo Discard All",details,new Vector2(264,38),new Vector2(0,-149),"全部数量",viewCurrent, null);
-            Text warning = CargoLabel("Voyage Cargo Discard Warning",details,new Vector2(310,44),new Vector2(0,-193),18,
-                "",Html("#6C2818"));
-            Button confirm = CargoButton("Confirm Voyage Cargo Discard",details,new Vector2(310,52),new Vector2(0,-246),"确认舍弃",viewCurrent, null);
+            Button decrease = CargoButton("Voyage Cargo Quantity Decrease",details,new Vector2(60,46),new Vector2(-121,-105),"−",viewCurrent, null);
+            Button increase = CargoButton("Voyage Cargo Quantity Increase",details,new Vector2(60,46),new Vector2(121,-105),"+",viewCurrent, null);
+            Button all = CargoButton("Voyage Cargo Discard All",details,new Vector2(310,36),new Vector2(0,-161),"全部数量",viewCurrent, null);
+            Text warning = CargoLabel("Voyage Cargo Discard Warning",details,new Vector2(310,44),new Vector2(0,-207),17,
+                "",Html("#87543A"));
+            Button confirm = CargoButton("Confirm Voyage Cargo Discard",details,new Vector2(310,52),new Vector2(0,-262),"确认舍弃",viewCurrent, null);
+            MarketShopSkin.SetMode(confirm, true);
             voyageCargoBindSelection = (item, current) =>
             {
                 int available = session.GetWarehouseCargoAmount(item.Key);
@@ -323,6 +337,7 @@ namespace ShatteredSail.Presentation
         private Text CargoLabel(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, string value, Color color)
         {
             Text label = CreateText(name,parent,size,position,fontSize,FontStyle.Normal,TextAnchor.MiddleCenter,color);
+            label.color = color;
             label.text = value;
             label.raycastTarget = false;
             label.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -334,10 +349,19 @@ namespace ShatteredSail.Presentation
         {
             Button button = CreateButton(name,parent,size,position,Html("#765133"),Ink,20);
             button.GetComponentInChildren<Text>().text = caption;
+            MarketShopSkin.ApplyLightButton(button);
             BindVoyageCargoButton(button, current, action);
             button.gameObject.AddComponent<PortSettingsCancelHandler>().OnCancelRequested =
                 () => { if (current()) CloseVoyageCargo(true); };
             return button;
+        }
+
+        private void CargoRule(string name, Transform parent, Vector2 size, Vector2 position)
+        {
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = new Color(.60f,.47f,.30f,.40f);
+            image.raycastTarget = false;
         }
 
         private static void BindVoyageCargoButton(Button button, Func<bool> current, Action action)

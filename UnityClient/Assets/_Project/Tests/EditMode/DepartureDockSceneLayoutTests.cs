@@ -19,10 +19,16 @@ namespace ShatteredSail.Presentation.Tests
             if (host != null) Object.DestroyImmediate(host);
         }
 
-        [Test]
-        public void BrokenAnchorUsesAnEmptyBerthWithIndependentVesselAndNonBlockingSceneRoots()
+        [TestCase(CoreGameplayPreviewPort.BrokenAnchor, "voyage_broken_anchor_open_berth_v1")]
+        [TestCase(CoreGameplayPreviewPort.WhiteShell, "voyage_white_shell_open_berth_v1")]
+        [TestCase(CoreGameplayPreviewPort.BronzeBell, "voyage_bronze_bell_open_berth_v1")]
+        [TestCase(CoreGameplayPreviewPort.SaltCrown, "voyage_salt_crown_open_berth_v1")]
+        [TestCase(CoreGameplayPreviewPort.TwilightTide, "voyage_twilight_tide_open_berth_v1")]
+        [TestCase(CoreGameplayPreviewPort.GrayGull, "voyage_gray_gull_open_berth_v1")]
+        public void RegionalDockUsesAnEmptyBerthWithIndependentVesselAndNonBlockingSceneRoots(
+            CoreGameplayPreviewPort port, string sceneResource)
         {
-            Preview(CoreGameplayPreviewPort.BrokenAnchor);
+            Preview(port);
             RectTransform route = Find<RectTransform>("Route Selection");
             RectTransform setup = Find<RectTransform>("Voyage Setup");
             RawImage background = Find<RawImage>("Voyage Background");
@@ -41,9 +47,12 @@ namespace ShatteredSail.Presentation.Tests
                     "Existing departure state refreshes locate the original direct parents.");
             }
             Assert.That(background.texture, Is.SameAs(Resources.Load<Texture2D>(
-                "PortFacilities/Regional/Voyage/voyage_broken_anchor_scene_v4")));
-            Assert.That(background.texture.width, Is.EqualTo(3840));
-            Assert.That(background.texture.height, Is.EqualTo(2160));
+                "PortFacilities/Regional/Voyage/" + sceneResource)));
+            Assert.That(background.texture, Is.Not.Null, "Every regional dock needs its commissioned scene.");
+            Assert.That(background.texture.width, Is.GreaterThanOrEqualTo(1600));
+            Assert.That(background.texture.height, Is.GreaterThanOrEqualTo(900));
+            Assert.That((float)background.texture.width / background.texture.height,
+                Is.EqualTo(16f / 9f).Within(.003f), "Regional artwork preserves the dock's landscape framing.");
             Assert.That(background.rectTransform.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.ContentSize));
             Assert.That(background.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero));
             Assert.That(background.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
@@ -51,6 +60,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(hull.texture, Is.Not.SameAs(background.texture));
             Assert.That(hull.transform.IsChildOf(Find<Button>("Inspect Departure Vessel").transform), Is.True);
             Assert.That(hull.raycastTarget, Is.False);
+            AssertWaterContact(hull);
             Assert.That(foreground.mainTexture, Is.SameAs(background.texture));
             Assert.That(foreground.GetComponent<CanvasRenderer>(), Is.Not.Null,
                 "The fixed pier needs a canvas renderer so it actually occludes the independent vessel.");
@@ -75,6 +85,56 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Find<Button>("Inspect Departure Vessel").transform.parent, Is.SameAs(setup));
             foreach (string name in new[] { "Use Chart Seed", "Departure Treasure Seed Picker", "Departure Route Summary" })
                 Assert.That(Find<RectTransform>(name).parent, Is.SameAs(route), name);
+        }
+
+        [Test]
+        public void VesselControlsAndCrewReadoutsStayOutsideTheOpenWaterBerth()
+        {
+            Preview(CoreGameplayPreviewPort.BrokenAnchor);
+            RectTransform setup = Find<RectTransform>("Voyage Setup");
+            RectTransform inspect = Find<RectTransform>("Inspect Departure Vessel");
+            Rect shipBounds = BoundsIn(setup, inspect);
+            Image controls = Find<Image>("Departure Dock Vessel Controls");
+            Image crew = Find<Image>("Departure Dock Crew Readout Panel");
+            foreach (Image panel in new[] { controls, crew })
+            {
+                Assert.That(panel.color.a, Is.GreaterThan(0f), "The controls have an independent visible backing.");
+                Assert.That(panel.raycastTarget, Is.False, "Backing artwork must not swallow its controls.");
+                Assert.That(BoundsIn(setup, panel.rectTransform).Overlaps(shipBounds), Is.False,
+                    panel.name + " must not overlap the ship or its open-water hit area.");
+            }
+            foreach (string name in new[] { "Setup Title", "Departure Dock Ship Hint", "Departure Previous Vessel", "Departure Next Vessel" })
+                AssertContained(controls.rectTransform, Find<RectTransform>(name));
+            foreach (string name in new[] { "Departure Dock Ordinary Readout", "Departure Dock Special Readout", "Departure Dock Speed Readout",
+                "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton" })
+                AssertContained(crew.rectTransform, Find<RectTransform>(name));
+            foreach (string name in new[] { "Departure Previous Vessel", "Departure Next Vessel", "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton" })
+            {
+                Button button = Find<Button>(name);
+                Assert.That(button.GetComponentsInChildren<DeparturePaintedHotspot>(true).All(item => !item.enabled), Is.True,
+                    name + " must not depend on a button painted into the port background.");
+                Assert.That(button.GetComponent<Image>().color.a, Is.GreaterThan(0f), name);
+            }
+            Assert.That(DepartureDockForegroundGraphic.SourceForegroundTopY - DepartureDockForegroundGraphic.SourceWaterlineY,
+                Is.GreaterThanOrEqualTo(100f), "Leave an explicit open-water gap before the fixed lower foreground.");
+        }
+
+        [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
+        [TestCase(CoreGameplayPreviewPort.TwilightTide)]
+        [TestCase(CoreGameplayPreviewPort.GrayGull)]
+        public void RegionalVesselLightingDoesNotAccumulateAcrossRepeatedPresentationRefresh(CoreGameplayPreviewPort port)
+        {
+            Preview(port);
+            RawImage hull = Hull();
+            Color tint = hull.color;
+            Assert.That(tint.a, Is.EqualTo(1f));
+            if (port != CoreGameplayPreviewPort.BrokenAnchor)
+                Assert.That(tint.r, Is.LessThan(.95f), "Night and overcast ports need scene-aware vessel lighting.");
+            for (int pass = 0; pass < 4; pass++)
+            {
+                ApplyPresentation();
+                Assert.That(hull.color, Is.EqualTo(tint), "Refreshing ship data must not progressively darken its artwork.");
+            }
         }
 
         [Test]
@@ -235,6 +295,9 @@ namespace ShatteredSail.Presentation.Tests
             Preview(CoreGameplayPreviewPort.BrokenAnchor);
             RectTransform route = Find<RectTransform>("Route Selection");
             Vector2 tableSize = route.sizeDelta;
+            Texture background = Find<RawImage>("Voyage Background").texture;
+            Vector2 vesselSize = Find<RectTransform>("Inspect Departure Vessel").sizeDelta;
+            Vector2 vesselPosition = Find<RectTransform>("Inspect Departure Vessel").anchoredPosition;
             Rect[] crops = Enumerable.Range(0, 3).Select(index => Find<RawImage>("Route Preview " + index).uvRect).ToArray();
             for (int pass = 0; pass < 3; pass++)
             {
@@ -255,12 +318,36 @@ namespace ShatteredSail.Presentation.Tests
             Find<Toggle>("Use Chart Seed").isOn = false;
             Find<Toggle>("Use Chart Seed").isOn = true;
             route = Find<RectTransform>("Route Selection");
-            AssertSharedPaperPanels(false);
+            foreach (RectTransform panel in new[] { route, Find<RectTransform>("Voyage Setup") })
+            {
+                Assert.That(panel.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.ContentSize));
+                Assert.That(panel.anchoredPosition, Is.EqualTo(Vector2.zero));
+                Assert.That(panel.GetComponent<Image>().color.a, Is.Zero);
+                Assert.That(panel.GetComponent<Image>().raycastTarget, Is.False);
+            }
+            Assert.That(Find<RawImage>("Voyage Background").texture, Is.SameAs(background));
+            Assert.That(Find<RectTransform>("Inspect Departure Vessel").sizeDelta, Is.EqualTo(vesselSize));
+            Assert.That(Find<RectTransform>("Inspect Departure Vessel").anchoredPosition, Is.EqualTo(vesselPosition));
+            AssertWaterContact(Hull());
+            RectTransform selection = Find<RectTransform>("Departure Chart Selection");
+            Assert.That(selection.sizeDelta.x, Is.LessThan(820f), "The seed picker stays inside the painted chart slot.");
+            Assert.That(selection.sizeDelta.y, Is.LessThan(200f));
+            foreach (string name in new[] { "Seed Input", "Departure Dock Chart Records", "Departure Chart Preview" })
+            {
+                Vector3[] corners = new Vector3[4];
+                Find<RectTransform>(name).GetWorldCorners(corners);
+                foreach (Vector3 corner in corners)
+                    Assert.That(selection.rect.Contains(selection.InverseTransformPoint(corner)), Is.True,
+                        name + " must stay inside the chart slot.");
+            }
+            Assert.That(Find<Dropdown>("Seed Input Dropdown", false).gameObject.activeInHierarchy, Is.False);
+            Assert.That(Find<Button>("Departure Dock Chart Record 0").IsInteractable(), Is.True);
+            Assert.That(Find<Text>("Departure Dock Chart Records Heading").text, Does.Contain("1"));
             Assert.That(Find<InputField>("Seed Input").IsInteractable(), Is.True);
             Assert.That(Find<Button>("Start Voyage").IsInteractable(), Is.True);
-            Assert.That(Find<Button>("Departure Treasure Seed Picker").transform.Find("Label").GetComponent<Text>().text,
-                Does.Contain(controller.Session.TreasureMaps.Count + " 张可用"),
-                "Switching from compact captions to the chart editor must restore the live map inventory count.");
+            Assert.That(Find<Text>("Departure Dock Treasure Count").text,
+                Is.EqualTo(controller.Session.TreasureMaps.Count + "张"),
+                "The painted treasure inventory readout remains visible beside the inline chart picker.");
             Find<Toggle>("Use Chart Seed").isOn = false;
             route = Find<RectTransform>("Route Selection");
             Assert.That(route.sizeDelta, Is.EqualTo(tableSize));
@@ -280,9 +367,12 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void TreasureDetailsUseBothOriginalPaperPanelsInsteadOfTheSceneBerth()
+        public void TreasureDetailsStayInThePaintedTableAndPreserveTheSceneBerth()
         {
             Preview(CoreGameplayPreviewPort.BrokenAnchor);
+            Texture background = Find<RawImage>("Voyage Background").texture;
+            RectTransform vessel = Find<RectTransform>("Inspect Departure Vessel");
+            Vector2 vesselSize = vessel.sizeDelta, vesselPosition = vessel.anchoredPosition;
             controller.Session.RestoreTreasureProgress(new CoreTreasureProgress
             {
                 pirateExperience = 1500,
@@ -292,35 +382,55 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.TrySelectTreasureSeed("DOCK-SCENE-TREASURE", out string reason), Is.True, reason);
             Render();
             Canvas.ForceUpdateCanvases();
-            AssertSharedPaperPanels(false);
-            foreach (string name in new[] { "Treasure Departure Title", "Treasure Departure Art", "Treasure Departure Detail",
-                "Treasure Departure Consumption", "Cancel Treasure Voyage", "Return To Treasure Table" })
-                Assert.That(Find<RectTransform>(name).gameObject.activeInHierarchy, Is.True);
+            foreach (string name in new[] { "Route Selection", "Voyage Setup" })
+            {
+                RectTransform root = Find<RectTransform>(name);
+                Assert.That(root.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.ContentSize));
+                Assert.That(root.anchoredPosition, Is.EqualTo(Vector2.zero));
+                Assert.That(root.GetComponent<Image>().color.a, Is.Zero);
+                Assert.That(root.GetComponent<Image>().raycastTarget, Is.False);
+            }
+            Assert.That(Find<RawImage>("Voyage Background").texture, Is.SameAs(background));
+            Assert.That(Find<RectTransform>("Inspect Departure Vessel").sizeDelta, Is.EqualTo(vesselSize));
+            Assert.That(Find<RectTransform>("Inspect Departure Vessel").anchoredPosition, Is.EqualTo(vesselPosition));
+            AssertWaterContact(Hull());
+            RectTransform selection = Find<RectTransform>("Departure Dock Treasure Selection");
+            Assert.That(selection.parent, Is.SameAs(Find<RectTransform>("Route Selection")));
+            Assert.That(Find<RawImage>("Departure Dock Treasure Preview").texture.name, Is.EqualTo("treasure_chart_weathered"));
+            Assert.That(Find<Dropdown>("Departure Dock Treasure Dropdown").value, Is.EqualTo(1));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item =>
+                item.gameObject.activeInHierarchy && item.name == "Departure Treasure Seed Selection"), Is.False);
             Assert.That(Find<Button>("Start Voyage").GetComponentInChildren<Text>().text, Does.Contain("消耗藏宝图"));
         }
-
         [Test]
-        public void CrewConfigurationUsesBothOriginalPaperPanelsAndHidesTheSceneOnlyLayers()
+        public void CrewConfigurationUsesCentralOverlayAndPreservesThePaintedDock()
         {
             Preview(CoreGameplayPreviewPort.BrokenAnchor);
+            Texture background = Find<RawImage>("Voyage Background").texture;
+            RectTransform vessel = Find<RectTransform>("Inspect Departure Vessel");
+            Vector2 vesselSize = vessel.sizeDelta, vesselPosition = vessel.anchoredPosition;
             Find<Button>("Configure Voyage Crew").onClick.Invoke();
             Canvas.ForceUpdateCanvases();
-            AssertSharedPaperPanels(true);
-            for (int index = 0; index < CoreVoyageSession.Routes.Count; index++)
+            Assert.That(Find<RawImage>("Voyage Background").texture, Is.SameAs(background));
+            foreach (string name in new[] { "Route Selection", "Voyage Setup" })
             {
-                Text routeLabel = Find<Button>("Route " + index).transform.Find("Label").GetComponent<Text>();
-                CoreRouteDefinition route = CoreVoyageSession.Routes[index];
-                Assert.That(routeLabel.enabled, Is.True, "The expanded editor must restore the live route label.");
-                Assert.That(routeLabel.text, Does.Contain(route.Theme), "The crew editor retains the full route explanation.");
-                Assert.That(routeLabel.text, Does.Contain(route.BossName), "The crew editor retains the region's boss.");
-                Assert.That(Find<RawImage>("Route Preview " + index).enabled, Is.True,
-                    "The expanded editor must restore the original route illustration.");
-                Assert.That(Find<RawImage>("Route Preview " + index).uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)),
-                    "Crew construction must not leave compact scene crops on the expanded route cards.");
+                RectTransform root = Find<RectTransform>(name);
+                Assert.That(root.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.ContentSize));
+                Assert.That(root.anchoredPosition, Is.EqualTo(Vector2.zero));
+                Assert.That(root.GetComponent<Image>().color.a, Is.Zero);
             }
-            Assert.That(Find<Slider>("Departure Ordinary Crew Slider"), Is.Not.Null);
-            for (int index = 0; index < 6; index++)
-                Assert.That(Find<Button>("Departure Special Crew Toggle " + index), Is.Not.Null);
+            Assert.That(Find<RectTransform>("Inspect Departure Vessel").sizeDelta, Is.EqualTo(vesselSize));
+            Assert.That(Find<RectTransform>("Inspect Departure Vessel").anchoredPosition, Is.EqualTo(vesselPosition));
+            Assert.That(Find<RawImage>("Departure Dock Selected Sea").isActiveAndEnabled, Is.True);
+            RectTransform card = Find<RectTransform>("Departure Crew Configuration");
+            Assert.That(card.parent.name, Is.EqualTo("Departure Crew Overlay"));
+            Assert.That(card.sizeDelta, Is.EqualTo(new Vector2(840, 500)));
+            Assert.That(card.anchoredPosition, Is.EqualTo(new Vector2(24, -40)));
+            Assert.That(card.GetComponent<Image>().sprite, Is.SameAs(MarketShopSkin.Paper));
+            foreach (string removed in new[] { "Departure Ordinary Crew Label", "Departure Ordinary Crew Slider",
+                "Departure Ordinary Crew Hint", "Departure Special Crew Heading", "Departure Special Crew Rules" })
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == removed), Is.False, removed);
+            Assert.That(Find<ScrollRect>("Departure Special Crew Scroll").content, Is.Not.Null);
             Assert.That(Find<Button>("Back To Voyage Setup"), Is.Not.Null);
             Assert.That(Find<Button>("Confirm Departure Crew"), Is.Not.Null);
             controller.ConfigureEditorPreviewDepartureChart(0);
@@ -334,27 +444,34 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase(CoreGameplayPreviewPort.SaltCrown)]
         [TestCase(CoreGameplayPreviewPort.TwilightTide)]
         [TestCase(CoreGameplayPreviewPort.GrayGull)]
-        public void OtherPortsRetainTheSharedPaperLayoutAndTheirOwnBackground(CoreGameplayPreviewPort port)
+        public void SwitchingPortRefreshesBothPaintedBackgroundAndForeground(CoreGameplayPreviewPort port)
         {
-            Preview(port);
+            Preview(CoreGameplayPreviewPort.BrokenAnchor);
+            Texture previous = Find<RawImage>("Voyage Background").texture;
+            controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.VoyageDeparture, port, 0);
+            Canvas.ForceUpdateCanvases();
             RectTransform route = Find<RectTransform>("Route Selection");
             RectTransform setup = Find<RectTransform>("Voyage Setup");
-            Assert.That(route.sizeDelta, Is.EqualTo(DepartureLayout.RoutePanelSize));
-            Assert.That(route.anchoredPosition, Is.EqualTo(DepartureLayout.RoutePanelPosition));
-            Assert.That(setup.sizeDelta, Is.EqualTo(DepartureLayout.SetupPanelSize));
-            Assert.That(setup.anchoredPosition, Is.EqualTo(DepartureLayout.SetupPanelPosition));
+            Assert.That(route.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.ContentSize));
+            Assert.That(route.anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(setup.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.ContentSize));
+            Assert.That(setup.anchoredPosition, Is.EqualTo(Vector2.zero));
             foreach (RectTransform root in new[] { route, setup })
             {
-                Assert.That(root.GetComponent<Image>().sprite, Is.Not.Null);
-                Assert.That(root.GetComponent<Image>().color.a, Is.EqualTo(1f));
+                Assert.That(root.GetComponent<Image>().sprite, Is.Null);
+                Assert.That(root.GetComponent<Image>().color.a, Is.Zero);
+                Assert.That(root.GetComponent<Image>().raycastTarget, Is.False);
             }
-            Assert.That(host.GetComponentsInChildren<DepartureDockForegroundGraphic>(true), Is.Empty);
-            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Departure Dock Selected Sea"), Is.False);
-            Assert.That(Find<RectTransform>("Inspect Departure Vessel").sizeDelta, Is.EqualTo(DepartureLayout.ShipPreviewSize));
             RawImage background = Find<RawImage>("Voyage Background");
+            Assert.That(background.texture, Is.Not.Null);
+            Assert.That(background.texture, Is.Not.SameAs(previous));
             Assert.That(background.texture, Is.SameAs(new PortFacilityArtCatalog().RegionalBackground(
                 PortFacilityArtCatalog.VoyageFacilityIndex, controller.Session.CurrentPort)));
-            Assert.That(background.rectTransform.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.BackgroundSize));
+            Assert.That(Find<DepartureDockForegroundGraphic>("Departure Dock Foreground").mainTexture,
+                Is.SameAs(background.texture), "Foreground must use the newly selected port's art.");
+            AssertPaintedButton(Find<Button>("Start Voyage"));
+            AssertPaintedButton(Find<Button>("Departure Buy Provisions"));
+            AssertWaterContact(Hull());
         }
 
         private void Preview(CoreGameplayPreviewPort port)
@@ -410,6 +527,28 @@ namespace ShatteredSail.Presentation.Tests
             Vector3 contact = water.InverseTransformPoint(hull.rectTransform.TransformPoint(ShipWaterlineLayout.HullContactLocal(hull)));
             Assert.That(contact.y, Is.EqualTo(0f).Within(.1f),
                 "All source images must place their authored keel on the same berth waterline.");
+            RectTransform setup = Find<RectTransform>("Voyage Setup");
+            RectTransform inspect = Find<RectTransform>("Inspect Departure Vessel");
+            Transform foreground = Find<DepartureDockForegroundGraphic>("Departure Dock Foreground").transform;
+            Vector2 hullLocal = ShipWaterlineLayout.HullContactLocal(hull);
+            Vector2 expectedContact = setup.InverseTransformPoint(hull.rectTransform.TransformPoint(hullLocal));
+            Vector2 widthEnd = setup.InverseTransformPoint(hull.rectTransform.TransformPoint(
+                hullLocal + new Vector2(ShipWaterlineLayout.HullWidthLocal(hull), 0f)));
+            float expectedWidth = Mathf.Abs(widthEnd.x - expectedContact.x);
+            foreach (string name in new[] { "Departure Dock Water Blend", "Departure Dock Water Ripple" })
+            {
+                DepartureDockWaterContactGraphic layer = Find<DepartureDockWaterContactGraphic>(name);
+                Assert.That(layer.transform.parent, Is.SameAs(setup), name);
+                Assert.That(layer.raycastTarget, Is.False, name + " must not block ship inspection or buttons.");
+                Assert.That(layer.IsRippleLayer, Is.EqualTo(name.EndsWith("Ripple")));
+                Assert.That(Vector2.Distance(layer.HullContact, expectedContact), Is.LessThan(.1f), name + " must follow this vessel's actual water contact.");
+                Assert.That(layer.HullWidth, Is.EqualTo(expectedWidth).Within(.1f), name + " must follow this vessel's immersed width.");
+                Assert.That(layer.transform.GetSiblingIndex(), Is.GreaterThan(inspect.GetSiblingIndex()), name);
+                Assert.That(layer.transform.GetSiblingIndex(), Is.LessThan(foreground.GetSiblingIndex()), name);
+                if (!layer.IsRippleLayer)
+                    Assert.That(layer.mainTexture, Is.SameAs(Find<RawImage>("Voyage Background").texture),
+                        "Soft immersion samples the current port water instead of carrying an old port's water patch.");
+            }
         }
 
         private static void AssertPaintedButton(Button button)
@@ -427,6 +566,29 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(label.text, Is.Not.Empty, button.name);
             foreach (NauticalButtonMotion motion in button.GetComponentsInChildren<NauticalButtonMotion>(true))
                 Assert.That(motion.enabled, Is.False, "Painted signs must not move away from their authored scenery.");
+        }
+
+        private static Rect BoundsIn(Transform parent, RectTransform child)
+        {
+            Vector3[] corners = new Vector3[4];
+            child.GetWorldCorners(corners);
+            Vector2 min = parent.InverseTransformPoint(corners[0]), max = min;
+            foreach (Vector3 corner in corners)
+            {
+                Vector2 local = parent.InverseTransformPoint(corner);
+                min = Vector2.Min(min, local);
+                max = Vector2.Max(max, local);
+            }
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
+        private static void AssertContained(RectTransform parent, RectTransform child)
+        {
+            Rect bounds = BoundsIn(parent, child);
+            Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(parent.rect.xMin - .1f), child.name);
+            Assert.That(bounds.xMax, Is.LessThanOrEqualTo(parent.rect.xMax + .1f), child.name);
+            Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(parent.rect.yMin - .1f), child.name);
+            Assert.That(bounds.yMax, Is.LessThanOrEqualTo(parent.rect.yMax + .1f), child.name);
         }
 
         private void Render() => typeof(CoreGameplayDemoController).GetMethod("Render", PrivateInstance).Invoke(controller, null);

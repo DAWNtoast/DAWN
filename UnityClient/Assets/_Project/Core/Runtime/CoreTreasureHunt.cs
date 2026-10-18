@@ -12,6 +12,8 @@ namespace ShatteredSail.Core.Gameplay
         public string rankId;
         // Missing from old saves means the original 48 x 32 sea.
         public int mapGeometryVersion;
+        // Absent in old saves: retain the original shared event pool in flight and in archives.
+        public int contentVersion;
     }
 
     [Serializable]
@@ -21,6 +23,7 @@ namespace ShatteredSail.Core.Gameplay
         public string seed;
         public string rankId;
         public int mapGeometryVersion;
+        public int contentVersion;
         public string departurePort;
         public bool hasExplorationCoverage;
         public float explorationCoverage;
@@ -102,13 +105,13 @@ namespace ShatteredSail.Core.Gameplay
             var held = new CoreTreasureMapSave[treasureMaps.Count];
             for (int i = 0; i < held.Length; i++) held[i] = new CoreTreasureMapSave {
                 id = treasureMaps[i].Id, seed = treasureMaps[i].Seed, rankId = treasureMaps[i].RankId,
-                mapGeometryVersion = treasureMaps[i].MapGeometryVersion };
+                mapGeometryVersion = treasureMaps[i].MapGeometryVersion, contentVersion = treasureMaps[i].ContentVersion };
             var used = new CoreUsedTreasureMapSave[usedTreasureMaps.Count];
             for (int i = 0; i < used.Length; i++)
             {
                 CoreUsedTreasureMapRecord record = usedTreasureMaps[i];
                 used[i] = new CoreUsedTreasureMapSave { id = record.Id, seed = record.Seed, rankId = record.RankId,
-                    mapGeometryVersion = record.MapGeometryVersion,
+                    mapGeometryVersion = record.MapGeometryVersion, contentVersion = record.ContentVersion,
                     departurePort = record.DeparturePort, hasExplorationCoverage = record.HasExplorationCoverage,
                     explorationCoverage = record.ExplorationCoverage };
             }
@@ -134,10 +137,10 @@ namespace ShatteredSail.Core.Gameplay
             // a save of the remaining inventory. The profile loader preserves
             // the original JSON when it receives this compatibility failure.
             foreach (CoreTreasureMapSave saved in progress.maps ?? Array.Empty<CoreTreasureMapSave>())
-                if (saved != null && !ValidMapGeometryVersion(saved.mapGeometryVersion))
+                if (saved != null && (!ValidMapGeometryVersion(saved.mapGeometryVersion) || !ValidTreasureContentVersion(saved.contentVersion)))
                     throw new ArgumentException("藏宝图海域版本不兼容，原始档案已保留。", nameof(progress));
             foreach (CoreUsedTreasureMapSave saved in progress.usedMaps ?? Array.Empty<CoreUsedTreasureMapSave>())
-                if (saved != null && !ValidMapGeometryVersion(saved.mapGeometryVersion))
+                if (saved != null && (!ValidMapGeometryVersion(saved.mapGeometryVersion) || !ValidTreasureContentVersion(saved.contentVersion)))
                     throw new ArgumentException("藏宝图海域版本不兼容，原始档案已保留。", nameof(progress));
             PirateExperience = Math.Max(0, progress.pirateExperience);
             TreasureFragments = Math.Max(0, progress.fragments);
@@ -163,26 +166,27 @@ namespace ShatteredSail.Core.Gameplay
             {
                 if (save == null || string.IsNullOrWhiteSpace(save.id) || string.IsNullOrWhiteSpace(save.seed) ||
                     !string.IsNullOrEmpty(save.rankId) && CoreTreasureHuntCatalog.FindRank(save.rankId) == null ||
-                    !ValidMapGeometryVersion(save.mapGeometryVersion) ||
+                    !ValidMapGeometryVersion(save.mapGeometryVersion) || !ValidTreasureContentVersion(save.contentVersion) ||
                     !ids.Add(save.id) || !seeds.Add(save.seed.Trim())) continue;
                 bool hasCoverage = save.hasExplorationCoverage && !float.IsNaN(save.explorationCoverage) && !float.IsInfinity(save.explorationCoverage);
                 usedTreasureMaps.Add(new CoreUsedTreasureMapRecord(save.id, save.seed.Trim(), save.rankId,
                     save.departurePort, hasCoverage, hasCoverage ? ClampExplorationCoverage(save.explorationCoverage) : 0f,
-                    save.mapGeometryVersion));
+                    save.mapGeometryVersion, save.contentVersion));
                 issuedTreasureSeeds.Add(save.seed.Trim());
             }
             foreach (CoreTreasureMapSave save in progress.maps ?? Array.Empty<CoreTreasureMapSave>())
             {
                 if (save == null || string.IsNullOrWhiteSpace(save.seed) || string.IsNullOrWhiteSpace(save.id) ||
-                    CoreTreasureHuntCatalog.FindRank(save.rankId) == null || !ValidMapGeometryVersion(save.mapGeometryVersion)) continue;
+                    CoreTreasureHuntCatalog.FindRank(save.rankId) == null || !ValidMapGeometryVersion(save.mapGeometryVersion) ||
+                    !ValidTreasureContentVersion(save.contentVersion)) continue;
                 if (completedTreasureSeeds.Contains(save.seed.Trim()))
                 {
                     // A legacy record can sometimes retain its actual rank beside a completed seed.
-                    AddUsedTreasureMap(new CoreTreasureMapRecord(save.id, save.seed.Trim(), save.rankId, save.mapGeometryVersion), string.Empty);
+                    AddUsedTreasureMap(new CoreTreasureMapRecord(save.id, save.seed.Trim(), save.rankId, save.mapGeometryVersion, save.contentVersion), string.Empty);
                     continue;
                 }
                 if (treasureMaps.Count >= CoreTreasureHuntCatalog.MaxHeldMaps || !ids.Add(save.id) || !seeds.Add(save.seed.Trim())) continue;
-                treasureMaps.Add(new CoreTreasureMapRecord(save.id, save.seed.Trim(), save.rankId, save.mapGeometryVersion));
+                treasureMaps.Add(new CoreTreasureMapRecord(save.id, save.seed.Trim(), save.rankId, save.mapGeometryVersion, save.contentVersion));
                 issuedTreasureSeeds.Add(save.seed.Trim());
             }
             // Issued seeds absent from the held inventory have been consumed, but old saves
@@ -277,7 +281,7 @@ namespace ShatteredSail.Core.Gameplay
             seed = string.IsNullOrWhiteSpace(seed) ? "CACHE-" + Guid.NewGuid().ToString("N") : seed.Trim();
             if (seed.Length > 64) { reason = "藏宝图种子最多 64 个字符。"; return false; }
             if (issuedTreasureSeeds.Contains(seed)) { reason = "该种子的藏宝图已经拼合或使用过。"; return false; }
-            var record = new CoreTreasureMapRecord(rankId + ":" + seed, seed, rankId);
+            var record = new CoreTreasureMapRecord(rankId + ":" + seed, seed, rankId, contentVersion: 1);
             identifiedTreasureFragments[rankId] -= CoreTreasureHuntCatalog.FragmentCost;
             treasureMaps.Add(record); issuedTreasureSeeds.Add(seed);
             AddLog("拼合「" + record.Name + "」，消耗同图碎片 4。种子已收入藏图册，可在任意港口装备出航。");
@@ -307,6 +311,7 @@ namespace ShatteredSail.Core.Gameplay
 
         public bool CanStartTreasureVoyage(out string reason)
         {
+            if (!CanStartWithDepartureCrew(out reason)) return false;
             CoreTreasureMapRecord record = SelectedTreasureMap;
             int dayRations = Math.Max(2, (int)Math.Ceiling(EffectiveRationCrewCount()));
             reason = Phase != CoreDemoPhase.Port ? "只能在港口开启藏宝航行。" :
@@ -327,6 +332,18 @@ namespace ShatteredSail.Core.Gameplay
             return true;
         }
 
+        // Upgrade only a held, unused chart at the new-voyage boundary. Never
+        // reinterpret the events, node IDs or geography of an active/used chart.
+        internal CoreTreasureMapRecord PromoteTreasureMapForNewVoyage(CoreTreasureMapRecord record)
+        {
+            if (record == null || record.ContentVersion != 0) return record;
+            int index = treasureMaps.IndexOf(record);
+            if (index < 0) return record;
+            var promoted = new CoreTreasureMapRecord(record.Id, record.Seed, record.RankId, record.MapGeometryVersion, 1);
+            treasureMaps[index] = promoted;
+            return promoted;
+        }
+
         private void BeginTreasureVoyageState(CoreTreasureMapRecord treasure)
         {
             ActiveTreasureMap = treasure;
@@ -335,7 +352,9 @@ namespace ShatteredSail.Core.Gameplay
             treasureMaps.Remove(treasure); selectedTreasureMapId = string.Empty;
             AddUsedTreasureMap(treasure, Map.DepartureName);
             UpdateActiveUsedTreasureMapCoverage();
-            AddLog("已消耗「" + treasure.Name + "」。集齐 " + treasure.Rank.RequiredClues + " 条线索后开启叉号秘藏；撤离或失败不返还。");
+            AddLog(treasure.ContentVersion == 0
+                ? "已消耗「" + treasure.Name + "」。集齐 " + treasure.Rank.RequiredClues + " 条线索后开启叉号秘藏；撤离或失败不返还。"
+                : "已消耗「" + treasure.Name + "」。" + CoreTreasureExpeditionCatalog.Overview(treasure.RankId) + " 撤离或失败不返还海图。");
         }
 
         private void AddUsedTreasureMap(CoreTreasureMapRecord treasure, string departurePort)
@@ -343,7 +362,7 @@ namespace ShatteredSail.Core.Gameplay
             int existingIndex = usedTreasureMaps.FindIndex(map => map.Seed == treasure.Seed);
             if (existingIndex >= 0 && usedTreasureMaps[existingIndex].Rank != null) return;
             var record = new CoreUsedTreasureMapRecord(treasure.Id, treasure.Seed, treasure.RankId, departurePort, false, 0f,
-                treasure.MapGeometryVersion);
+                treasure.MapGeometryVersion, treasure.ContentVersion);
             if (existingIndex < 0) usedTreasureMaps.Add(record);
             else usedTreasureMaps[existingIndex] = record;
             issuedTreasureSeeds.Add(treasure.Seed);
@@ -362,11 +381,13 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (record == null || record.Rank == null) return null;
             string port = string.IsNullOrWhiteSpace(record.DeparturePort) ? CurrentPort : record.DeparturePort;
-            return GenerateTreasureMap(new CoreTreasureMapRecord(record.Id, record.Seed, record.RankId, record.MapGeometryVersion), port);
+            return GenerateTreasureMap(new CoreTreasureMapRecord(record.Id, record.Seed, record.RankId,
+                record.MapGeometryVersion, record.ContentVersion), port);
         }
 
-        private static CoreRouteDefinition TreasureRoute(CoreTreasureMapRank rank) =>
-            new CoreRouteDefinition("route_treasure_hunt", rank.Name + "藏宝海域", "收集方位线索，寻找秘藏核心", rank.UnlockLevel,
+        private static CoreRouteDefinition TreasureRoute(CoreTreasureMapRank rank, int contentVersion = 0) =>
+            new CoreRouteDefinition("route_treasure_hunt", rank.Name + "藏宝海域", contentVersion == 0
+                ? "收集方位线索，寻找秘藏核心" : CoreTreasureExpeditionCatalog.ThemeName(rank.Id) + "：" + CoreTreasureExpeditionCatalog.Overview(rank.Id), rank.UnlockLevel,
                 rank.RecommendedPower, rank.RecommendedVoyageDays, rank.NauticalMilesPerMapUnit, rank.MinimumEventSpacing,
                 rank.AmbushChance, rank.AmbushDetection, "秘藏核心", rank.RecommendedPower);
 
@@ -376,7 +397,7 @@ namespace ShatteredSail.Core.Gameplay
             uint hash = SeedHash.Compute("TREASURE::" + record.RankId + "::" + record.Seed);
             var random = new Mulberry32Random(hash ^ 0x7F4A7C15u);
             var map = new CoreVoyageMap(record.MapGeometryVersion) {
-                Seed = record.Seed, Hash = hash, IsTreasureMap = true, Route = TreasureRoute(rank),
+                Seed = record.Seed, Hash = hash, IsTreasureMap = true, Route = TreasureRoute(rank, record.ContentVersion),
                 Departure = new VoyagePoint(8f, 53f), Destination = new VoyagePoint(88f, 20f),
                 DepartureName = port, DestinationName = "秘藏核心",
                 CurrentPhaseA = random.NextDouble() * Math.PI * 2, CurrentPhaseB = random.NextDouble() * Math.PI * 2,
@@ -384,26 +405,51 @@ namespace ShatteredSail.Core.Gameplay
             double wind = random.NextDouble() * Math.PI * 2;
             map.GlobalWindVector = new VoyagePoint((float)Math.Cos(wind), (float)Math.Sin(wind));
             map.GlobalWindDirection = ClosestDirection(wind); map.GlobalWindStrength = 5f + (float)random.NextDouble() * 8f;
-            var pool = new List<CoreEncounter>(CoreTreasureHuntCatalog.CreateEncounters(rank));
-            var clues = pool.FindAll(encounter => encounter.Category == "线索");
             void Mix(List<CoreEncounter> values) {
                 for (int i = values.Count - 1; i > 0; i--) { int j = (int)(random.NextDouble() * (i + 1)); var temp = values[i]; values[i] = values[j]; values[j] = temp; }
             }
-            Mix(clues);
-            var selected = clues.GetRange(0, rank.RequiredClues + 1);
+            var pool = new List<CoreEncounter>(record.ContentVersion == 0
+                ? CoreTreasureHuntCatalog.CreateEncounters(rank) : CoreTreasureExpeditionCatalog.CreateEncounters(rank));
             CoreEncounter core = pool.Find(encounter => encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId);
-            pool.Remove(core);
-            foreach (CoreEncounter clue in selected) pool.Remove(clue);
-            Mix(pool);
-            selected.AddRange(pool.GetRange(0, rank.SidePointCount - selected.Count)); Mix(selected); selected.Add(core);
+            var objectives = new HashSet<string>(StringComparer.Ordinal);
+            List<CoreEncounter> selected;
+            if (record.ContentVersion == 0)
+            {
+                // Keep the precise legacy shuffle order and random consumption.
+                var clues = pool.FindAll(encounter => encounter.Category == "线索");
+                Mix(clues);
+                selected = clues.GetRange(0, rank.RequiredClues + 1);
+                pool.Remove(core);
+                foreach (CoreEncounter clue in selected) pool.Remove(clue);
+                Mix(pool);
+                selected.AddRange(pool.GetRange(0, rank.SidePointCount - selected.Count));
+            }
+            else
+            {
+                selected = new List<CoreEncounter>();
+                pool.Remove(core);
+                foreach (string id in CoreTreasureExpeditionCatalog.GuaranteedEventIds(record.RankId))
+                {
+                    CoreEncounter encounter = pool.Find(item => item.Id == id);
+                    if (encounter == null || !objectives.Add(id))
+                        throw new InvalidOperationException("藏宝图必选事件缺失或重复：" + id);
+                    selected.Add(encounter); pool.Remove(encounter);
+                }
+                if (selected.Count > rank.SidePointCount || pool.Count < rank.SidePointCount - selected.Count)
+                    throw new InvalidOperationException("藏宝图专属事件数量不足。");
+                Mix(pool);
+                selected.AddRange(pool.GetRange(0, rank.SidePointCount - selected.Count));
+            }
+            Mix(selected); selected.Add(core);
             // Each treasure rank carries a small chapter of the legendary fleet.
             // Place those encounters before the core so the vault remains the
-            // final destination while all five warships can be met on the three
+            // final destination while all six warships can be met on the three
             // treasure maps.
-            selected.InsertRange(selected.Count - 1, CoreLegendaryWarships.CreateTreasureEncounters(record.RankId));
+            selected.InsertRange(selected.Count - 1, CoreLegendaryWarships.CreateTreasureEncounters(record.RankId, shipRosterVersion > 0));
             foreach (CoreEncounter encounter in selected) map.Nodes.Add(new CoreMapNode {
                 Id = map.Nodes.Count, Encounter = encounter, TerrainConstraint = TerrainConstraintFor(encounter, false),
-                Discovered = encounter == core, IntelRevealed = encounter == core,
+                Discovered = encounter == core || objectives.Contains(encounter.Id),
+                IntelRevealed = encounter == core || objectives.Contains(encounter.Id),
             });
             VoyageMapGenerator.Generate(map, rank.MinimumEventSpacing, 8f, 0f, 7f, 18f);
             map.Destination = map.Nodes[map.Nodes.Count - 1].Position;
@@ -465,6 +511,8 @@ namespace ShatteredSail.Core.Gameplay
         {
             int Receive(int current, int amount, string name, bool tangibleLoot = true)
             {
+                // Map fragments and clues do not occupy cargo space. Their authored
+                // quantities keep the existing rule; only cash/fame use the new x2.
                 long gain = captured && tangibleLoot && amount > 0 ? (long)Math.Ceiling(amount * 1.5d) : amount;
                 if (tangibleLoot) gain = ScaleSeaChartBattleReward(gain);
                 long total = (long)current + gain;
@@ -473,12 +521,8 @@ namespace ShatteredSail.Core.Gameplay
             }
             voyageTreasureFragments = Receive(voyageTreasureFragments, effect.MapFragments, "藏宝图碎片");
             TreasureClues = Receive(TreasureClues, effect.TreasureClues, "藏宝线索", false);
-            Cargo.Gem = Receive(Cargo.Gem, effect.Gem, "宝石");
-            Cargo.AncientMaterial = Receive(Cargo.AncientMaterial, effect.AncientMaterial, "古代材料");
-            Cargo.Relic = Receive(Cargo.Relic, effect.Relic, "稀有遗物");
-            Cargo.BlackPearl = Receive(Cargo.BlackPearl, effect.BlackPearl, "黑珍珠");
-            Cargo.AncientCompass = Receive(Cargo.AncientCompass, effect.AncientCompass, "古代罗盘");
-            Cargo.Lantern = Receive(Cargo.Lantern, effect.Lantern, "航海灯");
+            // Gem/material/relic/pearl/compass/lantern rewards have already been
+            // converted to cash by CoreBattleRewardBalance, with ordinary supplies.
             Cargo.Curse = Receive(Cargo.Curse, effect.Curse, "诅咒", false);
         }
         private static float TreasureCargoVolumeDelta(VoyageEffect effect) =>

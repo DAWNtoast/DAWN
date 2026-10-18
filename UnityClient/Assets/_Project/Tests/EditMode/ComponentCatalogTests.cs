@@ -260,6 +260,31 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(false)]
         [TestCase(true)]
+        public void ComponentShop_RemovingAppraisalPreservesExistingMonthlyOfferIdentities(bool expanded)
+        {
+            // Saved receipts use the offer index, so deleting the former appraisal
+            // RNG draw must not shift the component assigned to a purchased offer.
+            var catalog = new ComponentArtCatalog();
+            var date = new DateTime(2026, 10, 14);
+            IReadOnlyList<PortComponentShopStockItem> stock = expanded
+                ? PortComponentShopCatalog.BuildExpandedStock(catalog, "灰鸥港", date)
+                : PortComponentShopCatalog.BuildStock(catalog, "灰鸥港", date);
+            string[] expectedEntries = expanded
+                ? new[] { "sail_saltfox_rig", "sail_patched_lateen", "sail_storm_canvas",
+                    "instrument_harbor_dial", "sail_rainheron_wing", "bow_tidehook_spur" }
+                : new[] { "bow_smuggler_needle", "instrument_fogbell_chart", "sail_patched_lateen",
+                    "sail_rainheron_wing", "bow_reef_cutter", "instrument_lantern_bearing" };
+            CollectionAssert.AreEqual(expectedEntries, stock.Select(offer => offer.Entry.Id));
+            string batchSuffix = expanded ? "|monthly-market-v3" : "|monthly-v3";
+            for (int index = 0; index < stock.Count; index++)
+            {
+                Assert.That(stock[index].Id, Is.EqualTo("mystery|2026-10|4159166211|" + index + batchSuffix));
+                Assert.That(stock[index].Price, Is.EqualTo(PortComponentShopCatalog.CalculatePrice(stock[index].Entry, "灰鸥港")));
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
         public void ComponentShop_InvestmentAppendsTwoOffersPerTierAndPreservesExistingReceiptsAndContents(bool expanded)
         {
             ComponentArtCatalog catalog = new ComponentArtCatalog();
@@ -297,7 +322,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         private static string DescribeOffer(PortComponentShopStockItem offer) =>
-            offer.Id + ":" + offer.Entry.Id + ":" + offer.Quality + ":" + offer.Price + ":" + offer.InvestmentLevel;
+            offer.Id + ":" + offer.Entry.Id + ":" + offer.Price + ":" + offer.InvestmentLevel;
 
         [Test]
         public void Catalog_PreservesLegacyIdsAndStarterOrdering()

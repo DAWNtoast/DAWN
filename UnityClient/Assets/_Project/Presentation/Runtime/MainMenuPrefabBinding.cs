@@ -104,6 +104,7 @@ namespace ShatteredSail.Presentation
             view.Primary.onClick.AddListener(ApplySettings);
             view.Primary.interactable = !ReleasePlayerSmokeCheck.IsRequested;
             view.Secondary.onClick.AddListener(() => settingsPanel.gameObject.SetActive(false));
+            StyleMenuSettings();
             settingsPanel.gameObject.SetActive(false);
             return true;
         }
@@ -148,6 +149,7 @@ namespace ShatteredSail.Presentation
             achievementPreviousPage.onClick.AddListener(() => SetAchievementPage(achievementPage - 1));
             achievementNextPage.onClick.AddListener(() => SetAchievementPage(achievementPage + 1));
             view.Primary.onClick.AddListener(() => achievementsPanel.gameObject.SetActive(false));
+            StyleMenuAchievements();
             achievementsPanel.gameObject.SetActive(false);
             return true;
         }
@@ -159,6 +161,7 @@ namespace ShatteredSail.Presentation
             confirmationPanel = (RectTransform)view.transform;
             view.Primary.onClick.AddListener(StartNewGame);
             view.Secondary.onClick.AddListener(() => confirmationPanel.gameObject.SetActive(false));
+            StyleMenuNewGameConfirmation();
             confirmationPanel.gameObject.SetActive(false);
             return true;
         }

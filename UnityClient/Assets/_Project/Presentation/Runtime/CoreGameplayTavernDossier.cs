@@ -80,12 +80,7 @@ namespace ShatteredSail.Presentation
             BuildTavernDossierSpecialCard(pages[3], CoreSpecialCardCatalog.ForCrew(crew.Id),
                 "这位船员不提供战斗专属卡牌。职业专长仍然生效。", parchmentInk, parchmentMuted);
 
-            // Reviewed footer moves 88 units left and 18 up, away from the seal.
-            Button previous = CreateButton("Previous Tavern Dossier Page", detail, new Vector2(130f, 44f), new Vector2(-183f, -242f), new Color(0.42f, 0.27f, 0.14f, 0.18f), parchmentInk, 22);
-            previous.GetComponentInChildren<Text>().text = "← 上一页";
-            Text counter = CreateText("Tavern Dossier Page Counter", detail, new Vector2(160f, 44f), new Vector2(-8f, -242f), 22, FontStyle.Normal, TextAnchor.MiddleCenter, parchmentMuted);
-            Button next = CreateButton("Next Tavern Dossier Page", detail, new Vector2(130f, 44f), new Vector2(167f, -242f), new Color(0.42f, 0.27f, 0.14f, 0.18f), parchmentInk, 22);
-            next.GetComponentInChildren<Text>().text = "下一页 →";
+            // The four named tabs provide navigation; the footer holds only the crew action.
             Button recruit = CreateButton("Recruit Tavern Crew " + safe, detail, new Vector2(330f, 44f), new Vector2(427f, -242f), recruited ? new Color(0.38f, 0.28f, 0.18f, 0.7f) : parchmentAccent, recruited ? new Color(0.78f, 0.67f, 0.49f, 1f) : buttonPaper, 22);
             recruit.GetComponentInChildren<Text>().text = recruited ? active ? "当前职业代表" : "设为职业代表" : "签署契约 · " + crew.ContractCost + " 金币";
             recruit.interactable = recruited ? !active : affordable;
@@ -105,16 +100,14 @@ namespace ShatteredSail.Presentation
             for (int page = 0; page < pages.Length; page++)
             {
                 int capturedPage = page;
-                tabs[page].onClick.AddListener(() => ShowTavernDossierPage(capturedPage, pages, tabs, previous, next, counter));
+                tabs[page].onClick.AddListener(() => ShowTavernDossierPage(capturedPage, pages, tabs));
             }
-            previous.onClick.AddListener(() => ShowTavernDossierPage(tavernDossierPage - 1, pages, tabs, previous, next, counter));
-            next.onClick.AddListener(() => ShowTavernDossierPage(tavernDossierPage + 1, pages, tabs, previous, next, counter));
-            ShowTavernDossierPage(tavernDossierPage, pages, tabs, previous, next, counter);
+            ShowTavernDossierPage(tavernDossierPage, pages, tabs);
         }
 
         // Page navigation changes presentation only. In particular it must not
         // rebuild the game session, save progress, or invoke recruitment.
-        private void ShowTavernDossierPage(int page, RectTransform[] pages, Button[] tabs, Button previous, Button next, Text counter)
+        private void ShowTavernDossierPage(int page, RectTransform[] pages, Button[] tabs)
         {
             tavernDossierPage = Mathf.Clamp(page, 0, pages.Length - 1);
             for (int index = 0; index < pages.Length; index++)
@@ -123,9 +116,6 @@ namespace ShatteredSail.Presentation
                 pages[index].gameObject.SetActive(selected);
                 WoodButtonSkin.SetSelected(tabs[index], selected);
             }
-            previous.interactable = tavernDossierPage > 0;
-            next.interactable = tavernDossierPage < pages.Length - 1;
-            counter.text = "第 " + (tavernDossierPage + 1) + " / " + pages.Length + " 页";
         }
     }
 }

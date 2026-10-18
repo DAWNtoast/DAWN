@@ -13,6 +13,15 @@ namespace ShatteredSail.Core.Gameplay
         internal CoreBattleCard GetSupplyAdjustedBattleCard(CoreBattleCard card)
         {
             if (card == null || Phase != CoreDemoPhase.Battle || Battle == null) return card;
+            if (CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.Mechanic == CoreNavalExpansionMechanic.TideAnchor && Cargo.Wood < 1)
+                return new CoreBattleCard(card.Id, card.Name, card.Type, card.Energy, 0, 2, 0, 0, 0,
+                    "无木板：获得 2 普通格挡，不产生潮势，不获得定锚。", card.AllowedStages, card.Action,
+                    card.RequiredCrew, card.ArtId, card.CannonballCost, card.RequiredComponent, card.UpgradeLevel, card.SchoolId);
+            if (BActive)
+            {
+                card = CoreBoardingCardCatalog.ForBoarding(card);
+                if (card.BoardingSpec != null) return card;
+            }
             int damage = card.Damage, block = card.Block;
             bool fireFallback = UsesFireFallback(card), tideFallback = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideWard && Cargo.Wood < card.SchoolEffect.WoodCost;
             if (fireFallback)
@@ -41,6 +50,8 @@ namespace ShatteredSail.Core.Gameplay
         public int GetBattleCardPowderCost(int cardIndex)
         {
             CoreBattleCard card = GetBattleCard(cardIndex);
+            if (BActive && card?.BoardingSpec != null)
+                return BState.FreePowderUses > 0 ? 0 : BRequiredPowder(card);
             return card == null || UsesFireFallback(card) ? 0 : card.PowderCost;
         }
 
@@ -48,6 +59,8 @@ namespace ShatteredSail.Core.Gameplay
         {
             CoreBattleCard card = GetBattleCard(cardIndex);
             if (card == null) return 0;
+            CoreNavalExpansionCardSpec expansion = CoreNavalSchoolExpansionCatalog.FindSpec(card.Id);
+            if (expansion != null) return Cargo.Wood >= expansion.WoodCost ? expansion.WoodCost : 0;
             NavalBattleStage stage = Battle == null ? NavalBattleStage.Naval : Battle.Stage;
             return GetBattleCardEffects(card, stage).WoodCost + TideWoodCost(card);
         }
@@ -55,7 +68,14 @@ namespace ShatteredSail.Core.Gameplay
         private int TideWoodCost(CoreBattleCard card) => card?.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideWard &&
             Cargo.Wood >= card.SchoolEffect.WoodCost ? card.SchoolEffect.WoodCost : 0;
 
-        public int GetBattleCardEnergyRecovery(int cardIndex) => GetBattleCard(cardIndex)?.Action == NavalBattleCardAction.Energize ? 1 : 0;
+        private string BattleCardUseIdentity(CoreBattleCard card) => BActive && card?.BoardingSpec != null
+            ? BIdentity(card) : card?.Id ?? string.Empty;
+
+        public int GetBattleCardEnergyRecovery(int cardIndex)
+        {
+            CoreBattleCard card = GetBattleCard(cardIndex);
+            return CoreBattleUpgradeBalance.EnergyRecovery(card);
+        }
 
         private static bool IsThunderAttack(CoreBattleCard card) => card != null && card.SchoolId == "thunder" && card.Damage > 0;
 
@@ -78,6 +98,7 @@ namespace ShatteredSail.Core.Gameplay
             CoreSchoolBattleState s = Battle.Schools;
             if (Battle.Stage == NavalBattleStage.Preparation || s.CurseMarks <= 0 || s.CurseTurns <= 0) return false;
             int quoted = SchoolProduct(s.CurseMarks, SchoolSum(s.CurseDamagePerMark, s.CurseNextTickBonus));
+            quoted = SchoolSum(quoted, NavalFieldCurseBonus(false, s.CurseMarks));
             s.CurseNextTickBonus = 0;
             int damage = DamageSchoolEnemy(quoted);
             Battle.LastAction += " 附咒回合末结算：" + s.CurseMarks + " 层，伤害 " + damage + "。";

@@ -79,6 +79,7 @@ namespace ShatteredSail.Presentation.Tests
         public IEnumerator DeckBuilderCards_ParallelColumnsAndWheelPreserveCardsAndProgress()
         {
             yield return LoadDeckBuilderCardFixture();
+            yield return EnsureDeckBuilderBaseOverflow();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             int[] deck = controller.Session.GetBattleDeck(NavalBattleStage.Naval).ToArray();
             int[] sources = controller.Session.GetBonusBattleCards(NavalBattleStage.Naval).ToArray();
@@ -86,7 +87,8 @@ namespace ShatteredSail.Presentation.Tests
             decimal gold = controller.Session.ProfileGold;
             Button[] cards = DeckBuilderBaseCards();
             Assert.That(cards.Length, Is.EqualTo(deck.Distinct().Count()));
-            CollectionAssert.AreEqual(deck.Distinct(), cards.Select(DeckBuilderCardIndex));
+            CollectionAssert.AreEqual(DeckBuilderDisplayOrder(deck), cards.Select(DeckBuilderCardIndex),
+                "The visible base rows follow card numbers without changing the saved deck order.");
             foreach (Button card in cards) AssertDeckBuilderCompactCard(controller, card, deck.Count(index => index == DeckBuilderCardIndex(card)));
             Assert.That(GameObject.Find("Deck Builder Base Filter"), Is.Null);
             Assert.That(GameObject.Find("Deck Builder Special Filter"), Is.Null);
@@ -116,7 +118,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             float savedBaseScroll = scroll.verticalNormalizedPosition;
             Button[] special = DeckBuilderSpecialCards();
-            CollectionAssert.AreEqual(sources.Distinct(), special.Select(DeckBuilderCardIndex));
+            CollectionAssert.AreEqual(DeckBuilderDisplayOrder(sources), special.Select(DeckBuilderCardIndex),
+                "The visible special rows follow the same card-number ordering as the base column.");
             Assert.That(special, Is.Not.Empty);
             foreach (Button card in special)
             {
@@ -142,6 +145,7 @@ namespace ShatteredSail.Presentation.Tests
         public IEnumerator DeckBuilderCards_HoverShowsCenteredFullCardsWithoutBlockingDeckGestures()
         {
             yield return LoadDeckBuilderCardFixture();
+            yield return EnsureDeckBuilderBaseOverflow();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             int[] deck = controller.Session.GetBattleDeck(NavalBattleStage.Naval).ToArray();
             int[] sources = controller.Session.GetBonusBattleCards(NavalBattleStage.Naval).ToArray();
@@ -248,6 +252,7 @@ namespace ShatteredSail.Presentation.Tests
                 else Assert.That(remaining, Is.Null, "Only removing the final copy removes its row.");
             }
             Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Naval).Count(index => index == chain), Is.Zero);
+            yield return RevealDeckBuilderLibraryCard(chain);
             for (int expected = 11; expected <= 12; expected++)
             {
                 ClickDeckBuilderHeader("Add Deck Card " + chain);
@@ -263,6 +268,7 @@ namespace ShatteredSail.Presentation.Tests
             AssertDeckBuilderSaved(controller, 12);
             Assert.That(GameObject.Find("Deck Builder Status").GetComponent<Text>().text, Does.Contain("2"));
             int addIndex = DeckBuilderIndex("card_full_sail_turn");
+            yield return RevealDeckBuilderLibraryCard(addIndex);
             ClickDeckBuilderHeader("Add Deck Card " + addIndex);
             yield return null;
             AssertDeckBuilderSaved(controller, 13);
@@ -270,7 +276,7 @@ namespace ShatteredSail.Presentation.Tests
             AssertDeckBuilderCompactCard(controller, DeckBuilderBaseCards().Single(card => DeckBuilderCardIndex(card) == addIndex), 2);
             Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Naval).Last(), Is.EqualTo(addIndex));
             NavalBattleVisualCapture.Capture(controller, "DeckBuilderCards_03_AggregatedAddition.png", "同名卡再次加入只增加横条数量，基础与专属两列保持可见", "Deck Builder Panel");
-            int blockedAtMaximum = DeckBuilderIndex("card_circle_enemy");
+            int blockedAtMaximum = DeckBuilderIndex("card_retreat");
             while (controller.Session.GetBattleDeck(NavalBattleStage.Naval).Count < 20)
             {
                 int next = controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval)
@@ -338,6 +344,7 @@ namespace ShatteredSail.Presentation.Tests
                 ClickDeckBuilderHeader(remove.name);
                 yield return null;
             }
+            yield return RevealDeckBuilderLibraryCard(chain);
             Button source = ActiveButton("Add Deck Card " + chain);
             yield return CancelDeckBuilderPressBeforeDrag(source, DeckBuilderNamedPoint("Deck Builder Deck Rail"), false);
             AssertDeckBuilderSaved(controller, 10);
@@ -495,8 +502,29 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             ClickDeckBuilderHeader("Edit Stage Deck Naval");
             yield return null;
-            Assert.That(Object.FindFirstObjectByType<CoreGameplayDemoController>().Session.GetBattleDeck(NavalBattleStage.Naval).Count, Is.EqualTo(12));
-            Assert.That(DeckBuilderBaseCards(), Has.Length.EqualTo(11), "The pair of chain shots shares one summary row.");
+            IReadOnlyList<int> deck = Object.FindFirstObjectByType<CoreGameplayDemoController>().Session.GetBattleDeck(NavalBattleStage.Naval);
+            Assert.That(deck.Count, Is.EqualTo(12));
+            Assert.That(DeckBuilderBaseCards(), Has.Length.EqualTo(deck.Distinct().Count()),
+                "Each retained identity has one summary row, including migrated movement aliases.");
+            Canvas.ForceUpdateCanvases();
+        }
+
+        private static IEnumerator EnsureDeckBuilderBaseOverflow()
+        {
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            while (DeckBuilderBaseCards().Length <= 10)
+            {
+                int index = controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval)
+                    .First(value => !controller.Session.GetBattleDeck(NavalBattleStage.Naval).Contains(value));
+                yield return RevealDeckBuilderLibraryCard(index);
+                ClickDeckBuilderHeader("Add Deck Card " + index);
+                yield return null;
+            }
+            while (ActiveButton("Previous Battle Card Collection Page").interactable)
+            {
+                ClickDeckBuilderHeader("Previous Battle Card Collection Page");
+                yield return null;
+            }
             Canvas.ForceUpdateCanvases();
         }
 
@@ -507,6 +535,9 @@ namespace ShatteredSail.Presentation.Tests
             .Where(button => button.name.StartsWith("Crew Bonus Deck Card ")).ToArray();
         private static int DeckBuilderIndex(string id) => Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
             .Single(index => CoreVoyageSession.CardLibrary[index].Id == id);
+        private static IEnumerable<int> DeckBuilderDisplayOrder(IEnumerable<int> indices) => indices.Distinct()
+            .OrderBy(index => CoreBattleCardNumbering.Number(CoreVoyageSession.CardLibrary[index]))
+            .ThenBy(index => index);
         private static int DeckBuilderCardIndex(Button button)
         {
             string prefix = button.name.StartsWith("Crew Bonus Deck Card ") ? "Crew Bonus Deck Card " :
@@ -519,7 +550,8 @@ namespace ShatteredSail.Presentation.Tests
             IReadOnlyList<int> deck = controller.Session.GetBattleDeck(NavalBattleStage.Naval);
             Assert.That(deck.Count, Is.EqualTo(total));
             Assert.That(DeckBuilderBaseCards().Length, Is.EqualTo(deck.Distinct().Count()));
-            CollectionAssert.AreEqual(deck.Distinct(), DeckBuilderBaseCards().Select(DeckBuilderCardIndex));
+            CollectionAssert.AreEqual(DeckBuilderDisplayOrder(deck), DeckBuilderBaseCards().Select(DeckBuilderCardIndex),
+                "Card-number display ordering is independent of the persisted deck's copy order.");
             foreach (Button row in DeckBuilderBaseCards())
                 AssertDeckBuilderCompactCard(controller, row, deck.Count(index => index == DeckBuilderCardIndex(row)));
             AssertDeckBuilderColumnCounts(controller);

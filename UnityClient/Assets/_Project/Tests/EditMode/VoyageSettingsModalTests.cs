@@ -14,7 +14,7 @@ namespace ShatteredSail.Core.Tests
     {
         [TestCase(CoreGameplayPreviewScreen.Navigation, true)]
         [TestCase(CoreGameplayPreviewScreen.Encounter, true)]
-        [TestCase(CoreGameplayPreviewScreen.Battle, false)]
+        [TestCase(CoreGameplayPreviewScreen.Battle, true)]
         [TestCase(CoreGameplayPreviewScreen.Settlement, false)]
         public void VoyageSettings_OnlyAppearsOnSupportedScreensAndLeavesHeaderSpace(CoreGameplayPreviewScreen screen, bool expected)
         {
@@ -23,24 +23,96 @@ namespace ShatteredSail.Core.Tests
             {
                 var controller = host.AddComponent<CoreGameplayDemoController>();
                 controller.ConfigureEditorPreview(screen, CoreGameplayPreviewPort.GrayGull, 0);
-                Button button = host.GetComponentsInChildren<Button>().SingleOrDefault(item => item.name == "Voyage Settings");
+                bool battle = screen == CoreGameplayPreviewScreen.Battle;
+                Button button = host.GetComponentsInChildren<Button>().SingleOrDefault(item => item.name == (battle ? "Battle Settings" : "Voyage Settings"));
                 Assert.That(button != null, Is.EqualTo(expected));
                 Button cargo = host.GetComponentsInChildren<Button>().SingleOrDefault(item => item.name == "Voyage Cargo");
-                Assert.That(cargo != null, Is.EqualTo(expected));
+                Assert.That(cargo != null, Is.EqualTo(expected && !battle));
                 if (!expected) return;
+                Button adjacent = battle ? ButtonNamed(host, "Battle Deck") : cargo;
                 RectTransform header = (RectTransform)button.transform.parent;
                 Canvas.ForceUpdateCanvases();
                 Rect buttonBounds = Bounds(header, (RectTransform)button.transform);
-                foreach (string name in new[] { "Voyage Header Title", "Voyage Header Status", "Lookout Time Ribbon", "Voyage Cargo" })
+                string[] readouts = battle
+                    ? new[] { "Voyage Header Title", "Voyage Header Status", "Alignment Inset", "Ship Status Inset", "Battle Deck" }
+                    : new[] { "Voyage Header Title", "Voyage Header Status", "Lookout Time Ribbon", "Voyage Cargo" };
+                foreach (string name in readouts)
                     Assert.That(buttonBounds.Overlaps(Bounds(header, (RectTransform)header.Find(name))), Is.False, name);
-                Assert.That(cargo.transform.parent, Is.SameAs(header));
-                Rect cargoBounds = Bounds(header, (RectTransform)cargo.transform);
-                Assert.That(buttonBounds.xMin - cargoBounds.xMax, Is.GreaterThanOrEqualTo(11.99f), "Cargo sits next to Settings with a clear gap.");
+                Assert.That(adjacent.transform.parent, Is.SameAs(header));
+                Rect adjacentBounds = Bounds(header, (RectTransform)adjacent.transform);
+                Assert.That(buttonBounds.xMin - adjacentBounds.xMax, Is.GreaterThanOrEqualTo(11.99f), "The adjacent control leaves a clear gap before Settings.");
+                if (battle)
+                {
+                    Rect statusBounds = Bounds(header, (RectTransform)header.Find("Ship Status Inset"));
+                    Rect alignmentBounds = Bounds(header, (RectTransform)header.Find("Alignment Inset"));
+                    Assert.That(adjacentBounds.xMin - statusBounds.xMax, Is.GreaterThanOrEqualTo(15.99f));
+                    Assert.That(statusBounds.xMin - alignmentBounds.xMax, Is.GreaterThanOrEqualTo(14.99f));
+                    Assert.That(button.GetComponentInChildren<BattleHeaderIconGraphic>().raycastTarget, Is.False);
+                    Assert.That(adjacent.GetComponentInChildren<BattleHeaderIconGraphic>().raycastTarget, Is.False);
+                }
                 Assert.That(header.rect.xMax - buttonBounds.xMax, Is.EqualTo(30f).Within(.01f), "Settings stays near the right edge.");
                 Assert.That(buttonBounds.yMin, Is.GreaterThan(-37f), "Leave the tutorial instruction band clear.");
                 Assert.That(buttonBounds.yMax, Is.LessThan(39f), "Leave the tutorial objective band clear.");
                 button.onClick.Invoke();
                 Assert.That(Read<RectTransform>(controller, "portSettingsOverlay"), Is.Not.Null);
+            }
+            finally { Object.DestroyImmediate(host); }
+        }
+
+        [Test]
+        public void BattleInspection_TutorialKeepsBothHeaderControlsAvailableWithoutAdvancingBattle()
+        {
+            GameObject host = new GameObject("Tutorial Battle Inspection Test");
+            try
+            {
+                var controller = host.AddComponent<CoreGameplayDemoController>();
+                controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Battle, CoreGameplayPreviewPort.GrayGull, 0);
+                Set(controller, "tutorialActive", true);
+                typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
+                var battle = controller.Session.Battle;
+                int turn = battle.Turn;
+                int[] hand = battle.Hand.ToArray();
+                Assert.That(ButtonNamed(host, "Battle Deck").IsInteractable(), Is.True);
+                Assert.That(ButtonNamed(host, "Battle Settings").IsInteractable(), Is.True);
+                ButtonNamed(host, "Battle Deck").onClick.Invoke();
+                Assert.That(Read<RectTransform>(controller, "battleDeckOverlay"), Is.Not.Null);
+                ButtonNamed(host, "Close Battle Deck").onClick.Invoke();
+                ButtonNamed(host, "Battle Settings").onClick.Invoke();
+                Assert.That(Read<RectTransform>(controller, "portSettingsOverlay"), Is.Not.Null);
+                Assert.That(controller.Session.Battle, Is.SameAs(battle));
+                Assert.That(battle.Turn, Is.EqualTo(turn));
+                CollectionAssert.AreEqual(hand, battle.Hand);
+            }
+            finally { Object.DestroyImmediate(host); }
+        }
+
+        [Test]
+        public void BattleSettings_RejectsAnimationAndOtherBattleModals()
+        {
+            GameObject host = new GameObject("Battle Header Settings Guard Test");
+            try
+            {
+                var controller = host.AddComponent<CoreGameplayDemoController>();
+                controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Battle, CoreGameplayPreviewPort.GrayGull, 0);
+                Button settings = ButtonNamed(host, "Battle Settings");
+                Set(controller, "battleAnimationPlaying", true);
+                settings.onClick.Invoke();
+                Assert.That(Read<RectTransform>(controller, "portSettingsOverlay"), Is.Null);
+                Set(controller, "battleAnimationPlaying", false);
+                var blocker = new GameObject("Battle Modal Guard", typeof(RectTransform));
+                blocker.transform.SetParent(host.transform, false);
+                foreach (string field in new[] { "boardingCardChoiceOverlay", "battleDeckOverlay" })
+                {
+                    Set(controller, field, blocker.GetComponent<RectTransform>());
+                    settings.onClick.Invoke();
+                    Assert.That(Read<RectTransform>(controller, "portSettingsOverlay"), Is.Null, field);
+                    Set(controller, field, null);
+                }
+                settings.onClick.Invoke();
+                RectTransform first = Read<RectTransform>(controller, "portSettingsOverlay");
+                Assert.That(first, Is.Not.Null);
+                settings.onClick.Invoke();
+                Assert.That(Read<RectTransform>(controller, "portSettingsOverlay"), Is.SameAs(first));
             }
             finally { Object.DestroyImmediate(host); }
         }

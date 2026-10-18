@@ -77,12 +77,16 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase("boss_route_shattered_sail_reef", "route_reef")]
         [TestCase("boss_route_golden_tide_trade", "route_gold")]
         [TestCase("boss_route_moon_tide_ruins", "route_moon")]
+        [TestCase("boss_route_shattered_sail_reef_tide", "ghost")]
+        [TestCase("boss_route_golden_tide_trade_thunder", "imperial")]
+        [TestCase("boss_route_moon_tide_ruins_arcane", "treasure")]
         [TestCase("treasure_boss_moon_vault", "treasure")]
         [TestCase("legendary_pirate_iron_oath", "iron_oath")]
         [TestCase("legendary_pirate_thunder_crown", "thunder_crown")]
         [TestCase("legendary_pirate_red_widow", "red_widow")]
         [TestCase("legendary_pirate_ember_ark", "ember_ark")]
         [TestCase("legendary_pirate_tide_requiem", "tide_requiem")]
+        [TestCase("legendary_pirate_last_horizon", "treasure")]
         public void BoardingArt_EnemyIdentitySelectsItsOwnInstalledParty(string encounterId, string suffix)
         {
             CoreEncounter encounter = Encounter(encounterId);
@@ -144,10 +148,11 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(ids.Add(crew.Id), Is.True);
                 Assert.That(BoardingBattleArtCatalog.ForCrew(crew), Is.SameAs(expected), crew.Id);
                 Rect uv = BoardingBattleArtCatalog.CrewUv(crew);
-                Assert.That(uv.x, Is.EqualTo((profession % 3 + .01f) / 3f).Within(.000001f));
-                Assert.That(uv.y, Is.EqualTo((1 - profession / 3 + .01f) / 2f).Within(.000001f));
-                Assert.That(uv.width, Is.EqualTo(.98f / 3f).Within(.000001f));
-                Assert.That(uv.height, Is.EqualTo(.98f / 2f).Within(.000001f));
+                Assert.That(Mathf.FloorToInt(uv.center.x * 3f), Is.EqualTo(profession % 3),
+                    "Navigator/carpenter/doctor and gunner/cook/diver retain their source identities.");
+                Assert.That(Mathf.FloorToInt(uv.center.y * 2f), Is.EqualTo(1 - profession / 3));
+                Assert.That(uv.width, Is.InRange(.15f, .34f));
+                Assert.That(uv.height, Is.InRange(.35f, .5f));
                 Assert.That(uv.xMin, Is.GreaterThan(0f));
                 Assert.That(uv.yMin, Is.GreaterThan(0f));
                 Assert.That(uv.xMax, Is.LessThan(1f));
@@ -155,6 +160,35 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (Rect previous in cells) Assert.That(uv.Overlaps(previous), Is.False, crew.Id);
                 cells.Add(uv);
             }
+            // Source-alpha coverage detects boots and props clipped by a grid
+            // even when the renderer and its placement metadata agree.
+            var readable = new Texture2D(2, 2);
+            try
+            {
+                Assert.That(readable.LoadImage(System.IO.File.ReadAllBytes(UnityEditor.AssetDatabase.GetAssetPath(expected))), Is.True);
+                Color32[] pixels = readable.GetPixels32();
+                int[] coverage = new int[pixels.Length];
+                foreach (Rect uv in cells)
+                {
+                    int left = Mathf.RoundToInt(uv.xMin * readable.width);
+                    int right = Mathf.RoundToInt(uv.xMax * readable.width);
+                    int bottom = Mathf.RoundToInt(uv.yMin * readable.height);
+                    int top = Mathf.RoundToInt(uv.yMax * readable.height);
+                    int visible = 0;
+                    for (int y = bottom; y < top; y++)
+                        for (int x = left; x < right; x++)
+                        {
+                            int pixel = y * readable.width + x;
+                            coverage[pixel]++;
+                            if (pixels[pixel].a >= 64) visible++;
+                        }
+                    Assert.That(visible, Is.GreaterThan(5000), "Each character needs its own complete visible body.");
+                }
+                for (int pixel = 0; pixel < pixels.Length; pixel++)
+                    if (pixels[pixel].a >= 64 && coverage[pixel] != 1)
+                        Assert.Fail(slug + " has a clipped or duplicated silhouette pixel at " + pixel % readable.width + "," + pixel / readable.width);
+            }
+            finally { Object.DestroyImmediate(readable); }
         }
 
         [Test]

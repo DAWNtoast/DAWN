@@ -73,41 +73,52 @@ namespace ShatteredSail.Core.Tests
                 Button face = host.GetComponentsInChildren<Button>(true).First(item => item.name == "Battle Card 0");
                 Text label = face.transform.Find("Label").GetComponent<Text>();
                 Text name = face.GetComponentsInChildren<Text>(true).Single(item => item.name == "Card Name 0");
-                RectTransform surcharge = face.transform.Find("Card Repeat Cost Plate 0") as RectTransform;
+                Assert.That(face.transform.Find("Card Repeat Cost Plate 0"), Is.Null, "Increased costs use the number color without an extra label.");
                 MethodInfo formatter = typeof(CoreGameplayDemoController).GetMethod("BattleCardEffectTextForCurrentStage", BindingFlags.Instance | BindingFlags.NonPublic);
                 MethodInfo layout = typeof(CoreGameplayDemoController).GetMethod("RefreshBattleCardTextLayout", BindingFlags.Static | BindingFlags.NonPublic);
                 Assert.That(formatter, Is.Not.Null);
                 Assert.That(layout, Is.Not.Null);
                 CoreVoyageSession session = new CoreVoyageSession();
                 int checkedCards = 0;
+                var auditedIds = new System.Collections.Generic.List<string>();
                 for (int index = 0; index < CoreVoyageSession.CardLibrary.Count; index++)
                 {
+                    // Retired save-index aliases resolve to live cards, so filter the published source slots first.
+                    if (CoreVoyageSession.CardLibrary[index].AllowedStages == NavalBattleStages.None) continue;
                     CoreBattleCard card = session.GetBattleCardAtLevel(index, level);
                     if (card == null || card.AllowedStages == NavalBattleStages.None) continue;
                     label.text = (string)formatter.Invoke(controller, new object[] { card });
                     string presentationBeforeLayout = label.text;
                     name.text = CardFaceLayout.DisplayName(card);
-                    Assert.That(name.text, Is.EqualTo(card.Name + (level > 0 ? "+" + level : string.Empty)));
-                    foreach (bool repeatedCost in new[] { false, true })
-                    {
-                        surcharge.gameObject.SetActive(repeatedCost);
-                        layout.Invoke(null, new object[] { label });
-                        Assert.That(label.resizeTextForBestFit, Is.False, card.Id);
-                        Assert.That(label.supportRichText, Is.True, card.Id + " renders condition emphasis instead of visible tags");
-                        Assert.That(name.resizeTextForBestFit, Is.False, card.Id);
-                        Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .01f), card.Id);
-                        string expected = controller.Session.BattleCardFaceDescription(card, controller.Session.Battle.Stage);
-                        Assert.That(Compact(label.text), Is.EqualTo(Compact(presentationBeforeLayout)),
-                            card.Id + " wrapping retains the complete presentation quote");
-                        CollectionAssert.AreEqual(NumericTokens(expected), NumericTokens(label.text),
-                            card.Id + " retains every authoritative current-stage number, sign and percentage");
-                        Assert.That(Compact(label.text), Does.Not.Contain("实际").And.Not.Contain("当前炮击").And.Not.Contain("无药基础"), card.Id);
-                        Assert.That(NameFits(name), Is.True, card.Id + " retains the complete one-line name and upgrade rank");
-                        AssertFixedLayout(face, name, label, card.Id);
-                    }
+                    int expectedLevel = System.Math.Min(level, session.GetCardMaximumUpgradeLevel(index));
+                    Assert.That(card.UpgradeLevel, Is.EqualTo(expectedLevel), card.Id + " uses its authored upgrade cap");
+                    Assert.That(name.text, Is.EqualTo(card.Name + (expectedLevel > 0 ? "+" + expectedLevel : string.Empty)));
+                    layout.Invoke(null, new object[] { label });
+                    Assert.That(label.resizeTextForBestFit, Is.False, card.Id);
+                    Assert.That(label.supportRichText, Is.True, card.Id + " renders condition emphasis instead of visible tags");
+                    Assert.That(name.resizeTextForBestFit, Is.False, card.Id);
+                    Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .01f), card.Id);
+                    string expected = controller.Session.BattleCardFaceDescription(card, controller.Session.Battle.Stage);
+                    CardDescriptionTextTests.AssertVisibleWordsAndClauseBoundaries(presentationBeforeLayout, label.text,
+                        card.Id + " wrapping retains the complete presentation quote");
+                    CollectionAssert.AreEqual(NumericTokens(expected), NumericTokens(label.text),
+                        card.Id + " retains every authoritative current-stage number, sign and percentage");
+                    Assert.That(Compact(label.text), Does.Not.Contain("人接舷实际").And.Not.Contain("当前炮击").And.Not.Contain("无药基础"), card.Id);
+                    Assert.That(NameFits(name), Is.True, card.Id + " retains the complete one-line name and upgrade rank");
+                    AssertFixedLayout(face, name, label, card.Id);
                     checkedCards++;
+                    auditedIds.Add(card.Id);
                 }
-                Assert.That(checkedCards, Is.EqualTo(218), "Every published card, excluding retired slots, is audited at every rank.");
+                Assert.That(CoreBoardingCardCatalog.All.Count, Is.EqualTo(103), "The new canonical boarding catalog is included.");
+                Assert.That(CoreNavalSchoolExpansionCatalog.All.Count, Is.EqualTo(27), "The six-school naval expansion adds 27 cards; its nine reused cards retain their existing identities.");
+                int publishedCards = CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != NavalBattleStages.None);
+                Assert.That(publishedCards, Is.EqualTo(216 + 103 + 27), "Existing naval/legacy cards, 103 canonical boarding cards and 27 appended naval expansion cards; retired aliases are excluded.");
+                Assert.That(checkedCards, Is.EqualTo(publishedCards), "Every published card, excluding retired slots, is audited at every rank.");
+                Assert.That(auditedIds.Distinct().Count(), Is.EqualTo(publishedCards), "Each published identity is audited once.");
+                CollectionAssert.IsSubsetOf(CoreBoardingCardCatalog.All.Select(card => card.Id).ToArray(), auditedIds,
+                    "All 103 new canonical boarding cards pass the same actual layout checks.");
+                CollectionAssert.IsSubsetOf(CoreNavalSchoolExpansionCatalog.All.Select(card => card.Id).ToArray(), auditedIds,
+                    "All 27 naval expansion cards pass the same actual layout checks.");
             }
             finally { Object.DestroyImmediate(host); }
         }
@@ -153,7 +164,9 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(NameFits(name), Is.True);
                 Assert.That(effect.fontSize, Is.EqualTo(maximumEffectSize), "A long name does not shrink its effect.");
                 int longNameSize = name.fontSize;
-                effect.text = referenceEffect + "\n" + referenceEffect;
+                // Keep this independent-size fixture long even when a real
+                // card's wording is compacted without changing its effect.
+                effect.text = string.Join("\n", Enumerable.Repeat("船体伤害8。", 8));
                 CardFaceLayout.FitEffect(effect);
                 Assert.That(effect.fontSize, Is.LessThan(maximumEffectSize));
                 Assert.That(EffectFits(effect), Is.True);
@@ -180,7 +193,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(text, Does.Contain("</color>\n<size=13>机动</size>\n"));
             Assert.That(text, Does.Contain("60米"));
             Assert.That(text, Does.Not.Contain("60 米"));
-            Assert.That(text, Does.Contain("<b>平行且距离不超过60米</b>可接舷"));
+            Assert.That(text, Does.Contain("<b>两舰上下左右相邻且同向</b>时，消耗1行动点接舷"));
+            Assert.That(text, Does.Not.Contain("距离不超过60米"), "Retired distance-only boarding wording must not override the tactical grid rule.");
             Assert.That(text, Does.Not.Contain("<b>靠近"), "Movement is an effect, not a prerequisite.");
         }
 
@@ -202,12 +216,17 @@ namespace ShatteredSail.Core.Tests
             Assert.That(text, Does.Contain("<b>350米内</b>"));
         }
 
+        [TestCase("4格内：8 点船体伤害。", "4格内", "4格内：船体伤害8")]
+        [TestCase("4 格内：8 点船体伤害。", "4格内", "4格内：船体伤害8")]
+        [TestCase("4 格以内可炮击。", "4格以内", "4格以内可炮击")]
+        [TestCase("距离不超过 4 格可炮击。", "距离不超过4格", "距离不超过4格可炮击")]
         [TestCase("350米内：8 点船体伤害。", "350米内", "350米内：船体伤害8")]
         [TestCase("350 米内：8 点船体伤害。", "350米内", "350米内：船体伤害8")]
         [TestCase("150 米外无法使用。", "150米外", "150米外无法使用")]
         [TestCase("60 米以内可接舷。", "60米以内", "60米以内可接舷")]
         [TestCase("60 米以外无法接舷。", "60米以外", "60米以外无法接舷")]
         [TestCase("距离不超过 60 米可接舷。", "距离不超过60米", "距离不超过60米可接舷")]
+        [TestCase("两舰上下左右相邻且同向时，消耗1行动点接舷。", "两舰上下左右相邻且同向", "两舰上下左右相邻且同向时，消耗1行动点接舷")]
         [TestCase("须再次推进才能冲撞。", "须再次推进才能冲撞", "须再次推进才能冲撞")]
         [TestCase("须推进后才能冲撞。", "须推进后才能冲撞", "须推进后才能冲撞")]
         [TestCase("靠近 60 米，再次推进后可冲撞。", "再次推进后", "靠近60米，再次推进后可冲撞")]

@@ -11,7 +11,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest, Timeout(120000)]
-        public IEnumerator DepartureFacilityReturn_MarketAlwaysReturnsToPortAndRetainsSelectedVoyage()
+        public IEnumerator DepartureFacilityReturn_MarketReturnsToItsEntryOriginAndRetainsSelectedVoyage()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -22,6 +22,14 @@ namespace ShatteredSail.Presentation.Tests
             Button back = ActiveButton("Return To Port Hub");
             AssertDepartureReturnCaption(back, "返回港口");
 
+            ClickAcceptanceButton("Inspect Departure Vessel"); yield return null;
+            Assert.That(GameObject.Find("Shipyard Detail"), Is.Not.Null);
+            Assert.That(GameObject.Find("Port Facility Header"), Is.SameAs(header));
+            AssertDepartureReturnCaption(back, "返回出航码头");
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            AssertDepartureReturnSelection(controller, route, destination);
+            AssertDepartureReturnCaption(back, "返回港口");
+
             // Repeating the same detour exercises the retained header's label and
             // callback rebinding, including consuming the return context once.
             for (int visit = 0; visit < 2; visit++)
@@ -29,13 +37,11 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton("Adjust Voyage Supplies"); yield return null;
                 Assert.That(GameObject.Find("Market Panel"), Is.Not.Null);
                 Assert.That(GameObject.Find("Port Facility Header"), Is.SameAs(header));
-                AssertDepartureReturnCaption(back, "返回港口");
+                AssertDepartureReturnCaption(back, "返回码头");
                 if (visit == 0)
-                    NavalBattleVisualCapture.Capture(controller, "Departure_Market_Return.png", "从出航采购补给，市场页头固定返回港口", "Market Panel");
+                    NavalBattleVisualCapture.Capture(controller, "Departure_Market_Return.png", "从码头前往市场，页头返回码头并保留出航配置", "Market Panel");
                 ClickAcceptanceButton("Return To Port Hub"); yield return null;
-                Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
-                Assert.That(GameObject.Find("Voyage Setup"), Is.Null);
-                ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
+                Assert.That(GameObject.Find("Market Panel"), Is.Null);
                 AssertDepartureReturnSelection(controller, route, destination);
                 AssertDepartureReturnCaption(back, "返回港口");
             }
@@ -128,7 +134,7 @@ namespace ShatteredSail.Presentation.Tests
                 if (index > 0) { ClickAcceptanceButton("Port Hotspot Voyage"); yield return null; }
                 ClickAcceptanceButton(departureActions[index]); yield return null;
                 Assert.That(GameObject.Find(panels[index]), Is.Not.Null);
-                AssertDepartureReturnCaption(back, index == 0 ? "返回港口" : "返回出航界面");
+                AssertDepartureReturnCaption(back, index == 0 ? "返回码头" : "返回出航界面");
                 string section = controller.ActivePortSection;
                 ClickAcceptanceButton("Next Port Facility"); yield return null;
                 AssertDepartureReturnCaption(back, "返回港口");
@@ -172,9 +178,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.SelectedRouteIndex, Is.EqualTo(route));
             Assert.That(controller.Session.SelectedDestinationPort, Is.EqualTo(destination));
             string origin = controller.Session.CurrentPort;
-            string expectedSummary = origin == "断锚港"
-                ? "当前航线：" + origin + " → " + destination
-                : "选择目标港口，当前航线：" + origin + "——" + destination;
+            string expectedSummary = "当前航线：" + origin + " → " + destination;
             Assert.That(GameObject.Find("Departure Route Summary").GetComponent<Text>().text,
                 Is.EqualTo(expectedSummary));
         }

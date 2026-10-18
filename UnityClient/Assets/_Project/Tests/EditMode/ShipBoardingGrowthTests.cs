@@ -42,7 +42,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession sailors = Port(14, 0), experts = Port(14, 6);
             Assert.That(experts.GetBattleCardEffects(14, NavalBattleStage.Boarding).Damage,
                 Is.EqualTo(sailors.GetBattleCardEffects(14, NavalBattleStage.Boarding).Damage));
-            StartBattle(experts);
+            StartBattle(ref experts);
             typeof(CoreBattleState).GetProperty(nameof(CoreBattleState.PlayerOrdinaryCrew)).SetValue(experts.Battle, 28);
             Assert.That(experts.SelectedOrdinaryCrew, Is.EqualTo(14));
             Assert.That(experts.GetBattleCardEffects(14, NavalBattleStage.Boarding).Damage, Is.EqualTo(experts.GetBattleCard(14).Damage));
@@ -53,14 +53,14 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = Port(14, 0);
             session.Cargo.Medicine = 1;
-            StartBattle(session);
+            StartBattle(ref session);
             session.Battle.Stage = NavalBattleStage.Boarding;
             session.Battle.EnemyBoardingHealth = 200;
             session.Battle.PlayerBoardingHealth = 10;
             session.Battle.Energy = 10;
-            int damage = 12; // Base 8 × rank-two 1.5, irrespective of 14 sailors.
-            int guard = 6; // Base 4 × rank-two 1.5.
-            int repair = 9; // Base 6 × rank-two 1.5; medicine restores the full value.
+            int damage = 12; // Thrust: base 8 × its authored rank-two 1.5, irrespective of 14 sailors.
+            int guard = 7; // Guard: base 4 × its authored rank-two 1.75.
+            int repair = 11; // Bandage: round(base 6 × its authored rank-two 1.83); medicine restores the full value.
             session.Battle.Hand.Clear(); session.Battle.Hand.AddRange(new[] { 14, 15, 17 });
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(200 - damage));
@@ -71,9 +71,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(10 + repair));
             Assert.That(session.Battle.LastAction, Does.Contain("恢复 " + repair));
-            Assert.That(session.BattleCardEffectDescription(session.GetBattleCard(14), NavalBattleStage.Boarding), Does.Contain("伤害 " + damage));
-            Assert.That(session.BattleCardDescription(session.GetBattleCard(14)), Does.Contain("伤害 " + damage).And.Not.Contain("50%"));
-            Assert.That(session.BattleCardPortDescription(session.GetBattleCard(14)), Does.Contain("伤害 " + damage).And.Not.Contain("28 名普通水手"));
+            Assert.That(session.BattleCardEffectDescription(session.GetBattleCard(14), NavalBattleStage.Boarding), Does.Contain(damage + " 点伤害"));
+            Assert.That(session.BattleCardDescription(session.GetBattleCard(14)), Does.Contain(damage + " 点伤害").And.Not.Contain("50%"));
+            Assert.That(session.BattleCardPortDescription(session.GetBattleCard(14)), Does.Contain(damage + " 点伤害").And.Not.Contain("28 名普通水手"));
         }
 
         [Test]
@@ -82,7 +82,7 @@ namespace ShatteredSail.Core.Tests
             foreach (int ordinary in new[] { 7, 28 })
             {
                 CoreVoyageSession session = Port(ordinary, 0);
-                StartBattle(session);
+                StartBattle(ref session);
                 session.Battle.Profile = new CoreBattleProfile(CoreBossKind.None, CoreBattleArchetype.Balanced, 500, 1, 7, 0, 0, 20, 1f, 1f);
                 session.Battle.Stage = NavalBattleStage.Boarding;
                 session.Battle.PlayerBlock = 0;
@@ -96,7 +96,7 @@ namespace ShatteredSail.Core.Tests
         public void EncounterHealthScalesOnceWithoutChangingPlayerHealthOrCrewCounts()
         {
             CoreVoyageSession session = Port(14, 0);
-            StartBattle(session);
+            StartBattle(ref session);
             Assert.That(session.Battle.EnemyMaxHull, Is.EqualTo(345));
             Assert.That(session.Battle.EnemyMaxBoardingHealth, Is.EqualTo(162));
             Assert.That(session.Battle.EnemyOrdinaryCrew, Is.EqualTo(22));
@@ -111,7 +111,7 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession();
             session.ConfigureDepartureCrew(7, 0);
             session.ConfigureComponentBonuses(0, 0, 10, 0, 0);
-            StartBattle(session);
+            StartBattle(ref session);
             Assert.That(session.EffectiveFirepower, Is.EqualTo(16));
             session.Battle.Stage = NavalBattleStage.Naval;
             session.Battle.DistanceMeters = 200;
@@ -157,9 +157,21 @@ namespace ShatteredSail.Core.Tests
             return session;
         }
 
-        private static void StartBattle(CoreVoyageSession session)
+        private static void StartBattle(ref CoreVoyageSession session)
         {
-            session.SetSeed("SHIP-BOARDING-GROWTH"); session.StartVoyage();
+            session.SetSeed("SHIP-BOARDING-GROWTH");
+            if (!session.HasEnoughOrdinaryCrewForDeparture)
+            {
+                // Preserve low-crew legacy voyage coverage; new departures require 40% staffing.
+                int ordinary = session.SelectedOrdinaryCrew;
+                session.ConfigureDepartureCrew(session.MinimumDepartureOrdinaryCrew, session.SelectedSpecialCrewCount);
+                session.StartVoyage();
+                CoreVoyageCheckpoint checkpoint = session.CaptureVoyageCheckpoint();
+                checkpoint.ordinaryCrew = ordinary;
+                session = new CoreVoyageSession();
+                Assert.That(session.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
+            }
+            else session.StartVoyage();
             typeof(CoreVoyageSession).GetMethod("StartBattle", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(session, new object[] { new CoreEncounter("ship_growth_fixture", "成长夹具", "海战", "隔离战斗", true, false, 1, 500), false });
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));

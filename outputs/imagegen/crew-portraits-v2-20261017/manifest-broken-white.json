@@ -1,0 +1,122 @@
+[
+  {
+    "id": "crew_broken_anchor_navigator_lorne",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-14f9527b-f568-496e-a28a-8ed9f4e5aece.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_navigator_lorne_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_broken_anchor_navigator_lorne.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, cloudy left eye, detailed narrative harbor, face clear",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_broken_anchor_carpenter_kia",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-cc71d29a-87bd-42b8-b759-e0e58c4fd59b.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_carpenter_kia_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_broken_anchor_carpenter_kia.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, face and canonical marks clear, story prop and narrative environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_broken_anchor_doctor_hector",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-99f32adf-6432-443d-96c6-f5ff7cacabb8.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_doctor_hector_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_broken_anchor_doctor_hector.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, face and canonical marks clear, story prop and narrative environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_broken_anchor_gunner_mira",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-f45ab092-4a89-4959-ab2f-66729e5ec1c4.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_gunner_mira_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_broken_anchor_gunner_mira.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, face and canonical marks clear, story prop and narrative environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_broken_anchor_cook_tam",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-c5f20d29-1e76-4ab1-9e37-80d35130c289.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_cook_tam_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_broken_anchor_cook_tam.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, uncovered face and canonical marks clear, story prop and narrative environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_broken_anchor_diver_udo",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-365e397e-2faa-4eeb-a2e1-8c157877771c.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_diver_udo_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_broken_anchor_diver_udo.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, uncovered face and canonical marks clear, story prop and narrative environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_white_shell_navigator_saina",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-af5b8a05-6df4-4a4a-a1fa-05c0f19b39bc.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_navigator_saina_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_white_shell_navigator_saina.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, uncovered face and canonical marks clear, story prop and narrative environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_white_shell_carpenter_atang",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-1587d1dc-4b27-429f-8bbc-34aeb5cba9d6.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_carpenter_atang_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_white_shell_carpenter_atang.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, face clear, characteristic appearance and profession prop, coral harbor environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_white_shell_doctor_mirei",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-d309c240-56ff-4ef4-8391-4165905feadb.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_doctor_mirei_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_white_shell_doctor_mirei.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, face clear, characteristic appearance and profession prop, coral harbor environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_white_shell_gunner_gallo",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-7f76a291-694a-4db7-9762-df7bb5d58caf.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_gunner_gallo_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_white_shell_gunner_gallo.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, face clear, characteristic appearance and profession prop, coral harbor environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_white_shell_cook_flora",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-13f6e99c-2a33-414b-b2fd-6fb4cc39f8de.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_cook_flora_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_white_shell_cook_flora.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, face clear, characteristic appearance and story prop, coral harbor environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  },
+  {
+    "id": "crew_white_shell_diver_kela",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a14b32-edbd-7891-8b58-a7888a8a099f\\exec-c1e9529d-50de-4b22-a404-176bf4d4363d.png",
+    "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_diver_kela_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-portraits-v2-20261017\\prompts\\crew_white_shell_diver_kela.txt",
+    "tool": "built-in image_gen",
+    "visualCheck": "pass: waist-up, face clear, characteristic appearance and story prop, coral harbor environment, no UI or text",
+    "width": 1122,
+    "height": 1402
+  }
+]

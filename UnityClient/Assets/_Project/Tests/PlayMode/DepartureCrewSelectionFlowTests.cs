@@ -100,7 +100,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("DepartureOrdinaryCrewIncreaseButton");
             AssertOrdinaryDepartureSpeed(controller, 4, Mathf.Max(2.5f, baseSpeed - .8f));
             yield return ClickShipyardControl("Configure Voyage Crew");
-            yield return ClickShipyardControl("Departure Special Crew Toggle 4");
+            yield return ClickDepartureCrewChoice(4);
             yield return ClickShipyardControl("Confirm Departure Crew");
             Assert.That(controller.Session.SelectedSpecialCrewCount, Is.EqualTo(5));
             Assert.That(ActiveButton("DepartureOrdinaryCrewIncreaseButton").interactable, Is.True);
@@ -116,44 +116,37 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator DepartureCrew_ConfigurationSliderKeepsWorkingAcrossContinuousChangesAndSharesTheMainPreview()
+        public IEnumerator DepartureCrew_ConfigurationShowsOnlyRosterAndKeepsMainOrdinarySelection()
         {
             yield return LoadOrdinaryDepartureSpeedFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             yield return ClickShipyardControl("Port Hotspot Voyage");
-            yield return ClickShipyardControl("Configure Voyage Crew");
-            Slider slider = GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>();
-            int instanceId = slider.GetInstanceID();
-            Slider.SliderEvent staleSlider = slider.onValueChanged;
             float baseSpeed = controller.Session.SpeedKnots;
             foreach (int count in new[] { 4, 5, 8, 9, 10, 3, 4 })
             {
-                slider.value = count; yield return null;
-                Assert.That(GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>().GetInstanceID(), Is.EqualTo(instanceId),
-                    "Changing the value must not replace the slider while a player is dragging it.");
-                Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(count));
+                yield return SetOrdinaryDepartureCount(controller, count);
                 float expected = count < 5 ? Mathf.Max(2.5f, baseSpeed - (5 - count) * .8f) :
                     count > 8 ? baseSpeed * (1f + (count - 8) * .05f) : baseSpeed;
-                Assert.That(controller.Session.EffectiveSpeedKnots, Is.EqualTo(expected).Within(.001f));
-                Assert.That(GameObject.Find("Departure Ordinary Crew Hint").GetComponent<Text>().text,
-                    Does.Contain("航速 " + expected.ToString("0.0") + " 节"));
+                AssertOrdinaryDepartureSpeed(controller, count, expected);
             }
-            string hint = GameObject.Find("Departure Ordinary Crew Hint").GetComponent<Text>().text;
-            yield return WaitForInvestmentAndCrewScreenToSettle("Voyage Setup");
-            NavalBattleVisualCapture.Capture(controller, "DepartureCrew_05_ContinuousSlider.png", "配置页滑条连续调整不重建，航速说明与主界面共享", "Voyage Setup");
-            yield return ClickShipyardControl("Confirm Departure Crew");
-            string preview = GameObject.Find("DepartureCrewSpeedPreview").GetComponent<Text>().text;
-            Assert.That(hint, Does.Contain("航速 " + controller.Session.EffectiveSpeedKnots.ToString("0.0") + " 节"));
-            Assert.That(preview, Does.Contain("航速 " + controller.Session.EffectiveSpeedKnots.ToString("0.0") + " 节"));
-            staleSlider.Invoke(0); yield return null;
-            AssertOrdinaryDepartureSpeed(controller, 4, Mathf.Max(2.5f, baseSpeed - .8f));
             yield return ClickShipyardControl("Configure Voyage Crew");
-            Slider reopened = GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>();
-            Assert.That(reopened.value, Is.EqualTo(4));
-            reopened.value = 5; yield return null;
-            reopened.value = 9; yield return null;
+            AssertDepartureCrewOverlayRemovedContent(controller);
+            Assert.That(DepartureCrewChoiceButtons(), Is.Empty, "Unrecruited crew must not appear as disabled portrait slots.");
+            Assert.That(GameObject.Find("Departure Special Crew Empty"), Is.Not.Null);
+            Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(4));
+            Button.ButtonClickedEvent oldConfirm = ActiveButton("Confirm Departure Crew").onClick;
+            yield return WaitForInvestmentAndCrewScreenToSettle("Departure Crew Configuration");
+            NavalBattleVisualCapture.Capture(controller, "DepartureCrew_05_RosterOnly.png", "中央船员弹窗仅保留特殊船员名单与确认操作，普通人数在码头主界面调整", "Departure Crew Configuration");
+            yield return ClickShipyardControl("Confirm Departure Crew");
+            AssertOrdinaryDepartureSpeed(controller, 4, Mathf.Max(2.5f, baseSpeed - .8f));
+            yield return SetOrdinaryDepartureCount(controller, 9);
+            yield return ClickShipyardControl("Configure Voyage Crew");
+            GameObject reopened = GameObject.Find("Departure Crew Configuration");
+            oldConfirm.Invoke(); yield return null;
+            Assert.That(GameObject.Find("Departure Crew Configuration"), Is.SameAs(reopened), "A retired confirm callback cannot close a newer crew window.");
             Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(9));
             Assert.That(controller.Session.EffectiveSpeedKnots, Is.EqualTo(baseSpeed * 1.05f).Within(.001f));
+            AssertDepartureCrewOverlayRemovedContent(controller);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -184,12 +177,12 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Voyage Setup"), Is.Null);
             yield return ClickShipyardControl("Port Hotspot Voyage");
             yield return ClickShipyardControl("Configure Voyage Crew");
-            Slider.SliderEvent previousSlider = GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>().onValueChanged;
+            Button.ButtonClickedEvent previousConfirm = ActiveButton("Confirm Departure Crew").onClick;
             yield return ClickShipyardControl("Confirm Departure Crew");
             yield return ClickShipyardControl("Departure Next Vessel");
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(5));
             ordinary = controller.Session.SelectedOrdinaryCrew;
-            previousSlider.Invoke(0); previousShip.Invoke(); previousView.Invoke(); yield return null;
+            previousConfirm.Invoke(); previousShip.Invoke(); previousView.Invoke(); yield return null;
             Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(ordinary));
             Assert.That(controller.Session.SelectedSpecialCrewCount, Is.Zero);
             LogAssert.NoUnexpectedReceived();
@@ -202,21 +195,19 @@ namespace ShatteredSail.Presentation.Tests
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             yield return ClickShipyardControl("Port Hotspot Voyage");
             yield return ClickShipyardControl("Configure Voyage Crew");
-            Assert.That(GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>().value, Is.EqualTo(4));
-            Button oldCook = ActiveButton("Departure Special Crew Toggle 4");
+            Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(4));
+            Button oldCook = DepartureCrewChoiceButton(4);
             Button.ButtonClickedEvent staleCookClick = oldCook.onClick;
-            yield return ClickShipyardControl("Departure Special Crew Toggle 4");
+            yield return ClickDepartureCrewChoice(4);
             staleCookClick.Invoke(); yield return null;
             Assert.That(DepartureCrewChoiceState(4), Is.EqualTo("待命"), "Redraws and a stale click cannot reselect the cook.");
-            Slider ordinary = GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>();
-            Assert.That(ordinary.maxValue, Is.EqualTo(5));
-            ordinary.value = 5; yield return null;
-            Assert.That(DepartureCrewChoiceState(4), Is.EqualTo("待命"));
-            Assert.That(GameObject.Find("Departure Ordinary Crew Hint").GetComponent<Text>().text, Does.Contain("已达半载"));
+            Assert.That(controller.Session.SelectedSpecialCrewCount, Is.EqualTo(5));
             yield return ClickShipyardControl("Confirm Departure Crew");
+            yield return SetOrdinaryDepartureCount(controller, 5);
+            Assert.That(controller.Session.IsShortStaffed, Is.False);
             yield return ClickShipyardControl("Configure Voyage Crew");
             Assert.That(DepartureCrewChoiceState(4), Is.EqualTo("待命"));
-            Assert.That(GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>().value, Is.EqualTo(5));
+            Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(5));
             yield return ClickShipyardControl("Confirm Departure Crew");
             yield return ClickShipyardControl("Start Voyage");
 
@@ -247,7 +238,7 @@ namespace ShatteredSail.Presentation.Tests
             RefreshDepartureCrewChoiceView(controller);
             yield return null;
             yield return ClickShipyardControl("Configure Voyage Crew");
-            Assert.That(ActiveButton("Departure Special Crew Toggle 4").interactable, Is.False);
+            Assert.That(DepartureCrewChoiceButton(4), Is.Null, "Crew left at another port must be absent from this port's roster.");
             yield return ClickShipyardControl("Confirm Departure Crew");
             Assert.That(session.HasCook, Is.False);
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CrewLocationKeyForReset(cook.Id)), Is.EqualTo("白贝港"));
@@ -261,7 +252,7 @@ namespace ShatteredSail.Presentation.Tests
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             yield return ClickShipyardControl("Port Hotspot Voyage");
             yield return ClickShipyardControl("Configure Voyage Crew");
-            yield return ClickShipyardControl("Departure Special Crew Toggle 4");
+            yield return ClickDepartureCrewChoice(4);
             RecruitDepartureCrewChoice(5);
             RefreshDepartureCrewChoiceView(controller); yield return null;
             Assert.That(DepartureCrewChoiceState(4), Is.EqualTo("待命"));
@@ -298,14 +289,14 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetString("ShatteredSail.Dispatch.CrewCsv.v1", "2");
             PlayerPrefs.SetString("ShatteredSail.Dispatch.CrewIdentities.v2", doctor.Id);
             RefreshDepartureCrewChoiceView(controller); yield return null;
-            Assert.That(ActiveButton("Departure Special Crew Toggle 0").interactable, Is.False);
-            Assert.That(ActiveButton("Departure Special Crew Toggle 2").interactable, Is.True, "Old assignment keys must not prevent a local doctor from boarding.");
+            Assert.That(DepartureCrewChoiceButton(0), Is.Null, "A recruited navigator at another port is not listed locally.");
+            Assert.That(DepartureCrewChoiceButton(2).interactable, Is.True, "Old assignment keys must not prevent a local doctor from boarding.");
             yield return ClickShipyardControl("Confirm Departure Crew");
             Assert.That(controller.Session.HasNavigator, Is.False);
             Assert.That(controller.Session.HasDoctor, Is.True);
             Assert.That(controller.Session.SelectedSpecialCrewCount, Is.EqualTo(5));
             yield return ClickShipyardControl("Configure Voyage Crew");
-            Button oldCook = ActiveButton("Departure Special Crew Toggle 4");
+            Button oldCook = DepartureCrewChoiceButton(4);
             controller.Session.RestoreProfile(controller.Session.ProfileGold, "断锚港");
             oldCook.onClick.Invoke();
             var standby = (HashSet<string>)typeof(CoreGameplayDemoController).GetField("departureStandbyCrew", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
@@ -337,12 +328,14 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "白贝港");
             PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(5), 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.SelectedShipKey, 5);
+            InstallDepartureCrewFixtureShipBerths();
             for (int profession = 0; profession < 6; profession++)
                 if (profession != omittedProfession) RecruitDepartureCrewChoice(profession);
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null; yield return null;
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(5));
+            Assert.That(controller.Session.IsShipAtCurrentPort(0) && controller.Session.IsShipAtCurrentPort(5), Is.True);
             Assert.That(controller.Session.TryDepositAllPortCargo(), Is.True);
             controller.Session.Cargo.Water = controller.Session.Cargo.Food = 80;
         }
@@ -353,12 +346,27 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "白贝港");
             PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(5), 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.SelectedShipKey, 5);
+            InstallDepartureCrewFixtureShipBerths();
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null; yield return null;
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(5));
+            Assert.That(controller.Session.IsShipAtCurrentPort(0) && controller.Session.IsShipAtCurrentPort(5), Is.True);
             Assert.That(controller.Session.TryDepositAllPortCargo(), Is.True);
             controller.Session.Cargo.Water = controller.Session.Cargo.Food = 80;
+        }
+
+        private static void InstallDepartureCrewFixtureShipBerths()
+        {
+            // Both owned vessels are deliberately moored locally. Without a saved
+            // berth, legacy migration leaves the inactive starter hull at its home port.
+            PlayerPrefs.SetString(CoreGameplayDemoController.ShipPortProgressKey, JsonUtility.ToJson(new CoreShipPortProgress
+            {
+                ships = new[] {
+                    new CoreShipPortLocation { shipIndex = 0, port = "白贝港" },
+                    new CoreShipPortLocation { shipIndex = 5, port = "白贝港" },
+                },
+            }));
         }
 
         private static IEnumerator SetOrdinaryDepartureCount(CoreGameplayDemoController controller, int target)
@@ -397,8 +405,29 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(crew.Id), "白贝港");
         }
 
-        private static string DepartureCrewChoiceState(int profession) =>
-            GameObject.Find("Departure Special Crew State " + profession).GetComponent<Text>().text;
+        private static Button DepartureCrewChoiceButton(int profession) => DepartureCrewChoiceButtons()
+            .SingleOrDefault(button => CrewNarrativeCatalog.FindById(DepartureCrewChoiceIdentity(button))?.ProfessionIndex == profession);
+
+        private static Button[] DepartureCrewChoiceButtons() => Object.FindFirstObjectByType<CoreGameplayDemoController>()
+            .GetComponentsInChildren<Button>(false).Where(button => button.name.StartsWith("Departure Special Crew Toggle "))
+            .OrderBy(button => int.Parse(button.name.Substring("Departure Special Crew Toggle ".Length))).ToArray();
+
+        private static string DepartureCrewChoiceIdentity(Button button) => button.GetComponentsInChildren<Text>(true)
+            .Single(label => label.name == "Departure Special Crew Identity").text;
+
+        private static Button DepartureCrewChoiceButtonForIdentity(string identity) => DepartureCrewChoiceButtons()
+            .SingleOrDefault(button => DepartureCrewChoiceIdentity(button) == identity);
+
+        private static IEnumerator ClickDepartureCrewChoice(int profession)
+        {
+            Button button = DepartureCrewChoiceButton(profession);
+            Assert.That(button, Is.Not.Null, "Expected a local recruited crew member for profession " + profession);
+            yield return ClickShipyardControl(button.name);
+        }
+
+        private static string DepartureCrewChoiceState(int profession) => DepartureCrewChoiceButton(profession)
+            .GetComponentsInChildren<Text>(true).Single(label => label.name.StartsWith("Departure Special Crew State ")).text
+            .Replace("✓ ", string.Empty).Split('·')[0].Trim();
 
         private static void RefreshDepartureCrewChoiceView(CoreGameplayDemoController controller) =>
             typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);

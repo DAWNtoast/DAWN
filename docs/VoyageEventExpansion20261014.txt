@@ -1,0 +1,496 @@
+航海事件扩充来源与适配记录 — 2026-10-14
+现役定义：UnityClient/Assets/_Project/Core/Runtime/CoreVoyageEventCatalog.cs。历史来源：outputs/routes_v2/event_point_config.csv。
+本次包含历史表全部30条随机事件（三域各10）和24条固定地点（三域各8）。固定地点是候选内容池，地图版本决定选入数量；不在本目录强行放入全部地点。旧表其余事件与9条事件链未被宣称全部接入。
+所有新增效果只通过现有VoyageEffect实现；不存在承诺但不结算的追击、商会、契约、船速、祝福、印记、卡牌复制、概率受伤或事件链。旧职业treasurer/priest/smuggler/captain不作为条件。
+数值基准：当前普通事件常见金币18—75，木铁布5—12，单次船损2—6；随机补给12—28，固定稀有道具通常需要较长耗时或资源/职业/诅咒取舍。战斗用所在海域recommendedPower而不是历史表battle字段，事件胜利效果另加既有基础海战奖励，不改变底层战斗平衡。
+所有强制事件有零耗时、无额外物资、无职业、无需交战的退路（损船或士气），空水粮不会因等待口粮要求锁死。非强制事件沿用跳过交互。付费维修/购买/出售的固定选项可续作，免费打捞/探索沿用海图收益衰减。
+选项数值说明由C()依据真实VoyageEffect生成；净咒至少1层，叠咒最多从9增至10。以下“现役选项”直接摘录实现，Hours计实际时间与全员口粮，资源字段为基础数值，职业通用加成仍由原结算系统处理。
+每域至少两个可目视OpenSea地点：碎帆漂流船帆/潮工浮台，金潮拍卖/婚礼/债务小艇/药材船队，月潮观测浮台/遗物潜客；其余地点显隐与地形在同目录集中列明。
+
+event_reef_old_cannon | 废弃岸炮 | route_shattered_sail_reef | fixed_visible
+来源：event_point_config.csv 第8行，event_index=7。
+原始方案：A拆解:铁矿+25；B试射:啤酒-1 炮击祝福 30%船体-5；C炮手校准:炮弹+15 火药+10
+适配与数值理由：炮击祝福与概率受伤删除，改确定炮弹和船损；原铁25/弹15/药10下调到现役补给尺度。
+现役选项：
+  C("拆下炮架金属", 3, new VoyageEffect { Iron = 8 }),
+  C("挖出封存弹药箱", 2, new VoyageEffect { Cannonballs = 3, Hull = -2 }),
+  C("炮手辨认可用弹药", 1.5, new VoyageEffect { Cannonballs = 4, Powder = 3 }, "gunner")),
+
+event_reef_rotten_rations | 食物变质 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第9行，event_index=8。
+原始方案：A彻底清仓检查:损失当前食物8%（至少12 至多30） 士气+1；B分拣后限量供应:损失当前食物4%（至少6 至多18） 无额外状态惩罚；C厨师处理:啤酒-1 损失当前食物2%（至少3 至多10） 士气+1
+适配与数值理由：百分比霉变改为固定食物损失，保留厨师减损；封舱退路只扣士气，空粮也可处理。
+现役选项：
+  C("丢弃坏粮并晒舱", 1, new VoyageEffect { Food = -4, Morale = 1 }),
+  C("封存可疑粮袋，压缩餐次", 0, new VoyageEffect { Morale = -1 }),
+  C("厨师挑出可用干粮", .5, new VoyageEffect { Food = -2, Morale = 1 }, "cook"));
+
+event_reef_drifting_sail | 漂流船帆 | route_shattered_sail_reef | fixed_visible
+来源：event_point_config.csv 第11行，event_index=10。
+原始方案：A回收:布料+25；B修补船帆:需要木匠 临时航速+3；C卖给商船:啤酒-1 金币+70
+适配与数值理由：未实现临时航速改木匠补船体与回收帆布；布25降8、金币70降35。漂木作可目视OpenSea轻足迹。
+现役选项：
+  C("回收完整帆布", 2, new VoyageEffect { Cloth = 8 }),
+  C("木匠拆帆补强船壳", 2, new VoyageEffect { Hull = 5, Cloth = 3 }, "carpenter"),
+  C("与附近商船交换", 1, new VoyageEffect { Beer = -1, Gold = 35 })),
+
+event_reef_tidepool_pearls | 潮池珍珠 | route_shattered_sail_reef | fixed_hidden
+来源：event_point_config.csv 第13行，event_index=12。
+原始方案：A采集:宝石+1；B浅采:金币+60；C潜水员采集:宝石+1
+适配与数值理由：保留稀有宝石作为长时打捞，普通采珠增加2船损，潜水员更快且无船损；浅采金币60降至35。
+现役选项：
+  C("采集深池珍珠", 4, new VoyageEffect { Gem = 1, Hull = -2 }),
+  C("浅采后卖给过路渔船", 2, new VoyageEffect { Gold = 35 }),
+  C("潜水员进入石缝采珠", 2, new VoyageEffect { Gem = 1 }, "diver")),
+
+event_reef_lantern | 礁海灯塔 | route_shattered_sail_reef | fixed_visible
+来源：event_point_config.csv 第16行，event_index=15。
+原始方案：A航海士点灯:需要航海士 啤酒-1 显示3个隐藏点；B拆灯:航海灯+1；C祈愿返航:返航保护+10%
+适配与数值理由：未实现返航保护改声望；航海士明确给3隐藏点，备用航海灯沿用现有道具字段。
+现役选项：
+  C("航海士点亮旧灯", 1, new VoyageEffect { Beer = -1, Reveal = 3 }, "navigator"),
+  C("取走备用航海灯", 3, new VoyageEffect { Lantern = 1 }),
+  C("修整灯室，向过船示警", 2, new VoyageEffect { Fame = 6 })),
+
+event_reef_shallow_whirlpool | 浅海漩涡 | route_shattered_sail_reef | fixed_hidden
+来源：event_point_config.csv 第19行，event_index=18。
+原始方案：A抛锚等待:后续2航段受逆流影响；B冲过:船体-12 后续2段航速+1.5；C航海士测流:下次航行略过首个固定事件点
+适配与数值理由：逆流、后续加速、跳过事件未实现，改即时耗时/船损/情报三种代价。
+现役选项：
+  C("抛锚等待水带散开", 3, new VoyageEffect()),
+  C("撞开漂木驶离旋流", 0, new VoyageEffect { Hull = -5 }),
+  C("航海士从外侧水带脱离", 1, new VoyageEffect { Reveal = 1 }, "navigator")),
+
+event_reef_hidden_repair_dock | 隐藏修船坞 | route_shattered_sail_reef | fixed_hidden
+来源：event_point_config.csv 第20行，event_index=19。
+原始方案：A修船:船体+25；B拆零件:铁矿+35；C木匠研究:后续修船效果+25%
+适配与数值理由：独立地点，不解锁旧三阶段事件链；后续修船加成改本次木材换船体修复，拆零件铁35降10。
+现役选项：
+  C("利用旧吊架修补船壳", 4, new VoyageEffect { Wood = -2, Hull = 10 }, renewable: true),
+  C("拆取废弃零件", 3, new VoyageEffect { Iron = 10 }),
+  C("木匠按旧图修缮", 2, new VoyageEffect { Wood = -2, Hull = 12 }, "carpenter", renewable: true)),
+
+event_reef_open_water_ambush | 航路伏击 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第23行，event_index=22。
+原始方案：A急转规避:船体-8 后续1航段受逆流影响；B正面迎战:胜利金币+110；C炮手压制:降低战斗难度 声望+10
+适配与数值理由：逆流状态删除，改成立即船体代价；战斗用当前海域推荐战力；炮手分支改消耗火药1+炮弹1发射警告炮驱散，不承诺降低敌人难度。
+现役选项：
+  C("急转贴礁脱身", 0, new VoyageEffect { Hull = -5 }),
+  C("迎击掠夺艇", 1, new VoyageEffect { Gold = 70 }, battle: true),
+  C("炮手用警告炮逼退敌艇", .5, new VoyageEffect { Powder = -1, Cannonballs = -1, Fame = 4 }, "gunner"));
+
+event_reef_powder_wreck | 火药舱残骸 | route_shattered_sail_reef | fixed_hidden
+来源：event_point_config.csv 第27行，event_index=26。
+原始方案：A湿拆火药桶:火药+10 船体-4；B拖离暗礁再拆:木材-6 火药+15；C炮手辨认干燥舱:火药+18 炮弹+8
+适配与数值理由：火药10—18缩4—6、炮弹8缩3；保留短时损船/长时木材/炮手专业辨识三条路径。
+现役选项：
+  C("从裂口取出火药桶", 2, new VoyageEffect { Powder = 4, Hull = -3 }),
+  C("用木架稳住残舱", 3, new VoyageEffect { Wood = -3, Powder = 6 }),
+  C("炮手寻找干燥弹药柜", 2, new VoyageEffect { Powder = 5, Cannonballs = 3 }, "gunner")),
+
+event_reef_tidewright_platform | 潮工浮台 | route_shattered_sail_reef | fixed_visible
+来源：event_point_config.csv 第33行，event_index=32。
+原始方案：A购买修理锤:金币-95 修理锤+2；B出售废铁:铁矿-12 金币+105；C木匠交换工艺:木材-8 本局改造费-20%
+适配与数值理由：修理锤与改造折扣改实际船体修复；明确付金币或木材，不声明长期折扣。可见OpenSea工匠浮台。
+现役选项：
+  C("购买现成修缮服务", 2, new VoyageEffect { Gold = -28, Hull = 8 }, renewable: true),
+  C("出售废铁", 1, new VoyageEffect { Iron = -5, Gold = 32 }, renewable: true),
+  C("木匠合作加固船壳", 2, new VoyageEffect { Wood = -3, Hull = 10 }, "carpenter", renewable: true)),
+
+event_reef_sudden_squall | 突发礁雨 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第74行，event_index=73。
+原始方案：A收帆等待:无额外效果；B穿雨航行:船体-6；C航海士读取云隙:显示2点
+适配与数值理由：保留等待/损船/航海士测云三种取舍；缩短等待至3小时，损船降至3并零耗时作为耗尽物资退路。
+现役选项：
+  C("收帆等待雨势减弱", 3, new VoyageEffect()),
+  C("顶雨驶离礁边", 0, new VoyageEffect { Hull = -3 }),
+  C("航海士读取云隙", 1, new VoyageEffect { Reveal = 1 }, "navigator"));
+
+event_reef_rigging_snap | 索具断裂 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第75行，event_index=74。
+原始方案：A减帆修理:木材-5；B带伤前进:后续1航段受逆流影响；C木匠更换支索:木材-3 船体+3
+适配与数值理由：后续拖速改成立即船体损失；木材成本由5/3下调至2/1，木匠仍有修补收益。
+现役选项：
+  C("架设临时支索", 1.5, new VoyageEffect { Wood = -2 }),
+  C("切掉断索，承受帆架撞击", 0, new VoyageEffect { Hull = -3 }),
+  C("木匠更换支索", 1, new VoyageEffect { Wood = -1, Hull = 3 }, "carpenter"));
+
+event_reef_freshwater_slick | 漂桶淡水 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第76行，event_index=75。
+原始方案：A收集完整水桶:淡水+45；B循迹扩大打捞:淡水+70；C厨师过滤桶水:啤酒-1 淡水+65 士气+1
+适配与数值理由：原45—70淡水改12—26，避免重复随机补给覆盖整段航程；短捞、长捞与厨师处理保留时间差。
+现役选项：
+  C("捞起身边的水桶", .5, new VoyageEffect { Water = 12 }),
+  C("沿水带继续打捞", 2, new VoyageEffect { Water = 26 }),
+  C("厨师过滤残桶中的淡水", 1, new VoyageEffect { Water = 22, Morale = 1 }, "cook"));
+
+event_reef_shoal_fish_run | 鱼群迁徙 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第77行，event_index=76。
+原始方案：A撒网短捕:食物+24；B追逐鱼群:食物+42；C厨师挑选成鱼:食物+34 声望+6
+适配与数值理由：原24—42食物改12—28，厨师22、耗时更短；不额外凭空给予声望。
+现役选项：
+  C("撒网短捕", 1, new VoyageEffect { Food = 12 }),
+  C("追鱼群扩大捕捞", 3, new VoyageEffect { Food = 28 }),
+  C("厨师挑选并腌制成鱼", 1.5, new VoyageEffect { Food = 22 }, "cook"));
+
+event_reef_crew_fever | 船员发热 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第78行，event_index=77。
+原始方案：A使用药品:药品-1；B轮班照料:士气-1；C医生隔离治疗:药品-1 士气+1
+适配与数值理由：不引入疾病状态；药品、士气和实际耗时表达处置成本，保留无药品的零耗时轮班退路。
+现役选项：
+  C("使用船上药品", 1, new VoyageEffect { Medicine = -1 }),
+  C("隔开铺位，众人分担值勤", 0, new VoyageEffect { Morale = -1 }),
+  C("医生处理并安抚船员", .5, new VoyageEffect { Medicine = -1, Morale = 2 }, "doctor"));
+
+event_reef_drifting_crate | 漂流货箱 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第79行，event_index=78。
+原始方案：A捞取木箱:木材+12；B拆开封舱:布料+10；C木匠回收箱架:木材+18
+适配与数值理由：木材12/18与布料10缩为6/9与6，木匠加少量铁矿以区别单纯数量升级。
+现役选项：
+  C("捞起并拆下木框", 1, new VoyageEffect { Wood = 6 }),
+  C("打开封舱取走帆布", 2, new VoyageEffect { Cloth = 6 }),
+  C("木匠完整回收箱架", 1, new VoyageEffect { Wood = 9, Iron = 2 }, "carpenter"));
+
+event_reef_favorable_current | 顺流窗口 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第80行，event_index=79。
+原始方案：A顺势加帆:后续2航段航速+1；B偏航追流:后续2航段航速+1.5；C航海士锁定流轴:后续3航段航速+1
+适配与数值理由：未实现的后续加速改为轮休士气、测绘情报与声望，正文不再承诺航速变化。
+现役选项：
+  C("借平稳水面轮换值勤", .5, new VoyageEffect { Morale = 1 }),
+  C("测绘露出的礁缝", 2, new VoyageEffect { Reveal = 1, Fame = 3 }),
+  C("航海士记录流轴暗标", 1, new VoyageEffect { Reveal = 2 }, "navigator"));
+
+event_reef_night_fog | 夜雾迷航 | route_shattered_sail_reef | random
+来源：event_point_config.csv 第81行，event_index=80。
+原始方案：A降速鸣钟:无额外效果；B保持航向:后续1航段受逆流影响；C航海士观星定位:显示2点
+适配与数值理由：后续逆流改为立即船体损失2；航海士仍提供情报。保留源ID，显示名改为“礁雾迷航”；使用通用潮雾与暗标，不声明已切换昼夜/天气。
+现役选项：
+  C("降帆鸣钟，等待辨清方向", 3, new VoyageEffect()),
+  C("紧贴浪声强行转向", 0, new VoyageEffect { Hull = -2 }),
+  C("航海士辨认雾间暗标", 1, new VoyageEffect { Reveal = 1 }, "navigator"));
+
+event_trade_spice_auction | 香料拍卖 | route_golden_tide_trade | fixed_visible
+来源：event_point_config.csv 第88行，event_index=7。
+原始方案：A竞价:金币-120 宝石+1；B哄抬: 金币+80；C财务官套利:金币-80 宝石+1
+适配与数值理由：财务官套利改厨师鉴香付酬；宝石购买仍收费，普通搬运以3小时换28金币。无商会/拍卖市场系统状态。
+现役选项：
+  C("竞拍抵押宝石", 1, new VoyageEffect { Gold = -80, Gem = 1 }, renewable: true),
+  C("替拍卖台搬运货箱", 3, new VoyageEffect { Gold = 28 }),
+  C("厨师鉴定香料，收取酬劳", 1.5, new VoyageEffect { Gold = 32, Food = 6 }, "cook")),
+
+event_trade_gilded_lighthouse | 镀金灯塔 | route_golden_tide_trade | fixed_visible
+来源：event_point_config.csv 第93行，event_index=12。
+原始方案：A付费导航:金币-60 显示3点；B偷用灯塔: 显示2点 追击+1；C航海士校准:啤酒-1 显示3点
+适配与数值理由：偷用灯塔的追击改声望代价；情报费用60降20，航海士以劳动换情报和声望。
+现役选项：
+  C("购买泊位记录", 1, new VoyageEffect { Gold = -20, Reveal = 2 }, renewable: true),
+  C("偷偷抄录航标，损害名声", 3, new VoyageEffect { Reveal = 1, Fame = -3 }),
+  C("航海士帮忙校准铜镜", 1, new VoyageEffect { Reveal = 2, Fame = 4 }, "navigator")),
+
+event_trade_debt_collector | 债务小艇 | route_golden_tide_trade | fixed_visible
+来源：event_point_config.csv 第96行，event_index=15。
+原始方案：A还款:金币-90 商会好感+1；B威吓: 金币+60 声望-10；C船长谈判:啤酒-1 免款 商会好感+1
+适配与数值理由：不建立债务系统；场景改帮渔户调解。商会好感改声望，未支持captain条件改航海士核对日期；金币与声望代价成对明示。
+现役选项：
+  C("替渔户补齐争议款项", 1, new VoyageEffect { Gold = -25, Fame = 8 }),
+  C("威吓追债人索取钱袋", 2, new VoyageEffect { Gold = 35, Fame = -8 }),
+  C("航海士核对港口日期印章", 2, new VoyageEffect { Fame = 6, Gold = 12 }, "navigator")),
+
+event_trade_food_spoilage | 食物变质 | route_golden_tide_trade | random
+来源：event_point_config.csv 第102行，event_index=21。
+原始方案：A彻底清仓检查:损失当前食物8%（至少12 至多30） 士气+1；B分拣后限量供应:损失当前食物4%（至少6 至多18） 无额外状态惩罚；C厨师处理:啤酒-1 损失当前食物2%（至少3 至多10） 士气+1
+适配与数值理由：百分比霉变改固定食物损失，贸易粮仓采用面粉主题；厨师烘干以时间换减损。
+现役选项：
+  C("销毁湿面粉，重新分餐", 1, new VoyageEffect { Food = -6, Morale = 1 }),
+  C("封存这批面粉，缩减配餐", 0, new VoyageEffect { Morale = -1 }),
+  C("厨师烘干可用面粉", 2, new VoyageEffect { Food = -2, Morale = 1 }, "cook"));
+
+event_trade_open_water_ambush | 私掠船截击 | route_golden_tide_trade | random
+来源：event_point_config.csv 第103行，event_index=22。
+原始方案：A抛货规避:金币-80 追击-1；B护住货舱迎战:胜利金币+130；C财务官交涉:金币-50 声望+8
+适配与数值理由：未实现追击值移除；增加立即损船撤离，保证无金币也能解围；财务官改航海士核验旧航单。
+现役选项：
+  C("贴浪急转，摆脱拦截", 0, new VoyageEffect { Hull = -5 }),
+  C("护住货舱迎战", 1, new VoyageEffect { Gold = 85 }, battle: true),
+  C("航海士以旧航单换取放行", .5, new VoyageEffect { Gold = -18, Fame = 3 }, "navigator"));
+
+event_trade_quarantine_flag | 检疫黄旗 | route_golden_tide_trade | fixed_visible
+来源：event_point_config.csv 第105行，event_index=24。
+原始方案：A停船受检:药品-1 商会好感+1；B绕开检疫线:追击+1；C厨师检查粮舱:食物-10 声望+10
+适配与数值理由：商会好感与追击删除，检查给声望；厨师粮舱检查改医生协助检疫，新增无物资零耗时士气退路。
+现役选项：
+  C("停船完成检查", 3, new VoyageEffect { Fame = 3 }),
+  C("取消靠岸，安抚不满的水手", 0, new VoyageEffect { Morale = -1 }),
+  C("医生协助查验", 1, new VoyageEffect { Medicine = -1, Fame = 8 }, "doctor")),
+
+event_trade_wedding_fleet | 商船婚礼 | route_golden_tide_trade | fixed_visible
+来源：event_point_config.csv 第107行，event_index=26。
+原始方案：A送上贺礼:金币-60 士气+2 商会好感+1；B提供啤酒:啤酒-2 声望+15；C厨师承办宴席:食物-30 金币+120 士气+1
+适配与数值理由：商会好感改已实现士气/声望；金币、啤酒、餐食成本下调，厨师宴席奖励120降45。
+现役选项：
+  C("送上贺礼", 2, new VoyageEffect { Gold = -20, Morale = 2 }),
+  C("赠送一桶啤酒", 1, new VoyageEffect { Beer = -1, Fame = 8 }),
+  C("厨师承办宴席", 3, new VoyageEffect { Food = -10, Gold = 45, Morale = 1 }, "cook")),
+
+event_trade_insurance_wreck | 沉箱保险船 | route_golden_tide_trade | fixed_hidden
+来源：event_point_config.csv 第124行，event_index=43。
+原始方案：A登记打捞:金币+94 商会好感+1；B私吞货物:布料+24 追击+1；C木匠稳住船舱:木材-8 契约进度+1
+适配与数值理由：商会/追击/契约改金币与声望，私取货包付声望代价；保留木匠稳定货舱的专业方案。
+现役选项：
+  C("登记后协助打捞", 3, new VoyageEffect { Gold = 45, Fame = 4 }),
+  C("私取水下货包", 2, new VoyageEffect { Cloth = 9, Fame = -5 }),
+  C("木匠稳住货舱", 2, new VoyageEffect { Wood = -3, Gold = 55, Fame = 3 }, "carpenter")),
+
+event_trade_medicine_convoy | 药材船队 | route_golden_tide_trade | fixed_visible
+来源：event_point_config.csv 第132行，event_index=51。
+原始方案：A拖带掉队船:木材-8 契约进度+1；B护送至航标:商会好感+1 声望+11；C炮手驱散尾随者:金币+83
+适配与数值理由：契约进度改药品与声望，商会好感并入声望；炮手分支明确消耗1火药+1炮弹，酬金83降35。
+现役选项：
+  C("修好拖缆并送回队列", 3, new VoyageEffect { Wood = -3, Medicine = 1, Fame = 4 }),
+  C("护送到近处的航标", 3, new VoyageEffect { Fame = 8 }),
+  C("炮手开炮驱离窥伺的小艇", 1, new VoyageEffect { Powder = -1, Cannonballs = -1, Gold = 35 }, "gunner")),
+
+event_trade_sea_theatre | 海上剧团 | route_golden_tide_trade | fixed_hidden
+来源：event_point_config.csv 第145行，event_index=64。
+原始方案：A参加聚会:啤酒-1 士气+1；B提供物资:食物-20 声望+14；C厨师承办餐席:食物-26 金币+99
+适配与数值理由：沿用已有资源效果，口粮20/26降6/8、酬金99降40；给演出独立士气收益，设为隐藏Strait地点。
+现役选项：
+  C("带酒观看演出", 2, new VoyageEffect { Beer = -1, Morale = 2 }),
+  C("为剧团提供口粮", 1, new VoyageEffect { Food = -6, Fame = 8 }),
+  C("厨师为演出准备餐食", 3, new VoyageEffect { Food = -8, Gold = 40 }, "cook")),
+
+event_trade_customs_patrol | 海军临检 | route_golden_tide_trade | random
+来源：event_point_config.csv 第154行，event_index=73。
+原始方案：A排队受检:声望+5；B缴纳快检费:金币-55；C财务官核对舱单:契约进度+1
+适配与数值理由：契约进度改声望；财务官改航海士；15金币快检与3小时等候互换，新增零耗时士气退路。
+现役选项：
+  C("排队等候查验", 3, new VoyageEffect { Fame = 3 }),
+  C("缴纳快检费用", .5, new VoyageEffect { Gold = -15 }),
+  C("航海士整理航程凭据", 1, new VoyageEffect { Fame = 5 }, "navigator"),
+  C("接受训诫后立即离开", 0, new VoyageEffect { Morale = -1 }));
+
+event_trade_cargo_shift | 货舱移位 | route_golden_tide_trade | random
+来源：event_point_config.csv 第155行，event_index=74。
+原始方案：A停船重新绑扎:无额外效果；B继续航行:船体-5；C木匠加固隔舱:木材-4 船体+2
+适配与数值理由：保留时间/船损/木材修补取舍，船损5降至3、木材4降至2，免费退路不再另耗口粮。
+现役选项：
+  C("停船重新绑扎", 2, new VoyageEffect()),
+  C("顶住倾斜继续航行", 0, new VoyageEffect { Hull = -3 }),
+  C("木匠加固隔舱", 1, new VoyageEffect { Wood = -2, Hull = 3 }, "carpenter"));
+
+event_trade_market_rumor | 市场传闻 | route_golden_tide_trade | random
+来源：event_point_config.csv 第156行，event_index=75。
+原始方案：A购买消息:金币-30 显示2点；B转卖传闻:金币+45 追击+1；C财务官验证来源:商会好感+1
+适配与数值理由：追击改声望代价，商会好感改可结算的情报和声望；财务官改航海士，金币尺度缩至12/24。
+现役选项：
+  C("购买停泊点消息", 1, new VoyageEffect { Gold = -12, Reveal = 2 }),
+  C("夸大消息转卖给水手", 2, new VoyageEffect { Gold = 24, Fame = -4 }),
+  C("航海士交叉核对航标", 1, new VoyageEffect { Reveal = 1, Fame = 4 }, "navigator"));
+
+event_trade_merchant_distress | 商船求援 | route_golden_tide_trade | random
+来源：event_point_config.csv 第157行，event_index=76。
+原始方案：A拖带伤船:木材-6 声望+10；B迎战追兵:战斗胜利金币+125；C炮手远程掩护:降低战斗难度 声望+12
+适配与数值理由：战斗统一使用海域战力；炮手降低难度改火药1+炮弹1换非战斗警告炮掩护。拖带木材6降至3，战斗奖125降至80并另计基础战利品。
+现役选项：
+  C("加固伤船并拖离交战区", 3, new VoyageEffect { Wood = -3, Fame = 10 }),
+  C("替商船迎击追兵", 1, new VoyageEffect { Gold = 80, Fame = 5 }, battle: true),
+  C("炮手用警告炮掩护撤离", 1, new VoyageEffect { Powder = -1, Cannonballs = -1, Fame = 12 }, "gunner"));
+
+event_trade_seasonal_wind | 季风顺航 | route_golden_tide_trade | random
+来源：event_point_config.csv 第158行，event_index=77。
+原始方案：A跟随商船加速:后续2航段航速+1；B抢占风带:后续2航段航速+1.5；C航海士规划风路:显示2点 后续2航段航速+1
+适配与数值理由：移除后续航速加成，以顺风轮休士气和商队旗语情报表达收益。
+现役选项：
+  C("跟随商队轮休", .5, new VoyageEffect { Morale = 1 }),
+  C("靠近商队交换沿途见闻", 1.5, new VoyageEffect { Fame = 5, Reveal = 1 }),
+  C("航海士汇总信号旗情报", .5, new VoyageEffect { Reveal = 2 }, "navigator"));
+
+event_trade_deck_fire | 甲板失火 | route_golden_tide_trade | random
+来源：event_point_config.csv 第159行，event_index=78。
+原始方案：A使用淡水灭火:淡水-35；B隔离燃烧货物:食物-18；C木匠拆除火板:木材-5 船体+2
+适配与数值理由：水35/粮18/木5缩至10/6/2；新增零耗时损船5的抛弃燃烧甲板退路。
+现役选项：
+  C("用淡水压住火线", .5, new VoyageEffect { Water = -10 }),
+  C("用湿粮袋闷住火苗", .5, new VoyageEffect { Food = -6 }),
+  C("木匠拆板隔断火线", 1, new VoyageEffect { Wood = -2, Hull = 2 }, "carpenter"),
+  C("掀开燃烧甲板抛入海中", 0, new VoyageEffect { Hull = -5 }));
+
+event_trade_floating_auction | 临时拍卖 | route_golden_tide_trade | random
+来源：event_point_config.csv 第160行，event_index=79。
+原始方案：A竞拍布料:金币-70 布料+14；B出售闲置木材:木材-8 金币+60；C财务官代客竞价:金币+55 商会好感+1
+适配与数值理由：财务官与商会好感移除，改木匠处理箱料；交易按28金币换8布料、4木材换30金币，保留实际支出。
+现役选项：
+  C("买下折价布料", 1, new VoyageEffect { Gold = -28, Cloth = 8 }),
+  C("出售闲置木材", .5, new VoyageEffect { Wood = -4, Gold = 30 }),
+  C("木匠鉴别并修整箱料", 2, new VoyageEffect { Wood = 5, Iron = 2 }, "carpenter"));
+
+event_trade_stowaway | 偷渡客现身 | route_golden_tide_trade | random
+来源：event_point_config.csv 第161行，event_index=80。
+原始方案：A送往下个港口:食物-12 声望+8；B收取船费:金币+45 追击+1；C走私客安排暗舱:金币+70
+适配与数值理由：移除追击值与走私客职业；安排劳动的零耗时士气代价保证无物资可解；医生医疗换声望。
+现役选项：
+  C("分享口粮，安置在空铺", 1, new VoyageEffect { Food = -4, Fame = 6 }),
+  C("安排杂务抵偿，平息争执", 0, new VoyageEffect { Morale = -1 }),
+  C("医生检查后分发药品", 1, new VoyageEffect { Medicine = -1, Fame = 10 }, "doctor"));
+
+event_moon_gate | 月潮石门 | route_moon_tide_ruins | fixed_visible
+来源：event_point_config.csv 第162行，event_index=1。
+原始方案：A进入: 藏宝图碎片+1 印记+1；B绕开:；C航海士校准:啤酒-1 显示隐藏路线
+适配与数值理由：月潮印记改已实现诅咒层数；仍给予一张藏宝碎片并有代价。隐藏路线改明确Reveal=2，不创建特殊通路。
+现役选项：
+  C("深入石门拓印路线", 3, new VoyageEffect { MapFragments = 1, Curse = 1 }),
+  C("记录门外碑刻", 2, new VoyageEffect { Fame = 6 }),
+  C("航海士校准潮位刻度", 1, new VoyageEffect { Beer = -1, Reveal = 2 }, "navigator")),
+
+event_moon_star_compass | 星盘残片 | route_moon_tide_ruins | fixed_hidden
+来源：event_point_config.csv 第164行，event_index=3。
+原始方案：A修复: 古代罗盘碎片+1；B出售: 金币+180；C潜水员解析:啤酒-1 发现宝藏点
+适配与数值理由：作为独立地点，不运行旧chainInfluence事件链；古代罗盘沿用现有物品，金币180降75，潜员情报配1古材。
+现役选项：
+  C("拼回星盘针轴", 3, new VoyageEffect { AncientCompass = 1 }),
+  C("将残片卖给遗物商船", 1.5, new VoyageEffect { Gold = 75 }),
+  C("潜水员追索针轴所指", 2, new VoyageEffect { Reveal = 2, AncientMaterial = 1 }, "diver")),
+
+event_moon_mirror_pool | 月镜潮池 | route_moon_tide_ruins | fixed_hidden
+来源：event_point_config.csv 第172行，event_index=11。
+原始方案：A凝视: 复制1张牌 诅咒牌+1；B取水: 医疗包+1；C祭司占卜: 复制1张牌 无诅咒
+适配与数值理由：复制卡牌/诅咒卡/事件链全部删除，改镜中航标情报与诅咒层数；祭司改航海士，无隐藏卡牌奖励。
+现役选项：
+  C("凝视倒影并记下方位", 3, new VoyageEffect { Reveal = 2, Curse = 1 }),
+  C("取走石槽中的药用潮水", 2, new VoyageEffect { Medicine = 1 }),
+  C("航海士辨认真实航标", 2, new VoyageEffect { Reveal = 2 }, "navigator")),
+
+event_moon_drowned_library | 沉没书库 | route_moon_tide_ruins | fixed_hidden
+来源：event_point_config.csv 第173行，event_index=12。
+原始方案：A翻找: 遗物+1 受伤20%；B浅层记录: 声望+25；C医生护送: 遗物+1 无伤
+适配与数值理由：受伤概率/事件链删除，改明确船损5；医生方案需要药品1，避免无成本必拿遗物；浅层声望25降10。
+现役选项：
+  C("牵缆拖出深处书匣", 4, new VoyageEffect { Relic = 1, Hull = -5 }),
+  C("记录浅层碑文", 2, new VoyageEffect { Fame = 10 }),
+  C("医生照看潜员取回书匣", 3, new VoyageEffect { Medicine = -1, Relic = 1 }, "doctor")),
+
+event_moon_chain_bridge | 古链浮桥 | route_moon_tide_ruins | fixed_hidden
+来源：event_point_config.csv 第177行，event_index=16。
+原始方案：A抛锚等潮: 后续2航段受逆流影响；B强渡: 船体-14；C航海士找潮窗: 安全通过且显示2点
+适配与数值理由：后续逆流改3小时等待，船损14降6且可立即脱离；航海士1小时加情报1，无物资可通行。
+现役选项：
+  C("抛锚等待链桥沉下", 3, new VoyageEffect()),
+  C("顶着链节强行转出", 0, new VoyageEffect { Hull = -6 }),
+  C("航海士找到链间潮窗", 1, new VoyageEffect { Reveal = 1 }, "navigator")),
+
+event_moon_healing_spring | 月光泉 | route_moon_tide_ruins | fixed_visible
+来源：event_point_config.csv 第178行，event_index=17。
+原始方案：A治疗船员: 清除受伤；B汲取泉水: 医疗包+2；C祭司祝圣: 清除诅咒牌1张
+适配与数值理由：未实现受伤清除/诅咒卡移除改淡水士气与已有诅咒层数减1；祭司删除，医生可收药品。
+现役选项：
+  C("让船员休息并汲水", 3, new VoyageEffect { Water = 20, Morale = 1 }),
+  C("医生收集药用泉水", 2, new VoyageEffect { Medicine = 2 }, "doctor"),
+  C("借泉声平复潮咒", 4, new VoyageEffect { Curse = -1 })),
+
+event_moon_food_spoilage | 月潮霉变 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第182行，event_index=21。
+原始方案：A彻底清仓检查:损失当前食物8%（至少12 至多30） 士气+1；B分拣后限量供应:损失当前食物4%（至少6 至多18） 无额外状态惩罚；C厨师处理:啤酒-1 损失当前食物2%（至少3 至多10） 士气+1
+适配与数值理由：百分比扣粮改固定扣粮；厨师改用啤酒清洗粮罐，以月潮污染主题区别贸易面粉与礁雨粮袋。
+现役选项：
+  C("丢弃银霉粮袋", 1, new VoyageEffect { Food = -4, Morale = 1 }),
+  C("封存货格，安抚恐慌", 0, new VoyageEffect { Morale = -1 }),
+  C("厨师用酒清洗储粮罐", 1.5, new VoyageEffect { Beer = -1, Morale = 2 }, "cook"));
+
+event_moon_open_water_ambush | 月影伏击 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第183行，event_index=22。
+原始方案：A熄灯规避:士气-1 后续1航段航速-1；B迎击月影船:胜利宝石+1；C航海士识破幻航:降低战斗难度 图碎片+1
+适配与数值理由：拖速改立即船损与士气；航海士降低战斗难度/碎片改非战斗识浪情报，避免每轮随机免费产藏宝碎片。
+现役选项：
+  C("熄灯急转，撞开漂木脱身", 0, new VoyageEffect { Hull = -4, Morale = -1 }),
+  C("迎击月影船", 1, new VoyageEffect { Gem = 1 }, battle: true),
+  C("航海士辨认真船的浪纹", 2, new VoyageEffect { Reveal = 1, Fame = 5 }, "navigator"));
+
+event_moon_relic_diver | 遗物潜客 | route_moon_tide_ruins | fixed_visible
+来源：event_point_config.csv 第191行，event_index=30。
+原始方案：A购买遗物线索:金币-120 显示3点；B交换潜水装备:修理锤-1 古代罗盘+1；C宝藏潜水员合作:藏宝图碎片+2 声望+10
+适配与数值理由：修理锤交换改明确铁矿与木材，购买情报120降35；合作碎片2降1，职业仍是现役diver。
+现役选项：
+  C("购买遗迹位置记录", 1, new VoyageEffect { Gold = -35, Reveal = 2 }, renewable: true),
+  C("交换潜钟修缮材料", 2, new VoyageEffect { Iron = -6, Wood = -3, AncientCompass = 1 }),
+  C("潜水员合作核对残图", 3, new VoyageEffect { MapFragments = 1, Fame = 6 }, "diver")),
+
+event_moon_lunar_observatory | 月相观测台 | route_moon_tide_ruins | fixed_visible
+来源：event_point_config.csv 第194行，event_index=33。
+原始方案：A拓印结构:显示2点 声望+8；B拆取机关:古代材料+2；C航海士复原星位:显示3点 印记-1
+适配与数值理由：印记与事件链删除，保留情报/古材/声望；定义为锚定浮台，提供可目视OpenSea轻足迹而不是新增大型岛屿。
+现役选项：
+  C("拓印盘上的观测结构", 2, new VoyageEffect { Reveal = 1, Fame = 5 }),
+  C("拆取已松动的机关", 3, new VoyageEffect { AncientMaterial = 2 }),
+  C("航海士复原星位记录", 1, new VoyageEffect { Reveal = 2, Fame = 6 }, "navigator")),
+
+event_moon_moon_sleepwalker | 月潮梦游 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第234行，event_index=73。
+原始方案：A绑住梦游者:士气-1；B轮班守夜:无额外效果；C深海祭司驱散低语:诅咒-1
+适配与数值理由：未实现祭司职业改医生处置，使用现有诅咒层数减少；该选项至少需要1层诅咒，无咒时仍可选择另外两项。
+现役选项：
+  C("将梦游者带回舱内看守", 0, new VoyageEffect { Morale = -1 }),
+  C("全员轮班守夜", 3, new VoyageEffect()),
+  C("医生安抚并处理潮咒", 1, new VoyageEffect { Curse = -1 }, "doctor"));
+
+event_moon_ghost_current | 幽灵洋流 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第235行，event_index=74。
+原始方案：A降帆等待:无额外效果；B闯过冷流:船体-7；C航海士追踪星光:显示2点
+适配与数值理由：保留等待/损船/定位；船损7降至4，等待6小时降至3，风险与现役小事件一致。
+现役选项：
+  C("降帆等冷光散去", 3, new VoyageEffect()),
+  C("强行穿过冷流", 0, new VoyageEffect { Hull = -4 }),
+  C("航海士记录星光方位", 1, new VoyageEffect { Reveal = 2 }, "navigator"));
+
+event_moon_falling_starlight | 坠落星辉 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第236行，event_index=75。
+原始方案：A收集星砂:古代材料+2；B触碰核心:宝石+1 诅咒+1；C宝藏潜水员封存碎片:古代材料+3
+适配与数值理由：古材2/3改1/2，保留宝石加诅咒的交换；诅咒奖励选项在9层封顶检查下可用。
+现役选项：
+  C("收集漂浮星砂", 2, new VoyageEffect { AncientMaterial = 1 }),
+  C("触碰发光核心", 1, new VoyageEffect { Gem = 1, Curse = 1 }),
+  C("潜水员封存沉落碎片", 2, new VoyageEffect { AncientMaterial = 2 }, "diver"));
+
+event_moon_relic_whisper | 遗物低语 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第237行，event_index=76。
+原始方案：A聆听片刻:随机祝福 诅咒+1；B投入啤酒祭奠:啤酒-1 士气+1；C深海祭司辨认真名:印记-1
+适配与数值理由：随机祝福改明确的情报；祭司/印记改航海士核对航图、情报与声望，不产生卡牌或祝福。
+现役选项：
+  C("聆听并记下旧港方位", 2, new VoyageEffect { Reveal = 2, Curse = 1 }),
+  C("以酒祭奠，放归大海", 1, new VoyageEffect { Beer = -1, Morale = 2 }),
+  C("航海士比对旧港航图", 2, new VoyageEffect { Reveal = 1, Fame = 6 }, "navigator"));
+
+event_moon_silver_fog | 银雾迷航 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第238行，event_index=77。
+原始方案：A抛锚鸣钟:无额外效果；B凭感觉前进:后续2航段受逆流影响；C航海士测定月位:显示3点
+适配与数值理由：后续逆流改即时士气代价；7小时等待缩为4，航海士情报3降为2。
+现役选项：
+  C("抛锚鸣钟，等雾变薄", 4, new VoyageEffect()),
+  C("命令水手循浪摸索撤离", 0, new VoyageEffect { Morale = -1 }),
+  C("航海士测定雾中月位", 1, new VoyageEffect { Reveal = 2 }, "navigator"));
+
+event_moon_dead_calm | 月下无风 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第239行，event_index=78。
+原始方案：A等待风起:无额外效果；B划桨脱离:食物-16；C航海士寻找潮汐:后续2航段航速+1
+适配与数值理由：后续航速加成改实际缩短事件耗时并给情报；划桨扣粮改士气代价，使空粮时仍可离开。
+现役选项：
+  C("等候风重新吹起", 4, new VoyageEffect()),
+  C("轮流划桨，强行离开静水", 0, new VoyageEffect { Morale = -1 }),
+  C("航海士沿月影找到潮线", 1, new VoyageEffect { Reveal = 1 }, "navigator"));
+
+event_moon_spectral_debris | 幽灵残骸 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第240行，event_index=79。
+原始方案：A打捞外层金属:铁矿+16；B深入残舱:古代材料+2 诅咒+1；C木匠切断幽链:木材-4 修理锤+1
+适配与数值理由：修理锤未实现，改铁矿和布料回收；古材加诅咒取舍保留，常规铁矿16降至8。
+现役选项：
+  C("拆取外层金属", 2, new VoyageEffect { Iron = 8 }),
+  C("深入冷光中的残舱", 3, new VoyageEffect { AncientMaterial = 2, Curse = 1 }),
+  C("木匠隔断锚链回收舱板", 1.5, new VoyageEffect { Wood = -2, Iron = 10, Cloth = 3 }, "carpenter"));
+
+event_moon_curse_surge | 诅咒涌动 | route_moon_tide_ruins | random
+来源：event_point_config.csv 第241行，event_index=80。
+原始方案：A封闭舱门:士气-1；B分发啤酒:啤酒-2 士气+1；C厨师准备醒神餐:食物-14 诅咒-1
+适配与数值理由：保留士气/啤酒/厨师餐食净咒；啤酒2降至1、食物14降至6，净咒必须已有至少1层。
+现役选项：
+  C("封闭舱门，压住恐慌", 0, new VoyageEffect { Morale = -1 }),
+  C("分发啤酒稳住人心", 1, new VoyageEffect { Beer = -1, Morale = 1 }),
+  C("厨师准备醒神餐", 2, new VoyageEffect { Food = -6, Curse = -1 }, "cook"));

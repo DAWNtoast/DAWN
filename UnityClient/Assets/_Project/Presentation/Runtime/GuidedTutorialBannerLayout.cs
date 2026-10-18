@@ -9,8 +9,9 @@ namespace ShatteredSail.Presentation
     [RequireComponent(typeof(RectTransform))]
     public sealed class GuidedTutorialBannerLayout : MonoBehaviour
     {
+        internal const float TitleBodyGap = 18f;
         private const float Clearance = 12f;
-        private RectTransform surface, paper;
+        private RectTransform surface, paper, divider;
         private GuidedTutorialFocusGraphic[] focus;
         private RectTransform[] readingContext;
         private Text objective, instruction;
@@ -33,6 +34,7 @@ namespace ShatteredSail.Presentation
             paper = (RectTransform)transform;
             objective = paper.Find("Guided Tutorial Objective")?.GetComponent<Text>();
             instruction = paper.Find("Guided Tutorial Instruction")?.GetComponent<Text>();
+            divider = paper.Find("Guided Tutorial Divider") as RectTransform;
             preferredPosition = paper.anchoredPosition;
             hasCachedPlacement = false;
             Apply();
@@ -142,9 +144,11 @@ namespace ShatteredSail.Presentation
             RectTransform title = objective.rectTransform, body = instruction.rectTransform;
             float top = -title.anchoredPosition.y;
             title.sizeDelta = new Vector2(title.sizeDelta.x, titleHeight);
-            body.anchoredPosition = new Vector2(body.anchoredPosition.x, -top - titleHeight - 8f);
+            body.anchoredPosition = new Vector2(body.anchoredPosition.x, -top - titleHeight - TitleBodyGap);
             body.sizeDelta = new Vector2(body.sizeDelta.x, instructionHeight);
-            paper.sizeDelta = new Vector2(paper.sizeDelta.x, top * 2f + titleHeight + 8f + instructionHeight);
+            paper.sizeDelta = new Vector2(paper.sizeDelta.x, top * 2f + titleHeight + TitleBodyGap + instructionHeight);
+            if (divider != null)
+                divider.anchoredPosition = new Vector2(body.anchoredPosition.x, -top - titleHeight - TitleBodyGap * .5f);
         }
 
         private bool SameObstacles()

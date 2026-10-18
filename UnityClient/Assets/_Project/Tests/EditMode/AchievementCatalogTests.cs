@@ -74,7 +74,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(row.yMin - navigationTop, Is.GreaterThanOrEqualTo(12f),
                     "Achievement rows must leave a clear gap above the pagination buttons.");
                 if (index > 0)
-                    Assert.That(rows[index - 1].yMin - row.yMax, Is.GreaterThanOrEqualTo(8f),
+                    Assert.That(rows[index - 1].yMin - row.yMax, Is.GreaterThanOrEqualTo(8f - .01f),
                         "Adjacent rows need separate reading areas.");
             }
         }

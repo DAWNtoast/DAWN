@@ -126,7 +126,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase(0)]
-        [TestCase(2)]
+        [TestCase(3)]
         public void CheckpointGeometryMismatchOrUnknownVersionCannotReplacePortState(int invalidVersion)
         {
             CoreVoyageSession source = CreateVoyage(1, "EXPANDED-SEA-INVALID");

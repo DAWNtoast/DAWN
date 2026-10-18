@@ -70,6 +70,8 @@ namespace ShatteredSail.Presentation.Tests
                 "Open Special Card Collection", "Upgrade Collection Page");
             AssertWorkshopPaperControls("Workshop Forge Entry", "Card Upgrade Heading", "Workshop Upgrade Hammer Icon",
                 "Workshop Upgrade Disabled Mark", "Open Battle Card Upgrades");
+            foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
+                AssertWorkshopPaperControls("Workshop Stage " + stage, "Edit Stage Deck " + stage);
             foreach (RectTransform status in host.GetComponentsInChildren<RectTransform>(true).Where(item =>
                 item.name.StartsWith("Special Card Deck Status ") || item.name.StartsWith("Configure Special Card Source ")))
                 AssertWorkshopPaperControls("Workshop Preview Parchment", status.name);
@@ -82,26 +84,40 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
+        public void DeckBuilder_PagingAndReturnControlsStayInsideTheMarketPaper()
+        {
+            CreatePreview(CoreGameplayPreviewScreen.DeckBuilder);
+            AssertWorkshopPaperControls("Deck Builder Parchment", "Previous Battle Card Collection Page",
+                "Next Battle Card Collection Page", "Battle Card Collection Page");
+            AssertWorkshopPaperControls("Deck Builder Deck Rail", "Deck Builder Status", "Back To Card Workshop Chests");
+            AssertProfileUnchanged();
+        }
+
+        [Test]
         public void Departure_MainAndCrewConfigurationKeepTheirRealActionsWithinTheRule()
         {
             CreatePreview(CoreGameplayPreviewScreen.VoyageDeparture);
-            Image routePaper = Paper("Route Selection", DepartureSkin.Paper);
+            Image routePaper = DepartureSurface("Route Selection");
             AssertGlyphs(routePaper, host.transform, "Departure Route Summary", "Seed Label");
             AssertRect(routePaper, Find<Toggle>("Use Chart Seed").GetComponent<RectTransform>());
             AssertButtons(routePaper, "Departure Treasure Seed Picker", "Route 0", "Route 1", "Route 2");
             foreach (Button destination in routePaper.GetComponentsInChildren<Button>(false)
                 .Where(button => button.name.StartsWith("Departure Destination ", StringComparison.Ordinal)))
                 AssertRect(routePaper, destination.GetComponent<RectTransform>());
-            Image paper = Paper("Voyage Setup", DepartureSkin.Paper);
-            AssertGlyphs(paper, host.transform, "Setup Title", "DepartureOrdinaryCrewCount", "DepartureCrewSpeedPreview");
+            Image paper = DepartureSurface("Voyage Setup");
+            if (paper.sprite == null)
+                AssertGlyphs(paper, host.transform, "Setup Title", "Departure Dock Ordinary Readout", "Departure Dock Special Readout", "Departure Dock Speed Readout");
+            else AssertGlyphs(paper, host.transform, "Setup Title", "DepartureOrdinaryCrewCount", "DepartureCrewSpeedPreview");
             AssertButtons(paper, "Start Voyage", "Departure Buy Provisions", "Adjust Voyage Supplies",
                 "Configure Voyage Battle Decks", "Configure Voyage Crew",
                 "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton");
             Click("Configure Voyage Crew");
-            paper = Paper("Voyage Setup", DepartureSkin.Paper);
-            AssertGlyphs(paper, host.transform, "Setup Title", "Departure Crew Configuration Title", "Departure Crew Total");
+            Image retainedSetup = DepartureSurface("Voyage Setup");
+            AssertGlyphs(retainedSetup, host.transform, "Setup Title");
+            paper = Paper("Departure Crew Configuration", MarketShopSkin.Paper);
+            AssertGlyphs(paper, host.transform, "Departure Crew Configuration Title", "Departure Crew Total");
             AssertButtons(paper, "Back To Voyage Setup", "Confirm Departure Crew");
-            AssertRect(paper, Find<Slider>("Departure Ordinary Crew Slider").GetComponent<RectTransform>());
+            AssertRect(paper, Find<ScrollRect>("Departure Special Crew Scroll").GetComponent<RectTransform>());
             Click("Confirm Departure Crew");
             AssertProfileUnchanged();
         }
@@ -142,7 +158,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             CreatePreview(CoreGameplayPreviewScreen.TreasureMap);
             controller.ConfigureEditorTreasureState(state);
-            Image paper = Paper("Treasure Folio", NauticalSurfaceSkin.ReadingPaper);
+            Image paper = Paper("Treasure Folio", MarketShopSkin.Paper);
             AssertGlyphs(paper, host.transform, "Treasure Folio Title", "Treasure Map Details 0", "Treasure Folio Page");
             AssertButtons(paper, "Treasure Close Folio", "Treasure Folio Back",
                 "Treasure Folio Previous Page", "Treasure Folio Next Page", "Treasure Browse Unused", "Treasure Browse Used");
@@ -222,8 +238,8 @@ namespace ShatteredSail.Presentation.Tests
             if (page == 1) controller.ConfigureEditorPreviewWarehouseStorage(0);
             if (page == 2) controller.ConfigureEditorPreviewWarehouseRare(0);
             Image paper = Find<Image>("Warehouse Ledger");
-            Assert.That(paper.sprite, Is.Null, "The regional cabinet replaces the collection paper.");
-            Assert.That(paper.color.a, Is.Zero);
+            Assert.That(paper.sprite, Is.SameAs(MarketShopSkin.Paper));
+            Assert.That(paper.color.a, Is.EqualTo(1f));
             AssertButtons(paper, "Warehouse Tab Valuables", "Warehouse Tab Storage", "Warehouse Tab Rare");
             if (page == 0)
             {
@@ -252,15 +268,15 @@ namespace ShatteredSail.Presentation.Tests
         {
             CreatePreview(CoreGameplayPreviewScreen.Market);
             Assert.That(Find<RectTransform>("Market Item Detail").gameObject.activeInHierarchy, Is.False);
-            Assert.That(Find<Button>("Market Storage Mode").gameObject.activeInHierarchy, Is.True);
-            Assert.That(Find<Button>("Market Open Investment").gameObject.activeInHierarchy, Is.True);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Market Footer"), Is.False);
+            Assert.That(Find<Button>("Market Detail Storage Mode").gameObject.activeInHierarchy, Is.False);
             foreach (MarketShopKind shop in Enum.GetValues(typeof(MarketShopKind)))
             {
                 Assert.That(Find<Button>("Market Shop " + shop).gameObject.activeInHierarchy, Is.True);
                 InvokeMarketPreview("OpenMarketShop",shop);
-                Image paper = Paper("Market Item Detail",NauticalSurfaceSkin.ReadingPaper);
+                Image paper = Paper("Market Item Detail",MarketShopSkin.Paper);
                 AssertGlyphs(paper,host.transform,"Market Shop Title");
-                AssertButtons(paper,"Close Market Shop","Cancel Market Trade");
+                AssertButtons(paper,"Close Market Shop","Cancel Market Trade","Market Detail Storage Mode");
                 foreach (PortMarketItem item in MarketSceneLayout.ItemsForShop(shop))
                 {
                     string key = PortMarketCatalog.Key(item);
@@ -277,18 +293,19 @@ namespace ShatteredSail.Presentation.Tests
         public void Market_ItemDetailAndQuantitySelectionKeepTheirControlsWithinThePaintedRule(bool buying)
         {
             CreatePreview(CoreGameplayPreviewScreen.Market);
-            Button storageMode = Find<Button>("Market Storage Mode");
-            Button investment = Find<Button>("Market Open Investment");
+            Button storageMode = Find<Button>("Market Detail Storage Mode");
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
             {
                 string key = PortMarketCatalog.Key(item);
                 OpenMarketPreview(item);
                 StartMarketPreviewTrade(buying);
-                Image paper = Paper("Market Item Detail",NauticalSurfaceSkin.ReadingPaper);
-                Assert.That(Find<Button>("Market Storage Mode"),Is.SameAs(storageMode));
-                Assert.That(Find<Button>("Market Open Investment"),Is.SameAs(investment));
-                Assert.That(storageMode.gameObject.activeInHierarchy && investment.gameObject.activeInHierarchy,Is.True);
-                Assert.That(Find<Text>("Market Detail Name").text,Is.EqualTo(PortMarketCatalog.Name(item)));
+                Image paper = Paper("Market Item Detail",MarketShopSkin.Paper);
+                Assert.That(Find<Button>("Market Detail Storage Mode"),Is.SameAs(storageMode));
+                Assert.That(storageMode.gameObject.activeInHierarchy,Is.True);
+                AssertButtons(paper,"Market Detail Storage Mode");
+                Text itemName = Find<Text>("Market Item Name " + key);
+                Assert.That(itemName.gameObject.activeInHierarchy,Is.True);
+                Assert.That(itemName.text,Is.EqualTo(PortMarketCatalog.Name(item)));
                 int buyLot = Math.Max(PortMarketCatalog.PurchaseStep(item),PortMarketCatalog.SaleStep(item));
                 int sellLot = PortMarketCatalog.SaleStep(item);
                 decimal buyPrice = PortMarketCatalog.CalculateBuyCost(controller.Session.CurrentPort,item,controller.Session.GameDateTime,buyLot,controller.Session.Cargo.Fame);
@@ -297,9 +314,11 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Find<Text>("Market Detail Sell Price").text,Does.Contain(PortMarketCatalog.FormatPrice(sellPrice)));
                 AssertButtons(paper,"Market Buy " + key,"Market Sell " + key,"Market Inventory Toggle",
                     "Confirm Market " + (buying ? "Buy " : "Sell ") + key,"Market Quantity Minus","Market Quantity Plus","Market Quantity Max");
-                AssertRect(paper,Find<InputField>("Market Quantity Input " + key).GetComponent<RectTransform>());
+                InputField quantityInput = Find<InputField>("Market Quantity Input " + key);
+                Assert.That(quantityInput.gameObject.activeInHierarchy,Is.True);
+                AssertRect(paper,quantityInput.GetComponent<RectTransform>());
                 AssertRect(paper,Find<Slider>("Market Quantity Slider " + key).GetComponent<RectTransform>());
-                AssertGlyphs(paper,host.transform,"Market Detail Name","Market Detail Buy Price","Market Detail Sell Price","Market Quantity Label","Market Trade Total");
+                AssertGlyphs(paper,host.transform,"Market Item Name " + key,"Market Detail Buy Price","Market Detail Sell Price","Market Quantity Label","Market Trade Total");
                 SetMarketPreviewInventoryExpanded(true);
                 Text inventory = Find<Text>((buying ? "Market Quota " : "Market Holdings ") + key);
                 Assert.That(inventory.gameObject.activeInHierarchy,Is.True);
@@ -314,7 +333,7 @@ namespace ShatteredSail.Presentation.Tests
             host = new GameObject("Parchment Menu Frame Preview");
             host.AddComponent<MainMenuController>();
             Click("Achievements");
-            Image paper = Paper("Achievements Card", NauticalSurfaceSkin.ReadingPaper);
+            Image paper = Paper("Achievements Card", MarketShopSkin.Paper);
             AssertGlyphs(paper, paper.transform, "Modal Eyebrow", "Modal Title", "Achievements Page Indicator");
             AssertButtons(paper, "Achievements Previous Page", "Achievements Next Page", "Back From Achievements");
             Click("Achievements Next Page");
@@ -373,7 +392,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             CreatePreview(CoreGameplayPreviewScreen.Market);
             OpenMarketPreview(PortMarketItem.Water);
-            Image paper = Paper("Market Item Detail", NauticalSurfaceSkin.ReadingPaper);
+            Image paper = Paper("Market Item Detail", MarketShopSkin.Paper);
             Rect outer = paper.rectTransform.rect;
             Rect edgeControl = new Rect(outer.center.x - 4f, outer.yMin + 2f, 8f, 6f);
             Assert.That(Contains(outer, edgeControl), Is.True, "The old outer-paper check would accept this control.");
@@ -415,17 +434,28 @@ namespace ShatteredSail.Presentation.Tests
         private void AssertWorkshopPaperControls(string name, params string[] controls)
         {
             Canvas.ForceUpdateCanvases();
-            Image paper = Find<Image>(name);
-            RawImage texture = Find<RawImage>(name + " Texture");
-            Assert.That(texture.texture, Is.Not.Null, name + " uses the authored aged parchment.");
-            Rect safe = paper.rectTransform.rect;
-            float inset = name == "Workshop Preview Parchment" ? 6f : 12f;
-            safe = Rect.MinMaxRect(safe.xMin + inset, safe.yMin + inset, safe.xMax - inset, safe.yMax - inset);
+            Image texture = Find<Image>(name + " Texture");
+            Assert.That(texture.sprite, Is.Not.Null, name);
+            Assert.That(texture.sprite, Is.SameAs(MarketShopSkin.Paper), name + " uses the shared market reading surface.");
             foreach (string control in controls)
             {
-                Rect bounds = BoundsInPaper(paper, Find<RectTransform>(control));
-                Assert.That(Contains(safe, bounds), Is.True, control + " remains inside the parchment edge.");
+                RectTransform rect = Find<RectTransform>(control);
+                Text label = rect.GetComponent<Text>();
+                if (label != null) AssertGlyph(texture, label);
+                else AssertRect(texture, rect);
             }
+        }
+
+        private Image DepartureSurface(string name)
+        {
+            if (!PortFacilityArtCatalog.UsesPaintedDepartureScene(controller.Session.CurrentPort))
+                return Paper(name, DepartureSkin.Paper);
+            Image surface = Find<Image>(name);
+            Assert.That(surface.sprite, Is.Null, name + " preserves the regional painted dock");
+            Assert.That(surface.color.a, Is.Zero, name);
+            Assert.That(surface.raycastTarget, Is.False, name + " leaves interaction to its authored controls");
+            Assert.That(surface.rectTransform.sizeDelta, Is.EqualTo(new Vector2(1920f, 1080f)), name);
+            return surface;
         }
 
         private Image Paper(string name, Sprite expected)
@@ -433,7 +463,7 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
             Image image = Find<Image>(name);
             Assert.That(image.sprite, Is.SameAs(expected), name);
-            Assert.That(image.type, Is.EqualTo(Image.Type.Sliced), name + " requires the real aged-paper sprite");
+            Assert.That(image.type, Is.EqualTo(Image.Type.Sliced), name + " requires the shared market paper sprite");
             Assert.That(image.sprite.border.x, Is.GreaterThan(0f), name);
             return image;
         }
@@ -553,39 +583,26 @@ namespace ShatteredSail.Presentation.Tests
 
         private static Rect InnerRule(Image image)
         {
-            if (image.name == "Navigation Chart" || image.name == "Navigation Controls")
+            if (image.sprite != MarketShopSkin.Paper &&
+                (image.name == "Navigation Chart" || image.name == "Navigation Controls"))
             {
                 // The navigation redesign uses a thin timber rim over a sea
                 // surface or tiled paper, not the old inset aged-paper rule.
                 Rect panel = image.rectTransform.rect;
                 return Rect.MinMaxRect(panel.xMin + 4f, panel.yMin + 4f, panel.xMax - 4f, panel.yMax - 4f);
             }
-            if ((image.name == "Route Selection" || image.name == "Voyage Setup") && image.sprite == DepartureSkin.Paper)
-            {
-                // The departure folio uses paper without the old printed black rule.
-                // Independently reserve readable margins around its torn outer edges.
-                Rect folio = image.rectTransform.rect;
-                return Rect.MinMaxRect(folio.xMin + 24f, folio.yMin + 36f, folio.xMax - 24f, folio.yMax - 24f);
-            }
+            if ((image.name == "Route Selection" || image.name == "Voyage Setup") && image.sprite == null)
+                return image.rectTransform.rect; // Scene hotspots use the full painted 16:9 surface.
             if (image.name == "Warehouse Ledger" && image.sprite == null)
             {
                 Rect opening = image.rectTransform.rect;
                 return Rect.MinMaxRect(opening.xMin + 20f, opening.yMin + 20f, opening.xMax - 20f, opening.yMax - 20f);
             }
-            // Measured ink lines in the source PNGs, independent of production UI coordinates.
-            // Normalize source measurements to survive importer texture downscaling.
+            // Every reading surface shares the market sprite. Follow its actual
+            // sliced border and each image's density, including compact boards.
             Sprite sprite = image.sprite;
-            Vector2 sourceSize;
-            Vector4 line; // left, bottom, right, top source insets
-            if (sprite == NauticalSurfaceSkin.ReadingPaper)
-            { sourceSize = new Vector2(1536f, 1024f); line = new Vector4(60f, 67f, 60f, 62f); }
-            else if (sprite == NauticalSurfaceSkin.InvestmentPaper)
-            { sourceSize = new Vector2(1254f, 1254f); line = new Vector4(42f, 52f, 42f, 48f); }
-            else
-            {
-                Assert.That(sprite, Is.SameAs(NauticalSurfaceSkin.CollectionPaper));
-                sourceSize = new Vector2(1024f, 1536f); line = new Vector4(44f, 64f, 44f, 48f);
-            }
+            Assert.That(sprite, Is.Not.Null, image.name);
+            Assert.That(sprite, Is.SameAs(MarketShopSkin.Paper), image.name);
             Rect rect = image.GetPixelAdjustedRect();
             float ppu = image.pixelsPerUnit * image.pixelsPerUnitMultiplier;
             Vector4 border = sprite.border / ppu;
@@ -598,26 +615,11 @@ namespace ShatteredSail.Presentation.Tests
                 if (combined > rect.size[axis])
                 { border[axis] *= rect.size[axis] / combined; border[axis + 2] *= rect.size[axis] / combined; }
             }
-            float left = ProjectInset(line.x / sourceSize.x * sprite.rect.width, sprite.border.x, sprite.border.z,
-                sprite.rect.width, border.x, border.z, rect.width);
-            float right = ProjectInset(line.z / sourceSize.x * sprite.rect.width, sprite.border.z, sprite.border.x,
-                sprite.rect.width, border.z, border.x, rect.width);
-            float bottom = ProjectInset(line.y / sourceSize.y * sprite.rect.height, sprite.border.y, sprite.border.w,
-                sprite.rect.height, border.y, border.w, rect.height);
-            float top = ProjectInset(line.w / sourceSize.y * sprite.rect.height, sprite.border.w, sprite.border.y,
-                sprite.rect.height, border.w, border.y, rect.height);
-            return Rect.MinMaxRect(rect.xMin + left + ReadingGap, rect.yMin + bottom + ReadingGap,
-                rect.xMax - right - ReadingGap, rect.yMax - top - ReadingGap);
-        }
-
-        private static float ProjectInset(float sourceInset, float nearSourceBorder, float farSourceBorder,
-            float sourceLength, float nearUiBorder, float farUiBorder, float uiLength)
-        {
-            if (sourceInset <= nearSourceBorder)
-                return nearSourceBorder <= 0f ? 0f : sourceInset / nearSourceBorder * nearUiBorder;
-            float centreSource = sourceLength - nearSourceBorder - farSourceBorder;
-            return nearUiBorder + (sourceInset - nearSourceBorder) / centreSource *
-                Mathf.Max(0f, uiLength - nearUiBorder - farUiBorder);
+            // Nine-slice padding is wider than the visible painted frame.
+            for (int edge = 0; edge < 4; edge++)
+                border[edge] *= MarketShopSkin.PaperReadingBorder / sprite.border[edge];
+            return Rect.MinMaxRect(rect.xMin + border.x + ReadingGap, rect.yMin + border.y + ReadingGap,
+                rect.xMax - border.z - ReadingGap, rect.yMax - border.w - ReadingGap);
         }
 
         private void AssertProfileUnchanged()

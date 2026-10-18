@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ShatteredSail.Core.Gameplay
 {
-    /// <summary>Permanent regional shipyard stock; buying a hull adds no level gate.</summary>
+    /// <summary>Two exclusive hulls per regional shipyard; buying a hull adds no level gate.</summary>
     public static class CoreShipMarketCatalog
     {
         private sealed class Listing
@@ -18,7 +18,7 @@ namespace ShatteredSail.Core.Gameplay
         private static readonly Listing[] listings =
         {
             new Listing(0, 0, 0, "近港启航 · 轻装小舱", "人少水粮省\n适合近港起步\n舱小甲薄\n专家与水手\n须有所取舍"),
-            new Listing(800, 3, 1, "初阶商贸 · 实用宽舱", "造价较低\n扩充货舱\n适合早期贸易\n炮火有限"),
+            new Listing(800, 5, 1, "初阶商贸 · 实用宽舱", "造价较低\n扩充货舱\n适合早期贸易\n炮火有限"),
             new Listing(1800, 2, 2, "常规护航 · 均衡炮战", "炮火装甲中等\n适合护航海战\n亦可贸易\n舱量少于\n远洋商船"),
             new Listing(2200, 4, 3, "遗迹寻踪 · 快航省员", "航速较快\n船员需求较少\n适合远探\n装甲较轻\n不宜持续承伤"),
             new Listing(1300, 0, 1, "重物打捞 · 宽舱坚体", "厚船体宽货舱\n适合装运重物\n航速慢炮火弱\n不宜追击"),
@@ -33,12 +33,12 @@ namespace ShatteredSail.Core.Gameplay
 
         private static readonly IReadOnlyList<int>[] stock =
         {
-            Array.AsReadOnly(new[] { 0, 1, 4 }),
-            Array.AsReadOnly(new[] { 0, 5, 6 }),
-            Array.AsReadOnly(new[] { 1, 2, 7 }),
-            Array.AsReadOnly(new[] { 1, 8, 9 }),
+            Array.AsReadOnly(new[] { 0, 4 }),
+            Array.AsReadOnly(new[] { 5, 6 }),
+            Array.AsReadOnly(new[] { 2, 7 }),
+            Array.AsReadOnly(new[] { 8, 9 }),
             Array.AsReadOnly(new[] { 3, 10 }),
-            Array.AsReadOnly(new[] { 0, 11 }),
+            Array.AsReadOnly(new[] { 1, 11 }),
         };
         private static readonly IReadOnlyList<int> emptyStock = Array.AsReadOnly(Array.Empty<int>());
 

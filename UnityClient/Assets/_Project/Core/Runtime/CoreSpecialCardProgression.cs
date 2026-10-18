@@ -36,7 +36,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (!IsSpecialBattleCard(cardId)) return 0;
             int level = SpecialCardLevelForExperience(GetSpecialCardExperience(cardId));
-            return level >= 3 ? 0 : SpecialCardExperienceForLevel(level + 1);
+            return level >= GetCardMaximumUpgradeLevel(cardId) ? 0 : SpecialCardExperienceForLevel(level + 1);
         }
 
         public static bool IsSpecialBattleCard(string cardId)
@@ -163,8 +163,9 @@ namespace ShatteredSail.Core.Gameplay
                 int previous = GetSpecialCardExperience(cardId);
                 int next = (int)Math.Min(int.MaxValue, (long)previous + delta);
                 specialCardExperience[cardId] = next;
-                int previousLevel = SpecialCardLevelForExperience(previous);
-                int nextLevel = SpecialCardLevelForExperience(next);
+                int cap = GetCardMaximumUpgradeLevel(cardId);
+                int previousLevel = Math.Min(cap, SpecialCardLevelForExperience(previous));
+                int nextLevel = Math.Min(cap, SpecialCardLevelForExperience(next));
                 if (nextLevel > previousLevel)
                 {
                     string name = cardId;

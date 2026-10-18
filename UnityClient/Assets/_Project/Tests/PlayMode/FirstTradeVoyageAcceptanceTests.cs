@@ -206,6 +206,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
             if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
                 yield return audit.Click("Skip Settlement Reveal");
+            yield return SettlementChestTestActions.ShowOverview();
             audit.settlementOutcome = session.Settlement.Outcome.ToString();
             audit.settlementGoldReward = session.Settlement.BankedGold;
             audit.settlementWoodReward = session.Settlement.BankedWood;
@@ -287,7 +288,6 @@ namespace ShatteredSail.Presentation.Tests
             {
                 OwnedShipComponent actual = controller.OwnedComponents.Single(item => item.InstanceId == expected.instanceId);
                 Assert.That(actual.ComponentId, Is.EqualTo(expected.componentId));
-                Assert.That(actual.Quality, Is.EqualTo(expected.quality));
                 Assert.That(actual.ShipIndex, Is.EqualTo(expected.shipIndex));
             }
             audit.reloadVerified = true;
@@ -333,7 +333,7 @@ namespace ShatteredSail.Presentation.Tests
             public static List<RealTradeComponent> ComponentSnapshot(CoreGameplayDemoController source) =>
                 source.OwnedComponents.Select(item => new RealTradeComponent {
                     instanceId = item.InstanceId, componentId = item.ComponentId,
-                    quality = item.Quality, shipIndex = item.ShipIndex
+                    shipIndex = item.ShipIndex
                 }).ToList();
 
             public RealTradeState State()
@@ -405,6 +405,7 @@ namespace ShatteredSail.Presentation.Tests
             }
             public IEnumerator Click(string name)
             {
+                yield return SchoolUnlockNoticeTestActions.ConfirmAll();
                 if (name.StartsWith("Event Node ", StringComparison.Ordinal) || name == "Destination Port")
                 {
                     GameObject marker = GameObject.Find(name);
@@ -417,15 +418,20 @@ namespace ShatteredSail.Presentation.Tests
                     yield return null;
                     Canvas.ForceUpdateCanvases();
                 }
-                if (name.StartsWith("Encounter Choice ", StringComparison.Ordinal))
+                if (name.StartsWith("Encounter Choice ", StringComparison.Ordinal) || name == "Skip Encounter")
                 {
                     yield return WaitForEncounterDossierPresentationCompletion();
                     Button choice = ActiveButton(name);
                     Assert.That(choice, Is.Not.Null);
                     ScrollRect scroll = choice.GetComponentInParent<ScrollRect>();
-                    Assert.That(scroll, Is.Not.Null);
+                    // Skip is a fixed secondary action below the scrolling
+                    // decisions. It still must be fully visible and raycastable.
+                    if (name != "Skip Encounter") Assert.That(scroll, Is.Not.Null);
+                    RectTransform visibleArea = scroll != null ? scroll.viewport :
+                        choice.GetComponentInParent<Canvas>().rootCanvas.transform as RectTransform;
+                    Assert.That(visibleArea, Is.Not.Null);
                     var corners = new Vector3[4];
-                    for (int attempt = 0; attempt < 8; attempt++)
+                    for (int attempt = 0; scroll != null && attempt < 8; attempt++)
                     {
                         choice.GetComponent<RectTransform>().GetWorldCorners(corners);
                         float bottom = corners.Min(point => scroll.viewport.InverseTransformPoint(point).y);
@@ -443,9 +449,9 @@ namespace ShatteredSail.Presentation.Tests
                     choice.GetComponent<RectTransform>().GetWorldCorners(corners);
                     foreach (Vector3 corner in corners)
                     {
-                        Vector2 local = scroll.viewport.InverseTransformPoint(corner);
-                        Assert.That(local.x, Is.InRange(scroll.viewport.rect.xMin - .5f, scroll.viewport.rect.xMax + .5f));
-                        Assert.That(local.y, Is.InRange(scroll.viewport.rect.yMin - .5f, scroll.viewport.rect.yMax + .5f),
+                        Vector2 local = visibleArea.InverseTransformPoint(corner);
+                        Assert.That(local.x, Is.InRange(visibleArea.rect.xMin - .5f, visibleArea.rect.xMax + .5f));
+                        Assert.That(local.y, Is.InRange(visibleArea.rect.yMin - .5f, visibleArea.rect.yMax + .5f),
                             "The full action must be revealed before the normal pointer click.");
                     }
                 }
@@ -485,6 +491,16 @@ namespace ShatteredSail.Presentation.Tests
                 // earned money, then configure a legal ranged/repair deck via UI.
                 yield return Click("Port Hotspot CardWorkshop");
                 yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
+                // The numbered catalog can place the cannon beyond the first
+                // page; reach it through the same visible pager as a player.
+                int available = Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count;
+                for (int page = 0; ActiveButton("Select Upgrade Card 0") == null && page < available; page++)
+                {
+                    Button next = ActiveButton("Next Upgrade Cards");
+                    Assert.That(next, Is.Not.Null, "The workshop must expose its collection pager.");
+                    Assert.That(next.IsInteractable(), Is.True, "The planned cannon must remain reachable in numbered catalog order.");
+                    yield return Click("Next Upgrade Cards");
+                }
                 yield return Click("Select Upgrade Card 0");
                 while (Session.GetBattleCard(0).UpgradeLevel < 2)
                 {
@@ -600,12 +616,16 @@ namespace ShatteredSail.Presentation.Tests
             }
             private IEnumerator Encounter()
             {
+                yield return WaitForEncounterDossierPresentationCompletion();
                 CoreEncounter encounter = Session.ActiveEncounter;
                 Shot("Encounter_" + (encounterIndex++) + "_" + encounter.Id, "Encounter Card");
+                int[] availableChoices = Enumerable.Range(0, encounter.Choices.Count)
+                    .Where(Session.IsChoiceAvailable).ToArray();
                 if (!encounter.Mandatory && ActiveButton("Skip Encounter")?.IsInteractable() == true &&
-                    !encounter.Choices.Any(c => c.Effect.Water > 0 || c.Effect.Food > 0 || c.Effect.Hull > 0))
+                    !availableChoices.Any(i => encounter.Choices[i].Effect.Water > 0 ||
+                        encounter.Choices[i].Effect.Food > 0 || encounter.Choices[i].Effect.Hull > 0))
                 { yield return Click("Skip Encounter"); yield break; }
-                int choice = Enumerable.Range(0, encounter.Choices.Count).Where(Session.IsChoiceAvailable)
+                int choice = availableChoices
                     .OrderByDescending(i => {
                         CoreEncounterChoice c = encounter.Choices[i];
                         return (encounter.BossKind == CoreBossKind.Route && c.StartsBattle ? 100000 : 0) +
@@ -713,7 +733,7 @@ namespace ShatteredSail.Presentation.Tests
         [Serializable] private sealed class RealTradeAction
         { public int sequence; public float realtime; public string action; public RealTradeState before, after; }
         [Serializable] private sealed class RealTradeComponent
-        { public string instanceId, componentId; public int shipIndex; public float quality; }
+        { public string instanceId, componentId; public int shipIndex; }
         [Serializable] private sealed class RealTradeState
         {
             public string phase, port, destination, encounter, seed, battleStage, gameLog, ownedComponentIds;

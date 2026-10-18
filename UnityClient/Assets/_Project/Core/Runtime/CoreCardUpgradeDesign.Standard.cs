@@ -1,0 +1,262 @@
+using System;
+using System.Collections.Generic;
+
+namespace ShatteredSail.Core.Gameplay
+{
+    public static partial class CoreCardUpgradeDesign
+    {
+        // Columns: key | cap | numerical percentages | draw bonus | energy bonus | effect percentages | role | optional action-point bonus.
+        // Each row is authored independently; neither cost nor collection order chooses a growth curve.
+        private static void RegisterStandard(Dictionary<string, CoreCardUpgradeProfile> entries)
+        {
+            Rows(entries, "card_", @"
+chain_shot|3|120/150/190|0|0||常用火炮，后期强化直伤
+cannon_barrage|2|130/170|0|0||齐射爆发，两阶成型
+brace|2|150/200|0|0||零费格挡，小幅封顶
+emergency_repair|3|120/160/220|0|0||低基值修复，后期成长
+evasive_maneuver|2|140/180|0|0||前期防护
+approach|1|100|0|0||零费机动，行动点1/2|1
+retreat|2|133/200|0|0||首阶增加行动点，后续强化防护|1/1
+full_sail_turn|1|100|1|0||一次强化，抽牌与行动点各增加1|1
+deck_polish|2|150/200|0|0||强化防御系数，上限固定
+load_shot|3|120/160/200|0/0/1|0||先成长装填，末阶增加抽牌
+energy_order|1|100|0|1||一次性号令回能强化
+tactical_draw|2|100|1/2|0||两阶提高抽牌
+gunner_precision|2|200/300|0|0|140/180|精密装填优先成长装填量
+navigator_course|2|200/300|0/1|0||首阶增加行动点，第二阶增加抽牌|1/1
+carpenter_shoring|2|125/167|0|0||船体治疗与防护共同成长
+cook_rations|1|150|0|0||零费补给一次强化
+diver_sabotage|3|117/142/183|0|0||近距破坏，逐步提高伤害
+component_bow|1|125|0|0||通用部件入门强化
+component_cannon|1|125|0|0||通用火炮入门强化
+component_sail|1|200|0|0||通用风帆强化格挡与行动点|1
+component_plating|1|133|0|0||通用装甲强化防护
+component_instrument|1|140|0|0||通用仪器强化装填
+");
+            Rows(entries, "card_boarding_", @"
+basic_01|3|125/150/200|0|0||低费白刃持续成长
+basic_02|2|130/170|0|0||中费攻击两阶成型
+basic_03|2|120/150|0|0||高基值终结控制增幅
+basic_04|3|125/175/225|0|0||低基值格挡长期成长
+basic_05|2|130/180|0|0||大盾两阶成长
+basic_06|2|133/183|0|0||单次药物治疗
+basic_07|3|120/160/200|0|0||持续治疗逐跳成长，次数固定
+basic_08|2|100|1/2|0||抽牌两阶成长
+basic_09|1|100|0|1||一次性回能
+basic_10|2|100|0|1/2||蓄势回能两阶成长
+basic_11|3|125/175/225|0/0/1|0||先攻击后补充手牌
+basic_12|2|150/200|0/1|0||先格挡后补充手牌
+basic_13|3|125/150/200|0|0||伏击伤害成长，延迟固定
+fire_01|2|121/157|0|0||高费混合伤害
+fire_02|3|125/150/188|0|0||刀伤与淬火同步成长
+fire_03|2|125/175|0|0||灼烧层数成长，时长固定
+fire_04|3|133/167/217|0|0||延迟灼烧长期成长
+fire_05|2|130/170|0|0||有药治疗成长，无药保底固定
+fire_06|3|125/150/188|0|0||焚刃与灼烧同步成长
+fire_07|2|125/160|0|0||焚牌伤害系数成长，烧牌数固定
+fire_08|3|150/175/225|0|0||烧牌格挡成长
+fire_09|1|100|1|0||焚书抽牌强化
+fire_10|0|100|0|0||固定焚牌换火药
+fire_11|2|120/150|0|0||自燃爆发伤害成长
+fire_12|0|100|0|0||固定共燃契约
+fire_13|2|125/175|0|0||反击姿态只成长防护
+fire_14|1|100|0|1||引火回能强化
+fire_15|0|100|0|0||固定灼烧转移
+arcane_01|3|117/150/200|0|0||符刃直伤成长，法力固定
+arcane_02|2|133/200|0|0||刻印防护成长，法力固定
+arcane_03|0|100|0|0||固定法力生成
+arcane_04|2|125/158|0|0||耗能洪流按总伤害成长
+arcane_05|2|123/154|0|0||单次治疗控制增幅
+arcane_06|3|120/140/180|0|0||飞弹单发成长，弹数固定
+arcane_07|2|130/170|0|0||伤害与破盾同步成长
+arcane_08|3|120/160/200|0|0||结界与减伤同步成长
+arcane_09|2|100|1/2|0||研读抽牌成长
+arcane_10|1|100|0|1||法力换能量，消耗不变
+arcane_11|2|117/144|0|0||星坠延迟大伤控制增长
+arcane_12|0|100|0|0||固定法术封存
+arcane_13|2|125/167|0|0||回响上限成长
+arcane_14|0|100|0|0||固定法力回收
+arcane_15|0|100|0|0||固定时序收束
+curse_01|3|133/167/217|0|0||咒刃直伤，施咒数固定
+curse_02|0|100|0|0||固定咒痕施加
+curse_03|2|133/200|0|0||草偶格挡成长
+curse_04|0|100|0|0||固定持续契约
+curse_05|0|100|0|0||固定咒痕连环
+curse_06|3|125/150/188|0|0||按咒痕结算总伤害成长
+curse_07|2|133/167|0|0||衰败减伤成长
+curse_08|3|125/150/200|0|0||双重防护同时成长
+curse_09|2|150/200|0|0||反伤系数成长，触发次数固定
+curse_10|0|100|0|0||固定缠咒转移
+curse_11|2|120/150|0|0||终祷结算成长，层数成本固定
+curse_12|2|123/162|0|0||夺魄治疗成长
+curse_13|1|100|1|0||窥魂抽牌强化
+curse_14|1|100|0|1||摄魂回能强化
+curse_15|3|120/150/190|0|0||移祸防护成长
+tide_01|3|125/175/225|0|0||低费潮盾持续成长
+tide_02|2|130/180|0|0||大盾两阶成型
+tide_03|2|150/200|0/1|0||先防护后抽牌
+tide_04|3|133/167/217|0|0||伤害与破盾共同成长
+tide_05|0|100|0|0||固定潮势保留
+tide_06|3|133/167/217|0|0||低费潮势攻击持续成长
+tide_07|2|125/163|0|0||中费反击两阶成型
+tide_08|2|120/150|0|0||高费决堤控制成长
+tide_09|2|125/175|0|0||潜流触发伤害成长
+tide_10|3|133/167/217|0|0||攻击与牵制共同成长
+tide_11|2|130/170|0|0||单次药物治疗
+tide_12|3|125/150/200|0|0||两跳治疗分别成长
+tide_13|1|100|1|0||观潮抽牌强化
+tide_14|2|100|1/1|0/1||先抽牌后回能
+tide_15|3|125/150/200|0|0||回澜格挡持续成长
+thunder_01|2|133/200|0|0||零费伤害控制封顶
+thunder_02|3|125/150/188|0|0||连锁刺击逐步成长
+thunder_03|3|125/175/225|0/0/1|0||直伤先成长，末阶抽牌
+thunder_04|2|129/171|0|0||伤害与破盾共同成长
+thunder_05|2|121/157|0|0||延迟攻击成长
+thunder_06|2|125/175|0|0||导流额外伤害成长
+thunder_07|1|100|1|0||续令抽牌强化
+thunder_08|2|100|1/2|0||搜寻抽牌两阶成长
+thunder_09|1|100|0|1||回流回能强化
+thunder_10|2|150/200|0|0||多次残响只成长单次伤害
+thunder_11|3|133/167/200|0|0||双击每段成长
+thunder_12|3|140/180/220|0|0||伤害与麻痹共同成长
+thunder_13|2|125/160|0|0||终结伤害成长
+thunder_14|2|125/163|0|0||穿云延迟伤害成长
+thunder_15|2|121/150|0|0||高费终幕控制成长
+blood_01|3|125/150/188|0|0||献血攻击成长，生命成本固定
+blood_02|2|118/147|0|0||高基值裁决控制成长
+blood_03|2|127/164|0|0||献血防护成长
+blood_04|1|100|1|0||禁忌抽牌强化
+blood_05|1|100|0|1||血祭回能强化
+blood_06|3|122/156/200|0|0||伤害与吸血上限共同成长
+blood_07|2|125/158|0|0||双击各段同步成长
+blood_08|2|125/175|0|0||血债反击成长
+blood_09|2|129/171|0|0||有药普通与绝境分支共同成长
+blood_10|3|133/167/217|0/0/1|0||逐命先攻击后抽牌
+blood_11|3|120/150/190|0|0||残躯两种状态同步成长
+blood_12|2|140/180|0|0||两种生命状态防护成长
+blood_13|3|125/150/200|0|0||锁定延迟伤害成长
+blood_14|2|100|1/1|0/1||先抽牌后回能，次数固定
+blood_15|2|125/175|0|0||绝境首击伤害成长，次数固定
+");
+            Rows(entries, "card_school_", @"
+fire_b01|3|125/150/200|0|0||附火伤害成长，弹数固定
+fire_b02|2|140/180|0|0||防护与火势防护成长
+fire_b03|3|120/150/190|0|0|133/167/200|直伤与燃烧分别成长
+fire_b04|2|127/167|0|0|130/180|趁火爆发两阶成长
+fire_b05|3|120/160/220|0|0|133/167/233|近距点火长线成长
+fire_b06|2|140/180|0|0|133/200|烟幕防护成长，第二阶增加行动点|0/1
+arcane_b01|1|100|1|0||储能量固定，只强化抽牌
+arcane_b02|1|100|1|0||法力上限固定，只强化抽牌
+arcane_b03|3|120/160/220|0|0||低费放能长线成长
+arcane_b04|2|130/180|0|0||大额放能两阶成长
+arcane_b05|2|140/180|0|0|130/170|基础护盾与付费护盾分别成长
+arcane_b06|1|100|1|0||回收法力固定，只强化抽牌
+curse_b01|2|100|0/1|0|150/200|持续伤害先成长，次阶抽牌
+curse_b02|2|150/200|0|0|150/200|防护与咒伤成长，印数固定
+curse_b03|2|150/200|0|0||单层咒伤两阶成长
+curse_b04|3|150/200/250|0|0||多层咒伤长期成长
+curse_b05|2|150/200|0|0||引爆系数两阶成长
+curse_b06|2|200/300|0|0|200/300|咒印防护成长，第二阶增加行动点|0/1
+tide_b01|3|125/150/200|0|0||潮盾持续成长，潮势上限固定
+tide_b02|2|140/180|0|0||混合抽牌潮盾只成长格挡
+tide_b03|3|140/180/240|0|0|100|低费直伤成长，潮势转化固定
+tide_b04|3|129/157/200|0|0||专注防护长线成长
+tide_b05|2|140/200|0|0||移动潮盾，首阶增加行动点|1/1
+tide_b06|2|140/190|0|0|100|冲击直伤成长，潮势转化固定
+thunder_b01|3|125/150/200|0|0||蓄雷伤害成长
+thunder_b02|2|150/200|0|0||抽牌不增，蓄雷成长
+thunder_b03|3|125/150/188|0|0|150/200/250|连锁系数重点成长
+thunder_b04|2|127/167|0|0|140/180|高费链闪两阶成长
+thunder_b05|2|140/200|0|0||蓄雷成长，首阶增加行动点|1/1
+thunder_b06|2|140/180|0|0|140/200|终雷系数成长，链数成本固定
+blood_b01|2|140/180|0|0|125/163|献血防御两阶成长
+blood_b02|2|125/175|0|0||抽牌不增，献血护盾成长
+blood_b03|3|120/150/190|0|0|140/180/240|献血攻击长线成长
+blood_b04|3|140/180/240|0|0|100|低伤吸血成长，比例上限固定
+blood_b05|3|140/180/220|0|0|125/150/188|专注血盾长期成长
+blood_b06|2|127/167|0|0|140/190|追猎成长，处决门槛固定
+fire_n01|0|100|0|0|100|火场与时长固定
+fire_n02|3|125/150/200|0|0|100|只成长熔穿直伤
+fire_n03|0|100|0|0|100|浸油标记机制固定
+fire_n04|2|150/200|0|0|100|只成长付费格挡
+fire_n05|0|100|0|0|100|移焰位置机制固定
+fire_n06|2|129/171|0|0|100|只成长引爆基础直伤
+arcane_n01|0|100|0|0|100|折射场规则固定
+arcane_n02|0|100|0|0|100|钳制范围与时长固定
+arcane_n03|2|125/158|0|0|100|只成长星束基础直伤
+curse_n01|0|100|0|0|100|禁域规则固定
+curse_n02|0|100|0|0|100|封装机制固定
+curse_n03|2|129/171|0|0|100|只成长剥离基础直伤
+tide_n01|0|100|0|0|100|漩涡区域机制固定
+tide_n02|3|133/167/217|0|0|100|只成长横击直伤
+tide_n03|2|133/183|0|0|100|只成长付费格挡
+tide_n04|0|100|0|0|100|卸帆功能固定
+tide_n05|0|100|0|0|100|分潮功能固定
+tide_n06|2|133/183|0|0|100|只成长横扫基础伤害
+thunder_n01|0|100|0|0|100|雷栅规则固定
+thunder_n02|3|133/167/217|0|0|100|只成长跨弧基础伤害
+thunder_n03|0|100|0|0|100|预充连锁规则固定
+thunder_n04|0|100|0|0|100|脉冲强弱与时长固定
+thunder_n05|0|100|0|0|100|接地资源与抽牌固定
+thunder_n06|2|128/167|0|0|100|只成长收束基础伤害
+blood_n01|0|100|0|0|100|锚阵与血费固定
+blood_n02|0|100|0|0|100|止愈规则固定
+blood_n03|2|120/150|0|0|100|只成长重炮基础伤害
+");
+            // Hidden historical slots use the same authored curve as their modern boarding definition.
+            Aliases(entries, @"
+card_boarding_hook|basic_11
+card_cutlass_raid|basic_02
+card_crew_thrust|basic_01
+card_crew_guard|basic_04
+card_crew_rally|basic_12
+card_crew_bandage|basic_06
+card_crew_pistol|basic_03
+card_doctor_sutures|basic_06
+card_school_fire_b07|fire_02
+card_school_fire_b08|fire_01
+card_school_fire_b09|fire_08
+card_school_fire_b10|fire_04
+card_school_arcane_b07|arcane_01
+card_school_arcane_b08|arcane_04
+card_school_arcane_b09|arcane_02
+card_school_arcane_b10|arcane_05
+card_school_curse_b07|curse_01
+card_school_curse_b08|curse_12
+card_school_curse_b09|curse_03
+card_school_curse_b10|curse_11
+card_school_tide_b07|tide_06
+card_school_tide_b08|tide_01
+card_school_tide_b09|tide_11
+card_school_tide_b10|tide_07
+card_school_thunder_b07|thunder_02
+card_school_thunder_b08|thunder_12
+card_school_thunder_b09|thunder_11
+card_school_thunder_b10|thunder_13
+card_school_blood_b07|blood_01
+card_school_blood_b08|blood_06
+card_school_blood_b09|blood_09
+card_school_blood_b10|blood_02
+");
+        }
+        private static void Rows(Dictionary<string, CoreCardUpgradeProfile> entries, string prefix, string data)
+        {
+            foreach (string raw in data.Split('\n'))
+            {
+                string row = raw.Trim(); if (row.Length == 0) continue;
+                string[] cell = row.Split('|');
+                Add(entries, prefix + cell[0], int.Parse(cell[1]), cell[2], draw: cell[3], energy: cell[4],
+                    effect: cell[5].Length == 0 ? null : cell[5], note: cell[6],
+                    actionPoints: cell.Length > 7 ? cell[7] : "0");
+            }
+        }
+        private static void Aliases(Dictionary<string, CoreCardUpgradeProfile> entries, string data)
+        {
+            foreach (string raw in data.Split('\n'))
+            {
+                string row = raw.Trim(); if (row.Length == 0) continue;
+                string[] cell = row.Split('|'); entries.Add(cell[0], entries["card_boarding_" + cell[1]]);
+            }
+        }
+    }
+}

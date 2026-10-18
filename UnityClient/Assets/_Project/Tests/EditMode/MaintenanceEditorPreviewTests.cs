@@ -73,8 +73,13 @@ namespace ShatteredSail.Core.Tests
                 AssertRequirement(preview, controller.Session, "iron", "铁矿", cost.Iron);
                 AssertRequirement(preview, controller.Session, requiredKey, PortMarketCatalog.Name(cost.RequiredItem), cost.RequiredQuantity);
                 Assert.That(Find<Text>(preview, "Port Investment Quantity Header").text, Is.EqualTo("拥有 / 需求"));
-                Assert.That(Find<Button>(preview, "Confirm Port Investment").GetComponentInChildren<Text>().text,
-                    Is.EqualTo("升级至 Lv.1"));
+                Button investment = Find<Button>(preview, "Confirm Port Investment");
+                Text investmentLabel = investment.GetComponentInChildren<Text>();
+                Assert.That(investmentLabel.text, Is.EqualTo("材料不足"));
+                Assert.That(investmentLabel.color, Is.EqualTo((Color)new Color32(240, 107, 88, 255)));
+                Assert.That(investment.interactable, Is.False);
+                Assert.That(FindTransform(preview, "Port Investment Storage Hint"), Is.Null);
+                Assert.That(FindTransform(preview, "Port Investment Readiness"), Is.Null);
                 Assert.That(Find<Button>(preview, "Open Port Market"), Is.Not.Null);
                 Assert.That(FindTransform(preview, "Maintenance Supply Panel"), Is.Null);
                 Assert.That(FindTransform(preview, "Confirm Supply Purchase"), Is.Null);

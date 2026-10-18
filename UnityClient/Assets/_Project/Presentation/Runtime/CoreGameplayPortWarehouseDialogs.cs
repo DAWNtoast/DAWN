@@ -155,13 +155,35 @@ namespace ShatteredSail.Presentation
             warehouseCargoModal.SetAsLastSibling();
             RectTransform dialog = CreateFixedPanel(name, warehouseCargoModal, size,
                 new Vector2(0f, -12f), new Color(.91f, .82f, .65f));
-            dialog.GetComponent<Image>().raycastTarget = true;
+            Image paper = dialog.GetComponent<Image>();
+            MarketShopSkin.ApplyPanel(paper);
+            paper.raycastTarget = true;
+            float headerY = name == "Warehouse Item Actions" ? 172f : name == "Warehouse Cargo Adjustment" ? 208f : 298f;
+            float footerY = name == "Warehouse Item Actions" ? -147f : name == "Warehouse Cargo Adjustment" ? -206f : -280f;
+            WarehouseDialogRule("Warehouse Dialog Header Rule", dialog, size.x - 76f, headerY);
+            WarehouseDialogRule("Warehouse Dialog Footer Rule", dialog, size.x - 76f, footerY);
             return dialog;
+        }
+
+        private void WarehouseDialogRule(string name, Transform parent, float width, float y)
+        {
+            Image rule = CreateImage(name, parent, new Vector2(width, 1f), new Vector2(0f, y),
+                new Color(.68f, .58f, .43f, .7f));
+            rule.sprite = null;
+            rule.overrideSprite = null;
+            rule.raycastTarget = false;
         }
 
         private Text WarehouseDialogLabel(string name, Transform parent, Vector2 size, Vector2 position, int fontSize, string value)
         {
             Text label = WarehouseLabel(name, parent, size, position, fontSize, value, WarehouseInk);
+            label.color = name.EndsWith("Status", StringComparison.Ordinal) || name.EndsWith("Date", StringComparison.Ordinal)
+                ? MarketShopSkin.MutedInk : MarketShopSkin.Ink;
+            if (name.EndsWith("Title", StringComparison.Ordinal))
+            {
+                GameTypography.Apply(label, fontSize, FontStyle.Bold);
+                label.alignment = TextAnchor.MiddleLeft;
+            }
             label.raycastTarget = false;
             label.resizeTextForBestFit = true;
             label.resizeTextMinSize = Math.Max(14, fontSize - 4);
@@ -174,6 +196,8 @@ namespace ShatteredSail.Presentation
         {
             Button button = CreateButton(name, parent, size, position, Gold, DeepSea, 22);
             button.GetComponentInChildren<Text>().text = caption;
+            if (name.StartsWith("Confirm ", StringComparison.Ordinal)) MarketShopSkin.SetMode(button, true);
+            else MarketShopSkin.ApplyLightButton(button);
             button.onClick.AddListener(() => action());
             return button;
         }
@@ -193,6 +217,7 @@ namespace ShatteredSail.Presentation
             RectTransform handleTrack = (RectTransform)slider.handleRect.parent;
             handleTrack.sizeDelta = new Vector2(handleTrack.sizeDelta.x, 0f);
             slider.handleRect.sizeDelta = new Vector2(28f, 36f);
+            MarketShopSkin.ApplySlider(slider);
             Image trackTarget = slider.gameObject.AddComponent<Image>();
             trackTarget.color = Color.clear;
             trackTarget.raycastTarget = true;

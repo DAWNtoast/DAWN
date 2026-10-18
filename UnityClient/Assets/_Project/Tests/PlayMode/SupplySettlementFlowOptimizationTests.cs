@@ -13,33 +13,33 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
-        public IEnumerator SupplySettlementOptimization_CrewSliderKeepsDragSurfaceAndDoesNotPersistDraft()
+        public IEnumerator SupplySettlementOptimization_CrewMainControlsDoNotPersistDraftAndModalOmitsSlider()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
-            ClickAcceptanceButton("Configure Voyage Crew"); yield return null;
-            Slider slider = GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>();
-            GameObject setup = GameObject.Find("Voyage Setup");
-            int[] objects = setup.GetComponentsInChildren<Transform>(true).Select(item => item.GetInstanceID()).ToArray();
             decimal gold = controller.Session.ProfileGold;
             int cargoSave = PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Water"), -1);
+            int maximum = controller.Session.SelectedOrdinaryCrew;
+            Assert.That(maximum, Is.GreaterThan(0));
             for (int index = 0; index < 20; index++)
             {
-                slider.value = index % 2 == 0 ? 1 : slider.maxValue;
-                Assert.That(GameObject.Find("Departure Ordinary Crew Slider").GetComponent<Slider>(), Is.SameAs(slider));
-                Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo((int)slider.value));
-                Assert.That(GameObject.Find("Departure Ordinary Crew Hint").GetComponent<Text>().text,
-                    index % 2 == 0 ? Does.Contain("不足半载") : Does.Contain("已达半载"));
+                ClickAcceptanceButton(index % 2 == 0 ? "DepartureOrdinaryCrewDecreaseButton" : "DepartureOrdinaryCrewIncreaseButton");
+                yield return null;
+                Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(index % 2 == 0 ? maximum - 1 : maximum));
+                Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+                Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Water"), -1), Is.EqualTo(cargoSave));
             }
-            CollectionAssert.AreEqual(objects, setup.GetComponentsInChildren<Transform>(true).Select(item => item.GetInstanceID()).ToArray());
+            ClickAcceptanceButton("Configure Voyage Crew"); yield return null;
+            AssertDepartureCrewOverlayRemovedContent(controller);
+            Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(maximum));
+            Button.ButtonClickedEvent oldConfirm = ActiveButton("Confirm Departure Crew").onClick;
+            ClickAcceptanceButton("Confirm Departure Crew"); yield return null;
+            ClickAcceptanceButton("DepartureOrdinaryCrewDecreaseButton"); yield return null;
+            oldConfirm.Invoke(); yield return null;
+            Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(maximum - 1), "A retired confirmation cannot restore an earlier ordinary crew draft.");
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Water"), -1), Is.EqualTo(cargoSave));
-            int selected = (int)slider.value;
-            Slider.SliderEvent oldDrag = slider.onValueChanged;
-            ClickAcceptanceButton("Confirm Departure Crew"); yield return null;
-            oldDrag.Invoke(0);
-            Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(selected), "A retired drag callback cannot change the confirmed crew.");
             LogAssert.NoUnexpectedReceived();
         }
 

@@ -150,6 +150,31 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void ExplorationSummary_WrapsAboveChartWithoutCoveringTheSea()
+        {
+            Create();
+            using (var viewport = new DashboardViewport(host))
+            {
+                // Moving the host into the preview scene invokes its editor
+                // disable/enable cycle and replaces the generated controls.
+                Text summary = Find<Text>("Voyage Exploration Status Text");
+                Assert.That(summary.text, Does.Contain("探索收获"));
+                summary.text = "探索收获 · 航速 +25% 还有 18.5 小时；瞭望范围 +35% 还有 12 小时。" +
+                    "本航次线索：潮工船坞图，可调查潮痕秘藏；商队互助凭证，可与香料沉船的失主交涉；" +
+                    "月相星图，可解读月痕方碑并开启遗迹深处。线索取得后会显示相应目标，继续航行时仍可查看。";
+                foreach (Vector2Int size in new[] { new Vector2Int(1280, 720), new Vector2Int(1920, 1080),
+                    new Vector2Int(1280, 1024), new Vector2Int(3440, 1440) })
+                {
+                    viewport.ResizeAndRender(size.x, size.y);
+                    AssertMapFillsAvailableChart("exploration summary " + size);
+                    Assert.That(summary.preferredHeight, Is.LessThanOrEqualTo(summary.rectTransform.rect.height + .1f));
+                    Assert.That(summary.resizeTextForBestFit, Is.False);
+                    Assert.That(summary.cachedTextGenerator.characterCountVisible, Is.GreaterThanOrEqualTo(summary.text.Length));
+                }
+            }
+        }
+
+        [Test]
         public void ForecastDisclosure_PreservesCourseAndRefreshesDetailsWhileDragging()
         {
             Create();
@@ -271,7 +296,7 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(CoreGameplayPreviewScreen.Navigation)]
         [TestCase(CoreGameplayPreviewScreen.Encounter)]
-        public void Dashboard_HasThreeTiledRegions_WithChartFilledAndInputPreserved(CoreGameplayPreviewScreen screen)
+        public void Dashboard_TilesSailingOrEncounterRegions_WithChartFilledAndInputPreserved(CoreGameplayPreviewScreen screen)
         {
             Create(screen);
             string[] names = { "Navigation Chart", "Navigation Controls", "Forward View Panel" };
@@ -280,7 +305,7 @@ namespace ShatteredSail.Core.Tests
             foreach (string retired in new[] { "Map Seed", "Sea Conditions Legend", "Global Wind Direction Arrow",
                 "Cargo Status", "Supply Endurance Summary", "Map Course Hint", "Navigation Journal",
                 "Voyage Journal Scroll", "Voyage Log", "Log Title", "Voyage Cargo Summary",
-                "Encounter Journal Heading", "Encounter Terrain", "Encounter Themed Frame" })
+                "Encounter Terrain", "Encounter Themed Frame" })
                 Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == retired), Is.False, retired);
             foreach (string key in new[] { "sea", "island", "reef", "storm", "fog", "pirate" })
                 Assert.That(Resources.Load<Texture2D>("NavigationLookout/lookout_" + key + "_v1"), Is.Not.Null, key);
@@ -309,7 +334,9 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(Find<RectTransform>(names[index]), Is.SameAs(panels[index]), context);
                     Assert.That(Find<RectTransform>("Map Layer"), Is.SameAs(map), context);
                     Assert.That(Find<MapCourseInputSurface>("Map Course Input"), Is.SameAs(input), context);
-                    AssertDashboardCoverage(viewport.GameRoot, panels, Find<RectTransform>("Voyage Header"), context);
+                    RectTransform[] visiblePanels = screen == CoreGameplayPreviewScreen.Encounter
+                        ? new[] { panels[0], panels[2] } : panels;
+                    AssertDashboardCoverage(viewport.GameRoot, visiblePanels, Find<RectTransform>("Voyage Header"), context);
                     if (screen == CoreGameplayPreviewScreen.Navigation)
                     {
                         RectTransform lookout = Find<RectTransform>("Forward View Panel");
@@ -326,6 +353,7 @@ namespace ShatteredSail.Core.Tests
                     }
                     else
                     {
+                        AssertNavigationControlsSuppressed();
                         Assert.That(Find<RectTransform>("Encounter Card").sizeDelta,
                             Is.EqualTo(Find<RectTransform>("Forward Viewport").sizeDelta), context + " encounter card replaces the lookout and must fill its resized viewport");
                         AssertEmbeddedEncounterFitsPaper(context);
@@ -340,12 +368,12 @@ namespace ShatteredSail.Core.Tests
         private void AssertEmbeddedEncounterFitsPaper(string context)
         {
             RectTransform card = Find<RectTransform>("Encounter Card");
-            RectTransform paper = Find<RawImage>("Encounter Parchment").rectTransform;
+            RectTransform paper = Find<Image>("Encounter Parchment").rectTransform;
             RectTransform content = Find<RectTransform>("Encounter Paper Content");
             AssertInsidePanel(RectIn(card, paper), card, context + " parchment");
             AssertInsidePanel(RectIn(paper, content), paper, context + " paper margins");
             string[] regions = { "Encounter Illustration Mount", "Encounter Location", "Encounter Title",
-                "Encounter Description", "Encounter Badge", "Encounter Decision Footer", "Encounter Decision Viewport" };
+                "Encounter Description Viewport", "Encounter Badge", "Encounter Decision Footer", "Encounter Decision Viewport" };
             Rect[] boxes = regions.Select(name => RectIn(content, Find<RectTransform>(name))).ToArray();
             for (int index = 0; index < boxes.Length; index++)
             {
@@ -363,6 +391,16 @@ namespace ShatteredSail.Core.Tests
             Assert.That(scroll.horizontal, Is.False);
             Assert.That(scroll.content.rect.width, Is.EqualTo(scroll.viewport.rect.width).Within(.1f),
                 context + " decisions must use the full available paper width");
+            RectTransform secondary = Find<RectTransform>("Encounter Secondary Actions");
+            Assert.That(secondary.parent, Is.SameAs(content));
+            if (secondary.rect.height > .1f)
+            {
+                AssertInsidePanel(RectIn(content, secondary), content, context + " fixed secondary actions");
+                Assert.That(RectIn(content, secondary).Overlaps(RectIn(content, scroll.viewport)), Is.False,
+                    context + " secondary actions must not overlap the choice viewport");
+            }
+            Text narrative = Find<Text>("Encounter Description");
+            Assert.That(narrative.preferredHeight, Is.LessThanOrEqualTo(narrative.rectTransform.rect.height + .5f));
         }
 
         private void AssertSupplyHeader(string context)
@@ -493,6 +531,7 @@ namespace ShatteredSail.Core.Tests
                     Image paper = Find<Image>("Guided Tutorial Banner");
                     Assert.That(paper.transform.parent, Is.SameAs(header.parent), context + " independent tutorial paper");
                     Assert.That(NauticalSurfaceSkin.IsPaperSurface(paper.sprite), Is.True, context);
+                    Assert.That(paper.sprite, Is.SameAs(MarketShopSkin.Paper), context);
                     Assert.That(paper.color.a, Is.EqualTo(1f), context + " opaque writing area");
                     Assert.That(paper.raycastTarget, Is.False, context);
                     Assert.That(paper.canvasRenderer.absoluteDepth,
@@ -553,9 +592,22 @@ namespace ShatteredSail.Core.Tests
                 }
             }
             // Explicit seam checks reject gutters; area alone could conceal gaps paired with overlap.
-            Assert.That(bounds.Length, Is.EqualTo(3), context);
+            Assert.That(bounds.Length, Is.EqualTo(2).Or.EqualTo(3), context);
             Assert.That(bounds[0].xMin, Is.EqualTo(available.xMin).Within(tolerance), context + " chart left edge");
             Assert.That(bounds[0].width, Is.EqualTo(available.width * .6625f).Within(tolerance), context + " chart width");
+            if (bounds.Length == 2)
+            {
+                Assert.That(bounds[1].xMin, Is.EqualTo(bounds[0].xMax).Within(tolerance), context + " event seam");
+                Assert.That(bounds[1].xMax, Is.EqualTo(available.xMax).Within(tolerance), context + " event right edge");
+                foreach (Rect item in bounds)
+                {
+                    Assert.That(item.yMin, Is.EqualTo(available.yMin).Within(tolerance), context + " bottom edge");
+                    Assert.That(item.yMax, Is.EqualTo(available.yMax).Within(tolerance), context + " header seam");
+                }
+                Assert.That(area, Is.EqualTo((double)available.width * available.height)
+                    .Within((available.width + available.height) * tolerance), context + " two panels cover the voyage area");
+                return;
+            }
             foreach (int index in new[] { 1, 2 })
             {
                 Assert.That(bounds[index].xMax, Is.EqualTo(available.xMax).Within(tolerance), context + " right edge");
@@ -586,6 +638,8 @@ namespace ShatteredSail.Core.Tests
             RectTransform chart = Find<RectTransform>("Navigation Chart");
             Rect strip = RectIn(chart, Find<RectTransform>("Navigation Map Title Strip"));
             bool hasCourseHint = chart.Find("Map Course Hint") != null;
+            RectTransform exploration = chart.Find("Voyage Exploration Status") as RectTransform;
+            bool hasBossGuidance = chart.Find("Destination Boss Guidance") != null;
             Assert.That(strip.xMin, Is.EqualTo(chart.rect.xMin + 4f).Within(.01f), context + " title meets the gold frame");
             Assert.That(strip.xMax, Is.EqualTo(chart.rect.xMax - 4f).Within(.01f), context + " title meets the gold frame");
             Assert.That(Find<RectTransform>("Procedural Sea Chart Frame").GetComponent<RectMask2D>(), Is.Not.Null,
@@ -593,8 +647,17 @@ namespace ShatteredSail.Core.Tests
             Rect frame = RectIn(chart, Find<RectTransform>("Procedural Sea Chart Frame"));
             Assert.That(frame.xMin, Is.EqualTo(strip.xMin).Within(.01f), context + " frame left edge");
             Assert.That(frame.xMax, Is.EqualTo(strip.xMax).Within(.01f), context + " frame right edge");
-            Assert.That(frame.yMax, Is.EqualTo(strip.yMin).Within(.01f), context + " frame title seam");
-            Assert.That(frame.yMin, Is.EqualTo(chart.rect.yMin + 4f + (hasCourseHint ? 40f : 0f)).Within(.01f),
+            float frameTop = strip.yMin;
+            if (exploration != null)
+            {
+                Rect status = RectIn(chart, exploration);
+                Assert.That(status.yMax, Is.EqualTo(strip.yMin).Within(.01f), context + " exploration title seam");
+                Assert.That(status.xMin, Is.EqualTo(strip.xMin).Within(.01f), context + " exploration left edge");
+                Assert.That(status.xMax, Is.EqualTo(strip.xMax).Within(.01f), context + " exploration right edge");
+                frameTop = status.yMin;
+            }
+            Assert.That(frame.yMax, Is.EqualTo(frameTop).Within(.01f), context + " frame heading seam");
+            Assert.That(frame.yMin, Is.EqualTo(chart.rect.yMin + 4f + (hasBossGuidance ? 72f : hasCourseHint ? 40f : 0f)).Within(.01f),
                 context + " frame bottom edge");
             if (hasCourseHint)
                 Assert.That(RectIn(chart, Find<RectTransform>("Map Course Hint")).yMax,
@@ -765,6 +828,8 @@ namespace ShatteredSail.Core.Tests
                 {
                     UnityEngine.Canvas.ForceUpdateCanvases();
                     handle.Invoke(scaler, null);
+                    foreach (NavigationDashboardLayout layout in Canvas.GetComponentsInChildren<NavigationDashboardLayout>())
+                        layout.SendMessage("LateUpdate", SendMessageOptions.RequireReceiver);
                     foreach (Text label in Canvas.GetComponentsInChildren<Text>()) label.SetAllDirty();
                     UnityEngine.Canvas.ForceUpdateCanvases();
                     if (GraphicsSettings.currentRenderPipeline != null)
@@ -921,7 +986,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void DistanceChanges_PreserveWorldVisualsAndReplaceDirectTargetWithAccurateCourse()
+        public void DistanceChanges_PreserveWorldVisualsAndLockedDestinationWithAccurateLeg()
         {
             Create();
             controller.Session.SetCourseTo(controller.Session.Map.Destination);
@@ -938,8 +1003,12 @@ namespace ShatteredSail.Core.Tests
             {
                 slider.value = index % 2 == 0 ? 20 : 170;
                 Canvas.ForceUpdateCanvases();
-                Assert.That(controller.Session.HasDirectCourseTarget, Is.False);
+                Assert.That(controller.Session.HasDirectCourseTarget, Is.True);
+                Assert.That(controller.Session.DirectCourseTarget.X, Is.EqualTo(controller.Session.Map.Destination.X).Within(.001f));
+                Assert.That(controller.Session.DirectCourseTarget.Y, Is.EqualTo(controller.Session.Map.Destination.Y).Within(.001f));
                 SailingForecast forecast = controller.Session.GetForecast();
+                Assert.That(forecast.ActualDistanceNm, Is.LessThanOrEqualTo(controller.Session.PlannedDistanceNm + .01f));
+                Assert.That(Find<Text>("Distance Label").text, Does.Contain("锁定：" + controller.Session.Map.DestinationName));
                 RectTransform sea = Find<RectTransform>("Ocean Tile Layer");
                 CoreVoyageMap world = controller.Session.Map;
                 Vector2 expected = Find<RectTransform>("Map Layer").InverseTransformPoint(sea.TransformPoint(new Vector2(
@@ -1074,7 +1143,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void OrdinaryEvent_IsInsideLookout_PreservesChartWithoutJournal_AndLocksSailing()
+        public void OrdinaryEvent_FillsRightColumn_PreservesChartAndHidesSailingControls()
         {
             Create(CoreGameplayPreviewScreen.Encounter);
             var viewport = Find<RectTransform>("Forward Viewport");
@@ -1084,8 +1153,68 @@ namespace ShatteredSail.Core.Tests
             Assert.That(Find<Slider>("Distance Slider").interactable, Is.False);
             Assert.That(Find<Button>("Safe Return").interactable, Is.False);
             Assert.That(Find<Image>("Map Course Input").raycastTarget, Is.False);
+            AssertNavigationControlsSuppressed();
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Navigation Journal"), Is.False);
             Assert.That(Find<RectTransform>("Map Layer"), Is.Not.Null);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ClosingEncounter_RestoresThreePanelsWithoutChangingTheChart(bool skip)
+        {
+            Create();
+            using (var viewport = new DashboardViewport(host))
+            {
+                foreach (Vector2Int size in new[] { new Vector2Int(1920, 1080), new Vector2Int(1280, 1024) })
+                {
+                    viewport.ResizeAndRender(size.x, size.y);
+                    string context = size + (skip ? " skip" : " choice");
+                    string[] names = { "Navigation Chart", "Navigation Controls", "Forward View Panel" };
+                    Rect[] sailingBounds = names.Select(name => RectIn(viewport.GameRoot, Find<RectTransform>(name))).ToArray();
+                    Rect mapBounds = RectIn(viewport.GameRoot, Find<RectTransform>("Procedural Sea Chart Frame"));
+                    Set(controller.Session, "ActiveEncounter", new CoreEncounter("layout_transition", "海上漂流瓶", "航海事件",
+                        "船员拾起一个漂流瓶。", false, false, 1, 0,
+                        new CoreEncounterChoice("记录发现", "不消耗补给", 0, new VoyageEffect())));
+                    Set(controller.Session, "Phase", CoreDemoPhase.Encounter);
+                    Render();
+                    Canvas.ForceUpdateCanvases();
+                    Assert.That(RectIn(viewport.GameRoot, Find<RectTransform>("Navigation Chart")), Is.EqualTo(sailingBounds[0]),
+                        context + " event must preserve the entire chart region");
+                    Assert.That(RectIn(viewport.GameRoot, Find<RectTransform>("Procedural Sea Chart Frame")), Is.EqualTo(mapBounds),
+                        context + " event must preserve chart contents as well as the outer panel");
+                    AssertNavigationControlsSuppressed();
+
+                    Find<Button>(skip ? "Skip Encounter" : "Encounter Choice 0").onClick.Invoke();
+                    Canvas.ForceUpdateCanvases();
+
+                    Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+                    var panels = names.Select(Find<RectTransform>).ToArray();
+                    for (int index = 0; index < panels.Length; index++)
+                        Assert.That(RectIn(viewport.GameRoot, panels[index]), Is.EqualTo(sailingBounds[index]), context + " " + names[index]);
+                    AssertDashboardCoverage(viewport.GameRoot, panels, Find<RectTransform>("Voyage Header"), context);
+                    CanvasGroup group = panels[1].GetComponent<CanvasGroup>();
+                    if (group != null)
+                    {
+                        Assert.That(group.alpha, Is.EqualTo(1f));
+                        Assert.That(group.interactable && group.blocksRaycasts, Is.True);
+                    }
+                    Assert.That(Find<Slider>("Distance Slider").IsInteractable(), Is.True);
+                    Assert.That(Find<Image>("Map Course Input").raycastTarget, Is.True);
+                    Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Encounter Card"), Is.False);
+                }
+            }
+        }
+
+        private void AssertNavigationControlsSuppressed()
+        {
+            RectTransform controls = Find<RectTransform>("Navigation Controls");
+            Assert.That(controls.gameObject.activeInHierarchy, Is.True, "Keep the existing control hierarchy available for restoration.");
+            CanvasGroup group = controls.GetComponent<CanvasGroup>();
+            Assert.That(group, Is.Not.Null);
+            Assert.That(group.alpha, Is.EqualTo(0f));
+            Assert.That(group.interactable || group.blocksRaycasts, Is.False);
+            foreach (Selectable control in controls.GetComponentsInChildren<Selectable>(true))
+                Assert.That(control.IsInteractable(), Is.False, control.name + " must not accept input behind the event.");
         }
 
         [Test]

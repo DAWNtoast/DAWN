@@ -54,6 +54,7 @@ namespace ShatteredSail.Presentation.Tests
         [UnityTest, Timeout(120000)]
         public IEnumerator SeaChartLoading_InputLocksRouteAndDestinationAndRecordedDropdownReopensBothEndsAfterReload()
         {
+            using var storage = new VoyageCargoStorageScope();
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             var session = controller.Session;
@@ -66,50 +67,55 @@ namespace ShatteredSail.Presentation.Tests
             string origin = session.CurrentPort, destination = "白贝港";
             string seed = CoreVoyageSession.CreateChartSeed(1, origin, destination);
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
+            RectTransform initialProvision = ActiveButton("Departure Buy Provisions").GetComponent<RectTransform>();
+            Vector2 provisionPosition = initialProvision.anchoredPosition, provisionSize = initialProvision.sizeDelta;
+            Vector2 marketPosition = ActiveButton("Adjust Voyage Supplies").GetComponent<RectTransform>().anchoredPosition;
             yield return EnterDepartureChartSeed(seed);
             Assert.That(session.IsChartSeedSelected, Is.True);
             Assert.That(session.SelectedRouteIndex, Is.EqualTo(1));
             Assert.That(session.SelectedDestinationPort, Is.EqualTo(destination));
+            bool inlineDock = GameObject.Find("Departure Dock Chart Records") != null;
             Assert.That(GameObject.Find("Departure Route Summary").GetComponent<Text>().text,
-                Is.EqualTo("目标港口由海图确定，当前航线：" + origin + "——" + destination));
+                Is.EqualTo(inlineDock ? "当前航线：" + origin + " → " + destination
+                    : "目标港口由海图确定，当前航线：" + origin + "——" + destination));
             // Changing the chart's route recreates its quote while the previous
             // objects await end-of-frame destruction. The replacements must
             // receive the same separated layout as the initial departure view.
             Canvas.ForceUpdateCanvases();
             RectTransform provisionBuy = ActiveButton("Departure Buy Provisions").GetComponent<RectTransform>();
             RectTransform marketBuy = ActiveButton("Adjust Voyage Supplies").GetComponent<RectTransform>();
-            Assert.That(provisionBuy.anchoredPosition.y, Is.EqualTo(marketBuy.anchoredPosition.y).Within(.1f));
+            Assert.That(provisionBuy.anchoredPosition, Is.EqualTo(provisionPosition));
+            Assert.That(provisionBuy.sizeDelta, Is.EqualTo(provisionSize));
+            Assert.That(marketBuy.anchoredPosition, Is.EqualTo(marketPosition));
             Assert.That(provisionBuy.anchoredPosition.x + provisionBuy.rect.xMax,
                 Is.LessThanOrEqualTo(marketBuy.anchoredPosition.x + marketBuy.rect.xMin - 7.9f),
                 "Requoting a different chart must leave a clear gap between the supply buttons.");
             Assert.That(GameObject.Find("Departure Provision Quote"), Is.Null,
                 "Requoting a chart must not recreate the removed detailed provisioning summary.");
-            Assert.That(provisionBuy.rect.height, Is.GreaterThanOrEqualTo(57.9f),
-                "The replacement purchase action keeps the larger shared layout.");
             foreach (int route in new[] { 0, 1, 2 })
             {
                 Button routeButton = controller.GetComponentsInChildren<Button>(true).Single(button => button.name == "Route " + route);
-                Assert.That(routeButton.gameObject.activeInHierarchy, Is.False, "The chart selection replaces the random route list.");
+                Assert.That(routeButton.gameObject.activeInHierarchy, Is.EqualTo(inlineDock),
+                    "The dock keeps its painted route plaques visible; the paper view replaces its manual route list.");
                 Assert.That(routeButton.IsInteractable(), Is.False, "Loaded chart owns its route.");
             }
             for (int port = 0; port < CoreVoyageSession.DestinationPorts.Count; port++)
             {
                 Button destinationButton = controller.GetComponentsInChildren<Button>(true)
                     .Single(button => button.name == "Departure Destination " + port);
-                Assert.That(destinationButton.gameObject.activeInHierarchy, Is.False,
-                    "A loaded chart hides the manual port row because its endpoints are already fixed.");
+                Assert.That(destinationButton.gameObject.activeInHierarchy, Is.EqualTo(inlineDock),
+                    "The dock keeps its painted port plaques visible while the selected chart owns both endpoints.");
                 Assert.That(destinationButton.IsInteractable(), Is.False,
                     "A loaded chart owns its destination, including the selected port button.");
             }
             Assert.That(GameObject.Find("Departure Chart Ports").GetComponent<Text>().text,
-                Does.Contain("出发港口：" + origin).And.Contain("到达港口：" + destination));
+                Does.Contain(origin).And.Contain(destination));
             Assert.That(GameObject.Find("Departure Chart Preview").GetComponentInChildren<VoyageChartSurfaceGraphic>(), Is.Not.Null);
             CaptureSeaChartFlow(controller, "03_Seed_Route_Locked", "真实输入完整海图种子后自动选择航线并显示地图与端点", "Route Selection");
             ClickAcceptanceButton("Adjust Voyage Supplies"); yield return null;
-            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回码头"));
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
-            Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
-            ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
+            Assert.That(GameObject.Find("Port Hub"), Is.Null);
             Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
             Assert.That(GameObject.Find("Use Chart Seed").GetComponent<Toggle>().isOn, Is.True);
             Assert.That(GameObject.Find("Seed Input").GetComponent<InputField>().text, Is.EqualTo(seed));
@@ -118,13 +124,16 @@ namespace ShatteredSail.Presentation.Tests
             CoreVoyageMap first = session.Map;
             var terrain = first.TerrainCells.ToArray();
             var explored = first.ExploredCells.ToArray();
-            var nodes = first.Nodes.Select(node => node.Encounter.Id + ":" + node.Position.X + ":" + node.Position.Y).ToArray();
+            var nodeLayout = SeaChartNodeLayout(first);
+            var fixedEncounters = SeaChartFixedEncounters(first);
+            AssertSeaChartRouteGuardian(session);
             uint hash = first.Hash;
             VoyagePoint originalDeparture = first.Departure, originalDestination = first.Destination;
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, ""), Does.Not.Contain(seed));
             ClickAcceptanceButton("Safe Return"); yield return null;
             if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
             { ClickAcceptanceButton("Skip Settlement Reveal"); yield return null; }
+            yield return SettlementChestTestActions.ShowOverview();
             ClickAcceptanceButton("Draw Sea Chart"); yield return null;
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, ""), Does.Not.Contain(seed), "Drawing is pending until confirming the settlement.");
             ClickAcceptanceButton("Return To Port"); yield return null;
@@ -136,11 +145,34 @@ namespace ShatteredSail.Presentation.Tests
             yield return SelectRecordedChartSeed(seed, "reload recorded chart at original endpoint");
             CaptureSeaChartFlow(controller, "04_Recorded_Chart_Selected", "确认保存并重载后，通过左侧已绘海图菜单选择种子并显示缩略图", "Route Selection");
             ClickAcceptanceButton("Start Voyage"); yield return null;
+            Assert.That(session.CurrentChartSeed, Is.EqualTo(seed));
             Assert.That(session.Map.Hash, Is.EqualTo(hash));
             CollectionAssert.AreEqual(terrain, session.Map.TerrainCells);
-            CollectionAssert.AreEqual(nodes, session.Map.Nodes.Select(node => node.Encounter.Id + ":" + node.Position.X + ":" + node.Position.Y).ToArray());
+            CollectionAssert.AreEqual(nodeLayout, SeaChartNodeLayout(session.Map));
+            CollectionAssert.AreEqual(fixedEncounters, SeaChartFixedEncounters(session.Map));
+            // Each new departure selects one of this route's two guardians.
+            // The chart fixes every anchor and ordinary encounter, not that draw.
+            string voyageBoss = AssertSeaChartRouteGuardian(session);
             for (int cell = 0; cell < explored.Length; cell++)
                 if (explored[cell]) Assert.That(session.Map.ExploredCells[cell], Is.True, "Recorded exploration " + cell);
+            var voyageEncounters = session.Map.Nodes.Select(node => node.Encounter.Id).ToArray();
+            var voyageExplored = session.Map.ExploredCells.ToArray();
+            ClickAcceptanceButton("Voyage Settings"); yield return null;
+            ClickAcceptanceButton("Return To Main Menu"); yield return null;
+            ClickAcceptanceButton("Confirm Return To Main Menu"); yield return null; yield return null;
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("MainMenu"));
+            ClickAcceptanceButton("Continue Game"); yield return null; yield return null;
+            controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            session = controller.Session;
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            Assert.That(session.CurrentChartSeed, Is.EqualTo(seed));
+            Assert.That(session.Map.Hash, Is.EqualTo(hash));
+            CollectionAssert.AreEqual(terrain, session.Map.TerrainCells);
+            CollectionAssert.AreEqual(nodeLayout, SeaChartNodeLayout(session.Map));
+            CollectionAssert.AreEqual(voyageEncounters, session.Map.Nodes.Select(node => node.Encounter.Id).ToArray());
+            CollectionAssert.AreEqual(voyageExplored, session.Map.ExploredCells);
+            Assert.That(AssertSeaChartRouteGuardian(session), Is.EqualTo(voyageBoss),
+                "Continuing the saved voyage must restore its exact guardian without drawing another variant.");
             yield return FinishChartFlowVoyage(false);
             // The UI/load boundary is under test. This public port fixture is not
             // presented as a naturally completed voyage to the other endpoint.
@@ -149,13 +181,35 @@ namespace ShatteredSail.Presentation.Tests
             yield return SelectRecordedChartSeed(seed, "load recorded chart from opposite endpoint");
             Assert.That(session.SelectedDestinationPort, Is.EqualTo(origin));
             ClickAcceptanceButton("Start Voyage"); yield return null;
+            Assert.That(session.CurrentChartSeed, Is.EqualTo(seed));
             Assert.That(session.Map.Hash, Is.EqualTo(hash));
             CollectionAssert.AreEqual(terrain, session.Map.TerrainCells);
+            CollectionAssert.AreEqual(nodeLayout, SeaChartNodeLayout(session.Map));
+            CollectionAssert.AreEqual(fixedEncounters, SeaChartFixedEncounters(session.Map));
+            AssertSeaChartRouteGuardian(session);
             AssertDestinationTestPoint(session.Position, originalDestination);
             AssertDestinationTestPoint(session.Map.Destination, originalDeparture);
             Assert.That(session.Map.DestinationName, Is.EqualTo(origin));
             CaptureSeaChartFlow(controller, "05_Reverse_Same_Chart", "公开到港夹具验证反向装载：地形不变，船位与目标端点互换", "Navigation Chart");
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static string[] SeaChartNodeLayout(CoreVoyageMap map) => map.Nodes
+            .Select(node => node.Id + ":" + node.IsBoss + ":" + node.Position.X + ":" + node.Position.Y).ToArray();
+
+        private static string[] SeaChartFixedEncounters(CoreVoyageMap map) => map.Nodes.Where(node => !node.IsBoss)
+            .Select(node => node.Id + ":" + node.Encounter.Id).ToArray();
+
+        private static string AssertSeaChartRouteGuardian(CoreVoyageSession session)
+        {
+            CoreMapNode guardian = session.Map.Nodes.Single(node => node.IsBoss);
+            var candidates = CoreRouteBossCatalog.ForRoute(session.Map.Route.Id);
+            Assert.That(candidates.Count, Is.EqualTo(2));
+            Assert.That(candidates.Select(boss => boss.Id), Does.Contain(guardian.Encounter.Id),
+                "A new voyage may select only a guardian belonging to the loaded chart's route.");
+            Assert.That(guardian.Encounter.Id, Is.EqualTo(session.CurrentRouteBossId));
+            Assert.That(session.CurrentRouteBossDefeated, Is.False);
+            return guardian.Encounter.Id;
         }
 
         [UnityTest, Timeout(360000)]
@@ -225,6 +279,7 @@ namespace ShatteredSail.Presentation.Tests
             var firstRun = new HashSet<string>();
             yield return DriveGuidedTutorial(controller, "DrawChart", firstRun, false);
             Assert.That(firstRun, Does.Contain("TutorialBoss"), "The first victory must be played with the real battle UI.");
+            AssertGuidedCourseCoverage(firstRun);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
             Assert.That(controller.Session.Settlement.BankedFragments, Is.EqualTo(1));
             Assert.That(controller.Session.Settlement.BankedPirateExperience, Is.EqualTo(80));
@@ -304,12 +359,14 @@ namespace ShatteredSail.Presentation.Tests
 
         private static void AssertDeparturePortRowVisibility(CoreGameplayDemoController controller, bool visible)
         {
+            bool inlineDock = controller.GetComponentsInChildren<ScrollRect>(true)
+                .Any(scroll => scroll.name == "Departure Dock Chart Records");
             for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
             {
                 Button button = controller.GetComponentsInChildren<Button>(true)
                     .Single(item => item.name == "Departure Destination " + index);
-                Assert.That(button.gameObject.activeInHierarchy, Is.EqualTo(visible),
-                    "Manual destinations are shown only outside chart-selection mode.");
+                Assert.That(button.gameObject.activeInHierarchy, Is.EqualTo(visible || inlineDock),
+                    "Painted dock destinations stay visible; paper destinations hide during chart selection.");
                 Assert.That(button.IsInteractable(),
                     Is.EqualTo(visible && CoreVoyageSession.DestinationPorts[index] != controller.Session.CurrentPort),
                     "Restoring manual selection must keep the current port unavailable.");
@@ -336,6 +393,21 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator SelectRecordedChartSeed(string seed, string stage = "select recorded chart")
         {
             yield return SetDepartureChartMode(true, stage);
+            GameObject inlineRecords = GameObject.Find("Departure Dock Chart Records");
+            if (inlineRecords != null)
+            {
+                string shortSeed = seed.Length > 38 ? seed.Substring(0, 38) : seed;
+                Button[] records = inlineRecords.GetComponentsInChildren<Button>()
+                    .Where(button => button.name.StartsWith("Departure Dock Chart Record ")).ToArray();
+                Button record = records.Single(button => button.GetComponentsInChildren<Text>()
+                    .Any(text => text.text.Contains(shortSeed)));
+                ScrollRect scroll = inlineRecords.GetComponent<ScrollRect>();
+                if (records.Length > 1)
+                    scroll.verticalNormalizedPosition = 1f - (float)Array.IndexOf(records, record) / (records.Length - 1);
+                yield return ClickDestinationTestGraphic(record.gameObject, Vector2.zero);
+                Assert.That(GameObject.Find("Seed Input").GetComponent<InputField>().text, Is.EqualTo(seed));
+                yield break;
+            }
             Dropdown dropdown = GameObject.Find("Seed Input Dropdown").GetComponent<Dropdown>();
             Assert.That(dropdown.IsInteractable(), Is.True);
             Assert.That(dropdown.options.Count, Is.GreaterThan(1));
@@ -355,6 +427,7 @@ namespace ShatteredSail.Presentation.Tests
             ClickAcceptanceButton("Safe Return"); yield return null;
             if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
             { ClickAcceptanceButton("Skip Settlement Reveal"); yield return null; }
+            yield return SettlementChestTestActions.ShowOverview();
             if (draw) { ClickAcceptanceButton("Draw Sea Chart"); yield return null; }
             ClickAcceptanceButton("Return To Port"); yield return null;
         }

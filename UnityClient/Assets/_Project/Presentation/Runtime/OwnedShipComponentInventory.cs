@@ -4,25 +4,22 @@ using UnityEngine;
 
 namespace ShatteredSail.Presentation
 {
-    /// <summary>A physical item. Identity and appraisal survive every unload, refit and save.</summary>
+    /// <summary>A physical item. Identity survives every unload, refit and save.</summary>
     [Serializable]
     public sealed class OwnedShipComponent
     {
         [SerializeField] private string instanceId;
         [SerializeField] private string componentId;
-        [SerializeField] private float quality;
         [SerializeField] private int shipIndex = -1;
 
         public string InstanceId => instanceId;
         public string ComponentId => componentId;
-        public float Quality => quality;
         public int ShipIndex => shipIndex;
 
-        internal OwnedShipComponent(string instance, string component, float appraisal, int ship)
+        internal OwnedShipComponent(string instance, string component, int ship)
         {
             instanceId = instance;
             componentId = component;
-            quality = float.IsNaN(appraisal) || float.IsInfinity(appraisal) ? 1f : Mathf.Clamp(appraisal, 0.9f, 1.1f);
             shipIndex = ship;
         }
 
@@ -81,7 +78,7 @@ namespace ShatteredSail.Presentation
                     importedShips.Add(ship);
                     if (!occupied.Add(ship + ":" + entry.Slot)) ship = -1;
                 }
-                importedItems.Add(new OwnedShipComponent(item.InstanceId, entry.Id, item.Quality, ship));
+                importedItems.Add(new OwnedShipComponent(item.InstanceId, entry.Id, ship));
             }
             items.Clear();
             items.AddRange(importedItems);
@@ -97,8 +94,7 @@ namespace ShatteredSail.Presentation
             return JsonUtility.ToJson(new SaveData { initializedShips = ships, items = items });
         }
 
-        public void EnsureLoadout(int ship, Func<ComponentSlot, ComponentArtEntry> initialItem = null,
-            Func<ComponentSlot, float> initialQuality = null)
+        public void EnsureLoadout(int ship, Func<ComponentSlot, ComponentArtEntry> initialItem = null)
         {
             if (ship < 0 || !initializedShips.Add(ship)) return;
             for (int index = 0; index < ComponentArtCatalog.SlotCount; index++)
@@ -106,7 +102,7 @@ namespace ShatteredSail.Presentation
                 ComponentSlot slot = (ComponentSlot)index;
                 ComponentArtEntry entry = initialItem?.Invoke(slot);
                 if (entry == null || entry.Slot != slot) entry = catalog.Get(index * ComponentArtCatalog.EntriesPerSlot);
-                items.Add(new OwnedShipComponent(createIdentity(), entry.Id, initialQuality?.Invoke(slot) ?? 1f, ship));
+                items.Add(new OwnedShipComponent(createIdentity(), entry.Id, ship));
             }
         }
 
@@ -123,10 +119,10 @@ namespace ShatteredSail.Presentation
             initializedShips.Add(ship);
         }
 
-        public OwnedShipComponent Grant(ComponentArtEntry entry, float quality)
+        public OwnedShipComponent Grant(ComponentArtEntry entry)
         {
             if (entry == null || catalog.GetById(entry.Id) == null) return null;
-            OwnedShipComponent item = new OwnedShipComponent(createIdentity(), entry.Id, quality, -1);
+            OwnedShipComponent item = new OwnedShipComponent(createIdentity(), entry.Id, -1);
             items.Add(item);
             return item;
         }

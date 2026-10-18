@@ -23,7 +23,7 @@ namespace ShatteredSail.Presentation.Tests
             PopulateBareStarterForFixture(controller);
             ComponentArtEntry[] samples = new[] { ComponentSlot.Bow, ComponentSlot.Cannon }
                 .Select(slot => catalog.Entries.First(entry => entry.Slot == slot && entry.Rarity == ComponentRarity.Rare)).ToArray();
-            OwnedShipComponent[] inventory = samples.Select(entry => controller.GrantOwnedComponent(entry, 1f)).ToArray();
+            OwnedShipComponent[] inventory = samples.Select(entry => controller.GrantOwnedComponent(entry)).ToArray();
             yield return ClickShipyardControl("Port Hotspot Shipyard");
             yield return ClickShipyardControl("Shipyard Ship 0");
             yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
@@ -39,12 +39,12 @@ namespace ShatteredSail.Presentation.Tests
             for (int i = 0; i < inventory.Length; i++)
             {
                 RawImage icon = AssertItemIcon("Shipyard Inventory Art " + inventory[i].InstanceId,
-                    ItemIconCatalog.ForComponent(samples[i]), 48f);
+                    ItemIconCatalog.ForComponent(samples[i]), 68f);
                 AssertIconDoesNotCoverRowText(icon);
                 AssertIconPointerReachesButton(icon, "Shipyard Equipment Owned " + inventory[i].InstanceId, false);
             }
             NavalBattleVisualCapture.Capture(controller, "ItemIcons_11_Equipment_Inventory.png",
-                "隔离部件库存夹具；五个已装槽位使用64像素图标，两件闲置部件使用48像素图标", "Shipyard Detail");
+                "隔离部件库存夹具；五个已装槽位图标适配64像素区域，两件闲置部件图标适配68像素区域，均保留原始比例", "Shipyard Detail");
 
             // Use the real Core settlement boundary and production renderer.
             // Reward values below are explicitly a visual fixture, not earned loot.
@@ -66,10 +66,10 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton("Skip Settlement Reveal"); yield return null;
             }
             Assert.That(Object.FindFirstObjectByType<SettlementRevealController>().IsComplete, Is.True);
-            RawImage gold = AssertItemIcon("Settlement Featured Icon Gold", ItemIconCatalog.ForSpecial("gold"), 48f);
+            RawImage gold = AssertItemIcon("Settlement Featured Icon Gold", ItemIconCatalog.ForSpecial("gold"), 104f);
             AssertIconDoesNotCoverRowText(gold);
             foreach (string key in new[] { "Wood", "Iron" })
-                AssertIconDoesNotCoverRowText(AssertItemIcon("Settlement Resource Icon " + key, ItemIconCatalog.ForCargo(key), 32f));
+                AssertIconDoesNotCoverRowText(AssertItemIcon("Settlement Resource Icon " + key, ItemIconCatalog.ForCargo(key), 42f));
             foreach (string key in new[] { "gem", "ancientmaterial", "relic", "blackpearl", "treasurefragment" })
                 AssertIconDoesNotCoverRowText(AssertItemIcon("Settlement Treasure Icon " + key,
                     key == "treasurefragment" ? ItemIconCatalog.ForSpecial(key) : ItemIconCatalog.ForCargo(key), 32f));

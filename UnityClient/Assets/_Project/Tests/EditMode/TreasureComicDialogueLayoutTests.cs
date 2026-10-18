@@ -8,20 +8,32 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class TreasureComicDialogueLayoutTests
     {
-        [TestCase("weathered", 0, 5, 1920, 1080)]
-        [TestCase("weathered", 1, 6, 1920, 1080)]
-        [TestCase("gilded", 0, 6, 1920, 1080)]
-        [TestCase("gilded", 1, 6, 1920, 1080)]
-        [TestCase("moonlit", 0, 5, 1920, 1080)]
-        [TestCase("moonlit", 1, 5, 1920, 1080)]
-        [TestCase("weathered", 0, 5, 1280, 960)]
-        [TestCase("weathered", 1, 6, 1280, 960)]
-        [TestCase("gilded", 0, 6, 1280, 960)]
-        [TestCase("gilded", 1, 6, 1280, 960)]
-        [TestCase("moonlit", 0, 5, 1280, 960)]
-        [TestCase("moonlit", 1, 5, 1280, 960)]
+        [TestCase("weathered", 0, 5, 1920, 1080, 0)]
+        [TestCase("weathered", 1, 6, 1920, 1080, 0)]
+        [TestCase("gilded", 0, 6, 1920, 1080, 0)]
+        [TestCase("gilded", 1, 6, 1920, 1080, 0)]
+        [TestCase("moonlit", 0, 5, 1920, 1080, 0)]
+        [TestCase("moonlit", 1, 5, 1920, 1080, 0)]
+        [TestCase("weathered", 0, 5, 1280, 960, 0)]
+        [TestCase("weathered", 1, 6, 1280, 960, 0)]
+        [TestCase("gilded", 0, 6, 1280, 960, 0)]
+        [TestCase("gilded", 1, 6, 1280, 960, 0)]
+        [TestCase("moonlit", 0, 5, 1280, 960, 0)]
+        [TestCase("moonlit", 1, 5, 1280, 960, 0)]
+        [TestCase("weathered", 0, 5, 1920, 1080, 1)]
+        [TestCase("weathered", 1, 6, 1920, 1080, 1)]
+        [TestCase("gilded", 0, 6, 1920, 1080, 1)]
+        [TestCase("gilded", 1, 6, 1920, 1080, 1)]
+        [TestCase("moonlit", 0, 5, 1920, 1080, 1)]
+        [TestCase("moonlit", 1, 5, 1920, 1080, 1)]
+        [TestCase("weathered", 0, 5, 1280, 960, 1)]
+        [TestCase("weathered", 1, 6, 1280, 960, 1)]
+        [TestCase("gilded", 0, 6, 1280, 960, 1)]
+        [TestCase("gilded", 1, 6, 1280, 960, 1)]
+        [TestCase("moonlit", 0, 5, 1280, 960, 1)]
+        [TestCase("moonlit", 1, 5, 1280, 960, 1)]
         public void EveryPage_KeepsCompleteArtisticDialogueInsideItsAuthoredBoxes(
-            string rankId, int pageIndex, int expectedBalloons, int width, int height)
+            string rankId, int pageIndex, int expectedBalloons, int width, int height, int contentVersion)
         {
             GameObject host = new GameObject("Treasure Dialogue Layout Audit", typeof(RectTransform), typeof(Canvas));
             try
@@ -38,8 +50,27 @@ namespace ShatteredSail.Core.Tests
                 page.texture = Resources.Load<Texture2D>(CoreTreasureStoryCatalog.FindChapter(rankId).ImageResources[pageIndex]);
                 Assert.That(page.texture, Is.Not.Null, "The test must use the shipped page, not a substitute canvas.");
                 page.SetPanel(new Rect(0f, 0f, 1f, 1f), false);
-                var authored = TreasureComicDialogueCatalog.GetPage(rankId, pageIndex);
+                var authored = TreasureComicDialogueCatalog.GetPage(rankId, pageIndex, contentVersion);
                 Assert.That(authored.Count, Is.EqualTo(expectedBalloons), "Each authored speech balloon and caption needs dialogue.");
+                var legacy = TreasureComicDialogueCatalog.GetPage(rankId, pageIndex);
+                if (contentVersion == 1)
+                {
+                    Assert.That(authored.Select(item => item.Text), Is.Not.EqualTo(legacy.Select(item => item.Text)),
+                        "Each new expedition page must introduce its actual exploration objective.");
+                    string text = string.Join("", authored.Select(item => item.Text));
+                    Assert.That(text, Does.Not.Contain("沉门不启"));
+                    Assert.That(text, Does.Not.Contain("宝库已开"));
+                    Assert.That(text, Does.Not.Contain("赢下切磋"));
+                    for (int index = 0; index < authored.Count; index++)
+                    {
+                        Assert.That(authored[index].Bounds, Is.EqualTo(legacy[index].Bounds));
+                        string[] currentLines = authored[index].Text.Split('\n'), legacyLines = legacy[index].Text.Split('\n');
+                        Assert.That(currentLines.Length, Is.EqualTo(legacyLines.Length));
+                        for (int line = 0; line < currentLines.Length; line++)
+                            Assert.That(currentLines[line].Length, Is.LessThanOrEqualTo(legacyLines[line].Length),
+                                "New objective wording must fit the original balloon's line budget.");
+                    }
+                }
                 TreasureComicDialogueLayout layout = pageHost.AddComponent<TreasureComicDialogueLayout>();
                 layout.Configure(page, authored);
                 Canvas.ForceUpdateCanvases();
@@ -53,7 +84,7 @@ namespace ShatteredSail.Core.Tests
                 for (int index = 0; index < authored.Count; index++)
                 {
                     Text label = labels.Single(item => item.name == "Treasure Comic Dialogue " + (index + 1));
-                    string context = rankId + " page " + (pageIndex + 1) + " / " + width + "x" + height + " / " + label.name;
+                    string context = rankId + " v" + contentVersion + " page " + (pageIndex + 1) + " / " + width + "x" + height + " / " + label.name;
                     Assert.That(label.gameObject.activeInHierarchy, Is.True, context);
                     Assert.That(label.text, Is.EqualTo(authored[index].Text), context);
                     Assert.That(string.IsNullOrWhiteSpace(label.text), Is.False, context);

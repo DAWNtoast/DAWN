@@ -351,7 +351,8 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator OpenInvestmentThroughMarket()
         {
             ClickAcceptanceButton("Port Hotspot Market"); yield return null;
-            ClickAcceptanceButton("Market Open Investment"); yield return null;
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            ClickAcceptanceButton("Port Hotspot Maintenance"); yield return null;
             Assert.That(GameObject.Find("Port Investment Panel"), Is.Not.Null);
             yield return WaitForInvestmentAndCrewScreenToSettle("Port Investment Panel");
         }
@@ -482,8 +483,16 @@ namespace ShatteredSail.Presentation.Tests
                     InvestmentOwnedRequirement(controller.Session, rare.Key, rare.Quantity));
             Assert.That(InvestmentComparisonText("Quantity Header"), Is.EqualTo("拥有 / 需求"));
             Assert.That(InvestmentComparisonText("Ledger Title"), Is.EqualTo("升级至 Lv." + (level + 1) + " 所需材料"));
-            Assert.That(ActiveButton("Confirm Port Investment").GetComponentInChildren<Text>().text,
-                Is.EqualTo("升级至 Lv." + (level + 1)));
+            CoreVoyageSession session = controller.Session;
+            bool enough = session.ProfileGold >= cost.Gold &&
+                session.GetPortInvestmentMaterialAmount("wood") >= cost.Wood &&
+                session.GetPortInvestmentMaterialAmount("iron") >= cost.Iron &&
+                session.GetPortInvestmentMaterialAmount(PortMarketCatalog.Key(cost.RequiredItem)) >= cost.RequiredQuantity &&
+                cost.RareMaterials.All(item => session.GetPortInvestmentMaterialAmount(item.Key) >= item.Quantity);
+            Text confirmLabel = ActiveButton("Confirm Port Investment").GetComponentInChildren<Text>();
+            Assert.That(confirmLabel.text, Is.EqualTo(enough ? "升级至 Lv." + (level + 1) : "材料不足"));
+            if (!enough)
+                Assert.That(confirmLabel.color, Is.EqualTo((Color)new Color32(240, 107, 88, 255)));
             Assert.That(GameObject.Find("Port Investment Completed"), Is.Null);
         }
 

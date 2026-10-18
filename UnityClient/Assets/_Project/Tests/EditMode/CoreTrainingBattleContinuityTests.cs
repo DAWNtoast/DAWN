@@ -39,6 +39,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.StartTrainingBattle(CoreTrainingTargets.All[0], retained, "first"), Is.True);
             Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(s.EndBattleTurn(), Is.True); // Real target attack produces this bout's hull loss.
+            s.Battle.DistanceMeters = 300f; // Fixture the firing range; movement is covered separately.
             Put(s, "card_chain_shot");
             int cardIndex = s.Battle.Hand[0];
             int baseCost = s.GetBattleCardEnergyCost(cardIndex);
@@ -84,7 +85,7 @@ namespace ShatteredSail.Core.Tests
             int startingHull = s.Hull, retained = CrewMaximum(s) - 20;
             Assert.That(s.StartTrainingBattle(CoreTrainingTargets.All[0], retained, "new-damage"), Is.True);
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.EndBattleTurn(), Is.True);
+            SailIntoRangeAndReceiveCannonHit(s);
             int freshDamage = startingHull - s.Hull;
             Assert.That(freshDamage, Is.GreaterThan(0));
             int expectedCarry = (int)Math.Floor(CrewMaximum(s) * freshDamage / (2m * s.MaxHull));
@@ -126,12 +127,14 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.EndBattleTurn(), Is.True);
             if (entry == "board")
             {
-                Assert.That(s.EndBattleTurn(), Is.True);
+                SailIntoRangeAndReceiveCannonHit(s);
                 Board(s);
             }
             else
             {
-                s.Battle.DistanceMeters = 50f;
+                s.Battle.DistanceMeters = 100f;
+                typeof(CoreBattleState).GetProperty(entry == "ram" ? "EnemyHeadingDegrees" : "PlayerHeadingDegrees")
+                    .SetValue(s.Battle, 90f);
                 s.Battle.Alignment = NavalBattleAlignment.HeadOn;
                 if (entry == "ram")
                 {
@@ -247,9 +250,31 @@ namespace ShatteredSail.Core.Tests
 
         private static void Board(CoreVoyageSession s)
         {
-            s.Battle.DistanceMeters = 50f;
+            s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);
+        }
+
+        private static void SailIntoRangeAndReceiveCannonHit(CoreVoyageSession s)
+        {
+            Assert.That(s.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
+            Assert.That(s.Battle.DistanceMeters, Is.EqualTo(600f));
+            int startingHull = s.Hull;
+            // Stationary training targets now obey the same four-cell cannon range.
+            // Use each turn's real action point to sail 600 -> 500 -> 400 metres.
+            for (int leg = 0; leg < 2; leg++)
+            {
+                VoyagePoint target = s.GetNavalLegalNextSteps()[0];
+                Assert.That(s.TryAppendNavalMovementStep(target, out string reason), Is.True, reason);
+                Assert.That(s.CommitNavalMovement(out reason), Is.True, reason);
+                Assert.That(s.ConfirmNavalArrivalHeading(0f, out reason), Is.True, reason);
+                Assert.That(CoreVoyageSession.NavalCannonInRange(s.Battle.PlayerPositionMeters, s.Battle.EnemyPositionMeters),
+                    Is.EqualTo(leg == 1));
+                Assert.That(s.EndBattleTurn(), Is.True);
+                if (leg == 0) Assert.That(s.Hull, Is.EqualTo(startingHull), "The target cannot hit at five cells.");
+            }
+            Assert.That(s.Hull, Is.LessThan(startingHull), "The real enemy cannon must cause this bout's damage at four cells.");
         }
 
         private static void WinByTerminalFixture(CoreVoyageSession s)

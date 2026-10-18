@@ -192,6 +192,7 @@ namespace ShatteredSail.Presentation
 
         private void CancelDrag()
         {
+            if ((dragging || ghost != null || pressedPointer != null) && EscapePressed()) UiEscapeInput.TryConsume();
             if (dragging || ghost != null || pressedPointer != null) SuppressPointerClick(dragPointer);
             dragging = false;
             dragPointer = null;
@@ -208,6 +209,13 @@ namespace ShatteredSail.Presentation
                     else DestroyImmediate(oldGhost.gameObject);
                 }
             }
+        }
+
+        internal bool TryCancelGesture()
+        {
+            if (!dragging && ghost == null && pressedPointer == null) return false;
+            CancelDrag();
+            return true;
         }
 
         private void OnApplicationFocus(bool focused) { if (!focused) CancelDrag(); }

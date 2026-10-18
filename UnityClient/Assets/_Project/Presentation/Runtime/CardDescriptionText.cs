@@ -14,7 +14,7 @@ namespace ShatteredSail.Presentation
         private sealed class LayoutSource { public string Source, Rendered; }
         private static readonly ConditionalWeakTable<Text, LayoutSource> Sources = new ConditionalWeakTable<Text, LayoutSource>();
         private static readonly Regex UnbrokenTerms = new Regex(
-            @"(?:[+\-−≥≤]?\d+(?:\.\d+)?(?:×\d+)?(?:%|米|回合|层|张|发)?)" +
+            @"(?:[+\-−≥≤]?\d+(?:\.\d+)?(?:×\d+)?(?:%|米|格(?!挡)|回合|层|张|发)?)" +
             @"|上一敌回合|本阶段|每回合限一次|每回合一次|至少留|船员生命|船体伤害|船员伤害" +
             @"|本回合有效|跨阶段保留|首次接舷|有效直伤|穿过格挡|清空增益|取消冲撞|转为平行" +
             @"|额外结算一次|下次炮击|额外装药|距离不超过|造成伤害|满额延烧|点燃敌舰" +
@@ -46,13 +46,58 @@ namespace ShatteredSail.Presentation
             text = Regex.Replace(text, @"施加(\d+)咒印，持续(\d+)回合", "施加$1咒印（$2回合）");
             text = Regex.Replace(text, @"吸收至少(\d+)伤害后", "吸收≥$1伤害后");
             text = Regex.Replace(text, @"接下来(\d+)个敌回合", "下$1个敌回合");
-            // Basic protection and healing are simultaneous, unconditional
-            // effects. Share a paragraph so support cards retain readable type
-            // after gaining a small guard value; conditional clauses stay apart.
-            text = Regex.Replace(text, @"^格挡([+\-]?\d+)；恢复(\d+)船员生命", "格挡$1，恢复$2船员生命");
+            // Compact repeated rule wording without dropping its timing, target,
+            // rounding rule or exception. Values still come from Core verbatim.
+            text = text.Replace("点行动点", "行动点")
+                .Replace("（结果四舍五入）", "（四舍五入）")
+                .Replace("下一己方回合开始", "下个己方回合初")
+                .Replace("下一己方回合结束", "下个己方回合末")
+                .Replace("下个敌方回合结束", "下个敌方回合末")
+                .Replace("每回合目标攻击首次使己方实际失去生命时，为其附加", "每回合首次被目标攻击失血时，给其")
+                .Replace("每回合目标攻击首次使己方实际失去生命后，", "每回合首次被目标攻击失血后，")
+                .Replace("炮击穿过格挡造成伤害后点燃敌舰", "炮击穿盾伤敌后点燃敌舰")
+                .Replace("本回合首次实际用格挡吸收敌方攻击后", "本回合首次格挡吸收敌方攻击后")
+                .Replace("每回合目标第一次主动攻击结束后受到", "目标每回合首次主动攻击后受到")
+                .Replace("目标下一次主动攻击结束后受到", "目标下次主动攻击后受到")
+                .Replace("按敌方实际生命损失吸血", "按敌方实际失血吸血")
+                .Replace("同名副本共享每回合一次成功吸血", "同名每回合共限一次成功吸血")
+                .Replace("同名所有副本共享每战一次", "同名每战共限一次")
+                .Replace("多段仅第一段增加", "仅首段增伤")
+                .Replace("迟雷的增伤一起延迟", "迟雷增伤同延迟")
+                .Replace("迟雷追加一起延迟", "迟雷追加同延迟")
+                .Replace("迟雷追加同延迟；不叠加", "迟雷追加同延迟，不叠加")
+                .Replace("原已燃烧则额外结算一次，每回合限一次", "原已燃烧：额外结算一次（每回合限一次）")
+                .Replace("本回合和之后两个己方回合，每回合首次主动新增自燃时，为敌方附加相同层数的灼烧",
+                    "本回合及随后两个己方回合，每回合首次主动新增自燃时，敌获等层灼烧")
+                .Replace("使用时处于绝境则改为", "使用时绝境改为")
+                .Replace("实际造成直伤后", "有效直伤后")
+                .Replace("目标出牌前已燃烧时额外结算一次燃烧，每回合一次", "出牌前目标已燃烧：额外结算一次燃烧（每回合一次）")
+                .Replace("激活本场海战专属规则：", "本场海战：")
+                .Replace("本牌格挡实际吸收敌方攻击时等量获得潮势", "本牌格挡吸收敌方攻击等量产潮势")
+                .Replace("无木板时仅获得", "无木板仅获")
+                .Replace("格曼哈顿范围，每一格须合法", "格曼哈顿范围，各格须合法")
+                .Replace("最迟于目标下个回合结束失效", "最迟目标下回合末失效")
+                .Replace("同名副本每回合共用一次成功额度", "同名每回合共限一次成功")
+                .Replace("下一次完整攻击总伤害减少", "下次完整攻击减伤")
+                .Replace("施放时锁定", "施放锁定");
+            text = Regex.Replace(text, @"每批持续(\d+)次敌方回合结束，本身不造成伤害", "每批$1次敌回合末后消失，无伤害");
+            text = Regex.Replace(text, @"点燃敌舰，造成(\d+)×(\d+)回合燃烧", "敌舰燃烧$1×$2回合");
+            text = Regex.Replace(text, @"(\d+)格曼哈顿范围，各格须合法", "曼哈顿$1格内，各格合法");
+            text = Regex.Replace(text, @"本回合接下来(?=\d+张)", "本回合下");
+            text = Regex.Replace(text, @"生命不高于最大生命(\d+)%", "生命≤$1%上限");
+            text = Regex.Replace(text, @"生命不高于(\d+)%", "生命≤$1%");
             // A once-per-turn qualifier belongs to its triggering effect.
             text = text.Replace("；每回合一次；", "（每回合一次）；")
                 .Replace("；每回合一次。", "（每回合一次）。");
+            // These short clauses have explicit independent subjects/conditions.
+            // Joining them does not extend a previous conditional bonus.
+            text = Regex.Replace(text, @"((?:<b>)?\d+(?:格|米)内(?:</b>)?(?:炮击|近距破坏)?)；船体伤害(\d+)", "$1：船体伤害$2");
+            text = Regex.Replace(text, @"消耗(\d+)火药；消耗(\d+)炮弹", "消耗$1火药、$2炮弹");
+            text = Regex.Replace(text, @"(^|[；。])格挡([+\-]?\d+)；耗(\d+)木板", "$1格挡$2（耗$3木板）");
+            const string basic = @"(?:格挡[+\-]?\d+|获得\d+(?:行动点|格挡)|恢复\d+船员生命|抽\d+张(?:牌)?|新增\d+层自燃)";
+            text = Regex.Replace(text, @"(^|[；。])(" + basic + @"(?:[；。]" + basic + @")+)(?=[；。]|$)",
+                match => match.Groups[1].Value + Regex.Replace(match.Groups[2].Value, "[；。]", "，"));
+            text = text.Replace("；无药物恢复", "，无药物恢复");
             // Newlines already separate effects: redundant row-end full stops
             // and semicolons need not occupy a second line by themselves.
             // A cost and the result after its comma stay in the same paragraph.
@@ -76,7 +121,7 @@ namespace ShatteredSail.Presentation
         }
 
         /// <summary>Wrap complete semantic terms using the same font and width as the live card.</summary>
-        public static string Wrap(Text text, string value, int fontSize)
+        public static string Wrap(Text text, string value, int fontSize, bool inlineClauses = false)
         {
             if (text == null || text.font == null || string.IsNullOrEmpty(value)) return value ?? string.Empty;
             // Card descriptions use bold prerequisites. Leave unknown rich tags
@@ -93,6 +138,8 @@ namespace ShatteredSail.Presentation
             var output = new StringBuilder();
             using (var generator = new TextGenerator())
             {
+                if (inlineClauses)
+                    return WrapParagraph(value.Replace("\r", string.Empty), width, settings, generator);
                 foreach (string paragraph in value.Replace("\r", string.Empty).Split('\n'))
                 {
                     if (output.Length > 0) output.Append('\n');
@@ -104,7 +151,8 @@ namespace ShatteredSail.Presentation
 
         private static string WrapParagraph(string paragraph, float width, TextGenerationSettings settings, TextGenerator generator)
         {
-            if (generator.GetPreferredWidth(paragraph, settings) <= width) return paragraph;
+            string inline = paragraph.Replace('\n', '；');
+            if (generator.GetPreferredWidth(inline, settings) <= width) return inline;
             var plain = new StringBuilder();
             var bold = new List<bool>();
             bool isBold = false;
@@ -123,7 +171,7 @@ namespace ShatteredSail.Presentation
             const string closing = "，、：；。！？）】》%";
             const string opening = "（【《";
             for (int i = 1; i < length; i++)
-                if (closing.IndexOf(content[i]) >= 0 || opening.IndexOf(content[i - 1]) >= 0) allowed[i] = false;
+                if (closing.IndexOf(content[i]) >= 0 || content[i] == '\n' || opening.IndexOf(content[i - 1]) >= 0) allowed[i] = false;
             var cost = new double[length + 1];
             var next = new int[length + 1];
             cost[length] = 0;
@@ -140,7 +188,7 @@ namespace ShatteredSail.Presentation
                     // Prefer complete comma clauses and balanced lines, while
                     // retaining the smallest possible number of readable rows.
                     double gap = width - lineWidth;
-                    double penalty = end < length && "，：、".IndexOf(content[end - 1]) < 0 ? 90 : 0;
+                    double penalty = end < length && "，：、；\n".IndexOf(content[end - 1]) < 0 ? 90 : 0;
                     double candidate = 10000 + gap * gap * .01 + penalty + cost[end];
                     if (candidate >= cost[start]) continue;
                     cost[start] = candidate; next[start] = end;
@@ -162,8 +210,11 @@ namespace ShatteredSail.Presentation
             bool active = false;
             for (int i = start; i < end; i++)
             {
+                // An authored clause break remains a line break at the row end,
+                // or becomes an explicit semicolon when two clauses share a row.
+                if (content[i] == '\n' && i == end - 1) continue;
                 if (bold[i] != active) { result.Append(bold[i] ? "<b>" : "</b>"); active = bold[i]; }
-                result.Append(content[i]);
+                result.Append(content[i] == '\n' ? '；' : content[i]);
             }
             if (active) result.Append("</b>");
             return result.ToString();

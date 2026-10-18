@@ -18,13 +18,13 @@ namespace ShatteredSail.Presentation.Tests
         public IEnumerator DeckBuilderSpecial_CrewConfigurationReturnsToSameStagePageAndUpdatesMembership()
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
-            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "灰鸥港");
-            CrewVariantDefinition navigator = CrewNarrativeCatalog.ForPortAndProfession("灰鸥港", 0);
+            CrewVariantDefinition navigator = CrewNarrativeCatalog.FindById("crew_white_shell_navigator_saina");
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, navigator.PortName);
             CoreSpecialCardDefinition source = CoreSpecialCardCatalog.ForCrew(navigator.Id);
             PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(navigator.Id), 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.CrewRecruitmentKey(0), 1);
             PlayerPrefs.SetString(CoreGameplayDemoController.ActiveCrewVariantKey(0), navigator.Id);
-            PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(navigator.Id), "灰鸥港");
+            PlayerPrefs.SetString(CoreGameplayDemoController.CrewLocationKeyForReset(navigator.Id), navigator.PortName);
             PlayerPrefs.SetString(CoreGameplayDemoController.SpecialCardExperienceKey, source.Card.Id + "=120");
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null; yield return null;
@@ -90,7 +90,7 @@ namespace ShatteredSail.Presentation.Tests
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             ComponentArtEntry component = new ComponentArtCatalog().Entries.First(item => item.Slot == ComponentSlot.Bow &&
                 item.Rarity == ComponentRarity.Rare && CoreSpecialCardCatalog.ForComponent(item.Id).Card.IsAllowedInStage(NavalBattleStage.Naval));
-            OwnedShipComponent owned = controller.GrantOwnedComponent(component, 1f);
+            OwnedShipComponent owned = controller.GrantOwnedComponent(component);
             CoreSpecialCardDefinition source = CoreSpecialCardCatalog.ForComponent(component.Id);
             int index = DeckBuilderIndex(source.Card.Id);
             AcquireSpecialCardSecondPageFixture(controller, index, NavalBattleStage.Naval);
@@ -119,13 +119,13 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Configure Special Card Source " + index);
             Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null);
             Assert.That(owned.ShipIndex, Is.EqualTo(-1), "Opening configuration does not equip a part automatically.");
-            yield return ClickShipyardControl("Back To Workshop Special Cards");
+            yield return ClickShipyardControl("Return To Port Hub");
             AssertReturnedWorkshopSpecialCard(controller, index, NavalBattleStage.Naval, page, false);
             yield return ClickShipyardControl("Configure Special Card Source " + index);
             yield return ClickShipyardControl("Shipyard Equipment Owned " + owned.InstanceId);
             yield return ClickShipyardControl("Shipyard Equip Component");
             Assert.That(controller.InstalledShipComponent(ship, component.Slot).InstanceId, Is.EqualTo(owned.InstanceId));
-            yield return ClickShipyardControl("Back To Workshop Special Cards");
+            yield return ClickShipyardControl("Return To Port Hub");
             AssertReturnedWorkshopSpecialCard(controller, index, NavalBattleStage.Naval, page, true);
             Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval), Has.Member(index));
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(inventoryCount));
@@ -141,7 +141,9 @@ namespace ShatteredSail.Presentation.Tests
         private static void AcquireSpecialCardSecondPageFixture(CoreGameplayDemoController controller, int target, NavalBattleStage stage)
         {
             int[] earlier = CoreSpecialCardCatalog.All.Select(source => DeckBuilderIndex(source.Card.Id))
-                .Where(index => index < target && controller.Session.GetBattleCard(index).IsAllowedInStage(stage)).Take(8).ToArray();
+                .Where(index => CoreBattleCardNumbering.CompareLibraryIndices(index, target) < 0 &&
+                    controller.Session.GetBattleCard(index, stage).IsAllowedInStage(stage))
+                .OrderBy(index => CoreBattleCardNumbering.Number(CoreVoyageSession.CardLibrary[index])).Take(8).ToArray();
             Assert.That(earlier, Has.Length.EqualTo(8));
             controller.Session.AcquireSpecialCards(earlier.Concat(new[] { target }).Select(index => controller.Session.GetBattleCard(index).Id).ToArray());
         }
@@ -262,7 +264,8 @@ namespace ShatteredSail.Presentation.Tests
                 "Previously recruited Pepe receives his support card without another recruitment fee.");
             foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
                 Assert.That(controller.Session.GetBonusBattleCards(stage), Has.Member(cookIndex));
-            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id), Is.EqualTo(2));
+            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id),
+                Is.EqualTo(Mathf.Min(2, controller.Session.GetCardMaximumUpgradeLevel(cookCard.Card.Id))));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.AcquiredSpecialCardsKey), Does.Contain(cookCard.Card.Id));
             Assert.That(CoreSpecialCardCatalog.ForComponent(green.Id), Is.Null);
             Assert.That(controller.Session.AcquiredSpecialCardIds, Has.Member(crewCard.Card.Id));
@@ -355,7 +358,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.GetSpecialCardExperience(componentCard.Card.Id), Is.EqualTo(xp));
             Assert.That(controller.Session.GetSpecialCardExperience(doctorCard.Card.Id), Is.EqualTo(xp));
             Assert.That(controller.Session.GetSpecialCardExperience(cookCard.Card.Id), Is.EqualTo(839 + xp));
-            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id), Is.EqualTo(3));
+            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id), Is.EqualTo(controller.Session.GetCardMaximumUpgradeLevel(cookCard.Card.Id)));
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
             yield return null;
@@ -386,6 +389,7 @@ namespace ShatteredSail.Presentation.Tests
                 .Invoke(controller, new object[] { true });
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.SpecialCardExperienceKey, string.Empty), Is.EqualTo(xpBeforeVoyage),
                 "The animated settlement is not yet a committed return to port.");
+            yield return SettlementChestTestActions.ShowOverview();
             Button settle = ActiveButton("Return To Port");
             settle.onClick.Invoke();
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
@@ -409,7 +413,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.GetSpecialCardExperience(componentCard.Card.Id), Is.EqualTo(earnedThisVoyage));
             Assert.That(controller.Session.GetSpecialCardExperience(doctorCard.Card.Id), Is.EqualTo(earnedThisVoyage));
             Assert.That(controller.Session.GetSpecialCardExperience(cookCard.Card.Id), Is.EqualTo(839 + earnedThisVoyage));
-            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id), Is.EqualTo(3));
+            Assert.That(controller.Session.GetCardUpgradeLevel(cookCard.Card.Id), Is.EqualTo(controller.Session.GetCardMaximumUpgradeLevel(cookCard.Card.Id)));
             Assert.That(controller.Session.AcquiredSpecialCardIds, Has.Member(cookCard.Card.Id));
             Assert.That(controller.Session.Cargo.Water, Is.EqualTo(settledWater));
             Assert.That(controller.Session.Cargo.Food, Is.EqualTo(settledFood));

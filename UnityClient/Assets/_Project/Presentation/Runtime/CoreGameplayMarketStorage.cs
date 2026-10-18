@@ -79,12 +79,8 @@ namespace ShatteredSail.Presentation
             marketPurchaseQuotes.Clear();
             marketRowViews.Clear();
             marketCatalogGrid = null;
-            marketViewTitle = null;
             ResetMarketItemDetailView();
             ResetMarketSceneView();
-            marketViewSummary = null;
-            marketViewStorageMode = null;
-            marketViewInvestment = null;
             marketViewSession = null;
             marketViewPort = null;
             pendingMarketPurchase = null;
@@ -98,16 +94,6 @@ namespace ShatteredSail.Presentation
                 item, quantity, cost, level, purchased, remaining, EffectiveMarketStorageMode);
             marketPurchaseQuotes[item] = quote;
             return quote;
-        }
-
-        private void BuildMarketStorageModeControl(RectTransform panel)
-        {
-            Button mode = CreateButton("Market Storage Mode", panel, new Vector2(340f, 40f),
-                new Vector2(-388f, -292f), Gold, DeepSea, 18);
-            marketViewStorageMode = mode;
-            mode.GetComponentInChildren<Text>().text = MarketStorageModeLabel(EffectiveMarketStorageMode);
-            mode.interactable = Application.isPlaying && !editorPreviewBuilding && !tutorialActive;
-            BindMarketStorageModeAction(mode);
         }
 
         private void BindMarketStorageModeAction(Button mode)

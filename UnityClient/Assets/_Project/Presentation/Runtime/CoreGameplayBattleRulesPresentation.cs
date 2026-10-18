@@ -10,7 +10,7 @@ namespace ShatteredSail.Presentation
         private string BattleCardTooltipText(CoreBattleCard card, int handIndex)
         {
             string text = CardKeywordHelp(card);
-            if (card?.SchoolEffect != null && session?.Battle != null && handIndex >= 0 && handIndex < session.Battle.Hand.Count)
+            if (card != null && session?.Battle != null && handIndex >= 0 && handIndex < session.Battle.Hand.Count)
             {
                 string reason = session.CardUnavailableReason(handIndex);
                 if (!string.IsNullOrEmpty(reason)) text += "\n\n<color=#6B251C>当前不能使用</color>\n" + reason;
@@ -20,6 +20,7 @@ namespace ShatteredSail.Presentation
 
         private string CardKeywordHelp(CoreBattleCard card)
         {
+            if (card?.BoardingSpec != null) return BoardingCardKeywordHelp(card);
             if (card?.SchoolEffect != null) return SchoolCardKeywordHelp(card);
             if (card == null || session?.Battle == null || session.Battle.Stage != NavalBattleStage.Boarding ||
                 !card.IsAllowedInStage(NavalBattleStage.Boarding) || card.Damage <= 0 && card.Repair <= 0)
@@ -56,13 +57,15 @@ namespace ShatteredSail.Presentation
             return CoreBattleCardText.FormatEffects(text.ToString());
         }
 
-        private void RefreshBattleCardCost(Text badge, Text surcharge, int cardIndex, CoreBattleCard card)
+        private void RefreshBattleCardCosts(RetainedBattleHandCard view, CoreBattleCard card)
         {
-            int actual = session.GetBattleCardEnergyCost(cardIndex);
-            int increase = Mathf.Max(0, actual - card.Energy);
-            badge.text = actual.ToString();
-            surcharge.text = "+" + increase;
-            surcharge.transform.parent.gameObject.SetActive(increase > 0);
+            int energy = view.Battle.Stage == NavalBattleStage.Boarding && card.BoardingSpec != null
+                ? session.GetBoardingHandEnergyCost(view.Index) : session.GetBattleCardEnergyCost(view.CardId);
+            RefreshCardCost(view.Energy, energy.ToString(), card.Energy.ToString());
+            RefreshCardCost(view.Powder, session.GetBattleCardPowderCost(view.CardId).ToString(), card.PowderCost.ToString());
+            RefreshCardCost(view.Cannonballs, card.CannonballCost.ToString(), card.CannonballCost.ToString());
+            RefreshCardCost(view.SpecialCost, CardSpecialCostPresentation.CostText(card, view.Battle, session.Cargo.Wood),
+                CardSpecialCostPresentation.CostText(card));
         }
 
         private string BattleCrewName(CoreBattleState battle, bool player)

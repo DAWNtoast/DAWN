@@ -164,7 +164,7 @@ namespace ShatteredSail.Presentation.Tests
             var art = new ComponentArtCatalog();
             var inventory = new OwnedShipComponentInventory(art);
             inventory.EnsureLoadout(0);
-            inventory.Grant(art.ExpandedEntries[0], 1.05f);
+            inventory.Grant(art.ExpandedEntries[0]);
             SaveInventory(inventory);
             // Keep legacy monthly-shop scanning outside both benchmark paths;
             // calendar and unrelated receipt keys are not modified by this fixture.

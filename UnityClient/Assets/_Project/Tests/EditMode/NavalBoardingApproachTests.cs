@@ -18,8 +18,8 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase(NavalBattleAlignment.HeadOn, NavalBoardingApproach.Alongside)]
-        [TestCase(NavalBattleAlignment.EnemyBroadside, NavalBoardingApproach.Quarter)]
-        public void ParallelCard_RecordsThePriorBearingWithoutExtraCosts(NavalBattleAlignment bearing, NavalBoardingApproach expected)
+        [TestCase(NavalBattleAlignment.EnemyBroadside, NavalBoardingApproach.Alongside)]
+        public void ParallelCard_GrantsActionPointWithoutChangingPoseOrApproach(NavalBattleAlignment bearing, NavalBoardingApproach expected)
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.Alignment = bearing;
@@ -27,10 +27,12 @@ namespace ShatteredSail.Core.Tests
             int playerHull = session.Hull;
             int enemyHull = session.Battle.EnemyHull;
             int energy = session.Battle.Energy;
+            int points = session.Battle.NavalActionPoints;
             Play(session, "card_parallel_course");
-            Assert.That(session.Battle.Alignment, Is.EqualTo(NavalBattleAlignment.Parallel));
-            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(40f));
-            Assert.That(session.Battle.Energy, Is.EqualTo(energy - 1));
+            Assert.That(session.Battle.Alignment, Is.EqualTo(bearing));
+            Assert.That(session.Battle.DistanceMeters, Is.EqualTo(100f));
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(points + 1));
+            Assert.That(session.Battle.Energy, Is.EqualTo(energy), "The retired parallel identity uses the canonical zero-energy approach card.");
             Assert.That(session.Hull, Is.EqualTo(playerHull));
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHull));
             Assert.That(session.Battle.PlannedBoardingApproach, Is.EqualTo(expected));
@@ -42,6 +44,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.Alignment = NavalBattleAlignment.EnemyBroadside;
+            session.Battle.PlannedBoardingApproach = NavalBoardingApproach.Quarter;
             Play(session, "card_parallel_course");
             Play(session, "card_parallel_course");
             Assert.That(session.Battle.PlannedBoardingApproach, Is.EqualTo(NavalBoardingApproach.Quarter));
@@ -49,14 +52,15 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(NavalBattleAlignment.HeadOn)]
         [TestCase(NavalBattleAlignment.Parallel)]
-        public void NavigatorCourse_UsesItsDeliberateQuarterApproach(NavalBattleAlignment initialAlignment)
+        public void NavigatorCourse_GrantsActionPointWithoutChangingApproach(NavalBattleAlignment initialAlignment)
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.Alignment = initialAlignment;
             session.Battle.PlannedBoardingApproach = NavalBoardingApproach.Alongside;
             Play(session, "card_navigator_course");
-            Assert.That(session.Battle.Alignment, Is.EqualTo(NavalBattleAlignment.Parallel));
-            Assert.That(session.Battle.PlannedBoardingApproach, Is.EqualTo(NavalBoardingApproach.Quarter));
+            Assert.That(session.Battle.Alignment, Is.EqualTo(initialAlignment));
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(2));
+            Assert.That(session.Battle.PlannedBoardingApproach, Is.EqualTo(NavalBoardingApproach.Alongside));
         }
 
         [Test]
@@ -65,6 +69,8 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.Alignment = NavalBattleAlignment.EnemyBroadside;
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
+            session.Battle.PlannedBoardingApproach = NavalBoardingApproach.Quarter;
             Play(session, "card_parallel_course");
             Assert.That(session.TryBoard(), Is.True);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
@@ -78,7 +84,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase(100f, NavalBattleAlignment.Parallel)]
         [TestCase(40f, NavalBattleAlignment.EnemyBroadside)]
         [TestCase(40f, NavalBattleAlignment.HeadOn)]
-        public void ApproachMetadata_DoesNotBypassBoardingDistanceOrAlignment(float distance, NavalBattleAlignment alignment)
+        public void ApproachMetadata_DoesNotBypassBoardingGeometry(float distance, NavalBattleAlignment alignment)
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.PlannedBoardingApproach = NavalBoardingApproach.Quarter;

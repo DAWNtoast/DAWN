@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
@@ -12,6 +11,7 @@ namespace ShatteredSail.Presentation
     {
         private int componentShopCategory = -1;
         private string componentShopShowroomOfferId;
+        private string componentShopClickedOfferId;
 
         private void BuildComponentShopShowroom(RectTransform panel,
             IReadOnlyList<PortComponentShopStockItem> stock, DateTime now, int soldCount)
@@ -27,6 +27,9 @@ namespace ShatteredSail.Presentation
             PortComponentShopStockItem selected = visible.FirstOrDefault(item => item.Id == componentShopShowroomOfferId)
                 ?? visible.FirstOrDefault();
             componentShopShowroomOfferId = selected?.Id;
+            // An automatically displayed item still needs a first catalogue click
+            // before another click on that same item can open its dossier.
+            componentShopClickedOfferId = null;
 
             BuildComponentShopCategories(panel, stock, now, soldCount);
             BuildComponentShopCatalogue(panel, stock, now, soldCount, visible, pages);
@@ -113,21 +116,16 @@ namespace ShatteredSail.Presentation
                 ShopText("Component Shop Thumbnail State " + offer.Id, card.transform, new Vector2(112f, 27f),
                     new Vector2(46f, -29f), 15, sold || equipped ? Gold : WoodButtonSkin.Ink,
                     sold ? "本月已售出" : equipped ? "已装同款" : offer.Price + " 金币", TextAnchor.MiddleCenter);
-                // Hover/focus previews the object. Clicking always opens its dossier.
-                EventTrigger trigger = card.gameObject.AddComponent<EventTrigger>();
-                foreach (EventTriggerType type in new[] { EventTriggerType.PointerEnter, EventTriggerType.Select })
-                {
-                    var entry = new EventTrigger.Entry { eventID = type };
-                    entry.callback.AddListener(_ => PreviewComponentShopOffer(panel, offer));
-                    trigger.triggers.Add(entry);
-                }
                 card.onClick.AddListener(() =>
                 {
-                    componentShopShowroomOfferId = offer.Id;
-                    selectedComponentShopOfferId = offer.Id;
-                    componentDossierOfferId = offer.Id;
-                    componentDossierPage = 0;
-                    Render();
+                    if (card == null || !card.gameObject.activeInHierarchy) return;
+                    if (componentShopClickedOfferId == offer.Id && componentShopShowroomOfferId == offer.Id)
+                    {
+                        OpenComponentShopDossier(card, offer);
+                        return;
+                    }
+                    PreviewComponentShopOffer(panel, offer);
+                    componentShopClickedOfferId = offer.Id;
                 });
             }
             Button previous = CreateButton("Component Shop Previous Display", panel, new Vector2(92f, 50f),
@@ -184,7 +182,20 @@ namespace ShatteredSail.Presentation
             Vector2 size = FitComponentShopArt(uv, entry.ShipLayer, maximum);
             RawImage model = CreateRawImage("Component Shop Hero " + entry.Id, parent, size,
                 new Vector2(0f, 25f), entry.ShipLayer, uv);
-            model.raycastTarget = false;
+            model.raycastTarget = true;
+            Button inspect = model.gameObject.AddComponent<Button>();
+            inspect.targetGraphic = model;
+            inspect.transition = Selectable.Transition.None;
+            inspect.onClick.AddListener(() => OpenComponentShopDossier(model, offer));
+        }
+
+        private void OpenComponentShopDossier(Component source, PortComponentShopStockItem offer)
+        {
+            if (source == null || !source.gameObject.activeInHierarchy || componentShopShowroomOfferId != offer.Id) return;
+            selectedComponentShopOfferId = offer.Id;
+            componentDossierOfferId = offer.Id;
+            componentDossierPage = 0;
+            Render();
         }
 
         private Text ShopText(string name, Transform parent, Vector2 size, Vector2 position,

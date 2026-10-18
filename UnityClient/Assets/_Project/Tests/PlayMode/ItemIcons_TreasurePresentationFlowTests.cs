@@ -34,8 +34,8 @@ namespace ShatteredSail.Presentation.Tests
                 ItemIconCatalog.ForSpecial("treasurefragment"), 32f);
             AssertIconDoesNotCoverRowText(fragment);
             AssertIconPointerReachesButton(fragment, "Treasure Identify Fragment", false);
-            Assert.That(GameObject.Find("Treasure Workbench Status").GetComponent<Text>().text,
-                Does.Contain("未鉴定碎片 8"));
+            Assert.That(GameObject.Find("Treasure Identify Status").GetComponent<Text>().text,
+                Is.EqualTo("8 片待鉴定"));
             NavalBattleVisualCapture.Capture(controller, "ItemIcons_07_Treasure_Workshop.png",
                 "工坊碎片小图标；8碎片与三档藏宝图由隔离展示夹具准备，非游玩所得", "Treasure Workbench");
 

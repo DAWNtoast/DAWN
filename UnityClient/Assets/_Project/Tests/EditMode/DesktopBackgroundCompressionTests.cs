@@ -132,10 +132,14 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(((Color32[])Call("Resample", new[] { source[0] }, 1, 1, 4, 4)), Is.All.EqualTo(source[0]));
         }
 
-        [TestCase(7, 5, false, 8, 4)]
-        [TestCase(8, 8, false, 8, 8)]
-        [TestCase(7, 5, true, 8, 4)]
-        public void ImportProcessingActuallyEncodesBC7AndPreservesMipPolicy(int width, int height, bool mips, int expectedWidth, int expectedHeight)
+        [TestCase(7, 5, false, 8, 4, TextureFormat.BC7)]
+        [TestCase(8, 8, false, 8, 8, TextureFormat.BC7)]
+        [TestCase(8, 8, true, 8, 8, TextureFormat.BC7)]
+        [TestCase(7, 5, true, 7, 5, TextureFormat.RGBA32)]
+        [TestCase(12, 8, true, 12, 8, TextureFormat.RGBA32)]
+        [TestCase(13, 7, true, 13, 7, TextureFormat.RGBA32)]
+        public void ImportProcessingPreservesMipPolicyAndUsesSupportedFormat(int width, int height, bool mips,
+            int expectedWidth, int expectedHeight, TextureFormat expectedFormat)
         {
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, mips);
             try
@@ -145,18 +149,24 @@ namespace ShatteredSail.Presentation.Tests
                 texture.SetPixels32(pixels);
                 texture.Apply(mips, false);
                 Call("CompressImportedTexture", texture, mips);
-                Assert.That(texture.format, Is.EqualTo(TextureFormat.BC7), "A selected importer enum alone is not proof of compression.");
+                Assert.That(texture.format, Is.EqualTo(expectedFormat), "Verify the actual encoding, not only the importer enum.");
                 Assert.That(texture.width, Is.EqualTo(expectedWidth));
                 Assert.That(texture.height, Is.EqualTo(expectedHeight));
                 Assert.That(texture.mipmapCount > 1, Is.EqualTo(mips));
+                if (expectedFormat == TextureFormat.RGBA32)
+                    CollectionAssert.AreEqual(pixels, texture.GetPixels32(), "NPOT mip fallback must retain the original artwork pixels.");
             }
             finally { UnityEngine.Object.DestroyImmediate(texture); }
         }
 
-        [TestCase(SpriteImportMode.Single, false)]
-        [TestCase(SpriteImportMode.Multiple, false)]
-        [TestCase(SpriteImportMode.Multiple, true)]
-        public void ListedSpriteBackgroundImportKeepsSourceSettingsAndGeneratedRectsInsideAlignedTexture(SpriteImportMode mode, bool mips)
+        [TestCase(TextureImporterType.Sprite, SpriteImportMode.Single, false, 7, 5)]
+        [TestCase(TextureImporterType.Sprite, SpriteImportMode.Multiple, false, 7, 5)]
+        [TestCase(TextureImporterType.Sprite, SpriteImportMode.Multiple, true, 8, 8)]
+        [TestCase(TextureImporterType.Sprite, SpriteImportMode.Single, true, 12, 8)]
+        [TestCase(TextureImporterType.Sprite, SpriteImportMode.Multiple, true, 13, 7)]
+        [TestCase(TextureImporterType.Default, SpriteImportMode.None, true, 12, 8)]
+        public void ListedBackgroundImportKeepsSourceSettingsAndGeneratedRectsInsideTexture(TextureImporterType type,
+            SpriteImportMode mode, bool mips, int width, int height)
         {
             if (!(bool)Call("SupportsTarget", EditorUserBuildSettings.activeBuildTarget))
                 Assert.Ignore("Real BC7 import regression requires a desktop active build target.");
@@ -164,10 +174,10 @@ namespace ShatteredSail.Presentation.Tests
             string folder = "Assets/" + folderName;
             string path = folder + "/background.png";
             var listed = (HashSet<string>)Policy.GetField("pathSet", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
-            var source = new Texture2D(7, 5, TextureFormat.RGBA32, false);
+            var source = new Texture2D(width, height, TextureFormat.RGBA32, false);
             try
             {
-                var pixels = new Color32[35];
+                var pixels = new Color32[width * height];
                 for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color32((byte)(i * 5), 85, 165, 255);
                 source.SetPixels32(pixels); source.Apply(false, false);
                 byte[] png = source.EncodeToPNG();
@@ -177,7 +187,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(listed.Add(path), Is.True);
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
                 var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-                importer.textureType = TextureImporterType.Sprite;
+                importer.textureType = type;
                 importer.spriteImportMode = mode;
                 importer.spritePixelsPerUnit = 100f;
                 var textureSettings = new TextureImporterSettings();
@@ -192,26 +202,30 @@ namespace ShatteredSail.Presentation.Tests
                 importer.maxTextureSize = 512;
                 var settings = importer.GetPlatformTextureSettings("Standalone");
                 settings.maxTextureSize = 512;
+                // Deliberately start from the old BC7 override. The importer must
+                // repair it for NPOT mip chains without changing source settings.
                 Call("ConfigureStandaloneSettings", settings);
                 importer.SetPlatformTextureSettings(settings);
                 if (mode == SpriteImportMode.Multiple)
                 {
 #pragma warning disable 0618
                     importer.spritesheet = new[] { new SpriteMetaData { name = "Full Painted Background",
-                        rect = new Rect(0f, 0f, 7f, 5f), pivot = Vector2.one * .5f, alignment = (int)SpriteAlignment.Center } };
+                        rect = new Rect(0f, 0f, width, height), pivot = Vector2.one * .5f, alignment = (int)SpriteAlignment.Center } };
 #pragma warning restore 0618
                 }
                 importer.SaveAndReimport();
                 Texture2D texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                 Assert.That(texture, Is.Not.Null);
-                Assert.That(texture.format, Is.EqualTo(TextureFormat.BC7));
-                Assert.That(texture.width, Is.EqualTo(8));
-                Assert.That(texture.height, Is.EqualTo(4));
+                bool uncompressedMips = mips && (!Mathf.IsPowerOfTwo(width) || !Mathf.IsPowerOfTwo(height));
+                Assert.That(texture.format, Is.EqualTo(uncompressedMips ? TextureFormat.RGBA32 : TextureFormat.BC7));
+                Assert.That(texture.width, Is.EqualTo(uncompressedMips ? width : (int)Call("AlignedDimension", width)));
+                Assert.That(texture.height, Is.EqualTo(uncompressedMips ? height : (int)Call("AlignedDimension", height)));
                 Assert.That(texture.isReadable, Is.False);
                 Assert.That(texture.mipmapCount > 1, Is.EqualTo(mips));
                 CollectionAssert.AreEqual(png, File.ReadAllBytes(path), "The source PNG must remain byte-for-byte unchanged.");
                 Sprite[] sprites = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().ToArray();
-                Assert.That(sprites, Has.Length.EqualTo(1), "A successful texture import must preserve its Sprite subasset.");
+                Assert.That(sprites, Has.Length.EqualTo(type == TextureImporterType.Sprite ? 1 : 0),
+                    "A successful texture import must preserve its Sprite subassets.");
                 foreach (Sprite sprite in sprites)
                 {
                     Assert.That(sprite.texture, Is.SameAs(texture));
@@ -221,13 +235,15 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(sprite.rect.yMax, Is.LessThanOrEqualTo(texture.height));
                 }
                 importer = (TextureImporter)AssetImporter.GetAtPath(path);
-                Assert.That(importer.textureType, Is.EqualTo(TextureImporterType.Sprite));
+                Assert.That(importer.textureType, Is.EqualTo(type));
                 Assert.That(importer.spriteImportMode, Is.EqualTo(mode));
                 Assert.That(importer.isReadable, Is.False);
                 Assert.That(importer.mipmapEnabled, Is.EqualTo(mips));
                 Assert.That(importer.filterMode, Is.EqualTo(FilterMode.Bilinear));
                 Assert.That(importer.wrapMode, Is.EqualTo(TextureWrapMode.Clamp));
                 Assert.That(importer.GetPlatformTextureSettings("Standalone").maxTextureSize, Is.EqualTo(512));
+                Assert.That(importer.GetPlatformTextureSettings("Standalone").format,
+                    Is.EqualTo(uncompressedMips ? TextureImporterFormat.RGBA32 : TextureImporterFormat.BC7));
             }
             finally
             {

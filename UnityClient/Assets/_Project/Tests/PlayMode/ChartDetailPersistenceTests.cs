@@ -103,6 +103,35 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(saved.charts[0].mapGeometryVersion, Is.Zero);
         }
 
+        [TestCase(1)]
+        [TestCase(2)]
+        public void ArchivedKnownLocationsAreImportedBeforeNavigatorDepartureBonus(int navigators)
+        {
+            Chart chart = MakeChart();
+            var previousVoyage = new CoreVoyageSession();
+            previousVoyage.ConfigureCrewCapabilities(1, false, false, false, false, false);
+            Assert.That(previousVoyage.TrySelectChartSeed(chart.seed, out string reason), Is.True, reason);
+            previousVoyage.StartVoyage();
+            chart.revealedLocationIds = previousVoyage.Map.Nodes.Where(node => node.IsChartVisible).Select(node => node.Id).ToArray();
+            chart.exploredCells = (bool[])previousVoyage.Map.ExploredCells.Clone();
+            chart.chartExploredCells = previousVoyage.Map.CaptureChartExploration();
+            PlayerPrefs.SetString(CoreGameplayDemoController.RecordedSeaChartsKey,
+                JsonUtility.ToJson(new Archive { charts = new[] { chart } }));
+            Invoke("RestoreSeaChartProgress");
+            session.ConfigureCrewCapabilities(navigators, false, false, false, false, false);
+            Assert.That(session.TrySelectChartSeed(chart.seed, out reason), Is.True, reason);
+            var known = (IReadOnlyList<int>)Invoke("RecordedDepartureChartLocationIds");
+            Assert.That(known, Is.EquivalentTo(chart.revealedLocationIds));
+            session.StartVoyage(session.SelectedDestinationPort, known);
+            Invoke("ApplyRecordedSeaChartKnowledge");
+            Assert.That(session.Map.Nodes.Count(node => node.IsChartVisible && !chart.revealedLocationIds.Contains(node.Id)),
+                Is.EqualTo(navigators * 2));
+            Assert.That(session.Map.Nodes.Any(node => node.Visited), Is.False);
+            var restored = new CoreVoyageSession();
+            Assert.That(restored.TryRestoreVoyageCheckpoint(session.CaptureVoyageCheckpoint(), out reason), Is.True, reason);
+            Assert.That(restored.Map.Nodes.Select(node => node.IsChartVisible), Is.EqualTo(session.Map.Nodes.Select(node => node.IsChartVisible)));
+        }
+
         [Test]
         public void MalformedDetailedArchiveRemainsProtectedFromOverwrite()
         {
@@ -151,7 +180,7 @@ namespace ShatteredSail.Presentation.Tests
         private static Chart MakeChart(int geometryVersion = 1)
         {
             string seed = geometryVersion == 0 ? "SS2.0.0.1.0.0.2EDC24E9.0000C0DE.4DD97F4E" :
-                CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
+                "SS3.0.0.1.0.0.6286796D.78C3DA98.0D9FC4B6";
             Assert.That(CoreVoyageSession.TryParseChartSeed(seed, out CoreSeaChartDefinition definition), Is.True);
             var geometry = new CoreVoyageMap(definition.MapGeometryVersion);
             var coarse = new bool[geometry.Columns * geometry.Rows];

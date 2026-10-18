@@ -10,7 +10,7 @@ namespace ShatteredSail.Presentation
     {
         private sealed class EncounterDossierChoice
         {
-            public string ObjectName, Label, Detail, LockedReason;
+            public string ObjectName, Label, Detail, LockedReason, Requirement;
             public double Hours;
             public bool Available, StartsBattle, IsSkip;
             public Action Resolve;
@@ -28,8 +28,8 @@ namespace ShatteredSail.Presentation
                     location, terrain, illustration, illustrationUv, choices);
                 return;
             }
-            Color ink = Html("#352415");
-            Color muted = Html("#735334");
+            Color ink = MarketShopSkin.Ink;
+            Color muted = MarketShopSkin.MutedInk;
             Color accent = routeIndex == 2 ? Html("#504471") : routeIndex == 1 ? Html("#8B3E26") : Html("#2D6860");
             bool teaching = prefix == "Tutorial Encounter";
 
@@ -48,22 +48,16 @@ namespace ShatteredSail.Presentation
             reveal.Play(card, 0.34f);
             Image shadow = CreateImage(prefix + " Paper Shadow", card, new Vector2(1600f, 868f), new Vector2(8f, -14f), new Color(0f, 0f, 0f, 0.4f));
             shadow.raycastTarget = false;
-            Texture2D paperTexture = Resources.Load<Texture2D>("CardWorkshopV2/deck_builder_parchment_v2");
-            RawImage paper = CreateRawImage(prefix + " Parchment", card, new Vector2(1610f, 884f), Vector2.zero,
-                paperTexture, new Rect(0f, 0f, 1f, 1f));
+            Image paper = CreateImage(prefix + " Parchment", card, new Vector2(1610f, 884f), Vector2.zero, Color.white);
+            NauticalSurfaceSkin.ApplyReadingPanel(paper);
             paper.raycastTarget = false;
-            string[] frames = { "salvage", "escort", "survey" };
-            Texture2D borderTexture = Resources.Load<Texture2D>("EncounterV2/encounter_frame_" + frames[Mathf.Clamp(routeIndex, 0, 2)] + "_v1");
-            RawImage frame = CreateRawImage(prefix + " Themed Frame", card, new Vector2(1660f, 930f), Vector2.zero,
-                borderTexture, new Rect(0f, 0f, 1f, 1f));
-            frame.raycastTarget = false;
 
             RectTransform content = CreateRect(prefix + " Paper Content", card, new Vector2(1420f, 748f), Vector2.zero);
             Text chapter = EncounterText(prefix + " Journal Heading", content, new Vector2(510f, 30f), new Vector2(-445f, 336f), 19, muted, TextAnchor.MiddleCenter);
             chapter.text = teaching ? "首 航 手 记" : "船 长 航 海 日 志";
             RectTransform artFrame = CreateFixedPanel(prefix + " Illustration Mount", content, new Vector2(524f, 524f), new Vector2(-445f, 40f), Html("#715237"));
             artFrame.GetComponent<Image>().raycastTarget = false;
-            Image artMat = CreateImage(prefix + " Illustration Mat", artFrame, new Vector2(518f, 518f), Vector2.zero, Html("#D3AB70"));
+            Image artMat = CreateImage(prefix + " Illustration Mat", artFrame, new Vector2(518f, 518f), Vector2.zero, Html("#E9DFC9"));
             artMat.raycastTarget = false;
             // Repainted atlas cells have no baked frame. Preserve their full source
             // region before applying the square tutorial window's cover crop.
@@ -105,13 +99,12 @@ namespace ShatteredSail.Presentation
         private void BuildEncounterDecision(RectTransform parent, EncounterDossierChoice choice, int number, Vector2 position, float height, Color accent)
         {
             Button button = CreateButton(choice.ObjectName, parent, new Vector2(740f, height), position,
-                Html("#5F452D"), Html("#FFF1CB"), choice.IsSkip ? 19 : 22);
-            // Pure decoration never intercepts a click; the whole wood row is
-            // the hit target. Highlight changes colour only, never layout/feet.
-            // The shared nine-slice preserves the same edge thickness on all choices.
+                Color.white, MarketShopSkin.Ink, choice.IsSkip ? 19 : 22);
+            MarketShopSkin.ApplyLightButton(button);
+            // The entire row remains the hit target; decoration never intercepts clicks.
             button.interactable = choice.Available;
 
-            Color light = choice.Available ? Html("#FFF1CB") : Html("#D4C8B6");
+            Color light = choice.Available ? MarketShopSkin.Ink : MarketShopSkin.MutedInk;
             Text label = button.GetComponentInChildren<Text>();
             label.rectTransform.sizeDelta = new Vector2(514f, choice.IsSkip ? 25f : 32f);
             label.rectTransform.anchoredPosition = new Vector2(-16f, choice.IsSkip ? 12f : 20f);
@@ -123,7 +116,7 @@ namespace ShatteredSail.Presentation
                 new Vector2(-16f, choice.IsSkip ? -13f : -18f), choice.IsSkip ? 14 : 16, light, TextAnchor.MiddleLeft, FontStyle.Normal);
             detail.text = choice.Detail;
             Text hours = EncounterText("Hours", button.transform, new Vector2(104f, height - 12f), new Vector2(307f, 0f),
-                15, choice.Available ? Html("#EFCA86") : Html("#D4C8B6"), TextAnchor.MiddleCenter);
+                15, choice.Available ? Html("#8F6C3E") : Html("#95523B"), TextAnchor.MiddleCenter);
             hours.text = !choice.Available ? "不可选 · " + choice.Hours.ToString("0.#") + " 小时\n" + choice.LockedReason : choice.IsSkip ? "继续航行" :
                 (choice.StartsBattle ? "进入海战\n" : "耗时\n") + choice.Hours.ToString("0.#") + " 小时";
             Image marker = CreateImage("Decision Seal", button.transform, new Vector2(38f, 38f), new Vector2(-332f, 0f),

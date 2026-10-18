@@ -28,7 +28,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.EnemyMaxHull, Is.EqualTo(hull));
             Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(crew));
             Assert.That(s.Battle.EnemyMaxBoardingHealth, Is.EqualTo(crew));
-            Assert.That(s.Battle.DistanceMeters, Is.EqualTo(300f));
+            Assert.That(s.Battle.DistanceMeters, Is.EqualTo(600f));
+            Assert.That(s.NavalActionMovementActive, Is.True);
+            Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(1));
+            Assert.That(s.Battle.Energy, Is.EqualTo(3));
             Assert.That(s.TrainingOutcome, Is.EqualTo(CoreTrainingBattleOutcome.InProgress));
             Assert.That(s.Battle.Hand.Count, Is.EqualTo(5));
             Assert.That(s.Battle.Hand.All(i => s.GetBattleCard(i).IsAllowedInStage(NavalBattleStage.Preparation)), Is.True);
@@ -38,7 +41,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Hull, Is.EqualTo(playerHull));
             Assert.That(s.Battle.EnemyHull, Is.EqualTo(hull - 1), "Preparation never heals.");
             Assert.That(s.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
-            Assert.That(s.Battle.DistanceMeters, Is.EqualTo(300f));
+            Assert.That(s.Battle.DistanceMeters, Is.EqualTo(600f));
+            Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(1));
             Assert.That(s.Battle.EnemyBlock, Is.EqualTo(guard));
             Assert.That(s.Battle.EnemyLoadedShot, Is.Zero);
             Assert.That(s.Battle.Hand.All(i => s.GetBattleCard(i).IsAllowedInStage(NavalBattleStage.Naval)), Is.True);
@@ -57,7 +61,7 @@ namespace ShatteredSail.Core.Tests
             {
                 s.Battle.PhaseTurn = turn;
                 s.Battle.Turn = turn + 1;
-                s.Battle.DistanceMeters = boarding ? 30f : 500f;
+                s.Battle.DistanceMeters = boarding ? 30f : 400f;
                 s.Battle.EnemyBlock = 999;
                 s.Battle.EnemyLoadedShot = 12;
                 s.Battle.PlayerBlock = 999;
@@ -71,7 +75,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(playerCrew));
                 Assert.That(s.Battle.EnemyBlock, Is.EqualTo(target.Guard), "Refresh, not accumulation.");
                 Assert.That(s.Battle.EnemyLoadedShot, Is.Zero);
-                Assert.That(s.Battle.DistanceMeters, Is.EqualTo(boarding ? 30f : 500f));
+                Assert.That(s.Battle.DistanceMeters, Is.EqualTo(boarding ? 30f : 400f));
                 Assert.That(s.Battle.EnemyMovingTowardPlayer, Is.False);
                 Assert.That(s.Battle.EnemyHull, Is.EqualTo(target.Hull - 20 + (boarding ? 0 : target.Repair)));
                 Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(target.BoardingHealth - 20 + (boarding ? target.Repair : 0)));
@@ -89,6 +93,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession s = Start(4);
             s.EndBattleTurn();
+            s.Battle.DistanceMeters = 400f; // Exercise armour with the target at the four-cell boundary.
             SetSchool(s, "CurseMarks", 3); SetSchool(s, "CurseWeaknessPercent", 4); SetSchool(s, "CurseTurns", 2);
             SetSchool(s, "TideStance", 2); SetSchool(s, "TideStancePower", 6); SetSchool(s, "TideStanceTurns", 2);
             s.Battle.PlayerBlock = 999;
@@ -133,6 +138,7 @@ namespace ShatteredSail.Core.Tests
             int[] visited = s.Map == null ? Array.Empty<int>() : s.Map.Nodes.Where(n => n.Visited).Select(n => n.Id).ToArray();
             s.EndBattleTurn();
             s.Battle.EnemyHull = 1; s.Battle.EnemyBlock = 0;
+            s.Battle.DistanceMeters = 300f; // This ammunition/outcome test begins within cannon range.
             s.Cargo.Powder = 2; s.Cargo.Cannonballs = 2;
             Put(s, "card_chain_shot");
             CoreBattleState terminal = s.Battle;
@@ -160,7 +166,11 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession s = Start(4, true);
             s.EndBattleTurn();
             if (boarding) { Board(s); s.Battle.PlayerBoardingHealth = 1; }
-            else typeof(CoreVoyageSession).GetProperty(nameof(CoreVoyageSession.Hull)).SetValue(s, 1);
+            else
+            {
+                s.Battle.DistanceMeters = 400f;
+                typeof(CoreVoyageSession).GetProperty(nameof(CoreVoyageSession.Hull)).SetValue(s, 1);
+            }
             s.Cargo.Powder = 3; s.Cargo.Cannonballs = 4; s.Cargo.Medicine = 5;
             int gold = s.Cargo.Gold;
             CoreBattleState terminal = s.Battle;
@@ -244,7 +254,8 @@ namespace ShatteredSail.Core.Tests
 
         private static void Board(CoreVoyageSession s)
         {
-            s.Battle.DistanceMeters = 50f;
+            s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);
         }

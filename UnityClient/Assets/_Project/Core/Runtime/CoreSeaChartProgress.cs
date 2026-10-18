@@ -10,6 +10,8 @@ namespace ShatteredSail.Core.Gameplay
         public int version = 1;
         public CoreSeaChartState[] charts = Array.Empty<CoreSeaChartState>();
         public CoreSeaChartAlias[] aliases = Array.Empty<CoreSeaChartAlias>();
+        // Optional in old saves. History is shared by sea, not tied to one seed.
+        public CoreSeaChartRandomHistory[] randomHistory = Array.Empty<CoreSeaChartRandomHistory>();
     }
     [Serializable] public sealed class CoreSeaChartState
     {
@@ -70,7 +72,7 @@ namespace ShatteredSail.Core.Gameplay
 
         public bool CanStartSelectedChart(out string reason)
         {
-            reason = string.Empty;
+            if (!CanStartWithDepartureCrew(out reason)) return false;
             if (selectedSeaChart == null || GuidedTutorialLeg > 0 || SelectedTreasureMap != null) return true;
             if (!CanSelectRoute(selectedSeaChart.RouteIndex, out reason)) return false;
             if (Phase != CoreDemoPhase.Port) reason = "只能在港口载入海图。";
@@ -84,6 +86,8 @@ namespace ShatteredSail.Core.Gameplay
         public CoreSeaChartProgress CaptureSeaChartProgress() => new CoreSeaChartProgress
         {
             charts = seaChartStates.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => CopySeaChartState(pair.Value)).ToArray(),
+            randomHistory = routeRandomHistory.OrderBy(pair => pair.Key).Select(pair => new CoreSeaChartRandomHistory
+                { routeIndex = pair.Key, recentEvents = pair.Value.ToArray() }).ToArray(),
             aliases = seaChartAliases.OrderBy(item => item.rawSeed, StringComparer.Ordinal).ThenBy(item => item.canonicalSeed, StringComparer.Ordinal)
                 .Select(item => new CoreSeaChartAlias { rawSeed = item.rawSeed, canonicalSeed = item.canonicalSeed }).ToArray(),
         };
@@ -93,10 +97,21 @@ namespace ShatteredSail.Core.Gameplay
             if (Phase != CoreDemoPhase.Port || progress == null || progress.version != 1) return false;
             var states = new Dictionary<string, CoreSeaChartState>(StringComparer.Ordinal);
             var aliases = new List<CoreSeaChartAlias>();
+            var histories = new Dictionary<int, List<string>>();
+            foreach (CoreSeaChartRandomHistory history in progress.randomHistory ?? Array.Empty<CoreSeaChartRandomHistory>())
+            {
+                if (history == null || history.routeIndex < 0 || history.routeIndex >= Routes.Count ||
+                    histories.ContainsKey(history.routeIndex) || history.recentEvents == null ||
+                    history.recentEvents.Length > SeaChartRandomHistoryLimit ||
+                    history.recentEvents.Distinct(StringComparer.Ordinal).Count() != history.recentEvents.Length ||
+                    history.recentEvents.Any(id => !IsRouteRandomEvent(history.routeIndex, id))) return false;
+                histories.Add(history.routeIndex, new List<string>(history.recentEvents));
+            }
             foreach (CoreSeaChartState value in progress.charts ?? Array.Empty<CoreSeaChartState>())
             {
                 if (value == null || !TryParseChartSeed(value.seed, out CoreSeaChartDefinition definition) || value.visits < 0 ||
-                    states.ContainsKey(definition.Seed) || !IsKnownChartRandomEvent(value.lastRandomEvent, true)) return false;
+                    states.ContainsKey(definition.Seed) || !string.IsNullOrEmpty(value.lastRandomEvent) &&
+                    !IsRouteRandomEvent(definition.RouteIndex, value.lastRandomEvent)) return false;
                 var events = new HashSet<string>(StringComparer.Ordinal);
                 foreach (CoreSeaChartEventClaim claim in value.events ?? Array.Empty<CoreSeaChartEventClaim>())
                     if (claim == null || claim.count < 0 || !IsKnownChartEncounter(definition, claim.eventId, false) || !events.Add(claim.eventId)) return false;
@@ -119,6 +134,7 @@ namespace ShatteredSail.Core.Gameplay
                 aliases.Add(new CoreSeaChartAlias { rawSeed = raw, canonicalSeed = definition.Seed });
             }
             seaChartStates.Clear(); foreach (var pair in states) seaChartStates.Add(pair.Key, pair.Value);
+            routeRandomHistory.Clear(); foreach (var pair in histories) routeRandomHistory.Add(pair.Key, pair.Value);
             seaChartAliases.Clear(); seaChartAliases.AddRange(aliases);
             TouchSeaChartProgress();
             return true;
@@ -128,7 +144,7 @@ namespace ShatteredSail.Core.Gameplay
             uint geographyHash, bool tutorialWaters, out string canonicalSeed, int geometryVersion = 0)
         {
             canonicalSeed = string.Empty;
-            if ((geometryVersion != 0 && geometryVersion != 1) || tutorialWaters && geometryVersion != 0 ||
+            if (!ValidMapGeometryVersion(geometryVersion) || tutorialWaters && geometryVersion != 0 ||
                 (Phase != CoreDemoPhase.Port && Phase != CoreDemoPhase.Settlement) || string.IsNullOrWhiteSpace(rawSeed) || rawSeed.Length > 512 ||
                 !TryChartPorts(routeIndex, departurePort, destinationPort, out int a, out int b, out int forward)) return false;
             string raw = rawSeed.Trim();
@@ -170,9 +186,12 @@ namespace ShatteredSail.Core.Gameplay
             if (chart.TutorialWaters) return eventId == CoreGuidedTutorialContent.BossEventId || !bossOnly &&
                 new[] { CoreGuidedTutorialContent.FirstEvent().Id, CoreGuidedTutorialContent.OptionalEvent().Id,
                     CoreGuidedTutorialContent.CrewRequirementEvent().Id, CoreGuidedTutorialContent.NavigatorEventId }.Contains(eventId);
-            if (eventId == "boss_" + Routes[chart.RouteIndex].Id) return true;
+            CoreRouteBoss routeBoss = CoreRouteBossCatalog.Find(eventId);
+            if (routeBoss != null && routeBoss.RouteId == Routes[chart.RouteIndex].Id) return true;
             if (chart.RouteIndex == 2 && (eventId == CoreBattleBalance.TreasureBossId || CoreLegendaryWarships.Find(eventId) != null)) return true;
-            return !bossOnly && CreateEncounterPool(Routes[chart.RouteIndex]).Any(item => item.Id == eventId);
+            return !bossOnly && (CreateEncounterPool(Routes[chart.RouteIndex]).Any(item => item.Id == eventId) ||
+                chart.MapGeometryVersion >= 2 && CoreVoyageEventCatalog.CreateFixedEncounters(Routes[chart.RouteIndex].Id).Any(item => item.Id == eventId) ||
+                chart.MapGeometryVersion >= 3 && CoreVoyageEventCatalog.CreateExpandedFixedEncounters(Routes[chart.RouteIndex].Id).Any(item => item.Id == eventId));
         }
 
         private static CoreSeaChartState CopySeaChartState(CoreSeaChartState state) => new CoreSeaChartState

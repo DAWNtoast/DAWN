@@ -21,6 +21,7 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             ProfileGoldPersistence.Save(900);
             PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(1), 1);
+            SeedShipPortLocationsForFixture("断锚港", 0, 1);
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null;
             yield return null;
@@ -30,8 +31,8 @@ namespace ShatteredSail.Presentation.Tests
             PopulateBareStarterForFixture(controller);
             ComponentArtCatalog catalog = new ComponentArtCatalog();
             ComponentArtEntry[] variants = catalog.Entries.Where(item => item.Slot == ComponentSlot.Bow && item.Rarity == ComponentRarity.Rare).Take(2).ToArray();
-            OwnedShipComponent first = controller.GrantOwnedComponent(variants[0], 0.94f);
-            OwnedShipComponent replacement = controller.GrantOwnedComponent(variants[1], 1.08f);
+            OwnedShipComponent first = controller.GrantOwnedComponent(variants[0]);
+            OwnedShipComponent replacement = controller.GrantOwnedComponent(variants[1]);
             string originalBow = controller.InstalledShipComponent(0, ComponentSlot.Bow).InstanceId;
             string secondShipBow = controller.InstalledShipComponent(1, ComponentSlot.Bow).InstanceId;
             int itemCount = controller.OwnedComponents.Count;
@@ -58,6 +59,7 @@ namespace ShatteredSail.Presentation.Tests
             AssertShipyardTactic(controller, variants[0], true);
             AssertShipyardTactic(controller, variants[1], false);
             Assert.That(controller.Session.MaxHull, Is.EqualTo(controller.Session.SelectedShip.MaxHull + variants[0].HullBonus - catalog.Get(0).HullBonus));
+            yield return ClickShipyardControl("Close Shipyard Equipment");
             yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
             Assert.That(GameObject.Find("Shipyard Dossier Stat 0").GetComponent<Text>().text, Is.EqualTo("船体上限  " + controller.Session.MaxHull));
             Assert.That(GameObject.Find("Shipyard Dossier Stat 2").GetComponent<Text>().text, Is.EqualTo("火力  " + controller.Session.Firepower));
@@ -85,8 +87,9 @@ namespace ShatteredSail.Presentation.Tests
             // Leave an inventory item highlighted without installing it, then inspect a different ship.
             yield return ClickShipyardControl("Shipyard Equipment Owned " + replacement.InstanceId);
             Assert.That(ActiveButton("Shipyard Equip Component").interactable, Is.True);
-            yield return ClickShipyardControl("Back To Shipyard Gallery");
-            yield return ClickShipyardControl("Shipyard Next Vessel");
+            yield return ClickShipyardControl("Close Shipyard Equipment");
+            yield return ClickShipyardControl("Return To Port Hub");
+            yield return BrowseShipMarketTo(1);
             yield return ClickShipyardControl("Shipyard Ship 1");
             Assert.That(GameObject.Find("Shipyard Dossier Stat 0"), Is.Not.Null, "A new vessel opens its own performance page.");
             yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
@@ -99,6 +102,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.SelectedShipIndex, Is.Zero, "Editing a moored vessel must not change the flagship.");
             Assert.That(controller.Session.MaxHull, Is.EqualTo(hullWithoutBow));
             AssertShipyardTactic(controller, variants[1], false);
+            yield return ClickShipyardControl("Close Shipyard Equipment");
             yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
             Assert.That(FindRenderedShipLayer("Shipyard Detail", variants[1].ShipLayer), Is.Null,
                 "Non-starter vessels retain their complete hull illustration after refitting.");
@@ -110,6 +114,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
 
             NavalBattleVisualCapture.Capture(controller, "84_Shipyard_Equipment_NonFlagship.png", "船坞配件页：分别维护每艘船，卸下或替换不收费", "Shipyard Detail");
+            yield return ClickShipyardControl("Close Shipyard Equipment");
             yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
             yield return ClickShipyardControl("Confirm Shipyard Vessel");
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(1));
@@ -125,8 +130,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(1));
             Assert.That(controller.InstalledShipComponent(0, ComponentSlot.Bow), Is.Null, "An intentionally emptied slot must not silently receive a free default on reload.");
             Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).InstanceId, Is.EqualTo(replacement.InstanceId));
-            Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).Quality, Is.EqualTo(1.08f).Within(0.0001f));
-            Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == first.InstanceId).Quality, Is.EqualTo(0.94f).Within(0.0001f));
+            Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow).ComponentId, Is.EqualTo(variants[1].Id));
+            Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == first.InstanceId).ComponentId, Is.EqualTo(variants[0].Id));
             CollectionAssert.AreEqual(ids, controller.OwnedComponents.Select(item => item.InstanceId).OrderBy(id => id, StringComparer.Ordinal).ToArray());
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             AssertShipyardTactic(controller, variants[1], true);
@@ -143,7 +148,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             ComponentArtCatalog catalog = new ComponentArtCatalog();
-            OwnedShipComponent item = controller.GrantOwnedComponent(catalog.Entries.First(entry => entry.Slot == ComponentSlot.Bow && entry.Rarity == ComponentRarity.Rare), 1f);
+            OwnedShipComponent item = controller.GrantOwnedComponent(catalog.Entries.First(entry => entry.Slot == ComponentSlot.Bow && entry.Rarity == ComponentRarity.Rare));
             int count = controller.OwnedComponents.Count;
             string inventory = PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey);
             yield return ClickShipyardControl("Port Hotspot Shipyard");
@@ -186,7 +191,7 @@ namespace ShatteredSail.Presentation.Tests
             foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
             {
                 ComponentArtEntry entry = catalog.Get((int)slot * ComponentArtCatalog.EntriesPerSlot);
-                OwnedShipComponent item = controller.GrantOwnedComponent(entry, 1f);
+                OwnedShipComponent item = controller.GrantOwnedComponent(entry);
                 Assert.That(item, Is.Not.Null, slot.ToString());
                 Assert.That(controller.TryEquipOwnedComponent(0, item.InstanceId), Is.True, slot.ToString());
             }
@@ -202,6 +207,7 @@ namespace ShatteredSail.Presentation.Tests
 
         private static IEnumerator ClickShipyardControl(string name)
         {
+            if (name == "Return To Port") yield return SettlementChestTestActions.ShowOverview();
             yield return null;
             Canvas.ForceUpdateCanvases();
             Button button = ActiveButton(name);

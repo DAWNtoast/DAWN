@@ -703,6 +703,36 @@ namespace ShatteredSail.Presentation
             }
         }
 
+        private void DecorateVoyageEventRiskHalo(Button marker, CoreMapNode node)
+        {
+            if (marker == null || node?.Encounter == null || node.Visited ||
+                (!tutorialActive && node == session.DestinationBossGuidanceNode)) return;
+
+            // BuildMap already applies discovery rules, including treasure goals.
+            // The blocking boss keeps its stronger gold guidance instead of
+            // stacking two competing rings. All other known events share this cue.
+            bool dangerous = node.IsBoss || node.Encounter.BossKind != CoreBossKind.None ||
+                node.Encounter.Risk >= 2 || node.Encounter.Power > 0 ||
+                node.TerrainConstraint == EventTerrainConstraint.Storm;
+            foreach (CoreEncounterChoice choice in node.Encounter.Choices)
+            {
+                // Purchases and supply costs do not imply danger. Even an optional
+                // battle, hull loss or curse does merit a warning before arrival.
+                if (choice.StartsBattle || choice.Effect.Hull < 0 || choice.Effect.Curse > 0)
+                {
+                    dangerous = true;
+                    break;
+                }
+            }
+
+            Vector2 markerSize = marker.GetComponent<RectTransform>().sizeDelta;
+            RectTransform halo = CreateRect("Event Risk Halo", marker.transform,
+                markerSize + new Vector2(24f, 24f), Vector2.zero);
+            halo.SetAsFirstSibling();
+            VoyageEventRiskHaloGraphic glow = halo.gameObject.AddComponent<VoyageEventRiskHaloGraphic>();
+            glow.color = dangerous ? Html("#EF776C") : Html("#75DDA2");
+        }
+
         private void DecorateVoyageEventMarker(Button marker, CoreMapNode node)
         {
             if (marker == null || node == null)

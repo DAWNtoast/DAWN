@@ -15,7 +15,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(CoreVoyageSession.CardLibrary[0].Id, Is.EqualTo("card_chain_shot"));
             Assert.That(CoreVoyageSession.CardLibrary[27].Id, Is.EqualTo("card_component_bow"));
             Assert.That(CoreVoyageSession.CardLibrary[31].Id, Is.EqualTo("card_component_instrument"));
-            Assert.That(CoreVoyageSession.CardLibrary.Count, Is.EqualTo(CoreVoyageSession.LegacyBattleCardSlotCount + 1 + CoreSpecialCardCatalog.All.Count + 60 + 2));
+            Assert.That(CoreVoyageSession.CardLibrary.Count, Is.EqualTo(CoreVoyageSession.LegacyBattleCardSlotCount + 1 + CoreSpecialCardCatalog.All.Count + 60 + 2 + CoreBoardingCardCatalog.All.Count + 4 + CoreNavalSchoolExpansionCatalog.All.Count));
             Assert.That(CoreVoyageSession.CardLibrary.Select(card => card.Id).Distinct().Count(), Is.EqualTo(CoreVoyageSession.CardLibrary.Count));
             Assert.That(CoreSpecialCardCatalog.All.All(definition => CoreVoyageSession.IsSpecialBattleCard(definition.Card.Id)), Is.True);
         }
@@ -138,31 +138,31 @@ namespace ShatteredSail.Core.Tests
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
                 Assert.That(session.GetBonusBattleCards(stage), Has.Member(index));
             Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.Zero);
-            session.RestoreSpecialCardExperience(new Dictionary<string, int> { { pepe.Card.Id, 839 } });
+            session.RestoreSpecialCardExperience(new Dictionary<string, int> { { pepe.Card.Id, 119 } });
             session.SetSeed("PEPE-SUPPORT-XP-REGRESSION");
             session.StartVoyage();
             foreach (CoreMapNode node in session.Map.Nodes) node.Visited = true;
             typeof(CoreVoyageSession).GetField("randomAmbushOccurred", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(session, true);
-            Assert.That(session.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(839), "Departure alone grants no XP.");
+            Assert.That(session.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(119), "Departure alone grants no XP.");
             Assert.That(SailSomewhere(session), Is.True);
             int earned = (int)Math.Floor(session.TotalDistanceNm * CoreVoyageSession.SpecialCardExperiencePerNauticalMile);
             Assert.That(earned, Is.GreaterThan(0));
-            Assert.That(session.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(839 + earned),
+            Assert.That(session.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(119 + earned),
                 "The same card in three stage decks receives the sailed distance only once.");
-            Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(3));
+            Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(1));
             Assert.That(session.SafeReturn(), Is.True);
             session.ReturnToPortAfterSettlement();
             session.ConfigureSpecialCardSources(new[] { "crew_white_shell_cook_flora" }, null);
             Assert.That(AllBonus(session), Is.EqualTo(new[] { Find("card_special_crew_white_shell_cook_flora") }));
             Assert.That(session.GetSpecialCardExperience("card_special_crew_white_shell_cook_flora"), Is.Zero);
             Assert.That(session.AcquiredSpecialCardIds, Has.Member(pepe.Card.Id));
-            Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(3));
+            Assert.That(session.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(1));
 
             var restored = new CoreVoyageSession();
             restored.RestoreSpecialCardExperience(session.SpecialCardExperience);
             restored.RestoreAcquiredSpecialCards(session.AcquiredSpecialCardIds);
-            Assert.That(restored.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(839 + earned));
-            Assert.That(restored.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(3));
+            Assert.That(restored.GetSpecialCardExperience(pepe.Card.Id), Is.EqualTo(119 + earned));
+            Assert.That(restored.GetCardUpgradeLevel(pepe.Card.Id), Is.EqualTo(1));
         }
 
         [TestCase(NavalBattleStage.Preparation)]
@@ -191,17 +191,17 @@ namespace ShatteredSail.Core.Tests
             int hull = session.Hull, crewHealth = session.Battle.PlayerBoardingHealth;
             int food = session.Cargo.Food, water = session.Cargo.Water, medicine = session.Cargo.Medicine;
             int powder = session.Cargo.Powder, cannonballs = session.Cargo.Cannonballs;
-            int expectedBlock = (stage == NavalBattleStage.Boarding ? 3 : 5) * 2; // The phase-specific authored shield retains the common rank-three multiplier.
+            int expectedBlock = 8; // Pepe reaches +1 with the same authored shield in all three stages.
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.Battle.PlayerBlock, Is.EqualTo(expectedBlock));
-            Assert.That(session.Battle.Hand, Is.EqualTo(new[] { filler, filler }));
+            Assert.That(session.Battle.Hand, Is.EqualTo(new[] { filler }));
             Assert.That(session.Hull, Is.EqualTo(hull));
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(crewHealth));
             Assert.That(new[] { session.Cargo.Food, session.Cargo.Water, session.Cargo.Medicine, session.Cargo.Powder, session.Cargo.Cannonballs },
                 Is.EqualTo(new[] { food, water, medicine, powder, cannonballs }));
             Assert.That(session.GetBattleCardEnergyCost(index), Is.EqualTo(2));
             session.Battle.Hand.Add(index);
-            Assert.That(session.PlayCard(2), Is.False, "A mastered card keeps its base cost and also pays the next same-turn use fee.");
+            Assert.That(session.PlayCard(1), Is.False, "A mastered card keeps its base cost and also pays the next same-turn use fee.");
             Assert.That(session.Battle.PlayerBlock, Is.EqualTo(expectedBlock));
         }
 
@@ -228,11 +228,11 @@ namespace ShatteredSail.Core.Tests
         [TestCase(119, 0, 120)]
         [TestCase(120, 1, 360)]
         [TestCase(359, 1, 360)]
-        [TestCase(360, 2, 840)]
-        [TestCase(839, 2, 840)]
-        [TestCase(840, 3, 0)]
-        [TestCase(int.MaxValue, 3, 0)]
-        public void Experience_UsesCumulativeThresholdsAndTheExistingThreeTierEffects(int xp, int level, int threshold)
+        [TestCase(360, 2, 0)]
+        [TestCase(839, 2, 0)]
+        [TestCase(840, 2, 0)]
+        [TestCase(int.MaxValue, 2, 0)]
+        public void Experience_ClampsTheAuthoredCapWithoutLosingCumulativeExperience(int xp, int level, int threshold)
         {
             CoreSpecialCardDefinition definition = Crew();
             CoreVoyageSession session = new CoreVoyageSession();
@@ -242,10 +242,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetSpecialCardNextThreshold(definition.Card.Id), Is.EqualTo(threshold));
             Assert.That(session.GetCardUpgradeLevel(definition.Card.Id), Is.EqualTo(level));
             Assert.That(session.GetBattleCard(index).UpgradeLevel, Is.EqualTo(level));
-            decimal multiplier = level == 0 ? 1m : level == 1 ? 1.2m : level == 2 ? 1.5m : 2m;
-            Assert.That(session.GetBattleCard(index).Damage, Is.EqualTo((int)Math.Round(definition.Card.Damage * multiplier, 0, MidpointRounding.AwayFromZero)));
+            Assert.That(definition.Card.Id, Is.EqualTo("card_special_crew_broken_anchor_navigator_lorne"));
+            Assert.That(session.GetBattleCard(index).Damage, Is.Zero);
+            Assert.That(session.GetBattleCard(index).Block, Is.EqualTo(new[] { 6, 8, 10 }[level]));
             Assert.That(session.GetBattleCard(index).Energy, Is.EqualTo(definition.Card.Energy));
-            Assert.That(session.GetBattleCard(index).Draw, Is.EqualTo(definition.Card.Draw + (level >= 3 && definition.Card.Draw > 0 ? 1 : 0)));
+            Assert.That(session.GetBattleCard(index).Draw, Is.EqualTo(1));
             session.GetBattleCardAtLevel(index, 3);
             Assert.That(session.GetCardUpgradeLevel(definition.Card.Id), Is.EqualTo(level), "Preview never grants experience.");
         }
@@ -286,7 +287,7 @@ namespace ShatteredSail.Core.Tests
             session.RestoreSpecialCardExperience(new Dictionary<string, int> { { first.Card.Id, 900 } });
             session.ConfigureSpecialCardSources(new[] { second.SourceId }, null);
             Assert.That(session.GetSpecialCardExperience(second.Card.Id), Is.Zero);
-            Assert.That(session.GetCardUpgradeLevel(first.Card.Id), Is.EqualTo(3));
+            Assert.That(session.GetCardUpgradeLevel(first.Card.Id), Is.EqualTo(2));
 
             string legacyId = CoreVoyageSession.CardLibrary.Take(32).First(card => card.RequiredCrew == first.LegacySourceKey).Id;
             session.ConfigureCardUpgrades(new Dictionary<string, int> { { legacyId, 1 } });
@@ -385,7 +386,7 @@ namespace ShatteredSail.Core.Tests
             Award(session, float.MaxValue);
             Award(session, float.MaxValue);
             Assert.That(session.GetSpecialCardExperience(id), Is.EqualTo(int.MaxValue));
-            Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(3));
+            Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(2));
         }
 
         [Test]

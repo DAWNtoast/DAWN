@@ -90,7 +90,7 @@ namespace ShatteredSail.Presentation
             })
         };
 
-        public static IReadOnlyList<TreasureComicDialogue> GetPage(string rankId, int page)
+        public static IReadOnlyList<TreasureComicDialogue> GetPage(string rankId, int page, int contentVersion = 0)
         {
             IReadOnlyList<TreasureComicDialogue>[] pages;
             switch (rankId)
@@ -101,7 +101,63 @@ namespace ShatteredSail.Presentation
                 default: return empty;
             }
 
-            return page >= 0 && page < pages.Length ? pages[page] : empty;
+            if (page < 0 || page >= pages.Length) return empty;
+            IReadOnlyList<TreasureComicDialogue> authored = pages[page];
+            if (contentVersion != 1) return authored;
+            var expedition = new TreasureComicDialogue[authored.Count];
+            for (int index = 0; index < authored.Count; index++)
+                expedition[index] = new TreasureComicDialogue(authored[index].Bounds,
+                    ExpeditionDialogue(rankId, page, index) ?? authored[index].Text);
+            return Array.AsReadOnly(expedition);
+        }
+
+        // Re-letter only the objective captions inside the original safe areas.
+        // Legacy voyages keep their text; ship-specific battle preludes are separate.
+        private static string ExpeditionDialogue(string rankId, int page, int index)
+        {
+            switch (rankId)
+            {
+                case "weathered":
+                    if (page == 0)
+                    {
+                        if (index == 1) return "先去营地，\n备好工具。";
+                        if (index == 4) return "绞盘配潜水钟，\n复原沉船工坊。";
+                    }
+                    else
+                    {
+                        if (index == 2) return "绞盘吊舱，\n潜钟探底。";
+                        if (index == 3) return "想寻宝？\n先修工具。";
+                        if (index == 5) return "双器齐备，\n再取工坊秘藏。";
+                    }
+                    break;
+                case "gilded":
+                    if (page == 0)
+                    {
+                        if (index == 0) return "先验货单，\n再赚信用。";
+                        if (index == 1) return "公证货单，\n记下商盟信用。";
+                    }
+                    else
+                    {
+                        if (index == 0) return "信用留三，\n通缉不高于一。";
+                        if (index == 3) return "留住货单！\n清除通缉！";
+                        if (index == 4) return "信用换遗产，\n走私伤船招咒。";
+                    }
+                    break;
+                case "moonlit":
+                    if (page == 0)
+                    {
+                        if (index == 0) return "三座祭坛，\n循时点亮月相。";
+                        if (index == 1) return "昼暮夜各异，\n择时点亮。";
+                    }
+                    else
+                    {
+                        if (index == 0) return "三相齐备，\n再赴洗月圣泉。";
+                        if (index == 3) return "洗去余咒，\n保全圣所遗物。";
+                        if (index == 4) return "共鸣需三，\n诅咒不高于一。";
+                    }
+                    break;
+            }
+            return null;
         }
 
         private static TreasureComicDialogue Area(float x, float y, float width, float height, string text)

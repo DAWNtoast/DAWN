@@ -14,6 +14,9 @@ namespace ShatteredSail.Presentation
         private static readonly bool[] BackgroundLoaded = new bool[18];
         private static readonly Texture2D[] Parties = new Texture2D[2];
         private static readonly bool[] PartyLoaded = new bool[2];
+        private static Texture2D joinedDeck;
+        private static bool joinedDeckLoaded;
+        public const string JoinedDeckResourcePath = "BoardingBattle/Backgrounds/boarding_joined_deck_v2";
         private static readonly Dictionary<string, Texture2D> Cast = new Dictionary<string, Texture2D>(System.StringComparer.Ordinal);
         private const string CharacterRoot = "BoardingBattle/Characters/";
         private static readonly string[] LegacyCrew = { "crew_navigator_evelyn_fullbody", "crew_carpenter_barlow_fullbody",
@@ -26,6 +29,8 @@ namespace ShatteredSail.Presentation
             System.Array.Clear(BackgroundLoaded, 0, BackgroundLoaded.Length);
             System.Array.Clear(Parties, 0, Parties.Length);
             System.Array.Clear(PartyLoaded, 0, PartyLoaded.Length);
+            joinedDeck = null;
+            joinedDeckLoaded = false;
             Cast.Clear();
         }
 
@@ -57,6 +62,26 @@ namespace ShatteredSail.Presentation
             return Parties[index];
         }
 
+        public static Texture2D JoinedDeck()
+        {
+            if (!joinedDeckLoaded)
+            {
+                joinedDeck = Load(JoinedDeckResourcePath);
+                joinedDeckLoaded = true;
+            }
+            return joinedDeck;
+        }
+
+        public static Color DeckLight(SeaTerrainType terrain, NavigationTimeOfDay time)
+        {
+            Color light = time == NavigationTimeOfDay.Night ? new Color(.44f, .54f, .69f) :
+                time == NavigationTimeOfDay.Dusk ? new Color(.96f, .71f, .53f) : Color.white;
+            if (terrain == SeaTerrainType.StormFront) light *= new Color(.72f, .79f, .85f);
+            else if (terrain == SeaTerrainType.FogBank) light *= new Color(.80f, .86f, .88f);
+            light.a = 1f;
+            return light;
+        }
+
         public static Texture2D ForEnemy(CoreBattleState battle, CoreEncounter encounter, int routeIndex)
         {
             Texture2D texture = LoadCast(EnemyResourcePath(battle, encounter, routeIndex));
@@ -73,12 +98,16 @@ namespace ShatteredSail.Presentation
                 case "boss_route_shattered_sail_reef": return EnemyPath("route_reef");
                 case "boss_route_golden_tide_trade": return EnemyPath("route_gold");
                 case "boss_route_moon_tide_ruins": return EnemyPath("route_moon");
+                case "boss_route_shattered_sail_reef_tide": return EnemyPath("ghost");
+                case "boss_route_golden_tide_trade_thunder": return EnemyPath("imperial");
+                case "boss_route_moon_tide_ruins_arcane": return EnemyPath("treasure");
                 case CoreBattleBalance.TreasureBossId: return EnemyPath("treasure");
                 case "legendary_pirate_iron_oath": return EnemyPath("iron_oath");
                 case "legendary_pirate_thunder_crown": return EnemyPath("thunder_crown");
                 case "legendary_pirate_red_widow": return EnemyPath("red_widow");
                 case "legendary_pirate_ember_ark": return EnemyPath("ember_ark");
                 case "legendary_pirate_tide_requiem": return EnemyPath("tide_requiem");
+                case "legendary_pirate_last_horizon": return EnemyPath("treasure");
                 case CoreGuidedTutorialContent.BossEventId: return EnemyPath(null);
             }
             CoreBattleProfile profile = battle == null ? null : battle.Profile;
@@ -90,7 +119,7 @@ namespace ShatteredSail.Presentation
                 if (ReferenceEquals(profile, CoreGuidedTutorialContent.BossProfile)) return EnemyPath(null);
                 foreach (CoreLegendaryWarship ship in CoreLegendaryWarships.All)
                     if (ReferenceEquals(profile, ship.Profile))
-                        return EnemyPath(ship.Id.Substring("legendary_pirate_".Length));
+                        return EnemyPath(ship.Id == "legendary_pirate_last_horizon" ? "treasure" : ship.Id.Substring("legendary_pirate_".Length));
                 if (profile.BossKind == CoreBossKind.Treasure) return EnemyPath("treasure");
                 if (profile.BossKind == CoreBossKind.Route)
                     return EnemyPath(routeIndex <= 0 ? "route_reef" : routeIndex == 1 ? "route_gold" : "route_moon");
@@ -109,11 +138,8 @@ namespace ShatteredSail.Presentation
 
         public static Rect CrewUv(CrewVariantDefinition crew)
         {
-            if (crew == null || CrewAtlas(crew) == null) return new Rect(0f, 0f, 1f, 1f);
-            int index = Mathf.Clamp(crew.ProfessionIndex, 0, 5);
-            const float width = 1f / 3f, height = .5f, inset = .01f;
-            return new Rect((index % 3 + inset) * width, (1 - index / 3 + inset) * height,
-                width * (1f - inset * 2f), height * (1f - inset * 2f));
+            Texture2D atlas = crew == null ? null : CrewAtlas(crew);
+            return atlas == null ? new Rect(0f, 0f, 1f, 1f) : BoardingCrewAtlasLayout.ForFigure(atlas, crew.ProfessionIndex);
         }
 
         private static Texture2D CrewAtlas(CrewVariantDefinition crew)

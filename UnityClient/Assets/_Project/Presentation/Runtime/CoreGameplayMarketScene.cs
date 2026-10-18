@@ -31,7 +31,7 @@ namespace ShatteredSail.Presentation
         private void BuildMarketSceneShops(RectTransform board)
         {
             RectTransform ground = CreateRect("Market Scene Empty Space", board,
-                new Vector2(1860f, 890f), new Vector2(0f, -25f));
+                PhaseSurfaceLayout.BackgroundSize, PhaseSurfaceLayout.BackgroundPosition);
             Image hit = ground.gameObject.AddComponent<Image>();
             hit.color = Color.clear;
             hit.raycastTarget = true;
@@ -164,23 +164,6 @@ namespace ShatteredSail.Presentation
             marketTradeSelecting = marketTradeBuying = false;
             marketInventoryExpanded = false;
             RefreshMarketItemDetailPage();
-        }
-
-        // The key path and UI buttons share cancellation, so no hidden quote can
-        // survive changing shops, closing a drawer, or dismissing its modal.
-        private bool TryHandleMarketEscape()
-        {
-            if (session == null || session.Phase != CoreDemoPhase.Port ||
-                activePortFacility != PortFacilityArtCatalog.MarketFacilityIndex ||
-                portSettingsOverlay != null || gameMasterOverlay != null || voyageCargoOverlay != null) return false;
-            if (pendingMarketPurchase != null)
-            {
-                CancelPendingMarketPurchase();
-                return true;
-            }
-            if (!marketSelectedShop.HasValue) return false;
-            CloseMarketShop();
-            return true;
         }
 
         private void CancelPendingMarketPurchase()

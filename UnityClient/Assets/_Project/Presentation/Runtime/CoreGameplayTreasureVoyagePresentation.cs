@@ -40,6 +40,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildTreasureDepartureRoute(RectTransform panel)
         {
+            if (UsesDepartureDockScene) return;
             CoreTreasureMapRecord map = session.SelectedTreasureMap;
             if (map == null) return;
             CoreVoyageSession owner = session;
@@ -51,16 +52,15 @@ namespace ShatteredSail.Presentation
                 (activePortFacility == PortFacilityArtCatalog.VoyageFacilityIndex || !Application.isPlaying && editorPreviewScreen == CoreGameplayPreviewScreen.VoyageDeparture);
             Text title = CreateText("Treasure Departure Title", panel, new Vector2(1050f, 48f),
                 new Vector2(0f, 240f), 29, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
-            title.text = map.Name + " · 隐藏海域";
+            title.text = map.Name + " · " + TreasureMapTheme(map);
             RawImage illustration = CreateRawImage("Treasure Departure Art", panel, new Vector2(580f, 326f),
                 new Vector2(-235f, 48f), TreasureChartArt(map.RankId), new Rect(0, 0, 1, 1));
             UiImageAspect.Fit(illustration, new Vector2(580f, 326f));
             illustration.raycastTarget = false;
-            Text detail = CreateText("Treasure Departure Detail", panel, new Vector2(430f, 270f),
-                new Vector2(315f, 50f), 22, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
-            detail.text = "品阶：" + map.Rank.Name +
-                "\n开启秘藏需要 " + map.Rank.RequiredClues + " 条线索\n种子：" + map.Seed +
-                "\n可从任意港口出发，无需航海士\n探险结束返回：" + session.CurrentPort;
+            Text detail = CreateText("Treasure Departure Detail", panel, new Vector2(430f, 310f),
+                new Vector2(315f, 50f), 20, FontStyle.Normal, TextAnchor.MiddleLeft, Ink);
+            detail.text = TreasureMapOverview(map) + "\n种子：" + map.Seed +
+                "\n任意港口出发，无需航海士\n探险结束返回：" + session.CurrentPort;
             Text consumption = CreateText("Treasure Departure Consumption", panel, new Vector2(1030f, 90f),
                 new Vector2(0f, -184f), 21, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
             bool canStart = session.CanStartTreasureVoyage(out string reason);
@@ -109,14 +109,50 @@ namespace ShatteredSail.Presentation
             int index;
             switch (encounterId)
             {
-                // Reuse the atlas's ship and storm cells for the five
-                // legendary encounters so treasure battles never fall back to
-                // a generic supply illustration.
+                case "weathered_winch": index = 6; break;
+                case "weathered_bell": index = 8; break;
+                case "weathered_camp": index = 12; break;
+                case "weathered_chain_gate": index = 14; break;
+                case "weathered_keel_vault": index = 17; break;
+                case "weathered_glass_dome": index = 8; break;
+                case "weathered_supply_barge": index = 9; break;
+                case "weathered_rustyard": index = 6; break;
+                case "weathered_tide_turbine": index = 13; break;
+                case "weathered_signal_buoy": index = 3; break;
+                case "weathered_broken_caisson": index = 5; break;
+                case "weathered_cartographer_hulk": index = 15; break;
+                case "gilded_manifest": index = 0; break;
+                case "gilded_witness": index = 15; break;
+                case "gilded_relief": index = 9; break;
+                case "gilded_customs": index = 7; break;
+                case "gilded_bonded_vault": index = 17; break;
+                case "gilded_black_market": index = 12; break;
+                case "gilded_counterfeit": index = 5; break;
+                case "gilded_auction": index = 16; break;
+                case "gilded_convoy": index = 11; break;
+                case "gilded_ledger_buoy": index = 0; break;
+                case "gilded_insurance": index = 1; break;
+                case "gilded_quarantine": index = 9; break;
+                case "moonlit_dawn": index = 2; break;
+                case "moonlit_dusk": index = 10; break;
+                case "moonlit_midnight": index = 4; break;
+                case "moonlit_cleanse": index = 9; break;
+                case "moonlit_mirror_pool": index = 4; break;
+                case "moonlit_choir": index = 10; break;
+                case "moonlit_shadow_dial": index = 2; break;
+                case "moonlit_pearl_moon": index = 16; break;
+                case "moonlit_star_current": index = 2; break;
+                case "moonlit_echo_library": index = 8; break;
+                case "moonlit_sleeping_guardian": index = 11; break;
+                case "moonlit_moon_well": index = 13; break;
+                // Legacy fallback only; installed special ships use their full
+                // transparent painting before this atlas lookup is considered.
                 case "legendary_pirate_iron_oath": index = 11; break;
                 case "legendary_pirate_red_widow": index = 6; break;
                 case "legendary_pirate_thunder_crown": index = 2; break;
                 case "legendary_pirate_ember_ark": index = 13; break;
                 case "legendary_pirate_tide_requiem": index = 19; break;
+                case "legendary_pirate_last_horizon": index = 2; break;
                 default: index = Array.IndexOf(cells, encounterId); break;
             }
             if (index < 0) index = encounterId != null && encounterId.Contains("ambush") ? 19 : 18;
@@ -138,7 +174,17 @@ namespace ShatteredSail.Presentation
                 distance = " · 秘藏 " + bearing + " " +
                     (Mathf.Sqrt(dx * dx + dy * dy) * session.Map.Route.NauticalMilesPerMapUnit).ToString("0") + " 海里";
             }
-            return "藏宝线索 " + session.TreasureClues + " / " + session.TreasureRequiredClues + distance;
+            return (session.ActiveTreasureMap.ContentVersion > 0
+                ? CoreTreasureExpeditionCatalog.ThemeName(session.ActiveTreasureMap.RankId)
+                : "藏宝线索 " + session.TreasureClues + " / " + session.TreasureRequiredClues) + distance;
         }
+
+        // Held charts are promoted at departure; an already active legacy voyage
+        // retains its own versioned navigation readout above.
+        private static string TreasureMapTheme(CoreTreasureMapRecord map) =>
+            CoreTreasureExpeditionCatalog.ThemeName(map.RankId);
+
+        private static string TreasureMapOverview(CoreTreasureMapRecord map) =>
+            CoreTreasureExpeditionCatalog.Overview(map.RankId);
     }
 }

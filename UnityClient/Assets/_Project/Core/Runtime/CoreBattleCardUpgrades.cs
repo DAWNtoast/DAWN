@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ShatteredSail.Core.Gameplay
 {
-    public static class CoreBattleUpgradeBalance
+    public static partial class CoreBattleUpgradeBalance
     {
         public const int MaximumLevel = 3;
         public static decimal MultiplierForLevel(int level) =>
@@ -23,11 +23,25 @@ namespace ShatteredSail.Core.Gameplay
         private readonly HashSet<string> componentBattleTypes = new HashSet<string>(StringComparer.Ordinal);
         public IReadOnlyDictionary<string, int> CardUpgradeLevels => new ReadOnlyDictionary<string, int>(cardUpgradeLevels);
 
-        public int GetCardUpgradeLevel(string id) => IsSpecialBattleCard(id) ? SpecialCardLevelForExperience(GetSpecialCardExperience(id)) :
-            id != null && cardUpgradeLevels.TryGetValue(id, out int level) ? level : 0;
+        public int GetCardUpgradeLevel(string id)
+        {
+            id = CoreBattleCardAliases.CanonicalId(id);
+            return Math.Min(GetCardMaximumUpgradeLevel(id), IsSpecialBattleCard(id)
+                ? SpecialCardLevelForExperience(GetSpecialCardExperience(id))
+                : id != null && cardUpgradeLevels.TryGetValue(id, out int level) ? level : 0);
+        }
 
-        public CoreBattleCard GetBattleCard(int index) => index < 0 || index >= cardLibrary.Count ? null :
-            IsGuidedBossBattle ? GuidedBossCardDefinition(index) : GetBattleCardAtLevel(index, GetCardUpgradeLevel(cardLibrary[index].Id));
+        public CoreBattleCard GetBattleCard(int index) =>
+            GetBattleCard(index, Battle == null ? NavalBattleStage.Naval : Battle.Stage);
+
+        /// <summary>Quotes a card for the requested deck without changing the active battle stage.</summary>
+        public CoreBattleCard GetBattleCard(int index, NavalBattleStage stage)
+        {
+            index = CanonicalBattleCardIndex(index);
+            if (index < 0 || index >= cardLibrary.Count) return null;
+            CoreBattleCard card = IsGuidedBossBattle ? GuidedBossCardDefinition(index) : GetBattleCardAtLevel(index, GetCardUpgradeLevel(cardLibrary[index].Id));
+            return stage == NavalBattleStage.Boarding ? CoreBoardingCardCatalog.ForBoarding(card) : card;
+        }
 
         // Definitions are immutable; only the owning session's chosen level
         // changes. A bounded cache avoids allocating two cards and formatting
@@ -37,15 +51,17 @@ namespace ShatteredSail.Core.Gameplay
             // Nested initialization runs after the outer partial class's card
             // library is ready, independent of source-file initializer order.
             internal static readonly object Gate = new object();
+            internal static readonly int[] MaximumLevels = BuildCardMaximumLevels();
             internal static readonly CoreBattleCard[,] Cards =
                 new CoreBattleCard[cardLibrary.Count, CoreBattleUpgradeBalance.MaximumLevel];
         }
 
         public CoreBattleCard GetBattleCardAtLevel(int index, int level)
         {
+            index = CanonicalBattleCardIndex(index);
             if (index < 0 || index >= cardLibrary.Count || cardLibrary[index].AllowedStages == NavalBattleStages.None) return null;
             CoreBattleCard original = cardLibrary[index];
-            level = Math.Max(0, Math.Min(CoreBattleUpgradeBalance.MaximumLevel, level));
+            level = Math.Max(0, Math.Min(GetCardMaximumUpgradeLevel(index), level));
             if (level == 0) return original;
             lock (UpgradedCardDefinitions.Gate)
             {
@@ -59,44 +75,29 @@ namespace ShatteredSail.Core.Gameplay
 
         private static CoreBattleCard BuildUpgradedCardDefinition(CoreBattleCard original, int level)
         {
-            // Only authored draw cards gain a third-rank draw. Energy, resource
-            // costs and effect structure stay stable across all four ranks.
+            // Each card owns its growth curve, including separate utility rewards.
+            // Printed costs and immutable source identity stay at their base values.
             return new CoreBattleCard(original.Id, original.Name, original.Type,
-                original.Energy, CoreBattleUpgradeBalance.ScaleNumerical(original.Damage, level),
-                CoreBattleUpgradeBalance.ScaleNumerical(original.Block, level),
-                CoreBattleUpgradeBalance.ScaleNumerical(original.Repair, level),
-                original.Draw + (level >= 3 && original.Draw > 0 ? 1 : 0),
-                original.PowderCost, original.DescriptionTemplate, original.AllowedStages, original.Action, original.RequiredCrew,
+                original.Energy, CoreCardUpgradeDesign.Scale(original, original.Damage, level),
+                CoreCardUpgradeDesign.ScaleBlock(original, original.Block, level),
+                CoreCardUpgradeDesign.ScaleRepair(original, original.Repair, level),
+                CoreBattleUpgradeBalance.UpgradeDraw(original, level),
+                original.PowderCost, CoreBoardingCardDescriptions.AtLevel(original, level), original.AllowedStages, original.Action, original.RequiredCrew,
                 original.ArtId, original.CannonballCost, original.RequiredComponent, level,
-                original.SchoolId, original.SchoolEffect?.AtLevel(level, original.Draw == 0),
-                original.BoardingBlock.HasValue ? (int?)CoreBattleUpgradeBalance.ScaleNumerical(original.BoardingBlock.Value, level) : null);
+                original.SchoolId, CoreCardUpgradeDesign.UpgradeSchoolEffect(original, level),
+                original.BoardingBlock.HasValue ? (int?)CoreCardUpgradeDesign.ScaleBlock(original, original.BoardingBlock.Value, level) : null,
+                original.BoardingSpec);
         }
 
-        public int GetCardUpgradeCost(int index) => index < 0 || index >= cardLibrary.Count || cardLibrary[index].AllowedStages == NavalBattleStages.None || IsSpecialBattleCard(cardLibrary[index].Id) || !HasBattleCardUpgradeBenefit(index) ? 0 :
-            CoreBattleUpgradeBalance.CostForNextLevel(GetCardUpgradeLevel(cardLibrary[index].Id));
-
-        public bool HasBattleCardUpgradeBenefit(int index)
+        public int GetCardUpgradeCost(int index)
         {
-            CoreBattleCard original = GetBattleCardAtLevel(index, 0);
-            if (original == null) return false;
-            // A draw-only card may be flat at +1/+2 and still gain at +3.
-            // Ignore BurnDamage on non-fire-round cards: that derived default is unused.
-            for (int rank = 1; rank <= CoreBattleUpgradeBalance.MaximumLevel; rank++)
-            {
-                CoreBattleCard upgraded = GetBattleCardAtLevel(index, rank);
-                if (original.Damage != upgraded.Damage || original.Block != upgraded.Block ||
-                    original.Repair != upgraded.Repair || original.Draw != upgraded.Draw ||
-                    original.BoardingBlock != upgraded.BoardingBlock ||
-                    original.MovementMeters != upgraded.MovementMeters || original.StrategyAmount != upgraded.StrategyAmount ||
-                    original.StrategyLimit != upgraded.StrategyLimit ||
-                    (original.Action == NavalBattleCardAction.FireRounds && original.BurnDamage != upgraded.BurnDamage)) return true;
-                CoreSchoolCardEffect before = original.SchoolEffect, after = upgraded.SchoolEffect;
-                if (before != null && after != null && (before.Power != after.Power || before.Secondary != after.Secondary ||
-                    before.Threshold != after.Threshold || before.Duration != after.Duration || before.Limit != after.Limit ||
-                    before.Movement != after.Movement)) return true;
-            }
-            return false;
+            index = CanonicalBattleCardIndex(index);
+            return index < 0 || index >= cardLibrary.Count || cardLibrary[index].AllowedStages == NavalBattleStages.None || IsSpecialBattleCard(cardLibrary[index].Id) ||
+                GetCardUpgradeLevel(cardLibrary[index].Id) >= GetCardMaximumUpgradeLevel(index) ? 0 :
+                CoreBattleUpgradeBalance.CostForNextLevel(GetCardUpgradeLevel(cardLibrary[index].Id));
         }
+
+        public bool HasBattleCardUpgradeBenefit(int index) => GetCardMaximumUpgradeLevel(index) > 0;
 
         public void ConfigureCardUpgrades(IReadOnlyDictionary<string, int> levels)
         {
@@ -104,11 +105,19 @@ namespace ShatteredSail.Core.Gameplay
             Dictionary<string, int> copy = new Dictionary<string, int>(StringComparer.Ordinal);
             if (levels != null)
                 foreach (CoreBattleCard card in cardLibrary)
-                    if (card.AllowedStages != NavalBattleStages.None && levels.TryGetValue(card.Id, out int level) && level > 0)
+                    if ((card.AllowedStages != NavalBattleStages.None || CoreBattleCardAliases.IsAlias(card.Id)) &&
+                        levels.TryGetValue(card.Id, out int level) && level > 0)
                     {
+                        // Keep historic purchased ranks; effective definitions clamp to
+                        // today's per-card limit without destroying saved investment.
                         int clamped = Math.Min(CoreBattleUpgradeBalance.MaximumLevel, level);
-                        if (IsSpecialBattleCard(card.Id)) RestoreSpecialCardMinimumExperience(card.Id, SpecialCardExperienceForLevel(clamped));
-                        else copy[card.Id] = clamped;
+                        string id = CoreBattleCardAliases.CanonicalId(card.Id);
+                        if (IsSpecialBattleCard(id)) RestoreSpecialCardMinimumExperience(id, SpecialCardExperienceForLevel(clamped));
+                        else
+                        {
+                            copy.TryGetValue(id, out int previous);
+                            copy[id] = Math.Max(previous, clamped);
+                        }
                     }
             cardUpgradeLevels.Clear();
             foreach (KeyValuePair<string, int> pair in copy) cardUpgradeLevels[pair.Key] = pair.Value;
@@ -124,7 +133,7 @@ namespace ShatteredSail.Core.Gameplay
             if (unlockReason.Length > 0) return unlockReason;
             if (IsSpecialBattleCard(card.Id)) return "特殊卡牌仅随来源船员或部件出海航行获得经验，不能使用金币强化";
             if (!HasBattleCardUpgradeBenefit(index)) return "固定功能牌无可强化数值，不支持金币强化";
-            if (card.UpgradeLevel >= CoreBattleUpgradeBalance.MaximumLevel) return "已完成三次强化";
+            if (card.UpgradeLevel >= GetCardMaximumUpgradeLevel(index)) return "已达该牌强化上限 +" + GetCardMaximumUpgradeLevel(index);
             if (!HasBattleCrew(card.RequiredCrew)) return "先携带提供该卡牌的特殊船员";
             if (!HasBattleComponent(card.RequiredComponent)) return "先装备提供该卡牌的部件";
             if (ProfileGold < GetCardUpgradeCost(index)) return "船长金币不足";
@@ -182,7 +191,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             // Only the boarding preview uses this stage-specific wording.
             StringBuilder text = new StringBuilder();
-            if (card.Action == NavalBattleCardAction.Cannon) text.Append("350 米内：");
+            if (card.Action == NavalBattleCardAction.Cannon) text.Append("4 格内：");
             if (card.Action == NavalBattleCardAction.Sabotage) text.Append("150 米内：");
             if (card.Damage > 0) text.Append(card.AllowedStages == NavalBattleStages.Boarding ? "船员伤害 " : "船体伤害 ").Append(card.Damage).Append("；");
             if (card.Block > 0) text.Append("格挡 +").Append(card.Block).Append("；");
@@ -191,7 +200,7 @@ namespace ShatteredSail.Core.Gameplay
                 text.Append(card.Action == NavalBattleCardAction.Retreat ? "远离 " : "靠近 ").Append(card.MovementMeters).Append(" 米，");
             switch (card.Action)
             {
-                case NavalBattleCardAction.Energize: text.Append("恢复 1 行动点；"); break;
+                case NavalBattleCardAction.Energize: text.Append("恢复 ").Append(CoreBattleUpgradeBalance.EnergyRecovery(card)).Append(" 行动点；"); break;
                 case NavalBattleCardAction.Polish: text.Append("本场防御牌额外格挡 +").Append(card.StrategyAmount).Append("，最高 +").Append(card.StrategyLimit).Append("；"); break;
                 case NavalBattleCardAction.Load:
                 case NavalBattleCardAction.PrecisionLoad: text.Append("下次炮击 +").Append(card.StrategyAmount).Append("，装填最高 +").Append(card.StrategyLimit).Append("；"); break;

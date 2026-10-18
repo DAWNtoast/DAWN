@@ -7,15 +7,16 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class RamBoardingTransitionTests
     {
-        [TestCase(NavalBattleAlignment.HeadOn, NavalBoardingConnection.RamBowToBow, NavalBoardingApproach.Alongside)]
-        [TestCase(NavalBattleAlignment.EnemyBroadside, NavalBoardingConnection.RamBowToBroadside, NavalBoardingApproach.Quarter)]
+        [TestCase(90f, NavalBoardingConnection.RamBowToBroadside, NavalBoardingApproach.Quarter)]
+        [TestCase(270f, NavalBoardingConnection.RamBowToBroadside, NavalBoardingApproach.Quarter)]
         public void NonLethalRam_ConnectsShipsAndStartsMelee(
-            NavalBattleAlignment alignment, NavalBoardingConnection connection, NavalBoardingApproach approach)
+            float enemyHeading, NavalBoardingConnection connection, NavalBoardingApproach approach)
         {
             CoreVoyageSession session = StartNavalBattle();
-            session.Battle.DistanceMeters = 80f;
-            session.Battle.Alignment = alignment;
-            session.Battle.PlayerMovingTowardEnemy = true;
+            session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, enemyHeading);
+            session.Battle.Alignment = NavalBattleAlignment.HeadOn; // Stale metadata cannot determine impact.
+            session.Battle.PlayerMovingTowardEnemy = false;
             int playerHull = session.Hull;
             int enemyHull = session.Battle.EnemyHull;
 

@@ -430,13 +430,11 @@ namespace ShatteredSail.Editor
         private static void RecordParchmentGeometry(Canvas canvas, MenuFrame frame)
         {
             Image[] surfaces = canvas.GetComponentsInChildren<Image>(false).Where(i => i.enabled && i.color.a >= .65f &&
-                i.fillCenter && (i.sprite == NauticalSurfaceSkin.ReadingPaper || i.sprite == NauticalSurfaceSkin.InvestmentPaper ||
-                i.sprite == NauticalSurfaceSkin.CollectionPaper)).ToArray();
+                i.fillCenter && i.sprite == MarketShopSkin.Paper).ToArray();
             foreach (Image paper in surfaces)
             {
                 RectTransform rect = paper.rectTransform;
-                Vector4 source = paper.sprite == NauticalSurfaceSkin.ReadingPaper ? new Vector4(60,67,60,62) :
-                    paper.sprite == NauticalSurfaceSkin.InvestmentPaper ? new Vector4(43,51,43,46) : new Vector4(45,64,45,49);
+                Vector4 source = Vector4.one * MarketShopSkin.PaperReadingBorder;
                 Vector4 border = paper.sprite.border;
                 float ppu = paper.pixelsPerUnit * paper.pixelsPerUnitMultiplier;
                 float Map(float distance, float edge, float opposite, float textureSize, float actualSize) =>

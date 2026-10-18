@@ -42,6 +42,8 @@ namespace ShatteredSail.Presentation.Tests
                 var hero = host.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Hero "));
                 var selected = stock[page * 5].Entry;
                 Assert.That(hero.texture, Is.SameAs(selected.ShipLayer));
+                Assert.That(hero.raycastTarget, Is.True);
+                Assert.That(hero.GetComponent<Button>().targetGraphic, Is.SameAs(hero));
                 float aspect = hero.texture.width * hero.uvRect.width / (hero.texture.height * hero.uvRect.height);
                 Assert.That(hero.rectTransform.sizeDelta.x / hero.rectTransform.sizeDelta.y, Is.EqualTo(aspect).Within(.001f));
                 Assert.That(Mathf.Max(hero.rectTransform.sizeDelta.x, hero.rectTransform.sizeDelta.y), Is.GreaterThan(slot == ComponentSlot.Instrument ? 300f : 530f));
@@ -65,11 +67,18 @@ namespace ShatteredSail.Presentation.Tests
             var stock = bows.Concat(sails).ToList();
             BuildStock(stock, ComponentSlot.Bow, 0);
             decimal gold = controller.Session.ProfileGold;
+            Offers().First().onClick.Invoke();
+            AssertNoDossier();
             Find<Button>("Component Shop Next Display").onClick.Invoke();
             CollectionAssert.AreEqual(bows.Skip(5).Select(item => "Component Shop Offer " + item.Id), Offers().Select(item => item.name));
             Assert.That(host.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Hero ")).texture,
                 Is.SameAs(bows[5].Entry.ShipLayer));
             Assert.That(Read<int>("componentShopDisplayPage"), Is.EqualTo(1));
+            Offers().First().onClick.Invoke();
+            AssertNoDossier();
+            Find<Button>("Component Shop Previous Display").onClick.Invoke();
+            Offers().First().onClick.Invoke();
+            AssertNoDossier();
             Find<Button>("Component Shop Category Sail").onClick.Invoke();
             Assert.That(Read<int>("componentShopDisplayPage"), Is.Zero);
             CollectionAssert.AreEqual(sails.Select(item => "Component Shop Offer " + item.Id), Offers().Select(item => item.name));
@@ -82,6 +91,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Find<Button>("Component Shop Next Display").interactable, Is.False);
             Find<Button>("Component Shop Category Bow").onClick.Invoke();
             Assert.That(Offers().Length, Is.EqualTo(5));
+            Offers().First().onClick.Invoke();
+            AssertNoDossier();
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             foreach (var item in stock) Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(item.Id), 0), Is.Zero);
         }
@@ -93,6 +104,8 @@ namespace ShatteredSail.Presentation.Tests
             Offers().Last().onClick.Invoke();
             string selected = Read<string>("componentShopShowroomOfferId");
             int page = Read<int>("componentShopDisplayPage"), category = Read<int>("componentShopCategory");
+            AssertNoDossier();
+            Offers().Last().onClick.Invoke();
             Assert.That(Find<RectTransform>("Component Shop Detail"), Is.Not.Null);
             Assert.That(Read<string>("selectedComponentShopOfferId"), Is.EqualTo(selected));
             Assert.That(Read<int>("componentDossierPage"), Is.Zero);
@@ -102,12 +115,14 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Read<int>("componentShopDisplayPage"), Is.EqualTo(page));
             Assert.That(Read<int>("componentShopCategory"), Is.EqualTo(category));
             Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回港口"));
+            Find<Button>("Component Shop Offer " + selected).onClick.Invoke();
+            AssertNoDossier();
         }
         [TestCase(EventTriggerType.PointerEnter, 0)]
         [TestCase(EventTriggerType.Select, 0)]
         [TestCase(EventTriggerType.PointerEnter, 1)]
         [TestCase(EventTriggerType.Select, 1)]
-        public void CatalogueHoverAndFocusUpdateOnlyHeroWithoutOpeningDossierOrSpendingGold(EventTriggerType triggerType, int page)
+        public void CatalogueHoverAndFocusLeaveHeroUnchanged_FirstClickPreviewsWithoutOpeningDossier(EventTriggerType triggerType, int page)
         {
             CreatePreview();
             var stock = CreateStock(10, ComponentSlot.Bow);
@@ -116,18 +131,81 @@ namespace ShatteredSail.Presentation.Tests
             PortComponentShopStockItem selected = stock[page * 5 + 3];
             decimal gold = controller.Session.ProfileGold;
             string dossier = Read<string>("selectedComponentShopOfferId");
-            EventTrigger trigger = offers[3].GetComponent<EventTrigger>();
-            Assert.That(trigger, Is.Not.Null);
-            trigger.triggers.Single(item => item.eventID == triggerType).callback.Invoke(null);
+            string initialSelection = Read<string>("componentShopShowroomOfferId");
+            RawImage initialHero = Hero();
+            if (triggerType == EventTriggerType.PointerEnter)
+                ExecuteEvents.Execute(offers[3].gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
+            else
+                ExecuteEvents.Execute(offers[3].gameObject, new BaseEventData(EventSystem.current), ExecuteEvents.selectHandler);
+            Assert.That(Read<string>("componentShopShowroomOfferId"), Is.EqualTo(initialSelection));
+            Assert.That(Hero(), Is.SameAs(initialHero), "Hover and keyboard focus must not change the displayed component.");
+            AssertNoDossier();
+            offers[3].onClick.Invoke();
             CollectionAssert.AreEqual(offers, Offers(), "Preview must preserve the same live catalogue controls.");
             Assert.That(Read<string>("componentShopShowroomOfferId"), Is.EqualTo(selected.Id));
             Assert.That(Read<int>("componentShopDisplayPage"), Is.EqualTo(page));
             Assert.That(Read<string>("selectedComponentShopOfferId"), Is.EqualTo(dossier));
             Assert.That(host.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Hero ")).texture,
                 Is.SameAs(selected.Entry.ShipLayer));
-            Assert.That(host.GetComponentsInChildren<Transform>().Any(item => item.name == "Component Shop Detail"), Is.False);
+            AssertNoDossier();
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             foreach (var item in stock) Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(item.Id), 0), Is.Zero);
+        }
+        [Test]
+        public void InitiallyDisplayedOfferRequiresFirstClickBeforeSecondClickOpensDossier()
+        {
+            CreatePreview();
+            Button offer = Offers().First();
+            string selected = Read<string>("componentShopShowroomOfferId");
+            RawImage initialHero = Hero();
+            decimal gold = controller.Session.ProfileGold;
+            offer.onClick.Invoke();
+            Assert.That(Hero(), Is.SameAs(initialHero));
+            AssertNoDossier();
+            offer.onClick.Invoke();
+            Assert.That(Find<RectTransform>("Component Shop Detail"), Is.Not.Null);
+            Assert.That(Read<string>("selectedComponentShopOfferId"), Is.EqualTo(selected));
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+        }
+        [Test]
+        public void ChangingCatalogueSelectionRequiresAnotherClickBeforeOpeningDossier()
+        {
+            CreatePreview();
+            var stock = CreateStock(3, ComponentSlot.Bow);
+            BuildStock(stock, ComponentSlot.Bow, 0);
+            Button[] offers = Offers();
+            decimal gold = controller.Session.ProfileGold;
+            foreach (int index in new[] { 0, 1, 0, 2 })
+            {
+                offers[index].onClick.Invoke();
+                Assert.That(Read<string>("componentShopShowroomOfferId"), Is.EqualTo(stock[index].Id));
+                Assert.That(Hero().texture, Is.SameAs(stock[index].Entry.ShipLayer));
+                AssertNoDossier();
+                CollectionAssert.AreEqual(offers, Offers());
+            }
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+            foreach (var item in stock) Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ComponentShopPurchaseKey(item.Id), 0), Is.Zero);
+        }
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ClickingHeroOpensTheDisplayedOfferImmediately(bool selectAnotherOffer)
+        {
+            CreatePreview();
+            if (selectAnotherOffer) Offers().Last().onClick.Invoke();
+            string selected = Read<string>("componentShopShowroomOfferId");
+            RawImage hero = Hero();
+            Texture modelTexture = hero.texture;
+            decimal gold = controller.Session.ProfileGold;
+            AssertNoDossier();
+            Assert.That(hero.raycastTarget, Is.True);
+            Button button = hero.GetComponent<Button>();
+            Assert.That(button, Is.Not.Null);
+            Assert.That(button.targetGraphic, Is.SameAs(hero));
+            button.onClick.Invoke();
+            Assert.That(Find<RectTransform>("Component Shop Detail"), Is.Not.Null);
+            Assert.That(Read<string>("selectedComponentShopOfferId"), Is.EqualTo(selected));
+            Assert.That(Find<RawImage>("Component Detail Model").texture, Is.SameAs(modelTexture));
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
         }
         [Test]
         public void SoldOfferIsInspectableWithBothPurchaseButtonsDisabled()
@@ -149,7 +227,7 @@ namespace ShatteredSail.Presentation.Tests
             finally { PlayerPrefs.DeleteKey(key); }
         }
         [Test]
-        public void CompactHeader_RestoresOriginalGeometryWhenRetainedHeaderLeavesShop()
+        public void CompactHeader_UsesTheSameGeometryAcrossShopAndOtherFacilities()
         {
             CreatePreview();
             controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Tavern, CoreGameplayPreviewPort.GrayGull, 0);
@@ -159,8 +237,8 @@ namespace ShatteredSail.Presentation.Tests
             Vector2 titlePosition = title.anchoredPosition, titleSize = title.sizeDelta, nextPosition = next.anchoredPosition;
             MethodInfo apply = typeof(CoreGameplayDemoController).GetMethod("ApplyComponentShopHeaderLayout", BindingFlags.Instance | BindingFlags.NonPublic);
             apply.Invoke(controller, new object[] { header, true });
-            Assert.That(title.anchoredPosition, Is.Not.EqualTo(titlePosition));
-            Assert.That(next.anchoredPosition.x, Is.LessThan(title.anchoredPosition.x));
+            Assert.That(title.anchoredPosition, Is.EqualTo(titlePosition));
+            Assert.That(next.anchoredPosition.x, Is.GreaterThan(title.anchoredPosition.x));
             apply.Invoke(controller, new object[] { header, false });
             Assert.That(title.anchoredPosition, Is.EqualTo(titlePosition));
             Assert.That(title.sizeDelta, Is.EqualTo(titleSize));
@@ -178,7 +256,7 @@ namespace ShatteredSail.Presentation.Tests
             string prefix = "showroom-test|" + Guid.NewGuid().ToString("N");
             var entries = catalog.ExpandedEntries.Where(item => item.Slot == slot).Take(count).ToArray();
             return entries.Select((entry, index) => new PortComponentShopStockItem(prefix + index, controller.Session.CurrentPort,
-                PortComponentShopCatalog.MonthKey(controller.Session.GameDateTime), entry, 1f, 200)).ToList();
+                PortComponentShopCatalog.MonthKey(controller.Session.GameDateTime), entry, 200)).ToList();
         }
         private void BuildStock(IReadOnlyList<PortComponentShopStockItem> stock, ComponentSlot slot, int page)
         {
@@ -190,6 +268,12 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
         }
         private Button[] Offers() => host.GetComponentsInChildren<Button>().Where(item => item.name.StartsWith("Component Shop Offer ")).ToArray();
+        private RawImage Hero() => host.GetComponentsInChildren<RawImage>().Single(item => item.name.StartsWith("Component Shop Hero "));
+        private void AssertNoDossier()
+        {
+            Assert.That(host.GetComponentsInChildren<Transform>().Any(item => item.name == "Component Shop Detail"), Is.False);
+            Assert.That(Read<string>("selectedComponentShopOfferId"), Is.Null.Or.Empty);
+        }
         private T Find<T>(string name) where T : Component
         {
             T result = host.GetComponentsInChildren<T>(true).FirstOrDefault(item => item.name == name);

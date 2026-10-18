@@ -6,7 +6,6 @@ using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -99,6 +98,9 @@ namespace ShatteredSail.Presentation.Tests
             AssertOffers(stock.Take(5), false);
             Button[] firstOffers = Offers(false);
             GameObject[] firstGroup = DirectChildren();
+            firstOffers[0].onClick.Invoke();
+            AssertNoDossier();
+            Button firstHero = RequireActiveButton("Component Shop Hero " + stock[0].Entry.Id);
             Assert.That(RequireActiveButton("Component Shop Previous Display").interactable, Is.False);
             Button next = RequireActiveButton("Component Shop Next Display");
             Assert.That(next.interactable, Is.True);
@@ -109,21 +111,28 @@ namespace ShatteredSail.Presentation.Tests
                 "Old showroom roots must be inactive immediately, before Destroy completes at frame end.");
             Assert.That(firstOffers.All(item => !item.gameObject.activeInHierarchy && !item.IsActive()), Is.True,
                 "A pending-destruction offer must stop rendering and accepting UI input in the same frame.");
+            firstOffers[0].onClick.Invoke();
+            firstOffers[0].onClick.Invoke();
+            firstHero.onClick.Invoke();
+            Assert.That(ReadField<string>("componentShopShowroomOfferId"), Is.EqualTo(stock[5].Id),
+                "Callbacks retained from an inactive page must not select or open its old offer.");
+            AssertNoDossier();
             AssertOffers(stock.Skip(5), false);
-            // All old roots still exist until frame end. Select must update the
+            // All old roots still exist until frame end. A first click must update the
             // new active showcase, not the earlier same-named inactive root.
             Button selectedOffer = Offers(false).Last();
-            selectedOffer.GetComponent<EventTrigger>().triggers.Single(item => item.eventID == EventTriggerType.Select)
-                .callback.Invoke(null);
+            selectedOffer.onClick.Invoke();
+            AssertNoDossier();
             RawImage[] selectedHeroes = panel.GetComponentsInChildren<RawImage>(false)
                 .Where(item => item.name.StartsWith("Component Shop Hero ")).ToArray();
-            Assert.That(selectedHeroes.Length, Is.EqualTo(1), "Same-frame focus must leave exactly one active hero.");
+            Assert.That(selectedHeroes.Length, Is.EqualTo(1), "Same-frame preview must leave exactly one active hero.");
             Assert.That(selectedHeroes[0].texture, Is.SameAs(stock.Last().Entry.ShipLayer));
             Assert.That(ReadField<string>("componentShopShowroomOfferId"), Is.EqualTo(stock.Last().Id));
             // Restore the first item so the page-round-trip assertions below
             // continue to verify the normal first-offer page selection.
-            Offers(false).First().GetComponent<EventTrigger>().triggers.Single(item => item.eventID == EventTriggerType.Select)
-                .callback.Invoke(null);
+            Button firstVisibleOffer = Offers(false).First();
+            if (firstVisibleOffer != selectedOffer) firstVisibleOffer.onClick.Invoke();
+            AssertNoDossier();
             AssertOffers(stock.Skip(5), false);
             AssertUnchanged(stock, originalStock, gold);
 
@@ -141,6 +150,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(secondGroup.All(item => item != null && !item.activeSelf), Is.True,
                 "Returning to the first page must immediately disable the outgoing group too.");
             AssertOffers(stock.Take(5), false);
+            Offers(false).First().onClick.Invoke();
+            AssertNoDossier();
             AssertUnchanged(stock, originalStock, gold);
 
             yield return null;
@@ -160,7 +171,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 ComponentArtEntry entry = entries[index];
                 return new PortComponentShopStockItem(fixtureId + "|" + index, session.CurrentPort,
-                    PortComponentShopCatalog.MonthKey(FixtureDate), entry, 1f, 200 + index * 10);
+                    PortComponentShopCatalog.MonthKey(FixtureDate), entry, 200 + index * 10);
             }).ToList().AsReadOnly();
         }
 
@@ -173,6 +184,14 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(host.activeSelf, Is.False, "No page operation may activate the gameplay controller.");
             profileGoldBefore.AssertUnchanged();
             foreach (PreferenceSnapshot preference in purchasePreferences) preference.AssertUnchanged();
+        }
+
+        private void AssertNoDossier()
+        {
+            Assert.That(ReadField<string>("selectedComponentShopOfferId"), Is.Null.Or.Empty,
+                "Previewing an offer must leave the showroom open.");
+            Assert.That(ReadField<string>("componentDossierOfferId"), Is.Null.Or.Empty);
+            Assert.That(GameObject.Find("Component Shop Detail"), Is.Null);
         }
 
         private void AssertOffers(IEnumerable<PortComponentShopStockItem> expected, bool includeInactive)

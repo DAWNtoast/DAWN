@@ -44,11 +44,10 @@ namespace ShatteredSail.Presentation
                 rail.sprite = BattleDefenseHud.FillSprite;
                 rail.type = Image.Type.Filled; rail.fillMethod = Image.FillMethod.Horizontal; rail.raycastTarget = false;
             }
-            // Leave 15 units between the right-aligned value and the outer armor frame.
-            Text hp = CreateText(side + " Hull Numeric", track, new Vector2(120f, 24f),
-                new Vector2(-size.x * .5f - 86f, 0f), 14, FontStyle.Bold, TextAnchor.MiddleRight, Color.white);
+            Text hp = CreateText(side + " Hull Numeric", track, new Vector2(size.x - 12f, 30f),
+                Vector2.zero, 23, FontStyle.Bold, TextAnchor.MiddleCenter, Color.white);
             hp.raycastTarget = false;
-            hp.color = Color.white; // This label sits outside the track, directly over the scenery.
+            hp.color = Color.white;
             AddSceneLabelOutline(hp);
             Text defense = CreateText(side + " Armor Numeric", track,
                 boarding ? new Vector2(140f, 24f) : new Vector2(310f, 24f),
@@ -161,6 +160,12 @@ namespace ShatteredSail.Presentation
             float direction = DirectionToward(source, target);
             Vector2 from = BattleEffectPosition(stage, source) + new Vector2(direction * source.rect.width * Mathf.Abs(source.localScale.x) * 0.23f, -source.rect.height * source.localScale.y * 0.24f);
             Vector2 to = BattleEffectPosition(stage, target) + Vector2.down * (target.rect.height * target.localScale.y * 0.23f);
+            if (stage.GetComponentInChildren<NavalTacticalBoardView>() != null)
+            {
+                to = BattleEffectPosition(stage, target);
+                Vector2 center = BattleEffectPosition(stage, source);
+                from = center + (to - center).normalized * 24f;
+            }
 
             // A loaded fire round is shown as a short staggered salvo. The core
             // still resolves one card and one ammo cost; this is visual only,
@@ -188,18 +193,23 @@ namespace ShatteredSail.Presentation
                 float recoil = t < 0.2f ? t / 0.2f : 1f - EaseOutCubic((t - 0.2f) / 0.8f);
                 source.anchoredPosition = origin - Vector2.right * direction * 12f * recoil;
                 source.localRotation = heading * Quaternion.Euler(0f, 0f, -direction * 2.5f * recoil);
-                FollowBattleShipWaterHorizontal(source);
+                FollowBattleShipWaterHorizontal(source, keepKeelOnWater: true);
                 yield return null;
             }
             source.anchoredPosition = origin;
             source.localRotation = heading;
-            FollowBattleShipWaterHorizontal(source);
+            FollowBattleShipWaterHorizontal(source, keepKeelOnWater: true);
             if (idle != null) idle.enabled = wasIdle;
             for (int index = 0; index < shots.Length; index++)
                 if (shots[index] != null) yield return shots[index];
         }
         private IEnumerator AnimateBoardingApproach(RectTransform stage, RectTransform player, RectTransform enemy, NavalBoardingApproach approach)
         {
+            if (stage.GetComponentInChildren<NavalTacticalBoardView>() != null)
+            {
+                yield return AnimateTacticalBoardingConnection(stage, player, enemy);
+                yield break;
+            }
             PlaySfx("battle_melee", 0.84f);
             // The normal ship-bob component writes anchoredPosition every frame.
             // Suspend it while the connection owns both hull transforms; the
@@ -230,7 +240,8 @@ namespace ShatteredSail.Presentation
                 foreach (string side in new[] { "Player", "Enemy" })
                 {
                     RawImage hull = (side == "Player" ? player : enemy).GetComponentInChildren<RawImage>();
-                    Vector2 contact = stage.InverseTransformPoint(hull.rectTransform.TransformPoint(ShipWaterlineLayout.HullContactLocal(hull)));
+                    if (hull == null) continue; // Top-down tactical ships have no legacy side-view waterline.
+                    Vector2 contact = stage.InverseTransformPoint(hull.rectTransform.TransformPoint(SpecialWarshipArtCatalog.HullContactLocal(hull)));
                     foreach (string effect in new[] { " Shadow", " Contact" })
                     {
                         RectTransform water = stage.Find(side + " Ship Water" + effect) as RectTransform;

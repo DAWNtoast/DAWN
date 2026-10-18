@@ -21,8 +21,8 @@ namespace ShatteredSail.Presentation.Tests
 
         [TestCase(NavalBattleStage.Preparation, 600f, NavalBattleAlignment.HeadOn)]
         [TestCase(NavalBattleStage.Naval, 600f, NavalBattleAlignment.HeadOn)]
-        [TestCase(NavalBattleStage.Naval, 80f, NavalBattleAlignment.HeadOn)]
-        [TestCase(NavalBattleStage.Naval, 50f, NavalBattleAlignment.Parallel)]
+        [TestCase(NavalBattleStage.Naval, 100f, NavalBattleAlignment.EnemyBroadside)]
+        [TestCase(NavalBattleStage.Naval, 100f, NavalBattleAlignment.Parallel)]
         [TestCase(NavalBattleStage.Boarding, 0f, NavalBattleAlignment.HeadOn)]
         public void DecisionPanels_KeepReadableControlsSeparateFromTheHandAndCombatants(NavalBattleStage stage, float distance, NavalBattleAlignment alignment)
         {
@@ -30,7 +30,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreBattleState battle = controller.Session.Battle;
             AssertLayout(stage);
             Assert.That(Find<Text>("Enemy Intent Text").text, Is.EqualTo("敌方意图\n" + controller.Session.GetEnemyIntent()));
-            if (stage == NavalBattleStage.Naval && distance < 120f && alignment == NavalBattleAlignment.HeadOn)
+            if (stage == NavalBattleStage.Naval && distance == 100f && alignment == NavalBattleAlignment.EnemyBroadside)
             {
                 Assert.That(controller.Session.EnemyWillRam, Is.True, "The near fixture must include the complete ram warning.");
                 Assert.That(Find<Text>("Enemy Intent Text").text, Does.Contain("灼烧").And.Contain("先手"));
@@ -39,7 +39,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Assert.That(controller.Session.CanBoard(out _), Is.True);
                 Assert.That(Find<Text>("Battle Board Condition").text,
-                    Is.EqualTo("普通水手数决定接舷生命上限；海战船体损伤按一半带入"));
+                    Does.Contain("上下左右相邻").And.Contain("船头同向").And.Contain("逆向不可").And.Contain("不耗能量"));
             }
             foreach (string side in new[] { "Player", "Enemy" })
             {
@@ -48,12 +48,12 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(fill.transform.parent, Is.SameAs(track));
                 Assert.That(fill.type, Is.EqualTo(Image.Type.Filled));
                 BattleHealthSegmentsGraphic[] grids = fill.GetComponentsInChildren<BattleHealthSegmentsGraphic>(true);
-                Assert.That(grids, Has.Length.EqualTo(1));
+                Assert.That(grids, Is.Empty, "The current health bar is continuous, without retired ten-health dividers.");
                 int expectedMaximum = side == "Player"
                     ? (stage == NavalBattleStage.Boarding ? battle.PlayerMaxBoardingHealth : controller.Session.MaxHull)
                     : (stage == NavalBattleStage.Boarding ? battle.EnemyMaxBoardingHealth : battle.EnemyMaxHull);
-                Assert.That(grids[0].MaximumHealth, Is.EqualTo(expectedMaximum));
-                Assert.That(grids[0].raycastTarget, Is.False);
+                Assert.That(track.GetComponent<BattleDefenseHud>().MaximumHull, Is.EqualTo(expectedMaximum));
+                Assert.That(fill.raycastTarget, Is.False);
                 foreach (string part in new[] { "Armor Bar", "Armor Bar Lower", "Armor Frame 0", "Armor Frame 1", "Armor Frame 2", "Armor Frame 3" })
                 {
                     Image shell = Find<Image>(side + " " + part);
@@ -69,6 +69,22 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
+        public void EnemyIntent_LeavesTheCompleteShipPortraitClearAtEveryHeading()
+        {
+            CreatePreview(NavalBattleStage.Naval, 600f);
+            RectTransform root = Find<RectTransform>("Battle Card");
+            RectTransform ship = Find<RectTransform>("Enemy Ship Art");
+            RectTransform intent = Find<RectTransform>("Enemy Intent Icons");
+            Rect intentBounds = In(root, intent);
+            for (int angle = 0; angle < 360; angle += 15)
+            {
+                ship.localRotation = Quaternion.Euler(0f, 0f, angle);
+                AssertSeparate(intentBounds, In(root, ship),
+                    "The complete intention row must leave the rotating portrait clear at " + angle + " degrees.");
+            }
+        }
+
+        [Test]
         public void RetainedRefresh_ReusesDecisionObjectsAndRestoresLayoutWithCurrentResourceValues()
         {
             const NavalBattleStage stage = NavalBattleStage.Naval;
@@ -77,7 +93,8 @@ namespace ShatteredSail.Presentation.Tests
             string[] retainedNames = { "Battle Card", "Battle Hand", "Player Resource HUD", "Enemy Resource HUD",
                 "Battle Buff Panel", "Retreat Battle", "End Battle Turn", "Enemy Intent HUD",
                 "Battle Ram", "Battle Board", "Battle Ram Condition", "Battle Board Condition",
-                "Player Battle Hull Bar Track", "Enemy Battle Hull Bar Track" };
+                "Player Battle Hull Bar Track", "Enemy Battle Hull Bar Track", "Battle Compact Resources",
+                "Battle Draw Pile", "Battle Discard Pile", "Enemy Intent Icons" };
             RectTransform[] retained = retainedNames.Select(Find<RectTransform>).ToArray();
             BattleHealthSegmentsGraphic[] grids = host.GetComponentsInChildren<BattleHealthSegmentsGraphic>(true);
             int childCount = host.GetComponentsInChildren<Transform>(true).Length;
@@ -88,7 +105,7 @@ namespace ShatteredSail.Presentation.Tests
             battle.PlayerBlock = 5;
             battle.EnemyBlock = 7;
             controller.Session.Cargo.Powder = 23;
-            battle.DistanceMeters = 80f;
+            SetDecisionTacticalPose(battle, 100f, NavalBattleAlignment.EnemyBroadside);
             battle.EnemyBurnTurns = 2;
             MethodInfo refresh = typeof(CoreGameplayDemoController).GetMethod("TryRefreshRetainedBattleView", PrivateInstance);
             Assert.That(refresh, Is.Not.Null);
@@ -101,6 +118,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(host.GetComponentsInChildren<BattleHealthSegmentsGraphic>(true), Is.EqualTo(grids));
             Assert.That(Find<Text>("Resource 能 Value").text, Is.EqualTo("1/" + battle.MaxEnergy));
             Assert.That(Find<Text>("Resource 药 Value").text, Is.EqualTo("23"));
+            Assert.That(Find<RectTransform>("Resource Energy").Find("Amount").GetComponent<Text>().text,
+                Is.EqualTo("1/" + battle.MaxEnergy), "The visible compact energy badge also refreshes.");
+            Assert.That(Find<RectTransform>("Resource Powder").Find("Amount").GetComponent<Text>().text,
+                Is.EqualTo("23"), "The visible compact supply badge also refreshes.");
             CardOrnamentGraphic powder = Find<CardOrnamentGraphic>("Resource 药 Icon");
             Assert.That(powder.Kind, Is.EqualTo(CardOrnamentKind.Gunpowder));
             Assert.That(powder.rectTransform.rect.width, Is.EqualTo(powder.rectTransform.rect.height));
@@ -122,8 +143,12 @@ namespace ShatteredSail.Presentation.Tests
             // Change only this disposable preview's in-memory combat fixture.
             // No gameplay action or persistence callback participates in layout setup.
             battle.Stage = stage;
-            battle.DistanceMeters = distance;
-            battle.Alignment = alignment;
+            if (stage == NavalBattleStage.Boarding)
+            {
+                battle.PlayerBoardingHealth = battle.PlayerMaxBoardingHealth = 200;
+                battle.EnemyBoardingHealth = battle.EnemyMaxBoardingHealth = 200;
+            }
+            SetDecisionTacticalPose(battle, distance, alignment);
             battle.Profile = new CoreBattleProfile(CoreBossKind.None, CoreBattleArchetype.Raider,
                 battle.EnemyMaxHull, 8, 11, 0, 0, battle.EnemyOrdinaryCrew, 1f, 1f, 1d, 120f);
             battle.PlayerBlock = 12;
@@ -137,123 +162,168 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Battle, Is.SameAs(battle));
         }
 
+        private static void SetDecisionTacticalPose(CoreBattleState battle, float distance, NavalBattleAlignment alignment)
+        {
+            MethodInfo pose = typeof(CoreBattleState).GetMethod("SetTacticalPose", PrivateInstance);
+            Assert.That(pose, Is.Not.Null);
+            // Near enemy intent uses a bow-to-side ram; parallel neighbors use
+            // the same heading so the boarding control is actually available.
+            pose.Invoke(battle, new object[] { true, new VoyagePoint(-distance, 0f),
+                alignment == NavalBattleAlignment.EnemyBroadside ? 90f : 0f });
+            pose.Invoke(battle, new object[] { false, new VoyagePoint(0f, 0f),
+                alignment == NavalBattleAlignment.Parallel ? 0f : 180f });
+            typeof(CoreBattleState).GetProperty("NavalActionPoints").SetValue(battle, 1);
+            battle.Alignment = alignment;
+        }
+
         private void AssertLayout(NavalBattleStage stage)
         {
+            bool boarding = stage == NavalBattleStage.Boarding;
             RectTransform root = Find<RectTransform>("Battle Card");
             RectTransform surface = Find<RectTransform>("Battle Overlay");
-            Rect hand = In(root, Find<RectTransform>("Battle Hand"));
-            Rect card = In(root, Find<RectTransform>("Battle Card 0"));
-            Rect player = In(root, Find<RectTransform>("Player Resource HUD"));
-            Rect buffs = In(root, Find<RectTransform>("Battle Buff Panel"));
-            Rect retreat = In(root, Find<RectTransform>("Retreat Battle"));
-            Assert.That(hand.width, Is.GreaterThan(1000f), "No collapsed preview geometry.");
-            Assert.That(Find<RectTransform>("Battle Hand").sizeDelta, Is.EqualTo(CardFaceLayout.HandSize));
-            Assert.That(Find<RectTransform>("Battle Hand").anchoredPosition, Is.EqualTo(CardFaceLayout.HandPosition));
-            foreach (string name in new[] { "Battle Hand", "Player Resource HUD", "Enemy Resource HUD", "Battle Buff Panel",
-                "Retreat Battle", "End Battle Turn", "Enemy Intent HUD", "Player Ship Art", "Enemy Ship Art",
-                "Player Battle Hull Bar Track", "Enemy Battle Hull Bar Track" })
-                Assert.That(Find<RectTransform>(name).parent, Is.SameAs(root), name + " keeps its runtime lookup path");
-            foreach (Rect panel in new[] { player, buffs, retreat }) AssertSeparate(panel, hand, "Left decision column and hand");
-            Assert.That(player.yMin - buffs.yMax, Is.EqualTo(8f).Within(.01f));
-            Assert.That(buffs.yMin - retreat.yMax, Is.EqualTo(8f).Within(.01f));
-            Assert.That(Vector2.Distance(player.size, new Vector2(230f, 120f)), Is.LessThanOrEqualTo(.01f));
-            Assert.That(Vector2.Distance(buffs.size, player.size), Is.LessThanOrEqualTo(.01f));
-            Assert.That(Vector2.Distance(player.center, new Vector2(-735f, -196f)), Is.LessThanOrEqualTo(.01f));
-            Assert.That(Vector2.Distance(buffs.center, new Vector2(-735f, -324f)), Is.LessThanOrEqualTo(.01f));
-            Assert.That(Vector2.Distance(retreat.size, new Vector2(230f, 44f)), Is.LessThanOrEqualTo(.01f));
-            Assert.That(Vector2.Distance(retreat.center, new Vector2(-735f, -414f)), Is.LessThanOrEqualTo(.01f));
-            foreach (CardSchoolFrameGraphic frame in Find<RectTransform>("Battle Hand").GetComponentsInChildren<CardSchoolFrameGraphic>())
+            RectTransform handRoot = Find<RectTransform>("Battle Hand");
+            Rect hand = In(root, handRoot);
+            Assert.That(handRoot.sizeDelta, Is.EqualTo(new Vector2(1120f, 200f)));
+            Assert.That(handRoot.anchoredPosition, Is.EqualTo(new Vector2(0f, -350f)));
+            Assert.That(handRoot.parent, Is.SameAs(root));
+
+            // These retained bindings still receive current data, but their old
+            // panel geometry must not constrain the visible compact controls.
+            foreach (string name in new[] { "Player Resource HUD", "Enemy Resource HUD",
+                "Battle Buff Panel", "Enemy Intent HUD" })
             {
-                Rect fullFrame = In(root, frame.rectTransform);
-                AssertContains(hand, fullFrame, "Complete frame including all cost corners stays in the hand");
-                foreach (Rect panel in new[] { player, buffs, retreat })
-                    AssertSeparate(panel, fullFrame, "Fixed decision column does not cover a complete card frame");
-            }
-            AssertContains(hand, card, "The scaled card body stays inside its owning hand");
-            foreach (string name in new[] { "Player Resource HUD", "Battle Buff Panel", "Retreat Battle", "Enemy Resource HUD", "End Battle Turn" })
-            {
-                RectTransform panel = Find<RectTransform>(name);
-                foreach (Text text in panel.GetComponentsInChildren<Text>(true))
-                {
-                    Assert.That(text.fontSize, Is.EqualTo(18), text.name + " uses the common side-panel font size");
-                    Assert.That(text.resizeTextForBestFit, Is.False, text.name + " keeps the common font size");
-                    AssertContains(panel.rect, In(panel, text.rectTransform), text.name + " stays inside its panel");
-                    AssertTextFits(text, 18);
-                }
-            }
-            RectTransform resourceRoot = Find<RectTransform>("Player Resource HUD");
-            foreach (string glyph in new[] { "能", "药" })
-            {
-                Rect icon = In(resourceRoot, resourceRoot.Find("Resource " + glyph + " Icon") as RectTransform);
-                Rect value = In(resourceRoot, resourceRoot.Find("Resource " + glyph + " Value") as RectTransform);
-                Assert.That(value.xMin - icon.xMax, Is.GreaterThanOrEqualTo(4f),
-                    "Readable resource numbers need a clear gap after their circular icon.");
-                AssertContains(resourceRoot.rect, value, glyph + " value stays inside its panel");
+                RectTransform retired = Find<RectTransform>(name);
+                Assert.That(retired.parent, Is.SameAs(root));
+                Assert.That(retired.gameObject.activeInHierarchy, Is.False, name + " is replaced by compact icons.");
             }
 
-            Rect intent = In(root, Find<RectTransform>("Enemy Intent HUD"));
-            Rect enemy = In(root, Find<RectTransform>("Enemy Resource HUD"));
-            Rect endTurn = In(root, Find<RectTransform>("End Battle Turn"));
-            foreach (var pair in new[] { new[] { player, intent }, new[] { buffs, enemy }, new[] { retreat, endTurn } })
+            RectTransform resources = Find<RectTransform>("Battle Compact Resources");
+            RectTransform draw = Find<RectTransform>("Battle Draw Pile");
+            RectTransform discard = Find<RectTransform>("Battle Discard Pile");
+            RectTransform endTurn = Find<RectTransform>("End Battle Turn");
+            var controls = new System.Collections.Generic.List<RectTransform> { resources, draw, discard, endTurn };
+            Assert.That(In(root, resources).xMax, Is.LessThan(hand.xMin), "Resources stay left of the hand.");
+            Assert.That(In(root, draw).xMax, Is.LessThan(hand.xMin));
+            Assert.That(In(root, discard).xMin, Is.GreaterThan(hand.xMax));
+            Assert.That(In(root, endTurn).xMin, Is.GreaterThan(hand.xMax));
+            Assert.That(In(root, resources).yMin, Is.GreaterThan(In(root, draw).yMax),
+                "Resource rows remain above the clickable draw pile.");
+            Assert.That(In(root, endTurn).yMin, Is.GreaterThan(In(root, discard).yMax),
+                "Ending the turn must not obscure the discard-pile button.");
+
+            RectTransform retreat = Find<RectTransform>("Retreat Battle");
+            Assert.That(retreat.gameObject.activeInHierarchy, Is.EqualTo(!boarding),
+                "Retreat is hidden during boarding.");
+            if (!boarding)
             {
-                Assert.That(Vector2.Distance(pair[0].size, pair[1].size), Is.LessThanOrEqualTo(.01f), "Opposite rows have equal sizes.");
-                Assert.That(pair[0].center.y, Is.EqualTo(pair[1].center.y).Within(.01f), "Opposite rows share their vertical position.");
-                Assert.That(pair[0].center.x, Is.EqualTo(-pair[1].center.x).Within(.01f), "Opposite rows mirror about the cards.");
-                AssertSeparate(pair[1], hand, "Right decision column and hand");
+                controls.Add(retreat);
+                Assert.That(In(root, retreat).yMin, Is.GreaterThan(0f), "Retreat occupies the upper-left corner.");
             }
-            foreach (string name in new[] { "Player Ship Art", "Enemy Ship Art", "Player Battle Hull Bar Track",
-                "Enemy Battle Hull Bar Track", "Player Battle Name Board", "Enemy Battle Name Board", "Battle Hand",
-                "End Battle Turn", "Enemy Resource HUD" })
-                AssertSeparate(intent, In(root, Find<RectTransform>(name)), "Enemy intent and " + name);
-            foreach (string name in new[] { "Player Resource HUD", "Battle Buff Panel", "Retreat Battle", "Enemy Intent HUD", "End Battle Turn", "Enemy Resource HUD" })
-                AssertContains(surface.rect, In(surface, Find<RectTransform>(name)), name + " fits the actual scaled battle surface");
+
             if (stage == NavalBattleStage.Naval)
             {
-                Rect ram = In(root, Find<RectTransform>("Battle Ram"));
-                Rect board = In(root, Find<RectTransform>("Battle Board"));
-                Assert.That(ram.center.x, Is.EqualTo(board.center.x).Within(.01f), "The actions share the right-side column.");
-                Assert.That(ram.width, Is.EqualTo(board.width).Within(.01f));
-                Assert.That(ram.yMin, Is.GreaterThan(board.yMax), "Ram precedes boarding in the right-side action stack.");
-                Assert.That(board.yMin, Is.GreaterThan(intent.yMax), "Both actions remain above the aligned information panels.");
-                AssertSeparate(ram, board, "Ram and boarding remain separate actions");
-                foreach (Rect action in new[] { ram, board })
+                RectTransform ram = Find<RectTransform>("Battle Ram");
+                RectTransform board = Find<RectTransform>("Battle Board");
+                RectTransform movement = Find<RectTransform>("Naval movement controls");
+                controls.AddRange(new[] { ram, board, movement });
+                Rect ramBounds = In(root, ram), boardBounds = In(root, board), movementBounds = In(root, movement);
+                Assert.That(ramBounds.center.y, Is.EqualTo(boardBounds.center.y).Within(.1f),
+                    "The two close-contact actions share one compact row.");
+                Assert.That(ramBounds.xMax, Is.LessThan(boardBounds.xMin));
+                Assert.That(ramBounds.yMin, Is.GreaterThan(movementBounds.yMax));
+                Assert.That(movementBounds.yMin, Is.GreaterThan(In(root, endTurn).yMax));
+                foreach (string name in new[] { "Battle Ram Condition", "Battle Board Condition" })
+                    Assert.That(Find<RectTransform>(name).gameObject.activeInHierarchy, Is.False,
+                        "Action details are available from hover without restoring the retired text panels.");
+            }
+
+            for (int index = 0; index < controls.Count; index++)
+            {
+                RectTransform control = controls[index];
+                Assert.That(control.parent, Is.SameAs(root), control.name + " keeps its runtime lookup path.");
+                Assert.That(control.gameObject.activeInHierarchy, Is.True, control.name);
+                Rect bounds = In(root, control);
+                AssertSeparate(bounds, hand, control.name + " leaves the hand clickable.");
+                AssertContains(surface.rect, In(surface, control), control.name + " fits the battle surface.");
+                for (int previous = 0; previous < index; previous++)
+                    AssertSeparate(bounds, In(root, controls[previous]), control.name + " and " + controls[previous].name);
+            }
+            foreach (CardSchoolFrameGraphic frame in handRoot.GetComponentsInChildren<CardSchoolFrameGraphic>())
+            {
+                Rect bounds = In(root, frame.rectTransform);
+                AssertRestingFanCardBounds(hand, bounds);
+                foreach (RectTransform control in controls)
+                    AssertSeparate(In(root, control), bounds, control.name + " does not cover a resting card.");
+            }
+            AssertRestingFanCardBounds(hand, In(root, Find<RectTransform>("Battle Card 0")));
+
+            Rect? previousRow = null;
+            for (int line = 1; line <= 3; line++)
+            {
+                RectTransform row = Find<RectTransform>("Battle Resource Line " + line);
+                Assert.That(row.parent, Is.SameAs(resources));
+                Rect rowBounds = In(resources, row);
+                AssertContains(resources.rect, rowBounds, row.name + " stays in the resource area.");
+                if (previousRow.HasValue) AssertSeparate(previousRow.Value, rowBounds, "Resource rows remain distinct.");
+                previousRow = rowBounds;
+                Assert.That(row.childCount, Is.EqualTo(line == 1 ? 2 : 4));
+                for (int slot = 0; slot < row.childCount; slot++)
                 {
-                    Assert.That(action.xMin, Is.GreaterThanOrEqualTo(intent.xMin - .01f), "Actions fit inside the information-column width.");
-                    Assert.That(action.xMax, Is.LessThanOrEqualTo(intent.xMax + .01f));
-                    Assert.That(action.center.x, Is.GreaterThan(0f), "Actions remain on the right.");
-                    Assert.That(action.yMin, Is.GreaterThan(hand.yMax), "Actions stay above the hand.");
-                    foreach (Rect panel in new[] { intent, enemy, endTurn, hand })
-                        AssertSeparate(action, panel, "Naval actions and decision column");
-                }
-                Rect ramCondition = In(root, Find<RectTransform>("Battle Ram Condition"));
-                Rect boardCondition = In(root, Find<RectTransform>("Battle Board Condition"));
-                Assert.That(ramCondition.height, Is.EqualTo(28f).Within(.01f));
-                Assert.That(boardCondition.height, Is.EqualTo(28f).Within(.01f));
-                Assert.That(ramCondition.yMax, Is.LessThan(ram.yMin));
-                Assert.That(ramCondition.yMin, Is.GreaterThan(board.yMax));
-                Assert.That(boardCondition.yMax, Is.LessThan(board.yMin));
-                Assert.That(boardCondition.yMin, Is.GreaterThan(intent.yMax));
-                foreach (string name in new[] { "Battle Ram", "Battle Board", "Battle Ram Condition", "Battle Board Condition" })
-                {
-                    Rect control = In(root, Find<RectTransform>(name));
-                    foreach (string side in new[] { "Player", "Enemy" })
-                        foreach (string part in new[] { " Battle Hull Bar Track", " Armor Frame 3" })
-                            AssertSeparate(control, In(root, Find<RectTransform>(side + part)), name + " clears " + side + part);
-                    Text text = Find<RectTransform>(name).GetComponent<Text>() ?? Find<RectTransform>(name).GetComponentInChildren<Text>();
-                    AssertTextFits(text, text.fontSize);
+                    RectTransform badge = (RectTransform)row.GetChild(slot);
+                    AssertContains(row.rect, In(row, badge), badge.name + " stays in its resource row.");
+                    if (slot > 0) AssertSeparate(In(row, (RectTransform)row.GetChild(slot - 1)), In(row, badge),
+                        "Adjacent resource hit areas must not overlap.");
+                    Text amount = badge.Find("Amount").GetComponent<Text>();
+                    Assert.That(amount.fontSize, Is.GreaterThanOrEqualTo(19));
+                    Assert.That(amount.raycastTarget, Is.False);
+                    AssertTextFits(amount, amount.fontSize);
                 }
             }
-            foreach (string name in new[] { "Battle Card Cost Rule Panel", "Battle Card Cost Rule", "Battle Status", "Battle Collision Quality" })
+
+            RectTransform intent = Find<RectTransform>("Enemy Intent Icons");
+            Assert.That(intent.parent, Is.SameAs(root));
+            Assert.That(intent.GetComponentsInChildren<BattleCommandIconGraphic>(false), Is.Not.Empty);
+            AssertContains(surface.rect, In(surface, intent), "Enemy intentions remain on the battle surface.");
+            foreach (string side in new[] { "Player", "Enemy" })
+            {
+                RectTransform actor = Find<RectTransform>(side + " Ship Art");
+                RectTransform health = Find<RectTransform>(side + " Battle Hull Bar Track");
+                Assert.That(actor.parent, Is.SameAs(root));
+                Assert.That(health.parent, Is.SameAs(root));
+                foreach (BattleCommandIconGraphic icon in intent.GetComponentsInChildren<BattleCommandIconGraphic>(false))
+                {
+                    // The row reserves room for future intentions; only its
+                    // populated badge hit areas occupy the visible scene.
+                    Rect badge = In(root, (RectTransform)icon.transform.parent);
+                    AssertSeparate(badge, In(root, actor), "Intent badges keep " + side + " combatant visible.");
+                    AssertSeparate(badge, In(root, health), "Intent badges keep " + side + " health visible.");
+                    AssertSeparate(badge, hand, "Intent badges keep cards readable.");
+                }
+            }
+            AssertSeparate(In(root, intent), hand, "Intent icons keep cards readable.");
+
+            foreach (RectTransform control in controls)
+                foreach (Text text in control.GetComponentsInChildren<Text>(false))
+                {
+                    Assert.That(text.raycastTarget, Is.False, text.name + " does not intercept button input.");
+                    AssertTextFits(text, text.fontSize);
+                }
+            foreach (string name in new[] { "Battle Card Cost Rule Panel", "Battle Card Cost Rule",
+                "Battle Status", "Battle Collision Quality" })
                 Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False,
-                    name + " is removed from the battle view");
-            Text label = Find<Text>("Enemy Intent Text");
-            Assert.That(label.resizeTextMinSize, Is.EqualTo(14));
-            Assert.That(label.resizeTextMaxSize, Is.EqualTo(18));
-            AssertContains(intent, In(root, label.rectTransform), "Intent text stays in its wood panel");
-            AssertTextFits(label, 14);
-            foreach (string name in new[] { "Player Resource HUD", "Enemy Resource HUD", "Battle Buff Panel", "Enemy Intent HUD" })
-                foreach (Graphic decoration in Find<RectTransform>(name).GetComponentsInChildren<Graphic>(true))
-                    Assert.That(decoration.raycastTarget, Is.False, decoration.name + " cannot intercept combat input");
+                    name + " is removed from the battle view.");
+        }
+
+        private static void AssertRestingFanCardBounds(Rect hand, Rect card)
+        {
+            // All battle cards tuck below the viewport at rest; their full
+            // readable inspection pose is covered by the fan PlayMode tests.
+            Assert.That(card.xMin, Is.GreaterThanOrEqualTo(hand.xMin - .1f), "The complete resting card stays within the hand's width.");
+            Assert.That(card.xMax, Is.LessThanOrEqualTo(hand.xMax + .1f), "The complete resting card stays within the hand's width.");
+            // The hand is a layout anchor, not a clipping rectangle. Rotation
+            // may lift a card above it; actual controls are checked separately.
+            Assert.That(card.yMax - Mathf.Max(card.yMin, hand.yMin), Is.GreaterThanOrEqualTo(card.height * .5f - .1f),
+                "At least half of each resting card remains visible for selection.");
         }
 
         private static void AssertTextFits(Text label, int fontSize)

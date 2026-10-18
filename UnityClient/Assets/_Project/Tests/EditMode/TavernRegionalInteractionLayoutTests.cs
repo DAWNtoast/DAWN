@@ -199,7 +199,8 @@ namespace ShatteredSail.Presentation.Tests
                 Is.EqualTo(portName + "　·　" + expected.RoleSummary), context);
             RawImage dossier = Find<RawImage>("Tavern Dossier Parchment");
             Assert.That(dossier.texture, Is.Not.Null, context);
-            Assert.That(dossier.texture.name, Is.EqualTo(expected.Id + "_dossier_v1"), context);
+            Assert.That(Find<RawImage>("Tavern Dossier Background Portrait").texture.name,
+                Is.EqualTo(expected.Id + "_portrait_v2"), context);
             Assert.That(Find<Button>("Recruit Tavern Crew " + profession).gameObject.activeInHierarchy, Is.True, context);
             Assert.That(controller.Session.CurrentPort, Is.EqualTo(portName), context);
         }

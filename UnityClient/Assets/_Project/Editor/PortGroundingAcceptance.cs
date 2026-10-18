@@ -361,7 +361,7 @@ namespace ShatteredSail.Editor
                 ComponentArtEntry entry = catalog.Entries.First(e => e.Slot == slot && e.Rarity == rarity);
                 string id = "grounding-fixture|" + (fixedSlot.HasValue ? "slot" : "count" + count) + "|" + slot + "|" + rarity;
                 stock.Add(new PortComponentShopStockItem(id, controller.Session.CurrentPort, PortComponentShopCatalog.MonthKey(FixtureDate),
-                    entry, 1f, PortComponentShopCatalog.CalculatePrice(entry, controller.Session.CurrentPort, 1f)));
+                    entry, PortComponentShopCatalog.CalculatePrice(entry, controller.Session.CurrentPort)));
                 record.sampleEntryIds.Add(entry.Id);
                 record.sampleOfferIds.Add(id);
             }

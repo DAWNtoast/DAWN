@@ -113,9 +113,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(pageRoot.gameObject.activeSelf, Is.EqualTo(index == page), PageNames[index] + " activeSelf");
                 Assert.That(pageRoot.gameObject.activeInHierarchy, Is.EqualTo(index == page), PageNames[index] + " activeInHierarchy");
             }
-            Assert.That(Find<Text>(root, "Tavern Dossier Page Counter").text, Is.EqualTo("第 " + (page + 1) + " / 4 页"));
-            Assert.That(Find<Button>(root, "Previous Tavern Dossier Page").interactable, Is.EqualTo(page > 0));
-            Assert.That(Find<Button>(root, "Next Tavern Dossier Page").interactable, Is.EqualTo(page < 3));
+            foreach (string removed in new[] { "Tavern Special Card Growth", "Tavern Dossier Page Counter",
+                "Previous Tavern Dossier Page", "Next Tavern Dossier Page" })
+                Assert.That(root.GetComponentsInChildren<Transform>(true).Any(item => item.name == removed), Is.False, removed);
         }
 
         private static object ExpectedCrew(string portName, int profession)

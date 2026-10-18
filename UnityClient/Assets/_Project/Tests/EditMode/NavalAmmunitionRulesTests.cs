@@ -21,7 +21,9 @@ namespace ShatteredSail.Core.Tests
                 if (card.Action == NavalBattleCardAction.Cannon)
                 {
                     cannons++;
-                    int expectedPowder = card.SchoolId == "fire" ? card.ArtId == "card_school_fire_l03" ? 3 : 2 : 1;
+                    // The naval expansion's cannons each cost one powder; their reused school art is not a cost rule.
+                    bool expansion = CoreNavalSchoolExpansionCatalog.FindSpec(card.Id) != null;
+                    int expectedPowder = expansion ? 1 : card.SchoolId == "fire" ? card.ArtId == "card_school_fire_l03" ? 3 : 2 : 1;
                     Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
                     Assert.That(card.CannonballCost, Is.EqualTo(1), card.Id);
                     Assert.That(card.Description, Does.Contain(expectedPowder + " 火药").And.Contain("1 炮弹"), card.Id);

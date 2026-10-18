@@ -13,6 +13,7 @@ namespace ShatteredSail.Presentation
     {
         private readonly Vector3[] corners = new Vector3[4];
         private Selectable selectable;
+        private bool allowDisabledTarget;
         private Canvas targetCanvas, focusCanvas;
         public RectTransform Target { get; private set; }
         public RectTransform VisualTarget
@@ -38,9 +39,10 @@ namespace ShatteredSail.Presentation
         }
         public bool HasVisibleTarget => TryGetVisibleTargetBounds(out _, out _);
 
-        public void Configure(Selectable control)
+        public void Configure(Selectable control, bool readableWhileDisabled = false)
         {
             selectable = control;
+            allowDisabledTarget = readableWhileDisabled;
             Target = control.transform as RectTransform;
             targetCanvas = control.GetComponent<Canvas>();
             color = new Color(1f, 0.15f, 0.12f, 1f);
@@ -53,8 +55,10 @@ namespace ShatteredSail.Presentation
         {
             // No flashing or screen tint: only the arrow gently approaches its target.
             RefreshSorting();
-            if (HasVisibleTarget) SetVerticesDirty();
-            else if (canvasRenderer != null) canvasRenderer.Clear();
+            // Opening comics and other input locks can temporarily hide a target.
+            // Rebuild an empty mesh through Graphic while hidden: Clear() also
+            // discards the material, which a later vertex-only rebuild cannot restore.
+            SetVerticesDirty();
         }
 
         private void RefreshSorting()
@@ -195,7 +199,7 @@ namespace ShatteredSail.Presentation
             bounds = default;
             clip = VisibleViewport();
             if (Target == null || !Target.gameObject.activeInHierarchy ||
-                selectable != null && !selectable.IsInteractable()) return false;
+                selectable != null && !allowDisabledTarget && !selectable.IsInteractable()) return false;
             RectTransform visual = VisualTarget;
             bounds = BoundsInAnnotation(visual, visual.rect);
             // A focus lives outside the scroll mask so its arrow remains visible.

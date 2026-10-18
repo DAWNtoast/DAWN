@@ -32,19 +32,22 @@ namespace ShatteredSail.Presentation.Tests
                 if (PortButton("Port Hotspot Market") != null) yield break;
                 if (PortButton("Back To Voyage Setup")?.IsInteractable() == true) yield return Click("Back To Voyage Setup");
                 if (PortButton("Return To Port Hub")?.IsInteractable() == true) yield return Click("Return To Port Hub");
+                if (PortButton("Confirm Port Investment") != null)
+                    yield return Click("Return To Port Hub");
                 Assert.That(PortButton("Port Hotspot Market"), Is.Not.Null, "Cannot reach the hub through current visible controls.");
             }
 
             private IEnumerator OpenStrictMarket()
             {
-                if (PortButton("Market Storage Mode") == null)
+                if (PortButton("Market Shop Supplies") == null)
                 {
                     yield return EnsureHub();
                     yield return Click("Port Hotspot Market");
                 }
                 // Cargo purchased for this voyage must actually board the ship.
+                yield return OpenMarketTrade("water");
                 for (int n = 0; controller.MarketStorageMode != MarketPurchaseStorageMode.Ship && n < 3; n++)
-                    yield return Click("Market Storage Mode");
+                    yield return Click("Market Detail Storage Mode");
                 Assert.That(controller.MarketStorageMode, Is.EqualTo(MarketPurchaseStorageMode.Ship));
             }
 
@@ -60,9 +63,17 @@ namespace ShatteredSail.Presentation.Tests
             {
                 if (PortText("Market Quota " + key) == null)
                 {
-                    PortButton("Cancel Market Trade")?.onClick.Invoke();
-                    PortButton("Market Detail Back")?.onClick.Invoke();
-                    PortButton("Market Item Icon " + key)?.onClick.Invoke();
+                    if (PortButton("Market Item Icon " + key) == null)
+                    {
+                        Button shop = PortButton("Market Shop " + MarketSceneLayout.ShopForItem(PortItem(key)));
+                        Assert.That(shop, Is.Not.Null, "Read stock through the visible shop entrance: " + key);
+                        Assert.That(shop.IsInteractable(), Is.True);
+                        shop.onClick.Invoke();
+                    }
+                    Button item = PortButton("Market Item Icon " + key);
+                    Assert.That(item, Is.Not.Null, "Read stock through the selected shop's visible item: " + key);
+                    Assert.That(item.IsInteractable(), Is.True);
+                    item.onClick.Invoke();
                 }
                 if (PortText("Market Quota " + key) == null)
                 {
