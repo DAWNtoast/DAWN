@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 
 namespace ShatteredSail.Core.Gameplay
@@ -58,6 +59,32 @@ namespace ShatteredSail.Core.Gameplay
                 return false;
             ProfileGold = gold;
             AddLog("GM 测试工具：船长资金设置为 " + gold + " 金币。");
+            return true;
+        }
+
+        public bool TryGameMasterMoveToPort(string portName)
+        {
+            if (Phase != CoreDemoPhase.Port || string.IsNullOrWhiteSpace(portName)) return false;
+            string destination = portName.Trim();
+            if (Array.IndexOf(portNames, destination) < 0) return false;
+
+            CurrentPort = destination;
+            shipPorts[SelectedShipIndex] = destination;
+            // StartVoyage reloads a structured seed even after its selection is cleared.
+            // Keep a usable chart, but discard both forms of an unrelated old route.
+            if ((selectedSeaChart != null && !selectedSeaChart.ContainsPort(destination)) ||
+                (TryParseChartSeed(SelectedSeed, out CoreSeaChartDefinition chart) && !chart.ContainsPort(destination)))
+                SetSeed(null);
+            EnsureSelectedDestination();
+            AddLog("GM 测试工具：已移动至" + destination + "，当前旗舰同步停靠。");
+            return true;
+        }
+
+        public bool TryGameMasterRaisePirateLevelToTen()
+        {
+            if (Phase != CoreDemoPhase.Port) return false;
+            PirateExperience = Math.Max(PirateExperience, PirateExperienceForLevel(10));
+            AddLog("GM 测试工具：海盗等级已提升至 10 级。");
             return true;
         }
     }

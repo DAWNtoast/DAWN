@@ -15,11 +15,13 @@ namespace ShatteredSail.Presentation
 
         public IReadOnlyList<VoyagePoint> ReachableCells => reachable.AsReadOnly();
         public IReadOnlyList<VoyagePoint> PathPoints => path.AsReadOnly();
+        public bool EndsInRam { get; private set; }
 
         public void Configure(NavalTacticalBoardView view, IReadOnlyList<CoreNavalMovementNode> nodes, IReadOnlyList<VoyagePoint> options,
-            IReadOnlyList<VoyagePoint> reachableCells = null)
+            IReadOnlyList<VoyagePoint> reachableCells = null, bool endsInRam = false)
         {
             board = view;
+            EndsInRam = endsInRam;
             path.Clear(); next.Clear(); reachable.Clear();
             foreach (CoreNavalMovementNode node in nodes) path.Add(node.PositionMeters);
             foreach (VoyagePoint point in options) next.Add(point);
@@ -42,12 +44,15 @@ namespace ShatteredSail.Presentation
             foreach (VoyagePoint point in next) DrawCell(helper, point, new Color(.12f, .8f, .74f, .12f), new Color(.35f, 1f, .9f, 1f));
             for (int i = 1; i < path.Count; i++)
             {
-                DrawCell(helper, path[i], new Color(1f, .77f, .23f, .20f), new Color(1f, .8f, .3f, .9f));
+                bool ramTarget = EndsInRam && i == path.Count - 1;
+                Color routeColor = ramTarget ? new Color(1f, .35f, .24f) : new Color(1f, .85f, .4f);
+                DrawCell(helper, path[i], ramTarget ? new Color(1f, .24f, .16f, .30f) : new Color(1f, .77f, .23f, .20f),
+                    ramTarget ? routeColor : new Color(1f, .8f, .3f, .9f));
                 Vector2 from = board.WorldToBoard(path[i - 1]), to = board.WorldToBoard(path[i]);
                 Vector2 direction = (to - from).normalized, side = new Vector2(-direction.y, direction.x);
-                NavalTacticalTrackGraphic.AddLine(helper, from, to, 3f, new Color(1f, .85f, .4f));
-                NavalTacticalTrackGraphic.AddLine(helper, to, to - direction * 11f + side * 7f, 3f, new Color(1f, .85f, .4f));
-                NavalTacticalTrackGraphic.AddLine(helper, to, to - direction * 11f - side * 7f, 3f, new Color(1f, .85f, .4f));
+                NavalTacticalTrackGraphic.AddLine(helper, from, to, 3f, routeColor);
+                NavalTacticalTrackGraphic.AddLine(helper, to, to - direction * 11f + side * 7f, 3f, routeColor);
+                NavalTacticalTrackGraphic.AddLine(helper, to, to - direction * 11f - side * 7f, 3f, routeColor);
             }
         }
 

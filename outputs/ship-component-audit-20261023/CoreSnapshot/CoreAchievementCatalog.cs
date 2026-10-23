@@ -1,0 +1,295 @@
+using System;
+using System.Collections.Generic;
+
+namespace ShatteredSail.Core.Gameplay
+{
+    /// <summary>Broad progress area used to group captain achievements in every UI.</summary>
+    public enum CoreAchievementCategory
+    {
+        Voyage,
+        Battle,
+        Crew,
+        Components,
+        Cards,
+        Collection,
+        Economy,
+        Story,
+        PortConstruction,
+        Fleet,
+        // Keep serialized category values stable after retiring a category.
+        Exploration = 11,
+        Supplies = 12,
+    }
+
+    /// <summary>How a game statistic completes an achievement.</summary>
+    public enum CoreAchievementRequirementKind
+    {
+        Flag,
+        Counter,
+        // Requires source-specific evidence evaluated by the gameplay adapter.
+        Predicate,
+    }
+
+    /// <summary>
+    /// Immutable achievement metadata. RequirementKey is deliberately a stable, Unity-free
+    /// statistic name so PlayerPrefs, a save service, and preview tooling can all evaluate the
+    /// same authored catalogue without taking a dependency on one another.
+    /// </summary>
+    public sealed class CoreAchievementDefinition
+    {
+        public CoreAchievementDefinition(string id, string name, string description,
+            CoreAchievementCategory category, CoreAchievementRequirementKind requirementKind,
+            string requirementKey, int target = 1, string legacyId = "", string categoryLabel = null)
+        {
+            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Achievement id is required.", "id");
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Achievement name is required.", "name");
+            if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("Achievement description is required.", "description");
+            if (string.IsNullOrWhiteSpace(requirementKey)) throw new ArgumentException("Achievement requirement key is required.", "requirementKey");
+            if (target < 1) throw new ArgumentOutOfRangeException("target", target, "Achievement target must be positive.");
+
+            Id = id;
+            Name = name;
+            Description = description;
+            Category = category;
+            CategoryLabel = categoryLabel ?? category.ToString();
+            RequirementKind = requirementKind;
+            RequirementKey = requirementKey;
+            Target = target;
+            LegacyId = legacyId ?? string.Empty;
+        }
+
+        public string Id { get; }
+        public string Name { get; }
+        public string Title => Name;
+        public string CategoryLabel { get; }
+        public string Description { get; }
+        public CoreAchievementCategory Category { get; }
+        public CoreAchievementRequirementKind RequirementKind { get; }
+        public string RequirementKey { get; }
+        public int Target { get; }
+        /// <summary>Optional retired prototype lookup alias; never an additional player-save key.</summary>
+        public string LegacyId { get; }
+    }
+
+    /// <summary>
+    /// Small, serialisation-agnostic progress bag for evaluating the catalogue. The gameplay
+    /// controller can populate it from PlayerPrefs or a future save file; no UI state is stored
+    /// here. Counter values are clamped at zero and flags are idempotent.
+    /// </summary>
+    public sealed class CoreAchievementProgress
+    {
+        private readonly Dictionary<string, int> counters = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly HashSet<string> flags = new HashSet<string>(StringComparer.Ordinal);
+
+        public int GetCounter(string key)
+        {
+            return !string.IsNullOrWhiteSpace(key) && counters.TryGetValue(key, out int value) ? value : 0;
+        }
+
+        public bool IsFlagSet(string key)
+        {
+            return !string.IsNullOrWhiteSpace(key) && flags.Contains(key);
+        }
+
+        public void SetCounter(string key, int value)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return;
+            counters[key] = Math.Max(0, value);
+        }
+
+        public int Increment(string key, int amount = 1)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return 0;
+            int next = (int)Math.Max(0L, Math.Min(int.MaxValue, (long)GetCounter(key) + amount));
+            SetCounter(key, next);
+            return GetCounter(key);
+        }
+
+        public void SetFlag(string key, bool value = true)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return;
+            if (value) flags.Add(key);
+            else flags.Remove(key);
+        }
+
+        public bool IsUnlocked(CoreAchievementDefinition achievement)
+        {
+            if (achievement == null) return false;
+            switch (achievement.RequirementKind)
+            {
+                case CoreAchievementRequirementKind.Flag: return IsFlagSet(achievement.RequirementKey);
+                case CoreAchievementRequirementKind.Counter: return GetCounter(achievement.RequirementKey) >= achievement.Target;
+                default: return false; // Composite source evidence belongs to the gameplay adapter.
+            }
+        }
+
+        public int CountUnlocked(IEnumerable<CoreAchievementDefinition> catalogue)
+        {
+            if (catalogue == null) return 0;
+            int count = 0;
+            foreach (CoreAchievementDefinition achievement in catalogue)
+                if (IsUnlocked(achievement)) count += 1;
+            return count;
+        }
+    }
+
+    /// <summary>Authored captain achievements covering the complete Seventh Harbor loop.</summary>
+    public static class CoreAchievementCatalog
+    {
+        public const int CatalogCount = 50;
+        public const string VoyageThreeEventsId = "voyage_three_events";
+        public const int VoyageThreeEventsTarget = 3;
+        public const string VoyageHalfChartId = "voyage_half_chart";
+        public const float VoyageHalfChartTarget = 50f;
+        public const string VoyageEventArrivalId = "voyage_event_arrival";
+        public const int VoyageEventArrivalTarget = 6;
+
+        private static readonly IReadOnlyList<CoreAchievementDefinition> all = Array.AsReadOnly(new[]
+        {
+            // Canonical player IDs and text are the shipped main-menu catalog.
+            A("tutorial_departure", "初次扬帆", "完成新手引导并获得航海许可", CoreAchievementCategory.Voyage, F, "tutorial_completed", 1, "first_sail", "航程进度"),
+            A("tutorial_reward", "第一枚罗盘", "完成新手引导并领取教学纪念藏品", CoreAchievementCategory.Voyage, P, "tutorial_reward_claimed", 1, "", "航程进度"),
+            A("tutorial_checkpoint", "航海学徒", "完成第一次新手航程并结算返港", CoreAchievementCategory.Voyage, P, "tutorial_checkpoint", 1, "", "航程进度"),
+            A("tutorial_deck", "整备完毕", "在卡牌工坊编辑并保存一次战斗卡组", CoreAchievementCategory.Voyage, F, "tutorial_deck_edited", 1, "", "航程进度"),
+            A("tutorial_component", "亲手改装", "亲手为船只安装一件非初始部件", CoreAchievementCategory.Voyage, P, "component_manually_equipped", 1, "", "航程进度"),
+            A("tutorial_recovery", "逆风归港", "在非教学普通航程中战胜敌舰，并以不高于 25% 的剩余船体安全返港", CoreAchievementCategory.Voyage, F, "damaged_return", 1, "", "航程进度"),
+            A("tutorial_navigator", "听见潮声", "完成一次有航海士随行的航程", CoreAchievementCategory.Voyage, F, "navigator_voyage", 1, "", "航程进度"),
+            A("tutorial_warehouse", "留住纪念", "把第一件藏品收入仓库", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 1, "", "收藏"),
+            A("component_loadout", "船匠入门", "保存一套有效的部件装配", CoreAchievementCategory.Components, C, "components_equipped", 1, "", "整备"),
+            // Wealth milestones are deliberately spaced beyond the 500-gold
+            // starting profile and the guaranteed tutorial stipend.  Keeping
+            // the stable IDs preserves existing save keys while the authored
+            // targets now represent sustained trading and voyage earnings.
+            A("gold_600", "海上生意", "船长资金达到 1,000 金币", CoreAchievementCategory.Economy, C, "profile_gold", 1000, "sea_trade", "财富"),
+            A("gold_900", "黄金船长", "船长资金达到 2,500 金币", CoreAchievementCategory.Economy, C, "profile_gold", 2500, "golden_captain", "财富"),
+            A("gold_1200", "满载而归", "船长资金达到 5,000 金币", CoreAchievementCategory.Economy, C, "profile_gold", 5000, "", "财富"),
+            A("gold_2000", "七港富商", "船长资金达到 10,000 金币", CoreAchievementCategory.Economy, C, "profile_gold", 10000, "", "财富"),
+            A("port_gray_gull", "陌生港口", "抵达灰鸥港，完成第一次跨港航行", CoreAchievementCategory.Voyage, F, "reached_gray_gull", 1, "stranger_port", "航程进度"),
+            A("port_white_shell", "白贝潮汐", "抵达白贝港", CoreAchievementCategory.Voyage, F, "reached_white_shell", 1, "", "航程进度"),
+            A("port_bronze_bell", "钟声入海", "抵达铜钟港", CoreAchievementCategory.Voyage, F, "reached_bronze_bell", 1, "", "航程进度"),
+            A("port_salt_crown", "盐冠之下", "抵达盐冠港", CoreAchievementCategory.Voyage, F, "reached_salt_crown", 1, "", "航程进度"),
+            A("port_twilight", "暮潮观星", "抵达暮潮港", CoreAchievementCategory.Voyage, F, "reached_twilight", 1, "", "航程进度"),
+            A("all_ports", "六港通行", "抵达过六座已知港口", CoreAchievementCategory.Voyage, C, "ports_visited", CoreVoyageSession.DestinationPorts.Count, "", "航程进度"),
+            A("invest_port", "共同泊位", "在任一港口完成一次投资", CoreAchievementCategory.PortConstruction, C, "port_investment_levels", 1, "", "港口建设"),
+            A("invest_all_ports", "共享航路", "六座港口都完成过投资", CoreAchievementCategory.PortConstruction, C, "ports_invested", CoreVoyageSession.DestinationPorts.Count, "", "港口建设"),
+            A("invest_ten", "港务元老", "累计港口投资等级达到 10", CoreAchievementCategory.PortConstruction, C, "port_investment_levels", 10, "", "港口建设"),
+            A("ship_second", "换舷新舰", "获得第二艘船", CoreAchievementCategory.Fleet, C, "ships_owned", 2, "", "船队"),
+            A("ship_third", "三桅远征", "获得第三艘船", CoreAchievementCategory.Fleet, C, "ships_owned", 3, "", "船队"),
+            A("ship_fourth", "舰队成形", "获得第四艘船", CoreAchievementCategory.Fleet, C, "ships_owned", 4, "", "船队"),
+            A("all_ships", "四海船旗", "收集全部港口的十二种船只", CoreAchievementCategory.Fleet, C, "ships_owned", CoreVoyageSession.Ships.Count, "", "船队"),
+            A("component_inventory", "零件入库", "将部件加入库存", CoreAchievementCategory.Components, F, "component_owned", 1, "", "整备"),
+            A("component_cannon", "火炮上膛", "装备一门火炮", CoreAchievementCategory.Components, F, "cannon_equipped", 1, "", "整备"),
+            A("component_full", "全船改装", "亲手为同一艘船安装全部五槽非初始部件，且当前至少三件为稀有或更高品质", CoreAchievementCategory.Components, P, "full_refit", 5, "", "整备"),
+            A("component_shop", "港口采购员", "从部件商店购入一件部件", CoreAchievementCategory.Components, P, "component_purchased", 1, "", "整备"),
+            A("crew_one", "招募同伴", "招募第一名船员", CoreAchievementCategory.Crew, C, "crew_recruited", 1, "", "船员"),
+            A("crew_three", "小小船团", "招募三名船员", CoreAchievementCategory.Crew, C, "crew_recruited", 3, "", "船员"),
+            A("crew_six", "老船长旧部", "招募六名船员", CoreAchievementCategory.Crew, C, "crew_recruited", 6, "", "船员"),
+            A("crew_variants", "各港知己", "招募六名不同港口的船员", CoreAchievementCategory.Crew, C, "crew_ports_recruited", 6, "", "船员"),
+            A(VoyageThreeEventsId, "亲历远航", "在一次非教学普通航程中完成至少 3 个海图事件，并安全返港或抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageThreeEventsId, 1, "", "航程进度"),
+            A(VoyageHalfChartId, "循图探海", "在一次非教学普通航程中探索至少 50% 的海图，并安全返港或抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageHalfChartId, 1, "", "航程进度"),
+            A(VoyageEventArrivalId, "跨海领航", "在一次非教学普通航程中完成至少 6 个海图事件，并抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageEventArrivalId, 1, "", "航程进度"),
+            A("warehouse_one", "第一件珍藏", "在非教学航程中获得一件新藏品，并成功带回港口", CoreAchievementCategory.Collection, P, "voyage_treasure_brought_home", 1, "", "收藏"),
+            A("warehouse_three", "柜中三宝", "收藏三件可展览物品", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 3, "", "收藏"),
+            A("warehouse_ten", "船长展室", "收藏十件可展览物品", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 10, "", "收藏"),
+            A("warehouse_display_six", "满柜荣光", "同时陈列六件收藏品", CoreAchievementCategory.Collection, C, "warehouse_treasures_displayed", CoreWarehouseCollection.DisplaySlotCount, "", "收藏"),
+            A("chart_drawn", "亲绘航图", "绘制一张海图", CoreAchievementCategory.Exploration, F, "chart_drawn", 1, "", "探索"),
+            A("battle_deck", "甲板策略", "在非教学普通航程战斗中，实际使用自编卡组并取得胜利", CoreAchievementCategory.Battle, P, "authored_deck_victory", 1, "", "战斗"),
+            A("battle_stages", "三种战法", "在获胜的非教学普通航程战斗中，分别实际使用三阶段的自编卡组", CoreAchievementCategory.Battle, C, "authored_deck_victory_stages", Enum.GetValues(typeof(NavalBattleStage)).Length, "", "战斗"),
+            A("card_upgrade", "磨亮牌面", "强化一张战斗卡牌", CoreAchievementCategory.Battle, P, "card_upgrade_record", 1, "", "战斗"),
+            A("special_card", "专属传承", "获得一张船员或部件专属卡", CoreAchievementCategory.Battle, C, "special_cards_owned", 1, "", "战斗"),
+            A("cargo_ready", "补给充足", "同时储备 500 单位水与食物", CoreAchievementCategory.Supplies, P, "prepared_water_and_food", 500, "", "补给"),
+            A("cargo_all", "满舱远征", "在非教学普通航程中航行至少 10 天，全程不断水断粮，并抵达目标港口", CoreAchievementCategory.Supplies, F, "supplied_long_voyage", 1, "", "补给"),
+            A("fame", "自由之名", "声望达到 100", CoreAchievementCategory.Story, C, "profile_fame", 100, "", "传承"),
+            A("seventh_harbor", "第七港口", "获得最终藏品「第七港口引航灯」", CoreAchievementCategory.Story, P, "final_collection_owned", 1, "", "传承"),
+        });
+
+        private static readonly Dictionary<string, CoreAchievementDefinition> byId = BuildIndex();
+
+        public static IReadOnlyList<CoreAchievementDefinition> All => all;
+        /// <summary>Catalog is kept as an alias for other Core catalogs and older tooling.</summary>
+        public static IReadOnlyList<CoreAchievementDefinition> Catalog => all;
+
+        public static CoreAchievementDefinition Find(string id)
+        {
+            return !string.IsNullOrWhiteSpace(id) && byId.TryGetValue(id, out CoreAchievementDefinition value) ? value : null;
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return Find(id) != null;
+        }
+
+        /// <summary>
+        /// Evaluates one confirmed voyage's own map-event result. Historical chart
+        /// progress, tutorial voyages and treasure voyages cannot satisfy this task.
+        /// The caller records it only while committing the return to port.
+        /// </summary>
+        public static bool MeetsVoyageThreeEventsRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                settlement.CompletedEvents >= VoyageThreeEventsTarget;
+        }
+
+        public static bool MeetsVoyageHalfChartRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                !float.IsNaN(settlement.VoyageCoverage) && !float.IsInfinity(settlement.VoyageCoverage) &&
+                settlement.VoyageCoverage >= VoyageHalfChartTarget;
+        }
+
+        public static bool MeetsVoyageEventArrivalRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                settlement.Outcome == VoyageOutcome.ArrivedAtPort &&
+                settlement.CompletedEvents >= VoyageEventArrivalTarget;
+        }
+
+        public static bool MeetsDamagedReturnRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage, int wonBattles, int hull, int maxHull)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                wonBattles > 0 && maxHull > 0 && hull > 0 && (long)hull * 4L <= maxHull;
+        }
+
+        public static bool MeetsSupplyVoyageRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage, bool hasSupplyEvidence, bool ranOutOfWaterOrFood)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                settlement.Outcome == VoyageOutcome.ArrivedAtPort &&
+                !double.IsNaN(settlement.Hours) && !double.IsInfinity(settlement.Hours) &&
+                settlement.Hours >= 240d && hasSupplyEvidence && !ranOutOfWaterOrFood;
+        }
+
+        private static bool IsSuccessfulOrdinaryVoyage(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage)
+        {
+            return settlement != null && !isTutorialVoyage && !isTreasureVoyage &&
+                (settlement.Outcome == VoyageOutcome.SafeReturn || settlement.Outcome == VoyageOutcome.ArrivedAtPort);
+        }
+
+        private static Dictionary<string, CoreAchievementDefinition> BuildIndex()
+        {
+            var index = new Dictionary<string, CoreAchievementDefinition>(StringComparer.Ordinal);
+            foreach (CoreAchievementDefinition achievement in all)
+            {
+                index.Add(achievement.Id, achievement);
+                if (!string.IsNullOrEmpty(achievement.LegacyId)) index.Add(achievement.LegacyId, achievement);
+            }
+            return index;
+        }
+
+        private static CoreAchievementDefinition A(string id, string name, string description,
+            CoreAchievementCategory category, CoreAchievementRequirementKind kind,
+            string key, int target, string legacyId, string categoryLabel)
+        {
+            return new CoreAchievementDefinition(id, name, description, category, kind, key, target, legacyId, categoryLabel);
+        }
+
+        private const CoreAchievementRequirementKind F = CoreAchievementRequirementKind.Flag;
+        private const CoreAchievementRequirementKind C = CoreAchievementRequirementKind.Counter;
+        private const CoreAchievementRequirementKind P = CoreAchievementRequirementKind.Predicate;
+    }
+}

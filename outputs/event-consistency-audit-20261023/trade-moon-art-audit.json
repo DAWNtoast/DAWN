@@ -1,0 +1,1501 @@
+{
+  "date": "2026-10-23",
+  "postRedraw": {
+    "completedIndependentRedraws": 9,
+    "allBuiltInImageGen": true,
+    "opaqueLandscape": "1536x1024",
+    "generationManifest": "generated-trade-moon.json",
+    "revisions": [
+      {
+        "eventId": "event_trade_debt_collector",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/event_trade_debt_collector.png",
+        "inspection": "渔户持盖章收据、追债小艇堵住渔艇、开放海面，核心场景已核对。"
+      },
+      {
+        "eventId": "event_trade_merchant_distress",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/event_trade_merchant_distress.png",
+        "inspection": "破损商船、挥手求救船员、烟火信号和后方三角帆追兵均清晰，核心场景匹配。"
+      },
+      {
+        "eventId": "event_moon_mirror_pool",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/event_moon_mirror_pool.png",
+        "inspection": "现实远景为空旷海面，潮池内部映出不存在的港城、船只与清晰灯标，核心幻象关系匹配。"
+      },
+      {
+        "eventId": "event_moon_lunar_observatory",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/event_moon_lunar_observatory.png",
+        "inspection": "铜制观测盘位于开阔海面浮台上，系锚与链条清楚，海面/浮台空间关系符合描述。"
+      },
+      {
+        "eventId": "moon_ghost",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/moon_ghost.png",
+        "inspection": "古船横穿前方航路，船窗及全部灯具保持熄灭，仅有外部月光，消除了原图亮灯矛盾。"
+      },
+      {
+        "eventId": "event_moon_v2_borrowed_shadow",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/event_moon_v2_borrowed_shadow.png",
+        "inspection": "渡舟与大船并行并交易灯具；舟体和摆渡人下方为连续明亮波纹，无倒置船影或人影，核心无倒影特征明确。"
+      },
+      {
+        "eventId": "event_moon_drowned_library",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/event_moon_drowned_library.png",
+        "inspection": "坍塌石阶进入半淹藏书室，明确水线与空气中的上层书架，密封书匣压在断梁柱下，核心交互物完整。"
+      },
+      {
+        "eventId": "event_moon_healing_spring",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/event_moon_healing_spring.png",
+        "inspection": "岸边淡蓝清泉经可见石槽流向海面，全部石景位于空气中，浅滩淡水泉的空间关系清晰。"
+      },
+      {
+        "eventId": "event_moon_spectral_debris",
+        "verdict": "匹配",
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/Reviewed20261023/event_moon_spectral_debris.png",
+        "inspection": "单段破损古船残舱在雾中海面漂浮，裂窗/舱口/残肋及锚链明确，未画成整船或海底沉船。"
+      }
+    ],
+    "sharedRedrawsHandledByRoot": [
+      "common_storm_debris",
+      "common_reef_divers"
+    ],
+    "mappingAndResourceTests": "由event_inventory代理执行；本报告原图判定保留作对照。",
+    "comicScope": "6页漫画维持原资源，本轮仅附录V1字幕复用问题。"
+  },
+  "scope": "金潮商路与月潮航域基础、扩展固定、随机事件；共享ID保留路线变体",
+  "counts": {
+    "rows": 94,
+    "uniqueEventIds": 88,
+    "trade": 47,
+    "moon": 47,
+    "initialVerdicts": {
+      "可接受共享": 15,
+      "匹配": 66,
+      "不匹配": 13
+    }
+  },
+  "method": "逐一核对事件目录中的确切描述、EncounterIllustrationCatalog原映射、当前PNG/图集画面。V2和独立PNG先用带ID联系表目检，关键歧义另看原图。状态“匹配”表示主体和核心空间关系吻合，并不声称每一道具均准确。",
+  "visualEvidence": [
+    "D:/Game/outputs/imagegen/event-illustrations-20261022/trade-contact-sheet.jpg",
+    "D:/Game/outputs/imagegen/event-illustrations-20261022/moon-contact-sheet.jpg",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/common_whale_song_v1.png",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_reef_sudden_squall_v1.png",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_borrowed_shadow_v1.png",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_moon_taxcollector_v1.png",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_unlit_court_v1.png",
+    "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_votive_loom_v1.png"
+  ],
+  "events": [
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "无旗商队",
+      "id": "gold_convoy",
+      "description": "一支没有悬挂旗号的商队等待交换补给。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+        "column": 1,
+        "row": 3,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "平底船与商人组成海上补给交易场面，可概括无旗商队；临时市集与行进商队形态未细分。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "帝国临检船",
+      "id": "gold_customs",
+      "description": "帝国巡逻舰要求检查货舱与航行许可。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 1,
+        "row": 0,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "帝国检查员与船只表现海关查验，许可和货舱属于细节概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "香料沉船",
+      "id": "gold_wreck",
+      "description": "香料沉船的货箱散落在倾斜舱板上，深处的密封药箱还留着商队印记。互助凭证背面的草图标出了舱内货梯。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+        "column": 2,
+        "row": 0,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "沉船、倾斜船板与货箱符合打捞主旨；商队药箱印记和货梯草图未专门刻画。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "潮滩漂流者",
+      "id": "common_beach_castaway",
+      "description": "沙洲上的商队领航员攥着互助印章。他知道香料沉船药箱的位置，却已没有渡海的补给。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+        "column": 2,
+        "row": 2,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "沙洲落难者与等待救助的主体匹配；共用图没有区分商队领航员/学者及手持凭证，属身份道具概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "峡湾引航灯",
+      "id": "common_strait_beacon",
+      "description": "两座岛礁间的旧引航灯仍在随潮闪烁。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+        "column": 4,
+        "row": 2,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "礁间旧灯塔符合引航灯主体；月相灯语和缺失片段属于无法从单帧验证的时序信息。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "漂泊市集",
+      "id": "common_floating_market",
+      "description": "几艘平底船连成临时市集，商人们正在收帆。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+        "column": 1,
+        "row": 3,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "多船临时水上市集与商人交易主体匹配。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "鲸歌航道",
+      "id": "common_whale_song",
+      "description": "鲸群沿着稳定暖流迁徙，宽阔的尾迹一直延伸到天边。悠长的鲸歌从不同方向传来，勾勒出远处洋流的走向。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/common_whale_song_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "多头鲸在船边成群游动，暖色海面与延伸水流匹配迁徙主体；歌声/洋流方向属静态概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "风暴残骸",
+      "id": "common_storm_debris",
+      "description": "破碎桅杆在雷云下随浪翻滚。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_reef_sudden_squall_v1.png"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原图是船员在完好帆船上应对突来雨幕，缺少文本核心的破碎桅杆漂浮残骸。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 基础事件",
+      "title": "珊瑚采珠人",
+      "id": "common_reef_divers",
+      "description": "采珠人的小艇停在礁盘背风面。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_diver_v1.png"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "复用遗迹潜客的潜水设备/交易图，缺采珠小艇与礁盘背风面的核心场景身份。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "香料拍卖",
+      "id": "event_trade_spice_auction",
+      "description": "香料商船的船主把一枚宝石摆上拍卖台，想卖掉它，凑齐继续远航的钱。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 1,
+        "row": 1,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "香料铺陈与商人举起绿色宝石拍卖相符；香料商船背景作概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "检疫黄旗",
+      "id": "event_trade_quarantine_flag",
+      "description": "狭窄的航道上升起黄旗，检疫艇拦下过往船只，要查验粮舱，检查船上的病患。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_quarantine_flag_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "黄旗与检疫小艇检查过往船只的主要动作匹配。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "商船婚礼",
+      "id": "event_trade_wedding_fleet",
+      "description": "挂满彩旗的两艘商船并舷停泊，船长邀请过路人一同见证婚礼。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_wedding_fleet_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "彩旗并舷船只和船上婚礼聚会主体相符。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "镀金灯塔",
+      "id": "event_trade_gilded_lighthouse",
+      "description": "塔顶的铜镜把阳光投向支航道，收费员正兜售附近隐蔽泊位的记录。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 1,
+        "row": 2,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "金色海岸灯塔/镜光符合引航光线主体；收费员兜售记录未单独突出。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "债务小艇",
+      "id": "event_trade_debt_collector",
+      "description": "追债人把一艘渔艇堵在航路上，渔户向你展示已经付过钱的收据。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 4,
+        "row": 0,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原图是码头两名男子争执，没有航道上被堵的渔艇或渔户展示已付款收据。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "药材船队",
+      "id": "event_trade_medicine_convoy",
+      "description": "药材船队的一艘小船掉了队，断裂的拖缆还浮在船尾。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_medicine_convoy_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "落后药材小船、前方船队和断拖缆符合脱队救助场景。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "沉箱保险船",
+      "id": "event_trade_insurance_wreck",
+      "description": "保险船的货舱陷在礁边，打捞登记员仍在守着漂浮的赔付箱。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_insurance_wreck_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "礁边受困船体与守箱登记员符合保险打捞场景。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "海上剧团",
+      "id": "event_trade_sea_theatre",
+      "description": "两岛之间的背风水道里传来鼓声，剧团把几艘船并在一起，搭起了一座小舞台。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 0,
+        "row": 3,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "船边小舞台及观众表现海上剧团；并船结构和两岛背风水道作环境概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "公证驳船",
+      "id": "event_trade_v2_notary_barge",
+      "description": "公证人用铁链拴着印章，正在为失事船只的货主登记负责保全货物的受托人。侧舱也在招人帮忙整理潮位账册。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_notary_barge_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "驳船公证员、锁链印匣和账册形成清楚的公证场景。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "潮退账房",
+      "id": "event_trade_v2_abandoned_countinghouse",
+      "description": "退潮露出旧商栈的低矮账房。保险箱已经破开，但浸湿的货主名册与一套互助印记仍压在书桌下。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_abandoned_countinghouse_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "潮退后账房、保险柜及受潮账册符合废弃会计室探索。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "帆样工坊",
+      "id": "event_trade_v2_sail_pattern_loft",
+      "description": "裁帆师把一艘平底驳船改成工坊，桁架上挂满各式帆样。他只收材料，制作工具用的铁料也能拿来换货。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_sail_pattern_loft_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "铺展帆布样式的船上工坊符合比较帆样。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "潮汐票亭",
+      "id": "event_trade_v2_tide_ticket_booth",
+      "description": "小浮亭出售顺潮领航票，也公开展示下一轮潮汐的支线图。领航船很快就要走了，想看完整图册，得等值班员交接后才行。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_tide_ticket_booth_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "海上票亭、潮汐路线图与引水人员对应潮路售票主体。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "退役引水站",
+      "id": "event_trade_v2_retired_pilot_station",
+      "description": "海滩上的旧引水棚已不再收费。退休领航员守着最后一幅海面速写，收集船灯给沿岸的小舟使用。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_retired_pilot_station_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "岸边旧棚内老引水员、草图与灯具相符。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "浮秤仲裁场",
+      "id": "event_trade_v2_weighing_raft",
+      "description": "两家货行的人围着浮筏上的大秤争执：一方说秤轴失准，另一方想用钱买通仲裁者。秤架旁还堆着待分配的抵押布料。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_weighing_raft_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "歪斜天平、布匹与钱袋集中呈现浮秤争议。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "漂染锚地",
+      "id": "event_trade_v2_dyers_anchorage",
+      "description": "染布船挂着尚未干透的蓝帆。染工缺净水和热食，愿拿钱或现成布匹与过路船只交换。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_dyers_anchorage_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "大片湿蓝帆与染帆小船表现漂染锚地。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 扩展固定事件",
+      "title": "跨海学堂",
+      "id": "event_trade_v2_floating_school",
+      "description": "退役商船上的孩子正在学着画第一张海图。教员留着前辈的航图片段，希望过路的船员来讲讲见闻，或帮忙修缮这间船上学堂。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_floating_school_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "旧船上儿童与航海图教学场景匹配。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "食物变质",
+      "id": "event_trade_food_spoilage",
+      "description": "装货时混入的湿面粉已经结块，水手要求当着大家的面开仓查验。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/provisions_spoilage_v1.png"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "粮袋与变质干粮检查表达粮食受潮腐坏；湿面粉结块未作专门材质差分。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "私掠船截击",
+      "id": "event_trade_open_water_ambush",
+      "description": "一艘涂去船名的快船横在商路上，船上的人开口索要放行费。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 0,
+        "row": 2,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "海上袭击船可概括拦路勒索威胁；原图炮战表达较事件的开口索费提前，作为风险预示保留。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "海军临检",
+      "id": "event_trade_customs_patrol",
+      "description": "巡逻艇打出停船旗，检查员正在逐船核验沿途的港口印章。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 1,
+        "row": 0,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "与帝国临检共用检查员船只图，符合港章查验主体；停船旗细节概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "货舱移位",
+      "id": "event_trade_cargo_shift",
+      "description": "一道横浪打来，舱底的货箱全滑向右舷，挤得门框吱呀作响。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_cargo_shift_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "货舱中箱体横移堆挤门框，倾斜与受压关系清楚。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "市场传闻",
+      "id": "event_trade_market_rumor",
+      "description": "过路货船的船长用一张小纸条招揽生意，上面记着隐秘停泊点。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 3,
+        "row": 1,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "商船船长在纸张和航海物件旁提供消息，符合纸条情报交易。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "商船求援",
+      "id": "event_trade_merchant_distress",
+      "description": "一艘受损的商船放出求救烟火，后方已能望见追兵的三角帆。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_powder_barge_v1.png"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原映射为静默火药驳：完好船舱及噤声船主，缺受损商船、求救烟火和三角帆追兵。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "季风顺航",
+      "id": "event_trade_seasonal_wind",
+      "description": "季风将远处商队的旗帜吹得猎猎作响，各船正用信号旗互通沿途的消息。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 2,
+        "row": 1,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "鼓帆商船与旗帜体现季风航行/通信主体，具体旗语不逐项表达。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "甲板失火",
+      "id": "event_trade_deck_fire",
+      "description": "带着火星的炉灰被风吹到油布边上，细细的火苗正沿货舱盖蔓延。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_deck_fire_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "甲板油布与舱盖附近小范围火苗和船员应对，符合未失控的小火险。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "临时拍卖",
+      "id": "event_trade_floating_auction",
+      "description": "两艘货船在海上相遇，临时搭起了拍卖台。最后几批货交易完，两船就要各自起航。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png",
+        "column": 1,
+        "row": 1,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "商人货物拍卖主体与香料拍卖可共享；两艘货船临时相遇的结构作概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "偷渡客现身",
+      "id": "event_trade_stowaway",
+      "description": "货箱后藏着一名没有船票的逃难者，船员们对如何安置他争执不下。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_stowaway_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "藏于货箱后的逃难者和围观船员符合偷渡者处置场景。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "信鸽落帆",
+      "id": "event_trade_v2_courier_pigeon",
+      "description": "一只受伤的信鸽落进帆褶，脚环上绑着失事船只的货单。追来的邮艇请你帮忙，愿拿商队凭证或领航记录作酬劳。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_courier_pigeon_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "帆间受伤信鸽及腿上附信对应信鸽落帆主体。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "双船争道",
+      "id": "event_trade_v2_right_of_way",
+      "description": "两艘货船各挂着一面优先通行旗，都堵在你们船前，不肯让路。旁边领航小艇上的人正在设法调解。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_right_of_way_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "两船争道、信号旗与中间调解小艇符合让航纠纷。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "借帆试航",
+      "id": "event_trade_v2_sample_sails",
+      "description": "帆商把两套新裁的试航帆挂在货船旁。他正收集材料和试航记录，也愿意让懂船的人改装一套船帆带走。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_sample_sails_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "船员比试不同帆布与样帆，对应借帆试航。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "转运排队",
+      "id": "event_trade_v2_transfer_queue",
+      "description": "临时转运船挤满航道。搬运工急需药品，送餐艇也在寻找能穿过去的空隙。前方的缆绳迟迟没有松开，队尾又亮起了几盏船灯。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_transfer_queue_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "密集商船间转运排队、救助小艇和人员符合拥堵场景。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "潜钟回铃",
+      "id": "event_trade_v2_diving_bell",
+      "description": "打捞船下方的潜钟里接连传来求救铃声。吊钟的摇架已经变形，船主急着救回潜水员，愿拿钱或货舱里的一枚宝石作酬劳。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_diving_bell_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "潜钟、弯折升降架和救援操作符合回铃求援。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "双份航单",
+      "id": "event_trade_v2_ledger_forgery",
+      "description": "过路船上的人递来两份香料货单，日期相同，货物的去向却截然相反。商队抄写员怀疑有人伪造沉船记录，想请你当场核验。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_ledger_forgery_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "并列两份带标记的航运文书体现矛盾凭证；具体同日异港由文本说明。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "争铺乘客",
+      "id": "event_trade_v2_charter_crowding",
+      "description": "客船上的乘客为最后几张铺位票争吵，小艇靠来求援。船员们也开始争论是否该把本船补给分给他们。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_charter_crowding_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "争论乘客与稀少船票的登船场景匹配。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "船旗漏名",
+      "id": "event_trade_v2_guild_manifest",
+      "description": "行会登记船上的人漏写了一支小商队的船名。这支商队既拿不到领航记录，也领不出寄存的货款，只好沿途找人作证。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_guild_manifest_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "船队旗号与账册核对表现漏登名册；遗漏一条难以在无文字画中直接确认。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "横漂系泊缆",
+      "id": "event_trade_v2_channel_moorings",
+      "description": "转运船的一根长缆漂到船头，系泊工正在招呼你借用旁侧浮标。继续停留会被后方船队赶上。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_channel_moorings_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "横过航路的长缆与工人/备用浮标匹配系泊缆障碍。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "雨棚收水",
+      "id": "event_trade_v2_rain_collectors",
+      "description": "一排收水艇撑开灰白的雨棚，船主愿意用收来的雨水换取材料。随风摆动的棚角也清楚标出了近处的风向。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_rain_collectors_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "船上灰白雨棚收集淡水的主体符合。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "船厨盲评",
+      "id": "event_trade_v2_provision_survey",
+      "description": "几艘补给船的厨师在船头摆出不署名的饭菜，请过路船员品尝，评选适合久存的海上口粮。主办人备了钱和口粮，答谢前来品评的人。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_provision_survey_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "船厨与待尝样餐组成盲评场景；匿名属性由文本补充。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "trade",
+      "group": "黄金潮汐商路 · 随机事件",
+      "title": "静默火药驳",
+      "id": "event_trade_v2_powder_barge",
+      "description": "火药驳船上的人连钟都不敢敲，船主用手势指向追来的劫货快艇。他需要护航，也急缺遮住货舱的厚布。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_powder_barge_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "火药货舱与船主噤声手势符合静默求助，追兵及厚布物资为背景概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "月痕方碑",
+      "id": "moon_obelisk",
+      "description": "方碑上的星槽排列错乱，槽边的刻纹与月相星图相似。内匣紧闭，中央有个圆形凹槽，大小正好能放下一枚古代罗盘。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 0,
+        "row": 1,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "月纹方碑与圆槽对应古代装置主体；星槽排列错乱和内匣机构作细节概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "深海低语",
+      "id": "moon_whisper",
+      "description": "雾中传来的低语令水手失去方向感。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_silver_fog_v1.png"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "银雾中船员迷向的图可概括雾中低语导致失向，不要求把声音实体化。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "无灯幽舰",
+      "id": "moon_ghost",
+      "description": "一艘古船没有点灯，正横穿你们的航路。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 4,
+        "row": 3,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原共用幽舰有醒目的黄色船灯，与古船没有点灯直接冲突。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "潮滩漂流者",
+      "id": "common_beach_castaway",
+      "description": "沙洲上的落难学者抱着浸湿的观测记录，想拿星图换些物资，好返回船上。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+        "column": 2,
+        "row": 2,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "沙洲落难者与等待救助的主体匹配；共用图没有区分商队领航员/学者及手持凭证，属身份道具概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "峡湾引航灯",
+      "id": "common_strait_beacon",
+      "description": "旧灯按月相闪出三组灯语，明灭间重现着月痕方碑上的星纹。灯语一轮轮重复，总有几段缺失。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+        "column": 4,
+        "row": 2,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "礁间旧灯塔符合引航灯主体；月相灯语和缺失片段属于无法从单帧验证的时序信息。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "漂泊市集",
+      "id": "common_floating_market",
+      "description": "几艘平底船连成临时市集，商人们正在收帆。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png",
+        "column": 1,
+        "row": 3,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "多船临时水上市集与商人交易主体匹配。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "鲸歌航道",
+      "id": "common_whale_song",
+      "description": "鲸群沿着稳定暖流迁徙，宽阔的尾迹一直延伸到天边。悠长的鲸歌从不同方向传来，勾勒出远处洋流的走向。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/common_whale_song_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "多头鲸在船边成群游动，暖色海面与延伸水流匹配迁徙主体；歌声/洋流方向属静态概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "风暴残骸",
+      "id": "common_storm_debris",
+      "description": "破碎桅杆在雷云下随浪翻滚。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_reef_sudden_squall_v1.png"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原图是船员在完好帆船上应对突来雨幕，缺少文本核心的破碎桅杆漂浮残骸。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 基础事件",
+      "title": "珊瑚采珠人",
+      "id": "common_reef_divers",
+      "description": "采珠人的小艇停在礁盘背风面。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_diver_v1.png"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "复用遗迹潜客的潜水设备/交易图，缺采珠小艇与礁盘背风面的核心场景身份。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "月潮石门",
+      "id": "event_moon_gate",
+      "description": "潮水穿过双柱石门，门内的石壁上刻着通往失落宝库的路线，刻痕已有些残缺。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 0,
+        "row": 0,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "双柱构成的海上石门与穿门潮水匹配；壁上残缺路线以遗迹纹饰概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "星盘残片",
+      "id": "event_moon_star_compass",
+      "description": "覆满贝壳的残盘藏在暗礁背后，盘上剩下的一根指针仍指向水下石室。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 2,
+        "row": 0,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "水下暗礁边古石星盘符合寻找残盘主体；剩余单针/贝壳的精细状态没有严格再现。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "沉没书库",
+      "id": "event_moon_drowned_library",
+      "description": "塌陷的石阶通往一间半淹在水里的藏书室，密封书匣压在断裂的梁柱下面。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 1,
+        "row": 2,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原图为完全沉没的海底书架和水母，没有半淹藏书室、入口石阶及断梁下密封书匣。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "月光泉",
+      "id": "event_moon_healing_spring",
+      "description": "浅滩上的泉眼映着淡蓝微光，干净的水沿石槽流向海面。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 1,
+        "row": 3,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原图在海底遗迹中，顶端海水波面/游鱼/海草明确；文本是浅滩淡水泉沿石槽流向海面。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "月相观测台",
+      "id": "event_moon_lunar_observatory",
+      "description": "一座浮台靠古锚固定在开阔海面上，铜制观测盘正随着月亮的位置缓缓转动。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 3,
+        "row": 1,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原图是海底遗迹石台上的观测仪，非古锚固定在开阔海面的浮台。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "遗物潜客",
+      "id": "event_moon_relic_diver",
+      "description": "潜客的小船上整齐地挂着升降绳。他想用手里的残图，换些下次潜水需要的物资。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_diver_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "潜客、升降绳/潜水装置及残图交易符合主要人物与活动。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "月镜潮池",
+      "id": "event_moon_mirror_pool",
+      "description": "薄雾下的潮池映出一座并不存在的港口，倒影里的航标格外清晰。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 0,
+        "row": 2,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原图只倒映月亮，未表达不存在的港口及清晰航标这一核心幻象。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "古链浮桥",
+      "id": "event_moon_chain_bridge",
+      "description": "古桥上断开的铁链正从潮水中升起，粗重的链节横在船头。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 0,
+        "row": 3,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "匹配",
+      "reason": "潮水中的断桥与横向粗铁链符合通路阻断；链条升起的运动为静态概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "碎历拼台",
+      "id": "event_moon_v2_calendar_mosaic",
+      "description": "海上系泊着一座浮台，台上摆着十二块旧历板。边框已有缺口，历板总在滑动；拼对后，板上的刻线就会指向月痕方碑。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_calendar_mosaic_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "浮台上的分散历盘、月相片与缺口形成拼接古历主体。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "白骨浮标",
+      "id": "event_moon_v2_ossuary_buoy",
+      "description": "一座隐在水下的骨白浮标系着小匣。匣盖记载亡者姓名，浮标底部挂着当年送葬医者的药罐。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_ossuary_buoy_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "骨白浮标及其所系匣罐符合水下浮标探索。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "潮下誊写席",
+      "id": "event_moon_v2_submerged_scriptorium",
+      "description": "岸边的一排誊写席只剩桌面露出水面。桌沿星槽的排列暗示着解读方碑的顺序，抽屉里的印石下则压着密封卷轴。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_submerged_scriptorium_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "半淹书桌、露出水面的桌面与抽屉遗物对应潮下誊写席。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "摆锤档案船",
+      "id": "event_moon_v2_pendulum_archive",
+      "description": "废弃档案船里的摆锤仍在记录潮汐。船上留下的旧修缮记录写着整修船底的方法，馆员的兑换册上则记着以遗物抵账的办法。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_pendulum_archive_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "废船内部摆锤与记录装置符合潮时档案机关。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "驱咒小窑",
+      "id": "event_moon_v2_exorcist_kiln",
+      "description": "海滩上的旧窑内余烬未熄，窑壁刻着驱咒、炼灯和焙药的配方。几束干药草挂在窑边，陶罐口凝着细密水珠。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_exorcist_kiln_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "岸边小窑余火、草药和陶罐符合驱咒窑主体。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "测深石舟",
+      "id": "event_moon_v2_survey_barge",
+      "description": "一艘木驳船停在开阔的海面上，船上系着石制的测深槽。铅锤、样品盒和古人的斜线记录都还在，取自深水处的样品仍封存在船底的绳篮里。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_survey_barge_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "测深船上石槽、铅坠和样品箱符合勘测活动，水下吊篮作细节概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "还愿织机",
+      "id": "event_moon_v2_votive_loom",
+      "description": "沉在浮筏夹层里的织机无人操纵，空梭却还在来回穿行。旧铭文说它能把誓约织进帆布，也能将附身的潮咒留在纬线里。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_votive_loom_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "舟筏织机、空梭/丝线与神秘暗纹表达还愿织作；位于筏层间的沉陷程度不严格再现。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 扩展固定事件",
+      "title": "熄灯审议台",
+      "id": "event_moon_v2_unlit_court",
+      "description": "翻覆的浮台背面藏着议席和证物槽。空席上摆着刻有不同月相的印章，几盏熄灭的见证灯围着中央的封存匣。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_unlit_court_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "倒置浮台下议席/证物位置、月痕与中央箱符合隐秘审议台主体。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "月潮霉变",
+      "id": "event_moon_food_spoilage",
+      "description": "粮袋表面生出银灰色菌丝，船员不肯再碰那批散发甜味的干粮。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/provisions_spoilage_v1.png"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "霉变粮袋/干粮表现不宜食用的主体；银灰菌丝色调与甜味不能逐项从缩图确认。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "月影伏击",
+      "id": "event_moon_open_water_ambush",
+      "description": "一艘暗船从银雾中滑出，却听不见半点水声。船灯下映着两道重叠的船影。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 4,
+        "row": 3,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "可接受共享",
+      "reason": "亮灯古船及蓝色雾气适合银雾暗船突现；双重船影和无水声未明确表现，保留为主体概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "月潮梦游",
+      "id": "event_moon_moon_sleepwalker",
+      "description": "一名梦游水手正在向船舷走去，嘴里反复念着陌生港口的名字。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_moon_sleepwalker_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "水手闭眼/失神走近船舷与旁人阻拦符合梦游危机。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "幽灵洋流",
+      "id": "event_moon_ghost_current",
+      "description": "水下的冷光逆着海流移动，罗盘指针跟着它不停摆动。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_ghost_current_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "水下冷光和前景罗盘匹配异常流光指引，逆流与针摆为时序概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "坠落星辉",
+      "id": "event_moon_falling_starlight",
+      "description": "一束冷光落入前方海面，几片仍在发亮的碎屑浮到浪尖。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_falling_starlight_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "冷色坠光与浮于海面的发光碎片对应场景。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "遗物低语",
+      "id": "event_moon_relic_whisper",
+      "description": "一枚缠着海草的旧饰物撞上船舷，其中传来断断续续的报港声。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_whisper_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "缠海草的旧饰物靠船舷出现，符合遗物漂来主体，声音为文本补充。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "银雾迷航",
+      "id": "event_moon_silver_fog",
+      "description": "银雾中，船头和船尾的灯光竟像是从同一方向照来，熟悉的航标也全都不见了。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_silver_fog_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "浓银雾及异常灯光、船员迷向构成核心氛围；灯光同向的空间异常作概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "月下无风",
+      "id": "event_moon_dead_calm",
+      "description": "船帆突然垂下，月影却仍在船侧缓慢移动。海面安静得令人不安。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_dead_calm_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "垂帆船只与近乎静止的月夜海面符合无风寂静；移动月影不能单帧判断。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "幽灵残骸",
+      "id": "event_moon_spectral_debris",
+      "description": "一段古船残舱浮在雾里，锚链碰撞声比海浪还慢半拍。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png",
+        "column": 1,
+        "row": 1,
+        "rowOrigin": "top",
+        "grid": "5x4"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "原图是整艘古船沉在海底，文本为一段残舱在海面雾里漂浮。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "诅咒涌动",
+      "id": "event_moon_curse_surge",
+      "description": "舱门内忽然挤满了重重影子，水手们听见自己的名字在舱中回荡。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_curse_surge_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "舱门密集重叠影子与惊惧水手符合诅咒涌动。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "逆写拓片",
+      "id": "event_moon_v2_reversed_rubbing",
+      "description": "一卷蜡封拓片撞上船舷，所有字都朝着纸背生长。透过湿纸，能看见月痕方碑的轮廓。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_reversed_rubbing_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "湿拓片与反写印记、远处方碑对应反向读取线索。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "无声铜铃",
+      "id": "event_moon_v2_hollow_bell",
+      "description": "捞起的铜铃没有铃舌，却震得满船的钉子一齐颤动。船员们都说，自己听见了同一个陌生名字。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_hollow_bell_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "无舌铜铃及围绕的小金属件表达异常振动装置，振动属单帧概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "借影摆渡人",
+      "id": "event_moon_v2_borrowed_shadow",
+      "description": "一叶没有倒影的小舟与船并行。摆渡人想借走一道影子，愿拿水下的见闻作交换；一盏能照见自己的灯，他也肯收。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_borrowed_shadow_v1.png"
+      },
+      "originalVerdict": "不匹配",
+      "reason": "旧图小舟下有明确倒置船体/舟人暗色轮廓，违背没有倒影的关键特征。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "瓶中星虫",
+      "id": "event_moon_v2_star_in_jar",
+      "description": "一只玻璃罐浮上水面，罐内的微光随海底地形明灭。光点会聚成星座，也会在药液旁停留。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_star_in_jar_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "透明瓶中的发光虫群呈星形排列，符合瓶中星虫。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "活木船首",
+      "id": "event_moon_v2_living_figurehead",
+      "description": "漂来的旧船首竟还在生长。年轮的纹路勾勒出几条早已消失的航道，木头深处却嵌着一枚冰冷的机关芯。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_living_figurehead_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "木质船首像生长纹理与核心机关相符，具体旧航路信息由文本补充。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "送葬灯列",
+      "id": "event_moon_v2_funerary_procession",
+      "description": "一列小灯舟载着写有姓名的牌子，从船旁缓缓漂过。末尾那只小舟的铭牌正沉入水中，远处还有几盏灯停在海图未标注的水域。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_funerary_procession_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "提灯小舟队列与名牌、低沉末舟符合送葬灯列。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "错位炮声",
+      "id": "event_moon_v2_misplaced_echo",
+      "description": "海上传来的炮声比甲板上的敲击更早响起。每敲一下，舱内的空箱就向声源挪动一寸。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_misplaced_echo_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "空舱与异常错位箱体、远海炮光表达错位回声，先听后响由文本补充。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "假名祖灵",
+      "id": "event_moon_v2_false_ancestor",
+      "description": "一团水光自称是船员的祖先，却把每个人的故乡都说错了。它声称知道一处封存的墓藏，条件是让你记住它真正的名字。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_false_ancestor_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "水上人形幻影与回应船员符合疑似祖灵；错误家乡属对白内容。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "潮汐算筹",
+      "id": "event_moon_v2_tide_abacus",
+      "description": "漂木上的铜制算筹正自行拨动。它缺了一颗算珠，翻来覆去都只显示同一个月相。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_tide_abacus_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "漂木上的铜算筹与缺位珠格符合会自移的潮汐算盘，月相重复为静态概括。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "月影收租人",
+      "id": "event_moon_v2_moon_taxcollector",
+      "description": "披着空甲的收租人划着小艇靠近，把海面上的月影称作私人泊位。甲缝里夹着旧王庭欠契。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_moon_taxcollector_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "空盔内无面孔、空铠甲与债卷及指向月影的手势均匹配。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "星象师的空艇",
+      "id": "event_moon_v2_astronomer_rescue",
+      "description": "救生艇上只有一名仍在计算月位的学者。他的水囊已空，手里却紧攥着方碑的星位抄本和一面黄铜观测镜。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_astronomer_rescue_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "独乘救生艇的学者、星图和观测仪符合待救星象师。",
+      "visuallyInspected": true
+    },
+    {
+      "route": "moon",
+      "group": "月潮遗迹海 · 随机事件",
+      "title": "银针雨",
+      "id": "event_moon_v2_silver_needle",
+      "description": "没有乌云，细如发丝的银针却垂直落在海面上。每根针停住时，都指向同一颗看不见的星。",
+      "originalImage": {
+        "path": "D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_silver_needle_v1.png"
+      },
+      "originalVerdict": "匹配",
+      "reason": "垂直细银线落向无暴风的海面符合银针雨主体。",
+      "visuallyInspected": true
+    }
+  ],
+  "comicAppendix": {
+    "scope": "单列实际出航前奏漫画；本轮不扩展为6页漫画重绘",
+    "dialogueSource": "UnityClient/Assets/_Project/Presentation/Runtime/TreasureComicDialogueCatalog.cs",
+    "rendering": "CoreGameplayTreasureStoryPresentation的voyageIntro调用GetPage(rankId,page,ContentVersion)，不是CoreTreasureStoryCatalog.Chapters.Pages的长正文。",
+    "counts": {
+      "originalPages": 6,
+      "originalCaptions": 33,
+      "version1ReplacementCaptions": 15,
+      "totalUniqueCaptions": 48
+    },
+    "inspectedImages": [
+      "D:/Game/UnityClient/Assets/_Project/Resources/TreasureHunt/Comics/weathered_page01.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/TreasureHunt/Comics/weathered_page02.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/TreasureHunt/Comics/gilded_page01.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/TreasureHunt/Comics/gilded_page02.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/TreasureHunt/Comics/moonlit_page01.png",
+      "D:/Game/UnityClient/Assets/_Project/Resources/TreasureHunt/Comics/moonlit_page02.png"
+    ],
+    "legacyVerdict": "旧版33条与6页原漫画主要内容相符：铁甲/红帆守门、雷冠炮战/余烬炉船、沉月王庭/幽舰/宝库。",
+    "version1Verdict": "15条V1目标替换字幕与原漫画存在语义脱节；图片仍用于展示旧战舰情节。",
+    "details": [
+      {
+        "rank": "weathered",
+        "count": 5,
+        "issue": "营地/修工具/绞盘/潜水钟/工坊字幕被放在铁甲舰、红帆舰、无针罗盘和沉门画面中，未出现新目标工具与工坊。"
+      },
+      {
+        "rank": "gilded",
+        "count": 5,
+        "issue": "货单/商盟信用/清通缉字幕复用旧账簿、雷冠炮战、余烬炉船、王庭印记画面，信用条件未获相应场景表达。"
+      },
+      {
+        "rank": "moonlit",
+        "count": 5,
+        "issue": "三祭坛分时点亮/洗月圣泉/低诅咒字幕仍配月蚀王庭、幽舰、残塔航道和宝库门；昼暮夜祭坛与泉并未绘出。"
+      }
+    ]
+  },
+  "redrawBatch": {
+    "manifest": "D:/Game/outputs/event-consistency-audit-20261023/generated-trade-moon.json",
+    "assigned": [
+      "event_trade_debt_collector",
+      "event_trade_merchant_distress",
+      "event_moon_mirror_pool",
+      "event_moon_spectral_debris",
+      "event_moon_lunar_observatory",
+      "moon_ghost",
+      "event_moon_v2_borrowed_shadow",
+      "event_moon_drowned_library",
+      "event_moon_healing_spring"
+    ],
+    "generated": [
+      "event_trade_debt_collector",
+      "event_trade_merchant_distress",
+      "event_moon_mirror_pool",
+      "event_moon_lunar_observatory",
+      "moon_ghost",
+      "event_moon_v2_borrowed_shadow",
+      "event_moon_drowned_library",
+      "event_moon_healing_spring",
+      "event_moon_spectral_debris"
+    ],
+    "notModified": "未更改旧原图或catalog；资源映射与全量测试由event_inventory代理接入。"
+  }
+}

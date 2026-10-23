@@ -1,0 +1,147 @@
+[
+  {
+    "key": "core_weathered",
+    "name": "沉船工坊主机舱",
+    "scene": "Inside a gigantic flooded ancient wooden ship workshop. A heavy hoisting winch at an opened upper hatch, ropes lifting a massive beam, a brass diving bell descending into clear teal water to recover delicate ancient gear assemblies and a compass from a precision workbench below. Show both tools and preserved machinery as central story. Wide cutaway view grounded in a full sea wreck setting."
+  },
+  {
+    "key": "core_gilded",
+    "name": "商盟封存总仓",
+    "scene": "Grand sealed merchant guild warehouse at a seaport. Rows of inherited cargo crates with wax seals, closed iron lattice store rooms, clerk's desk with notarized cargo manifest and brass scales, a discreet narrow smuggler passage behind stacked crates. Warm gold sunlight from sea-facing doors. The warehouse itself is the subject, no giant treasure chest."
+  },
+  {
+    "key": "core_moonlit",
+    "name": "三相月蚀圣所",
+    "scene": "An ancient sanctuary among ocean ruins where THREE separate beams from three distant altars converge above a relic on a central stone dais: pale daylight gold, dusk amber, midnight silver blue. Black pearls and ancient carved compass beside the dais. Eclipsed moon above ruined sea pillars. Mysterious ritual not a warehouse or vault door."
+  },
+  {
+    "key": "tutorial_note",
+    "name": "无法辨认的潮汐笔记",
+    "scene": "On the wooden deck of a sailing ship, sailors have opened their old captain's weathered sea chest. One holds a single torn parchment with six harbor symbols and incomprehensible tidal route markings, beside a compass. The six symbols are abstract tiny drawings, NO letters. The mysterious old sea-route page is central, curious sailors and ocean behind. No merchant ledger or money dealing."
+  },
+  {
+    "key": "tutorial_message_ship",
+    "name": "顺风捎来的讯息",
+    "scene": "Two small sailing ships close beside one another on calm blue sea under a favorable wind. A courier on the passing fast cutter reaches across with a wax-sealed urgent letter and a modest coin pouch to a sailor on viewer's deck. Both boats visible, full ocean setting; exchange of message central."
+  },
+  {
+    "key": "tutorial_message_tube",
+    "name": "水手发现漂流信筒",
+    "scene": "A sailor leaning over a ship's rail uses a boat hook to retrieve a floating waterproof cylindrical leather and brass message tube. Its opened end reveals a curled merchant receipt with a wax seal. Small tube in foreground close enough to read visually as a tube, sparkling seawater, deck and hand, no legible text."
+  },
+  {
+    "key": "tutorial_tide_buoy",
+    "name": "潮汐暗标",
+    "scene": "Wooden sailing ship approaching a discreet moored navigation buoy amid tropical reefs. A navigator holds a tide chart matching subtle carved tide symbols on the buoy. Clear water reveals a small tightly sealed wooden casket tied beneath the buoy. Focus on buoy and underwater casket together, full ocean scene."
+  },
+  {
+    "key": "reef_tide_cache",
+    "name": "潮痕秘藏",
+    "scene": "Hidden storage chamber inside an old tidal shipyard at low tide. Tide marks on stone walls lead to ordinary stone coffers and a separate tightly closed mechanical compartment with a wheel, lock pins and pulley sequence; navigator's dock blueprint unrolled nearby. Ocean visible through entrance. Mystery of engineering lock central, no mountain of treasure."
+  },
+  {
+    "key": "reef_broken_mast",
+    "name": "断桅求援",
+    "scene": "A stranded ship with a visibly snapped mainmast at a tropical reef. A tired shipwright still aboard tightly protects a rolled shipyard blueprint, gesturing toward broken timber and needed repair materials. Player boat is drawing alongside carrying lumber. The man is safely on damaged deck, not swimming or drowning."
+  },
+  {
+    "key": "reef_chart_current",
+    "name": "暗流推船",
+    "scene": "View from the bow of a wooden ship lifted by a rolling turquoise current between black reefs. Several fragments of ancient nautical parchment crusted in white salt drift at the water surface, discernible abstract chart route markings. Boat hook ready to retrieve them. Sea current and salt-encrusted floating charts both prominent."
+  },
+  {
+    "key": "storm_debris",
+    "name": "风暴残骸",
+    "scene": "Broken wooden masts and tangled rigging rolling in storm waves beneath thunderclouds. View from intact player's sailing ship at the side, a snapping spar about to sweep close to the hull. Debris is central foreground, large threatening ocean backdrop, no sailors just trimming intact sails."
+  },
+  {
+    "key": "pearl_divers",
+    "name": "珊瑚采珠人",
+    "scene": "Traditional pearl divers' small workboat resting in the sheltered lee of a tropical coral reef. Divers with simple baskets returning with modest pearl oysters, clear shallow turquoise water, rock shelter and calm sea. Ordinary human pearl diving, no glowing lunar relics, no underwater ruins."
+  },
+  {
+    "key": "weathered_chain",
+    "name": "横海沉链",
+    "scene": "Two derelict wooden ships on opposite sides of a sea channel, a thick rusty iron chain stretched taut between their hulls across the swift current. Old winch hook on nearby shore in foreground. Chain blocks passage; ship remains and rushing sea are all visible. No bridge between stone pillars."
+  },
+  {
+    "key": "weathered_keel",
+    "name": "龙骨封舱",
+    "scene": "A shipwreck's submerged belly crushed shut by a massive length of timber keel. A salvage winch above water has ropes around this giant timber; a brass diving bell waits beside the sealed inner compartment underwater. Clear cross-water viewpoint showing compartment and heavy keel obstacle, ancient copper mechanism glimpse inside."
+  },
+  {
+    "key": "weathered_rustyard",
+    "name": "锈锚拆船场",
+    "scene": "Abandoned nautical scrapyard in a tidal shipyard, dismantling racks piled with rusty anchors, corroded iron fittings, old cast ingots marked with matching abstract furnace symbols, reusable timbers and a small cold forge nearby. Sea and wreck skeletons beyond. Rusty iron salvage is central, no clean repair cave."
+  },
+  {
+    "key": "weathered_buoy",
+    "name": "沉没测深浮标",
+    "scene": "A lonely unsteady lantern floating above clear sea water. Underneath it a heavy brass graduated depth-measuring dial and base have sunk tilted deep into the seabed next to old shipwrecks. A diving bell approaches the tilted dial. Show water surface and underwater dial together in a natural cutaway scene. One sunken buoy, not three bells."
+  },
+  {
+    "key": "weathered_caisson",
+    "name": "裂缝沉箱",
+    "scene": "A large timber and iron marine engineering caisson, a rectangular construction chamber partly submerged at an old sea dock, visibly cracked by pressure. Divers in an adjacent brass diving bell inspect the inside fracture, loose wood bracing on a workboat. Water leaking through the caisson wall, clearly not the inside of player's ship hold."
+  },
+  {
+    "key": "gilded_witness",
+    "name": "失踪押运员",
+    "scene": "A frightened merchant cargo escort hiding low in a drifting small dinghy, clutching several shipping receipts tightly to his chest. Half hidden by a worn canvas tarp, distant patrol ship causing him to glance nervously. Main ship approaching, golden trade coast, full ocean background. Not a confident rowing captain."
+  },
+  {
+    "key": "gilded_relief",
+    "name": "赈济交割船",
+    "scene": "A relief supply ship docked offshore with a crowded deck of hungry ordinary people awaiting grain sacks and water casks. Quartermaster at nearly empty distribution table, sailors preparing to unload new supplies from a visiting boat. Golden trade route seaside atmosphere, compassion and shortage, not armed convoy."
+  },
+  {
+    "key": "gilded_auction",
+    "name": "封缄拍卖艇",
+    "scene": "Auction on the deck of a small merchant boat. Auctioneer holds up a preserved navigation kit: brass compass, sextant and copper sea lantern. Bidders raise sealed guild credentials and coin pouches. Sea visible all around, warm light. Navigational instruments clearly central, NO food or spice auction."
+  },
+  {
+    "key": "gilded_convoy",
+    "name": "逆风商队",
+    "scene": "A group of merchant sailing ships struggling against a headwind in a narrow sea passage, forward sails luffing, sailors switching sails and consulting a pilot. Valuable sealed cargo crates temporarily exposed beside an open hatch in foreground. Golden merchant coast; practical tension, not an easy downwind voyage."
+  },
+  {
+    "key": "gilded_ledger_buoy",
+    "name": "海底账册浮标",
+    "scene": "A small moored buoy in golden-blue merchant waters, a rope below it suspending a waterproof box containing old guild ledgers. Sailor lifting the dripping open box onto boat rail; old accounts with visibly overwritten abstract ink strokes and seals, no readable words. Buoy, water, hanging box and ledger all visible, not a desk office."
+  },
+  {
+    "key": "moonlit_dawn",
+    "name": "昼辉祭坛",
+    "scene": "Ancient sea-ruin altar engraved with a radiant sun/daylight motif, standing among wet pillars and waves. Brilliant DAYTIME sky and warm daylight illuminates a small unlit ritual vessel at its center. Ritual carvings leading toward ocean sanctuary, visible ship at distance. Sole daylight altar."
+  },
+  {
+    "key": "moonlit_dusk",
+    "name": "暮潮祭坛",
+    "scene": "Ancient sea-ruin altar engraved with a setting sun and tide motif, standing among wet pillars and waves. Orange-purple DUSK, just setting sun, tide channels glow amber along stone. Small ritual vessel in center. Sole twilight altar, full ocean background."
+  },
+  {
+    "key": "moonlit_midnight",
+    "name": "夜幕祭坛",
+    "scene": "Ancient sea-ruin altar engraved with stars and crescent moon motif, standing among wet pillars and waves. Deep MIDNIGHT sky, silver moonlight, cold blue tide channels on stone, small ritual vessel centered. Sole night altar, no sunset sunlight, full ocean background."
+  },
+  {
+    "key": "moonlit_choir",
+    "name": "无声唱诗礁",
+    "scene": "Moonlit reef of fissured dark stone. A small ancient BONE FLUTE embedded deep in a central fissure, holes linked to carved twilight tide patterns on the surrounding rock. Waves passing through cracks seem to sing, dim silver glow, ruined ocean coast. Bone flute and stone carvings central, no mechanical horns or metal pipes."
+  },
+  {
+    "key": "moonlit_guardian",
+    "name": "沉睡守月像",
+    "scene": "An enormous sleeping weathered stone guardian seated at a ruined ocean shrine, closed eyes, two cupped hands protecting a single pale moon core against its chest. Soft paired rings of moonlight near palms, still peaceful. Full sea and temple background. No standing armed warrior, no trident."
+  },
+  {
+    "key": "moonlit_well",
+    "name": "不落月井",
+    "scene": "An ancient round stone well on a moonlit seaside terrace, still clear water reflects an enduring bright moon. Silver sand sparkles below the water. Sealed water jars and grain sacks sit beside the well, subtle night-phase carvings. Small deep WELL, not a broad reflecting pool."
+  },
+  {
+    "key": "treasure_guard_ship",
+    "name": "沉月王庭守藏舰",
+    "scene": "An imposing ancient guardian warship slowly patrols an empty palace harbor under the moon. At its bow a huge EYELESS STONE FIGUREHEAD faces the treasure entrance, dark mineral-coated hull, weathered royal moon sigils on sails, silent high ruined piers and vast open water. Low angle from a small boat for dread and scale. Complete background, no transparency, no ordinary skeleton pirate."
+  }
+]

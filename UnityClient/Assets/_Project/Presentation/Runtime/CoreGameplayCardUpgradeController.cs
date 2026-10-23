@@ -61,8 +61,6 @@ namespace ShatteredSail.Presentation
                 new Vector2(0f, -34f), CardOrnamentKind.UpgradeArrow, data.Type);
             if (atMaximum) arrow.GetComponent<CardOrnamentGraphic>().color = new Color(1f, 1f, 1f, .3f);
             string unavailable = session.BattleCardUpgradeUnavailableReason(index);
-            CreateText("Upgrade Limit", panel, new Vector2(640f, 24f), new Vector2(0f, -286f),
-                19, FontStyle.Normal, TextAnchor.MiddleCenter, muted).text = CardUpgradeLimitDescription(data, maximumLevel);
             CreateText("Upgrade Availability", panel, new Vector2(640f, 26f), new Vector2(0f, -315f),
                 21, FontStyle.Normal, TextAnchor.MiddleCenter, muted).text = atMaximum ? string.Empty : unavailable;
             Button confirm = CreateButton("Confirm Battle Card Upgrade", panel, new Vector2(570f, 64f), new Vector2(0f, -365f), Gold, Ink, 30);
@@ -82,29 +80,6 @@ namespace ShatteredSail.Presentation
         private static string CardMaximumLevelLabel(int maximumLevel) => maximumLevel <= 0 ? "固定效果" :
             maximumLevel == 1 ? "已达一阶" : maximumLevel == 2 ? "已达二阶" : "已达三阶";
 
-        private static string CardUpgradeLimitDescription(CoreBattleCard card, int maximumLevel)
-        {
-            var parts = new List<string> { maximumLevel <= 0 ? "固定效果，无强化阶级" : "强化上限 +" + maximumLevel };
-            CoreCardUpgradeProfile profile = CoreCardUpgradeDesign.Find(card);
-            CoreSchoolMechanic mechanic = card.SchoolEffect?.Mechanic ?? CoreSchoolMechanic.None;
-            if (card.Draw > 0 || mechanic == CoreSchoolMechanic.ArcaneEcho || mechanic == CoreSchoolMechanic.ThunderEcho)
-            {
-                int lastDraw = profile?.LastDrawGrowthLevel ?? CoreBattleUpgradeBalance.UtilityMaximumLevel(card);
-                parts.Add(lastDraw <= 0 ? "抽牌固定" : "抽牌至 +" + lastDraw);
-            }
-            if (CoreBattleUpgradeBalance.BaseEnergyRecovery(card) > 0)
-            {
-                int lastEnergy = profile?.LastEnergyGrowthLevel ?? CoreBattleUpgradeBalance.UtilityMaximumLevel(card);
-                parts.Add(lastEnergy <= 0 ? "回能固定" : "回能至 +" + lastEnergy);
-            }
-            if (card.NavalActionPointGain > 0)
-            {
-                int lastActionPoints = profile?.LastActionPointGrowthLevel ?? 0;
-                parts.Add(lastActionPoints <= 0 ? "行动点固定" : "行动点至 +" + lastActionPoints);
-            }
-            return string.Join("；", parts);
-        }
-
         private string UpgradeCardEffectDescription(CoreBattleCard card)
         {
             return session.BattleCardFaceDescription(card, selectedBattleDeckStage);
@@ -115,10 +90,18 @@ namespace ShatteredSail.Presentation
         {
             Text title = CreateText("Upgrade Comparison Heading " + suffix, panel, new Vector2(260f, 38f), position + new Vector2(0f, CardSchoolArtCatalog.FrameBounds(card).height * .5f + 28f), 24, FontStyle.Bold, TextAnchor.MiddleCenter, muted);
             title.text = heading;
+            string description = UpgradeCardEffectDescription(card);
             RectTransform face = CreateCollectionCardFace(panel, card, "Upgrade Comparison " + suffix,
                 "Upgrade Comparison Art " + suffix, "Upgrade Comparison Name " + suffix, 1f,
-                UpgradeCardEffectDescription(card), "Upgrade Comparison Body " + suffix);
-            face.anchoredPosition = position - CardSchoolArtCatalog.FrameBounds(card).center;
+                description, "Upgrade Comparison Body " + suffix);
+            RefreshCardSupplyCost(face, card, previewStage: selectedBattleDeckStage);
+            Rect bounds = CardSchoolArtCatalog.FrameBounds(card);
+            face.anchoredPosition = position - bounds.center;
+            Image hit = face.GetComponent<Image>();
+            hit.raycastTarget = true;
+            hit.raycastPadding = new Vector4(bounds.xMin - face.rect.xMin, bounds.yMin - face.rect.yMin,
+                face.rect.xMax - bounds.xMax, face.rect.yMax - bounds.yMax);
+            CollectionCardKeywordHover.Bind(face.gameObject, face, card, FormatBattleCardDescription(description));
         }
     }
 }

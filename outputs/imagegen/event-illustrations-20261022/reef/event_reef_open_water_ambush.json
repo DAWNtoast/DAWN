@@ -1,0 +1,7 @@
+{
+  "eventId": "event_reef_open_water_ambush",
+  "source": "C:/Users/Admin/.codex/generated_images/01a1630b-0426-7de1-9802-03c061f4820c/exec-41b454d2-cb3b-47a3-87ab-36b49331b3ed.png",
+  "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_open_water_ambush_v1.png",
+  "tool": "built-in image_gen",
+  "prompt": "Use case: illustration-story. Asset type: final in-game nautical encounter illustration, one single full-bleed landscape scene, 4:3 composition, preferably 1536x1152. Style: richly detailed hand-painted maritime adventure storybook painting, matching classic pirate adventure game illustrations, believable weathered timber, saltwater, rope and brass, crisp central silhouette readable at 256px. Keep crucial forms within central 80%, generous environment context, no borders, panels, text, lettering, captions, logos, watermark, modern objects or photorealistic finish. Scene: View from above and just behind the stern rail of a wooden sailing ship in a narrow turquoise reef channel. Exactly two shallow-draft pirate raiding boats emerge from dark coral-rock shadows at left and right and turn inward toward the ship's stern in a clear pincer maneuver. Their dark ragged small sails, armed silhouettes and converging curved wakes explain the ambush; foreground rigging and rail establish the threatened player vessel. Bright daylight on open sea contrasts with shaded reefs, tense coherent ship geometry, no shore sword charge, no gore."
+}

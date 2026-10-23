@@ -17,6 +17,16 @@ namespace ShatteredSail.Presentation
         private int ramComicPanelIndex;
         private bool ramComicAdvanceRequested, ramComicResumeAfterPause;
 
+        private Texture2D RamComicTextureForConnection(bool enemyInitiated, NavalBoardingConnection connection)
+        {
+            // There is no authored stern-impact sequence. Keep the physical
+            // impact at the real ship poses instead of showing a different hit.
+            if (connection != NavalBoardingConnection.RamBowToBow &&
+                connection != NavalBoardingConnection.RamBowToBroadside) return null;
+            return RamComicTexture(enemyInitiated, connection == NavalBoardingConnection.RamBowToBow
+                ? NavalBattleAlignment.HeadOn : NavalBattleAlignment.EnemyBroadside);
+        }
+
         private Texture2D RamComicTexture(bool enemyInitiated, NavalBattleAlignment impactAlignment)
         {
             int sequence = RamComicCatalog.SequenceIndex(enemyInitiated, impactAlignment);
@@ -77,9 +87,10 @@ namespace ShatteredSail.Presentation
             if (ramComicAutoAdvance != null) ramComicAutoAdvance.ResetTimer();
         }
 
-        private IEnumerator AnimateRamComic(Texture2D art, bool enemyInitiated, BattleAnimationSnapshot before, BattleAnimationSnapshot after, int priorBurnDamage)
+        private IEnumerator AnimateRamComic(Texture2D art, bool enemyInitiated, BattleAnimationSnapshot before, BattleAnimationSnapshot after, int priorBurnDamage,
+            NavalBoardingConnection connection)
         {
-            if (art == null || BuildRamComicOverlay(art, enemyInitiated, false,
+            if (art == null || BuildRamComicOverlay(art, enemyInitiated, connection == NavalBoardingConnection.RamBowToBow,
                 string.Empty) == null) yield break;
             try
             {

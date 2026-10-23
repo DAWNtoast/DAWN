@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-22",
+  "method": "static source/text audit; no Unity run",
+  "components": 150,
+  "componentIdsUnique": 150,
+  "componentBodiesUnique": 150,
+  "crew": 36,
+  "crewIdsUnique": 36,
+  "crewBodiesUnique": 36,
+  "stories": 15,
+  "missingStories": [],
+  "emptyBodies": [],
+  "replacementCharacters": [],
+  "confirmedFindingCategories": 3,
+  "definiteLanguageErrors": 2,
+  "extraComponentsWithUnreachableNarratedRoute": 14,
+  "allComponentsWithUnreachablePreferredRoute": 67
+}

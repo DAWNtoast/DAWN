@@ -1,0 +1,15 @@
+﻿ship,component,firepower,armor,effectiveFirepower,effectiveArmor,cardBaseDamage,quotedDamage,actualDamage,enemyRawDamage,actualReceived,maxHull
+sloop,baseline,6,2,6,2,10,10,10,20,20,55
+sloop,cannon_bronze_longgun,8,2,8,2,10,10,10,20,20,55
+sloop,cannon_chain_repeater,10,2,10,2,10,11,11,20,20,55
+sloop,plating_gilded_bulwark,6,4,6,4,10,10,10,20,20,63
+sloop,plating_moonsilver_skin,6,5,6,5,10,10,10,20,20,69
+sloop,plating_living_hull,6,6,6,6,10,10,10,20,19,77
+patrol,baseline,22,10,22,10,10,17,17,20,17,155
+patrol,cannon_bronze_longgun,24,10,24,10,10,18,18,20,17,155
+patrol,cannon_chain_repeater,26,10,26,10,10,19,19,20,17,155
+patrol,plating_gilded_bulwark,22,12,22,12,10,17,17,20,16,163
+patrol,plating_moonsilver_skin,22,13,22,13,10,17,17,20,16,169
+patrol,plating_living_hull,22,14,22,14,10,17,17,20,15,177
+PASS: 108 assertions; 12 loadouts; real production PlayCard/EndBattleTurn; controlled Core fixture, not Unity UI playthrough.
+﻿

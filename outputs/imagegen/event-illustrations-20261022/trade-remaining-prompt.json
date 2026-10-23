@@ -1,0 +1,10 @@
+{
+  "eventId": "event_trade_v2_floating_school",
+  "title": "跨海学堂",
+  "prompt": "Use case: illustration-story. Create one polished hand-painted Age of Sail adventure game event illustration. Landscape 4:3 composition, single continuous full-bleed scene, no panels, no border, no title, no lettering, no readable text, no logo or watermark. Rich realistic materials and painterly detail, clear bold focal subject readable at 256-pixel thumbnail, naturally proportioned people. Golden Tide merchant-route art direction: luminous turquoise and deep blue sea, warm golden sunlight, weathered wood, brass, cream canvas and rich red merchant sails. No modern objects, no anachronisms, no extraneous plot elements. Avoid clutter; compose specifically for the described event, with important subjects away from edges. \nScene: The open deck classroom of a retired wooden merchant ship. Several children sit at low wooden desks drawing their very first nautical charts using simple coastline sketches and compasses with no lettering. A patient teacher holds an older fragmentary sea chart for them to study. Sunlight filters through faded red sailcloth overhead; turquoise sea visible beyond the rail. Warm inviting educational mood, focus on two children's drawings and the teacher, clearly nautical and handmade, no modern school materials.",
+  "attempts": 2,
+  "errors": [
+    "connection failed: error sending request",
+    "network error: error sending request"
+  ]
+}

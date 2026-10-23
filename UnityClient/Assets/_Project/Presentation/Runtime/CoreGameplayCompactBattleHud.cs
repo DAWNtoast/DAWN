@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation
                 movement.sizeDelta = new Vector2(230f, 44f);
                 movement.anchoredPosition = new Vector2(735f, -247f);
                 ConfigureCompactBattleHover(movement.Find("Commit Naval Movement").gameObject, root,
-                    "确定航行", "按已规划路线航行。选择到达朝向后清空行动点；抵达时剩余点数可先用于冲撞或接舷。");
+                    "确定航行", "按已规划路线航行。终点为敌舰所在格时主动冲撞，最后一步消耗 1 行动点；双方存活则自动进入白刃战。普通航行抵达后选择朝向，剩余点数可先用于冲撞或接舷。");
                 ConfigureCompactBattleHover(movement.Find("Clear Naval Movement").gameObject, root,
                     "清空路线", "清除当前预览路线，重新规划；不会移动船只或消耗行动点。");
             }
@@ -80,12 +80,14 @@ namespace ShatteredSail.Presentation
                 (boarding ? battle.Boarding.TidePower : battle.Schools.TidePower) + "/" + (boarding ? 12 : battle.Schools.TideLimit),
                 "潮汐体系资源，用于强化相关卡牌与效果。", 2, 4,
                 current: boarding ? battle.Boarding.TidePower : battle.Schools.TidePower, limit: boarding ? 12 : battle.Schools.TideLimit);
-            SetCompactResource(second, root, "CurseMark", BattleCommandIconKind.CurseMark, "咒痕",
-                (boarding ? battle.Boarding.CurseMarks + "/6" : battle.Schools.CurseMarks.ToString()),
-                "施加在敌方的咒痕，影响诅咒体系卡牌的效果。" + (boarding ? string.Empty :
-                    "\n剩余 " + battle.Schools.CurseTurns + " 回合；每层基础末结算 " + battle.Schools.CurseDamagePerMark +
-                    "，下次每层追加 " + battle.Schools.CurseNextTickBonus + "。"), 3, 4,
-                current: boarding ? battle.Boarding.CurseMarks : battle.Schools.CurseMarks, limit: boarding ? 6 : -1);
+            SetCompactResource(second, root, "CurseMark", BattleCommandIconKind.CurseMark, "咒印",
+                (boarding ? battle.Boarding.CurseMarks : battle.Schools.CurseMarks).ToString(),
+                "施加在敌方的咒印。" + CoreBattleStatusPresentation.DecayingDamageRule +
+                (battle.Schools.CurseTickBonus > 0 ? "\n每次结算时额外造成 " + battle.Schools.CurseTickBonus +
+                    " 点伤害，咒印消失时清除；这项加成不改变层数与持续时间。" : string.Empty) +
+                (battle.Schools.CurseNextTickBonus > 0 ? "\n下次结算时额外造成 " + battle.Schools.CurseNextTickBonus +
+                    " 点伤害；这项加成不改变层数与持续时间。" : string.Empty), 3, 4,
+                current: boarding ? battle.Boarding.CurseMarks : battle.Schools.CurseMarks);
             RectTransform third = panel.Find("Battle Resource Line 3") as RectTransform;
             SetCompactResource(third, root, "Powder", BattleCommandIconKind.Powder, "火药", session.Cargo.Powder.ToString(), "货舱火药库存，部分炮击与战术卡消耗。", 0, 4, current: session.Cargo.Powder);
             SetCompactResource(third, root, "Cannonball", BattleCommandIconKind.Cannonball, "炮弹", session.Cargo.Cannonballs.ToString(), "货舱炮弹库存，炮击卡消耗。", 1, 4, current: session.Cargo.Cannonballs);

@@ -69,6 +69,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.Alignment = NavalBattleAlignment.EnemyBroadside;
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.PlannedBoardingApproach = NavalBoardingApproach.Quarter;
             Play(session, "card_parallel_course");

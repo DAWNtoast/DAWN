@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
+using ShatteredSail.Core.Random;
 using UnityEngine;
 
 namespace ShatteredSail.Core.Tests
@@ -125,8 +126,110 @@ namespace ShatteredSail.Core.Tests
             Assert.That(restored.Map.ChartExploredCells, Is.EqualTo(original.ChartExploredCells));
         }
 
+        [TestCase(0, "SS2", 32, 64f)]
+        [TestCase(1, "SS3", 36, 75f)]
+        [TestCase(2, "SS4", 36, 75f)]
+        [TestCase(3, "SS5", 36, 75f)]
+        [TestCase(4, "SS6", 34, 100f * 34f / 48f)]
+        public void EveryChartFormatKeepsItsOwnWorldAndExplorationOnResume(int version, string prefix, int rows, float height)
+        {
+            // Kind 1 is the supported imported-chart format, with a fixed geography hash.
+            string payload = prefix + ".0.0.1.0.1.1234ABCD.00000000";
+            string seed = payload + "." + SeedHash.Compute(payload).ToString("X8");
+            var source = new CoreVoyageSession();
+            Assert.That(source.TrySelectChartSeed(seed, out string reason), Is.True, reason);
+            source.Cargo.Water = source.Cargo.Food = 100;
+            source.StartVoyage();
+            Assert.That(source.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            CoreVoyageMap map = source.Map;
+            int edge = Enumerable.Range(0, map.CellCount).Last(index => map.IsPassable(index % map.Columns, index / map.Columns));
+            typeof(CoreVoyageSession).GetProperty("Position").SetValue(source, map.CellCenter(edge % map.Columns, edge / map.Columns));
+            map.ExploredCells[edge] = map.VoyageExploredCells[edge] = true;
+            map.InitializeChartExploration();
+            map.ChartExploredCells[map.ChartExploredCells.Length - 1] = true;
+
+            CoreVoyageCheckpoint decoded = JsonUtility.FromJson<CoreVoyageCheckpoint>(JsonUtility.ToJson(source.CaptureVoyageCheckpoint()));
+            var restored = new CoreVoyageSession();
+            Assert.That(restored.TryRestoreVoyageCheckpoint(decoded, out reason), Is.True, reason);
+            Assert.That(restored.Map.GeometryVersion, Is.EqualTo(version));
+            Assert.That(restored.Map.Rows, Is.EqualTo(rows));
+            Assert.That(restored.Map.FineRows, Is.EqualTo(rows * 2));
+            Assert.That(restored.Map.WorldHeight, Is.EqualTo(height).Within(.00001f));
+            Assert.That(restored.CurrentChartSeed, Is.EqualTo(seed));
+            Assert.That(restored.Position.Y, Is.EqualTo(source.Position.Y));
+            Assert.That(restored.Map.TerrainCells, Is.EqualTo(map.TerrainCells));
+            Assert.That(restored.Map.Nodes.Select(node => node.Position.X), Is.EqualTo(map.Nodes.Select(node => node.Position.X)));
+            Assert.That(restored.Map.Nodes.Select(node => node.Position.Y), Is.EqualTo(map.Nodes.Select(node => node.Position.Y)));
+            Assert.That(restored.Map.ExploredCells, Is.EqualTo(map.ExploredCells));
+            Assert.That(restored.Map.VoyageExploredCells, Is.EqualTo(map.VoyageExploredCells));
+            Assert.That(restored.Map.ChartExploredCells, Is.EqualTo(map.ChartExploredCells));
+        }
+
+        [TestCase("weathered")]
+        [TestCase("gilded")]
+        [TestCase("moonlit")]
+        public void NewlyCraftedTreasureChartsUseCompactBoundsAndRestoreEveryLocation(string rank)
+        {
+            var source = new CoreVoyageSession();
+            source.RestoreTreasureProgress(new CoreTreasureProgress {
+                pirateExperience = CoreVoyageSession.PirateExperienceForLevel(5),
+                identifiedWeatheredFragments = rank == "weathered" ? 4 : 0,
+                identifiedGildedFragments = rank == "gilded" ? 4 : 0,
+                identifiedMoonlitFragments = rank == "moonlit" ? 4 : 0
+            });
+            string seed = "COMPACT-TREASURE-" + rank;
+            Assert.That(source.TryCraftTreasureMapForRank(rank, seed, out string reason), Is.True, reason);
+            Assert.That(source.TrySelectTreasureSeed(seed, out reason), Is.True, reason);
+            Assert.That(source.SelectedTreasureMap.MapGeometryVersion, Is.EqualTo(4));
+            source.Cargo.Water = source.Cargo.Food = 100;
+            Assert.That(source.TryStartTreasureVoyage(out reason), Is.True, reason);
+            Assert.That(source.Map.Rows, Is.EqualTo(34));
+            foreach (CoreMapNode node in source.Map.Nodes)
+            {
+                Assert.That(node.Position.X, Is.InRange(0f, source.Map.WorldWidth), node.Encounter.Id);
+                Assert.That(node.Position.Y, Is.InRange(0f, source.Map.WorldHeight), node.Encounter.Id);
+                Assert.That(source.PlanNavigablePath(source.Map.Departure, node.Position).Count,
+                    Is.GreaterThanOrEqualTo(2), "Unreachable compact treasure location " + node.Encounter.Id);
+            }
+            var restored = new CoreVoyageSession();
+            CoreVoyageCheckpoint checkpoint = JsonUtility.FromJson<CoreVoyageCheckpoint>(JsonUtility.ToJson(source.CaptureVoyageCheckpoint()));
+            Assert.That(restored.TryRestoreVoyageCheckpoint(checkpoint, out reason), Is.True, reason);
+            Assert.That(restored.Map.GeometryVersion, Is.EqualTo(4));
+            Assert.That(restored.ActiveTreasureMap.MapGeometryVersion, Is.EqualTo(4));
+            Assert.That(restored.Map.TerrainCells, Is.EqualTo(source.Map.TerrainCells));
+            Assert.That(restored.Map.Nodes.Select(node => node.Position.X), Is.EqualTo(source.Map.Nodes.Select(node => node.Position.X)));
+            Assert.That(restored.Map.Nodes.Select(node => node.Position.Y), Is.EqualTo(source.Map.Nodes.Select(node => node.Position.Y)));
+            Assert.That(restored.Map.ChartExploredCells, Is.EqualTo(source.Map.ChartExploredCells));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void ExistingTreasureMapsKeepTheirOriginalRowsAndWorldWhenStartedAndResumed(int version)
+        {
+            var source = new CoreVoyageSession();
+            source.RestoreTreasureProgress(new CoreTreasureProgress {
+                pirateExperience = CoreVoyageSession.PirateExperienceForLevel(5), selectedMapId = "legacy-bounds",
+                maps = new[] { new CoreTreasureMapSave { id = "legacy-bounds", seed = "LEGACY-TREASURE-BOUNDS",
+                    rankId = "weathered", mapGeometryVersion = version, contentVersion = 1 } }
+            });
+            source.Cargo.Water = source.Cargo.Food = 100;
+            Assert.That(source.TryStartTreasureVoyage(out string reason), Is.True, reason);
+            Assert.That(source.Map.GeometryVersion, Is.EqualTo(version));
+            Assert.That(source.Map.Rows, Is.EqualTo(version == 0 ? 32 : 36));
+            Assert.That(source.Map.WorldHeight, Is.EqualTo(version == 0 ? 64f : 75f));
+            var restored = new CoreVoyageSession();
+            Assert.That(restored.TryRestoreVoyageCheckpoint(source.CaptureVoyageCheckpoint(), out reason), Is.True, reason);
+            Assert.That(restored.ActiveTreasureMap.MapGeometryVersion, Is.EqualTo(version));
+            Assert.That(restored.Map.TerrainCells, Is.EqualTo(source.Map.TerrainCells));
+            Assert.That(restored.Map.Nodes.Select(node => node.Position.Y), Is.EqualTo(source.Map.Nodes.Select(node => node.Position.Y)));
+        }
+
         [TestCase(0)]
         [TestCase(3)]
+        [TestCase(4)]
+        [TestCase(5)]
         public void CheckpointGeometryMismatchOrUnknownVersionCannotReplacePortState(int invalidVersion)
         {
             CoreVoyageSession source = CreateVoyage(1, "EXPANDED-SEA-INVALID");

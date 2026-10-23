@@ -11,6 +11,101 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
+        public IEnumerator NavalMovementRam_RealDragCommitsAllFourImpactSidesOnce()
+        {
+            foreach (float enemyHeading in new[] { 180f, 0f, 90f, 270f })
+            {
+                yield return LoadResponsiveBattleScene();
+                var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                var session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
+                yield return PrepareNavalArrivalContact(controller, session, enemyHeading);
+                yield return DragTacticalRoute(controller, new[] { new VoyagePoint(-100f, 0f), new VoyagePoint(0f, 0f) });
+                Assert.That(session.NavalMovementEndsInRam, Is.True);
+                var confirm = RequiredResponsive<Button>("Commit Naval Movement");
+                Assert.That(confirm.GetComponentInChildren<Text>().text, Is.EqualTo("确定冲撞"));
+                var staleCommit = confirm.onClick;
+                var staleRam = RequiredResponsive<Button>("Battle Ram").onClick;
+                int playerHull = session.Hull, enemyHull = session.Battle.EnemyHull;
+                ClickAcceptanceButton("Commit Naval Movement");
+                Assert.That(controller.IsBattleAnimationPlaying, Is.True);
+                Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+                Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.False);
+                Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero);
+                Assert.That(session.Battle.NavalActionPoints, Is.Zero);
+                Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.False);
+                Assert.That(session.Battle.BoardingConnection, Is.EqualTo(enemyHeading == 180f ? NavalBoardingConnection.RamBowToBow :
+                    enemyHeading == 0f ? NavalBoardingConnection.RamBowToStern : NavalBoardingConnection.RamBowToBroadside));
+                Assert.That(session.Hull, Is.LessThan(playerHull));
+                Assert.That(session.Battle.EnemyHull, Is.LessThan(enemyHull));
+                Assert.That(session.Battle.PlayerPositionMeters.X, Is.LessThan(session.Battle.EnemyPositionMeters.X),
+                    "The impact closes the hulls together but must not overlap or pass through the enemy.");
+                Assert.That(session.Battle.PlayerPositionMeters.Y, Is.EqualTo(session.Battle.EnemyPositionMeters.Y).Within(.05f));
+                string committed = GuidedBossFingerprint(session);
+                staleCommit.Invoke(); staleRam.Invoke();
+                Assert.That(GuidedBossFingerprint(session), Is.EqualTo(committed));
+                yield return WaitResponsiveBattle(controller);
+                Assert.That(GuidedBossFingerprint(session), Is.EqualTo(committed));
+                staleCommit.Invoke(); staleRam.Invoke();
+                Assert.That(GuidedBossFingerprint(session), Is.EqualTo(committed));
+                BoardingCinematicAssertions.AssertScene(session);
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator NavalMovementRam_BentRouteUsesFinalImpactForTheComic()
+        {
+            yield return LoadResponsiveBattleScene();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            var session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
+            yield return PrepareNavalArrivalContact(controller, session, 90f);
+            typeof(CoreBattleState).GetProperty("NavalActionPoints").SetValue(session.Battle, 4);
+            RenderResponsiveBattle(controller);
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(session.PlayerRamConnection, Is.EqualTo(NavalBoardingConnection.RamBowToBroadside));
+            yield return DragTacticalRoute(controller, new[] { new VoyagePoint(-100f, 0f), new VoyagePoint(-100f, 100f),
+                new VoyagePoint(0f, 100f), new VoyagePoint(0f, 0f) });
+            ClickAcceptanceButton("Commit Naval Movement");
+            Assert.That(session.Battle.BoardingConnection, Is.EqualTo(NavalBoardingConnection.RamBowToBow));
+            yield return WaitForRamComic(controller);
+            AssertRamComicPresentation(controller, Resources.Load<Texture2D>(RamComicCatalog.ImageResource(false, NavalBattleAlignment.HeadOn, 0)), 0);
+            string committed = GuidedBossFingerprint(session);
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(GuidedBossFingerprint(session), Is.EqualTo(committed));
+            BoardingCinematicAssertions.AssertScene(session);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator NavalMovementRam_OnePointLethalImpactKeepsTheVictory()
+        {
+            yield return LoadResponsiveBattleScene();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            var session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
+            ConfigureCloseNavalTestPose(session.Battle, true);
+            CoreBattleState battle = session.Battle;
+            battle.EnemyHull = 1;
+            RenderResponsiveBattle(controller);
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(battle.NavalActionPoints, Is.EqualTo(1));
+            yield return DragTacticalRoute(controller, new[] { battle.EnemyPositionMeters });
+            var staleCommit = RequiredResponsive<Button>("Commit Naval Movement").onClick;
+            ClickAcceptanceButton("Commit Naval Movement");
+            Assert.That(session.Phase, Is.Not.EqualTo(CoreDemoPhase.Battle));
+            Assert.That(battle.Stage, Is.Not.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(battle.EnemyHull, Is.Zero);
+            Assert.That(battle.NavalAwaitingHeadingSelection, Is.False);
+            int hull = session.Hull;
+            var outcome = session.Phase;
+            staleCommit.Invoke();
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(session.Phase, Is.EqualTo(outcome));
+            Assert.That(session.Hull, Is.EqualTo(hull));
+            Assert.That(battle.EnemyHull, Is.Zero);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator NavalArrivalContact_BoardingUsesReservedPointAfterRealDrag()
         {
             yield return ExerciseNavalArrivalContact(true);
@@ -28,11 +123,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadResponsiveBattleScene();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             var session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
-            yield return PrepareNavalArrivalContact(controller, session, 0f);
+            yield return PrepareNavalArrivalContact(controller, session, 90f);
             yield return DragAndCommitNavalContactArrival(controller);
 
             Assert.That(session.CanNavalArrivalContact(true, out float contactHeading, out string reason), Is.True, reason);
-            Assert.That(contactHeading, Is.EqualTo(0f));
+            Assert.That(contactHeading, Is.EqualTo(90f));
             var board = RequiredResponsive<Button>("Battle Board");
             var abandonedContact = board.onClick;
             Assert.That(board.IsInteractable(), Is.True);
@@ -40,8 +135,8 @@ namespace ShatteredSail.Presentation.Tests
             int hand = session.Battle.Hand.Count, plays = session.Battle.CardsPlayedThisTurn;
             int energy = session.Battle.Energy;
 
-            yield return WaitTacticalHeadingPointerReady("Naval Arrival Heading 0");
-            ClickAcceptanceButton("Naval Arrival Heading 0");
+            yield return WaitTacticalHeadingPointerReady("Naval Arrival Heading 1");
+            ClickAcceptanceButton("Naval Arrival Heading 1");
             Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.False);
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero,
                 "Ordinary heading confirmation discards the contact-only remainder immediately.");
@@ -53,7 +148,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitResponsiveBattle(controller);
 
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
-            Assert.That(session.Battle.PlayerHeadingDegrees, Is.EqualTo(0f));
+            Assert.That(session.Battle.PlayerHeadingDegrees, Is.EqualTo(90f));
             Assert.That(session.Battle.NavalActionPoints, Is.Zero);
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero);
             Assert.That(session.CanNavalArrivalContact(true, out _, out _), Is.False);

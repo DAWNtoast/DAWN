@@ -21,6 +21,9 @@ namespace ShatteredSail.Core.Gameplay
             if (card == null || !card.Id.StartsWith("card_special_", StringComparison.Ordinal)) return card;
             if (card.SchoolId.Length == 0) return Neutral(card);
             string key = card.ArtId.Substring(card.ArtId.LastIndexOf('_') + 1);
+            if (card.RequiredComponent.Length > 0 && key.Length == 3 &&
+                (key[0] == 'e' || key[0] == 'l') && key[1] == '0' && key[2] >= '1' && key[2] <= '5')
+                return CoreComponentFieldCards.Apply(card, key);
             if (card.RequiredCrew.Length > 0 && card.AllowedStages == S.Boarding) return BoardingCrew(card);
             bool legendary = key.StartsWith("l", StringComparison.Ordinal);
             if (key == "l05") return Doctrine(card);
@@ -150,9 +153,9 @@ namespace ShatteredSail.Core.Gameplay
             M m; string text;
             switch (c.SchoolId)
             {
-                case "fire": m = M.SpecialFireDoctrine; text = "每回合首张其他火焰牌成功后，点燃敌舰，造成 3×2 回合燃烧"; break;
+                case "fire": m = M.SpecialFireDoctrine; text = "每回合首张其他火焰牌成功后，施加 3 层燃烧"; break;
                 case "arcane": m = M.SpecialArcaneDoctrine; text = "每回合首张其他秘术牌成功后，恢复 1 法力，不超过上限"; break;
-                case "curse": m = M.SpecialCurseDoctrine; text = "每回合首张其他诅咒牌成功后，施加 1 咒印，持续 2 回合，上限 6"; break;
+                case "curse": m = M.SpecialCurseDoctrine; text = "每回合首张其他诅咒牌成功后，施加 1 层咒印，最多增至 6 层"; break;
                 case "tide": m = M.SpecialTideDoctrine; text = "每回合首张其他潮汐牌成功后，获得 3 潮势，上限 20"; break;
                 case "thunder": m = M.SpecialThunderDoctrine; text = "每回合首张其他雷霆攻击成功后，额外获得 1 连锁，不超过上限"; break;
                 default: m = M.SpecialBloodDoctrine; text = "每回合首张其他血契牌免除生命费用，保留完整效果"; break;
@@ -172,11 +175,11 @@ namespace ShatteredSail.Core.Gameplay
             string rule;
             switch (mechanic)
             {
-                case M.FireLoad: rule = "获得 {schoolSecondary} 发附火，上限 {schoolLimit}；命中后灼烧 {schoolPower}×{schoolDuration} 回合"; break;
-                case M.FireIgnite: rule = "实际造成直伤后，灼烧 {schoolPower}×{schoolDuration} 回合"; break;
-                case M.FireIgniteOrExtend: rule = "实际造成直伤后，未燃烧则灼烧 {schoolPower}×{schoolDuration} 回合，已燃烧则延烧 {schoolSecondary} 回合，上限 3 回合"; break;
-                case M.FireExtend: rule = "延长敌方燃烧 {schoolPower} 回合，上限 3 回合"; break;
-                case M.FireExtraTick: rule = "实际造成直伤后灼烧 {schoolPower}×{schoolDuration} 回合；目标出牌前已燃烧时额外结算一次燃烧，每回合一次"; break;
+                case M.FireLoad: rule = "获得 {schoolSecondary} 发附火，上限 {schoolLimit}；命中后施加 {schoolPower} 层燃烧"; break;
+                case M.FireIgnite: rule = "实际造成直伤后，施加 {schoolPower} 层燃烧"; break;
+                case M.FireIgniteOrExtend: rule = "实际造成直伤后，若目标未燃烧，施加 {schoolPower} 层燃烧；否则增加 {schoolSecondary} 层燃烧"; break;
+                case M.FireExtend: rule = "目标已燃烧时，增加 {schoolPower} 层燃烧"; break;
+                case M.FireExtraTick: rule = "实际造成直伤后，施加 {schoolPower} 层燃烧；目标出牌前已燃烧时，额外结算一次燃烧，每回合一次"; break;
                 case M.FireNaturalGuard: rule = "接下来 {schoolDuration} 回合，敌方自然燃烧结算时获得 {schoolPower} 格挡"; break;
                 case M.FireScorch: rule = "接下来 {schoolSecondary} 次对燃烧敌舰造成有效直伤时，额外造成 {schoolPower} 伤害"; break;
                 case M.ArcaneCharge: rule = "恢复 {schoolPower} 法力，不超过上限"; break;
@@ -185,8 +188,8 @@ namespace ShatteredSail.Core.Gameplay
                 case M.ArcaneWard: rule = "消耗 {schoolThreshold} 法力，额外格挡 +{schoolPower}"; break;
                 case M.ArcaneMend: rule = "消耗 {schoolThreshold} 法力，额外恢复 {schoolPower} 船体"; break;
                 case M.ArcaneEcho: rule = "消耗 {schoolThreshold} 法力，抽 {schoolPower} 张"; break;
-                case M.CurseMark: rule = "施加 {schoolPower} 咒印，每层在回合末造成 {schoolSecondary} 伤害，持续 {schoolDuration} 回合"; break;
-                case M.CurseDetonate: rule = "需要已有咒印；下次咒印结算每层伤害 +{schoolPower}，不消耗咒印"; break;
+                case M.CurseMark: rule = "施加 {schoolPower} 层咒印"; break;
+                case M.CurseDetonate: rule = "需要已有咒印；下次结算咒印伤害时，额外扣除 {schoolPower} 点生命值，不消耗咒印"; break;
                 case M.CurseWard: rule = "消耗 {schoolThreshold} 咒印；按消耗前每层咒印获得 {schoolPower} 额外格挡"; break;
                 case M.TideWard: rule = "消耗 {wood} 木板；本牌格挡实际吸收敌方攻击时等量获得潮势，上限 20；无木板时仅获得 2 普通格挡"; break;
                 case M.TideRiposte: rule = "需至少 {schoolThreshold} 潮势；消耗全部潮势，按 {schoolPower}% 追加伤害"; break;
@@ -202,8 +205,13 @@ namespace ShatteredSail.Core.Gameplay
                 case M.BloodExecute: rule = "敌舰船体不高于 {schoolThreshold}% 时，额外伤害 +{schoolPower}"; break;
                 default: throw new InvalidOperationException("Missing effect text: " + mechanic);
             }
-            string text = BasicText(stages, action, damage, block, repair, draw, powder) + rule + "。";
-            if (movement != 0) text += movement > 0 ? "沿船头前进 {movement} 米，再转为平行。" : "先转向背敌，再远离 {movement} 米，取消冲撞。";
+            string movementText = movement == 0 ? string.Empty : movement > 0
+                ? "沿船头前进 {movement} 米，再转为平行；" : "先转向背敌，再远离 {movement} 米，取消冲撞；";
+            // Tide guard expands into a free shield plus a wood-dependent bonus.
+            // Keep its independent draw and movement before that entire effect group.
+            string text = mechanic == M.TideWard
+                ? BasicText(stages, action, damage, 0, repair, draw, powder) + movementText + "获得 {block} 格挡；" + rule + "。"
+                : BasicText(stages, action, damage, block, repair, draw, powder) + rule + "。" + movementText.TrimEnd('；') + (movement == 0 ? string.Empty : "。");
             return Create(c, energy, damage, block, repair, draw, powder, stages, action, text, e);
         }
 
@@ -241,7 +249,7 @@ namespace ShatteredSail.Core.Gameplay
             {
                 case A.Load: case A.PrecisionLoad: text += "下次炮击额外伤害 +{strategyAmount}，最多 +{strategyLimit}；开炮后清空。"; break;
                 case A.Polish: text += "本场船体防御牌额外格挡 +{strategyAmount}，最多 +{strategyLimit}。"; break;
-                case A.FireRounds: text += "获得 {strategyAmount} 发烈焰强化，上限 {strategyLimit}；炮击造成有效直伤后灼烧 {burnDamage}×{burnDuration} 回合。"; break;
+                case A.FireRounds: text += "获得 {strategyAmount} 发烈焰强化，上限 {strategyLimit}；炮击造成有效直伤后，施加 {burnDamage} 层燃烧。"; break;
                 case A.Turn: case A.Circle: case A.Approach: case A.Retreat: case A.Parallel: case A.Navigator:
                     text += "获得 {navalActionPoints} 点行动点，用于海图移动或转向。"; break;
             }
@@ -251,17 +259,17 @@ namespace ShatteredSail.Core.Gameplay
         private static string BasicText(S stage, A action, int damage, int block, int repair, int draw, int powder)
         {
             string health = stage == S.Boarding ? "船员生命" : stage == S.All ? "当前阶段生命" : "船体";
+            string range = action == A.Cannon ? "范围 1-4 格：" : action == A.Sabotage ? "范围 1-2 格：" : string.Empty;
             var parts = new List<string>();
-            if (action == A.Cannon) parts.Add("4 格内炮击");
-            if (action == A.Sabotage) parts.Add("150 米内近距破坏");
             if (damage > 0) parts.Add("造成 {damage} 点" + health + "伤害");
             if (block > 0) parts.Add("获得 {block} 格挡");
-            if (repair > 0) parts.Add("恢复 {repair} 点" + health);
             if (draw > 0) parts.Add("抽 {draw} 张");
+            // Repair expands into stage-specific base healing and optional supply bonuses.
+            if (repair > 0) parts.Add("恢复 {repair} 点" + health);
             if (powder > 0) parts.Add("消耗 {powder} 火药");
             if (action == A.Cannon) parts.Add("消耗 {cannonballs} 炮弹");
             if (action == A.Sabotage && powder == 0) parts.Add("无需弹药");
-            return parts.Count == 0 ? string.Empty : string.Join("；", parts) + "；";
+            return parts.Count == 0 ? string.Empty : range + string.Join("；", parts) + "；";
         }
 
         private static CoreBattleCard Create(CoreBattleCard c, int energy, int damage, int block, int repair, int draw,

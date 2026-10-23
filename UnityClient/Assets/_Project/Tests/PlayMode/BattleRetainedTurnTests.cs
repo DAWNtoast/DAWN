@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation.Tests
             battle.PlayerDeckBuff = 2;
             battle.PlayerLoadedShot = 3;
             battle.PlayerFireRounds = 2;
-            battle.EnemyBurnTurns = 2;
+            battle.EnemyBurnTurns = 3;
             battle.EnemyBurnDamage = 3;
             ConfigureCloseNavalTestPose(battle, false);
             typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -82,7 +82,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Battle Status"), Is.Null, "Retained turns keep the removed hint absent.");
             Assert.That(GameObject.Find("Battle Card Cost Rule Panel"), Is.Null);
             Assert.That(GameObject.Find("Battle Collision Quality"), Is.Null, "Retained turns keep collision quality text removed.");
-            Assert.That(RequiredResponsive<Text>("Battle Range").text, Is.EqualTo(session.NavalDistanceCells + " 格 / 炮击4格"));
+            Assert.That(GameObject.Find("Battle Range"), Is.Null);
+            Assert.That(GameObject.Find("Battle Alignment"), Is.Null);
             AssertRetainedVisibleIntents(session);
             Assert.That(RetainedVisibleBadgeAmount("Resource Energy"), Is.EqualTo(battle.Energy + "/" + battle.MaxEnergy));
             Assert.That(RetainedVisibleBadgeAmount("Resource Powder"), Is.EqualTo(session.Cargo.Powder.ToString()));
@@ -96,14 +97,15 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(RetainedVisibleStatusAmount(playerStatuses, "loaded_shot"), Is.EqualTo(session.PlayerLoadedShotDamageBonus.ToString()));
             Assert.That(RetainedVisibleStatusAmount(playerStatuses, "deck_buff"), Is.EqualTo("2"));
             Assert.That(RetainedVisibleStatusAmount(playerStatuses, "fire_rounds"), Is.EqualTo("2"));
-            Assert.That(RetainedVisibleStatusAmount(enemyStatuses, "burn"), Is.EqualTo("3"));
-            // Burn damage lives on the badge; the remaining duration is visible in its real hover explanation.
+            Assert.That(RetainedVisibleStatusAmount(enemyStatuses, "burn"), Is.EqualTo("2"));
+            // The badge shows remaining layers; hover explains damage timing and one-layer decay.
             Transform burn = enemyStatuses.transform.Find("Status burn");
             var pointer = new PointerEventData(EventSystem.current);
             Assert.That(ExecuteEvents.Execute(burn.gameObject, pointer, ExecuteEvents.pointerEnterHandler), Is.True);
             yield return null;
             Text burnExplanation = RequiredResponsive<RectTransform>("Battle Status Tooltip").Find("Description").GetComponent<Text>();
-            Assert.That(burnExplanation.text, Does.Contain("直接失去 3 点生命").And.Contain("剩余 1 次"));
+            Assert.That(burnExplanation.text, Does.Contain("敌方回合末").And.Contain("按当前层数造成无视格挡的伤害")
+                .And.Contain("层数减少 1").And.Contain("新增层数相加").And.Contain("降至 0 层时结束"));
             ExecuteEvents.Execute(burn.gameObject, pointer, ExecuteEvents.pointerExitHandler);
             yield return null;
             Assert.That(originalPlayerHud.DisplayedHull, Is.EqualTo(session.Hull));
@@ -112,7 +114,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(originalEnemyHud.DisplayedHull, Is.EqualTo(battle.EnemyHull));
             Assert.That(originalEnemyHud.DisplayedGuard, Is.EqualTo(battle.EnemyBlock));
             Assert.That(battle.EnemyHull, Is.EqualTo(originalEnemyHull - 3));
-            Assert.That(battle.EnemyBurnTurns, Is.EqualTo(1));
+            Assert.That(battle.EnemyBurnTurns, Is.EqualTo(2));
+            Assert.That(battle.EnemyBurnDamage, Is.EqualTo(2));
             Assert.That(RequiredResponsive<Button>("Battle Ram").interactable, Is.EqualTo(session.CanRam(out _)));
             Assert.That(RequiredResponsive<Button>("Battle Board").interactable, Is.EqualTo(session.CanBoard(out _)));
             Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.True);

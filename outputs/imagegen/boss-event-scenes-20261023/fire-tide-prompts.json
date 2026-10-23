@@ -1,0 +1,20 @@
+[
+  {
+    "key": "boss_fire",
+    "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_fire.png",
+    "prompt": "Paint a completely new full-scene pirate-fantasy boss encounter illustration, 1536x1024 landscape, opaque background. From a very low sea-level camera, the enormous two-masted Splitmast warship surges diagonally toward us, its long single ivory kraken tusk towering over foaming foreground waves. Preserve black copper-star sails, scorched dark wood, star-stamped armor, brass organ-cannon racks with blue flame at their muzzles, stern amber horn instrument. Ship fills about 65% of frame, all mast tips readable against vast smoky sky. Red-orange fire glows from cannon decks, distant volcanic cliffs and towering ash clouds, hot burning reflections across dark rolling sea. Dense maritime scale and menacing presence; a coherent painted ocean environment with depth, not a cutout pasted on a backdrop. Rich hand-painted pirate adventure concept art, tangible materials, dramatic but legible. No text, UI, border, watermark or transparent area.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-ddb9379b-7432-471e-9aa4-ca9de530c63d.png"
+  },
+  {
+    "key": "boss_tide",
+    "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_tide.png",
+    "prompt": "Use this old ship only as identity reference. Paint a completely new full-scene pirate-fantasy boss encounter illustration, 1536x1024 landscape, opaque background. Very low camera in churning turquoise surf, looking up at the enormous two-masted Ghostreef Hunter emerging through sea fog between black reefs, crossing close with its long single ivory whale-fang bow aimed toward the viewer's right. Preserve pale cyan current-pattern square sails, teal pennants, pearl-shell bow armor, slender long black cannons with brass muzzle rings and aft tide astrolabe. Ship fills about 60% of frame; looming sails rise against broad storm-blue sky. A powerful curved surge and smaller whirlpool pull foreground foam toward the hull; distant reef spires fade into fog and convey huge scale. Teal, cobalt, pale cyan; warm tiny lanterns. Refined hand-painted pirate fantasy concept illustration, atmospheric depth and tangible materials, fully integrated ocean and ship. No text, UI, border, watermark or transparency.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-818d977d-ae19-4f77-8085-2be731604a4a.png"
+  },
+  {
+    "key": "legendary_fire",
+    "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/legendary_fire.png",
+    "prompt": "Paint a completely new full-scene pirate-fantasy legendary boss encounter, 1536x1024 landscape, opaque background. Extreme low ocean-level three-quarter bow view of the colossal Ember Ark advancing directly toward us, a gigantic carved red dragon-head ram looming in front, its heavy hull rising like a fortress. Preserve three tall masts, cream sails with red-gold phoenix motifs, red pennants, crimson dragon-scale armor edged in gold, rows of dragon-mouth brass cannons and stern amber celestial furnace. Ship fills 65-70% of frame but remains grounded in a vast full ocean-and-sky scene. Red-orange cannon fire and furnace light reflect across violent dark waves, black volcanic smoke towers far behind, burning sunset splits the clouds, sparks remain near guns. Grand legendary threat, rich hand-painted nautical fantasy concept art, crisp readable focal dragon and believable timber. No text, UI, frame, watermark or transparency.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-96723996-95e6-4a29-b823-ce002d505807.png"
+  }
+]

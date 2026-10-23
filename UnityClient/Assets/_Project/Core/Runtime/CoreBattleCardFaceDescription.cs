@@ -22,16 +22,27 @@ namespace ShatteredSail.Core.Gameplay
                 return card.Description;
             int tideWood = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideWard &&
                 (!SchoolBattleActive(stage) || Cargo.Wood >= card.SchoolEffect.WoodCost) ? card.SchoolEffect.WoodCost : 0;
-            card = GetSupplyAdjustedBattleCard(card);
+            // Supply alternatives stay visible even when the current inventory cannot pay
+            // for the enhanced effect. Combat quotes still use the adjusted card below.
+            bool tideWard = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideWard;
+            if (!tideWard) card = GetSupplyAdjustedBattleCard(card);
             CoreBattleCardEffects current = GetBattleCardEffects(card, stage);
             CoreBattleCardEffects effect = FaceCardEffects(card, stage, current);
             // Retain the cannon quote's firepower/loading bonuses when substituting a port-only
             // payable school effect. The same final values are used by combat.
             int damage = SchoolSum(Math.Max(0, GetBattleCardDamage(card, stage) - current.Damage), effect.Damage);
-            int block = effect.Block;
+            int block = tideWard ? card.Block : effect.Block;
             if (SchoolBattleActive(stage) && stage != NavalBattleStage.Boarding && block > 0)
-                block = SchoolSum(block, Battle.PlayerDeckBuff);
-            int repair = effect.IsRepairPreview ? effect.Repair : effect.ActualRepair;
+                block = NavalArcaneBlockGain(SchoolSum(block, Battle.PlayerDeckBuff));
+            // These cards state their base effect and their field-dependent bonus separately.
+            // Keep the bonus out of the base slot so the face never counts it twice.
+            if (SchoolBattleActive(stage) && CoreComponentFieldCards.IsFieldCard(card))
+            {
+                damage = Math.Max(0, damage - ComponentFieldDamageBonus(card));
+                block = Math.Max(0, block - ComponentFieldBlockBonus(card));
+            }
+            bool repairSupply = FaceCardUsesRepairSupply(card, stage, effect);
+            int repair = repairSupply ? effect.FullRepair : effect.IsRepairPreview ? effect.Repair : effect.ActualRepair;
             int medicine = effect.IsRepairPreview && effect.HasMedicineBoost ? 1 : effect.MedicineCost;
             int wood = (effect.IsRepairPreview && effect.HasWoodBoost ? 1 : effect.WoodCost) + tideWood;
             int strategyAmount = card.StrategyAmount;
@@ -63,9 +74,7 @@ namespace ShatteredSail.Core.Gameplay
 
             string template = FaceCardTemplate(card, SchoolBattleActive(stage));
             if (SchoolBattleActive(stage)) template = CoreSpecialCardRules.CostDescription(template, card, Battle);
-            if (FaceCardUsesRepairSupply(card, stage, effect))
-                template += stage == NavalBattleStage.Boarding ? "\n消耗 {medicine} 药品。" : "\n消耗 {wood} 木板。";
-            return CoreBattleCardText.FormatEffects(template
+            return CoreBattleCardText.FormatCardEffects(template
                 .Replace("{damage}", FaceNumber(damage))
                 .Replace("{block}", FaceNumber(block))
                 .Replace("{boardingBlock}", FaceNumber(card.BoardingBlock ?? card.Block))
@@ -88,7 +97,7 @@ namespace ShatteredSail.Core.Gameplay
                 .Replace("{schoolDuration}", FaceNumber(school?.Duration ?? 0))
                 .Replace("{schoolLimit}", FaceNumber(school?.Limit ?? 0))
                 .Replace("{medicine}", FaceNumber(medicine))
-                .Replace("{wood}", FaceNumber(wood)));
+                .Replace("{wood}", FaceNumber(wood)), card, stage, repairSupply ? (int?)effect.FullRepair : null);
         }
 
         public string BattleCardFaceDescription(CoreBattleCard card) =>
@@ -137,8 +146,8 @@ namespace ShatteredSail.Core.Gameplay
                 "炮战修复 {repair} 船体，白刃战恢复 {repair} 船员生命", "恢复当前阶段生命 {repair}");
             CoreSchoolCardEffect school = card.SchoolEffect;
             if (school == null) return template;
-            // The face carries the cost, trigger and result. Full duration/fallback rules
-            // remain in the keyword explanation rather than squeezing the live numbers.
+            // The face carries the cost, trigger and result. Shared keyword explanations
+            // are removed by FormatCardEffects after all live values have been substituted.
             template = template.Replace("本次雷霆攻击后连锁 +1，上限6，回合结束清空", "雷攻后连锁 +1，上限6")
                 .Replace("消耗 {wood} 木板；付费护盾吸收伤害才蓄积潮势", "耗 {wood} 木板；此盾挡伤蓄潮势")
                 .Replace("无木板时基础格挡 2，不蓄积潮势，保底不随强化增长", "无木板仅基础格挡2，不蓄势");
@@ -196,7 +205,7 @@ namespace ShatteredSail.Core.Gameplay
                     return template.Replace("额外格挡 +{schoolPower}",
                         template.Contains("{block}") ? "强化格挡" : "获得 {block} 格挡");
                 case CoreSchoolMechanic.BloodExecute:
-                    return template.Replace("额外伤害 +{schoolPower}", "强化伤害");
+                    return template.Replace("额外伤害 +{schoolPower}", "本次伤害提高");
                 case CoreSchoolMechanic.BloodMend:
                     return template.Replace("恢复已失生命的 {schoolPower}%，上限 {schoolLimit}",
                         "恢复 {repair} 点生命（按已失生命的 {schoolPower}%，上限 {schoolLimit}）");

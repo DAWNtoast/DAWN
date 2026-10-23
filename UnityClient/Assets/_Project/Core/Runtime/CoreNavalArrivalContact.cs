@@ -23,6 +23,8 @@ namespace ShatteredSail.Core.Gameplay
             {
                 heading = boarding ? Battle.EnemyHeadingDegrees :
                     NavalBearing(Battle.PlayerPositionMeters, Battle.EnemyPositionMeters);
+                if (boarding && !IsNavalArrivalHeadingAllowed(heading))
+                    heading = (heading + 180f) % 360f;
                 reason = NavalPlayerContactGeometryReason(boarding, heading);
                 if (reason.Length == 0 && !IsNavalArrivalHeadingAllowed(heading))
                     reason = "到达接触只能保持直行、左转或右转朝向，不能反向";
@@ -65,10 +67,13 @@ namespace ShatteredSail.Core.Gameplay
             string action = boarding ? "接舷" : "冲撞";
             if (!NavalShipsAreOrthogonallyAdjacent)
                 return action + "需要与敌舰上下左右相邻（100 米）";
-            float turn = Math.Abs(NavalAngleDelta(playerHeading, Battle.EnemyHeadingDegrees));
             if (boarding)
-                return turn < NavalContactTolerance ? string.Empty : "接舷需要两舰船头同向，不能逆向";
-            if (Math.Abs(turn - 90f) >= NavalContactTolerance) return "冲撞需要两舰船头互相垂直";
+            {
+                if (!NavalHeadingsAreParallel(playerHeading, Battle.EnemyHeadingDegrees))
+                    return "接舷需要两舰平行（同向或反向均可）";
+                return NavalBoardingGeometryIsLegal(playerHeading) ? string.Empty :
+                    "接舷需要两舰舷侧相邻，横向船身位于相邻两行，纵向船身位于相邻两列；首尾相邻不可接舷";
+            }
             if (Math.Abs(NavalAngleDelta(playerHeading,
                 NavalBearing(Battle.PlayerPositionMeters, Battle.EnemyPositionMeters))) >= NavalContactTolerance)
                 return "冲撞需要船头指向相邻敌舰";

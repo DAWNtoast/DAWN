@@ -202,6 +202,56 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void NarrowDepartureBandFallsBackWithoutLosingEventsSafetyOrCheckpointCompatibility()
+        {
+            const string seed = "SS6.2.0.1.0.1.6F92EB95.00000000.C80CACA9";
+            foreach (string port in new[] { "断锚港", "白贝港" })
+            {
+                var source = new CoreVoyageSession();
+                source.RestoreProfile(2000, port);
+                source.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 1500 });
+                Assert.That(source.TrySelectChartSeed(seed, out string reason), Is.True, reason);
+                source.StartVoyage();
+                CoreVoyageSession restored = RoundTrip(source);
+                Assert.That(restored.Map.Nodes.Select(node => node.Encounter.Id),
+                    Is.EqualTo(source.Map.Nodes.Select(node => node.Encounter.Id)));
+                Assert.That(restored.Map.Nodes.Select(node => node.Position),
+                    Is.EqualTo(source.Map.Nodes.Select(node => node.Position)));
+                Assert.That(restored.Map.TerrainCells, Is.EqualTo(source.Map.TerrainCells));
+                Assert.That(source.Map.EventFootprints.Count, Is.EqualTo(source.Map.Nodes.Count));
+                int[] reserved = source.Map.EventFootprints.SelectMany(footprint => footprint.ReservedCellIndices).ToArray();
+                Assert.That(reserved.Distinct().Count(), Is.EqualTo(reserved.Length), "Safety bands must remain disjoint.");
+                Assert.That(source.PlanNavigablePath(source.Map.Departure, source.Map.Destination).Count, Is.EqualTo(2));
+                Assert.That(source.PlanNavigablePath(source.Map.Destination, source.Map.Departure).Count, Is.EqualTo(2));
+                foreach (CoreMapNode node in source.Map.Nodes)
+                    Assert.That(source.PlanNavigablePath(source.Map.Departure, node.Position).Count,
+                        Is.GreaterThanOrEqualTo(2), "Unreachable event: " + node.Encounter.Id);
+
+                // The three authored bands use the chart's forward direction, even
+                // when a saved chart is sailed back from the other port.
+                VoyagePoint from = port == "断锚港" ? source.Map.Departure : source.Map.Destination;
+                VoyagePoint to = port == "断锚港" ? source.Map.Destination : source.Map.Departure;
+                float dx = to.X - from.X, dy = to.Y - from.Y;
+                var canSee = typeof(CoreVoyageSession).GetMethod("CanSeeCell", BindingFlags.Instance | BindingFlags.NonPublic);
+                for (int band = 0; band < 3; band++)
+                {
+                    float low = band == 0 ? .10f : band == 1 ? .40f : .80f;
+                    float high = band == 0 ? .17f : band == 1 ? .58f : .90f;
+                    Assert.That(source.Map.Nodes.Any(node =>
+                    {
+                        if (node.IsBoss || !node.Encounter.CanDiscoverBySight) return false;
+                        float progress = ((node.Position.X - from.X) * dx + (node.Position.Y - from.Y) * dy) / (dx * dx + dy * dy);
+                        if (progress < low || progress > high) return false;
+                        var observer = new VoyagePoint(from.X + dx * progress, from.Y + dy * progress);
+                        float x = node.Position.X - observer.X, y = node.Position.Y - observer.Y;
+                        if (Math.Sqrt(x * x + y * y) > 2.1001f) return false;
+                        VoyageGridCoordinate cell = source.Map.PointToCell(node.Position);
+                        return (bool)canSee.Invoke(source, new object[] { observer, cell.Column, cell.Row, 120f / source.Map.Route.NauticalMilesPerMapUnit });
+                    }), Is.True, "Missing visible course stop in band " + band);
+                }
+            }
+        }
+        [Test]
         public void DynamicChartEncounterRestoresExactlyOnceWithoutRerollingAmbush()
         {
             var source = ChartSession();

@@ -10,6 +10,7 @@ namespace ShatteredSail.Presentation
     {
         private bool componentResaleOpen;
         private int componentResalePage;
+        private string selectedComponentResaleInstanceId;
         private string pendingComponentSaleId;
         private const int ComponentResalePageSize = 5;
 
@@ -52,6 +53,7 @@ namespace ShatteredSail.Presentation
                 componentResaleOpen = true;
                 pendingComponentSaleId = null;
                 componentResalePage = 0;
+                selectedComponentResaleInstanceId = null;
                 selectedComponentShopOfferId = null;
                 Render();
             });
@@ -105,7 +107,11 @@ namespace ShatteredSail.Presentation
                     new Vector2(1290f, 78f), new Vector2(0f, 150f - row * 86f));
                 Image face = line.gameObject.AddComponent<Image>();
                 face.color = new Color(.55f, .42f, .24f, row % 2 == 0 ? .065f : .025f);
-                face.raycastTarget = false;
+                face.raycastTarget = true;
+                Button inspect = line.gameObject.AddComponent<Button>();
+                inspect.targetGraphic = face;
+                inspect.transition = Selectable.Transition.None;
+                inspect.onClick.AddListener(() => OpenComponentResaleDossier(inspect, item.InstanceId));
                 CreateItemIcon("Component Resale Icon " + item.InstanceId, line,
                     ItemIconCatalog.ForComponent(entry), new Vector2(-580f, 0f), 64f);
                 Text name = CreateText("Component Resale Name " + item.InstanceId, line, new Vector2(590f, 34f),
@@ -156,6 +162,18 @@ namespace ShatteredSail.Presentation
                 new Color(.60f, .47f, .30f, .55f));
             line.sprite = line.overrideSprite = null;
             line.raycastTarget = false;
+        }
+
+        private void OpenComponentResaleDossier(Button source, string instanceId)
+        {
+            if (source == null || !source.gameObject.activeInHierarchy || !componentResaleOpen ||
+                activePortFacility != PortFacilityArtCatalog.ComponentShopFacilityIndex ||
+                !string.IsNullOrEmpty(pendingComponentSaleId) ||
+                !OwnedComponents.Any(item => item.InstanceId == instanceId && item.ShipIndex == -1)) return;
+            selectedComponentResaleInstanceId = instanceId;
+            componentDossierOfferId = null;
+            componentDossierPage = 0;
+            Render();
         }
 
         private void BuildComponentSaleConfirmation(RectTransform parent)

@@ -77,7 +77,7 @@ namespace ShatteredSail.Presentation
             Text hint = WarehouseLabel("Warehouse Storage Hint", ledger, new Vector2(WarehouseLedgerWidth, 52f),
                 new Vector2(0f, -330f), 18, !WarehouseCargoActionsAllowed
                     ? "教学期间仅可查看库存；结束后可存取或出售。"
-                    : string.IsNullOrEmpty(portWarehouseNotice) ? "点击物资查看详情、存取或出售" : portWarehouseNotice, WarehouseRoomTheme.Muted);
+                    : portWarehouseNotice, WarehouseRoomTheme.Muted);
             hint.resizeTextForBestFit = true;
             hint.resizeTextMinSize = 14;
             hint.resizeTextMaxSize = 18;

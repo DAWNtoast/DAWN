@@ -13,7 +13,11 @@ namespace ShatteredSail.Presentation
     {
         private const float InitialPixelsPerMetre = .75f;
         private const float ShipScreenHeight = 170f;
+        // A complete sea painting covers a fixed world square. Camera and UI
+        // changes crop the painting instead of stretching waves or tiling edges.
+        private const float SeaWorldSpanMeters = 4000f;
         private RectTransform board, root, worldLayer, backgroundRect, gridRect;
+        private RawImage sea;
         private RectTransform playerShip, enemyShip, playerBar, enemyBar;
         private NavalTacticalGridGraphic grid;
         private NavalTacticalTrackGraphic track;
@@ -76,7 +80,7 @@ namespace ShatteredSail.Presentation
         }
 
         public void Configure(CoreBattleState battle, RectTransform player, RectTransform enemy,
-            RectTransform playerHullBar, RectTransform enemyHullBar, Font font)
+            RectTransform playerHullBar, RectTransform enemyHullBar, Font font, CoreVoyageSession session = null)
         {
             playerShip = player;
             enemyShip = enemy;
@@ -88,8 +92,11 @@ namespace ShatteredSail.Presentation
             board.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 900f);
             hasFrame = false;
             BuildVisuals(font);
-            ApplyShipArt(playerShip);
-            ApplyShipArt(enemyShip);
+            sea.texture = NavalTacticalArtCatalog.ForSea(session?.BattleTerrain ?? SeaTerrainType.OpenWater);
+            sea.color = sea.texture == null ? new Color(.018f, .19f, .23f, 1f) :
+                session?.BattleTerrain == SeaTerrainType.StormFront ? new Color(.8f, .8f, .8f, 1f) : Color.white;
+            ApplyShipArt(playerShip, NavalTacticalArtCatalog.ForPlayer(session?.SelectedShip.Id));
+            ApplyShipArt(enemyShip, NavalTacticalArtCatalog.ForEnemy(battle, session?.ActiveEncounter, session?.SelectedRouteIndex ?? 0));
             SnapToBattle(battle);
         }
 
@@ -138,6 +145,9 @@ namespace ShatteredSail.Presentation
             float coveringRadius = MaximumCornerDistance(board.rect, pivot) + CellSizePixels * 2f;
             float side = Mathf.Max(2200f, coveringRadius * 2f);
             backgroundRect.sizeDelta = gridRect.sizeDelta = new Vector2(side, side);
+            float uvSide = side / (pixelsPerMetre * SeaWorldSpanMeters);
+            sea.uvRect = new Rect(.5f + frame.EnemyPositionMeters.X / SeaWorldSpanMeters - uvSide * .5f,
+                .5f + frame.EnemyPositionMeters.Y / SeaWorldSpanMeters - uvSide * .5f, uvSide, uvSide);
             // Keeping the modulo offset preserves world grid intersections as the enemy and camera translate.
             // Half a cell puts whole-hundred-metre world positions in cell centres instead of intersections.
             grid.SetGrid(CellSizePixels, new Vector2(
@@ -183,10 +193,8 @@ namespace ShatteredSail.Presentation
             if (GetComponent<RectMask2D>() == null) gameObject.AddComponent<RectMask2D>();
             worldLayer = CreateRect("Tactical world", board, Vector2.zero);
             backgroundRect = CreateRect("Shared tactical sea", worldLayer, new Vector2(2600f, 2600f));
-            RawImage sea = backgroundRect.gameObject.AddComponent<RawImage>();
+            sea = backgroundRect.gameObject.AddComponent<RawImage>();
             sea.raycastTarget = false;
-            sea.texture = Resources.Load<Texture2D>("NavalTactics/tactical_sea_v1");
-            sea.color = sea.texture != null ? Color.white : new Color(.018f, .19f, .23f, 1f);
             gridRect = CreateRect("100 metre grid", worldLayer, new Vector2(2600f, 2600f));
             grid = gridRect.gameObject.AddComponent<NavalTacticalGridGraphic>();
             grid.raycastTarget = false;
@@ -210,17 +218,12 @@ namespace ShatteredSail.Presentation
                 label.color = index == 1 ? new Color(1f, .78f, .36f) : new Color(.94f, .91f, .8f);
                 compassLabels[index] = label.rectTransform;
             }
-            Text scale = CreateText("Tactical scale", board, "每格 100 × 100 米\n炮击4格：横纵格数相加", font, 24, new Vector2(330f, 72f));
-            scale.rectTransform.anchorMin = scale.rectTransform.anchorMax = new Vector2(0f, .5f);
-            scale.rectTransform.anchoredPosition = new Vector2(195f, 190f);
-            scale.color = new Color(.95f, .91f, .76f);
             built = true;
         }
 
-        private void ApplyShipArt(RectTransform ship)
+        private void ApplyShipArt(RectTransform ship, Sprite sprite)
         {
             if (ship == null) return;
-            Sprite sprite = Resources.Load<Sprite>("NavalTactics/tactical_ship_v1");
             Image image = ship.GetComponent<Image>();
             if (image == null || sprite == null) return;
             image.sprite = sprite;

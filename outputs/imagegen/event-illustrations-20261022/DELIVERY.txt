@@ -1,0 +1,39 @@
+现有事件图片重制交付 — 2026-10-22
+
+已完成 93 个 PNG 资源：89 张独立插画、4 张旧事件图集重绘。
+涵盖碎帆礁海、金潮商路、月潮遗迹、通用事件、教学事件与藏宝事件。
+全部使用会话内置 image_gen；未调用外部图像 API。
+
+游戏资源：
+D:/Game/UnityClient/Assets/_Project/Resources/EncounterIllustrations
+旧事件配图已切换到新资源目录；历史原图保留。
+独立插画为 4:3；图集保持五列四行，并使用内缩 UV 避免邻格露边。
+
+预览：
+reef-contact-sheet.jpg
+trade-contact-sheet.jpg
+moon-contact-sheet.jpg
+treasure-contact-sheet.jpg
+
+制作与来源记录：
+generation-manifest.json — 完整提示词、源文件、参考图与编辑记录。
+asset-catalog.csv — 事件编号、中文名称、资源路径、尺寸和文件大小。
+asset-validation.json — 全部 93 个资源的尺寸、SHA256 和路径。
+
+接入：
+EncounterIllustrationCatalog 为事件建立明确的资源及 UV 对应。
+事件弹窗、地图缩略图和教学事件使用新表。
+已修正临检、市场传闻、完整漂帆、潮轮、测绘观测架、影晷和守藏舰等错配或漏项。
+特殊战舰继续使用独立战舰资源。
+
+验证：
+Core、Content、Persistence、Presentation 全源码编译通过。
+事件插画与资源懒加载测试程序集编译通过。
+隔离 Unity EditMode 测试 11/11 通过，包含：
+- 所有现有事件映射及 UV 范围
+- 93 个资源文件及唯一 Unity GUID
+- 全部资源的实际 Unity 导入与 Resources.Load<Texture2D> 加载
+- 教学语义区分、共用图缓存与缺失资源行为
+结果：D:/Game/Artifacts/EventIllustrations20261022/Tests/results.xml
+
+未修改退役的 Scenes/UIPreviewsForMe 目录。

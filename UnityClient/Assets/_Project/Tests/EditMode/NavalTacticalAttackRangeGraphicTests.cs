@@ -132,6 +132,41 @@ namespace ShatteredSail.Core.Tests
             Assert.That(graphic.IsUnlimitedPreview, Is.False);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void MovementPriority_ReconfigurationRemovesRedFromBlueCellsAndRestoresUnreachableCells(bool unlimited)
+        {
+            var player = new VoyagePoint(0f, 0f);
+            var forward = new VoyagePoint(100f, 0f);
+            var second = new VoyagePoint(200f, 0f);
+            board.ApplyFrame(new CoreNavalTacticalFrame(player, new VoyagePoint(600f, 0f), 0f, 180f));
+            foreach (int points in new[] { 0, 1, 2, 0 })
+            {
+                var movement = new List<VoyagePoint>();
+                if (points >= 1) movement.Add(forward);
+                if (points >= 2) movement.Add(second);
+                if (unlimited) graphic.ConfigureUnlimited(board, player, movement);
+                else graphic.Configure(board, new[] { forward, second }, movement);
+                movement.Clear();
+                Mesh mesh = PopulateMesh();
+                try
+                {
+                    for (int step = 1; step <= 2; step++)
+                    {
+                        Vector2 sample = board.WorldToBoard(new VoyagePoint(step * 100f + 17f, 11f));
+                        Vector3[] vertices = mesh.vertices;
+                        int[] triangles = mesh.triangles;
+                        bool red = false;
+                        for (int i = 0; i < triangles.Length; i += 3)
+                            red |= PointStrictlyInsideTriangle(sample, vertices[triangles[i]],
+                                vertices[triangles[i + 1]], vertices[triangles[i + 2]]);
+                        Assert.That(red, Is.EqualTo(step > points),
+                            "Blue reachable cells take priority, and red returns when AP decreases; step=" + step + ", AP=" + points);
+                    }
+                }
+                finally { Object.DestroyImmediate(mesh); }
+            }
+        }
         private static bool PointStrictlyInsideTriangle(Vector2 point, Vector2 first, Vector2 second, Vector2 third)
         {
             float a = Cross(second - first, point - first);

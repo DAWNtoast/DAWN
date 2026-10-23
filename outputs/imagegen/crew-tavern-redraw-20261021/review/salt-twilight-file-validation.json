@@ -1,0 +1,98 @@
+[
+  {
+    "id": "crew_salt_crown_navigator_ashir",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_salt_crown_carpenter_saf",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_salt_crown_doctor_naji",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_salt_crown_gunner_rokan",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_salt_crown_cook_maz",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_salt_crown_diver_isha",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_twilight_tide_navigator_selene",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_twilight_tide_carpenter_orlan",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_twilight_tide_doctor_viya",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_twilight_tide_gunner_yilan",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_twilight_tide_cook_lume",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_twilight_tide_diver_naive",
+    "width": 1122,
+    "height": 1402,
+    "sourceMatches": true,
+    "promptExists": true,
+    "status": "generated_visual_qa_pass"
+  }
+]

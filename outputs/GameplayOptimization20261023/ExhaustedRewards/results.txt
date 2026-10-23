@@ -1,0 +1,26 @@
+﻿Passed=143 Failed=4 Skipped=0 Inconclusive=0
+ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.ProgressionAndExitEffectsRemainEligible("mark")
+  Expected: <empty>
+  But was:  "这项操作只能在专属藏宝航行中进行。"
+
+at ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.ProgressionAndExitEffectsRemainEligible (System.String progress) [0x000d9] in <0fed55243e7c4047b385b689c64ba719>:0
+
+ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.ProgressionAndExitEffectsRemainEligible("credit")
+  Expected: <empty>
+  But was:  "这项操作只能在专属藏宝航行中进行。"
+
+at ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.ProgressionAndExitEffectsRemainEligible (System.String progress) [0x000d9] in <0fed55243e7c4047b385b689c64ba719>:0
+
+ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.ProgressionAndExitEffectsRemainEligible("heat")
+  Expected: <empty>
+  But was:  "这项操作只能在专属藏宝航行中进行。"
+
+at ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.ProgressionAndExitEffectsRemainEligible (System.String progress) [0x000d9] in <0fed55243e7c4047b385b689c64ba719>:0
+
+ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.ProgressionAndExitEffectsRemainEligible("resonance")
+  Expected: <empty>
+  But was:  "这项操作只能在专属藏宝航行中进行。"
+
+at ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.ProgressionAndExitEffectsRemainEligible (System.String progress) [0x000d9] in <0fed55243e7c4047b385b689c64ba719>:0
+
+﻿

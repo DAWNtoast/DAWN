@@ -281,10 +281,11 @@ namespace ShatteredSail.Core.Gameplay
             seed = string.IsNullOrWhiteSpace(seed) ? "CACHE-" + Guid.NewGuid().ToString("N") : seed.Trim();
             if (seed.Length > 64) { reason = "藏宝图种子最多 64 个字符。"; return false; }
             if (issuedTreasureSeeds.Contains(seed)) { reason = "该种子的藏宝图已经拼合或使用过。"; return false; }
-            var record = new CoreTreasureMapRecord(rankId + ":" + seed, seed, rankId, contentVersion: 1);
+            var record = new CoreTreasureMapRecord(rankId + ":" + seed, seed, rankId,
+                geometryVersion: CoreVoyageMap.CurrentGeometryVersion, contentVersion: 1);
             identifiedTreasureFragments[rankId] -= CoreTreasureHuntCatalog.FragmentCost;
             treasureMaps.Add(record); issuedTreasureSeeds.Add(seed);
-            AddLog("拼合「" + record.Name + "」，消耗同图碎片 4。种子已收入藏图册，可在任意港口装备出航。");
+            AddLog("已拼合「" + record.Name + "」，消耗同一张图的碎片 4 个。种子已记入藏图册，可在任意港口装备这张图后出航。");
             return true;
         }
 
@@ -293,7 +294,7 @@ namespace ShatteredSail.Core.Gameplay
             string normalizedSeed = string.IsNullOrWhiteSpace(seed) ? string.Empty : seed.Trim();
             CoreTreasureMapRecord record = treasureMaps.Find(map => map.Seed == normalizedSeed);
             reason = Phase != CoreDemoPhase.Port ? "返回港口后才能装备藏宝图。" :
-                record == null ? "该种子不属于持有的未使用藏宝图。" : string.Empty;
+                record == null ? "你持有的未使用藏宝图中，没有与这个种子对应的图。" : string.Empty;
             if (reason.Length > 0) return false;
             return TrySelectTreasureMap(record.Id, out reason);
         }
@@ -301,7 +302,7 @@ namespace ShatteredSail.Core.Gameplay
         public bool TrySelectTreasureMap(string id, out string reason)
         {
             reason = Phase != CoreDemoPhase.Port ? "返回港口后才能装备藏宝图。" :
-                !treasureMaps.Exists(map => map.Id == id) ? "这张藏宝图不在未使用库存中。" : string.Empty;
+                !treasureMaps.Exists(map => map.Id == id) ? "你没有这张未使用的藏宝图。" : string.Empty;
             if (reason.Length > 0) return false;
             selectedTreasureMapId = id;
             return true;
@@ -353,7 +354,7 @@ namespace ShatteredSail.Core.Gameplay
             AddUsedTreasureMap(treasure, Map.DepartureName);
             UpdateActiveUsedTreasureMapCoverage();
             AddLog(treasure.ContentVersion == 0
-                ? "已消耗「" + treasure.Name + "」。集齐 " + treasure.Rank.RequiredClues + " 条线索后开启叉号秘藏；撤离或失败不返还。"
+                ? "已消耗「" + treasure.Name + "」。集齐 " + treasure.Rank.RequiredClues + " 条线索后，可开启叉号标记的秘藏；撤离或失败不返还。"
                 : "已消耗「" + treasure.Name + "」。" + CoreTreasureExpeditionCatalog.Overview(treasure.RankId) + " 撤离或失败不返还海图。");
         }
 
@@ -459,21 +460,21 @@ namespace ShatteredSail.Core.Gameplay
 
         public string ChoiceUnavailableReason(int index)
         {
-            if (Phase != CoreDemoPhase.Encounter || ActiveEncounter == null || index < 0 || index >= ActiveEncounter.Choices.Count) return "当前没有可选事件。";
+            if (Phase != CoreDemoPhase.Encounter || ActiveEncounter == null || index < 0 || index >= ActiveEncounter.Choices.Count) return "当前没有可用的事件选项。";
             if (IsChoiceAvailable(index)) return string.Empty;
             CoreEncounterChoice choice = ActiveEncounter.Choices[index];
             string conditionReason = EncounterChoiceConditionReason(choice);
             if (conditionReason.Length > 0) return conditionReason;
             if (TreasureClues < choice.RequiredTreasureClues) return "线索不足，还缺 " + (choice.RequiredTreasureClues - TreasureClues) + " 条（" + TreasureClues + "/" + choice.RequiredTreasureClues + "）。";
-            if (choice.Effect.TreasureComplete && Hull + choice.Effect.Hull <= 0) return "船体不足以承受开启损伤。";
+            if (choice.Effect.TreasureComplete && Hull + choice.Effect.Hull <= 0) return "船体无法承受开启秘藏时的损伤。";
             int rations = RationCostFor(choice.Hours);
-            if (Cargo.Water < rations || Cargo.Food < rations) return "耗时需要淡水、食物各 " + rations + "；当前口粮不足。";
+            if (Cargo.Water < rations || Cargo.Food < rations) return "处理此事期间需要淡水、食物各 " + rations + "；当前口粮不足。";
             VoyageEffect applied = choice.StartsBattle ? SplitBattleEffect(choice.Effect, false) : EffectiveChoiceEffect(index);
             string rareShortage = RareResourceShortage(applied);
             if (rareShortage.Length > 0) return rareShortage;
-            if (!CanAfford(applied, rations)) return "物资不足，无法支付选项成本（包括耗时口粮）。";
-            if (Cargo.UsedVolume - rations * .16f + CargoVolumeDelta(applied) > CargoCapacityValue + .001f) return "货舱空间不足，不能装下选项奖励。";
-            return "当前条件不允许执行。";
+            if (!CanAfford(applied, rations)) return "物资不足，无法满足该选项的消耗（包括期间所需的口粮）。";
+            if (Cargo.UsedVolume - rations * .16f + CargoVolumeDelta(applied) > CargoCapacityValue + .001f) return "货舱空间不足，装不下这些奖励。";
+            return "当前条件下无法选择此项。";
         }
 
         private string RareResourceShortage(VoyageEffect effect)
@@ -516,7 +517,7 @@ namespace ShatteredSail.Core.Gameplay
                 long gain = captured && tangibleLoot && amount > 0 ? (long)Math.Ceiling(amount * 1.5d) : amount;
                 if (tangibleLoot) gain = ScaleSeaChartBattleReward(gain);
                 long total = (long)current + gain;
-                if (total > int.MaxValue) AddLog("战利品数量上限：" + name + " " + (total - int.MaxValue) + " 未能入账；已有余额保留。");
+                if (total > int.MaxValue) AddLog(name + "已达到数量上限，超出的 " + (total - int.MaxValue) + " 未能入账。");
                 return (int)Math.Max(0L, Math.Min(int.MaxValue, total));
             }
             voyageTreasureFragments = Receive(voyageTreasureFragments, effect.MapFragments, "藏宝图碎片");
@@ -551,9 +552,11 @@ namespace ShatteredSail.Core.Gameplay
             if (!progressed) return 0;
             if (GuidedTutorialLeg > 0) return GuidedTutorialLeg == CoreGuidedTutorialContent.BossVoyageLeg ||
                 UsesCombinedGuidedTutorialVoyage && GuidedTutorialBossDefeated ? 80 : 20;
-            // Ordinary empty returns must not turn the minimum sailing step
-            // into repeatable pirate experience. Treasure voyages keep their rules.
-            if (!IsTreasureVoyage && outcome == VoyageOutcome.SafeReturn && completed == 0) return 0;
+            // Empty failures must not turn a ration-starved sailing step into
+            // repeatable experience, including on treasure maps. A completed
+            // event or battle still preserves the existing failure reward.
+            if (completed == 0 && (outcome == VoyageOutcome.Failure ||
+                !IsTreasureVoyage && outcome == VoyageOutcome.SafeReturn)) return 0;
             // The 20-nautical-mile eligibility threshold stays physical. Experience
             // measures chart exploration instead: the old per-mile coefficient
             // could promote a captain straight to level 6 after one ordinary trip.

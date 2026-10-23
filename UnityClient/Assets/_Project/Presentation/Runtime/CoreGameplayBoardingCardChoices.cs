@@ -27,8 +27,7 @@ namespace ShatteredSail.Presentation
         {
             if (card?.BoardingSpec == null || session?.Battle?.Stage != NavalBattleStage.Boarding) return false;
             CoreBoardingPlayChoice choice = session.GetBoardingPlayChoice(handIndex);
-            if (choice == null || !choice.RequiresChoice || choice.Kind == CoreBoardingChoiceKind.None ||
-                choice.Kind == CoreBoardingChoiceKind.DelayedEffect) return false;
+            if (choice == null || !choice.RequiresChoice || choice.Kind == CoreBoardingChoiceKind.None) return false;
             CloseBoardingCardChoice();
             boardingChoiceSource = source;
             boardingChoiceHandIndex = handIndex;
@@ -72,6 +71,7 @@ namespace ShatteredSail.Presentation
             MarketShopSkin.ApplyPanel(sheet.GetComponent<Image>());
             string title = boardingChoice.Kind == CoreBoardingChoiceKind.HandBurn ? "选择要烧掉的手牌" :
                 boardingChoice.Kind == CoreBoardingChoiceKind.HandRetain ? "选择要保留的手牌" :
+                boardingChoice.Kind == CoreBoardingChoiceKind.DelayedEffect ? "选择要立即结算的延迟效果" :
                 boardingChoice.Kind == CoreBoardingChoiceKind.DiscardRecover ? "选择要取回的卡牌" : "选择入手的卡牌";
             BoardingChoiceLabel("Boarding Choice Title", sheet, new Vector2(1420f, 55f), new Vector2(0f, 393f),
                 30, boardingChoiceCard.Name + " · " + title);

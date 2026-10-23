@@ -72,12 +72,12 @@ namespace ShatteredSail.Core.Gameplay
             if (IsValidGameDuration(effect.SailingBoostHours) && effect.SailingBoostHours > 0d)
             {
                 sailingBoostHoursRemaining = Math.Max(sailingBoostHoursRemaining, Math.Min(ExplorationBoostLimitHours, effect.SailingBoostHours));
-                AddLog("获得顺航：实际航速 +25%，剩余 " + sailingBoostHoursRemaining.ToString("0.#") + " 小时（同类刷新，不叠加）。");
+                AddLog("获得顺航：实际航速 +25%，剩余 " + sailingBoostHoursRemaining.ToString("0.#") + " 小时（再次获得时保留较长的剩余时长，效果不叠加）。");
             }
             if (IsValidGameDuration(effect.SurveyBoostHours) && effect.SurveyBoostHours > 0d)
             {
                 surveyBoostHoursRemaining = Math.Max(surveyBoostHoursRemaining, Math.Min(ExplorationBoostLimitHours, effect.SurveyBoostHours));
-                AddLog("获得瞭望：视野 +35%，剩余 " + surveyBoostHoursRemaining.ToString("0.#") + " 小时（隐藏地点仍需情报）。");
+                AddLog("获得瞭望：视野 +35%，剩余 " + surveyBoostHoursRemaining.ToString("0.#") + " 小时（仍需获取情报才能发现隐藏地点）。");
                 if (Map != null) RevealAt(Position);
             }
             if (IsKnownExplorationDiscovery(effect.GrantDiscovery) && explorationDiscoveries.Add(effect.GrantDiscovery))
@@ -91,9 +91,9 @@ namespace ShatteredSail.Core.Gameplay
                 node.Encounter.HasChartLocation && !node.Visited).OrderBy(node => Distance(Position, node.Position)).ThenBy(node => node.Id).FirstOrDefault();
             string label = CoreVoyageEventCatalog.DiscoveryTargetName(encounterId);
             if (target == null) { AddLog("线索指向「" + label + "」，本海图没有尚未访问的对应地点。"); return; }
-            if (target.IsChartVisible) { AddLog("线索确认：「" + target.Encounter.Name + "」的位置已在海图标出。"); return; }
+            if (target.IsChartVisible) { AddLog("已确认线索：「" + target.Encounter.Name + "」的位置已在海图标出。"); return; }
             target.IntelRevealed = true;
-            AddLog("线索定位：已在海图标出「" + target.Encounter.Name + "」，可直接规划航路。");
+            AddLog("已根据线索在海图上标出「" + target.Encounter.Name + "」，可直接规划航路。");
         }
 
         private string ExplorationChoiceConditionReason(CoreEncounterChoice choice)
@@ -118,8 +118,8 @@ namespace ShatteredSail.Core.Gameplay
             bool longerSurvey = effect.SurveyBoostHours > 0d && Math.Min(ExplorationBoostLimitHours, effect.SurveyBoostHours) >
                 Math.Max(0d, surveyBoostHoursRemaining - choice.Hours);
             if (newDiscovery || newTarget || longerSailing || longerSurvey) return string.Empty;
-            return SeaChartRewardMultiplier(choice) <= 0d ? "本地点的探索收益已经耗尽，无需重复支付。" :
-                "线索和地点情报已经掌握，现有增益也无需刷新。";
+            return SeaChartRewardMultiplier(choice) <= 0d ? "此处已无探索收益，不必再次支付物资。" :
+                "相关线索和地点情报均已掌握，已有增益的持续时间也不会延长。";
         }
 
         private static bool HasOtherExplorationChoiceBenefit(VoyageEffect e) => e.Hull > 0 || e.Water > 0 || e.Food > 0 ||

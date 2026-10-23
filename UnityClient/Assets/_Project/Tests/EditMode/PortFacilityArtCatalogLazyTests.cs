@@ -8,12 +8,12 @@ namespace ShatteredSail.Presentation.Tests
 {
     public sealed class PortFacilityArtCatalogLazyTests
     {
-        [TestCase("断锚港", "voyage_broken_anchor_open_berth_v1")]
-        [TestCase("白贝港", "voyage_white_shell_open_berth_v1")]
-        [TestCase("铜钟港", "voyage_bronze_bell_open_berth_v1")]
-        [TestCase("盐冠港", "voyage_salt_crown_open_berth_v1")]
-        [TestCase("暮潮港", "voyage_twilight_tide_open_berth_v1")]
-        [TestCase("灰鸥港", "voyage_gray_gull_open_berth_v1")]
+        [TestCase("断锚港", "voyage_broken_anchor_crew_integrated_v1")]
+        [TestCase("白贝港", "voyage_white_shell_crew_integrated_v1")]
+        [TestCase("铜钟港", "voyage_bronze_bell_crew_integrated_v1")]
+        [TestCase("盐冠港", "voyage_salt_crown_crew_integrated_v1")]
+        [TestCase("暮潮港", "voyage_twilight_tide_crew_integrated_v1")]
+        [TestCase("灰鸥港", "voyage_gray_gull_crew_integrated_v1")]
         public void RegionalDepartureScenesUseTheirOwnAuthoredResource(string port, string resource)
         {
             Assert.That(PortFacilityArtCatalog.UsesPaintedDepartureScene(port), Is.True);

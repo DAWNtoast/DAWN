@@ -251,6 +251,7 @@ namespace ShatteredSail.Core.Tests
         private static void Board(CoreVoyageSession s)
         {
             s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);

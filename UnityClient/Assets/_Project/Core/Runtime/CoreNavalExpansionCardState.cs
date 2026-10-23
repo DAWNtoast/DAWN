@@ -11,6 +11,8 @@ namespace ShatteredSail.Core.Gameplay
         public bool LoadSeal;
         public int PulseReduction;
         public bool Precharge;
+        public int PrechargeBonus;
+        public int RuneClampReduction;
         public bool GroundingReady;
         public bool GroundingUsed;
         public bool EnemyHealingHalved;
@@ -28,8 +30,12 @@ namespace ShatteredSail.Core.Gameplay
         public int NavalExpansionFirstDamageBonus(CoreBattleCard card, bool consume = false)
         {
             if (!NavalExpansionActive || card == null || card.Damage <= 0) return 0;
-            int bonus = Battle.NavalFields.Player.BloodAttackBonus;
-            if (consume) Battle.NavalFields.Player.BloodAttackBonus = 0;
+            int bonus = SchoolSum(Battle.NavalFields.Player.BloodAttackBonus, Battle.Schools.ArcaneNextAttackDamage);
+            if (consume)
+            {
+                Battle.NavalFields.Player.BloodAttackBonus = 0;
+                Battle.Schools.ArcaneNextAttackDamage = 0;
+            }
             return bonus;
         }
 
@@ -52,7 +58,7 @@ namespace ShatteredSail.Core.Gameplay
                 int absorbed = Math.Min(Battle.EnemyBlock, 4);
                 Battle.EnemyBlock -= absorbed;
                 Battle.EnemyHull = Math.Max(0, Battle.EnemyHull - (4 - absorbed));
-                ApplySchoolBurn(3, 2);
+                ApplySchoolBurn(2, 2);
             }
             if (card.SchoolId == "thunder" && targetOnThunder && state.GroundingReady && !state.GroundingUsed)
             {
@@ -68,31 +74,34 @@ namespace ShatteredSail.Core.Gameplay
             if (Battle.NavalExpansion.Precharge)
             {
                 Battle.NavalExpansion.Precharge = false;
-                Battle.Schools.ThunderChain = Math.Min(Battle.Schools.ThunderLimit, SchoolSum(Battle.Schools.ThunderChain, 2));
+                int extra = Battle.NavalExpansion.PrechargeBonus > 0 ? Battle.NavalExpansion.PrechargeBonus : 2;
+                Battle.NavalExpansion.PrechargeBonus = 0;
+                Battle.Schools.ThunderChain = Math.Min(Battle.Schools.ThunderLimit, SchoolSum(Battle.Schools.ThunderChain, extra));
             }
         }
 
         public int NavalExpansionEnemyBlockGain(int amount, bool consume = false)
         {
             if (!NavalExpansionActive || !Battle.NavalExpansion.RuneClamp) return Math.Max(0, amount);
-            if (consume && amount > 0) Battle.NavalExpansion.RuneClamp = false;
-            return Math.Max(0, amount - 6);
+            int reduction = Battle.NavalExpansion.RuneClampReduction > 0 ? Battle.NavalExpansion.RuneClampReduction : 6;
+            if (consume && amount > 0)
+            {
+                Battle.NavalExpansion.RuneClamp = false;
+                Battle.NavalExpansion.RuneClampReduction = 0;
+            }
+            return Math.Max(0, amount - reduction);
         }
 
         public int NavalExpansionEnemyLoadGain(int amount, bool consume = false)
         {
-            if (!NavalExpansionActive || !Battle.NavalExpansion.LoadSeal) return Math.Max(0, amount);
-            if (consume && amount > 0) Battle.NavalExpansion.LoadSeal = false;
-            return Math.Max(0, amount - 6);
+            return Math.Max(0, amount);
         }
 
         public int NavalExpansionEnemyAttackDamage(int total, bool consume = false)
         {
             total = Math.Max(0, total);
             if (!NavalExpansionActive) return total;
-            int reduction = Math.Min(total / 2, Battle.NavalExpansion.PulseReduction);
-            if (consume) Battle.NavalExpansion.PulseReduction = 0;
-            return total - reduction;
+            return Math.Max(0, total - Battle.NavalExpansion.PulseReduction);
         }
 
         public int NavalExpansionHealing(bool player, int intended)
@@ -114,13 +123,14 @@ namespace ShatteredSail.Core.Gameplay
             CoreNavalExpansionBattleState state = Battle.NavalExpansion;
             state.OilPlayerEndsRemaining = Math.Max(0, state.OilPlayerEndsRemaining - 1);
             state.Precharge = state.GroundingReady = false;
+            state.PrechargeBonus = 0;
         }
 
         public void NavalExpansionEndEnemyTurn()
         {
             if (Battle == null) return;
             CoreNavalExpansionBattleState state = Battle.NavalExpansion;
-            state.RuneClamp = state.LoadSeal = state.EnemyHealingHalved = false;
+            state.LoadSeal = state.EnemyHealingHalved = false;
             state.PulseReduction = 0;
         }
 
@@ -135,8 +145,9 @@ namespace ShatteredSail.Core.Gameplay
         {
             CoreSchoolBattleState state = Battle.Schools;
             state.CurseMarks = Math.Max(0, state.CurseMarks - Math.Max(0, count));
+            state.CurseTurns = state.CurseMarks;
             if (state.CurseMarks > 0) return;
-            state.CurseTurns = state.CurseDamagePerMark = state.CurseNextTickBonus = state.CurseWeaknessPercent = 0;
+            state.CurseTurns = state.CurseDamagePerMark = state.CurseNextTickBonus = state.CurseTickBonus = state.CurseWeaknessPercent = 0;
         }
     }
 }

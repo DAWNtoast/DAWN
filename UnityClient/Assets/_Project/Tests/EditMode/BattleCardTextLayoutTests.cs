@@ -166,7 +166,7 @@ namespace ShatteredSail.Core.Tests
                 int longNameSize = name.fontSize;
                 // Keep this independent-size fixture long even when a real
                 // card's wording is compacted without changing its effect.
-                effect.text = string.Join("\n", Enumerable.Repeat("船体伤害8。", 8));
+                effect.text = string.Join("\n", Enumerable.Repeat("造成8点船体伤害。", 12));
                 CardFaceLayout.FitEffect(effect);
                 Assert.That(effect.fontSize, Is.LessThan(maximumEffectSize));
                 Assert.That(EffectFits(effect), Is.True);
@@ -193,13 +193,14 @@ namespace ShatteredSail.Core.Tests
             Assert.That(text, Does.Contain("</color>\n<size=13>机动</size>\n"));
             Assert.That(text, Does.Contain("60米"));
             Assert.That(text, Does.Not.Contain("60 米"));
-            Assert.That(text, Does.Contain("<b>两舰上下左右相邻且同向</b>时，消耗1行动点接舷"));
+            Assert.That(text, Does.Not.Contain("舷侧相邻").And.Not.Contain("行动点接舷"),
+                "Shared boarding requirements do not belong in a movement card's effect text.");
             Assert.That(text, Does.Not.Contain("距离不超过60米"), "Retired distance-only boarding wording must not override the tactical grid rule.");
             Assert.That(text, Does.Not.Contain("<b>靠近"), "Movement is an effect, not a prerequisite.");
         }
 
         [Test]
-        public void DisplayText_WrapsLongEffectsAtSentenceBoundaries()
+        public void DisplayText_KeepsDamageAndRangeWhileCostsUseIcons()
         {
             CoreBattleCard card = new CoreBattleCard(
                 "wrap_test", "炮火齐射", "炮击", 2, 18, 0, 0, 0, 1,
@@ -211,22 +212,24 @@ namespace ShatteredSail.Core.Tests
             BattleCardPalette palette = BattleCardStylePalette.ForType(card.Type);
             string text = (string)formatter.Invoke(null, new object[] { card, palette });
 
-            Assert.That(text, Does.Contain("船体伤害18\n消耗1火药、1炮弹"));
-            Assert.That(text, Does.Not.Contain("350 米"));
-            Assert.That(text, Does.Contain("<b>350米内</b>"));
+            Assert.That(text, Does.Contain("造成18点船体伤害"));
+            Assert.That(text, Does.Not.Contain("消耗").And.Not.Contain("火药").And.Not.Contain("炮弹"));
+            Assert.That(text, Does.Not.Contain("350"));
+            Assert.That(Compact(text), Does.Contain("范围1-4格：造成18点船体伤害"));
         }
 
-        [TestCase("4格内：8 点船体伤害。", "4格内", "4格内：船体伤害8")]
-        [TestCase("4 格内：8 点船体伤害。", "4格内", "4格内：船体伤害8")]
+        [TestCase("4格内：8 点船体伤害。", "4格内", "4格内：造成8点船体伤害")]
+        [TestCase("4 格内：8 点船体伤害。", "4格内", "4格内：造成8点船体伤害")]
         [TestCase("4 格以内可炮击。", "4格以内", "4格以内可炮击")]
         [TestCase("距离不超过 4 格可炮击。", "距离不超过4格", "距离不超过4格可炮击")]
-        [TestCase("350米内：8 点船体伤害。", "350米内", "350米内：船体伤害8")]
-        [TestCase("350 米内：8 点船体伤害。", "350米内", "350米内：船体伤害8")]
+        [TestCase("350米内：8 点船体伤害。", "350米内", "350米内：造成8点船体伤害")]
+        [TestCase("350 米内：8 点船体伤害。", "350米内", "350米内：造成8点船体伤害")]
         [TestCase("150 米外无法使用。", "150米外", "150米外无法使用")]
         [TestCase("60 米以内可接舷。", "60米以内", "60米以内可接舷")]
         [TestCase("60 米以外无法接舷。", "60米以外", "60米以外无法接舷")]
         [TestCase("距离不超过 60 米可接舷。", "距离不超过60米", "距离不超过60米可接舷")]
-        [TestCase("两舰上下左右相邻且同向时，消耗1行动点接舷。", "两舰上下左右相邻且同向", "两舰上下左右相邻且同向时，消耗1行动点接舷")]
+        [TestCase("两舰平行且舷侧相邻时，消耗1行动点接舷。", "两舰平行且舷侧相邻", "两舰平行且舷侧相邻时，消耗1点行动点接舷")]
+        [TestCase("两舰平行且舷侧相邻（100 米）时，消耗 1 行动点接舷。", "两舰平行且舷侧相邻（100米）", "两舰平行且舷侧相邻（100米）时，消耗1点行动点接舷")]
         [TestCase("须再次推进才能冲撞。", "须再次推进才能冲撞", "须再次推进才能冲撞")]
         [TestCase("须推进后才能冲撞。", "须推进后才能冲撞", "须推进后才能冲撞")]
         [TestCase("靠近 60 米，再次推进后可冲撞。", "再次推进后", "靠近60米，再次推进后可冲撞")]
@@ -244,7 +247,7 @@ namespace ShatteredSail.Core.Tests
             const string source = "靠近 60 米，远离 120 米；船体伤害 16；消耗 1 火药、1 炮弹；格挡 +6，最多 +12。";
             string formatted = CardFaceLayout.FormatDescription(source);
             Assert.That(formatted, Does.Not.Contain("<b>"));
-            Assert.That(Compact(formatted), Is.EqualTo("靠近60米，远离120米船体伤害16消耗1火药、1炮弹格挡+6，最多+12"),
+            Assert.That(Compact(formatted), Is.EqualTo("靠近60米，远离120米造成16点船体伤害消耗1火药、1炮弹获得6点格挡，最多+12"),
                 "The compact wording retains movement, target, costs and stack cap without inventing prerequisites.");
         }
 
@@ -257,14 +260,47 @@ namespace ShatteredSail.Core.Tests
             Assert.That(twice, Is.EqualTo(once));
             Assert.That(once, Does.Contain("<b>350米内</b>").And.Contain("<b>靠近60米</b>"));
             Assert.That(Regex.Matches(once, "<b>").Count, Is.EqualTo(2));
-            Assert.That(Compact(once), Is.EqualTo("350米内：船体伤害8靠近60米"));
+            Assert.That(Compact(once), Is.EqualTo("350米内：造成8点船体伤害靠近60米"));
         }
 
         private static string Compact(string value) => Regex.Replace(value, @"</?(?:b|i|size|color|material)(?:=[^>]*)?>", string.Empty)
             .Replace("\u00a0", " ").Replace("\n", string.Empty).Replace("\r", string.Empty);
 
-        private static string[] NumericTokens(string value) => Regex.Matches(value, @"[+\-−]?\s*\d+(?:\.\d+)?%?")
-            .Cast<Match>().Select(match => Regex.Replace(match.Value, @"\s", string.Empty)).ToArray();
+        [Test]
+        public void NumericTokens_PreservesGridRangesAcrossRichTextAndWrapping()
+        {
+            string[] expected = { "1-4", "1" };
+            const string source = "将1-4格内的己方1格火场移动到相邻的格子。";
+            CollectionAssert.AreEqual(expected, NumericTokens(source));
+            CollectionAssert.AreEqual(expected, NumericTokens(CardFaceLayout.FormatDescription(source)));
+            CollectionAssert.AreEqual(expected, NumericTokens("将1-<b>4格内</b>的己方1格火场移动到相邻的格子。"));
+            CollectionAssert.AreEqual(expected, NumericTokens("将1–\n<b>4格内</b>的己方1格火场移动到相邻的格子。"));
+            CollectionAssert.AreEqual(expected, NumericTokens("将 1-4 格内的己方 1 格火场移动到相邻的格子。"));
+        }
+
+        [Test]
+        public void FormatDescription_PreservesRealNegativeAndPositiveEffectValues()
+        {
+            const string source = "范围1-4格：伤害修正 -3 点；比例 -12.5%；格挡修正 +2 点；生命修正 −4 点。";
+            string[] expected = { "1-4", "-3", "-12.5%", "+2", "−4" };
+            CollectionAssert.AreEqual(expected, NumericTokens(source));
+            CollectionAssert.AreEqual(expected, NumericTokens(CardFaceLayout.FormatDescription(source)));
+            CollectionAssert.AreNotEqual(NumericTokens("修正 -3 点"), NumericTokens("修正 3 点"),
+                "A real negative effect must never compare equal after losing its minus sign.");
+        }
+
+        private static string[] NumericTokens(string value)
+        {
+            string visible = Regex.Replace(value, @"</?(?:b|i|size|color|material)(?:=[^>]*)?>", string.Empty);
+            // A grid range is one token; its separator is not a negative sign.
+            // Strip rich tags first because condition emphasis can split 1-<b>4格内</b>.
+            return Regex.Matches(visible, @"(?<range>\s*\d+(?:\.\d+)?\s*[-–—～~]\s*\d+(?:\.\d+)?)(?=\s*格)|[+\-−]?\s*\d+(?:\.\d+)?%?")
+                .Cast<Match>().Select(match =>
+                {
+                    string token = Regex.Replace(match.Value, @"\s", string.Empty);
+                    return match.Groups["range"].Success ? Regex.Replace(token, "[–—～~]", "-") : token;
+                }).ToArray();
+        }
 
         private static bool NameFits(Text name) => name.preferredWidth <= name.rectTransform.rect.width + .01f &&
             name.preferredHeight <= name.rectTransform.rect.height + .01f &&

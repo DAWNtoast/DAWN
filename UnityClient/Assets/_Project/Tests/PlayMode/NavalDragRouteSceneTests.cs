@@ -30,7 +30,9 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(input.IsShipSelected, Is.True);
             Assert.That(attack.ShipRangePinned, Is.True);
-            Assert.That(attackGraphic.Cells.Count, Is.EqualTo(40));
+            AssertAttackCell(attackGraphic, session, 7, 0, true);
+            AssertAttackCell(attackGraphic, session, 8, 0, false);
+            AssertAttackCell(attackGraphic, session, -5, 0, false);
             Assert.That(input.ReachableCells.Count, Is.GreaterThan(session.GetNavalLegalNextSteps().Count),
                 "The green area contains every legal endpoint within all AP, not only the next cell.");
             CollectionAssert.AreEquivalent(session.GetNavalReachableCells().Select(TacticalPointKey),
@@ -62,7 +64,9 @@ namespace ShatteredSail.Presentation.Tests
             ExecuteEvents.Execute(cannon.gameObject, pointer, ExecuteEvents.pointerExitHandler);
             yield return new WaitForSecondsRealtime(.4f);
             Assert.That(attack.ShowingCardId, Is.Null);
-            Assert.That(attackGraphic.Cells.Count, Is.EqualTo(40));
+            AssertAttackCell(attackGraphic, session, 7, 0, true);
+            AssertAttackCell(attackGraphic, session, 8, 0, false);
+            AssertAttackCell(attackGraphic, session, -5, 0, false);
             Assert.That(GuidedBossFingerprint(session), Is.EqualTo(unchanged));
             NavalBattleVisualCapture.Capture(controller, "NavalDrag_01_AllReachable.png",
                 "点击我舰后显示全部3行动点可达海域，攻击红格与卡牌悬停独立共存", "Naval Tactical Board");
@@ -130,18 +134,25 @@ namespace ShatteredSail.Presentation.Tests
             MethodInfo pose = typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic);
             pose.Invoke(session.Battle, new object[] { true, new VoyagePoint(-300f, 0f), 0f });
             pose.Invoke(session.Battle, new object[] { false, new VoyagePoint(0f, 0f), 180f });
+            typeof(CoreBattleState).GetProperty("NavalActionPoints").SetValue(session.Battle, 4);
             RenderResponsiveBattle(controller);
             yield return null;
             yield return WaitForGuidedCaptureScreenReveal(controller);
             input = Object.FindFirstObjectByType<NavalTacticalMovementInput>();
             unchanged = GuidedBossFingerprint(session);
-            var blocked = new TacticalDragPointer(input);
-            blocked.DragTo(new VoyagePoint(-200f, 0f));
-            blocked.DragTo(new VoyagePoint(-100f, 0f));
-            blocked.DragTo(new VoyagePoint(0f, 0f));
-            AssertTacticalPlannedPath(session, new VoyagePoint(-200f, 0f), new VoyagePoint(-100f, 0f));
-            Assert.That(input.ReachableCells.Any(point => TacticalPointsMatch(point, new VoyagePoint(0f, 0f))), Is.False);
-            blocked.Release();
+            var collision = new TacticalDragPointer(input);
+            collision.DragTo(new VoyagePoint(-200f, 0f));
+            collision.DragTo(new VoyagePoint(-100f, 0f));
+            collision.DragTo(new VoyagePoint(0f, 0f));
+            AssertTacticalPlannedPath(session, new VoyagePoint(-200f, 0f), new VoyagePoint(-100f, 0f), new VoyagePoint(0f, 0f));
+            Assert.That(input.ReachableCells.Any(point => TacticalPointsMatch(point, new VoyagePoint(0f, 0f))), Is.True);
+            Assert.That(session.NavalMovementEndsInRam, Is.True);
+            Assert.That(input.GetComponentInChildren<NavalTacticalRouteGraphic>().EndsInRam, Is.True);
+            Assert.That(RequiredResponsive<Button>("Commit Naval Movement").GetComponentInChildren<Text>().text, Is.EqualTo("确定冲撞"));
+            collision.DragTo(new VoyagePoint(100f, 0f));
+            AssertTacticalPlannedPath(session, new VoyagePoint(-200f, 0f), new VoyagePoint(-100f, 0f), new VoyagePoint(0f, 0f));
+            Assert.That(RequiredResponsive<Text>("Naval movement instruction").text, Does.Contain("敌舰格结束"));
+            collision.Release();
             Assert.That(GuidedBossFingerprint(session), Is.EqualTo(unchanged));
             LogAssert.NoUnexpectedReceived();
         }

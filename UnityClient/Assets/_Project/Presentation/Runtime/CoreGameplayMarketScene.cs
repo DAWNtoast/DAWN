@@ -98,7 +98,7 @@ namespace ShatteredSail.Presentation
             marketShopHint.resizeTextForBestFit = true;
             marketShopHint.resizeTextMinSize = 16;
             marketShopHint.resizeTextMaxSize = 18;
-            marketShopHint.text = "点击店铺招牌，查看货品与行情";
+            marketShopHint.text = string.Empty;
             marketShopHint.raycastTarget = false;
             Outline hintShadow = marketShopHint.gameObject.AddComponent<Outline>();
             hintShadow.effectColor = new Color(.1f, .07f, .04f, .9f);
@@ -121,8 +121,8 @@ namespace ShatteredSail.Presentation
                 pair.Value.colors = colors;
             }
             string feedback = MarketSceneTradeFeedback();
-            marketShopHint.text = feedback.Length > 0 ? feedback : "点击店铺招牌，查看货品与行情";
-            marketShopHint.gameObject.SetActive(feedback.Length > 0 || !marketSelectedShop.HasValue);
+            marketShopHint.text = feedback;
+            marketShopHint.gameObject.SetActive(feedback.Length > 0);
             marketSceneNoticeBackground.gameObject.SetActive(feedback.Length > 0);
         }
 

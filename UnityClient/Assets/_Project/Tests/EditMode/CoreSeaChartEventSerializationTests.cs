@@ -86,7 +86,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageCheckpoint decoded = JsonUtility.FromJson<CoreVoyageCheckpoint>(JsonUtility.ToJson(saved));
             var restored = new CoreVoyageSession();
             Assert.That(restored.TryRestoreVoyageCheckpoint(decoded, out reason), Is.True, reason);
-            Assert.That(restored.Map.GeometryVersion, Is.EqualTo(3));
+            Assert.That(restored.Map.GeometryVersion, Is.EqualTo(4));
             CollectionAssert.AreEqual(saved.chartRandomOrder, restored.CurrentVoyageRandomEventIds);
             CollectionAssert.AreEqual(saved.seaChartProgress.randomHistory.Single().recentEvents,
                 restored.CaptureSeaChartProgress().randomHistory.Single().recentEvents);

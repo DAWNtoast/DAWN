@@ -75,6 +75,11 @@ namespace ShatteredSail.Presentation
         private bool pendingVoyageThreeEventsAchievement;
         private bool pendingVoyageHalfChartAchievement;
         private bool pendingVoyageEventArrivalAchievement;
+        private int pendingAchievementEditedDeckStages;
+        private int pendingAchievementWonDeckStages;
+        private bool pendingDamagedReturnAchievement;
+        private bool pendingSuppliedVoyageAchievement;
+        private HashSet<string> pendingVoyageCollectionBefore;
 
         private void BuildCanvas(string canvasName)
         {
@@ -416,12 +421,13 @@ namespace ShatteredSail.Presentation
                 choices.Add(new EncounterDossierChoice
                 {
                     ObjectName = "Tutorial Skip Encounter", Label = "略过事件，继续航行",
-                    Detail = "不消耗事件时间", Available = true, IsSkip = true,
+                    Detail = "略过不会耗时", Available = true, IsSkip = true,
                     Resolve = () => { tutorial.SkipCurrentEncounter(); PlaySfx("encounter_choice", 0.42f); Render(); }
                 });
+            art.EncounterArt(0, encounter.Id, out Texture2D tutorialArt, out Rect tutorialUv, legacyTutorial: true);
             BuildEncounterDossier("Tutorial Encounter", encounter.Name, encounter.Category, encounter.Description,
                 !encounter.Optional, 0, 0, "新手航海日志 · 首航训练", SeaTerrainType.OpenWater,
-                art.EventSheet(0), art.EncounterUv(encounter.Id), choices);
+                tutorialArt, tutorialUv, choices);
         }
 
         private void BuildTutorialBattleOverlay()
@@ -609,6 +615,14 @@ namespace ShatteredSail.Presentation
                 if (pendingVoyageThreeEventsAchievement) AchievementCatalog.RecordVoyageThreeEvents();
                 if (pendingVoyageHalfChartAchievement) AchievementCatalog.RecordVoyageHalfChart();
                 if (pendingVoyageEventArrivalAchievement) AchievementCatalog.RecordVoyageEventArrival();
+                foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
+                    if ((pendingAchievementEditedDeckStages & (1 << (int)stage)) != 0) AchievementCatalog.RecordDeckEdited(stage);
+                AchievementCatalog.RecordAuthoredDeckVictories(pendingAchievementWonDeckStages);
+                if (pendingDamagedReturnAchievement) AchievementCatalog.RecordDamagedReturn();
+                if (pendingSuppliedVoyageAchievement) AchievementCatalog.RecordSuppliedLongVoyage();
+                if (pendingVoyageCollectionBefore != null && GlobalWarehouseTreasureIds().Any(id =>
+                    id != CoreWarehouseCollection.TutorialTreasureId && !pendingVoyageCollectionBefore.Contains(id)))
+                    AchievementCatalog.RecordVoyageTreasure();
                 AchievementCatalog.CaptureProgress();
                 PlayerPrefs.Save();
                 if (!ProfileSaveJournal.TryComplete(out notice)) throw new ProfileSaveException(notice);
@@ -631,6 +645,11 @@ namespace ShatteredSail.Presentation
             pendingVoyageThreeEventsAchievement = false;
             pendingVoyageHalfChartAchievement = false;
             pendingVoyageEventArrivalAchievement = false;
+            pendingAchievementEditedDeckStages = 0;
+            pendingAchievementWonDeckStages = 0;
+            pendingDamagedReturnAchievement = false;
+            pendingSuppliedVoyageAchievement = false;
+            pendingVoyageCollectionBefore = null;
         }
 
         private void BlockAfterProfileSaveFailure(string reason)
@@ -1161,24 +1180,49 @@ namespace ShatteredSail.Presentation
                 choices.Add(new EncounterDossierChoice
                 {
                     ObjectName = "Skip Encounter", Label = "略过事件，继续航行",
-                    Detail = "不推进事件时间，不领取事件收益", Available = true, IsSkip = true,
+                    Detail = "略过不会耗时，也不会获得事件奖励", Available = true, IsSkip = true,
                     Resolve = () => { session.SkipEncounter(); PlaySfx("encounter_choice", 0.42f); Render(); }
                 });
             if (session.CanRequestEmergencyTow())
                 choices.Add(new EncounterDossierChoice
                 {
                     ObjectName = "Emergency Encounter Return", Label = "请求拖带救援",
-                    Detail = "放弃事件收益 · 仅保护 35% 本航次剩余战利品", Available = true, IsSkip = true,
+                    Detail = "放弃事件奖励 · 仅保留本航次剩余战利品的 35%", Available = true, IsSkip = true,
                     Resolve = () => { session.RequestEmergencyTow(); PlaySfx("encounter_choice", 0.36f); Render(); }
                 });
             SeaTerrainType terrain = session.Map == null ? SeaTerrainType.OpenWater : session.CurrentEncounterSeaTerrain;
             string location = session.Map == null ? "航海日志" : session.Map.Route.Name;
-            bool specialShip = SpecialWarshipArtCatalog.TryLoad(encounter.Id, out Texture2D shipArt, out Rect shipUv);
+            ResolveEncounterIllustration(encounter, out Texture2D encounterArt, out Rect encounterUv);
             BuildEncounterDossier("Encounter", encounter.Name, encounter.Category, encounter.Description,
                 encounter.Mandatory, encounter.Risk, session.SelectedRouteIndex, location, terrain,
-                specialShip ? shipArt : session.IsTreasureVoyage ? Resources.Load<Texture2D>("TreasureHunt/treasure_hunt_event_sheet") : art.EventSheet(session.SelectedRouteIndex),
-                specialShip ? shipUv : session.IsTreasureVoyage ? TreasureEncounterUv(encounter.Id) : art.EncounterUv(encounter), choices);
-            UpdateEncounterChartRewardPresentation();
+                encounterArt, encounterUv, choices);
+        }
+
+        private void ResolveEncounterIllustration(CoreEncounter encounter, out Texture2D texture, out Rect uv)
+        {
+            if (EncounterIllustrationCatalog.TryGetLocation(encounter, out _))
+            {
+                art.EncounterArt(session.SelectedRouteIndex, encounter, out texture, out uv);
+                return;
+            }
+            ResolveEncounterIllustration(encounter?.Id, out texture, out uv);
+        }
+
+        private void ResolveEncounterIllustration(string encounterId, out Texture2D texture, out Rect uv)
+        {
+            if (EncounterIllustrationCatalog.TryGetLocation(encounterId, out _))
+            {
+                art.EncounterArt(session.SelectedRouteIndex, encounterId, out texture, out uv);
+                return;
+            }
+            if (SpecialWarshipArtCatalog.TryLoad(encounterId, out texture, out uv)) return;
+            if (session.IsTreasureVoyage)
+            {
+                texture = Resources.Load<Texture2D>(EncounterIllustrationCatalog.TreasureResourcePath);
+                uv = TreasureEncounterUv(encounterId);
+                return;
+            }
+            art.EncounterArt(session.SelectedRouteIndex, encounterId, out texture, out uv);
         }
 
         private void BuildBattleOverlay()
@@ -1350,7 +1394,7 @@ namespace ShatteredSail.Presentation
                 new Vector2(54f, -4f), player ? Coral : Gold,
                 player && !boarding ? CardOrnamentKind.Gunpowder : (CardOrnamentKind?)null);
             Text reserve = CreateText(player ? "Player Ammunition" : "Enemy Burning", hud, new Vector2(206f, 20f), new Vector2(0f, -31f), 12, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-            reserve.text = player ? BattleSupplyReserveText(boarding) : "燃烧 " + battle.EnemyBurnTurns + " 回合";
+            reserve.text = player ? BattleSupplyReserveText(boarding) : "燃烧 " + battle.EnemyBurnTurns + " 层";
         }
 
         private string BattleSupplyReserveText(bool boarding) =>
@@ -1388,73 +1432,10 @@ namespace ShatteredSail.Presentation
             amount.text = value;
         }
 
-        private RectTransform CreateCardKeywordBubble(Transform card, int index, CoreBattleCard battleCard, bool rightSide)
+        private RectTransform CreateCardKeywordBubble(Transform card, int index, CoreBattleCard battleCard)
         {
-            string tooltipText = BattleCardTooltipText(battleCard, index);
-            if (string.IsNullOrWhiteSpace(tooltipText)) return null;
-            float extraHeight = 0f;
-            float bubbleOffset = CardFaceLayout.FrameSize.x * .5f + 222f;
-            RectTransform bubble = CreateFixedPanel("Card Keyword Bubble " + index, card, new Vector2(420f, 552f + extraHeight), new Vector2(rightSide ? bubbleOffset : -bubbleOffset, 118f + extraHeight * .5f), new Color(0.025f, 0.06f, 0.072f, 0.98f));
-            Image background = bubble.GetComponent<Image>();
-            background.raycastTarget = false;
-            Outline outline = bubble.gameObject.AddComponent<Outline>();
-            Color accent = CardSchoolArtCatalog.Palette(battleCard.SchoolId).Accent;
-            outline.effectColor = accent;
-            outline.effectDistance = new Vector2(2f, -2f);
-            Image pointer = CreateImage("Keyword Bubble Pointer", bubble, new Vector2(18f, 18f), new Vector2(rightSide ? -200f : 200f, -78f - extraHeight * .5f), new Color(0.025f, 0.06f, 0.072f, 0.98f));
-            pointer.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            pointer.raycastTarget = false;
-            // Keep the tooltip's three semantic fields on their own rows. The
-            // hand card already uses this structure, but the hover description
-            // used to omit the card name and put the category in the same line
-            // as a generic "特殊词条" label, which made longer categories
-            // collide with the effect text on narrow resolutions.
-            // The shared surface skin renders this bubble on parchment. Keep
-            // category color on its border, and use dark ink for the small text.
-            Color tooltipInk = Html("#2B2116");
-            Text title = CreateText("Keyword Bubble Title", bubble, new Vector2(384f, 64f), new Vector2(0f, 232f + extraHeight * .5f), 24, FontStyle.Bold, TextAnchor.UpperLeft, tooltipInk);
-            title.text = battleCard.Name + "\n<size=18>" + CardKeywordCategory(battleCard) + "</size>";
-            title.horizontalOverflow = HorizontalWrapMode.Wrap;
-            title.verticalOverflow = VerticalWrapMode.Truncate;
-            title.resizeTextForBestFit = true;
-            title.resizeTextMinSize = 22;
-            title.resizeTextMaxSize = 24;
-            title.raycastTarget = false;
-            Text explanation = CreateText("Keyword Bubble Text", bubble, new Vector2(384f, 456f + extraHeight), new Vector2(0f, -36f), 20, FontStyle.Normal, TextAnchor.UpperLeft, tooltipInk);
-            explanation.text = tooltipText;
-            explanation.horizontalOverflow = HorizontalWrapMode.Wrap;
-            explanation.verticalOverflow = VerticalWrapMode.Truncate;
-            explanation.resizeTextForBestFit = false;
-            explanation.resizeTextMinSize = 20;
-            explanation.resizeTextMaxSize = 20;
-            explanation.raycastTarget = false;
-            ConfigureCardKeywordBubbleGeometry(bubble, rightSide, extraHeight);
-            bubble.gameObject.SetActive(false);
-            return bubble;
-        }
-
-        private static void ConfigureCardKeywordBubbleGeometry(RectTransform bubble, bool rightSide, float extraHeight)
-        {
-            if (bubble == null) return;
-            Text body = bubble.Find("Keyword Bubble Text")?.GetComponent<Text>();
-            if (body != null)
-            {
-                body.fontSize = 20;
-                body.resizeTextForBestFit = false;
-                body.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 384f);
-                // The calculation-only bubble can shrink as well as grow. Keep
-                // the original lower edge/pointer and reserve the title above it.
-                extraHeight = Mathf.Max(120f, MeasureCardTextHeight(body)) - 456f;
-            }
-            bubble.sizeDelta = new Vector2(420f,552f + extraHeight);
-            float bubbleOffset = CardFaceLayout.FrameSize.x * .5f + 222f;
-            bubble.anchoredPosition = new Vector2(rightSide ? bubbleOffset : -bubbleOffset,118f + extraHeight * .5f);
-            RectTransform pointer = bubble.Find("Keyword Bubble Pointer") as RectTransform;
-            if (pointer != null) pointer.anchoredPosition = new Vector2(rightSide ? -200f : 200f,-78f - extraHeight * .5f);
-            RectTransform title = bubble.Find("Keyword Bubble Title") as RectTransform;
-            if (title != null) { title.sizeDelta = new Vector2(384f,64f); title.anchoredPosition = new Vector2(0f,232f + extraHeight * .5f); }
-            RectTransform explanation = bubble.Find("Keyword Bubble Text") as RectTransform;
-            if (explanation != null) { explanation.sizeDelta = new Vector2(384f,456f + extraHeight); explanation.anchoredPosition = new Vector2(0f,-36f); }
+            return CardKeywordTooltip.Create(card as RectTransform, "Card Keyword Bubble " + index,
+                BattleCardKeywords(battleCard), GameTypography.BodyFont);
         }
 
         private void BuildSettlement()

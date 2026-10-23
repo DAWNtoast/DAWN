@@ -30,7 +30,7 @@ namespace ShatteredSail.Presentation.Tests
             string[] names = { "Voyage Setup", "Route Selection", "Voyage Background", "Departure Dock Foreground",
                 "Port Facility Header", "Inspect Departure Vessel", "Departure Dock Selected Sea", "Setup Title",
                 "Departure Previous Vessel", "Departure Next Vessel", "Departure Dock Ordinary Readout", "Departure Dock Speed Readout",
-                "Departure Dock Vessel Controls", "Departure Dock Crew Readout Panel", "Departure Buy Provisions",
+                "Departure Dock Crew Readout Panel", "Departure Buy Provisions",
                 "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton", "Start Voyage",
                 "Departure Dock Water Blend", "Departure Dock Water Ripple" };
             Dictionary<string, GameObject> retained = names.ToDictionary(name => name, GameObject.Find);
@@ -70,7 +70,10 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(effect.HullWidth, Is.EqualTo(Mathf.Abs(widthEnd.x - expectedContact.x)).Within(.1f),
                         waterLayer + " must resize to the selected hull without replacing its scene object.");
                 }
-                Assert.That(GameObject.Find("Setup Title").GetComponent<Text>().text, Does.Contain(controller.Session.SelectedShip.Name));
+                Assert.That(GameObject.Find("Setup Title").GetComponent<Text>().enabled, Is.False,
+                    "Cycling ships must keep the ship-name strip hidden.");
+                Assert.That(GameObject.Find("Departure Dock Vessel Controls"), Is.Null);
+                Assert.That(GameObject.Find("Departure Dock Ship Hint"), Is.Null);
                 Assert.That(GameObject.Find("Departure Dock Ordinary Readout").GetComponent<Text>().text,
                     Does.Contain(controller.Session.SelectedOrdinaryCrew + "/" + controller.Session.CrewCountValue));
                 Assert.That(GameObject.Find("Departure Dock Speed Readout").GetComponent<Text>().text,

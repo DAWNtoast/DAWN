@@ -1,0 +1,53 @@
+[
+  {
+    "id": "crew_bronze_bell_gunner_helen",
+    "source": "C:/Users/Admin/.codex/generated_images/01a15efb-4b6f-7940-b288-7151ce1cbf8f/exec-dd829b00-fa47-4dc2-8ffc-aca40b6624f7.png",
+    "scene": "赫莲在炮台点火前观察撤离小艇，背后为封锁巨链。",
+    "prompt_text": "Use case: identity-preserve. Produce ONE finished opaque vertical 4:5 waist-up story illustration for a nautical fantasy RPG. Image 1 is the authoritative tavern identity AND rendering-style reference. Redraw that exact same adult woman Helen: pale skin, narrow face and high cheekbones, dark eyes, short swept-back copper-red wavy hair, the same small forehead scar and angled cheek scar, composed alert expression. Preserve her navy-black officer uniform, gold piping and buttons, prominent gold-fringed shoulder epaulettes, white inner blouse, brown straps and belt. Keep her face, apparent age, physique and clothes unmistakably the same. Story: she leaves half a breath before lighting the fuse so evacuation boats can clear the water; her shot broke the blockade chain. Depict her at a coastal cannon emplacement, holding a long lighting taper poised safely short of the fuse with one hand, her other palm steady on the cannon breech. Her face is visible in three-quarter view, eyes checking a tiny distant evacuation boat crossing a clear strip of sea. A bell tower and heavy blockade chain faintly visible in the distance. A folded unlettered powder table rests at the lower edge, cannon low in the composition. Thoughtful restraint before decisive action. Match the reference's polished painterly fantasy game art, rich materials, natural anatomy, attractive composed lighting. Frame complete head to hips, both shoulders, entire upper torso THROUGH WAIST, both hands clearly visible. 7 percent air above hair; face, waist, hands and taper all within upper 90 percent of canvas, bottom margin for game cropping. Single main character, no other visible people, no explosions, no text, no letters, captions, UI, frame, watermark or panels.",
+    "prompt": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/prompts/crew_bronze_bell_gunner_helen.txt",
+    "reference": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/references/crew_bronze_bell_gunner_helen_tavern.png",
+    "final": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/final/crew_bronze_bell_gunner_helen.png",
+    "status": "generated_visual_qa_pass",
+    "tool": "built-in image_gen",
+    "qa": "Compared visually to tavern reference; face, hair/helmet, age, outfit, physique, waist-up composition, hands and story props preserved.",
+    "name": "钟楼炮官 赫莲",
+    "port": "铜钟港",
+    "story_basis": "赫莲点引信前，总留半息给撤离的小艇。她曾替老船长打出击断巨链的一炮，把第十三响认作人们自行决定去向的信号。六段装药表仍压在炮台下，她教炮手的第一件事，是认清哪一片水面必须留空。",
+    "identity_basis": "The exact same adult woman with pale skin, high cheekbones, narrow face, short swept-back copper-red wavy hair, the same small forehead scar and angled cheek scar visible in the reference, dark eyes, composed alert expression, navy-black gun officer uniform with gold piping and buttons, prominent gold-fringed shoulder epaulettes, white inner blouse, brown straps and belt. Preserve the actual ear shape shown and do not invent missing-ear details.",
+    "story_source": "D:/Game/UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs"
+  },
+  {
+    "id": "crew_bronze_bell_cook_basin",
+    "source": "C:/Users/Admin/.codex/generated_images/01a15efb-4b6f-7940-b288-7151ce1cbf8f/exec-de00d84d-0b06-4d57-a73e-220b3b8c8be0.png",
+    "scene": "巴辛边搅锅边调节泄压阀，靠汽鸣安排热餐与回程蒸汽。",
+    "prompt_text": "Use case: identity-preserve. ONE finished opaque 4:5 vertical upper-body story illustration for a nautical fantasy RPG. Image 1 is the absolute visual identity and painting-style reference. Redraw exactly the same older powerfully built dark-skinned man Basin: bald head, broad strong friendly but focused face, white mustache and short white beard, huge tattooed arms with the same dark swirling designs, sleeveless dark shirt, heavy brown leather shoulder straps with brass buckles, worn cream apron and dark wristbands. Preserve age, complexion, physique, face, clothing and tattoos. Story: he hears from boiler venting when the whole watch needs feeding; he recognizes the sixth notch of a salt-crown pot as an old naval galley pressure-release mark, and always reserves steam for the return journey. Depict him in a ship's steam kitchen, stirring a large copper pressure pot with a wooden ladle in one hand while carefully adjusting its pressure-release valve with the other, listening to a thin ribbon of steam with a knowing expression. Six simple notches around an unobtrusive brass ring by the valve; a few filled soup bowls on a side shelf wait for tired sailors. Warm stove glow and brass pipes, softer cool light from a small porthole. Steam never obscures his face or arms. Strong clear character focus, expressive face, natural anatomy, richly detailed polished hand-painted fantasy game art matching reference. Frame full head to hips, entire upper body through waist, both shoulders and both hands within the upper 90 percent, 7 percent headroom and generous lower crop-safe margin. One character. No text, lettering, readable numbers, UI, border, panels or watermark.",
+    "prompt": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/prompts/crew_bronze_bell_cook_basin.txt",
+    "reference": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/references/crew_bronze_bell_cook_basin_tavern.png",
+    "final": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/final/crew_bronze_bell_cook_basin.png",
+    "status": "generated_visual_qa_pass",
+    "tool": "built-in image_gen",
+    "qa": "Compared visually to tavern reference; face, hair/helmet, age, outfit, physique, waist-up composition, hands and story props preserved.",
+    "name": "锅炉厨师 巴辛",
+    "port": "铜钟港",
+    "story_basis": "巴辛听锅炉泄气，能听出一整班水手何时该吃饭。他曾掌管帝国舰队的灶火，一眼认出盐锅王冠的第六道缺口：那是旧军灶的泄压记号。开门之前须留下一口回程蒸汽，这条规矩，他念得比食谱还熟。",
+    "identity_basis": "The exact same older powerfully built dark-skinned man with a bald head, broad strong face, white mustache and short white beard, deep-set friendly but focused eyes, massive arms covered in the same visible dark swirling tattoos, sleeveless dark shirt, heavy brown leather shoulder straps with brass buckles, worn cream cooking apron and dark wristbands. Preserve the tattoos as tattoos; do not replace them with generic burn scars.",
+    "story_source": "D:/Game/UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs"
+  },
+  {
+    "id": "crew_bronze_bell_diver_duke",
+    "source": "C:/Users/Admin/.codex/generated_images/01a15efb-4b6f-7940-b288-7151ce1cbf8f/exec-68c118a5-5a58-4996-8048-bf6829d7eb92.png",
+    "scene": "杜克在会呼吸的潜水钟边敲击铜盔，停下来倾听另一端的暗号。",
+    "prompt_text": "Use case: identity-preserve. ONE finished opaque 4:5 vertical upper-body story illustration for a nautical fantasy RPG. Image 1 is the absolute visual identity and painting-style reference. Redraw exactly the same huge broad-shouldered man Duke: warm light-brown skin, thick brows, weathered square face, heavy brown beard and moustache, long brown hair, stern attentive eyes; keep the unusual open-faced domed brass diving helmet sitting ABOVE the eyebrows, entire face uncovered just as in reference, brass shoulder armor, chest straps over dark worn tunic, enormous reinforced copper/brass gauntlet and bracers, broad work belt. Do not seal his face behind glass or change his helmet silhouette. Story: before diving he taps each tool on his copper helmet; in a breathing diving bell with still-warm tools, a correct answering code came from beyond the wall from someone claiming to live twenty years earlier. Depict him beside an old diving bell at a damp tidal engineering shaft, one hand raising a short wrench to tap the upper side of his helmet, the other armored palm resting lightly on wet stone as he pauses to listen, face turned three-quarter toward viewer, alert surprise under rugged confidence. Discreet warm condensation on tools on a ledge and cool blue light rising from the shaft suggest the mystery; nobody beyond the wall is shown. Warm brass lantern rimlight, detailed wet stone and old metal, restrained atmosphere, natural anatomy. Match the reference's polished semi-realistic painterly fantasy game rendering. Frame complete helmet crown through hips, full upper body to waist, both shoulders, both hands and wrench comfortably in frame within upper 90 percent; 7 percent top margin and generous bottom margin for game crop. One character, no ghosts, no text, no letters, captions, UI, borders, panels or watermark.",
+    "prompt": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/prompts/crew_bronze_bell_diver_duke.txt",
+    "reference": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/references/crew_bronze_bell_diver_duke_tavern.png",
+    "final": "D:/Game/outputs/imagegen/crew-tavern-redraw-20261021/final/crew_bronze_bell_diver_duke.png",
+    "status": "generated_visual_qa_pass",
+    "tool": "built-in image_gen",
+    "qa": "Compared visually to tavern reference; face, hair/helmet, age, outfit, physique, waist-up composition, hands and story props preserved.",
+    "name": "铜盔潜工 杜克",
+    "port": "铜钟港",
+    "story_basis": "杜克下水前会把每件工具在铜盔上敲一遍。他打开第一座会呼吸的潜水钟时，里面的工具竟还温热。井壁另一端传来工人暗号，敲击节奏毫无差错；可那个答话的人，坚持说自己活在二十年前。",
+    "identity_basis": "The exact same huge broad-shouldered adult man with warm light-brown skin, thick dark brows, weathered square face, heavy brown beard and mustache, long brown hair, stern attentive eyes, the same open-faced domed brass diving helmet worn high enough to leave his entire face visible, heavy brass shoulder armor and chest straps over a dark worn diving tunic, reinforced copper/brass gauntlet and bracers, broad work belt. Preserve the recognizable open-face helmet silhouette rather than sealing his face behind a porthole.",
+    "story_source": "D:/Game/UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs"
+  }
+]

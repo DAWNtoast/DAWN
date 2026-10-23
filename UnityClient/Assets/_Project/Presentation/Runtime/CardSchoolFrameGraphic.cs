@@ -14,15 +14,19 @@ namespace ShatteredSail.Presentation
         [SerializeField] private string schoolId;
         [SerializeField] private Texture2D frameTexture;
         [SerializeField] private bool available = true;
+        private Texture2D calibratedTexture;
         public string SchoolId => CardSchoolArtCatalog.NormalizeSchool(schoolId);
         public override Texture mainTexture => frameTexture != null ? frameTexture : Texture2D.whiteTexture;
         public bool HasAuthoredTexture => frameTexture != null;
+        public bool Available => available;
+        internal bool NeedsLayoutCalibration => calibratedTexture != frameTexture;
+        internal void ConfirmLayoutCalibration() { calibratedTexture = frameTexture; }
 
-        public void Configure(string school, bool canPlay, int powderCost = 0, int cannonballCost = 0, string specialType = "")
+        public void Configure(string school, bool canPlay, int powderCost = 0, int cannonballCost = 0, string specialType = "", bool supplyCost = false, string supplyType = "")
         {
             schoolId = school;
             available = canPlay;
-            frameTexture = CardSchoolArtCatalog.Frame(school, powderCost, cannonballCost, specialType);
+            frameTexture = CardSchoolArtCatalog.Frame(school, powderCost, cannonballCost, specialType, supplyCost, supplyType);
             raycastTarget = false;
             SetAllDirty();
         }

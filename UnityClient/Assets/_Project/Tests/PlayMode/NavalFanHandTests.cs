@@ -12,6 +12,35 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
+        public IEnumerator NavalSpecialActions_ButtonsDistinguishSideBySideBoardingFromFourSidedRams()
+        {
+            yield return LoadResponsiveBattleScene();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
+            ConfigureCloseNavalTestPose(session.Battle, false);
+            var pose = typeof(CoreBattleState).GetMethod("SetTacticalPose",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            foreach (float playerHeading in new[] { 0f, 90f, 180f, 270f })
+                foreach (float enemyHeading in new[] { 0f, 90f, 180f, 270f })
+                {
+                    pose.Invoke(session.Battle, new object[] { true, new VoyagePoint(-100f, 0f), playerHeading });
+                    pose.Invoke(session.Battle, new object[] { false, new VoyagePoint(0f, 0f), enemyHeading });
+                    RenderResponsiveBattle(controller);
+                    yield return WaitResponsiveBattle(controller);
+                    bool alongside = playerHeading % 180f == 90f && enemyHeading % 180f == 90f;
+                    Assert.That(RequiredResponsive<Button>("Battle Board").IsInteractable(), Is.EqualTo(alongside),
+                        "Only parallel ships in neighboring columns may board, including opposite headings.");
+                    Assert.That(RequiredResponsive<Button>("Battle Ram").IsInteractable(), Is.EqualTo(playerHeading == 0f),
+                        "A bow pointing at the enemy can hit its front, stern, or either side.");
+                    if (alongside)
+                        Assert.That(NavalHudTooltipText("Battle Board"), Does.Contain("同向或反向").And.Contain("舷侧相邻"));
+                    if (playerHeading == 0f)
+                        Assert.That(NavalHudTooltipText("Battle Ram"), Does.Contain("前后左右"));
+                }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator NavalSpecialActions_ActionPointsRefreshButtonsAndBothWorkAtZeroEnergy()
         {
             foreach (bool ram in new[] { false, true })
@@ -44,7 +73,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(RequiredResponsive<Button>(actionName), Is.SameAs(action));
                 Assert.That(action.interactable, Is.True, "An AP card must immediately enable the retained action even with zero energy.");
                 Assert.That(NavalHudTooltipText(actionName),
-                    Does.Contain(ram ? "垂直" : "同向").And.Contain("不耗能量"));
+                    Does.Contain(ram ? "前后左右" : "平行且舷侧相邻").And.Contain("不耗能量"));
 
                 // AP changes without rebuilding the scene still refresh these
                 // controls through the same observer that updates the resource HUD.

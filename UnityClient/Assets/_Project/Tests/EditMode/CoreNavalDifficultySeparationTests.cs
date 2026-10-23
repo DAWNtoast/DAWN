@@ -35,6 +35,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.EndBattleTurn(), Is.True);
             session.Battle.EnemyHull = session.Battle.EnemyMaxHull;
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(session.TryBoard(), Is.True);

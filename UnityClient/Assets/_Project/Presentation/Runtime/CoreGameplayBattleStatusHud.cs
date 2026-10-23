@@ -41,6 +41,7 @@ namespace ShatteredSail.Presentation
                         session.IsGuidedBossBattle && battle.Stage != NavalBattleStage.Boarding ? 90f : 140f);
                     row.FollowHealthBar(track);
                 }
+                row.SetCellSize(board == null ? 0f : board.CellSizePixels);
                 row.SetOwner(this);
                 row.SetStatuses(CoreBattleStatusPresentation.Build(session, player), Application.isPlaying && !editorPreviewBuilding);
             }

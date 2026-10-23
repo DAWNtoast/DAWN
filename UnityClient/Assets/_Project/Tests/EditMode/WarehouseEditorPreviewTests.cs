@@ -266,7 +266,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(1));
             Assert.That(controller.Session.CargoCapacityValue, Is.EqualTo(CoreVoyageSession.Ships[1].CargoCapacity));
             Assert.That(controller.Session.Cargo.UsedVolume, Is.LessThanOrEqualTo(controller.Session.CargoCapacityValue));
-            Assert.That(Find<Text>("Warehouse Rare Hint").text, Is.EqualTo("点击物品查看详情、存取或出售"));
+            Assert.That(Find<Text>("Warehouse Rare Hint").text, Is.Empty);
             if (state == 1) Find<RectTransform>("Warehouse Cargo Adjustment");
             AssertPlayerPreferences(expectedInts, expectedStrings);
         }

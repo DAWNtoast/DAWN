@@ -1,0 +1,302 @@
+[
+  {
+    "key": "resource-energy",
+    "category": "resource",
+    "name": "能量",
+    "kind": "Energy",
+    "renderer": "command",
+    "effect": "打出卡牌消耗；每回合恢复至能量上限。显示当前值／上限。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:63"
+  },
+  {
+    "key": "resource-action-point",
+    "category": "resource",
+    "name": "行动点",
+    "kind": "ActionPoint",
+    "renderer": "command",
+    "effect": "用于海战航行、冲撞和接舷。到达后剩余点数可先用于冲撞／接舷，选定朝向后清空；白刃战显示 0。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:66"
+  },
+  {
+    "key": "resource-mana",
+    "category": "resource",
+    "name": "法力",
+    "kind": "Mana",
+    "renderer": "command",
+    "effect": "奥术体系资源。显示常规法力／上限；有临时法力时显示常规＋临时，临时法力回合结束清空。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:71"
+  },
+  {
+    "key": "resource-thunder-chain",
+    "category": "resource",
+    "name": "雷链",
+    "kind": "ThunderChain",
+    "renderer": "command",
+    "effect": "雷霆体系积累的资源，显示当前值／上限，用于相关卡牌效果或额外费用。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:76"
+  },
+  {
+    "key": "resource-tide",
+    "category": "resource",
+    "name": "潮势",
+    "kind": "TidePower",
+    "renderer": "command",
+    "effect": "潮汐体系资源，用于强化和支付相关卡牌效果。白刃战上限 12。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:79"
+  },
+  {
+    "key": "resource-curse-mark",
+    "category": "resource",
+    "name": "咒痕",
+    "kind": "CurseMark",
+    "renderer": "command",
+    "effect": "施加在敌方的咒痕，影响诅咒卡效果。海战悬浮显示剩余回合、每层末结算伤害和下次追加值；白刃战显示当前值／6。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:83"
+  },
+  {
+    "key": "resource-powder",
+    "category": "resource",
+    "name": "火药",
+    "kind": "Powder",
+    "renderer": "command",
+    "effect": "货舱火药库存，部分炮击与战术卡消耗。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:90"
+  },
+  {
+    "key": "resource-cannonball",
+    "category": "resource",
+    "name": "炮弹",
+    "kind": "Cannonball",
+    "renderer": "command",
+    "effect": "货舱炮弹库存，炮击卡消耗。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:91"
+  },
+  {
+    "key": "resource-wood",
+    "category": "resource",
+    "name": "木板",
+    "kind": "Planks",
+    "renderer": "command",
+    "effect": "货舱木板库存，用于修理船体。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:92"
+  },
+  {
+    "key": "resource-medicine",
+    "category": "resource",
+    "name": "药品",
+    "kind": "Medicine",
+    "renderer": "command",
+    "effect": "货舱药品库存，治疗与部分接舷卡消耗。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:93"
+  },
+  {
+    "key": "intent-cannon",
+    "category": "intent",
+    "name": "炮击",
+    "kind": "Cannonball",
+    "renderer": "command",
+    "effect": "预计炮击伤害，已计入装甲、装填和相关弱化，尚未扣玩家格挡。实际使用炮弹图案。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:113"
+  },
+  {
+    "key": "intent-melee",
+    "category": "intent",
+    "name": "白刃攻击／接舷先手",
+    "kind": "Melee",
+    "renderer": "command",
+    "effect": "预计船员伤害；冲撞后的先手会单列。通常显示格挡前数值，悬浮详情说明穿透与实际吸收。",
+    "stage": "白刃战／冲撞预览",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:120"
+  },
+  {
+    "key": "intent-ram",
+    "category": "intent",
+    "name": "冲撞",
+    "kind": "Ram",
+    "renderer": "command",
+    "effect": "预计对己舰造成的船体伤害，穿透格挡。悬浮可看敌舰反伤；双方存活则进入接舷。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:126"
+  },
+  {
+    "key": "intent-guard",
+    "category": "intent",
+    "name": "防御／格挡",
+    "kind": "Guard",
+    "renderer": "command",
+    "effect": "预计获得或结算后的格挡。海战预览已计入减盾、移动途中护盾和行动开始时旧格挡清除。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:81"
+  },
+  {
+    "key": "intent-repair",
+    "category": "intent",
+    "name": "修理船体",
+    "kind": "Repair",
+    "renderer": "command",
+    "effect": "敌方预计恢复的船体，受缺失船体和禁疗限制；现行悬浮标题为“治疗”。",
+    "stage": "备战／炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:97"
+  },
+  {
+    "key": "intent-heal",
+    "category": "intent",
+    "name": "治疗船员",
+    "kind": "Medicine",
+    "renderer": "command",
+    "effect": "白刃战预计恢复的船员生命，含符合条件的实际吸血，受缺失生命限制。",
+    "stage": "白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:154"
+  },
+  {
+    "key": "intent-load",
+    "category": "intent",
+    "name": "装填",
+    "kind": "Load",
+    "renderer": "command",
+    "effect": "增加后续炮击加伤；总装填上限 12，开炮后消耗。预览已计入装填封印。",
+    "stage": "备战／炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:86"
+  },
+  {
+    "key": "intent-move",
+    "category": "intent",
+    "name": "机动",
+    "kind": "Move",
+    "renderer": "command",
+    "effect": "预计主动移动格数，每格 100 米。海流可能额外推动，雷栅可能提前终止移动。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:67"
+  },
+  {
+    "key": "intent-fire",
+    "category": "intent",
+    "name": "引火／移焰",
+    "kind": "Fire",
+    "renderer": "command",
+    "effect": "纯资源火系行动的预告。数字表示新增或转移的自燃量；具体动作见悬浮说明。",
+    "stage": "白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:166"
+  },
+  {
+    "key": "intent-wait",
+    "category": "intent",
+    "name": "准备／等待／无法行动",
+    "kind": "Wait",
+    "renderer": "command",
+    "effect": "本轮不攻击或不能继续行动。可能尚在准备、目标超出 4 格炮击范围，或预计在攻击前被燃烧／地形击败。",
+    "stage": "备战／炮战／白刃战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreBattleIntentPresentation.cs:134"
+  },
+  {
+    "key": "field-fire",
+    "category": "field",
+    "name": "火场",
+    "kind": "Fire",
+    "renderer": "field",
+    "effect": "进入或回合结束停留时造成 2 点伤害，先由格挡吸收。双方均受影响；每轮按坐标限制触发，火场免疫可抵消。 格子上的“我／敌”表示归属，数字表示距所属方回合开始移除的次数。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreNavalFieldsExecution.cs:110"
+  },
+  {
+    "key": "field-arcane",
+    "category": "field",
+    "name": "折射阵",
+    "kind": "Arcane",
+    "renderer": "field",
+    "effect": "己方在自己的行动中进入或回合开始站在己方阵上，获得 1 临时法力，并获得本回合 4 点折射穿透。 格子上的“我／敌”表示归属，数字表示距所属方回合开始移除的次数。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreNavalFieldsExecution.cs:90"
+  },
+  {
+    "key": "field-curse",
+    "category": "field",
+    "name": "禁域",
+    "kind": "Curse",
+    "renderer": "field",
+    "effect": "敌方站在异阵营禁域时，咒痕结算追加每层 2 点伤害，最多追加 8 点；每轮同类场地只触发一次。 格子上的“我／敌”表示归属，数字表示距所属方回合开始移除的次数。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreNavalFieldsExecution.cs:72"
+  },
+  {
+    "key": "field-tide",
+    "category": "field",
+    "name": "水流",
+    "kind": "Tide",
+    "renderer": "field",
+    "effect": "一次航行或初始推移结束后，沿箭头方向再推动 1 格；水流推移不会递归触发下一次水流推移。 格子上的“我／敌”表示归属，数字表示距所属方回合开始移除的次数。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreNavalFieldsExecution.cs:215"
+  },
+  {
+    "key": "field-thunder",
+    "category": "field",
+    "name": "雷栅",
+    "kind": "Thunder",
+    "renderer": "field",
+    "effect": "进入时造成 3 点伤害，先由格挡吸收；首次触发会截停当前主动航行，强制位移忽略截停。每轮同类场地只触发一次。 格子上的“我／敌”表示归属，数字表示距所属方回合开始移除的次数。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreNavalFieldsExecution.cs:141"
+  },
+  {
+    "key": "field-blood",
+    "category": "field",
+    "name": "血誓阵",
+    "kind": "Blood",
+    "renderer": "field",
+    "effect": "己方在自己的行动中进入或回合开始站在己方阵上，获得 6 格挡，并获得本回合 4 点攻击加成。 格子上的“我／敌”表示归属，数字表示距所属方回合开始移除的次数。",
+    "stage": "炮战",
+    "source": "D:/Game/UnityClient/Assets/_Project/Core/Runtime/CoreNavalFieldsExecution.cs:96"
+  },
+  {
+    "key": "interface-deck",
+    "category": "interface",
+    "name": "卡组",
+    "kind": "Deck",
+    "renderer": "header",
+    "effect": "打开战斗卡组总览。",
+    "stage": "战斗界面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayBattleHeaderControls.cs:11"
+  },
+  {
+    "key": "interface-settings",
+    "category": "interface",
+    "name": "设置",
+    "kind": "Settings",
+    "renderer": "header",
+    "effect": "打开游戏设置。",
+    "stage": "战斗界面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayBattleHeaderControls.cs:13"
+  },
+  {
+    "key": "interface-draw-pile",
+    "category": "interface",
+    "name": "抽牌堆",
+    "kind": "DrawPile",
+    "renderer": "cardback",
+    "effect": "本阶段尚未抽取的卡牌数量。点击查看，列表不会透露实际抽取顺序。",
+    "stage": "战斗界面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:109"
+  },
+  {
+    "key": "interface-discard-pile",
+    "category": "interface",
+    "name": "弃牌堆",
+    "kind": "DiscardPile",
+    "renderer": "cardback",
+    "effect": "本阶段已弃置的卡牌数量。点击查看；抽牌堆耗尽后会重新洗入。",
+    "stage": "战斗界面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayCompactBattleHud.cs:109"
+  }
+]

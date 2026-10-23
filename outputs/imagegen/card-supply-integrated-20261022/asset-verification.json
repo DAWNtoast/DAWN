@@ -1,0 +1,122 @@
+[
+  {
+    "id": "frame-neutral-ap-medicine",
+    "width": 965,
+    "height": 1630,
+    "exteriorAlpha": 0,
+    "windowAlpha": 0,
+    "paperAlpha": 253,
+    "iconAlpha": 253,
+    "iconCenter": {
+      "x": 849,
+      "y": 462
+    },
+    "sourceHash": "2074F6EA4542CC37BF0C6BD414923C944C187E45A2772421A9EB8E21FD002406",
+    "installedHash": "2074F6EA4542CC37BF0C6BD414923C944C187E45A2772421A9EB8E21FD002406"
+  },
+  {
+    "id": "frame-fire-powder-medicine",
+    "width": 965,
+    "height": 1630,
+    "exteriorAlpha": 0,
+    "windowAlpha": 0,
+    "paperAlpha": 253,
+    "iconAlpha": 253,
+    "iconCenter": {
+      "x": 867,
+      "y": 410
+    },
+    "sourceHash": "4D49F646185E53401E652F84A4AB6B6EF18BECBAF35B62D410C5277F277174CC",
+    "installedHash": "4D49F646185E53401E652F84A4AB6B6EF18BECBAF35B62D410C5277F277174CC"
+  },
+  {
+    "id": "frame-arcane-ap-mana-medicine",
+    "width": 965,
+    "height": 1630,
+    "exteriorAlpha": 0,
+    "windowAlpha": 0,
+    "paperAlpha": 253,
+    "iconAlpha": 253,
+    "iconCenter": {
+      "x": 860,
+      "y": 478
+    },
+    "sourceHash": "4ACAF364A2EF8D76692E1490C72507725D638B590B12E2C74AD9BAEDE06C7BE2",
+    "installedHash": "4ACAF364A2EF8D76692E1490C72507725D638B590B12E2C74AD9BAEDE06C7BE2"
+  },
+  {
+    "id": "frame-curse-ap-curse-medicine",
+    "width": 965,
+    "height": 1630,
+    "exteriorAlpha": 0,
+    "windowAlpha": 0,
+    "paperAlpha": 253,
+    "iconAlpha": 254,
+    "iconCenter": {
+      "x": 854,
+      "y": 480
+    },
+    "sourceHash": "654D7EB2B4A331525329814985487F7C6D795D384607BB8126C1C45561897EF5",
+    "installedHash": "654D7EB2B4A331525329814985487F7C6D795D384607BB8126C1C45561897EF5"
+  },
+  {
+    "id": "frame-tide-ap-tide-medicine",
+    "width": 965,
+    "height": 1630,
+    "exteriorAlpha": 0,
+    "windowAlpha": 0,
+    "paperAlpha": 253,
+    "iconAlpha": 253,
+    "iconCenter": {
+      "x": 862,
+      "y": 450
+    },
+    "sourceHash": "6D515769767A9BE62704709231A6770E0882B0519B6D450F0A56223FD90D3902",
+    "installedHash": "6D515769767A9BE62704709231A6770E0882B0519B6D450F0A56223FD90D3902"
+  },
+  {
+    "id": "frame-blood-ap-medicine",
+    "width": 965,
+    "height": 1630,
+    "exteriorAlpha": 0,
+    "windowAlpha": 0,
+    "paperAlpha": 253,
+    "iconAlpha": 253,
+    "iconCenter": {
+      "x": 870,
+      "y": 423
+    },
+    "sourceHash": "540E9A6088E8C71B62D0E4433035ED661DC63EE12B2C463B7857A204CF022C89",
+    "installedHash": "540E9A6088E8C71B62D0E4433035ED661DC63EE12B2C463B7857A204CF022C89"
+  },
+  {
+    "id": "frame-tide-ap-wood",
+    "width": 965,
+    "height": 1630,
+    "exteriorAlpha": 0,
+    "windowAlpha": 0,
+    "paperAlpha": 253,
+    "iconAlpha": 253,
+    "iconCenter": {
+      "x": 866,
+      "y": 435
+    },
+    "sourceHash": "CCDF89A83C8401F9DDBD4E21613BF9C489696DBDB4F7C917EC5101EEA354F853",
+    "installedHash": "CCDF89A83C8401F9DDBD4E21613BF9C489696DBDB4F7C917EC5101EEA354F853"
+  },
+  {
+    "id": "frame-arcane-ap-mana-wood",
+    "width": 965,
+    "height": 1630,
+    "exteriorAlpha": 0,
+    "windowAlpha": 0,
+    "paperAlpha": 253,
+    "iconAlpha": 253,
+    "iconCenter": {
+      "x": 860,
+      "y": 478
+    },
+    "sourceHash": "4ACCBF0CC91DB9FCC15297B1EB3E1E88792FFB71D1B7784FAB6E6CDE5571AA26",
+    "installedHash": "4ACCBF0CC91DB9FCC15297B1EB3E1E88792FFB71D1B7784FAB6E6CDE5571AA26"
+  }
+]

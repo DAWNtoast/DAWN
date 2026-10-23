@@ -181,7 +181,7 @@ namespace ShatteredSail.Presentation
                     feedback.Add(AnimateFloatingText(stage, new Vector2(0f, -115f), "抽牌 +" + drawn, Gold, "Battle Draw Float"));
                 if (after.EnemyBurnTurns > before.EnemyBurnTurns)
                     feedback.Add(AnimateFloatingText(stage, BattleEffectPosition(stage, enemyShip) + Vector2.up * 170f,
-                        (boarding ? "敌方燃烧 · " : "敌舰燃烧 · ") + after.EnemyBurnTurns + " 回合", Coral, "Enemy Burning Float"));
+                        (boarding ? "敌方燃烧 · " : "敌舰燃烧 · ") + after.EnemyBurnTurns + " 层", Coral, "Enemy Burning Float"));
                 yield return PlayBattleFeedbackTogether(feedback);
 
                 if (session.Phase != CoreDemoPhase.Battle)
@@ -267,6 +267,7 @@ namespace ShatteredSail.Presentation
                 BattleAnimationSnapshot before = new BattleAnimationSnapshot(session, battle);
                 string intent = session.GetEnemyIntent();
                 bool announcedRam = session.EnemyWillRam;
+                NavalBoardingConnection ramConnection = session.EnemyRamConnection;
                 RectTransform stage = GameObject.Find("Battle Card")?.GetComponent<RectTransform>();
                 RectTransform playerShip = GameObject.Find("Player Ship Art")?.GetComponent<RectTransform>();
                 RectTransform enemyShip = GameObject.Find("Enemy Ship Art")?.GetComponent<RectTransform>();
@@ -302,18 +303,19 @@ namespace ShatteredSail.Presentation
                 }
                 int playerDamage = Mathf.Max(0, playerBefore - playerAfter);
                 int enemyDamage = Mathf.Max(0, before.EnemyHull - after.EnemyHull);
-                int burned = before.Stage == NavalBattleStage.Naval && before.EnemyBurnTurns > after.EnemyBurnTurns
+                int burned = before.Stage == NavalBattleStage.Naval && after.Stage == NavalBattleStage.Naval && before.EnemyBurnTurns > after.EnemyBurnTurns
                     ? Mathf.Min(enemyDamage, Mathf.Min(before.EnemyBurnDamage, before.EnemyHull)) : 0;
-                if (burned > 0)
-                {
-                    yield return AnimateAura(stage, enemyShip, Coral, "灼烧 -" + burned, "Enemy Burn Damage");
-                    yield return AnimateHealthBar(enemyHullBar, before.EnemyHull, before.EnemyHull - burned, before.EnemyMaxHull, Coral);
-                }
                 if (boarding && boardingResult.LastBurnHealthLost > 0)
                 {
                     yield return AnimateAura(stage, playerShip, Coral, "灼烧 -" + boardingResult.LastBurnHealthLost, "Player Boarding Burn Damage");
                     yield return AnimateHealthBar(playerHullBar, boardingResult.LastBurnPlayerHealth,
                         boardingResult.LastBurnPlayerHealth - boardingResult.LastBurnHealthLost, before.PlayerMaxCrew, Coral);
+                }
+                if (boarding && boardingResult.LastCurseHealthLost > 0)
+                {
+                    yield return AnimateAura(stage, playerShip, Coral, "咒印 -" + boardingResult.LastCurseHealthLost, "Player Boarding Curse Damage");
+                    yield return AnimateHealthBar(playerHullBar, boardingResult.LastCursePlayerHealth,
+                        boardingResult.LastCursePlayerHealth - boardingResult.LastCurseHealthLost, before.PlayerMaxCrew, Coral);
                 }
 
                 if (boarding && HasBoardingEnemySchool(battle))
@@ -329,10 +331,10 @@ namespace ShatteredSail.Presentation
                     yield break;
                 }
 
-                Texture2D ramComic = ram ? RamComicTexture(true, NavalBattleAlignment.EnemyBroadside) : null;
+                Texture2D ramComic = ram ? RamComicTextureForConnection(true, ramConnection) : null;
                 if (ramComic != null)
                 {
-                    yield return AnimateRamComic(ramComic, true, before, after, burned);
+                    yield return AnimateRamComic(ramComic, true, before, after, burned, ramConnection);
                     // The committed result remains authoritative: a lethal ram
                     // (including the boarding first strike) never forces boarding.
                     if (session.Phase != CoreDemoPhase.Battle)
@@ -364,7 +366,7 @@ namespace ShatteredSail.Presentation
                 if (recoil > 0)
                 {
                     yield return AnimateImpact(stage, enemyShip, Coral, "反伤 -" + recoil, "Enemy Ram Recoil");
-                    yield return AnimateHealthBar(enemyHullBar, before.EnemyHull - burned, after.EnemyHull, before.EnemyMaxHull, Coral);
+                    yield return AnimateHealthBar(enemyHullBar, before.EnemyHull, before.EnemyHull - recoil, before.EnemyMaxHull, Coral);
                 }
                 int enemyGuardBeforeDelayed = after.EnemyBlock;
                 if (boarding)
@@ -384,6 +386,11 @@ namespace ShatteredSail.Presentation
                 if (boarding)
                     yield return AnimateResolvedSchoolAttacks(stage, playerShip, enemyShip, enemyHullBar,
                         battle.Boarding, resolvedBefore, before.EnemyMaxCrew);
+                if (burned > 0)
+                {
+                    yield return AnimateAura(stage, enemyShip, Coral, "燃烧 -" + burned, "Enemy Burn Damage");
+                    yield return AnimateHealthBar(enemyHullBar, before.EnemyHull - recoil, after.EnemyHull, before.EnemyMaxHull, Coral);
+                }
                 if (session.Phase != CoreDemoPhase.Battle)
                     yield return AnimateStagedBattleResolution(stage, playerShip, enemyShip, before, after);
                 else if (before.Stage != after.Stage)
@@ -1099,8 +1106,24 @@ namespace ShatteredSail.Presentation
             {
                 if (fanHand) FitFanInspection(hand);
                 else FitInspectionToClearSpace(hand);
+                ReserveKeywordSpace(hand);
             }
             targetScale = Vector3.one * inspectionScale * (pressed ? .98f : 1f);
+        }
+
+        private void ReserveKeywordSpace(RectTransform hand)
+        {
+            if (keywordTooltip == null) return;
+            Canvas canvas = hand.GetComponentInParent<Canvas>();
+            RectTransform screen = canvas != null ? FixedGameViewport.Bounds(canvas) : null;
+            if (screen == null) return;
+            Rect bounds = BoundsRelativeTo(screen, hand);
+            Rect frame = RotatedInspectionBounds();
+            float screenUnit = bounds.width / Mathf.Max(1f, screen.rect.width);
+            float minimum = bounds.xMin + (CardKeywordTooltip.Width + CardKeywordTooltip.CardGap + 12f) * screenUnit
+                - frame.xMin * inspectionScale;
+            float maximum = Mathf.Min(hand.rect.xMax, bounds.xMax) - frame.xMax * inspectionScale - 4f;
+            targetPosition.x = Mathf.Clamp(targetPosition.x, Mathf.Min(minimum, maximum), maximum);
         }
 
         private void FitFanInspection(RectTransform hand)

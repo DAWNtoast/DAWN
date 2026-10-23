@@ -152,7 +152,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickDestinationTestGraphic(ActiveButton("Departure Treasure Seed Picker").gameObject, Vector2.zero);
             AssertInlineDockRoots(background, vesselSize, vesselPosition);
             Assert.That(GameObject.Find("Departure Treasure Seed Selection"), Is.Null);
-            Assert.That(GameObject.Find("Departure Dock Treasure Empty").GetComponent<Text>().text, Does.Contain("鉴定碎片"));
+            Assert.That(GameObject.Find("Departure Dock Treasure Empty").GetComponent<Text>().text, Is.Empty);
             Assert.That(GameObject.Find("Departure Dock Treasure Dropdown").GetComponent<Dropdown>().IsInteractable(), Is.False);
             Assert.That(ActiveButton("Start Voyage").IsInteractable(), Is.False);
             Assert.That(session.SelectedTreasureMap, Is.Null);

@@ -106,7 +106,8 @@ namespace ShatteredSail.Presentation
                     ComponentShopShowroomLayout.GetDisplay(visible.Length, index).Position,
                     ScenePlaqueColor(.98f), WoodButtonSkin.Ink, 20);
                 card.GetComponentInChildren<Text>().text = string.Empty;
-                WoodButtonSkin.SetSelected(card, offer.Id == componentShopShowroomOfferId);
+                ComponentRarityWoodSkin.Apply(card, offer.Entry.Rarity);
+                ComponentRarityWoodSkin.SetSelected(card, offer.Id == componentShopShowroomOfferId);
                 RawImage icon = CreateRawImage("Component Shop Thumbnail " + offer.Entry.Id, card.transform,
                     new Vector2(91f, 91f), new Vector2(-57f, 0f), offer.Entry.Texture, new Rect(0, 0, 1, 1));
                 icon.raycastTarget = false;
@@ -164,7 +165,7 @@ namespace ShatteredSail.Presentation
             BuildComponentShopHero(showcase, offer);
             foreach (Button button in panel.GetComponentsInChildren<Button>())
                 if (button.name.StartsWith("Component Shop Offer ", StringComparison.Ordinal))
-                    WoodButtonSkin.SetSelected(button, button.name == "Component Shop Offer " + offer.Id);
+                    ComponentRarityWoodSkin.SetSelected(button, button.name == "Component Shop Offer " + offer.Id);
         }
 
         private void RebuildComponentShopShowroom(RectTransform panel,

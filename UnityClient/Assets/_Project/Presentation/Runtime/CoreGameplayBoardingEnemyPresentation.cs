@@ -26,7 +26,8 @@ namespace ShatteredSail.Presentation
                     ((System.Math.Max(1, battle.PhaseTurn) - 1) % deck.Turns.Count + 1) + "/" + deck.Turns.Count +
                     "\n" + deck.TurnAt(battle.PhaseTurn).Name +
                     "\n攻击 " + preview.AttackDamage + " · 穿盾 " + preview.PiercingDamage +
-                    "\n失血 " + preview.PlayerHealthLoss + " · 灼烧 " + preview.PlayerBurnDamage + "\n点击查看行动";
+                    "\n失血 " + preview.PlayerHealthLoss + " · 灼烧 " + preview.PlayerBurnDamage +
+                    " · 咒印 " + preview.PlayerCurseDamage + "\n点击查看行动";
                 intentLabel.raycastTarget = false;
                 intentLabel.resizeTextMinSize = 14;
             }
@@ -63,7 +64,7 @@ namespace ShatteredSail.Presentation
         {
             CoreBattleState battle = inspectedBattle;
             var deck = battle.BoardingEnemy.Deck;
-            battleDeckSummary.text = "固定行动顺序 · 每个动作按当时资源结算 · 出牌后预告会更新";
+            battleDeckSummary.text = string.Empty;
             var body = new StringBuilder();
             body.Append("当前资源\n").Append(session.GetBoardingEnemyResourceSummary())
                 .Append("\n\n本轮行动预告\n").Append(session.GetEnemyIntent())
@@ -102,8 +103,9 @@ namespace ShatteredSail.Presentation
             Image playerBar, Image enemyBar, BattleAnimationSnapshot before, BattleAnimationSnapshot after,
             CoreBoardingEnemyState results, CoreBoardingBattleState resolvedState = null, long resolvedAfterSequence = long.MaxValue)
         {
-            int playerHealth = results.LastBurnHealthLost > 0
-                ? results.LastBurnPlayerHealth - results.LastBurnHealthLost : before.PlayerCrew;
+            int playerHealth = results.LastCurseHealthLost > 0
+                ? results.LastCursePlayerHealth - results.LastCurseHealthLost
+                : results.LastBurnHealthLost > 0 ? results.LastBurnPlayerHealth - results.LastBurnHealthLost : before.PlayerCrew;
             int enemyHealth = before.EnemyCrew;
             int playerGuard = before.PlayerBlock, enemyGuard = before.EnemyBlock;
             foreach (CoreBoardingEnemyActionResult action in results.LastActions)

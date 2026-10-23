@@ -1,0 +1,16 @@
+Boss event sea scenes — completed 2026-10-23
+
+12 original paintings generated using the built-in image_gen tool: six route bosses and six legendary warships.
+Every painting is 1536x1024, fully opaque, with a complete sea-and-sky environment and school-specific atmosphere.
+Production assets: UnityClient/Assets/_Project/Resources/EncounterIllustrations/BossScenes/scene_<key>.png
+Event cards, chart previews and legendary preludes resolve these authored scene resources.
+The separate ShipArtV2/Special transparent ship-body assets were not overwritten.
+
+generation-manifest.json contains every final generation prompt, source, destination and SHA-256.
+asset-validation.json records dimensions, hashes and minimum alpha=255 for all twelve PNGs.
+boss-scenes-preview.jpg and legendary-scenes-preview.jpg show all twelve paintings.
+
+Validation: full runtime source compilation passed; BossEncounterSceneTests 26/26 passed; EncounterIllustrationCatalogTests 11/11 passed, including real loading of all 105 encounter illustration resources.
+Test reports: Artifacts/BossEncounterScenes20261023/Tests/results.xml and Artifacts/EventIllustrations20261022/Tests/results.xml.
+Real production UI previews: Artifacts/BossEncounterScenes20261023/Previews/boss_arcane_event_1920x1080.png and legendary_curse_prelude_1920x1080.png.
+No retired UIPreviewsForMe scenes were generated or changed.

@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory=$true)][string]$Output,
     [string]$TestFilter = '',
     [string]$SourceManifest = '',
+    [ValidateRange(1,240)][int]$TimeoutMinutes = 60,
     [string]$UnityEditor = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Unity.exe'
 )
 $ErrorActionPreference = 'Stop'
@@ -56,6 +57,7 @@ if ($SourceManifest) {
         $snapshot.SourceManifestSHA256 -ne $sourceManifestHash -or $snapshot.ProjectInputManifestSHA256 -ne $projectManifestHash) { throw 'The source manifest does not identify this isolated release snapshot.' }
     Assert-ReleaseInputs
 }
+& (Join-Path $PSScriptRoot 'AssertMetaGuids.ps1') -AssetsPath (Join-Path $project 'Assets')
 [IO.Directory]::CreateDirectory($destination) | Out-Null
 # Some EditMode tests render real UI to RenderTextures, so both suites need graphics.
 $arguments = @('-batchmode','-force-d3d11','-projectPath',$project,'-runTests','-testPlatform',$Platform,
@@ -66,11 +68,11 @@ $quoted = foreach ($value in $arguments) { $escaped = [regex]::Replace($value,'(
 $started = [DateTime]::UtcNow
 $process = Start-Process -FilePath $UnityEditor -ArgumentList ($quoted -join ' ') -WorkingDirectory $project -WindowStyle Hidden -PassThru
 $null = $process.Handle
-[pscustomobject]@{ PID=$process.Id; Arguments=$arguments; StartedUtc=$started.ToString('o'); SourceManifest=$SourceManifest; SourceManifestSHA256=$sourceManifestHash; ProjectInputManifestSHA256=$projectManifestHash; InputValidationResult=$(if($SourceManifest){'PASS'}else{'NOT_REQUESTED'}) } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $destination 'launch.json') -Encoding utf8
+[pscustomobject]@{ PID=$process.Id; Arguments=$arguments; StartedUtc=$started.ToString('o'); TimeoutMinutes=$TimeoutMinutes; SourceManifest=$SourceManifest; SourceManifestSHA256=$sourceManifestHash; ProjectInputManifestSHA256=$projectManifestHash; InputValidationResult=$(if($SourceManifest){'PASS'}else{'NOT_REQUESTED'}) } | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $destination 'launch.json') -Encoding utf8
 Write-Output ($Platform + ' started, PID ' + $process.Id)
 while (-not $process.WaitForExit(15000)) {
     Write-Output ($Platform + ' running: ' + [int]([DateTime]::UtcNow-$started).TotalSeconds + 's')
-    if (([DateTime]::UtcNow-$started).TotalMinutes -gt 45) { $process.Kill(); throw 'Owned test process timed out; evidence preserved.' }
+    if (([DateTime]::UtcNow-$started).TotalMinutes -gt $TimeoutMinutes) { $process.Kill(); throw 'Owned test process timed out; evidence preserved.' }
 }
 $inputValidationResult = 'NOT_REQUESTED'
 $inputValidationError = $null

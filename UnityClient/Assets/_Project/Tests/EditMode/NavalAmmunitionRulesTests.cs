@@ -23,10 +23,11 @@ namespace ShatteredSail.Core.Tests
                     cannons++;
                     // The naval expansion's cannons each cost one powder; their reused school art is not a cost rule.
                     bool expansion = CoreNavalSchoolExpansionCatalog.FindSpec(card.Id) != null;
-                    int expectedPowder = expansion ? 1 : card.SchoolId == "fire" ? card.ArtId == "card_school_fire_l03" ? 3 : 2 : 1;
+                    int expectedPowder = expansion || CoreComponentFieldCards.IsFieldCard(card) ? 1 : card.SchoolId == "fire" ? card.ArtId == "card_school_fire_l03" ? 3 : 2 : 1;
                     Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
                     Assert.That(card.CannonballCost, Is.EqualTo(1), card.Id);
-                    Assert.That(card.Description, Does.Contain(expectedPowder + " 火药").And.Contain("1 炮弹"), card.Id);
+                    Assert.That(card.Description, Does.Not.Contain("消耗 " + expectedPowder + " 火药").And.Not.Contain("消耗 1 炮弹"),
+                        card.Id + " fixed costs use the resource icons without duplicating them in effect text.");
                 }
                 else if (card.Action == NavalBattleCardAction.Load || card.Action == NavalBattleCardAction.PrecisionLoad)
                 {
@@ -34,7 +35,7 @@ namespace ShatteredSail.Core.Tests
                     int expectedPowder = card.Id == "card_component_instrument" ? 0 : 1;
                     Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
                     Assert.That(card.CannonballCost, Is.Zero, card.Id);
-                    if (expectedPowder > 0) Assert.That(card.Description, Does.Contain("消耗 1 火药"), card.Id);
+                    Assert.That(card.Description, Does.Not.Contain("消耗 1 火药"), card.Id + " loading cost belongs to its icon quote.");
                 }
                 else if (card.Action == NavalBattleCardAction.FireRounds)
                 {

@@ -1,0 +1,761 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/staging' branch; Version is '6000.3.23f1 (09d2ecc7fb28) revision 643820'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Channel LicenseClient-Admin doesn't exist
+OS: 'Windows 11  (10.0.26200) CoreCountrySpecific' Language: 'zh' Physical Memory: 31904 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-10-22T16:04:54Z
+[Licensing::Module] Successfully launched the LicensingClient (PId: 15852)
+
+COMMAND LINE ARGUMENTS:
+D:\Unity\Hub\Editor\6000.3.23f1\Editor\Unity.exe
+-batchmode
+-projectPath
+D:\Game\tmp\shipyard-detail-clean-20261011
+-logFile
+D:\Game\outputs\art-renovation-implementation-20261022\final-fleets\play.log
+-runTests
+-testPlatform
+PlayMode
+-testFilter
+AllTwelveFlagships_RenderTacticalMarkers;BattleOverlay_UsesTacticalSeaAndKeepsTerrainAndCardComposition;AllRouteBosses_UseTacticalShipMarkersAndKeepBossState;BattleSurfaces_PersistAfterHoverCardPlayAndEndTurnAnimations
+-testResults
+D:\Game\outputs\art-renovation-implementation-20261022\final-fleets\play-results.xml
+-navalVisualCapturePath
+D:\Game\outputs\art-renovation-implementation-20261022\final-fleets\Artifacts\play-captures
+Successfully changed project path to: D:\Game\tmp\shipyard-detail-clean-20261011
+D:/Game/tmp/shipyard-detail-clean-20261011
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+Player connection [45720]  Target information:
+
+Player connection [45720]  * "[IP] 198.18.192.98 [Port] 55504 [Flags] 2 [Guid] 3849077792 [EditorId] 3849077792 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-SYVRNQ9) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [45720]  * "[IP] 192.168.1.4 [Port] 55504 [Flags] 2 [Guid] 3849077792 [EditorId] 3849077792 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-SYVRNQ9) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [45720] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [45720] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Admin" at "2026-10-22T16:04:54.4926395Z"
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 15852, path: "D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Package Manager] Connected to IPC stream "Upm-29272" after 0.2 seconds.
+[Licensing::Module] Licensing is not yet initialized.
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.3+d7ffd15
+  Session Id:              ee08fc0c1bc543ffa56b591232fb4c25
+  Correlation Id:          2e1795614051b2a17966652c73de1bb5
+  External correlation Id: 2873252097267951097
+  Machine Id:              xlWh/iB47xjJmq8XO9S2Vlcb/3s=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-Admin" (connect: 0.24s, validation: 0.11s, handshake: 0.03s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Admin-notifications" at "2026-10-22T16:04:54.6392128Z"
+[Licensing::Module] Connected to LicensingClient (PId: 15852, launch time: 0.00, total connection time: 0.39s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: ewogICJzdWJzR3JvdXAiIDogInVuaXR5IGVkaXRvciIsCiAgIm5hbWVzcGFjZSIgOiAidW5pdHlfZWRpdG9yIiwKICAidHlwZSIgOiAiRURJVE9SIiwKICAidGFnIiA6ICJVbml0eVBlcnNvbmFsXXXX
+  Product: Unity Personal Version
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
+[Licensing::Module] Licensing Background thread has ended after 0.42s
+[Licensing::Module] Licensing is initialized (took 0.06s).
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.25 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.23f1 (09d2ecc7fb28)
+[Subsystems] Discovering subsystems at path D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path D:/Game/tmp/shipyard-detail-clean-20261011/Assets
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 5080 (ID=0x2c02)
+    Vendor:          NVIDIA
+    VRAM:            15977 MB
+    App VRAM Budget: 15209 MB
+    Driver:          32.0.16.1088
+Initialize mono
+Mono path[0] = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Managed'
+Mono path[1] = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56272
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/PlaybackEngines/MacStandaloneSupport/UnityEditor.OSXStandalone.Extensions.dll
+Register platform support module: D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.002884 seconds.
+- Loaded All Assemblies, in  0.358 seconds
+Native extension for WindowsStandalone target not found
+Native extension for OSXStandalone target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.265 seconds
+Domain Reload Profiling: 623ms
+	BeginReloadAssembly (188ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (23ms)
+	RebuildCommonClasses (25ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (30ms)
+	LoadAllAssembliesAndSetupDomain (106ms)
+		LoadAssemblies (165ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (104ms)
+			TypeCache.Refresh (103ms)
+				TypeCache.ScanAssembly (95ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (266ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (243ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (32ms)
+			SetLoadedEditorAssemblies (2ms)
+			BeforeProcessingInitializeOnLoad (47ms)
+			ProcessInitializeOnLoadAttributes (80ms)
+			ProcessInitializeOnLoadMethodAttributes (82ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 65 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.2d.animation@13.0.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.animation@cd6c3841e39a)
+    com.unity.2d.aseprite@3.0.2 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.aseprite@20edb5643ab5)
+    com.unity.2d.psdimporter@12.0.2 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.psdimporter@f207d91d598d)
+    com.unity.2d.spriteshape@13.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tilemap.extras@58739e072909)
+    com.unity.2d.tooling@1.0.4 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.collab-proxy@2.13.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.collab-proxy@4628d2ba6ea4)
+    com.unity.ide.rider@3.0.40 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ide.rider@e4950c6d131b)
+    com.unity.ide.visualstudio@2.0.26 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.20.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.inputsystem@7a4e1a2a8194)
+    com.unity.timeline@1.8.13 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.timeline@3a22918286f5)
+    com.unity.visualscripting@1.9.12 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.visualscripting@4edfcc09512f)
+    com.unity.2d.common@12.0.4 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.mathematics@1.3.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.collections@2.6.8 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.collections@84e8eb3fc12e)
+    com.unity.searcher@4.9.5 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.searcher@a463122f2c00)
+    com.unity.burst@1.8.30 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.burst@2f3d916873ea)
+    com.unity.nuget.mono-cecil@1.11.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.test-framework.performance@3.5.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Built-in packages:
+    com.unity.2d.sprite@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.sprite@5b922524bd83)
+    com.unity.2d.tilemap@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tilemap@f666889fd587)
+    com.unity.multiplayer.center@1.0.1 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.universal@7865b6b91f8a)
+    com.unity.test-framework@1.6.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ugui@27635d171b1a)
+    com.unity.modules.accessibility@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.core@0bb36005e9ba)
+    com.unity.shadergraph@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.shadergraph@b4b75cc00891)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.01 seconds
+The GUID inside 'Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextStandardTests.cs.meta' cannot be extracted by the YAML Parser. Attempting to extract it via string matching instead. Please verify the file does not contain unexpected data.
+The GUID inside 'Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextBoardingTests.cs.meta' cannot be extracted by the YAML Parser. Attempting to extract it via string matching instead. Please verify the file does not contain unexpected data.
+The .meta file Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextBoardingTests.cs.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextStandardTests.cs.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+[ScriptCompilation] Requested script compilation because: Assetdatabase observed changes in script compilation related files
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: D:/Game/tmp/shipyard-detail-clean-20261011
+DisplayProgressbar: Compiling Scripts
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\netcorerun\netcorerun.exe "D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\ScriptCompilationBuildProgram.exe" "Library/Bee/1900b0aE.dag.json" "Library/Bee/1900b0aE-inputdata.json" "Library\Bee\buildprogram0.traceevents"
+WorkingDir: D:/Game/tmp/shipyard-detail-clean-20261011
+ExitCode: 4 Duration: 0s199ms
+Rebuilding DAG because FileSignature timestamp changed: Library/Bee/1900b0aE-inputdata.json
+*** Tundra requires additional run (0.17 seconds), 0 items updated, 0 evaluated
+ExitCode: 0 Duration: 0s527ms
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --dagfilejson="Library\Bee\1900b0aE.dag.json" --profile="Library/Bee/backend2.traceevents" ScriptAssemblies
+WorkingDir: D:/Game/tmp/shipyard-detail-clean-20261011
+ExitCode: 0 Duration: 3s595ms
+Finished compiling graph: 1098 nodes, 20358 flattened edges (17024 ToBuild, 180 ToUse), maximum node priority 1209
+[ 603/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.rsp
+[ 834/1094  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+[1066/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.dll (+2 others)
+[1068/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Content.dll (+2 others)
+[1069/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Core.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.dll, with 139 defines and 137 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1070/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.pdb
+[1071/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Persistence.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Persistence.dll, with 139 defines and 138 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1074/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Content.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Content.dll, with 139 defines and 138 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1075/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Content.pdb
+[1076/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Content.dll
+[1077/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.dll
+[1078/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.dll (+2 others)
+[1079/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Presentation.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.dll, with 139 defines and 279 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1080/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.pdb
+[1081/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.dll
+[1082/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Editor.dll (+2 others)
+[1083/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.Tests.dll (+2 others)
+[1084/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Editor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Editor.dll, with 137 defines and 287 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1085/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Editor.pdb
+[1086/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Core.Tests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.Tests.dll, with 137 defines and 274 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1087/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.Tests.pdb
+[1088/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.Tests.dll
+[1089/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Editor.dll
+[1090/1094  1s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.PlayModeTests.dll (+2 others)
+[1091/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Presentation.PlayModeTests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.PlayModeTests.dll, with 139 defines and 266 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1092/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.PlayModeTests.pdb
+[1093/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.PlayModeTests.dll
+*** Tundra build success (3.57 seconds), 27 items updated, 1094 evaluated
+AssetDatabase: script compilation time: 4.639908s
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  5.322 seconds
+Refreshing native plugins compatible for Editor in 23.40 ms, found 5 plugins.
+Native extension for WindowsStandalone target not found
+Native extension for OSXStandalone target not found
+Refreshing native plugins compatible for Editor in 1.13 ms, found 5 plugins.
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  2.936 seconds
+Domain Reload Profiling: 8257ms
+	BeginReloadAssembly (261ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (25ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (147ms)
+	RebuildCommonClasses (24ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (19ms)
+	LoadAllAssembliesAndSetupDomain (5008ms)
+		LoadAssemblies (4868ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (200ms)
+			TypeCache.Refresh (137ms)
+				TypeCache.ScanAssembly (130ms)
+			BuildScriptInfoCaches (50ms)
+			ResolveRequiredComponents (8ms)
+	FinalizeReload (2937ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (2603ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (12ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (98ms)
+			ProcessInitializeOnLoadAttributes (2185ms)
+			ProcessInitializeOnLoadMethodAttributes (302ms)
+			AfterProcessingInitializeOnLoad (2ms)
+			EditorAssembliesLoaded (1ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (26ms)
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_tidal_hoist_v1.png using Guid(207d3f050cbd44dd9c20c31e9b547666) (TextureImporter) -> (artifact id: 'd6fb727522be05fcdcf8c0be1e443c94') in 0.0924726 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_tide_abacus_v1.png using Guid(3058831ca32e4bfb88f36c45053faf64) (TextureImporter) -> (artifact id: '31967e040086459d45b596d772047224') in 0.0546495 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_empty_watch_v1.png using Guid(60efbb208e1a405c9894847aa7a89309) (TextureImporter) -> (artifact id: '332475105b5b9b4ec603cd981f171220') in 0.0333605 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_three_bell_array_v1.png using Guid(70ab5b5044b34d4882e6816063efab62) (TextureImporter) -> (artifact id: '71d2c64bb89e204909b08151e175e207') in 0.0346855 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/weathered_cartographer_hulk_v1.png using Guid(a0783f829f2a40ca8209cacba0d1da9e) (TextureImporter) -> (artifact id: '9b5312f68445fff87104cbb20aa8a4cf') in 0.0341175 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_transfer_queue_v1.png using Guid(a0ea384ede9d46ef82336017ca2b72bf) (TextureImporter) -> (artifact id: 'f2a33d003c08e812f987746e97f35dfd') in 0.0343879 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_tide_ticket_booth_v1.png using Guid(e01c4bfeb2554cfabaf5dc25a7c0a958) (TextureImporter) -> (artifact id: '24f9d710e0d21c795fbba776317d47f4') in 0.0385392 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_reversed_rubbing_v1.png using Guid(f03b614651c149809a83b0319373e218) (TextureImporter) -> (artifact id: '6c194fbe267115f2953830707d9af5f9') in 0.033859 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png using Guid(01d150ffbc7843fdbba4bf649019f80c) (TextureImporter) -> (artifact id: '965e23619b58f350f7a1b68c3ef09eb8') in 0.0893981 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_whisper_v1.png using Guid(011495cbd3d74a54985949a1644e6883) (TextureImporter) -> (artifact id: '6a801ac731e0d0070cce190248a3a6e9') in 0.0339944 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_submerged_scriptorium_v1.png using Guid(21806a12091a47668432620c8a43543a) (TextureImporter) -> (artifact id: '748a642785b3be72c999b22954676a92') in 0.037357 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_silver_fog_v1.png using Guid(71dea8c63a974b6a8ee5bd212a01880d) (TextureImporter) -> (artifact id: '35ef4321fc3c71b7546daf1fe7d4410e') in 0.0344655 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_compass_pulse_v1.png using Guid(b1d5ac057cfc4bf3b080f4c47bada186) (TextureImporter) -> (artifact id: 'a20a47d02fb4d5ab0ec83278c44b1ac9') in 0.0373003 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_shell_lime_barge_v1.png using Guid(d11a49f886114cf99a054737c1e912ad) (TextureImporter) -> (artifact id: 'f85c84003c50a68da1c89c7411dc6fe9') in 0.0406516 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_borrowed_shadow_v1.png using Guid(e15d2b32fe1e4487935077eab63d061b) (TextureImporter) -> (artifact id: 'aadc27fd79ed96a4a388c49c3f3fedff') in 0.035957 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_dyers_anchorage_v1.png using Guid(f16e690a807240f6979b2709e5ceec06) (TextureImporter) -> (artifact id: '96ae78246ca716d04e124cff86b63b00') in 0.0390732 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_freshwater_slick_v1.png using Guid(22852f2fe5a9401fb06195f249a1280e) (TextureImporter) -> (artifact id: 'f49b078d3f059394c7684e89db0c47eb') in 0.0354476 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_rigging_snap_v1.png using Guid(822dd1f207b64c469ccde327c1dceac1) (TextureImporter) -> (artifact id: 'c8e25f07bd92078e0e9ec974b92bafee') in 0.0337664 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_diving_bell_station_v1.png using Guid(d259cc983abd4deb96371ad393b6c861) (TextureImporter) -> (artifact id: 'c921e232ab266ec33fa43bfeeef49b99') in 0.0346644 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_living_figurehead_v1.png using Guid(b399659cb9364324b2ba49c85c2d106b) (TextureImporter) -> (artifact id: 'c7fd023af09308983a647069e767e54b') in 0.0338305 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_misplaced_echo_v1.png using Guid(f3358f2149314b3aa3a598dd46f052c0) (TextureImporter) -> (artifact id: '27fda126002b3611d16a65825875c0d1') in 0.0322301 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_quarantine_flag_v1.png using Guid(2481838ee0224048abbf8846e44da0df) (TextureImporter) -> (artifact id: '73008f7a0df31fff9950ed68f8939ba5') in 0.0349712 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_medicine_convoy_v1.png using Guid(44d1daa52d304c57b315f88820019a07) (TextureImporter) -> (artifact id: 'fdc12a833d55123d9bfe6e3350bcb9da') in 0.0338335 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_ghost_current_v1.png using Guid(44fae94274d0495b83d8b01a0826aa1b) (TextureImporter) -> (artifact id: '3ade86a37cd83320e4345f355e35798a') in 0.0314061 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_charter_crowding_v1.png using Guid(848ac6cd93554c278d72a2b2a3e9ef08) (TextureImporter) -> (artifact id: 'ddf3765add4769e86fa481f5bbf49192') in 0.033862 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_diving_bell_v1.png using Guid(94f9272b0b85440c8253de59c8e3968b) (TextureImporter) -> (artifact id: '957f40e4cca3ae8ad939cf81d194d8f9') in 0.0341827 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_living_net_v1.png using Guid(a46715f4d8d041f699896a4fa9180bf5) (TextureImporter) -> (artifact id: 'a27b62f0f4a76ab02c774611c37abd6f') in 0.0356146 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_channel_moorings_v1.png using Guid(a45cebc9528845c89c98b9e3ab7d083c) (TextureImporter) -> (artifact id: '8b643a9c01e9a3eee3eda21e475e8113') in 0.0340722 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_drifting_sail_v1.png using Guid(b4fcf036c35d4e7fa0437dd4860c5134) (TextureImporter) -> (artifact id: '8336f99ef5c8e20a1da202622500ced2') in 0.0369809 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/provisions_spoilage_v1.png using Guid(d4078b87127e44369fa979cc74194cc4) (TextureImporter) -> (artifact id: 'd2899bbfa96ac32cb7e94350c10eebaf') in 0.0349662 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_funerary_procession_v1.png using Guid(d46d8f36a2594fa58e653c6b42883b65) (TextureImporter) -> (artifact id: '34f3716971fec4e1910c0236e1247899') in 0.0356876 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png using Guid(95ccf41c38b54e9e8752ff5433492497) (TextureImporter) -> (artifact id: 'cbeec050e908de66100124a15e6a0ddf') in 0.074686 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/legacy_treasure_v3.png using Guid(b51d2c124b004e4c938a709ad8041226) (TextureImporter) -> (artifact id: '90fb2a56cd3fae93308a734e78535ea3') in 0.0704535 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_sail_pattern_loft_v1.png using Guid(c52d507d1edd4ceba06b9acef64b20ee) (TextureImporter) -> (artifact id: '12f4cd39532a2813b1413b76cb4ee167') in 0.0346397 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_unlit_court_v1.png using Guid(d5810d155df341c3bc274ead5394c364) (TextureImporter) -> (artifact id: 'e475aa087b552d82a1b375f4d106ac85') in 0.0335003 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_floating_school_v1.png using Guid(e5545a7daebe49f99ec12b43bdbc75e2) (TextureImporter) -> (artifact id: 'd4eb764144446048e6769557e6ae676d') in 0.0329775 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_entangled_calf_v1.png using Guid(f5bf6140d927413f9b51d79a5a59f295) (TextureImporter) -> (artifact id: 'b8c2a5233d3e2cd6f26938b57bdbc2b6') in 0.0335422 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_coral_resonator_v1.png using Guid(562608d7c5ec4426a38038220031e347) (TextureImporter) -> (artifact id: 'caae8406d09566ae0beb0e7538356869') in 0.0331959 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_provision_survey_v1.png using Guid(66276871adf1431bbfcef7bf5408dc59) (TextureImporter) -> (artifact id: '25566d2338f332e3d33219556ada0410') in 0.0332377 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_sail_challenge_v1.png using Guid(a6359326b18f4df9a9531da5d4044e1e) (TextureImporter) -> (artifact id: '1151649dbfbe511b446f405bb3e8ab74') in 0.0327943 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_ossuary_buoy_v1.png using Guid(c66112f8e7274f058575b74beb805114) (TextureImporter) -> (artifact id: 'b9589b70e924a7dc964fb89e74cb342d') in 0.031526 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_astronomer_rescue_v1.png using Guid(c6c22cdfdb6c46d8a6f5e9d4c00d12ee) (TextureImporter) -> (artifact id: 'e7e1e24ab00158b43835cb781c253633') in 0.0322924 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_whaler_signal_v1.png using Guid(07c21ff8d14a40e68442213f0c2d5a40) (TextureImporter) -> (artifact id: '877ad902fdc08aaca7ddfce3a74e2988') in 0.0342739 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_rain_collectors_v1.png using Guid(97e2a90b9a394216889399383e684345) (TextureImporter) -> (artifact id: 'a8718dd5ac279aa2a78ce8d5d4cd78ba') in 0.0325889 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/occult_v2.png using Guid(a70e822de3fb4fcc506f216b047b9608) (TextureImporter) -> (artifact id: '0c614378e091eb9e2a97496d7d2bbcd9') in 0.057962 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_abandoned_countinghouse_v1.png using Guid(e7ab487cd5e346a39f03fc49f890f0a6) (TextureImporter) -> (artifact id: '5e233609f734a002e67fd94a51762ccf') in 0.0335342 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_crew_fever_v1.png using Guid(f722c539b5d64917baa9dd7cdcda0d24) (TextureImporter) -> (artifact id: '8a011d71ed6c8564f2188be16c5b2623') in 0.0315135 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_luminous_wake_v1.png using Guid(083dcb511e4d469dbd6e92618f43bfb6) (TextureImporter) -> (artifact id: '6b9d4c42de16c35e58264f1ef3d62e43') in 0.030899 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_false_ancestor_v1.png using Guid(184aa74ea7954179a2e49bd0714f787b) (TextureImporter) -> (artifact id: 'cd3a71a17a5ef9e29b0c412937436107') in 0.0323013 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/weathered_tide_turbine_v1.png using Guid(2835f995f56a4af1b32d7f80c42689e5) (TextureImporter) -> (artifact id: '86d48255b07894bf60ecf9f208bfd62e') in 0.0347232 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_backspin_winch_v1.png using Guid(78f7fcc26e7c4f5cabaa40f397ef4e1c) (TextureImporter) -> (artifact id: '604d6d3d6fee59b37dde38beadbabccc') in 0.0326426 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_sample_sails_v1.png using Guid(88802801129b43e98ab64f26f60857e3) (TextureImporter) -> (artifact id: '9a740bffc1bb3c14d6e413bda4640a57') in 0.0335252 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_weighing_raft_v1.png using Guid(982f3fe089f54bd7b57bb8d43a2eb3ce) (TextureImporter) -> (artifact id: '98740b9ddb01503d47efaa1e02e309fa') in 0.0338665 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_open_water_ambush_v1.png using Guid(a874836564294253806a37609127b643) (TextureImporter) -> (artifact id: 'e3fea96377332f11f8e44621cc807160') in 0.0345803 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/gunship_v2.png using Guid(d8a0d7da4924d363a340375daca7132e) (TextureImporter) -> (artifact id: 'e14f57ecd7ee23019d825e11f5c04ecb') in 0.0417313 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_insurance_wreck_v1.png using Guid(096f6be9ec18480a889fd522bbb9feed) (TextureImporter) -> (artifact id: 'e6099fb1cdf05e69c5af5013072d05d1') in 0.035562 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_retired_pilot_station_v1.png using Guid(295b013da6004ec4ba15bf29741defd8) (TextureImporter) -> (artifact id: '12199a37ad073b44e8d9aa540f80069f') in 0.0340303 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_deck_fire_v1.png using Guid(39b8d3dbb3d74646b982cfc395917c80) (TextureImporter) -> (artifact id: 'e06dc671fa72052598cc605146a44094') in 0.0333997 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_votive_loom_v1.png using Guid(a9e6fd677c80442e882d777245ad9eb3) (TextureImporter) -> (artifact id: '6f6501b196a0c6401e8916d3e001052b') in 0.03484 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_work_song_v1.png using Guid(1a91f8756591431cabf5062d29705b41) (TextureImporter) -> (artifact id: '7a93af65737fdf0c7d89ffb6af2b7ec5') in 0.0327268 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_moon_taxcollector_v1.png using Guid(caf3b7e4014e4d008edd61c34348a382) (TextureImporter) -> (artifact id: '408e258c2beb6ac0fbfce3aa08edb6a7') in 0.0323175 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_salvage_argument_v1.png using Guid(4b2351fbb623460987b0f8da11ad5609) (TextureImporter) -> (artifact id: '94b21b1fe4f764635638dd6fa64ed869') in 0.0351189 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_curse_surge_v1.png using Guid(4be87c5d160d458db98ecf9eaf975736) (TextureImporter) -> (artifact id: '7d3cfc2d8f3b259ac485fc0863a365d5') in 0.0312727 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_pendulum_archive_v1.png using Guid(6b9430bc156c406b873c5e94b7be37d4) (TextureImporter) -> (artifact id: 'c5859174cabf8f2bc217469a9f30e254') in 0.0327381 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_tidewright_register_v1.png using Guid(8bf0f21310834fd3aab00c34a485e52b) (TextureImporter) -> (artifact id: '2ea4d43d06e6084ef139548aeeacd400') in 0.0350956 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_barnacle_ridge_v1.png using Guid(abef452425834da9a45f812f21edadd2) (TextureImporter) -> (artifact id: '98ecad91bd29ea3468cdafafea175980') in 0.03396 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_night_fog_v1.png using Guid(eb6969de2a5244b8875f17eac30d43e5) (TextureImporter) -> (artifact id: '039ec62c15b07e7f62234b96b5921cd2') in 0.0309924 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_calendar_mosaic_v1.png using Guid(eb7a12fb890f4aa6af5b3843693374d7) (TextureImporter) -> (artifact id: '5f1b5f33f20bbe7019d20339e70b887e') in 0.0323112 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_message_gull_v1.png using Guid(fbc1c938e937445a9117350b58d06462) (TextureImporter) -> (artifact id: '9a8553e0667b6f130e099977005b9f23') in 0.0329968 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_right_of_way_v1.png using Guid(fb445434fbbd4f4981ba874d7b1e9bee) (TextureImporter) -> (artifact id: '9f98d424ba96c35e7445e85707667da3') in 0.0333677 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_survey_barge_v1.png using Guid(0ca2199cabff45b2adb32c3b8c4809d6) (TextureImporter) -> (artifact id: 'd339fe3bb487c9f8aa6814330526aa18') in 0.0319128 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_hollow_bell_v1.png using Guid(1c11f39cb05e4959acba748e1282bc18) (TextureImporter) -> (artifact id: 'f1b797eab1c7529107da2f283b8373b5') in 0.0324614 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/moonlit_shadow_dial_v1.png using Guid(1c1c88c1dff449c8872eb4eddac3a085) (TextureImporter) -> (artifact id: 'fdb1921ac3d98406bf25d7d4807ff997') in 0.0330371 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_guild_manifest_v1.png using Guid(6c054a9b858f4f27bdd03374289b4ee0) (TextureImporter) -> (artifact id: 'e143b43998de48bbabcec2ddc171e721') in 0.0322448 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_cargo_shift_v1.png using Guid(7ce5dd92b3ac469cb3f8bc7ae7d10c83) (TextureImporter) -> (artifact id: 'a9bc771024a235fe75a7e56c4f2b7cd2') in 0.0322291 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_ledger_forgery_v1.png using Guid(bc97b19fb04d414b831f893872140279) (TextureImporter) -> (artifact id: '85b058398dd66b9286f03fc35c4cfbc4') in 0.0313273 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_moon_sleepwalker_v1.png using Guid(ccf21efbc8b44ad8a4fee0534fbef3c4) (TextureImporter) -> (artifact id: '5287e77f58d80cb938f23579db6635f8') in 0.0306105 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_star_in_jar_v1.png using Guid(ecb59a63355f4df5a38717c525602c74) (TextureImporter) -> (artifact id: '949f1ae8d1811888a84daee760d0a82a') in 0.0310923 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_stowaway_v1.png using Guid(ecbc9fccb3b84893a8cf10b30e457b1d) (TextureImporter) -> (artifact id: 'f1b5959987175a753273ba294180a159') in 0.0309588 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_powder_barge_v1.png using Guid(2d7bda7a1b57482f8fb3494a0a492df5) (TextureImporter) -> (artifact id: 'cfe24a4c7be3b731fddee2e9d620889e') in 0.0311628 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_notary_barge_v1.png using Guid(3df1e97e8103476e8854841d4b33d8a0) (TextureImporter) -> (artifact id: '73419ed95a31fecd6d9f6e96e70349e4') in 0.0316823 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_drifting_crate_v1.png using Guid(4d72a7f16d46428a88a8149ef2932f64) (TextureImporter) -> (artifact id: '7772f1ddbbdcf7ab55aaffbeb7609531') in 0.0324035 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_silver_needle_v1.png using Guid(5d1b6d9cec1a47e6ad86384d29ff8603) (TextureImporter) -> (artifact id: '55c9a75abf9ddf77a79b677a04c838ee') in 0.0307201 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_falling_starlight_v1.png using Guid(7d24537cb8fc4a75af4867846b61671d) (TextureImporter) -> (artifact id: 'cd1abcf2856c3c375b4d720db48d9949') in 0.0307472 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png using Guid(8dcf8ac9ad42430c8e7db2cb156f2d66) (TextureImporter) -> (artifact id: '7cdf62ff243a5ae470929167a93c1c7d') in 0.0714162 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_courier_pigeon_v1.png using Guid(cd61323bf5f34828a749876772a5d249) (TextureImporter) -> (artifact id: '96b41885f288f83f1af08ee0b6570856') in 0.0331778 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_exorcist_kiln_v1.png using Guid(6ed8d3abee204d43bc1f29d62f7cd495) (TextureImporter) -> (artifact id: 'a62a671c21e2eaeff3cffa0d322f4402') in 0.0320889 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_trade_wedding_fleet_v1.png using Guid(aed21f38bb424b6590007cdf07a8b322) (TextureImporter) -> (artifact id: 'de25158e648a6230631875ec81ac134e') in 0.0334228 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/common_whale_song_v1.png using Guid(aedc94aa8f894bed99dd510c15dee84b) (TextureImporter) -> (artifact id: 'cd1bd23f7fc2385f246545cd0e7201b8') in 0.0321207 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_diver_v1.png using Guid(fe25db374ebb49e1b50e937980c88229) (TextureImporter) -> (artifact id: '63839f223d56209fc3e33958677bb7ed') in 0.0326756 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_moon_dead_calm_v1.png using Guid(1ff5bad3cda1484e9682843db7887030) (TextureImporter) -> (artifact id: 'bd393c6c71366b831151855cc1967344') in 0.0317805 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_sudden_squall_v1.png using Guid(2fa9da0afdee4e02bbfffffd13de1459) (TextureImporter) -> (artifact id: 'e998dad29777f229ad52f0ff48f1d9dd') in 0.0338304 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_shoal_fish_run_v1.png using Guid(3f8c414940814e478c87542aefbc14c6) (TextureImporter) -> (artifact id: 'df4ac139482d582ea46e857198aa1478') in 0.03534 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_kelp_loom_v1.png using Guid(cf2212ecabe540e787a4951d9c891490) (TextureImporter) -> (artifact id: '43547299d026abe921f433c466aaaf2a') in 0.0345535 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_anchor_rubbing_v1.png using Guid(efc8b6127f92441db2fe988a5437e1ea) (TextureImporter) -> (artifact id: '1f16bb1cf15b4bee073e7a27323d262e') in 0.0345076 seconds
+Refreshing native plugins compatible for Editor in 1.05 ms, found 5 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=71eb7e8af86a1114f9a7dd72169df671): Total: 17.772 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=95 (actual=95, local cache=0, cache server=0)
+		Asset DB Process Time: managed=44 ms, native=7422 ms
+		Asset DB Callback time: managed=275 ms, native=30 ms
+		Scripting: domain reloads=1, domain reload time=5322 ms, compile time=4641 ms, other=36 ms
+		Project Asset Count: scripts=1678, non-scripts=4734
+		Asset File Changes: new=96, changed=119, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.001ms
+	InvokePackagesCallback: 18.380ms
+	ApplyChangesToAssetFolders: 0.481ms
+	Scan: 301.493ms
+	OnSourceAssetsModified: 1.059ms
+	CategorizeAssetsWithTransientArtifact: 123.770ms
+	ProcessAssetsWithTransientArtifactChanges: 60.454ms
+	CategorizeAssets: 152.680ms
+	ImportOutOfDateAssets: 6688.774ms (-1662.595ms without children)
+		ImportManagerImport: 3708.577ms (5.091ms without children)
+			ImportInProcess: 3702.807ms
+			UpdateCategorizedAssets: 0.678ms
+		CompileScripts: 4640.990ms
+		ReloadNativeAssets: 0.022ms
+		UnloadImportedAssets: 0.602ms
+		ReloadImportedAssets: 0.016ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.523ms
+		InitializingProgressBar: 0.006ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
+		OnDemandSchedulerStart: 0.633ms
+	PostProcessAllAssets: 283.550ms
+	Hotreload: 4.000ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.002ms
+	UnloadStreamsBegin: 1.847ms
+	PersistCurrentRevisions: 0.591ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 6.515ms
+	Untracked: 10134.578ms
+
+Application.AssetDatabase Initial Refresh End
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.02 seconds
+Scanning for USB devices : 10.869ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-ArtRenovationValidation20261022
+Unloading 19 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 8358 unused Assets / (4.9 MB). Loaded Objects now: 9218.
+Memory consumption went from 254.2 MB to 249.3 MB.
+Total: 6.970400 ms (FindLiveObjects: 0.427400 ms CreateObjectMapping: 0.220000 ms MarkObjects: 4.789400 ms  DeleteObjects: 1.532900 ms)
+
+[Project] Loading completed in 22.140 seconds
+	Project init time: 				21.788 seconds
+		Template init time: 		0.000 seconds
+		Package Manager init time: 		0.225 seconds
+		Asset Database init time: 		1.913 seconds
+		Global illumination init time: 	0.003 seconds
+		Assemblies load time: 			0.634 seconds
+		Unity extensions init time: 	0.009 seconds
+		Asset Database refresh time: 	17.772 seconds
+	Scene opening time: 			0.146 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1792685116366,"processId":29272,"projectLoad":22.1398133,"projectInit":21.7883158,"templateInit":0.0,"packageManagerInit":0.2253699,"assetDatabaseInit":1.9132418,"globalIlluminationInit":0.0030292,"assembliesLoad":0.6342598,"unityExtensionsInit":0.008842,"assetDatabaseRefresh":17.7720472,"sceneOpening":0.145752}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1792685116367,"processId":29272,"editorVersion":"6000.3.23f1 (09d2ecc7fb28)","branch":"6000.3/staging","buildType":"Release","platform":"Windows"}
+[Licensing::Client] Successfully resolved entitlement details
+Running tests for ExecutionSettings with details:
+targetPlatform = 
+playerHeartbeatTimeout = 600
+filters[0] = 
+   Filter with settings:
+   testMode = PlayMode
+   targetPlatform = 
+   testNames = null
+   groupNames = AllTwelveFlagships_RenderTacticalMarkers, BattleOverlay_UsesTacticalSeaAndKeepsTerrainAndCardComposition, AllRouteBosses_UseTacticalShipMarkersAndKeepBossState, BattleSurfaces_PersistAfterHoverCardPlayAndEndTurnAnimations
+   categoryNames = null
+   assemblyNames = null
+ignoreTests = {}
+featureFlags = null
+
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:InitializeAndExecuteRun (string[]) (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:53)
+UnityEditor.TestTools.TestRunner.CommandLineTest.TestStarter:InitializeAndExecuteRun () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/TestStarter.cs:64)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs Line: 53)
+
+Start Indexing on Editor startup
+[Indexing] Starting Initial Indexing for Assets
+[UnityConnectServicesConfig] config is NOT valid, switching to default
+Created GICache directory at C:/Users/Admin/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.008s, timestamps: [22.145 - 22.153]
+[Licensing::Client] Successfully resolved entitlement details
+Unloading 3 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 1 unused Assets / (44.4 KB). Loaded Objects now: 9237.
+Memory consumption went from 225.4 MB to 225.4 MB.
+Total: 5.579500 ms (FindLiveObjects: 0.221800 ms CreateObjectMapping: 0.099000 ms MarkObjects: 5.244200 ms  DeleteObjects: 0.013600 ms)
+
+Start importing Assets/InitTestSceneac217df5-b4ba-43f1-8143-d44b50c4b7fb.unity using Guid(7e4369b45b2efb74abff7d540181f64b) (DefaultImporter) -> (artifact id: 'a47f4bdac536eedd01a10d5c3924724f') in 0.0011847 seconds
+Refreshing native plugins compatible for Editor in 0.91 ms, found 5 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=1f70aaa4dd955d9478d9f7a23cd18459): Total: 0.053 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Executing IPrebuildSetup for: Unity.PerformanceTesting.Editor.TestRunBuilder.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<ExecuteMethods>d__8<UnityEngine.TestTools.IPrebuildSetup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:48)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<Execute>d__7<UnityEngine.TestTools.IPrebuildSetup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:34)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteStep () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:173)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteCallback () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:108)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs Line: 48)
+
+SpriteAtlasPacking completed in 0.005404 sec
+Entering Playmode with Reload Domain disabled.
+If you experience any issues, please disable "Enter Play Mode Options" in Editor Settings
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            1.206 ms
+	Integration:            491.948 ms
+	Integration of assets:  0.002 ms
+	Thread Wait Time:       0.007 ms
+	Total Operation Time:   493.162 ms
+Unloading 26 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.583500 ms
+Loaded scene 'Assets/_Project/Scenes/CoreGameplayDemo.unity'
+	Deserialize:            3.256 ms
+	Integration:            1352.129 ms
+	Integration of assets:  0.003 ms
+	Thread Wait Time:       0.010 ms
+	Total Operation Time:   1355.399 ms
+Unloading 220 unused Assets / (36.7 KB). Loaded Objects now: 9599.
+Memory consumption went from 274.7 MB to 274.6 MB.
+Total: 13.231100 ms (FindLiveObjects: 0.418400 ms CreateObjectMapping: 0.098600 ms MarkObjects: 12.273200 ms  DeleteObjects: 0.440100 ms)
+
+Unloading 33 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 4 unused Assets / (1.5 MB). Loaded Objects now: 10648.
+Memory consumption went from 306.5 MB to 305.0 MB.
+Total: 13.828100 ms (FindLiveObjects: 0.485600 ms CreateObjectMapping: 0.105300 ms MarkObjects: 12.906800 ms  DeleteObjects: 0.329400 ms)
+
+Unloading 7 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.728300 ms
+Loaded scene 'Assets/_Project/Scenes/CoreGameplayDemo.unity'
+	Deserialize:            0.600 ms
+	Integration:            236.866 ms
+	Integration of assets:  0.001 ms
+	Thread Wait Time:       9.485 ms
+	Total Operation Time:   246.953 ms
+Unloading 71 unused Assets / (245.2 KB). Loaded Objects now: 9630.
+Memory consumption went from 312.8 MB to 312.6 MB.
+Total: 13.066500 ms (FindLiveObjects: 0.455400 ms CreateObjectMapping: 0.098000 ms MarkObjects: 12.368000 ms  DeleteObjects: 0.144200 ms)
+
+Unloading 11 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 4 unused Assets / (1.8 KB). Loaded Objects now: 10751.
+Memory consumption went from 306.8 MB to 306.8 MB.
+Total: 12.617700 ms (FindLiveObjects: 0.437900 ms CreateObjectMapping: 0.101500 ms MarkObjects: 12.044300 ms  DeleteObjects: 0.033000 ms)
+
+TrimDiskCacheJob: Current cache size 0mb
+Unloading 2 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.380800 ms
+Loaded scene 'Assets/_Project/Scenes/CoreGameplayDemo.unity'
+	Deserialize:            0.449 ms
+	Integration:            235.850 ms
+	Integration of assets:  0.001 ms
+	Thread Wait Time:       11.893 ms
+	Total Operation Time:   248.192 ms
+Unloading 74 unused Assets / (1.9 MB). Loaded Objects now: 9711.
+Memory consumption went from 300.4 MB to 298.5 MB.
+Total: 12.730100 ms (FindLiveObjects: 0.428100 ms CreateObjectMapping: 0.111500 ms MarkObjects: 12.036900 ms  DeleteObjects: 0.153000 ms)
+
+Unloading 19 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 2 unused Assets / (1.1 KB). Loaded Objects now: 10770.
+Memory consumption went from 308.4 MB to 308.4 MB.
+Total: 13.890100 ms (FindLiveObjects: 0.459000 ms CreateObjectMapping: 0.109600 ms MarkObjects: 13.293200 ms  DeleteObjects: 0.027700 ms)
+
+Unloading 8 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.158200 ms
+Loaded scene 'Assets/_Project/Scenes/CoreGameplayDemo.unity'
+	Deserialize:            0.427 ms
+	Integration:            233.311 ms
+	Integration of assets:  0.001 ms
+	Thread Wait Time:       15.107 ms
+	Total Operation Time:   248.846 ms
+Unloading 72 unused Assets / (1.8 MB). Loaded Objects now: 9721.
+Memory consumption went from 303.9 MB to 302.2 MB.
+Total: 12.442400 ms (FindLiveObjects: 0.428300 ms CreateObjectMapping: 0.105200 ms MarkObjects: 11.759300 ms  DeleteObjects: 0.148700 ms)
+
+Unloading 17 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 26 unused Assets / (345.9 KB). Loaded Objects now: 10402.
+Memory consumption went from 316.4 MB to 316.0 MB.
+Total: 13.558800 ms (FindLiveObjects: 0.411100 ms CreateObjectMapping: 0.099800 ms MarkObjects: 12.951900 ms  DeleteObjects: 0.095300 ms)
+
+Saving results to: C:/Users/Admin/AppData/LocalLow/CodexArtRenovation20261022/ArtRenovationValidation20261022\TestResults.xml
+Saving results to: D:\Game\outputs\art-renovation-implementation-20261022\final-fleets\play-results.xml
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            0.345 ms
+	Integration:            195.640 ms
+	Integration of assets:  0.001 ms
+	Thread Wait Time:       0.008 ms
+	Total Operation Time:   195.995 ms
+Unloading 21 unused Assets / (2.0 MB). Loaded Objects now: 9262.
+Memory consumption went from 291.6 MB to 289.6 MB.
+Total: 13.306200 ms (FindLiveObjects: 0.394200 ms CreateObjectMapping: 0.106400 ms MarkObjects: 12.680100 ms  DeleteObjects: 0.124700 ms)
+
+[Licensing::Client] Successfully resolved entitlement details
+Executing IPostBuildCleanup for: ShatteredSail.Core.Tests.AudioCaptureManualPlayerBuild.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<ExecuteMethods>d__8<UnityEngine.TestTools.IPostBuildCleanup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:48)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<Execute>d__7<UnityEngine.TestTools.IPostBuildCleanup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:34)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteStep () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:173)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteCallback () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:108)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs Line: 48)
+
+Executing IPostBuildCleanup for: Unity.PerformanceTesting.Editor.TestRunBuilder.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<ExecuteMethods>d__8<UnityEngine.TestTools.IPostBuildCleanup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:48)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<Execute>d__7<UnityEngine.TestTools.IPostBuildCleanup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:34)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteStep () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:173)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteCallback () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:108)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs Line: 48)
+
+Unloading 0 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 0 unused Assets / (0 B). Loaded Objects now: 9264.
+Memory consumption went from 264.8 MB to 264.8 MB.
+Total: 13.514900 ms (FindLiveObjects: 0.228000 ms CreateObjectMapping: 0.092000 ms MarkObjects: 13.187900 ms  DeleteObjects: 0.006400 ms)
+
+Refreshing native plugins compatible for Editor in 0.90 ms, found 5 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=153aa3c1a7e0bef42b095e7499bcddf6): Total: 0.031 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+DisplayProgressbar: Undo
+Test run completed. Exiting with code 0 (Ok). Run completed.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:ExitApplication (UnityEditor.TestTools.TestRunner.CommandLineTest.Executer/ReturnCodes,string) (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:81)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:ExitIfRunIsCompleted () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:74)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs Line: 81)
+
+Start importing ProjectSettings/ProjectSettings.asset using Guid(00000000000000004000000000000000) (LibraryAssetImporter) -> (artifact id: 'efbe889b4678634436bbc89b149c58b2') in 0.0024692 seconds
+Refreshing native plugins compatible for Editor in 1.00 ms, found 5 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=e47899893b2d1104ba7b7bd388f38ea4): Total: 0.015 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-Admin-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-Admin channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+Checking for leaked weakptr:
+  Found no leaked weakptrs.
+[Package Manager] Server process was shutdown
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792685176831,"processId":29272,"allocatedMemory":23405854,"memoryLabels":[{"Default":14409},{"Permanent":15236},{"NewDelete":68859},{"Thread":4237960},{"Manager":821356},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":80505},{"Material":24},{"GfxDevice":58048},{"Animation":392},{"Audio":3040},{"FreeType":8},{"FontEngine":736},{"Physics":2146},{"Physics2D":16},{"Serialization":592},{"Input":14984},{"JobScheduler":33024},{"TextLib":280},{"Mono":32},{"MonoCode":64},{"ScriptingNativeRuntime":155060},{"BaseObject":1630016},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":15641},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":14195},{"DynamicArray":119524},{"HashMap":3880197},{"Utility":2660822},{"Curl":2478},{"PoolAlloc":2248},{"AI":80},{"TypeTree":13765},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":288},{"WebRequest":552},{"VR":47994},{"SceneManager":504},{"Video":208},{"LazyScriptCache":32},{"Camera":17},{"Secure":2377},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":336},{"Hierarchy":608},{"CoreStats":13112},{"Identifiers":6480},{"Gui":96},{"EditorUtility":121101},{"VersionControl":4},{"Undo":947},{"AssetDatabase":8931851},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":211},{"ProfilerEditor":9746},{"CoreBusinessMetrics":3222},{"Licensing":1264},{"AssetReference":32},{"IPCStream":32}]}

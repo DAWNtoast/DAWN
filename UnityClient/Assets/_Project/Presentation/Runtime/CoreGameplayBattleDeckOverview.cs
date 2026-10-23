@@ -155,9 +155,6 @@ namespace ShatteredSail.Presentation
                     selectOnDown = controls[(index + 1) % controls.Count],
                 };
             BattleDeckRule("Battle Deck Footer Rule", battleDeckSheet, 1230f, new Vector2(0f, -388f));
-            BattleDeckLabel("Battle Deck Footer", battleDeckSheet, new Vector2(1230f, 26f),
-                new Vector2(0f, -406f), 15, enemy ? "滚轮查看资源、行动与循环  ·  Esc 关闭" : information
-                    ? "只读检查，不消耗资源  ·  滚轮浏览  ·  Esc 关闭" : "滚轮浏览全部卡牌  ·  Esc 关闭", MarketShopSkin.MutedInk, TextAnchor.MiddleCenter);
             RefreshBattleDeckOverview();
             FocusBattleDeck();
             ObserveGuidedBattleInspection(enemy ? "enemy" : informationTopic ?? "deck");
@@ -239,6 +236,7 @@ namespace ShatteredSail.Presentation
                 string prefix = "Battle Deck " + key + " Card " + index;
                 RectTransform face = CreateCollectionCardFace(group, card, prefix, prefix + " Art", prefix + " Name", .72f,
                     session.BattleCardFaceDescription(card, battleDeckStage));
+                RefreshCardSupplyCost(face, card, session.Battle, battleDeckStage);
                 face.anchorMin = face.anchorMax = new Vector2(.5f, 1f);
                 face.anchoredPosition = new Vector2((index % 5 - 2) * 244f, -48f - CardFaceLayout.FrameSize.y * .36f - (index / 5) * 364f);
                 foreach (Graphic graphic in face.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;

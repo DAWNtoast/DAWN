@@ -231,7 +231,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase(30f, 0f, 90f, 1)]
         [TestCase(60f, 0f, 90f, 1)]
         [TestCase(100f, 180f, 90f, 1)]
-        [TestCase(100f, 0f, 0f, 1)]
+        [TestCase(100f, 90f, 0f, 1)]
         [TestCase(100f, 0f, 90f, 0)]
         public void Ram_RejectsMissingAdjacentCellCorrectHeadingsOrActionPointWithoutSpending(
             float distance, float playerHeading, float enemyHeading, int points)
@@ -357,7 +357,7 @@ namespace ShatteredSail.Core.Tests
         public void Boarding_AtCardinalNeighborReplacesAllPilesAndRestoresEnergy(float heading)
         {
             CoreVoyageSession session = StartNavalBattle();
-            Pose(session, -100f, 0f, heading, 0f, 0f, heading);
+            Pose(session, heading == 0f ? 0f : -100f, heading == 0f ? -100f : 0f, heading, 0f, 0f, heading);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             session.Battle.Energy = 0;
             session.Battle.DiscardPile.Add(CardIndex("card_chain_shot"));
@@ -386,6 +386,7 @@ namespace ShatteredSail.Core.Tests
             SetPrivateProperty(session, "Hull", playerMaxHull - playerDamage);
             session.Battle.EnemyHull = enemyMaxHull - enemyDamage;
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
 
@@ -542,6 +543,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             session.Battle.PhaseTurn = 1;
@@ -571,10 +573,11 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void EnemyGuardAbsorption_ResetsBeforeLethalBurnSkipsTheEnemyAction()
+        public void EnemyGuardAbsorption_ResetsOnGuardTurnBeforeLethalEndOfTurnBurn()
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             session.Battle.PhaseTurn = 1;
@@ -587,8 +590,9 @@ namespace ShatteredSail.Core.Tests
 
             CoreBattleState battle = session.Battle;
             battle.EnemyHull = 5;
-            battle.EnemyBurnTurns = 1;
+            battle.EnemyBurnDamage = battle.EnemyBurnTurns = 5;
             battle.PlayerBlock = 12;
+            Assert.That(session.GetEnemyIntent(), Does.Contain("防御"));
             int playerHullBefore = session.Hull;
             Assert.That(session.EndBattleTurn(), Is.True);
 
@@ -596,7 +600,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle, Is.Null);
             Assert.That(battle.EnemyHull, Is.Zero);
             Assert.That(battle.LastEnemyGuardAbsorbed, Is.Zero,
-                "Presentation keeps this final battle object after victory; lethal burn must clear the previous turn's absorption before the early return.");
+                "The final guard turn cannot retain the previous attack's absorption after burn settles.");
+            Assert.That(battle.LastAction, Is.EqualTo("敌舰沉没。"), "Victory replaces the action text with its terminal outcome.");
             Assert.That(session.Hull, Is.EqualTo(playerHullBefore));
         }
 
@@ -668,6 +673,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(session.TryBoard(), Is.True);

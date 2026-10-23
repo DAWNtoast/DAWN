@@ -143,15 +143,15 @@ namespace ShatteredSail.Content
         private static readonly IReadOnlyList<SeventhPortLoreEntry> componentLore = Array.AsReadOnly(new[]
         {
             Lore("cannon_deck_swivel", "这门转炮守过第一座公共泊位。炮座背面仍钉着老船长的命令：让开归港水道，只向风暴与封路的铁链开火。", true),
-            Lore("instrument_brass_compass", "黄铜齿轮的凹槽积着细盐。老船长曾用同样的齿轮校过六港潮线，留下的刻痕不许任何港主独占这条路。", true),
-            Lore("plating_living_hull", "老船长的船匠共同铸成这层活龙骨。乘客走过甲板，木纹便记下他们的重量；人离船后，痕迹仍留在原处。", true),
-            Lore("sail_last_free_wind", "离港那日，老船长剪下这幅帆角。针脚一直朝向海图的空白处，谁也没能把第七泊位画在缝线尽头。", true),
-            Lore("bow_last_horizon", "老船长独自驶入风暴前留下的船首像。他说前头若有拦路的浪，船首须先替陌生人撞开。", true),
-            Lore("bow_oak_ram", "断锚号旧账只记了“橡木五铆”，没有署名。铆钉排列却与六港公共船坞相同，像同一把尺量过。", false),
-            Lore("cannon_chain_repeater", "连射停下后，总还多出一声回响。铜钟港老人说那是第十三响的回声；谁校过炮膛，却无人知晓。", false),
+            Lore("instrument_brass_compass", "黄铜齿轮的凹槽里积着细盐。老船长曾用同样的齿轮校过六港潮线。他留下的刻痕，记着一条规矩：这条路，不许任何港主独占。", true),
+            Lore("plating_living_hull", "老船长的船匠用活龙骨的木料制成这层船壳。乘客走过甲板，木纹便记下他们的重量；人离船后，痕迹仍留在原处。", true),
+            Lore("sail_last_free_wind", "离港那天，老船长剪下了这一角帆布。针脚指向海图上的空白处，可谁也没能在缝线尽头标出第七泊位。", true),
+            Lore("bow_last_horizon", "这是老船长独自驶入风暴前留下的船首像。他说，前头若有浪拦路，船首就该先替陌生人撞开。", true),
+            Lore("bow_oak_ram", "断锚号的旧账上只记着“橡木五铆”，没有署名。铆钉的排法却和六港公共船坞惯用的一样，像是用同一把尺子量过。", false),
+            Lore("cannon_chain_repeater", "连射停下后，总还多出一声回响。铜钟港老人说，那是第十三响的回声。至于是谁校过炮膛，却没人知道。", false),
             Lore("instrument_lunar_astrolabe", "月蚀时，指针偏向海图上没有的航线。潮汐镇魂号的日志也空着同一段，未写抵达，亦未写返航。", false),
             Lore("sail_moonweave", "第一匹月丝从哪里来，暮潮织工始终不说。只记得织机旁有人哼过一支自由歌，没有歌词，也没有唱完。", false),
-            Lore("plating_moonsilver_skin", "银壳上叠着六港不同的补片，先后次序恰与那场远征的年份相合。没有船匠肯说自己见过它最初的模样。", false),
+            Lore("plating_moonsilver_skin", "银壳上叠着来自六港的补片，修补的年月恰好对得上那场远征。没有船匠肯说自己见过它最初的模样。", false),
         });
 
         private static readonly IReadOnlyList<SeventhPortLoreEntry> shipLore = Array.AsReadOnly(new[]

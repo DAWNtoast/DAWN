@@ -179,12 +179,20 @@ namespace ShatteredSail.Editor
                     effect.transform.GetSiblingIndex() <= inspect.GetSiblingIndex() || effect.transform.GetSiblingIndex() >= foreground.transform.GetSiblingIndex())
                     throw new InvalidOperationException(name + " is not aligned with the current vessel and regional background.");
             }
-            foreach (string name in new[] { "Departure Dock Vessel Controls", "Departure Dock Crew Readout Panel" })
-            {
-                Image panel = Find<Image>(host, name);
-                if (panel.raycastTarget || BoundsIn(inspect.parent, panel.rectTransform).Overlaps(BoundsIn(inspect.parent, inspect)))
-                    throw new InvalidOperationException(name + " must remain outside the ship's water-space hit region.");
-            }
+            Image crewPanel = Find<Image>(host, "Departure Dock Crew Readout Panel");
+            if (crewPanel.sprite != null || crewPanel.overrideSprite != null || crewPanel.color.a != 0f)
+                throw new InvalidOperationException("The crew desk must be painted into the regional background without an independent image overlay.");
+            if (crewPanel.raycastTarget || BoundsIn(inspect.parent, crewPanel.rectTransform).Overlaps(BoundsIn(inspect.parent, inspect)))
+                throw new InvalidOperationException(crewPanel.name + " must remain outside the ship's water-space hit region.");
+            if (Find<Text>(host, "Setup Title").enabled || host.GetComponentsInChildren<Transform>().Any(item =>
+                item.name == "Departure Dock Vessel Controls" || item.name == "Departure Dock Ship Hint"))
+                throw new InvalidOperationException("Ship selection must show only the independent left and right arrows.");
+            Rect previousArrow = BoundsIn(inspect.parent, Find<RectTransform>(host, "Departure Previous Vessel"));
+            Rect nextArrow = BoundsIn(inspect.parent, Find<RectTransform>(host, "Departure Next Vessel"));
+            Rect shipBounds = BoundsIn(inspect.parent, inspect);
+            if (previousArrow.xMax >= shipBounds.center.x || nextArrow.xMin <= shipBounds.center.x ||
+                Mathf.Abs(previousArrow.center.y - nextArrow.center.y) > .1f)
+                throw new InvalidOperationException("Ship arrows must flank the vessel at the same height.");
             string file = Path.Combine(output, Slugs[port] + "_ship_" + shipIndex.ToString("D2") + "_1920x1080.png");
             RenderTexture.active = target;
             var pixels = new Texture2D(Width, Height, TextureFormat.RGBA32, false);

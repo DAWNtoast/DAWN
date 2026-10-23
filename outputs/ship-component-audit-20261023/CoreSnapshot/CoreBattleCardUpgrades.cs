@@ -1,0 +1,228 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Text;
+
+namespace ShatteredSail.Core.Gameplay
+{
+    public static partial class CoreBattleUpgradeBalance
+    {
+        public const int MaximumLevel = 3;
+        public static decimal MultiplierForLevel(int level) =>
+            level <= 0 ? 1m : level == 1 ? 1.2m : level == 2 ? 1.5m : 2m;
+
+        public static int ScaleNumerical(int value, int level) =>
+            (int)Math.Max(int.MinValue, Math.Min(int.MaxValue,
+                decimal.Round(value * MultiplierForLevel(level), 0, MidpointRounding.AwayFromZero)));
+        public static int CostForNextLevel(int currentLevel) => currentLevel == 0 ? 120 : currentLevel == 1 ? 240 : currentLevel == 2 ? 480 : 0;
+    }
+
+    public sealed partial class CoreVoyageSession
+    {
+        private readonly Dictionary<string, int> cardUpgradeLevels = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly HashSet<string> componentBattleTypes = new HashSet<string>(StringComparer.Ordinal);
+        public IReadOnlyDictionary<string, int> CardUpgradeLevels => new ReadOnlyDictionary<string, int>(cardUpgradeLevels);
+
+        public int GetCardUpgradeLevel(string id)
+        {
+            id = CoreBattleCardAliases.CanonicalId(id);
+            return Math.Min(GetCardMaximumUpgradeLevel(id), IsSpecialBattleCard(id)
+                ? SpecialCardLevelForExperience(GetSpecialCardExperience(id))
+                : id != null && cardUpgradeLevels.TryGetValue(id, out int level) ? level : 0);
+        }
+
+        public CoreBattleCard GetBattleCard(int index) =>
+            GetBattleCard(index, Battle == null ? NavalBattleStage.Naval : Battle.Stage);
+
+        /// <summary>Quotes a card for the requested deck without changing the active battle stage.</summary>
+        public CoreBattleCard GetBattleCard(int index, NavalBattleStage stage)
+        {
+            index = CanonicalBattleCardIndex(index);
+            if (index < 0 || index >= cardLibrary.Count) return null;
+            CoreBattleCard card = IsGuidedBossBattle ? GuidedBossCardDefinition(index) : GetBattleCardAtLevel(index, GetCardUpgradeLevel(cardLibrary[index].Id));
+            return stage == NavalBattleStage.Boarding ? CoreBoardingCardCatalog.ForBoarding(card) : card;
+        }
+
+        // Definitions are immutable; only the owning session's chosen level
+        // changes. A bounded cache avoids allocating two cards and formatting
+        // descriptions on every combat/UI query without sharing player progress.
+        private static class UpgradedCardDefinitions
+        {
+            // Nested initialization runs after the outer partial class's card
+            // library is ready, independent of source-file initializer order.
+            internal static readonly object Gate = new object();
+            internal static readonly int[] MaximumLevels = BuildCardMaximumLevels();
+            internal static readonly CoreBattleCard[,] Cards =
+                new CoreBattleCard[cardLibrary.Count, CoreBattleUpgradeBalance.MaximumLevel];
+        }
+
+        public CoreBattleCard GetBattleCardAtLevel(int index, int level)
+        {
+            index = CanonicalBattleCardIndex(index);
+            if (index < 0 || index >= cardLibrary.Count || cardLibrary[index].AllowedStages == NavalBattleStages.None) return null;
+            CoreBattleCard original = cardLibrary[index];
+            level = Math.Max(0, Math.Min(GetCardMaximumUpgradeLevel(index), level));
+            if (level == 0) return original;
+            lock (UpgradedCardDefinitions.Gate)
+            {
+                CoreBattleCard cached = UpgradedCardDefinitions.Cards[index, level - 1];
+                if (cached != null) return cached;
+                cached = BuildUpgradedCardDefinition(original, level);
+                UpgradedCardDefinitions.Cards[index, level - 1] = cached;
+                return cached;
+            }
+        }
+
+        private static CoreBattleCard BuildUpgradedCardDefinition(CoreBattleCard original, int level)
+        {
+            // Each card owns its growth curve, including separate utility rewards.
+            // Printed costs and immutable source identity stay at their base values.
+            return new CoreBattleCard(original.Id, original.Name, original.Type,
+                original.Energy, CoreCardUpgradeDesign.Scale(original, original.Damage, level),
+                CoreCardUpgradeDesign.ScaleBlock(original, original.Block, level),
+                CoreCardUpgradeDesign.ScaleRepair(original, original.Repair, level),
+                CoreBattleUpgradeBalance.UpgradeDraw(original, level),
+                original.PowderCost, CoreBoardingCardDescriptions.AtLevel(original, level), original.AllowedStages, original.Action, original.RequiredCrew,
+                original.ArtId, original.CannonballCost, original.RequiredComponent, level,
+                original.SchoolId, CoreCardUpgradeDesign.UpgradeSchoolEffect(original, level),
+                original.BoardingBlock.HasValue ? (int?)CoreCardUpgradeDesign.ScaleBlock(original, original.BoardingBlock.Value, level) : null,
+                original.BoardingSpec);
+        }
+
+        public int GetCardUpgradeCost(int index)
+        {
+            index = CanonicalBattleCardIndex(index);
+            return index < 0 || index >= cardLibrary.Count || cardLibrary[index].AllowedStages == NavalBattleStages.None || IsSpecialBattleCard(cardLibrary[index].Id) ||
+                GetCardUpgradeLevel(cardLibrary[index].Id) >= GetCardMaximumUpgradeLevel(index) ? 0 :
+                CoreBattleUpgradeBalance.CostForNextLevel(GetCardUpgradeLevel(cardLibrary[index].Id));
+        }
+
+        public bool HasBattleCardUpgradeBenefit(int index) => GetCardMaximumUpgradeLevel(index) > 0;
+
+        public void ConfigureCardUpgrades(IReadOnlyDictionary<string, int> levels)
+        {
+            if (Phase != CoreDemoPhase.Port) return;
+            Dictionary<string, int> copy = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (levels != null)
+                foreach (CoreBattleCard card in cardLibrary)
+                    if ((card.AllowedStages != NavalBattleStages.None || CoreBattleCardAliases.IsAlias(card.Id)) &&
+                        levels.TryGetValue(card.Id, out int level) && level > 0)
+                    {
+                        // Keep historic purchased ranks; effective definitions clamp to
+                        // today's per-card limit without destroying saved investment.
+                        int clamped = Math.Min(CoreBattleUpgradeBalance.MaximumLevel, level);
+                        string id = CoreBattleCardAliases.CanonicalId(card.Id);
+                        if (IsSpecialBattleCard(id)) RestoreSpecialCardMinimumExperience(id, SpecialCardExperienceForLevel(clamped));
+                        else
+                        {
+                            copy.TryGetValue(id, out int previous);
+                            copy[id] = Math.Max(previous, clamped);
+                        }
+                    }
+            cardUpgradeLevels.Clear();
+            foreach (KeyValuePair<string, int> pair in copy) cardUpgradeLevels[pair.Key] = pair.Value;
+            MigrateAcquiredSpecialCardExperience();
+        }
+
+        public string BattleCardUpgradeUnavailableReason(int index)
+        {
+            if (Phase != CoreDemoPhase.Port) return "请在港口强化卡牌";
+            CoreBattleCard card = GetBattleCard(index);
+            if (card == null) return "卡牌不存在";
+            string unlockReason = GetBattleCardUnlockReason(card);
+            if (unlockReason.Length > 0) return unlockReason;
+            if (IsSpecialBattleCard(card.Id)) return "特殊卡牌仅随来源船员或部件出海航行获得经验，不能使用金币强化";
+            if (!HasBattleCardUpgradeBenefit(index)) return "固定功能牌无可强化数值，不支持金币强化";
+            if (card.UpgradeLevel >= GetCardMaximumUpgradeLevel(index)) return "已达该牌强化上限 +" + GetCardMaximumUpgradeLevel(index);
+            if (!HasBattleCrew(card.RequiredCrew)) return "先携带提供该卡牌的特殊船员";
+            if (!HasBattleComponent(card.RequiredComponent)) return "先装备提供该卡牌的部件";
+            if (ProfileGold < GetCardUpgradeCost(index)) return "船长金币不足";
+            return string.Empty;
+        }
+
+        public bool TryUpgradeBattleCard(int index, out string reason)
+        {
+            reason = BattleCardUpgradeUnavailableReason(index);
+            if (reason.Length > 0) return false;
+            CoreBattleCard card = GetBattleCard(index);
+            int nextLevel = card.UpgradeLevel + 1;
+            if (!TrySpendProfileGold(GetCardUpgradeCost(index), "强化「" + card.Name + "」至 " + nextLevel + " 阶"))
+            {
+                reason = "无法支付本次强化费用";
+                return false;
+            }
+            cardUpgradeLevels[card.Id] = nextLevel;
+            reason = card.Name + " 已强化至 " + nextLevel + " 阶，同名卡牌同步生效。";
+            return true;
+        }
+
+        public void ConfigureComponentBattleCards(IReadOnlyList<string> typeIds)
+        {
+            if (Phase != CoreDemoPhase.Port) return;
+            componentBattleTypes.Clear();
+            if (typeIds == null) return;
+            foreach (string type in typeIds)
+                if (type == "bow" || type == "sail" || type == "cannon" || type == "plating" || type == "instrument")
+                    componentBattleTypes.Add(type);
+        }
+
+        private bool HasBattleComponent(string type) => string.IsNullOrEmpty(type) ||
+            (explicitSpecialCardSources ? activeSpecialComponentIds.Contains(type) : componentBattleTypes.Contains(type));
+
+        public IReadOnlyList<int> GetComponentBattleCards(NavalBattleStage stage)
+        {
+            List<int> result = new List<int>();
+            for (int index = 0; index < cardLibrary.Count; index += 1)
+            {
+                CoreBattleCard card = cardLibrary[index];
+                if (card.RequiredComponent.Length > 0 && card.IsAllowedInStage(stage) && HasBattleComponent(card.RequiredComponent)) result.Add(index);
+            }
+            return result.AsReadOnly();
+        }
+
+        public IReadOnlyList<int> GetBonusBattleCards(NavalBattleStage stage)
+        {
+            List<int> result = new List<int>(GetCrewBattleCards(stage));
+            result.AddRange(GetComponentBattleCards(stage));
+            return result.AsReadOnly();
+        }
+
+        private static string DescribeUpgradedBattleCard(CoreBattleCard card, int? burnDamage = null)
+        {
+            // Only the boarding preview uses this stage-specific wording.
+            StringBuilder text = new StringBuilder();
+            if (card.Action == NavalBattleCardAction.Cannon) text.Append("4 格内：");
+            if (card.Action == NavalBattleCardAction.Sabotage) text.Append("150 米内：");
+            if (card.Damage > 0) text.Append(card.AllowedStages == NavalBattleStages.Boarding ? "船员伤害 " : "船体伤害 ").Append(card.Damage).Append("；");
+            if (card.Block > 0) text.Append("格挡 +").Append(card.Block).Append("；");
+            if (card.Repair > 0) text.Append(card.AllowedStages == NavalBattleStages.Boarding ? "恢复船员 " : card.AllowedStages == NavalBattleStages.All ? "恢复当前阶段生命 " : "修复船体 ").Append(card.Repair).Append("；");
+            if (card.MovementMeters > 0)
+                text.Append(card.Action == NavalBattleCardAction.Retreat ? "远离 " : "靠近 ").Append(card.MovementMeters).Append(" 米，");
+            switch (card.Action)
+            {
+                case NavalBattleCardAction.Energize: text.Append("恢复 ").Append(CoreBattleUpgradeBalance.EnergyRecovery(card)).Append(" 行动点；"); break;
+                case NavalBattleCardAction.Polish: text.Append("本场防御牌额外格挡 +").Append(card.StrategyAmount).Append("，最高 +").Append(card.StrategyLimit).Append("；"); break;
+                case NavalBattleCardAction.Load:
+                case NavalBattleCardAction.PrecisionLoad: text.Append("下次炮击 +").Append(card.StrategyAmount).Append("，装填最高 +").Append(card.StrategyLimit).Append("；"); break;
+                case NavalBattleCardAction.Approach: text.Append("进入冲撞航行；"); break;
+                case NavalBattleCardAction.Retreat: text.Append("取消冲撞航行；"); break;
+                case NavalBattleCardAction.Turn: text.Append("转向敌舰侧舷并进入冲撞航行；"); break;
+                case NavalBattleCardAction.Circle: text.Append("舰艏对准敌舰侧舷，须推进后才能冲撞；"); break;
+                case NavalBattleCardAction.Parallel:
+                case NavalBattleCardAction.Navigator: text.Append("转为平行，60 米内可接舷；"); break;
+                case NavalBattleCardAction.FireRounds: text.Append("烈焰强化 +").Append(card.StrategyAmount).Append(" 发，最高 ").Append(card.StrategyLimit).Append(" 发；命中后灼烧 ").Append(card.BurnDuration).Append(" 回合，每回合 ").Append(burnDamage ?? card.BurnDamage).Append(" 伤害；"); break;
+            }
+            if (card.Draw > 0) text.Append("抽 ").Append(card.Draw).Append(" 张当前阶段牌；");
+            if (card.PowderCost > 0 || card.CannonballCost > 0)
+            {
+                text.Append("消耗 ");
+                if (card.PowderCost > 0) text.Append(card.PowderCost).Append(" 火药");
+                if (card.PowderCost > 0 && card.CannonballCost > 0) text.Append("、");
+                if (card.CannonballCost > 0) text.Append(card.CannonballCost).Append(" 炮弹");
+                text.Append("；");
+            }
+            string description = CoreBattleCardText.FormatCardEffects(text.ToString().TrimEnd('；') + "。", card);
+            return description;
+        }
+    }
+}

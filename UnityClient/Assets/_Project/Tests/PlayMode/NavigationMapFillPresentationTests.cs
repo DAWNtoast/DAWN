@@ -34,7 +34,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
 
             RectTransform map = GameObject.Find("Map Layer").GetComponent<RectTransform>();
-            AssertNavigationMapFillSquareCells(map, session.Map);
+            AssertNavigationMapFitsWholeWorld(map, session.Map);
             Button ordinary = ActiveButton("Event Node 990");
             Button rare = ActiveButton("Event Node 991");
             Assert.That(ordinary.GetComponent<NauticalButtonMotion>(), Is.Not.Null);
@@ -87,7 +87,7 @@ namespace ShatteredSail.Presentation.Tests
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             var map = GameObject.Find("Map Layer").GetComponent<RectTransform>();
             var slider = GameObject.Find("Distance Slider").GetComponent<Slider>();
-            AssertNavigationMapFillSquareCells(map, controller.Session.Map);
+            AssertNavigationMapFitsWholeWorld(map, controller.Session.Map);
             foreach (int distance in new[] { 20, 170, 60 })
             {
                 RectTransform previous = GameObject.Find("Course Target").GetComponent<RectTransform>();
@@ -108,7 +108,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator NavigationMapFill_DragPansToBothBoundsWithoutSelectingACourse()
+        public IEnumerator NavigationMapFill_DragKeepsWholeWorldFixedWithoutSelectingACourse()
         {
             yield return LoadNavigationInterfaceRefreshFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -116,7 +116,6 @@ namespace ShatteredSail.Presentation.Tests
             CoreVoyageMap world = session.Map;
             var map = GameObject.Find("Map Layer").GetComponent<RectTransform>();
             var frame = GameObject.Find("Procedural Sea Chart Frame").GetComponent<RectTransform>();
-            var sea = GameObject.Find("Ocean Tile Layer").GetComponent<RectTransform>();
             var input = GameObject.Find("Map Course Input").GetComponent<MapCourseInputSurface>();
             Assert.That(map.GetComponent<NavigationMapViewport>(), Is.Not.Null);
             GameObject dragHandler = ExecuteEvents.GetEventHandler<IBeginDragHandler>(input.gameObject);
@@ -126,7 +125,6 @@ namespace ShatteredSail.Presentation.Tests
             GraphicRaycaster raycaster = canvas.GetComponent<GraphicRaycaster>();
             Vector2 start = RectTransformUtility.WorldToScreenPoint(camera, frame.TransformPoint(frame.rect.center));
             Vector3 originalOffset = map.localPosition;
-            Vector3 firstOffset = originalOffset;
             SailingDirection heading = session.Heading;
             int distance = session.PlannedDistanceNm;
             VoyagePoint origin = session.Position;
@@ -153,39 +151,78 @@ namespace ShatteredSail.Presentation.Tests
                 input.OnPointerClick(pointer);
                 yield return null;
                 Assert.That(GameObject.Find("Map Layer").GetComponent<RectTransform>(), Is.SameAs(map));
-                Assert.That(session.Map, Is.SameAs(world), "Panning must never regenerate geography.");
+                Assert.That(session.Map, Is.SameAs(world), "Dragging must never regenerate geography.");
                 Assert.That(session.Heading, Is.EqualTo(heading));
                 Assert.That(session.PlannedDistanceNm, Is.EqualTo(distance));
                 Assert.That(session.HasDirectCourseTarget, Is.EqualTo(directTarget));
                 Assert.That(session.Position.X, Is.EqualTo(origin.X));
                 Assert.That(session.Position.Y, Is.EqualTo(origin.Y));
-                AssertNavigationMapFillSquareCells(map, world);
-                var corners = new Vector3[4];
-                sea.GetWorldCorners(corners);
-                Vector3 bottomLeft = frame.InverseTransformPoint(corners[0]);
-                Vector3 topRight = frame.InverseTransformPoint(corners[2]);
-                Assert.That(bottomLeft.x, Is.LessThanOrEqualTo(frame.rect.xMin + .02f));
-                Assert.That(bottomLeft.y, Is.LessThanOrEqualTo(frame.rect.yMin + .02f));
-                Assert.That(topRight.x, Is.GreaterThanOrEqualTo(frame.rect.xMax - .02f));
-                Assert.That(topRight.y, Is.GreaterThanOrEqualTo(frame.rect.yMax - .02f));
-                if (pass == 0) firstOffset = map.localPosition;
-                else Assert.That(Vector3.Distance(firstOffset, map.localPosition), Is.GreaterThan(.1f),
-                    "Dragging opposite directions must reveal different portions of the world.");
+                AssertNavigationMapFitsWholeWorld(map, world);
+                Assert.That(Vector3.Distance(originalOffset, map.localPosition), Is.LessThan(.001f),
+                    "Dragging must not uncover hidden map area outside the fixed chart.");
             }
             LogAssert.NoUnexpectedReceived();
         }
 
-        private static void AssertNavigationMapFillSquareCells(RectTransform map, CoreVoyageMap world)
+        [UnityTest]
+        public IEnumerator NavigationMapFill_ShipAtEdgesCannotShiftTheChartAndRebuildKeepsBounds()
         {
-            Assert.That(map.lossyScale.x / map.lossyScale.y, Is.EqualTo(1f).Within(.001f),
-                "The expanded world uses uniform map scaling.");
+            yield return LoadNavigationInterfaceRefreshFixture();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreVoyageMap world = controller.Session.Map;
+            var map = GameObject.Find("Map Layer").GetComponent<RectTransform>();
             RectTransform sea = map.Find("Ocean Tile Layer") as RectTransform;
+            RectTransform ship = map.Find("Player Ship") as RectTransform;
+            NavigationMapViewport viewport = map.GetComponent<NavigationMapViewport>();
+            Vector2 originalShip = ship.anchoredPosition;
+            Vector2 originalOffset = map.anchoredPosition;
+            Vector3 originalScale = map.localScale;
+            foreach (Vector2 edge in new[] { Vector2.zero, Vector2.one, Vector2.up, Vector2.right,
+                new Vector2(.5f, 0f), new Vector2(.5f, 1f), new Vector2(0f, .5f), new Vector2(1f, .5f) })
+            {
+                ship.anchoredPosition = new Vector2(Mathf.Lerp(sea.rect.xMin, sea.rect.xMax, edge.x),
+                    Mathf.Lerp(sea.rect.yMin, sea.rect.yMax, edge.y));
+                // Sailing animation and explicit marker location use this same entry point.
+                viewport.EnsureVisible(ship.anchoredPosition);
+                yield return null;
+                Assert.That(Vector2.Distance(map.anchoredPosition, originalOffset), Is.LessThan(.001f),
+                    "Reaching a map edge must not move the chart: " + edge);
+                Assert.That(map.localScale, Is.EqualTo(originalScale));
+                AssertNavigationMapFitsWholeWorld(map, world);
+            }
+            ship.anchoredPosition = originalShip;
+            typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
+            yield return null;
+            yield return null;
+            map = GameObject.Find("Map Layer").GetComponent<RectTransform>();
+            Assert.That(controller.Session.Map, Is.SameAs(world));
+            Assert.That(Vector2.Distance(map.anchoredPosition, originalOffset), Is.LessThan(.001f));
+            AssertNavigationMapFitsWholeWorld(map, world);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void AssertNavigationMapFitsWholeWorld(RectTransform map, CoreVoyageMap world)
+        {
+            RectTransform sea = map.Find("Ocean Tile Layer") as RectTransform;
+            var frame = GameObject.Find("Procedural Sea Chart Frame").GetComponent<RectTransform>();
             var corners = new Vector3[4];
             sea.GetWorldCorners(corners);
+            Vector3 bottomLeft = frame.InverseTransformPoint(corners[0]);
+            Vector3 topRight = frame.InverseTransformPoint(corners[2]);
+            Assert.That(bottomLeft.x, Is.EqualTo(frame.rect.xMin).Within(.02f));
+            Assert.That(bottomLeft.y, Is.EqualTo(frame.rect.yMin).Within(.02f));
+            Assert.That(topRight.x, Is.EqualTo(frame.rect.xMax).Within(.02f));
+            Assert.That(topRight.y, Is.EqualTo(frame.rect.yMax).Within(.02f));
             float width = Vector3.Distance(corners[0], corners[3]);
             float height = Vector3.Distance(corners[0], corners[1]);
-            Assert.That(width / world.Columns, Is.EqualTo(height / world.Rows).Within(.001f), "Terrain cells remain square.");
-            Assert.That(width / world.FineColumns, Is.EqualTo(height / world.FineRows).Within(.001f), "Exploration cells remain square.");
+            frame.GetWorldCorners(corners);
+            Assert.That(width / world.FineColumns,
+                Is.EqualTo(Vector3.Distance(corners[0], corners[3]) / world.FineColumns).Within(.001f),
+                "The complete set of exploration columns must fit inside the fixed chart.");
+            Assert.That(height / world.FineRows,
+                Is.EqualTo(Vector3.Distance(corners[0], corners[1]) / world.FineRows).Within(.001f),
+                "The complete set of exploration rows must fit inside the fixed chart.");
         }
 
         private static void AssertNavigationMapFillRoundMarker(RectTransform marker, string context)

@@ -31,16 +31,18 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("card_diver_sabotage", 100f, 100f, true)]
-        [TestCase("card_diver_sabotage", 200f, 0f, false)]
+        [TestCase("card_diver_sabotage", 200f, 0f, true)]
+        [TestCase("card_diver_sabotage", 200f, 100f, false)]
         [TestCase("card_school_arcane_b03", 300f, 100f, true)]
         [TestCase("card_school_arcane_b03", 300f, 200f, false)]
-        [TestCase("card_school_arcane_b03", 400f, 0f, false)]
-        public void NonCannonPreviewPreservesAuthoredMetricRange(string id, float x, float y, bool expected)
+        [TestCase("card_school_arcane_b03", 400f, 0f, true)]
+        public void NonCannonPreviewUsesAuthoredGridRange(string id, float x, float y, bool expected)
         {
             CoreVoyageSession session = NewBattle();
             CoreBattleCard card = Card(id);
             CoreNavalAttackRange range = session.GetNavalCardAttackRange(card);
-            Assert.That(range.Kind, Is.EqualTo(CoreNavalAttackRangeKind.MetricMeters));
+            Assert.That(range.Kind, Is.EqualTo(CoreNavalAttackRangeKind.CannonCells));
+            Assert.That(range.ScanRadiusCells, Is.EqualTo(CoreNavalCardRangeRules.MaximumCells(card)));
             Assert.That(session.NavalCardCanTargetCell(card, new VoyagePoint(x, y)), Is.EqualTo(expected));
         }
 
@@ -50,6 +52,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("card_school_blood_b02")]
         [TestCase("card_school_fire_b01")]
         [TestCase("card_school_thunder_b01")]
+        [TestCase("card_special_sail_starshear_rig")]
         public void DefensiveSelfDamageAndFutureAttackBuffsDoNotHaveAttackRanges(string id)
         {
             CoreVoyageSession session = NewBattle();
@@ -61,7 +64,6 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase("card_school_curse_b03")]
         [TestCase("card_school_curse_b05")]
-        [TestCase("card_special_sail_starshear_rig")]
         public void ExistingUnrestrictedDamageOverTimeEffectsRemainUnlimited(string id)
         {
             CoreVoyageSession session = NewBattle();

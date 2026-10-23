@@ -1,0 +1,911 @@
+{
+  "date": "2026-10-22",
+  "operation": "Local crop/resample only; source dossiers untouched",
+  "installed": true,
+  "outputSize": [
+    256,
+    336
+  ],
+  "crew": [
+    {
+      "id": "crew_broken_anchor_navigator_lorne",
+      "port": "断锚港",
+      "profession": 0,
+      "name": "测潮师 洛恩",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_navigator_lorne_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 226,
+        "top": 35,
+        "width": 512,
+        "height": 672
+      },
+      "tuning": {
+        "centerX": 0.43,
+        "top": 0.025,
+        "width": 0.48
+      },
+      "sourceSha256": "2857d0fa005c7d129b50f509285552dccee63f556c3acc3969b64c1f73bfad43",
+      "avatarSha256": "e6de30254e25e707acfd6d9f72a3c534da9d3f0b44fcb01c65d4297723ba7175",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_broken_anchor_navigator_lorne_avatar_v1.png"
+    },
+    {
+      "id": "crew_broken_anchor_carpenter_kia",
+      "port": "断锚港",
+      "profession": 1,
+      "name": "铆骨匠 琪娅",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_carpenter_kia_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 303,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.47,
+        "top": 0.025,
+        "width": 0.42
+      },
+      "sourceSha256": "74feb83d6a940189c43479658297ba161b3b3ca73b012cb06f54c0e84da9b6d5",
+      "avatarSha256": "c260401d0ac0b47d8d1ee3f137596d683fa37daaf7b59bde9fe179e615781771",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_broken_anchor_carpenter_kia_avatar_v1.png"
+    },
+    {
+      "id": "crew_broken_anchor_doctor_hector",
+      "port": "断锚港",
+      "profession": 2,
+      "name": "瘢痕医师 赫克托",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_doctor_hector_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 343,
+        "top": 25,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.52,
+        "top": 0.018,
+        "width": 0.44
+      },
+      "sourceSha256": "2050efa8420050eb55b041f46776f5828f72c20f030b3cb4ba3e56d2796f2685",
+      "avatarSha256": "86cf4f93e083ece0789436f658bff898d05d618e5642f44e3009ca194695845e",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_broken_anchor_doctor_hector_avatar_v1.png"
+    },
+    {
+      "id": "crew_broken_anchor_gunner_mira",
+      "port": "断锚港",
+      "profession": 3,
+      "name": "沉钟炮师 米拉",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_gunner_mira_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 292,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.46,
+        "top": 0.025,
+        "width": 0.4
+      },
+      "sourceSha256": "91e9fc18eeaf710e75c1da26999ebd300309a1ad8cedbe39ffe48ad6c1d7408d",
+      "avatarSha256": "31de39697d8bc762de1c664a2b47262070538ad153280e0fc204424256a286c8",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_broken_anchor_gunner_mira_avatar_v1.png"
+    },
+    {
+      "id": "crew_broken_anchor_cook_tam",
+      "port": "断锚港",
+      "profession": 4,
+      "name": "烟熏厨娘 塔姆",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_cook_tam_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 249,
+        "top": 25,
+        "width": 512,
+        "height": 672
+      },
+      "tuning": {
+        "centerX": 0.45,
+        "top": 0.018,
+        "width": 0.46
+      },
+      "sourceSha256": "139983cdc3d09218bbc0cadc27ecdaeb1c9270a6fd66d27fe40441a36cc3c48c",
+      "avatarSha256": "029277483ad7267489b77ac1af83a8e918c6ea484b19a61094b8df06c48fad76",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_broken_anchor_cook_tam_avatar_v1.png"
+    },
+    {
+      "id": "crew_broken_anchor_diver_udo",
+      "port": "断锚港",
+      "profession": 5,
+      "name": "锚墓潜手 乌铎",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_diver_udo_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 315,
+        "top": 91,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.48,
+        "top": 0.065,
+        "width": 0.4
+      },
+      "sourceSha256": "a4ddd8a0b98c5a74efa5dcd3ade5b29490695262a9e04da11b6ec6970937edbc",
+      "avatarSha256": "8cf184ce19eb59746fc029acdd83a1bebb185df61d7a42c0f80439426f982500",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_broken_anchor_diver_udo_avatar_v1.png"
+    },
+    {
+      "id": "crew_white_shell_navigator_saina",
+      "port": "白贝港",
+      "profession": 0,
+      "name": "珊潮领航员 赛娜",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_navigator_saina_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 226,
+        "top": 35,
+        "width": 512,
+        "height": 672
+      },
+      "tuning": {
+        "centerX": 0.43,
+        "top": 0.025,
+        "width": 0.48
+      },
+      "sourceSha256": "95729fa53aecc8a85ef5f71fe60c547d61241954fc1f523fe283370008225dc6",
+      "avatarSha256": "de73d2356bdbc8d525d0c173dd0728a1bcaf472e07ec36502b1498a961bf92f1",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_white_shell_navigator_saina_avatar_v1.png"
+    },
+    {
+      "id": "crew_white_shell_carpenter_atang",
+      "port": "白贝港",
+      "profession": 1,
+      "name": "贝骨船匠 阿棠",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_carpenter_atang_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 180,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.36,
+        "top": 0.025,
+        "width": 0.4
+      },
+      "sourceSha256": "91c5e16a2f467f23e248785f97bb82bab11239ed4d2d0dfba0b6823637498109",
+      "avatarSha256": "f27f194fe7f825b9632a2dba8734713ce49e278cfabf188a4c82937b422f80a2",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_white_shell_carpenter_atang_avatar_v1.png"
+    },
+    {
+      "id": "crew_white_shell_doctor_mirei",
+      "port": "白贝港",
+      "profession": 2,
+      "name": "香潮医师 米蕾",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_doctor_mirei_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 260,
+        "top": 21,
+        "width": 512,
+        "height": 672
+      },
+      "tuning": {
+        "centerX": 0.46,
+        "top": 0.015,
+        "width": 0.48
+      },
+      "sourceSha256": "52f2ff22470a8ba0a83df6dee84daf19384f7a18637bbf3122c8923a4634b4a7",
+      "avatarSha256": "acf2d35f1fa3960be628a95b48d8c959738712f8501c97ba6cb3b89b7da6fd04",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_white_shell_doctor_mirei_avatar_v1.png"
+    },
+    {
+      "id": "crew_white_shell_gunner_gallo",
+      "port": "白贝港",
+      "profession": 3,
+      "name": "珠炮手 加洛",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_gunner_gallo_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 303,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.47,
+        "top": 0.025,
+        "width": 0.42
+      },
+      "sourceSha256": "c2060823bbb4e3519b890329a721c2c83ab202a9a3dd33c9c3f6b7be7c472e2a",
+      "avatarSha256": "89450e57c164b71120635199cd1c32d306b614fab3fef9019b903d4c0b9af65a",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_white_shell_gunner_gallo_avatar_v1.png"
+    },
+    {
+      "id": "crew_white_shell_cook_flora",
+      "port": "白贝港",
+      "profession": 4,
+      "name": "柑潮厨师 芙萝",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_cook_flora_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 209,
+        "top": 35,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.4,
+        "top": 0.025,
+        "width": 0.44
+      },
+      "sourceSha256": "7c54590fcd89d472accff5d89b0940b5c7af3e4b2cfb894b90338093c2be59e0",
+      "avatarSha256": "1205173929e9a9f3002ef0c22b7baa9ce077ea1c1b5964a47178debb367f2b27",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_white_shell_cook_flora_avatar_v1.png"
+    },
+    {
+      "id": "crew_white_shell_diver_kela",
+      "port": "白贝港",
+      "profession": 5,
+      "name": "采珠人 珂拉",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_diver_kela_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 258,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.43,
+        "top": 0.025,
+        "width": 0.42
+      },
+      "sourceSha256": "c67b98358e017d852362a61f4d0116eff8d235099e5693c6153b4c62c81eaccd",
+      "avatarSha256": "3ab0f8bd5538f1902dae30affbff5062fed0349ac1ac3f218018f18902b12407",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_white_shell_diver_kela_avatar_v1.png"
+    },
+    {
+      "id": "crew_bronze_bell_navigator_vick",
+      "port": "铜钟港",
+      "profession": 0,
+      "name": "黄铜测绘师 维克",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_navigator_vick_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 292,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.46,
+        "top": 0.025,
+        "width": 0.4
+      },
+      "sourceSha256": "20311901b3ee3eb1283c0116efcc054d4944d91b7ac6db9378a3b43dcc973e80",
+      "avatarSha256": "e75c7ec8768ea144b6c38afab5d86fdf55223c2428bf1609a63f9ccd086cc58d",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_bronze_bell_navigator_vick_avatar_v1.png"
+    },
+    {
+      "id": "crew_bronze_bell_carpenter_osser",
+      "port": "铜钟港",
+      "profession": 1,
+      "name": "齿轮船匠 奥瑟",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_carpenter_osser_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 254,
+        "top": 49,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.44,
+        "top": 0.035,
+        "width": 0.44
+      },
+      "sourceSha256": "4e8e567cd85f4fabb948564fd4d7048485cef11ead72651b9bcbc1d78c17c899",
+      "avatarSha256": "384aa0976b9049f8be0ca324168278865b663b2238b66224587c6ade9bb825a3",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_bronze_bell_carpenter_osser_avatar_v1.png"
+    },
+    {
+      "id": "crew_bronze_bell_doctor_ada",
+      "port": "铜钟港",
+      "profession": 2,
+      "name": "退役军医 艾达",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_doctor_ada_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 258,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.43,
+        "top": 0.025,
+        "width": 0.42
+      },
+      "sourceSha256": "153a9ba6ae77273c55a4cc50ddf2d334fd27c41ecaa59d4ffa265f912fd1fb35",
+      "avatarSha256": "5bb40cc5ab4713956b77381e299a8bfe0208580626ba76503a6ee2b88418ed0d",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_bronze_bell_doctor_ada_avatar_v1.png"
+    },
+    {
+      "id": "crew_bronze_bell_gunner_helen",
+      "port": "铜钟港",
+      "profession": 3,
+      "name": "钟楼炮官 赫莲",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_gunner_helen_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 169,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.35,
+        "top": 0.025,
+        "width": 0.4
+      },
+      "sourceSha256": "f9b8d938c0ca3884bccab2ea6b214ae4591a81c235e2ebc2486e4320ec964b1a",
+      "avatarSha256": "912cd41514bd3f59e12fcf21af8f4108033da47032d09e86d97b2785dfd5a841",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_bronze_bell_gunner_helen_avatar_v1.png"
+    },
+    {
+      "id": "crew_bronze_bell_cook_basin",
+      "port": "铜钟港",
+      "profession": 4,
+      "name": "锅炉厨师 巴辛",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_cook_basin_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 326,
+        "top": 35,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.49,
+        "top": 0.025,
+        "width": 0.4
+      },
+      "sourceSha256": "64907497996590e0c03eb4fa9420e14c13c9171db9e023c83e3ddf57ac04b951",
+      "avatarSha256": "e9bbbd442f7072133fe6fc17f3e19beb2c0f2dc60e8b764c4fb5e9c1f7f5d82a",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_bronze_bell_cook_basin_avatar_v1.png"
+    },
+    {
+      "id": "crew_bronze_bell_diver_duke",
+      "port": "铜钟港",
+      "profession": 5,
+      "name": "铜盔潜工 杜克",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_diver_duke_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 305,
+        "top": 77,
+        "width": 512,
+        "height": 672
+      },
+      "tuning": {
+        "centerX": 0.5,
+        "top": 0.055,
+        "width": 0.46
+      },
+      "sourceSha256": "e3bcd5a33123d9bcd3528447dfd369ea018648d3f83dfdab9ed2e7db4f81cb0e",
+      "avatarSha256": "f9b658850f69b3ac6f783d7387605d30d700fd6477aed3b6e22cbc3464321246",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_bronze_bell_diver_duke_avatar_v1.png"
+    },
+    {
+      "id": "crew_salt_crown_navigator_ashir",
+      "port": "盐冠港",
+      "profession": 0,
+      "name": "盐路航海士 阿希尔",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_navigator_ashir_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 359,
+        "top": 21,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.52,
+        "top": 0.015,
+        "width": 0.4
+      },
+      "sourceSha256": "20a047d23bf3f642bb5ae0e61b1971821947b7f36d0428f9429f36d0b605fe7a",
+      "avatarSha256": "5c88da2b6d1a48204925c7075730c52e9ec9028a1d525c7277d256b0e20089ce",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_salt_crown_navigator_ashir_avatar_v1.png"
+    },
+    {
+      "id": "crew_salt_crown_carpenter_saf",
+      "port": "盐冠港",
+      "profession": 1,
+      "name": "晒骨匠 萨芙",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_carpenter_saf_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 270,
+        "top": 0,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.44,
+        "top": 0,
+        "width": 0.4
+      },
+      "sourceSha256": "c907146a591bbc2d78e219b0eede0667f6cec77c172b9a86fb38e59f40908d44",
+      "avatarSha256": "be21a0fa49be960e0be5323b6f953b2372fb3d3449907838d17c44e223d18c0e",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_salt_crown_carpenter_saf_avatar_v1.png"
+    },
+    {
+      "id": "crew_salt_crown_doctor_naji",
+      "port": "盐冠港",
+      "profession": 2,
+      "name": "荒潮药师 娜吉",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_doctor_naji_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 366,
+        "top": 21,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.54,
+        "top": 0.015,
+        "width": 0.44
+      },
+      "sourceSha256": "ac511fc88afdfc634915f9217ff11cbd39a477314f6550779411087ff21e30ec",
+      "avatarSha256": "5d82ee27086b608a553c1cd98216915b0acb9eb17d2c48d29714bddc5bcd0a68",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_salt_crown_doctor_naji_avatar_v1.png"
+    },
+    {
+      "id": "crew_salt_crown_gunner_rokan",
+      "port": "盐冠港",
+      "profession": 3,
+      "name": "白焰炮手 罗坎",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_gunner_rokan_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 310,
+        "top": 14,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.49,
+        "top": 0.01,
+        "width": 0.44
+      },
+      "sourceSha256": "d3b1ef52cf7fc109f128ea5151dab127c9a7a0cab3c626ea7437caefb6752d2b",
+      "avatarSha256": "af2a23fb4d3256e044eedcc00336805f8d86b23e5dcc7345e0cc848eb0d428db",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_salt_crown_gunner_rokan_avatar_v1.png"
+    },
+    {
+      "id": "crew_salt_crown_cook_maz",
+      "port": "盐冠港",
+      "profession": 4,
+      "name": "香路厨娘 玛兹",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_cook_maz_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 283,
+        "top": 28,
+        "width": 512,
+        "height": 672
+      },
+      "tuning": {
+        "centerX": 0.48,
+        "top": 0.02,
+        "width": 0.46
+      },
+      "sourceSha256": "0b1bc1a3c9d03a9e3246276375556e8fa5efc14a69c2affd04fea7e09b238abd",
+      "avatarSha256": "d358a4bae19813de97debf1d10579bd78e1e742318c8b7bfdd1835341d0b4065",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_salt_crown_cook_maz_avatar_v1.png"
+    },
+    {
+      "id": "crew_salt_crown_diver_isha",
+      "port": "盐冠港",
+      "profession": 5,
+      "name": "盐井潜客 伊沙",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_diver_isha_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 242,
+        "top": 77,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.43,
+        "top": 0.055,
+        "width": 0.44
+      },
+      "sourceSha256": "b665fe9ea5be6abb25825489b9161d1b2e65db480f54383692340b063d4e4327",
+      "avatarSha256": "b6122c6b7695ed01d746cf360e6f990635828c5bfa43b42985a77be3a75a177e",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_salt_crown_diver_isha_avatar_v1.png"
+    },
+    {
+      "id": "crew_twilight_tide_navigator_selene",
+      "port": "暮潮港",
+      "profession": 0,
+      "name": "月潮占星师 塞勒涅",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_navigator_selene_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 241,
+        "top": 14,
+        "width": 416,
+        "height": 546
+      },
+      "tuning": {
+        "centerX": 0.4,
+        "top": 0.01,
+        "width": 0.38
+      },
+      "sourceSha256": "e186a4d29f5e0df1563244631c2a7345ecd8cbfe6ee2c3a7ae093e84e5ebd12a",
+      "avatarSha256": "6cd4a12a17fa65bd08bcef9b39251f485b9021a4256d960e6b331932a4053982",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_twilight_tide_navigator_selene_avatar_v1.png"
+    },
+    {
+      "id": "crew_twilight_tide_carpenter_orlan",
+      "port": "暮潮港",
+      "profession": 1,
+      "name": "骨舟匠 欧兰",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_carpenter_orlan_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 377,
+        "top": 35,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.55,
+        "top": 0.025,
+        "width": 0.44
+      },
+      "sourceSha256": "3f47b4c8eeda9c6bb6789f2dc23bb07948c48cdb9d5b35b6b09dd88187969eb5",
+      "avatarSha256": "ab48f3572016eca3f5b0618ecd11bbfe92b5bb582fc8e1e8c36d26c1bbb612cb",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_twilight_tide_carpenter_orlan_avatar_v1.png"
+    },
+    {
+      "id": "crew_twilight_tide_doctor_viya",
+      "port": "暮潮港",
+      "profession": 2,
+      "name": "梦疫医师 维娅",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_doctor_viya_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 276,
+        "top": 35,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.46,
+        "top": 0.025,
+        "width": 0.44
+      },
+      "sourceSha256": "413906ca18bbd1163542ae22b712be9c79623683423591a6e06914a44bbaf9c3",
+      "avatarSha256": "e6669adfbc4145f35d08cb5ea90b85c8fe4842b2752986b4c23bce8ab6f1b4a7",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_twilight_tide_doctor_viya_avatar_v1.png"
+    },
+    {
+      "id": "crew_twilight_tide_gunner_yilan",
+      "port": "暮潮港",
+      "profession": 3,
+      "name": "蓝火炮巫 伊岚",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_gunner_yilan_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 332,
+        "top": 28,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.51,
+        "top": 0.02,
+        "width": 0.44
+      },
+      "sourceSha256": "3460bf6b37cb387b75f1cf02a208e62e26b419f6690546829658472e6613ce7b",
+      "avatarSha256": "056b677dcf31c073af3552533ff569c5425ac466a89b34cc5d5a3932c53f67e2",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_twilight_tide_gunner_yilan_avatar_v1.png"
+    },
+    {
+      "id": "crew_twilight_tide_cook_lume",
+      "port": "暮潮港",
+      "profession": 4,
+      "name": "夜宴厨师 露姆",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_cook_lume_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 271,
+        "top": 28,
+        "width": 512,
+        "height": 672
+      },
+      "tuning": {
+        "centerX": 0.47,
+        "top": 0.02,
+        "width": 0.48
+      },
+      "sourceSha256": "fa1b7fbab2e157b233bf4bb8a6795fc7cd3c0a015bede1d78442dc1e81c7a3c5",
+      "avatarSha256": "c10db9cc30ed64575cf2ba600534f3c2acdaa99620f7663628d79bed14b0f8ce",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_twilight_tide_cook_lume_avatar_v1.png"
+    },
+    {
+      "id": "crew_twilight_tide_diver_naive",
+      "port": "暮潮港",
+      "profession": 5,
+      "name": "幽灯潜者 奈芙",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_diver_naive_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 315,
+        "top": 14,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.48,
+        "top": 0.01,
+        "width": 0.4
+      },
+      "sourceSha256": "e29767a0e71b7f98eabf34ac11dcb122cb8e5257d268101cca685c662e60fa27",
+      "avatarSha256": "0131c965052467aaaa01a098d0f39097221d6ac55fb491438dec9d28e5dffc67",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_twilight_tide_diver_naive_avatar_v1.png"
+    },
+    {
+      "id": "crew_gray_gull_navigator_evelyn",
+      "port": "灰鸥港",
+      "profession": 0,
+      "name": "星盘手 伊芙琳",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_navigator_evelyn_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 225,
+        "top": 14,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.4,
+        "top": 0.01,
+        "width": 0.42
+      },
+      "sourceSha256": "5c9c3fa7a18fa0849122fb2baf29c7c4e447f3da296b29076bb2f23c4b1c55d8",
+      "avatarSha256": "19c126ff1998aa3a9dfa1bc6ff0552244acb044ccbadf0b81750e54c66681f8a",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_gray_gull_navigator_evelyn_avatar_v1.png"
+    },
+    {
+      "id": "crew_gray_gull_carpenter_barlow",
+      "port": "灰鸥港",
+      "profession": 1,
+      "name": "船匠 巴洛",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_carpenter_barlow_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 388,
+        "top": 14,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.56,
+        "top": 0.01,
+        "width": 0.44
+      },
+      "sourceSha256": "7831224ffc940aaf1b5e87ae6afa1d74e3b90fe919459b83167e15d1dad117d3",
+      "avatarSha256": "e139d697d1345b5491c56c8167576150720fe2b9d6682ef3ef002bc3e10bd1f7",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_gray_gull_carpenter_barlow_avatar_v1.png"
+    },
+    {
+      "id": "crew_gray_gull_doctor_moer",
+      "port": "灰鸥港",
+      "profession": 2,
+      "name": "船医 莫尔",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_doctor_moer_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 258,
+        "top": 21,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.43,
+        "top": 0.015,
+        "width": 0.4
+      },
+      "sourceSha256": "0b3373525bd165a5e05dbe59d5bce7174b435bebe61f437fda2f2df4a3338889",
+      "avatarSha256": "a013bf08bc98be6369763c4aab7bca98f77d71baaabf4f08951884f534f91a83",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_gray_gull_doctor_moer_avatar_v1.png"
+    },
+    {
+      "id": "crew_gray_gull_gunner_leisa",
+      "port": "灰鸥港",
+      "profession": 3,
+      "name": "炮术官 雷萨",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_gunner_leisa_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 249,
+        "top": 14,
+        "width": 512,
+        "height": 672
+      },
+      "tuning": {
+        "centerX": 0.45,
+        "top": 0.01,
+        "width": 0.46
+      },
+      "sourceSha256": "faca65f0fb28521bd1b4fad51980f29ac984a8389b5cfc3adc8ce53a8f226813",
+      "avatarSha256": "da63edf33dab96adc2bc71d77e9edf152c1e0d41fdb7fddc6827f2b2e4a603a8",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_gray_gull_gunner_leisa_avatar_v1.png"
+    },
+    {
+      "id": "crew_gray_gull_cook_pepe",
+      "port": "灰鸥港",
+      "profession": 4,
+      "name": "厨师 佩佩",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_cook_pepe_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 400,
+        "top": 35,
+        "width": 480,
+        "height": 630
+      },
+      "tuning": {
+        "centerX": 0.57,
+        "top": 0.025,
+        "width": 0.44
+      },
+      "sourceSha256": "904a58c30f113bbbc677c66a9574f42e5e68881a8994a255dc320589d04a1780",
+      "avatarSha256": "db798b8dcd3bd3dc93e159732a57433d973ea86fd2c815b9013019734e7461f6",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_gray_gull_cook_pepe_avatar_v1.png"
+    },
+    {
+      "id": "crew_gray_gull_diver_noya",
+      "port": "灰鸥港",
+      "profession": 5,
+      "name": "潜水员 诺雅",
+      "source": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_diver_noya_portrait_v2.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "crop": {
+        "left": 393,
+        "top": 28,
+        "width": 448,
+        "height": 588
+      },
+      "tuning": {
+        "centerX": 0.55,
+        "top": 0.02,
+        "width": 0.42
+      },
+      "sourceSha256": "303284eba6e7fba5799323cfc84120e061b49e9acd45f73655ac4123b2811c61",
+      "avatarSha256": "58d5267ccb8a7255d1a6ac3da335419c15da3d834374f1d862b58cc30d06a82b",
+      "output": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars/crew_gray_gull_diver_noya_avatar_v1.png"
+    }
+  ]
+}

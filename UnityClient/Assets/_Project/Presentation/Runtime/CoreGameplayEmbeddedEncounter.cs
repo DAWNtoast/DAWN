@@ -14,14 +14,12 @@ namespace ShatteredSail.Presentation
             if (lookoutViewport == null) BuildSailing();
             for (int i = lookoutViewport.childCount - 1; i >= 0; i--) RetireNavigationChild(lookoutViewport.GetChild(i));
             RectTransform card = CreateRect("Encounter Card", lookoutViewport, new Vector2(1096, 906), Vector2.zero);
-            Color ink = MarketShopSkin.Ink, muted = MarketShopSkin.MutedInk;
+            Color ink = MarketShopSkin.Ink;
             Color accent = mandatory ? Html("#95523B") : Html("#8F6C3E");
             Image paper = CreateRect("Encounter Parchment", card, card.sizeDelta, Vector2.zero).gameObject.AddComponent<Image>();
             MarketShopSkin.ApplyPanel(paper);
             paper.raycastTarget = false;
             RectTransform content = CreateRect("Encounter Paper Content", card, new Vector2(1024, 834), Vector2.zero);
-            JournalText("Encounter Journal Heading", content, "船 长 航 海 日 志", 18, muted);
-            JournalText("Encounter Badge", content, category + " · " + (mandatory ? "必须处理" : "可选择略过") + " · 风险 " + risk, 16, accent);
             JournalText("Encounter Title", content, eventName, 32, ink);
             JournalSurface("Encounter Header Divider", content, new Vector2(1024, 1), new Color(.49f, .37f, .21f, .35f));
             RectTransform mount = CreateRect("Encounter Illustration Mount", content, new Vector2(328, 248), Vector2.zero);
@@ -31,7 +29,6 @@ namespace ShatteredSail.Presentation
             CreateRawImage("Demo Event Art", mount,
                 specialShip ? UiImageAspect.FitSize(illustration, illustrationUv, new Vector2(320, 240)) : new Vector2(320, 240),
                 Vector2.zero, illustration, specialShip ? illustrationUv : EncounterCoverUv(illustration, illustrationUv, 4f / 3f)).raycastTarget = false;
-            JournalText("Encounter Location", content, location + " · " + BattleEnvironmentArtCatalog.LabelFor(terrain), 20, muted);
             RectTransform storyViewport = CreateRect("Encounter Description Viewport", content, new Vector2(620, 226), Vector2.zero);
             Image storyHit = storyViewport.gameObject.AddComponent<Image>(); storyHit.color = Color.clear;
             storyViewport.gameObject.AddComponent<RectMask2D>();
@@ -41,9 +38,6 @@ namespace ShatteredSail.Presentation
             ScrollRect storyScroll = storyViewport.gameObject.AddComponent<ScrollRect>();
             storyScroll.content = story; storyScroll.viewport = storyViewport; storyScroll.horizontal = false;
             storyScroll.scrollSensitivity = 28f; storyScroll.movementType = ScrollRect.MovementType.Clamped;
-            JournalText("Encounter Description Hint", content, "滚动阅读完整事件", 16, muted);
-            JournalText("Encounter Decision Heading", content, "船长，请下达决定", 24, ink);
-            JournalText("Encounter Decision Footer", content, "", 18, muted);
             JournalSurface("Encounter Decision Rule", content, new Vector2(1024, 2), new Color(.49f, .37f, .21f, .4f));
             RectTransform viewport = CreateRect("Encounter Decision Viewport", content, new Vector2(1000, 360), Vector2.zero);
             Image hit = viewport.gameObject.AddComponent<Image>(); hit.color = Color.clear;
@@ -64,7 +58,6 @@ namespace ShatteredSail.Presentation
             Scrollbar bar = barRoot.gameObject.AddComponent<Scrollbar>();
             bar.handleRect = handle; bar.targetGraphic = thumb; bar.direction = Scrollbar.Direction.BottomToTop;
             scroll.verticalScrollbar = bar; scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
-            JournalText("Encounter Footer Note", content, mandatory ? "必须处理此事件后才能继续航行" : "略过不耗时，也不会领取事件收益", 18, muted, FontStyle.Normal);
             NavigationDashboardLayout.Attach(contentRoot);
             card.gameObject.AddComponent<EncounterDossierRevealMotion>().Play(card, .24f, !editorPreviewBuilding);
         }
@@ -101,7 +94,6 @@ namespace ShatteredSail.Presentation
         {
             Text text = EncounterText(name, parent, new Vector2(400, 40), Vector2.zero, size, color, TextAnchor.MiddleLeft, style);
             text.color = color; text.text = value;
-            if (name == "Encounter Badge" || name == "Encounter Decision Footer") text.alignment = TextAnchor.MiddleRight;
             if (name == "Encounter Description") text.alignment = TextAnchor.UpperLeft;
             if (name == "Decision Number") text.alignment = TextAnchor.MiddleCenter;
             return text;

@@ -1,0 +1,1671 @@
+{
+  "scope": "角色背景、部件背景及关联异闻的中文语序和措辞润色",
+  "counts": {
+    "reviewedCrew": 36,
+    "reviewedComponents": 150,
+    "reviewedStories": 15,
+    "editedCrew": 15,
+    "editedComponentNarratives": 89,
+    "editedStories": 7,
+    "editedSharedDescriptionTemplates": 1,
+    "editedRouteLabels": 2,
+    "componentsAffectedIncludingSharedTemplate": 96
+  },
+  "validation": {
+    "passed": true,
+    "checks": 191,
+    "failedChecks": [],
+    "compile": {
+      "exitCode": 0,
+      "passedAssemblies": [
+        "Core",
+        "Content",
+        "Persistence",
+        "Presentation",
+        "narrative component test compilation"
+      ],
+      "note": "本轮为文案修改，执行编译检查；未重跑 Unity 环境效果测试。"
+    },
+    "csvDataRows": 125,
+    "csvColumns": 20,
+    "crewCount": 36,
+    "storyCount": 15,
+    "componentCount": 150,
+    "preservedFields": [
+      "IDs",
+      "names",
+      "prices",
+      "stats",
+      "skills",
+      "story associations",
+      "environment rules"
+    ],
+    "preservedConcurrentTextChanges": {
+      "file": "UnityClient/Assets/_Project/Core/Runtime/CoreVoyageSession.cs",
+      "count": 6,
+      "lines": [
+        2689,
+        2708,
+        2715,
+        2718,
+        2722,
+        2735
+      ],
+      "note": "与文案润色前快照相比，同时出现的其他文字修改；保留原样，不计入本轮修改。"
+    }
+  },
+  "changes": [
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 120,
+      "type": "story",
+      "id": "seventh_berth_02",
+      "name": "第一面自由旗",
+      "edits": [
+        {
+          "before": "白贝采珠人带来绳索，铜钟炮匠扛来工具，盐冠厨师抱着一口锅，循誓言登上旧船。老船长裁下一幅帆，擦去王徽，让每个人在原处签名。有人不会写字，就按了一个指印。后来第七港口尚无门墙，这块碎帆已挂在入口。",
+          "after": "白贝采珠人带来绳索，铜钟炮匠扛来工具，盐冠厨师抱着一口锅，应着那句誓言登上旧船。老船长裁下一幅帆，擦去王徽，让每个人在原处签名。有人不会写字，就按了一个指印。后来，第七港口连门墙都还没建起，这块碎帆就已挂在入口。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 121,
+      "type": "story",
+      "id": "seventh_berth_03",
+      "name": "穿过千山万水",
+      "edits": [
+        {
+          "before": "船队穿过浮冰山、赤潮海与移动的岛群，舱中装着送回六港的种子、药品和失踪者。大雾里看不见前船，航海长便敲铜钟，一声接一声传到队尾；破浪罗盘上添满潮汐刻痕。最远的那条航线，就这样被普通人的手接了起来。",
+          "after": "船队穿过浮冰山、赤潮海与移动的岛群，舱中装着送回六港的种子和药品，也载着寻回的失踪者。大雾里看不见前船，航海长便敲铜钟，一声接一声传到队尾；破浪罗盘上也渐渐刻满了潮汐记号。一双双平凡的手，就这样连通了最远的航线。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 122,
+      "type": "story",
+      "id": "seventh_berth_04",
+      "name": "与神明谈价",
+      "edits": [
+        {
+          "before": "海神索要一名船员，风暴之神要六港永远交出航权。老船长把封蜡图摊在神殿门前，湿透的袖口压住卷边：船上的人，一个也不拿来谈价。海啸升起时，六港灯火同时亮了。桨叶劈开水面，船队驶过了神谕划下的界线。",
+          "after": "海神索要一名船员，风暴之神要六港永远放弃航权。老船长把封蜡图摊在神殿门前，用湿透的袖口压住翘起的图角：船上的人，一个也不拿来谈价。海啸升起时，六港灯火同时亮了。桨叶劈开水面，船队驶过了神谕划下的界线。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 124,
+      "type": "story",
+      "id": "seventh_berth_06",
+      "name": "巨人背上的星图",
+      "edits": [
+        {
+          "before": "为寻一条避开神明目光的航道，老船长在海巨人背上走了七昼夜。旧伤在夜里显成星图，巨人递给他石质星盘，说风暴中让给旁人的位置，也可以叫作港口。他归船时，手中握着新航线，却迟迟没有发令，怕自己的愿望也成了命令。",
+          "after": "为寻一条避开神明目光的航道，老船长在海巨人背上走了七昼夜。巨人背上的旧伤入夜便显成星图。他递给老船长石质星盘，说在风暴中给别人留个位置，那里也能成为港口。老船长带着新航线回到船上，却迟迟没有发令，怕自己的愿望也成了命令。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 125,
+      "type": "story",
+      "id": "seventh_berth_07",
+      "name": "不会沉的龙骨",
+      "edits": [
+        {
+          "before": "六港船匠把海兽蜕骨、珊瑚胶与旧船木接在一起，造出不会沉的龙骨。船下水时，最强壮的人伸手取舵，老船长却请乘客都说说想去哪里。龙骨在脚下轻响，记住每个人的重量；后来有人靠岸，总有船匠俯身听它是否还记得。",
+          "after": "六港船匠把海兽蜕骨、珊瑚胶与旧船木接在一起，造出不会沉的龙骨。船下水时，最强壮的人伸手把舵，老船长却请乘客都说说想去哪里。龙骨在脚下轻响，记住每个人的重量；后来有人靠岸，总有船匠俯身听它是否还记得。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 126,
+      "type": "story",
+      "id": "seventh_berth_08",
+      "name": "分航之前",
+      "edits": [
+        {
+          "before": "远征第八年，饭桌上第一次为第七港口的归属吵起来。炮手要添护港舰，商人摊开税账，有人只问何时能见家人。老船长听到灯油将尽，也没有替众人裁决。分航前，每人领到一枚铜牌，带着自己的决定，也带走应负的责任。",
+          "after": "远征第八年，众人在饭桌上第一次争起第七港口该归谁。炮手要添护港舰，商人摊开税账，有人只问何时能见家人。老船长一直听到灯油将尽，也没有替众人裁决。分航前，每人领到一枚铜牌，各自作了决定，也各自担起责任。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 130,
+      "type": "story",
+      "id": "seventh_berth_12",
+      "name": "仍在寻找的人",
+      "edits": [
+        {
+          "before": "潮汐镇魂号仍沿旧航路寻找老船长。它接受切磋，却在对方失去战力时收炮。六港流传的海图上，传说舰队所经之处不时留下旧港印；有人循印挑战堕落者，有人先护送难民。潮声盖过争论，镇魂号的灯还在远处移动。",
+          "after": "潮汐镇魂号仍沿旧航路寻找老船长。船上的人愿与来者切磋，一旦对方无力再战，便会收炮。六港流传的海图上，传说舰队所经之处不时留下旧港印；有人循印挑战堕落者，有人先护送难民。潮声盖过争论，镇魂号的灯还在远处移动。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 141,
+      "type": "crew",
+      "id": "crew_broken_anchor_doctor_hector",
+      "name": "瘢痕医师 赫克托",
+      "edits": [
+        {
+          "before": "赫克托的手术箱里，药瓶与黑沙各占一层。一个无名伤员醒来，竟叫出他早夭兄长的名字。老人此后总把病人的第一句话另记一页：深海也许保存着记忆，却未必肯把它还给原来的人。",
+          "after": "赫克托的手术箱里，药瓶与黑沙各占一层。一个无名伤员醒来，竟叫出他早夭兄长的名字。从那以后，老人总会另起一页，记下病人的第一句话：深海也许保存着记忆，却未必肯把它还给原来的人。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 147,
+      "type": "crew",
+      "id": "crew_white_shell_navigator_saina",
+      "name": "珊潮领航员 赛娜",
+      "edits": [
+        {
+          "before": "赛娜听人讲鬼故事，常要对方再学一遍浪声。她从银壳中逐字抄下求救信，认出了话语间的浪拍节奏，并据此标出通往铜钟港的隐秘坐标。问她是否相信幽灵，她只把耳朵贴回壳口：先别出声。",
+          "after": "赛娜听人讲鬼故事，常要对方再学一遍浪声。她从银壳中逐字抄下求救信，认出了话语间海浪拍击的节奏，并据此标出通往铜钟港的隐秘坐标。问她是否相信幽灵，她只把耳朵贴回壳口：先别出声。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 149,
+      "type": "crew",
+      "id": "crew_white_shell_doctor_mirei",
+      "name": "香潮医师 米蕾",
+      "edits": [
+        {
+          "before": "米蕾试药浴的水温，也听病人的呼吸。那名无名伤员只有银壳唱响时才肯吸气，她便把旋律拆进搅药与换水的节拍。雾气散去，水手终于说全了“归潮舰队”；米蕾没有追问，先递去一杯温水。",
+          "after": "米蕾试药浴的水温，也听病人的呼吸。那名无名伤员只有银壳唱响时才肯吸气，她便按着旋律的节拍搅药、换水。雾气散去，水手终于说全了“归潮舰队”；米蕾没有追问，先递去一杯温水。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 150,
+      "type": "crew",
+      "id": "crew_white_shell_gunner_gallo",
+      "name": "珠炮手 加洛",
+      "edits": [
+        {
+          "before": "加洛擦炮时爱用缺了角的门牙咬住布条。他曾照银壳坐标试射采珠小炮，亲眼数着炮弹在海面跳了十三次。带去铜钟港的弹痕补全了薄铜海图的一条线，可他至今最得意的，仍是自己一声没数漏。",
+          "after": "加洛擦炮时爱用缺了角的门牙咬住布条。他曾照银壳坐标试射采珠小炮，亲眼看着炮弹在海面跳了十三次。带去铜钟港的弹痕补全了薄铜海图的一条线，可他至今最得意的，仍是自己一次也没数漏。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 152,
+      "type": "crew",
+      "id": "crew_white_shell_diver_kela",
+      "name": "采珠人 珂拉",
+      "edits": [
+        {
+          "before": "珂拉收网后，总把那枚银壳单独放在枕边。壳中的求救声与船歌像极了失踪多年的母亲，她却不敢给这声音一个确切的名字。凡是驶向第七港口的船，她都愿意登上，盼着有一天能亲口问明白。",
+          "after": "珂拉收网后，总把那枚银壳单独放在枕边。壳中的求救声与船歌像极了失踪多年的母亲，她却不敢认定那就是母亲的声音。凡是驶向第七港口的船，她都愿意登上，盼着有一天能亲口问明白。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 155,
+      "type": "crew",
+      "id": "crew_bronze_bell_navigator_vick",
+      "name": "黄铜测绘师 维克",
+      "edits": [
+        {
+          "before": "维克校六分仪时，连袖口也不许碰偏刻度。薄铜海图最后一行像六港旧旗，也像父亲的笔迹，原作者却无从查证。他只在纸背试译了一句“钟响十三次，门还没关”，便压住图角，不再向人解释。",
+          "after": "维克校六分仪时，连袖口也不许碰偏刻度。薄铜海图最后一行像六港旧旗，也像父亲的笔迹，却查不出究竟出自谁手。他只在纸背试译了一句“钟响十三次，门还没关”，便压住图角，不再向人解释。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 157,
+      "type": "crew",
+      "id": "crew_bronze_bell_doctor_ada",
+      "name": "退役军医 艾达",
+      "edits": [
+        {
+          "before": "艾达拆线时，仍把每一截铜丝摆得笔直。她随老船长远征，曾挡在黑沙伤员与登岸守卫之间，只说“伤者先靠岸”。八章旧病历一直带在身边，纸角沾着海盐；她教新人看伤口，别先看衣领上的徽记。",
+          "after": "艾达拆线时，仍把每一截铜丝摆得笔直。她随老船长远征，曾挡在黑沙伤员与登岸守卫之间，只说“伤者先靠岸”。那八章旧病历，她一直带在身边，纸角沾着海盐；她教新人看伤口，别先看衣领上的徽记。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 158,
+      "type": "crew",
+      "id": "crew_bronze_bell_gunner_helen",
+      "name": "钟楼炮官 赫莲",
+      "edits": [
+        {
+          "before": "赫莲点引信前，总留半息给撤离的小艇。她曾替老船长打出击断巨链的一炮，把第十三响认作人们自行决定去向的信号。六段装药表仍压在炮台下，她教炮手的第一件事，是认清哪一片水面必须留空。",
+          "after": "赫莲点引信前，总要多等半息，让小艇先撤开。她曾替老船长打出击断巨链的一炮，把第十三响认作人们自行决定去向的信号。六段装药表仍压在炮台下，她教炮手的第一件事，是认清哪一片水面必须留空。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 163,
+      "type": "crew",
+      "id": "crew_salt_crown_navigator_ashir",
+      "name": "盐路航海士 阿希尔",
+      "edits": [
+        {
+          "before": "阿希尔追上无旗盐船，看见盐人顶着自己的脸回望。此后他不再照抄账册里的港名，而把它们逐一换成航向。六港恰好落在罗盘的六个刻度，连线又像一面无王徽的旗；每次重画，他都留着手边那撮盐。",
+          "after": "阿希尔追上无旗盐船，看见盐人长着一张和自己一模一样的脸，正回头望来。此后他不再照抄账册里的港名，而把它们逐一换成航向。六港恰好落在罗盘的六个刻度，连线又像一面无王徽的旗；每次重画，他都留着手边那撮盐。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 165,
+      "type": "crew",
+      "id": "crew_salt_crown_doctor_naji",
+      "name": "荒潮药师 娜吉",
+      "edits": [
+        {
+          "before": "娜吉的药盘里，六种矿盐须按粗细摆齐。她用它们分离伤员体内的黑沙，细沙竟排成第七港口的平面图，粗沙则聚出一颗心脏的形状。那颗心仍在风暴眼里跳动，她看着盘底的起伏，迟迟没有倒掉药液。",
+          "after": "娜吉的药盘里，六种矿盐须按粗细摆齐。她用它们分离伤员体内的黑沙，细沙竟排成第七港口的平面图，粗沙则聚成一颗心脏的模样。那颗心仍在风暴眼里跳动，她看着盘底的起伏，迟迟没有倒掉药液。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 167,
+      "type": "crew",
+      "id": "crew_salt_crown_cook_maz",
+      "name": "香路厨娘 玛兹",
+      "edits": [
+        {
+          "before": "玛兹总说，祖传的锅比掌勺的人更会挑嘴。锅底六道缺口一直补不上，直到她依次煮遍六港菜谱，蒸汽里才升起盐冠投影，显出开门的次序。厨房深处，那位沉睡的旧舰队厨子也在此时睁开了眼。",
+          "after": "玛兹总说，祖传的锅比掌勺的人还挑嘴。锅底六道缺口一直补不上，直到她依次煮遍六港菜谱，蒸汽中才浮出盐冠的影子，显出开门的次序。厨房深处，那位沉睡的旧舰队厨子也在此时睁开了眼。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 171,
+      "type": "crew",
+      "id": "crew_twilight_tide_navigator_selene",
+      "name": "月潮占星师 塞勒涅",
+      "edits": [
+        {
+          "before": "塞勒涅拨星盘时，指尖常停在中央的缺口。她曾随老船长在海巨人背上度过七昼夜，把旧伤画成星图。巨人赠给老船长的石盘，归船后交由她保管，恰能嵌入断锚黑玻璃。可她的航图到“第七”处总少一笔，只推说是潮汐擦掉了。",
+          "after": "塞勒涅拨星盘时，指尖常停在中央的缺口。她曾随老船长在海巨人背上度过七昼夜，把巨人背上的旧伤画成星图。回到船上后，老船长把巨人赠予的石盘交给她保管。那块石盘恰能嵌入断锚黑玻璃。可她的航图到“第七”处总少一笔，只推说是潮汐擦掉了。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 180,
+      "type": "crew",
+      "id": "crew_gray_gull_carpenter_barlow",
+      "name": "船匠 巴洛",
+      "edits": [
+        {
+          "before": "巴洛进坞先点人数，才拎起腰间的木槌。他是老船长亲手挑中的龙骨匠，见过第七港口第一根系船桩入水。只要还有一名船员没能靠岸，再漂亮的修船清单也得搁下；等人齐了，他才蹲下去摸第一块坏板。",
+          "after": "巴洛进坞先点人数，才拎起腰间的木槌。他是老船长亲手挑中的龙骨匠，见过第七港口第一根系船桩入水。只要还有一名船员没能靠岸，修船的清单列得再周全，也得先搁下；等人齐了，他才蹲下去摸第一块坏板。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 181,
+      "type": "crew",
+      "id": "crew_gray_gull_doctor_moer",
+      "name": "船医 莫尔",
+      "edits": [
+        {
+          "before": "莫尔收治伤员时，会先把对方腰间的刀放远些。他随老船长远征留下的病历，第一页写着“伤者先靠岸”，往后才分病症。他一直想开一间没有门槛的诊所，也在等一位肯把敌人抬上甲板的船长。",
+          "after": "莫尔收治伤员时，会先把对方腰间的刀放远些。他随老船长远征时记下的病历，第一页写着“伤者先靠岸”，后面才按病症分类。他一直想开一间没有门槛的诊所，也在等一位肯把敌人抬上甲板的船长。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+      "line": 184,
+      "type": "crew",
+      "id": "crew_gray_gull_diver_noya",
+      "name": "潜水员 诺雅",
+      "edits": [
+        {
+          "before": "诺雅收好潜水镜，才肯展开那面碎帆旗。那是老船长离港前亲手托付的东西，她舍不得让缝线再沾一次盐。沉底铜牌背面的刻痕已指明出发方向，她仍留在酒馆，等能把六港的人请上同一艘船的后来者。",
+          "after": "诺雅收好潜水镜，才肯展开那面碎帆旗。那是老船长离港前亲手托付的东西，她舍不得让缝线再沾一次盐。沉底铜牌背面的刻痕已指明出发方向，她仍留在酒馆，只等有人能把六港的人请上同一艘船。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Core/Runtime/SeventhPortLoreCatalog.cs",
+      "line": 146,
+      "type": "component_lore",
+      "id": "instrument_brass_compass",
+      "edits": [
+        {
+          "before": "黄铜齿轮的凹槽积着细盐。老船长曾用同样的齿轮校过六港潮线，留下的刻痕不许任何港主独占这条路。",
+          "after": "黄铜齿轮的凹槽里积着细盐。老船长曾用同样的齿轮校过六港潮线。他留下的刻痕，记着一条规矩：这条路，不许任何港主独占。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Core/Runtime/SeventhPortLoreCatalog.cs",
+      "line": 148,
+      "type": "component_lore",
+      "id": "sail_last_free_wind",
+      "edits": [
+        {
+          "before": "离港那日，老船长剪下这幅帆角。针脚一直朝向海图的空白处，谁也没能把第七泊位画在缝线尽头。",
+          "after": "离港那天，老船长剪下了这一角帆布。针脚指向海图上的空白处，可谁也没能在缝线尽头标出第七泊位。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Core/Runtime/SeventhPortLoreCatalog.cs",
+      "line": 149,
+      "type": "component_lore",
+      "id": "bow_last_horizon",
+      "edits": [
+        {
+          "before": "老船长独自驶入风暴前留下的船首像。他说前头若有拦路的浪，船首须先替陌生人撞开。",
+          "after": "这是老船长独自驶入风暴前留下的船首像。他说，前头若有浪拦路，船首就该先替陌生人撞开。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Core/Runtime/SeventhPortLoreCatalog.cs",
+      "line": 150,
+      "type": "component_lore",
+      "id": "bow_oak_ram",
+      "edits": [
+        {
+          "before": "断锚号旧账只记了“橡木五铆”，没有署名。铆钉排列却与六港公共船坞相同，像同一把尺量过。",
+          "after": "断锚号的旧账上只记着“橡木五铆”，没有署名。铆钉的排法却和六港公共船坞惯用的一样，像是用同一把尺子量过。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Core/Runtime/SeventhPortLoreCatalog.cs",
+      "line": 151,
+      "type": "component_lore",
+      "id": "cannon_chain_repeater",
+      "edits": [
+        {
+          "before": "连射停下后，总还多出一声回响。铜钟港老人说那是第十三响的回声；谁校过炮膛，却无人知晓。",
+          "after": "连射停下后，总还多出一声回响。铜钟港老人说，那是第十三响的回声。至于是谁校过炮膛，却没人知道。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Core/Runtime/SeventhPortLoreCatalog.cs",
+      "line": 154,
+      "type": "component_lore",
+      "id": "plating_moonsilver_skin",
+      "edits": [
+        {
+          "before": "银壳上叠着六港不同的补片，先后次序恰与那场远征的年份相合。没有船匠肯说自己见过它最初的模样。",
+          "after": "银壳上叠着来自六港的补片，修补的年月恰好对得上那场远征。没有船匠肯说自己见过它最初的模样。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 586,
+      "type": "extra_component",
+      "id": "bow_tidehook_spur",
+      "name": "潮钩导流首",
+      "edits": [
+        {
+          "before": "弯钩下磨得最亮的一道槽，是接舷索长年留下的。",
+          "after": "弯钩下那道发亮的凹槽，是接舷索常年磨出来的。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 587,
+      "type": "extra_component",
+      "id": "bow_sunwake_crest",
+      "name": "日醒狮首",
+      "edits": [
+        {
+          "before": "狮鬃镀金已经褪去，迎光的额面仍被水手擦得发亮。",
+          "after": "狮鬃上的镀金早已褪去，水手却总把狮额擦得锃亮。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 588,
+      "type": "extra_component",
+      "id": "bow_deepcurrent_fang",
+      "name": "深流鲸牙",
+      "edits": [
+        {
+          "before": "牙根留着深海的灰色，一道道水痕沿骨缝爬向尖端。",
+          "after": "鲸牙根部灰暗，一道道水痕沿着骨缝延伸到尖端。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 589,
+      "type": "extra_component",
+      "id": "bow_freewake_lance",
+      "name": "自由尾流长枪",
+      "edits": [
+        {
+          "before": "长枪的焊缝粗糙，掌舵人却舍不得换掉这根旧船首。",
+          "after": "长枪上的焊缝粗糙，掌舵人却始终舍不得把它换掉。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 591,
+      "type": "extra_component",
+      "id": "sail_dawnkite",
+      "name": "曙光风筝帆",
+      "edits": [
+        {
+          "before": "轻帆展开像一只旧纸鸢，补线沿着受风的弧度走。",
+          "after": "轻帆展开时像一只旧纸鸢，风一吹，补过的缝线便随帆面弯成弧形。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 592,
+      "type": "extra_component",
+      "id": "sail_strait_lugger",
+      "name": "海峡斜桁帆",
+      "edits": [
+        {
+          "before": "斜桁两端磨着相同的索痕，记下无数次狭水转舵。",
+          "after": "船在狭窄水道中反复转舵，斜桁两端早已被帆索磨出同样的深痕。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 593,
+      "type": "extra_component",
+      "id": "sail_evening_silk",
+      "name": "暮色商丝帆",
+      "edits": [
+        {
+          "before": "暮光落上商丝，帆脚藏着的细密补针便显了出来。",
+          "after": "暮光照在丝帆上，帆脚处细密的补缝便显了出来。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 594,
+      "type": "extra_component",
+      "id": "sail_fogshroud_wing",
+      "name": "雾幕隐翼帆",
+      "edits": [
+        {
+          "before": "薄帆悬在桁下，湿雾聚成小滴，沿暗色缝线落下。",
+          "after": "薄帆悬在桁下，雾气在帆面上凝成水珠，沿着暗色缝线滴落。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 595,
+      "type": "extra_component",
+      "id": "sail_thunderreef_wing",
+      "name": "雷礁九翼帆",
+      "edits": [
+        {
+          "before": "九翼收起时叠如礁石，撑开后，旧绳结一齐绷紧。",
+          "after": "九片帆翼收起后层层堆叠，宛如礁石；撑开时，旧绳结便一齐绷紧。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 599,
+      "type": "extra_component",
+      "id": "cannon_tradeguard_battery",
+      "name": "商路护航炮组",
+      "edits": [
+        {
+          "before": "炮座背面尽是货箱磨痕，这组炮一直与商船同路。",
+          "after": "炮座背面满是货箱磨出的痕迹，这组炮常年随商船出海。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 601,
+      "type": "extra_component",
+      "id": "cannon_stormcrown_broadsides",
+      "name": "风暴冠列炮",
+      "edits": [
+        {
+          "before": "列炮的铜箍颜色各异，是历次修补没有磨去的旧痕。",
+          "after": "列炮上的铜箍新旧不一，颜色各异，留下了历次修补的痕迹。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 603,
+      "type": "extra_component",
+      "id": "plating_saltfoam_skin",
+      "name": "盐沫浮壳",
+      "edits": [
+        {
+          "before": "浮壳接缝泛着白盐，船匠每次检查都先用拇指抹过。",
+          "after": "浮壳接缝结着一层白盐，船匠每次检查时，都先用拇指抹一抹。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 605,
+      "type": "extra_component",
+      "id": "plating_trade_oathwall",
+      "name": "商盟誓墙",
+      "edits": [
+        {
+          "before": "舷墙背后留着商队的粉笔号，修补时从不刨掉。",
+          "after": "舷墙内侧还留着商队用粉笔写下的编号，船匠每次修补都会小心避开。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 606,
+      "type": "extra_component",
+      "id": "plating_fogiron_carapace",
+      "name": "雾铁甲壳",
+      "edits": [
+        {
+          "before": "雾铁表面不见光泽，补钉却能在手心摸出清楚的排列。",
+          "after": "雾铁表面暗淡无光，伸手摸过，仍能分辨出补钉的排列。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 609,
+      "type": "extra_component",
+      "id": "instrument_dawnseeker",
+      "name": "曙光寻针",
+      "edits": [
+        {
+          "before": "细针悬在浅铜盘中，盘盖内侧磨着常被拇指按住的圆痕。",
+          "after": "细针悬在浅铜盘中，盘盖内侧被拇指磨出了一处圆形印痕。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 610,
+      "type": "extra_component",
+      "id": "instrument_strait_echo",
+      "name": "海峡回声盘",
+      "edits": [
+        {
+          "before": "盘沿布满细小刻度，记录员的指甲常停在最浅的那道。",
+          "after": "盘沿布满细小刻度，记录员的指甲常停在表示浅水的那一道上。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 612,
+      "type": "extra_component",
+      "id": "instrument_reefstar_astrolabe",
+      "name": "礁星潮盘",
+      "edits": [
+        {
+          "before": "星环内侧刻着窄小的潮纹，需凑近舱灯才能看清。",
+          "after": "星环内侧刻着细细的潮纹，得拿到舱灯下才能看清。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 613,
+      "type": "extra_component",
+      "id": "instrument_stormoracle",
+      "name": "风暴谕盘",
+      "edits": [
+        {
+          "before": "盘罩留着被沙雨打过的细点，谕盘的刻线仍然清楚。",
+          "after": "盘罩上留着沙雨打出的细小凹痕，盘面的刻线仍然清晰可辨。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 625,
+      "type": "description_template",
+      "edits": [
+        {
+          "before": "它在",
+          "after": "最佳适航条件为"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 626,
+      "type": "description_template",
+      "edits": [
+        {
+          "before": "的",
+          "after": "和"
+        },
+        {
+          "before": "中最能发挥作用；错过条件时仍保留基础装配属性。",
+          "after": "天气。条件不符时，基础装配属性仍然有效。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Presentation/Runtime/ComponentArtCatalog.cs",
+      "line": 654,
+      "type": "route_label",
+      "edits": [
+        {
+          "before": "开放海域",
+          "after": "开阔海域"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Core/Runtime/CoreVoyageSession.cs",
+      "line": 2190,
+      "type": "route_label",
+      "edits": [
+        {
+          "before": "开放海域",
+          "after": "开阔海域"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 4,
+      "type": "csv_component",
+      "id": "bow_ashwave_wedge",
+      "name": "灰浪楔首",
+      "edits": [
+        {
+          "before": "旧码头的楔木陪一位退役领航员跑完十二趟短航。洛恩摸过船首的钉孔，认出那是失踪守夜人修过的码头留下的孔眼。",
+          "after": "旧码头的楔木陪一位退役领航员跑完十二趟短航。洛恩摸过船首的钉孔，认出这些孔眼来自失踪守夜人修过的旧码头。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 7,
+      "type": "csv_component",
+      "id": "bow_reef_cutter",
+      "name": "礁切斜首",
+      "edits": [
+        {
+          "before": "船首沿鲸鲨的吻线收窄，曾满帆穿过双礁门。赛娜在门后追上移动的岛影，才发现船一直航行在海巨人的手指之间。",
+          "after": "船首仿照鲸鲨的吻部向前收窄，曾满帆穿过双礁门。赛娜在门后追上移动的岛影，才发现船一直航行在海巨人的手指之间。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 8,
+      "type": "csv_component",
+      "id": "bow_coral_parting_blade",
+      "name": "分珊瑚刃首",
+      "edits": [
+        {
+          "before": "潜水匠照着珊瑚枝杈量出弧刃，让船拨开枝条而不惊鱼。阿棠用活龙骨刨花校正它时，新木与珊瑚一同弯向海图的空白处。",
+          "after": "潜水匠照着珊瑚枝杈的弧度做出刃首，船过时能拨开枝条，又不惊动鱼群。阿棠用活龙骨刨花校正它时，新木与珊瑚一同弯向海图的空白处。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 9,
+      "type": "csv_component",
+      "id": "bow_smuggler_needle",
+      "name": "走私客针首",
+      "edits": [
+        {
+          "before": "无灯船队称它为“针”，说它能循一缕月光穿过封锁。无旗盐船到港那夜，针首的银光照见盐人胸口，一颗星比别处迟亮了片刻。",
+          "after": "无灯船队称它为“针”，说它能循一缕月光穿过封锁。无旗盐船到港那夜，针首的银光照向盐人的胸口，那里的一颗星比别处迟亮了片刻。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 13,
+      "type": "csv_component",
+      "id": "bow_sunlion_figurehead",
+      "name": "日狮镇浪像",
+      "edits": [
+        {
+          "before": "狮鬃浇自盐冠港第一炉晨金。晨光落上船首，水手便知道该列队了。盐船账册写着铸匠姓名，可归潮舰队失踪时，那人的炉子早已封停。",
+          "after": "狮鬃用盐冠港第一炉晨金浇成。晨光落上船首，水手便知道该列队了。盐船账册写着铸匠姓名，可归潮舰队失踪时，那人的炉子早已封停。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 14,
+      "type": "csv_component",
+      "id": "bow_pearl_siren",
+      "name": "珠母歌姬首",
+      "edits": [
+        {
+          "before": "百片旧珠母拼成鳞衣，夜航人说浪声经过它，会唱出安全水道。弥赛拉用最后一节歌补好缺鳞，把守门的誓言留在了船首。",
+          "after": "百片旧珠母拼成鳞衣。夜航人说，雕像旁的浪声会化作歌声，指引他们驶入安全水道。弥赛拉用最后一节歌补好缺鳞，把守门的誓言留在了船首。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 16,
+      "type": "csv_component",
+      "id": "bow_amber_albatross",
+      "name": "琥珀信天翁首",
+      "edits": [
+        {
+          "before": "鸟首的琥珀封着一根羽毛，失踪船队据说循其倒影找回航线。晨曦海显现时，羽尖却转向归潮水手的故乡，越过了藏宝海沟。",
+          "after": "鸟首的琥珀封着一根羽毛，据说失踪的船队曾循着它的倒影找回航线。晨曦海显现时，羽尖却越过藏宝海沟，转向归潮水手的故乡。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 17,
+      "type": "csv_component",
+      "id": "bow_abyssal_fang",
+      "name": "深渊鲸牙",
+      "edits": [
+        {
+          "before": "兽骨取自无光海沟，静海里也有远鲸般的低鸣。琪娅在牙根找到会愈合的纤维，与无名船龙骨相同；两者原出自同一种古兽。",
+          "after": "兽骨取自无光海沟，即使海面平静，也会发出远处鲸鸣般的低响。琪娅在牙根找到会愈合的纤维，与无名船龙骨中的一样；两者原来出自同一种古兽。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 19,
+      "type": "csv_component",
+      "id": "bow_gravecurrent_spur",
+      "name": "墓潮骨刺",
+      "edits": [
+        {
+          "before": "经过沉船海域，盐霜下便显出一行失落舰名。石港升起后，人们拿着拓本沿泊位寻找，每一个名字都找到了它的船。",
+          "after": "经过沉船海域，盐霜下便显出一行失落舰名。石港升起后，人们拿着拓本沿泊位寻找，按上面的舰名，一艘艘找到了那些失落的船。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 20,
+      "type": "csv_component",
+      "id": "bow_blackreef_hammer",
+      "name": "黑礁碎舰槌",
+      "edits": [
+        {
+          "before": "火山礁心裹住钢梁，初航便撞开废海堡的封港链。潮门之战时，槌首先敲松外链铆钉，赫莲才得以一炮击断主链。",
+          "after": "火山礁心裹住钢梁，初航便撞开废海堡的封港链。潮门之战时，船员先用槌首敲松外链铆钉，赫莲才得以一炮击断主链。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 21,
+      "type": "csv_component",
+      "id": "bow_voidray_edge",
+      "name": "虚空鳐翼首",
+      "edits": [
+        {
+          "before": "薄刃依深海鳐翼锻成，转舵时仿佛有另一片海托住船底。海巨人见到它，曾低下手掌，让试航船避开自己醒来带起的涡流。",
+          "after": "薄刃仿照深海鳐翼的形状锻成，转舵时仿佛有另一片海托住船底。海巨人见到它，曾放低手掌，让试航船避开自己醒来带起的涡流。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 22,
+      "type": "csv_component",
+      "id": "bow_leviathan_ram",
+      "name": "海兽王冲角",
+      "edits": [
+        {
+          "before": "铁甲舰被撕开后，对手将冲角画进避战旗。舰阵散去，持有者把旗裁成六份，缝在同盟救生艇上，盼炮手看见便肯停火。",
+          "after": "铁甲舰被撕开后，对手将冲角画进避战旗。舰阵散去，冲角的主人把旗裁成六份，缝在同盟救生艇上，盼炮手看见便肯停火。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 24,
+      "type": "csv_component",
+      "id": "bow_worldsplitter",
+      "name": "裂海天楔",
+      "edits": [
+        {
+          "before": "落进礁湖的天外铁被锻成船楔，驶过时白浪久久不合。最后一道浪口通向晨曦海，合拢前，还容得下一艘救生艇。",
+          "after": "落进礁湖的天外铁被锻成船楔。装上船后，所经之处的白浪久久不能合拢。最后一道浪口通向晨曦海，合拢前，还容得下一艘救生艇。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 28,
+      "type": "csv_component",
+      "id": "sail_coast_runner",
+      "name": "岸风短帆",
+      "edits": [
+        {
+          "before": "渔妇借晒网架铺开旧帆布，裁成短帆，最能接住清晨岩壁边的轻风。赛娜借这阵风送出银壳译信，送到了旧钟楼值夜的赫莲手里。",
+          "after": "渔妇借晒网架铺开旧帆布，裁成短帆，最能接住清晨岩壁边的轻风。赛娜借这阵风，把银壳的译信送到了旧钟楼值夜的赫莲手里。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 33,
+      "type": "csv_component",
+      "id": "sail_crosswind_lattice",
+      "name": "横风格帆",
+      "edits": [
+        {
+          "before": "交错索带把侧风分入三段帆面，曾在逆风海峡抢回半日。走私领航员用它拖出漩涡里的盐船，船上的盐人却连眼睛也没转一下。",
+          "after": "交错的索带将侧风分散到三段帆面上，曾帮船在逆风海峡省下半日航程。走私领航员用它拖出漩涡里的盐船，船上的盐人却连眼睛也没转一下。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 34,
+      "type": "csv_component",
+      "id": "sail_rainheron_wing",
+      "name": "雨鹭翼帆",
+      "edits": [
+        {
+          "before": "灰白帆尖像雨鹭伸颈，沿纹流下的雨珠指着晴空。蓝火照上这些水珠时，伊岚第一次看见歌声回音穿过雨幕的轨迹。",
+          "after": "灰白帆尖像雨鹭伸长的颈，沿帆纹流下的雨珠指向晴空。蓝火照上这些水珠时，伊岚第一次看清歌声的回音如何穿过雨幕。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 37,
+      "type": "csv_component",
+      "id": "sail_guild_silk",
+      "name": "商会金丝帆",
+      "edits": [
+        {
+          "before": "金丝织成远距识别码，曾把迷航商船领回护航队。签盟后，商会交出了织法，六港船长不必再付过路费便能认得彼此。",
+          "after": "金丝织成的标记远远就能认出，曾把迷航商船领回护航队。签盟后，商会交出了织法，六港船长不必再付过路费，便能认出彼此。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 40,
+      "type": "csv_component",
+      "id": "sail_redroute_broadsail",
+      "name": "红航路阔帆",
+      "edits": [
+        {
+          "before": "帆上赤线标着旧海军的安全航道，炮烟里也能认队形。赫莲按线布置舰位，让六种口径一同瞄住巨链最薄的一环。",
+          "after": "帆上赤线标着旧海军的安全航道，炮烟里也能认清队形。赫莲按线布置舰位，让六种口径的火炮一同瞄住巨链最薄的一环。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 44,
+      "type": "csv_component",
+      "id": "sail_starshear_rig",
+      "name": "裁星索帆",
+      "edits": [
+        {
+          "before": "索结依五颗航星排列，据说星位对准便不漏掉一缕高空风。它与石盘上的五颗星恰好重合，让赛娜开始相信巨人也曾航过海。",
+          "after": "索结按五颗航星的位置排列，据说只要对准星位，就能兜住每一缕高空风。索结的位置与石盘上的五颗星恰好重合，让赛娜开始相信巨人也曾出海远航。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 46,
+      "type": "csv_component",
+      "id": "sail_aurora_fan",
+      "name": "极光扇帆",
+      "edits": [
+        {
+          "before": "极光曾落进半透明帆面，冰海夜里仍能循着那道彩路航行。米蕾让旧水手看它，水手想起沉没那晚，北方还有一条未结冰的路。",
+          "after": "极光曾落进半透明的帆面，即使身处冰海的黑夜，也能循着那道彩光航行。米蕾让旧水手看它，水手想起沉没那晚，北方还有一条未结冰的路。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 47,
+      "type": "csv_component",
+      "id": "sail_tempest_wing",
+      "name": "暴风翼帆",
+      "edits": [
+        {
+          "before": "翼帆把侧风折向船后，初任船长凭它穿过风暴眼，绘回气象图。重返那片海时，图背多了一条航线，指向晨曦海。",
+          "after": "翼帆把侧风引向船后。一位初任船长曾凭它穿过风暴眼，绘下气象图带回港口。重返那片海时，图背多了一条航线，指向晨曦海。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 48,
+      "type": "csv_component",
+      "id": "sail_skybreaker_array",
+      "name": "裂空九翼帆",
+      "edits": [
+        {
+          "before": "九片副翼逐次展开，曾让满载舰追上轻快的私掠船。奥瑟将九翼骨架分给同盟重舰，那些互不相让的船才渐渐有了同一个节奏。",
+          "after": "九片副翼依次展开，曾让满载舰追上轻快的私掠船。奥瑟将九翼骨架分给同盟重舰，那些互不相让的船才渐渐步调一致。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 55,
+      "type": "csv_component",
+      "id": "cannon_ropeguard_swivel",
+      "name": "护索旋炮",
+      "edits": [
+        {
+          "before": "炮座靠着主索，夜袭时曾转身击落三只钩爪，护住升帆手。六港起航前，小补给船分到了这些炮；它们舱里装着药，也装着菜谱。",
+          "after": "这门炮装在主索旁，曾在夜袭时转动炮口，击落三只钩爪，护住升帆手。六港起航前，小补给船分到了这些炮；船舱里装着药，也装着菜谱。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 56,
+      "type": "csv_component",
+      "id": "cannon_sparksnout",
+      "name": "火星短铳炮",
+      "edits": [
+        {
+          "before": "短膛火舌在浓雾里替友舰报过位置。艾达循光找到一艘伤船，船上无人呼救，舱里躺着第一位黑沙水手。",
+          "after": "短炮喷出的火舌曾在浓雾里替友舰报过位置。艾达循光找到一艘受损的船，船上无人呼救，舱里躺着第一位黑沙水手。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 58,
+      "type": "csv_component",
+      "id": "cannon_gullcry_chaser",
+      "name": "鸥鸣追击炮",
+      "edits": [
+        {
+          "before": "弹丸的尖鸣先于炮烟传来，常令逃船乱阵。加洛借这一声替珂拉唤出银壳的最后一次回音，补齐坐标缺失的末位。",
+          "after": "炮烟尚未飘近，弹丸的尖啸已先传来，常使逃船乱了阵形。加洛借这一声帮珂拉唤出银壳的最后一次回音，补齐了坐标末尾缺失的数字。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 60,
+      "type": "csv_component",
+      "id": "cannon_saltflash_tube",
+      "name": "盐闪火炮",
+      "edits": [
+        {
+          "before": "白烟被第二阵风吹弯，炮长便据此校正下一发落点。无旗盐船的结晶有次混进装药，烟里短暂浮出了六枚港印。",
+          "after": "第二阵风吹弯白烟，炮长便据此校正下一发的落点。有一次，无旗盐船上的结晶混进装药，烟里短暂浮出了六枚港印。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 61,
+      "type": "csv_component",
+      "id": "cannon_twinwatch_gun",
+      "name": "双哨长炮",
+      "edits": [
+        {
+          "before": "两名退役哨兵合制瞄具，一个看浪，一个看旗，商船再没受过二次偷袭。护送无名伤员那趟，他们始终没有开炮。",
+          "after": "两名退役哨兵合做了一副瞄具，一个看浪，一个看旗，商船再没被接连偷袭过。护送无名伤员的那一趟，他们始终没有开炮。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 63,
+      "type": "csv_component",
+      "id": "cannon_anchorbreaker",
+      "name": "断锚双联炮",
+      "edits": [
+        {
+          "before": "双联炮首先击断的是封锁舰的巨锚，不是一艘船。赫莲在酒馆听完那阵链响的故事，明白潮门也不必整座摧毁。",
+          "after": "双联炮首先击断的是封锁舰的巨锚，不是一艘船。赫莲在酒馆听人讲起锚链断裂时的响声，明白潮门也不必整座摧毁。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 65,
+      "type": "csv_component",
+      "id": "cannon_stormnail_array",
+      "name": "风暴钉炮组",
+      "edits": [
+        {
+          "before": "长弹在强风里仍不偏航，曾钉住逃向云墙的敌船。风暴眼外，它又钉牢一块将翻的桅板，让最后一艘归潮船从旁驶过。",
+          "after": "长弹在强风里也不会偏离，曾钉住逃向云墙的敌船。在风暴眼外，它又钉牢一块即将翻覆的桅板，让最后一艘归潮船从旁驶过。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 66,
+      "type": "csv_component",
+      "id": "cannon_echochamber",
+      "name": "回声膛炮",
+      "edits": [
+        {
+          "before": "双膛将爆音送回测距筒，老炮长闭眼也能听出远近。伊岚借它追索海妖歌声，在射表上画出了那个看不见的对手。",
+          "after": "双膛将炮声传回测距筒，老炮长闭眼也能听出远近。伊岚借它追踪海妖的歌声，在射表上画出了那个看不见的对手。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 67,
+      "type": "csv_component",
+      "id": "cannon_starfire_battery",
+      "name": "星火炮列",
+      "edits": [
+        {
+          "before": "古导轨让整列炮口同时点亮，海面像升起一小段星河。赛娜认出那光点与巨人背上的旧伤一致，向炮手要走了试炮纸。",
+          "after": "古老的导轨让整列炮口同时亮起，海面像升起一小段星河。赛娜发现那些光点的排列与巨人背上的旧伤一致，向炮手要走了试炮纸。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 68,
+      "type": "csv_component",
+      "id": "cannon_cometfall_battery",
+      "name": "彗落重炮列",
+      "edits": [
+        {
+          "before": "重弹拖着白焰划过夜空，岛堡称之为第二场流星雨。石港升起后，守军才认出同样的光：二十年前，舰队曾用它请求关门。",
+          "after": "重弹拖着白焰划过夜空，岛堡里的人称它为第二场流星雨。石港升起后，守军才认出同样的光：二十年前，舰队曾用它请求关门。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 71,
+      "type": "csv_component",
+      "id": "cannon_sunforge_salvo",
+      "name": "日炉齐射炮",
+      "edits": [
+        {
+          "before": "反复回炼的铜纹越打越亮，热中仍不失准。奥瑟守炉三夜，才铸齐断链齐射所需的最后一批铜套，没有一只炸膛。",
+          "after": "铜材反复回炉熔炼，炮打得越多，铜纹就越亮，即使发烫也仍打得准。奥瑟守炉三夜，才铸齐断链齐射所需的最后一批铜套，装上后没有一门炮炸膛。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 72,
+      "type": "csv_component",
+      "id": "cannon_queens_broadside",
+      "name": "海盗女王舷炮",
+      "edits": [
+        {
+          "before": "炮口原只准刻下败过的旗舰名。一轮齐射改写海战阵线后，女王又添了六个未曾战胜的港名：这次，它们与她并肩。",
+          "after": "炮口原本只准刻上曾被击败的旗舰名。一轮齐射改变了海战阵势，女王又添上六个她从未征服的港名：这次，六港与她并肩作战。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 77,
+      "type": "csv_component",
+      "id": "plating_braced_ribs",
+      "name": "交叉撑肋",
+      "edits": [
+        {
+          "before": "搁浅船腹教会木匠交叉受力，修好的船又走了十五年。琪娅拆开船肋时，才发现老木匠早把活龙骨屑塞进了最深的接缝。",
+          "after": "木匠从搁浅的船腹上得到启发，用交叉撑肋加固船身，修好的船又走了十五年。琪娅拆开船肋时，才发现老木匠早把活龙骨屑塞进了最深的接缝。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 78,
+      "type": "csv_component",
+      "id": "plating_ropebound_ribs",
+      "name": "缆束船肋",
+      "edits": [
+        {
+          "before": "废缆浸胶束住船肋，碰撞时发出低沉回弹。乌铎循声找到井底通道，从潜水钟背后拽回遗落的铜牌。",
+          "after": "废缆浸胶后束住船肋，受撞时回弹，发出低沉的响声。乌铎循声找到井底通道，从潜水钟背后拽回遗落的铜牌。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 79,
+      "type": "csv_component",
+      "id": "plating_pinepatch_skin",
+      "name": "松脂补覆板",
+      "edits": [
+        {
+          "before": "松脂与箱板本是暴雨里的急修法，撑到返港后便留了下来。赫克托补好伤员小艇，每块板上都沾着一位无名水手的手印。",
+          "after": "船员原本只是用松脂和箱板在暴雨里临时补船，撑到返港后，这些补板却留了下来。赫克托补好伤员的小艇，每块板上都沾着一位无名水手的手印。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 81,
+      "type": "csv_component",
+      "id": "plating_corkwave_liner",
+      "name": "软木隔浪层",
+      "edits": [
+        {
+          "before": "软木吞去浪击的震动，让瞭望手稳住镜筒。赛娜也靠它托稳石盘，发现那颗所谓的新星，只是巨人旧伤延伸出的末梢。",
+          "after": "软木吸收浪击带来的震动，让瞭望手稳住镜筒。赛娜也靠它托稳石盘，发现那颗所谓的新星，只是巨人旧伤延伸出的末梢。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 83,
+      "type": "csv_component",
+      "id": "plating_riveted_scale",
+      "name": "铆钉鳞板",
+      "edits": [
+        {
+          "before": "小铁片如鱼鳞叠覆，坏一片便换一片。琪娅与奥瑟交换锤印尺寸后，同盟维修船装上的甲，终于能在六港通用。",
+          "after": "小铁片像鱼鳞一样层层叠起，坏一片便换一片。琪娅与奥瑟交换锤印尺寸后，同盟维修船装上的甲，终于能在六港通用。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 85,
+      "type": "csv_component",
+      "id": "plating_blacksmith_grid",
+      "name": "炉匠格甲",
+      "edits": [
+        {
+          "before": "每块甲都留着不同的锤印，是港镇一夜炉火凑齐的护航装甲。背面还记着各港的钟声高低，米拉照着那些字排下一轮齐射。",
+          "after": "每块甲都留着不同的锤印，这套护航装甲是港镇工匠连夜凑齐的。背面还记着各港钟声的高低，米拉照着那些字安排下一轮齐射。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 86,
+      "type": "csv_component",
+      "id": "plating_saltbronze_shell",
+      "name": "盐青铜覆壳",
+      "edits": [
+        {
+          "before": "青铜在盐池埋满一年才上船，远航回来只添薄薄海绿。工人发现它与无旗盐船同时泛色，才从账册的星点里读出潮汐规律。",
+          "after": "青铜在盐池里埋满一年才装上船，远航回来，表面只多了一层淡淡的海绿色。工人发现它与无旗盐船同时变色，才从账册的星点里读出潮汐规律。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 87,
+      "type": "csv_component",
+      "id": "plating_gilded_bulwark",
+      "name": "鎏金舷墙",
+      "edits": [
+        {
+          "before": "金边下是层叠钢木，挡过整轮舷炮，里面的宴会仍照常。那晚只多了一位不说话的客人，胸口时不时透出盐星的光。",
+          "after": "金边下是层层叠合的钢板和木板，曾挡住整轮舷炮齐射，舱里的宴会仍照常举行。那晚只多了一位不说话的客人，胸口时不时透出盐星的光。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 88,
+      "type": "csv_component",
+      "id": "plating_suncoin_rampart",
+      "name": "日币护壁",
+      "edits": [
+        {
+          "before": "退市金币被熔成薄夹层，护住新装上船的货物。厨师取旧币压住锅底盐冠，六道缺口与六种配方的次序才看得分明。",
+          "after": "不再流通的金币被熔成一层薄薄的夹板，护住新装上船的货物。厨师拿旧币压住锅底的盐冠，这才看清六道缺口与六种配方的次序。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 95,
+      "type": "csv_component",
+      "id": "plating_ghostreef_carapace",
+      "name": "幽礁甲壳",
+      "edits": [
+        {
+          "before": "移动幽礁剥下的壳，在深水里摩擦作响，海兽闻声便避开。巨人醒来轻触它，船员才知道这原是它蜕下的一片肩甲。",
+          "after": "从移动幽礁上剥下的壳，在深水里摩擦作响，海兽听见便会避开。巨人醒来后轻轻碰了碰它，船员才知道，这原是它蜕下的一片肩甲。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 96,
+      "type": "csv_component",
+      "id": "plating_aurora_laminate",
+      "name": "极光叠层甲",
+      "edits": [
+        {
+          "before": "极光封在透明叠层里，冰逼近时便聚向薄弱处。第七码头的旧船也泛着同样光带，只是那里的弱处，都是尚未留下的炮痕。",
+          "after": "极光封在透明的叠层里，冰层逼近时便聚向船壳的薄弱处。第七码头的旧船也泛着同样的光带，只是那里的薄弱处，都是尚未留下的炮痕。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 99,
+      "type": "csv_component",
+      "id": "plating_worldtree_bark",
+      "name": "海上世界树皮",
+      "edits": [
+        {
+          "before": "树皮来自漂流森林的老干，缝里总冒出未播过的嫩芽。晨曦海上，新芽终于生根，归潮水手把第一片叶子留给送他们回家的六港。",
+          "after": "树皮来自漂流森林的老树干，即使无人播种，缝里也总会冒出嫩芽。晨曦海上，新芽终于生根，归潮水手把第一片叶子留给送他们回家的六港。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 100,
+      "type": "csv_component",
+      "id": "plating_dragonwake_armor",
+      "name": "龙醒熔鳞壳",
+      "edits": [
+        {
+          "before": "鳞片入炉不改原形，命中时热量沿红纹散开。米拉把末道赤纹朝向巨链，船壳替火炮承住热浪，争得一次重新装填。",
+          "after": "鳞片入炉也不变形，炮弹命中时，热量便沿红纹散开。米拉把最后一道赤纹朝向巨链，船壳替火炮挡住热浪，争取到一次重新装填的机会。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 103,
+      "type": "csv_component",
+      "id": "instrument_harbor_dial",
+      "name": "港汊方位盘",
+      "edits": [
+        {
+          "before": "盘面写满潮沟俗名，外乡人须跟渔民学着念。赛娜将银壳坐标译成这些名字，第一队搜救船才认出该往哪里走。",
+          "after": "盘面写满潮沟的俗名，外乡人得跟着渔民学着念。赛娜将银壳坐标译成这些名字，第一队搜救船才知道该往哪里走。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 104,
+      "type": "csv_component",
+      "id": "instrument_gullbone_needle",
+      "name": "鸥骨磁针",
+      "edits": [
+        {
+          "before": "磁针藏在中空鸥骨里，不易被颠簸摇偏。捡到它的孩子成了少年领航员，循针看见移动岛影后，再没称海巨人为怪物。",
+          "after": "磁针藏在中空的鸥骨里，船再颠簸，也不容易偏转。捡到它的孩子成了少年领航员，循着指针看见移动的岛影后，再没把海巨人叫作怪物。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 105,
+      "type": "csv_component",
+      "id": "instrument_ropeknot_log",
+      "name": "绳结计程器",
+      "edits": [
+        {
+          "before": "绳结逐一经过同一双手，星月全无时也能凭掌心报船速。洛恩握着守夜人留下的绳，测出无名船曾逆潮走满一海里。",
+          "after": "绳结逐一从水手掌心滑过，即使天上星月全无，也能凭手感报出船速。洛恩握着守夜人留下的绳，测出无名船曾逆潮走满一海里。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 108,
+      "type": "csv_component",
+      "id": "instrument_rainline_scope",
+      "name": "雨线望镜",
+      "edits": [
+        {
+          "before": "镜片将雨幕折成竖线，斜度标出风暴远近。伊岚从镜里看见蓝火后的第二层雨，才识破海妖留在回音中的假影。",
+          "after": "镜片将雨幕折成一道道竖线，凭雨线的倾斜程度便能判断风暴远近。伊岚从镜里看见蓝火后的第二层雨，才识破海妖藏在回音里的假影。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 109,
+      "type": "csv_component",
+      "id": "instrument_current_spoon",
+      "name": "洋流听勺",
+      "edits": [
+        {
+          "before": "铜勺贴住船底，水声便足以辨出暗流。塔姆误把它放进盐锅，却听见六港井水的声音，找到了还缺的最后一种配方。",
+          "after": "把铜勺贴在船底，听水声便能辨出暗流。塔姆误把它放进盐锅，却听见六港井水的声音，找到了还缺的最后一种配方。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 111,
+      "type": "csv_component",
+      "id": "instrument_sunshadow_ring",
+      "name": "日影航向环",
+      "edits": [
+        {
+          "before": "刻环缺的一格对着制作者故乡，正午指针便往那里偏。六港船长后来将各自经线刻入同一只环，盘上有了六条归路。",
+          "after": "环上缺的那一格，正对着制作者的故乡；每到正午，指针便往那里偏。六港船长后来将各自的经线刻入同一只环，盘上有了六条归路。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 112,
+      "type": "csv_component",
+      "id": "instrument_guild_engine",
+      "name": "商路推演机",
+      "edits": [
+        {
+          "before": "数百份商船日志藏进齿轮，每转一圈便排去一条险路。录入盐船账册后，机器停在所有商会都已删去的第七码头航线。",
+          "after": "数百份商船日志被录入这台机器，齿轮每转一圈，便排除一条险路。录入盐船账册后，机器停在了所有商会都已删去的第七码头航线上。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 113,
+      "type": "csv_component",
+      "id": "instrument_starledger",
+      "name": "星位账簿机",
+      "edits": [
+        {
+          "before": "星位曾被记作借贷，机器却只算归港最稳的路。财务官倒着录入六港账目，发现那些星点计的不是欠款，而是被困的水手。",
+          "after": "账簿曾用星位记录借贷，机器却只推算最稳妥的归港路线。财务官倒着录入六港账目，发现那些星点记的不是欠款，而是被困的水手。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 114,
+      "type": "csv_component",
+      "id": "instrument_corsair_decoder",
+      "name": "私掠旗语译机",
+      "edits": [
+        {
+          "before": "滚筒记着数十支海盗旗队的暗号，曾用假旗让伏兵等到天亮。结盟那日，它第一次把同一句誓言译成六种旗语。",
+          "after": "滚筒记着数十支海盗船队的暗号，曾用假旗让伏兵等到天亮。结盟那日，它第一次把同一句誓言译成六种旗语。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 115,
+      "type": "csv_component",
+      "id": "instrument_deepwater_abacus",
+      "name": "深水算珠仪",
+      "edits": [
+        {
+          "before": "蓝石珠随船吃水移动，不开舱也能估算补给余量。无名伤员上船，珠子却纹丝不动；艾达由此发现，他们的时间仍停在沉没那夜。",
+          "after": "蓝石珠会随着船身吃水的深浅移动，不开舱也能估算补给余量。无名伤员上船后，珠子却纹丝不动；艾达由此发现，他们的时间仍停在沉没那夜。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 118,
+      "type": "csv_component",
+      "id": "instrument_eclipse_orrery",
+      "name": "蚀月天仪",
+      "edits": [
+        {
+          "before": "微型月轮先于真正的月蚀落下阴影，曾给船长几分钟避开暗流。弥赛拉看见它才道出：归潮舰队锁住的，除了门，还有时间。",
+          "after": "微型月轮会赶在真正的月蚀之前投下阴影，曾为船长争取几分钟，让船避开暗流。弥赛拉看见它才道出：归潮舰队锁住的，除了门，还有时间。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 119,
+      "type": "csv_component",
+      "id": "instrument_whalestar_receiver",
+      "name": "鲸歌星讯仪",
+      "edits": [
+        {
+          "before": "鲸歌摇动星针，迁徙线恰好绕过季节风暴。伊岚并录海妖与鲸的歌，发现两种声音最终都在劝航船远离同一道深海门。",
+          "after": "鲸歌带动星针，指示的迁徙路线恰好绕过季节性的风暴。伊岚同时录下海妖与鲸的歌，发现两种声音都在劝航船远离同一道深海门。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 120,
+      "type": "csv_component",
+      "id": "instrument_ghostmap_projector",
+      "name": "幽图投影仪",
+      "edits": [
+        {
+          "before": "薄雾穿镜，沉没的旧岸便重新显现，考古船曾循它找到灯塔基座。照上黑玻璃时，两重海岸慢慢相合，拼出完整的第七码头。",
+          "after": "薄雾穿过镜片时，沉没的旧海岸便重新显现，考古船曾循着它找到灯塔基座。用它照向黑玻璃，两重海岸慢慢重合，拼出完整的第七码头。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 121,
+      "type": "csv_component",
+      "id": "instrument_aurora_calculator",
+      "name": "极光航算机",
+      "edits": [
+        {
+          "before": "晶轮将极光颜色换成方位，磁针冻住也能指北。巨人把碎晶按入轮中后，机器所指的北方，变成了它记忆里的故乡。",
+          "after": "晶轮能将极光的颜色转成方位指示，即使磁针冻住，也能指出北方。巨人把碎晶按入轮中后，机器指向的北方，变成了它记忆里的故乡。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 122,
+      "type": "csv_component",
+      "id": "instrument_allseeing_sextant",
+      "name": "全视六分仪",
+      "edits": [
+        {
+          "before": "雾中也能锁住远方地标的六分仪，偶尔映出尚未建成的灯塔。归潮水手一眼认出它，喊的却是二十年前的旧名。",
+          "after": "这架六分仪能在雾中认准远方的地标，偶尔还会映出尚未建成的灯塔。归潮水手一眼就认出了灯塔，喊的却是二十年前的旧名。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 123,
+      "type": "csv_component",
+      "id": "instrument_eye_of_depths",
+      "name": "深渊观测眼",
+      "edits": [
+        {
+          "before": "黑透镜取自未知巨兽，海下危险将至便收窄光圈。每次收缩，守门兽都向后退；弥赛拉请持有者别忘了，预警也可能是在求救。",
+          "after": "黑透镜取自未知巨兽，海下危险将至，光圈便会收窄。每当光圈收缩，守门兽都会后退；弥赛拉提醒用它的人，别忘了预警也可能是在求救。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 125,
+      "type": "csv_component",
+      "id": "instrument_celestial_engine",
+      "name": "天穹推演圣机",
+      "edits": [
+        {
+          "before": "星轮曾替二十艘散船算出同时抵港的路线。维克拆去象征贸易优先的金齿轮，最慢的医疗船才得以与旗舰一同靠岸。",
+          "after": "星轮曾为二十艘失散的船算出同时抵港的路线。维克拆去象征贸易优先的金齿轮，最慢的医疗船才得以与旗舰一同靠岸。"
+        }
+      ]
+    },
+    {
+      "file": "UnityClient/Assets/_Project/Resources/Data/component_catalog_v2.csv",
+      "line": 126,
+      "type": "csv_component",
+      "id": "instrument_last_horizon_lens",
+      "name": "终界地平镜",
+      "edits": [
+        {
+          "before": "镜里总比海图多一道地平线，驶近便有新岛从晨雾中升起。末艘归潮船越过那条线后，镜中还留着六座旧港的灯火。",
+          "after": "镜里总比海图多一道地平线，驶近时便有新岛从晨雾中升起。最后一艘归潮船越过那条线后，镜中还留着六座旧港的灯火。"
+        }
+      ]
+    }
+  ],
+  "generatedComponentDescriptions": [
+    {
+      "id": "bow_mistglass_ram",
+      "name": "雾玻璃破浪角",
+      "description": "角脊嵌着一线雾玻璃，初晴时才看得出旧裂纹。最佳适航条件为黎明、礁区航道和浓雾天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "bow_tidehook_spur",
+      "name": "潮钩导流首",
+      "description": "弯钩下那道发亮的凹槽，是接舷索常年磨出来的。最佳适航条件为黄昏、海峡航道和降雨天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "bow_sunwake_crest",
+      "name": "日醒狮首",
+      "description": "狮鬃上的镀金早已褪去，水手却总把狮额擦得锃亮。最佳适航条件为白昼、开阔海域和晴朗天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "bow_deepcurrent_fang",
+      "name": "深流鲸牙",
+      "description": "鲸牙根部灰暗，一道道水痕沿着骨缝延伸到尖端。最佳适航条件为夜间、深海航道和浓雾天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "bow_freewake_lance",
+      "name": "自由尾流长枪",
+      "description": "长枪上的焊缝粗糙，掌舵人却始终舍不得把它换掉。最佳适航条件为黄昏、开阔海域和风暴天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "sail_dawnkite",
+      "name": "曙光风筝帆",
+      "description": "轻帆展开时像一只旧纸鸢，风一吹，补过的缝线便随帆面弯成弧形。最佳适航条件为黎明、沿岸航道和浓雾天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "sail_strait_lugger",
+      "name": "海峡斜桁帆",
+      "description": "船在狭窄水道中反复转舵，斜桁两端早已被帆索磨出同样的深痕。最佳适航条件为白昼、海峡航道和强风天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "sail_evening_silk",
+      "name": "暮色商丝帆",
+      "description": "暮光照在丝帆上，帆脚处细密的补缝便显了出来。最佳适航条件为黄昏、商贸航道和晴朗天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "sail_fogshroud_wing",
+      "name": "雾幕隐翼帆",
+      "description": "薄帆悬在桁下，雾气在帆面上凝成水珠，沿着暗色缝线滴落。最佳适航条件为夜间、深海航道和浓雾天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "sail_thunderreef_wing",
+      "name": "雷礁九翼帆",
+      "description": "九片帆翼收起后层层堆叠，宛如礁石；撑开时，旧绳结便一齐绷紧。最佳适航条件为白昼、礁区航道和风暴天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "cannon_fogbell_saker",
+      "name": "雾钟短炮",
+      "description": "短炮的耳轴留着钟匠的锉痕，炮手将它擦得最勤。最佳适航条件为夜间、海峡航道和浓雾天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "cannon_crosswind_pivot",
+      "name": "横风转轴炮",
+      "description": "转轴上的油槽已被磨深，仍留着上一任炮长的刻线。最佳适航条件为白昼、开阔海域和强风天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "cannon_tradeguard_battery",
+      "name": "商路护航炮组",
+      "description": "炮座背面满是货箱磨出的痕迹，这组炮常年随商船出海。最佳适航条件为黄昏、商贸航道和晴朗天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "cannon_deepstar_lance",
+      "name": "深星穿潮炮",
+      "description": "细长炮管涂得黝黑，只有膛口留一圈星子般的亮铜。最佳适航条件为夜间、深海航道和降雨天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "cannon_stormcrown_broadsides",
+      "name": "风暴冠列炮",
+      "description": "列炮上的铜箍新旧不一，颜色各异，留下了历次修补的痕迹。最佳适航条件为黄昏、开阔海域和风暴天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "plating_saltfoam_skin",
+      "name": "盐沫浮壳",
+      "description": "浮壳接缝结着一层白盐，船匠每次检查时，都先用拇指抹一抹。最佳适航条件为白昼、沿岸航道和降雨天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "plating_strait_laminate",
+      "name": "海峡叠板",
+      "description": "层板交错压合，外缘的碰痕一层叠着一层。最佳适航条件为黎明、海峡航道和强风天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "plating_trade_oathwall",
+      "name": "商盟誓墙",
+      "description": "舷墙内侧还留着商队用粉笔写下的编号，船匠每次修补都会小心避开。最佳适航条件为黄昏、商贸航道和晴朗天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "plating_fogiron_carapace",
+      "name": "雾铁甲壳",
+      "description": "雾铁表面暗淡无光，伸手摸过，仍能分辨出补钉的排列。最佳适航条件为夜间、深海航道和浓雾天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "plating_stormark_bulwark",
+      "name": "风暴方舟壁",
+      "description": "厚壁上嵌着旧船木，刮去表漆还能辨认原先的木纹。最佳适航条件为白昼、开阔海域和风暴天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "instrument_dawnseeker",
+      "name": "曙光寻针",
+      "description": "细针悬在浅铜盘中，盘盖内侧被拇指磨出了一处圆形印痕。最佳适航条件为黎明、沿岸航道和晴朗天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "instrument_strait_echo",
+      "name": "海峡回声盘",
+      "description": "盘沿布满细小刻度，记录员的指甲常停在表示浅水的那一道上。最佳适航条件为白昼、海峡航道和降雨天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "instrument_tradeledger_oracle",
+      "name": "商路账盘",
+      "description": "账盘旁留着墨渍和算筹凹痕，海盐已吃进木座。最佳适航条件为黄昏、商贸航道和强风天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "instrument_reefstar_astrolabe",
+      "name": "礁星潮盘",
+      "description": "星环内侧刻着细细的潮纹，得拿到舱灯下才能看清。最佳适航条件为夜间、礁区航道和浓雾天气。条件不符时，基础装配属性仍然有效。"
+    },
+    {
+      "id": "instrument_stormoracle",
+      "name": "风暴谕盘",
+      "description": "盘罩上留着沙雨打出的细小凹痕，盘面的刻线仍然清晰可辨。最佳适航条件为黎明、开阔海域和风暴天气。条件不符时，基础装配属性仍然有效。"
+    }
+  ]
+}

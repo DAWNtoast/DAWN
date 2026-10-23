@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-21",
+  "status": "complete",
+  "requested": 36,
+  "generated": 36,
+  "integrated": 36,
+  "visualQaPassed": 36,
+  "size": [1122, 1402],
+  "tool": "built-in image_gen",
+  "identitySource": "Current production tavern images, verified exact reference crops",
+  "narrativeSource": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+  "composition": "Complete head and upper body through waist, story action and readable props, game crop safe",
+  "productionDirectory": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewDossiers",
+  "originalBackups": "before",
+  "finalImages": "final",
+  "actualPrompts": "prompts",
+  "deliveryManifest": "delivery-manifest.json",
+  "comparisonGallery": "review/index.html",
+  "overview": "review/all-36-overview.jpg",
+  "assetValidation": "review/art-validation.json",
+  "unityMetaPreserved": true,
+  "allProductionImagesMatchGeneratedFinals": true,
+  "retiredPreviewDirectoryTouched": false,
+  "unityAcceptance": {
+    "characters": 36,
+    "pages": 144,
+    "errors": [],
+    "report": "D:/Game/Artifacts/CrewPortraitRedesign20261017/redraw20261021-all36/captures/report.json",
+    "gallery": "D:/Game/Artifacts/CrewPortraitRedesign20261017/redraw20261021-all36/captures/index.html"
+  }
+}

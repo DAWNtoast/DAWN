@@ -24,7 +24,7 @@ namespace ShatteredSail.Presentation
         {
             public string id;
             public FrameLayoutRectangle rect;
-            public FrameCostPoint energyPosition, powderPosition, cannonballPosition, specialPosition;
+            public FrameCostPoint energyPosition, powderPosition, cannonballPosition, specialPosition, supplyPosition;
             public FrameLayoutRectangle illustrationRect;
             public FrameCostPoint namePlatePosition;
             public CardRibbonTitleLayout titleCurve;
@@ -43,33 +43,43 @@ namespace ShatteredSail.Presentation
         public static string FrameVariant(int powderCost, int cannonballCost) =>
             powderCost > 0 ? (cannonballCost > 0 ? "both" : "powder") : (cannonballCost > 0 ? "cannonball" : "ap");
 
-        public static string FrameResourcePath(string schoolId, int powderCost = 0, int cannonballCost = 0, string specialType = "") =>
-            "CardSchools/Frames/Integrated/frame-" + NormalizeSchool(schoolId) + "-" + FrameVariant(powderCost, cannonballCost) +
-            IntegratedSpecialSuffix(specialType);
+        public static string FrameResourcePath(string schoolId, int powderCost = 0, int cannonballCost = 0, string specialType = "", bool supplyCost = false, string supplyType = "") =>
+            "CardSchools/Frames/Integrated/" + FrameId(schoolId, powderCost, cannonballCost, specialType, supplyCost, supplyType);
 
-        // New supply symbols are drawn at runtime over the existing frame.
+        private static string FrameId(string schoolId, int powderCost, int cannonballCost, string specialType, bool supplyCost, string supplyType) =>
+            "frame-" + NormalizeSchool(schoolId) + "-" + FrameVariant(powderCost, cannonballCost) +
+            IntegratedSpecialSuffix(specialType) + (HasBakedSupplyIcon(supplyType)
+                ? "-" + supplyType : supplyCost || !string.IsNullOrEmpty(supplyType) ? "-supply" : string.Empty);
+
+        private static bool HasBakedSupplyIcon(string supplyType) => supplyType == "wood" || supplyType == "medicine";
+
+        public static bool HasBakedSupplyIcon(CoreBattleCard card, NavalBattleStage? stage = null) =>
+            HasBakedSupplyIcon(CardSupplyCostPresentation.ResourceType(card, stage));
+
+        // Supply emblems are painted into each complete school/resource frame.
+        // Untyped legacy callers can still request the shared supply recess.
         private static string IntegratedSpecialSuffix(string specialType) =>
-            string.IsNullOrEmpty(specialType) || specialType == "wood" || specialType == "tide"
+            string.IsNullOrEmpty(specialType) || specialType == "wood"
                 ? string.Empty : "-" + specialType;
 
-        public static string FrameResourcePath(CoreBattleCard card) =>
-            FrameResourcePath(card.SchoolId, card.PowderCost, card.CannonballCost, CardSpecialCostPresentation.ResourceType(card));
+        public static string FrameResourcePath(CoreBattleCard card, NavalBattleStage? stage = null) =>
+            FrameResourcePath(card.SchoolId, card.PowderCost, card.CannonballCost, CardSpecialCostPresentation.ResourceType(card),
+                supplyType: CardSupplyCostPresentation.ResourceType(card, stage));
 
-        public static Texture2D Frame(string schoolId, int powderCost = 0, int cannonballCost = 0, string specialType = "") =>
-            Load(FrameResourcePath(schoolId, powderCost, cannonballCost, specialType));
+        public static Texture2D Frame(string schoolId, int powderCost = 0, int cannonballCost = 0, string specialType = "", bool supplyCost = false, string supplyType = "") =>
+            Load(FrameResourcePath(schoolId, powderCost, cannonballCost, specialType, supplyCost, supplyType));
 
-        public static Texture2D Frame(CoreBattleCard card) => Load(FrameResourcePath(card));
+        public static Texture2D Frame(CoreBattleCard card, NavalBattleStage? stage = null) => Load(FrameResourcePath(card, stage));
 
-        public static Rect FrameBounds(string schoolId, int powderCost = 0, int cannonballCost = 0, string specialType = "")
+        public static Rect FrameBounds(string schoolId, int powderCost = 0, int cannonballCost = 0, string specialType = "", bool supplyCost = false, string supplyType = "")
         {
-            return FrameLayout(schoolId, powderCost, cannonballCost, specialType)?.rect.Bounds ?? CardFaceLayout.DefaultFrameBounds;
+            return FrameLayout(schoolId, powderCost, cannonballCost, specialType, supplyCost, supplyType)?.rect.Bounds ?? CardFaceLayout.DefaultFrameBounds;
         }
 
-        private static FrameLayoutEntry FrameLayout(string schoolId, int powderCost, int cannonballCost, string specialType)
+        private static FrameLayoutEntry FrameLayout(string schoolId, int powderCost, int cannonballCost, string specialType, bool supplyCost = false, string supplyType = "")
         {
             EnsureFrameLayouts();
-            string id = "frame-" + NormalizeSchool(schoolId) + "-" + FrameVariant(powderCost, cannonballCost) +
-                IntegratedSpecialSuffix(specialType);
+            string id = FrameId(schoolId, powderCost, cannonballCost, specialType, supplyCost, supplyType);
             return FrameLayouts.TryGetValue(id, out FrameLayoutEntry layoutEntry) ? layoutEntry : null;
         }
 
@@ -113,13 +123,21 @@ namespace ShatteredSail.Presentation
                 ? entry.titleCurve : CardRibbonTitleLayout.Default;
         }
 
-        public static Rect FrameBounds(CoreBattleCard card) => FrameBounds(card.SchoolId,
-            card.PowderCost, card.CannonballCost, CardSpecialCostPresentation.ResourceType(card));
+        public static Rect FrameBounds(CoreBattleCard card, NavalBattleStage? stage = null) => FrameBounds(card.SchoolId,
+            card.PowderCost, card.CannonballCost, CardSpecialCostPresentation.ResourceType(card),
+            supplyType: CardSupplyCostPresentation.ResourceType(card, stage));
 
-        public static Vector2 CostPosition(CoreBattleCard card, CardOrnamentKind kind)
+        public static Vector2 SupplyPosition(CoreBattleCard card, NavalBattleStage? stage = null)
         {
             FrameLayoutEntry layout = FrameLayout(card.SchoolId, card.PowderCost, card.CannonballCost,
-                CardSpecialCostPresentation.ResourceType(card));
+                CardSpecialCostPresentation.ResourceType(card), supplyType: CardSupplyCostPresentation.ResourceType(card, stage));
+            return CostCorner(layout?.supplyPosition, new Vector2(101f, 108f));
+        }
+
+        public static Vector2 CostPosition(CoreBattleCard card, CardOrnamentKind kind, NavalBattleStage? stage = null)
+        {
+            FrameLayoutEntry layout = FrameLayout(card.SchoolId, card.PowderCost, card.CannonballCost,
+                CardSpecialCostPresentation.ResourceType(card), supplyType: CardSupplyCostPresentation.ResourceType(card, stage));
             switch (kind)
             {
                 case CardOrnamentKind.Energy: return CostCorner(layout?.energyPosition, CardFaceLayout.EnergyIconPosition);
@@ -142,23 +160,78 @@ namespace ShatteredSail.Presentation
         public static string WesternIllustrationPath(CoreBattleCard card)
         {
             if (card == null || string.IsNullOrEmpty(card.Id)) return null;
-            // Boarding additions deliberately reuse the complete existing image.
-            // Legacy cards retain their per-card Western replacement first.
-            if (card.BoardingSpec != null && card.Id.StartsWith("card_boarding_", StringComparison.Ordinal) &&
-                !HasSchoolIllustration(card) && !string.IsNullOrEmpty(card.ArtId))
-                return "CardArt/Western/" + card.ArtId;
-            // New starter utilities deliberately reuse complete existing art.
-            // Keep their identities distinct and avoid falling back to an atlas crop.
-            string illustration = card.Id == "card_energy_order" ? "card_brace" :
-                card.Id == "card_tactical_draw" ? "card_full_sail_turn" : card.Id;
-            return "CardArt/Western/" + illustration;
+            return "CardArt/Western/" + IllustrationIdentity(card);
+        }
+
+        private static string IllustrationIdentity(CoreBattleCard card) =>
+            card.BoardingSpec != null && !card.Id.StartsWith("card_special_", StringComparison.Ordinal) &&
+            CoreBoardingCardCatalog.IsLegacyAlias(card)
+                ? "card_boarding_" + card.BoardingSpec.Key : card.Id;
+
+        // Presentation-only corrections preserve ArtId: source-card rules use its
+        // historical suffix, and existing save identities must remain unchanged.
+        private static string ReviewedIllustrationPath(string cardId)
+        {
+            switch (cardId)
+            {
+                case "card_boarding_basic_01": return "CardArt/Western/card_crew_thrust";
+                case "card_boarding_basic_04":
+                case "card_boarding_basic_05":
+                case "card_boarding_basic_12": return "CardArt/Western/card_crew_guard";
+                case "card_boarding_basic_06": return "CardArt/Western/card_crew_bandage";
+                case "card_boarding_basic_07": return "CardArt/Western/card_doctor_sutures";
+                case "card_boarding_basic_08": return "CardArt/Western/card_tactical_draw";
+                case "card_boarding_basic_09": return "CardArt/Western/card_energy_order";
+                case "card_boarding_basic_10": return "CardArt/Western/card_crew_rally";
+                case "card_boarding_fire_06":
+                case "card_boarding_fire_11": return "CardSchools/Art/card_school_fire_b08";
+                case "card_boarding_arcane_07": return "CardSchools/Art/card_school_arcane_b03";
+                case "card_boarding_arcane_13": return "CardSchools/Art/card_school_arcane_b09";
+                case "card_boarding_arcane_15": return "CardSchools/Art/card_school_arcane_e05";
+                case "card_school_fire_n04": return "CardSchools/Art/card_school_fire_b02";
+                case "card_school_fire_n05": return "CardSchools/Art/card_school_fire_e02";
+                case "card_special_plating_moonsilver_skin": return "CardSchools/Art/card_school_arcane_b05";
+                case "card_boarding_tide_03":
+                case "card_boarding_tide_15": return "CardSchools/Art/card_school_tide_b08";
+                case "card_boarding_tide_04": return "CardSchools/Art/card_school_tide_b07";
+                case "card_boarding_tide_08":
+                case "card_boarding_tide_09": return "CardSchools/Art/card_school_tide_b10";
+                case "card_boarding_thunder_01": return "CardSchools/Art/card_school_thunder_b08";
+                case "card_boarding_thunder_03":
+                case "card_boarding_thunder_05": return "CardSchools/Art/card_school_thunder_b07";
+                case "card_boarding_thunder_04":
+                case "card_boarding_thunder_14":
+                case "card_boarding_thunder_15": return "CardSchools/Art/card_school_thunder_b10";
+                case "card_boarding_blood_10": return "CardSchools/Art/card_school_blood_b07";
+                case "card_boarding_blood_12": return "CardSchools/Art/card_school_blood_e04";
+                case "card_boarding_blood_13": return "CardSchools/Art/card_school_blood_b10";
+                case "card_school_tide_n03": return "CardSchools/Art/card_school_tide_b01";
+                case "card_school_tide_n06": return "CardSchools/Art/card_school_tide_l01";
+                case "card_school_thunder_n03": return "CardSchools/Art/card_school_thunder_b01";
+                case "card_school_thunder_n05": return "CardSchools/Art/card_school_thunder_c02";
+                case "card_school_thunder_n06": return "CardSchools/Art/card_school_thunder_b06";
+                case "card_special_plating_fogiron_carapace": return "CardSchools/Art/card_school_blood_b05";
+                case "card_special_instrument_allseeing_sextant": return "CardSchools/Art/card_school_blood_b01";
+                default: return null;
+            }
         }
 
         public static string DedicatedIllustrationPath(CoreBattleCard card)
         {
             string western = WesternIllustrationPath(card);
             if (western != null && Load(western) != null) return western;
-            return HasSchoolIllustration(card) ? "CardSchools/Art/" + card.ArtId : western;
+            if (card == null) return null;
+            string identity = IllustrationIdentity(card);
+            string reviewed = ReviewedIllustrationPath(identity);
+            if (reviewed != null && Load(reviewed) != null) return reviewed;
+            CoreBattleCard fallbackCard = identity != card.Id ? CoreBoardingCardCatalog.Find(identity) ?? card : card;
+            // Keep the former complete-image fallbacks available for older packages.
+            string reusedId = card.Id == "card_energy_order" ? "card_brace" :
+                card.Id == "card_tactical_draw" ? "card_full_sail_turn" :
+                fallbackCard.BoardingSpec != null && !HasSchoolIllustration(fallbackCard) ? fallbackCard.ArtId : null;
+            string reused = string.IsNullOrEmpty(reusedId) ? null : "CardArt/Western/" + reusedId;
+            if (reused != null && Load(reused) != null) return reused;
+            return HasSchoolIllustration(fallbackCard) ? "CardSchools/Art/" + fallbackCard.ArtId : western;
         }
 
         public static bool HasDedicatedArt(CoreBattleCard card) =>
@@ -167,10 +240,8 @@ namespace ShatteredSail.Presentation
         private static Texture2D IndividualIllustration(CoreBattleCard card)
         {
             if (card == null) return null;
-            string western = WesternIllustrationPath(card);
-            Texture2D replacement = western == null ? null : Load(western);
-            if (replacement != null) return replacement;
-            return HasSchoolIllustration(card) ? Load("CardSchools/Art/" + card.ArtId) : null;
+            string path = DedicatedIllustrationPath(card);
+            return path == null ? null : Load(path);
         }
 
         public static Texture2D Illustration(CoreBattleCard card, LegacyDemoArtCatalog legacy)

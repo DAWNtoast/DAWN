@@ -1,0 +1,230 @@
+[
+  {
+    "key": "boss_fire",
+    "sha256": "F18143A3D449061EE7F86DC349719EDFD96F4FD701BFD49326F3F224935B783C",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 151,
+      "top": 70,
+      "right": 1412,
+      "bottom": 952,
+      "edgePixels": 0,
+      "waterRow": 892,
+      "keelY": 933,
+      "transparentFraction": 0.6203931172688802,
+      "center": 0.518555,
+      "contact": 0.12793,
+      "hullWidth": 0.385417
+    }
+  },
+  {
+    "key": "boss_tide",
+    "sha256": "2FEA270E4718562D54AB49304EF2F82B6D99AD7D09BCC5943B8CFDF4AC801680",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 117,
+      "top": 78,
+      "right": 1428,
+      "bottom": 938,
+      "edgePixels": 0,
+      "waterRow": 847,
+      "keelY": 888,
+      "transparentFraction": 0.6628519694010416,
+      "center": 0.516927,
+      "contact": 0.171875,
+      "hullWidth": 0.332682
+    }
+  },
+  {
+    "key": "boss_blood",
+    "sha256": "591B9BC6D34B02CE67FC0174C8DEBC02AA7E689E558805BDF70AAAFFD23958EE",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 120,
+      "top": 67,
+      "right": 1423,
+      "bottom": 954,
+      "edgePixels": 0,
+      "waterRow": 886,
+      "keelY": 927,
+      "transparentFraction": 0.5733737945556641,
+      "center": 0.567708,
+      "contact": 0.133789,
+      "hullWidth": 0.514974
+    }
+  },
+  {
+    "key": "boss_thunder",
+    "sha256": "A29694FD9A7FBA968E1DA2606F53E9027753A5FE1D46624F4B835D2137423ED4",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 140,
+      "top": 73,
+      "right": 1396,
+      "bottom": 949,
+      "edgePixels": 0,
+      "waterRow": 878,
+      "keelY": 919,
+      "transparentFraction": 0.5895048777262369,
+      "center": 0.527018,
+      "contact": 0.141602,
+      "hullWidth": 0.41276
+    }
+  },
+  {
+    "key": "boss_curse",
+    "sha256": "AFE77FA1CDB727530A0A2FBF8139BB573703CF545E5EE7CE6DA6E5DEF7891035",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 119,
+      "top": 67,
+      "right": 1429,
+      "bottom": 949,
+      "edgePixels": 0,
+      "waterRow": 893,
+      "keelY": 934,
+      "transparentFraction": 0.5961360931396484,
+      "center": 0.496094,
+      "contact": 0.126953,
+      "hullWidth": 0.35612
+    }
+  },
+  {
+    "key": "boss_arcane",
+    "sha256": "03E4BCB93380131FBAE2F4DE2A8B9B9E4DDDCD9CE71EBF0BCC5491BBBF16C821",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 129,
+      "top": 71,
+      "right": 1426,
+      "bottom": 946,
+      "edgePixels": 0,
+      "waterRow": 869,
+      "keelY": 910,
+      "transparentFraction": 0.5913976033528646,
+      "center": 0.618164,
+      "contact": 0.150391,
+      "hullWidth": 0.518229
+    }
+  },
+  {
+    "key": "legendary_fire",
+    "sha256": "9D8F31359AAD1AA9E58C4C6F8109A28652B592B852576886E749A80D0D8545F3",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 114,
+      "top": 63,
+      "right": 1427,
+      "bottom": 948,
+      "edgePixels": 0,
+      "waterRow": 888,
+      "keelY": 929,
+      "transparentFraction": 0.5680891672770182,
+      "center": 0.500326,
+      "contact": 0.131836,
+      "hullWidth": 0.436198
+    }
+  },
+  {
+    "key": "legendary_tide",
+    "sha256": "B9CD43413A1CAE2F10476B76D3B70CCA70B71789157695EA7F4115BFFFE7DD2B",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 113,
+      "top": 74,
+      "right": 1432,
+      "bottom": 948,
+      "edgePixels": 0,
+      "waterRow": 883,
+      "keelY": 924,
+      "transparentFraction": 0.5161113739013672,
+      "center": 0.525391,
+      "contact": 0.136719,
+      "hullWidth": 0.374349
+    }
+  },
+  {
+    "key": "legendary_blood",
+    "sha256": "AC05A5A697ED25D4FE69BAF93AF08CACB43B126F79A04FFD79F1BAE85CAD1D41",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 132,
+      "top": 73,
+      "right": 1426,
+      "bottom": 947,
+      "edgePixels": 0,
+      "waterRow": 880,
+      "keelY": 921,
+      "transparentFraction": 0.6264165242513021,
+      "center": 0.491211,
+      "contact": 0.139648,
+      "hullWidth": 0.302083
+    }
+  },
+  {
+    "key": "legendary_thunder",
+    "sha256": "2B81B005EF8ABC8C43E285FA20E5940EDFEEEF4EFD89C25126573F35488F4AD4",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 138,
+      "top": 69,
+      "right": 1418,
+      "bottom": 949,
+      "edgePixels": 0,
+      "waterRow": 890,
+      "keelY": 931,
+      "transparentFraction": 0.5304552714029948,
+      "center": 0.530273,
+      "contact": 0.129883,
+      "hullWidth": 0.433594
+    }
+  },
+  {
+    "key": "legendary_curse",
+    "sha256": "59F3FA6BCB92A13A5C1C77E22ED538456C83961D28014D4AB5831303023C7DED",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 134,
+      "top": 72,
+      "right": 1433,
+      "bottom": 952,
+      "edgePixels": 0,
+      "waterRow": 888,
+      "keelY": 929,
+      "transparentFraction": 0.5437660217285156,
+      "center": 0.486003,
+      "contact": 0.131836,
+      "hullWidth": 0.53125
+    }
+  },
+  {
+    "key": "legendary_arcane",
+    "sha256": "AC7290B9D6E0AB4E1F6A89B1F040B0C878EB266AE8F73D531D3B065415EEB7AA",
+    "profile": {
+      "width": 1536,
+      "height": 1024,
+      "left": 116,
+      "top": 65,
+      "right": 1429,
+      "bottom": 947,
+      "edgePixels": 0,
+      "waterRow": 883,
+      "keelY": 924,
+      "transparentFraction": 0.5733928680419922,
+      "center": 0.479167,
+      "contact": 0.136719,
+      "hullWidth": 0.470703
+    }
+  }
+]

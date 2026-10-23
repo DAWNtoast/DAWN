@@ -101,7 +101,8 @@ namespace ShatteredSail.Presentation.Tests
             ProfileGoldPersistence.Save(0m);
             foreach (string resource in Resources) PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey(resource), 0);
             AchievementCatalog.CaptureProgress();
-            AssertUnlocked("gold_600", "gold_900", "gold_1200", "gold_2000", "cargo_ready", "cargo_all", "fame");
+            AssertUnlocked("gold_600", "gold_900", "gold_1200", "gold_2000", "cargo_ready", "fame");
+            Assert.That(Unlocked("cargo_all"), Is.False, "Possessing supplies is not evidence of a completed long voyage.");
         }
 
         [Test]
@@ -235,7 +236,8 @@ namespace ShatteredSail.Presentation.Tests
             foreach (OwnedShipComponent item in inventory.Items.ToArray()) inventory.TryRemoveUninstalled(item.InstanceId);
             SaveInventory(inventory);
             AchievementCatalog.CaptureProgress();
-            AssertUnlocked("component_inventory", "component_loadout", "component_cannon", "component_full");
+            AssertUnlocked("component_inventory", "component_loadout", "component_cannon");
+            Assert.That(Unlocked("component_full"), Is.False);
         }
 
         [Test]
@@ -244,15 +246,17 @@ namespace ShatteredSail.Presentation.Tests
             var art = new ComponentArtCatalog();
             foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
                 PlayerPrefs.SetString(CoreGameplayDemoController.ComponentLoadoutKey(slot), art.Entries.First(item => item.Slot == slot).Id);
-            AssertUnlocked("component_loadout", "component_cannon", "component_full");
+            AssertUnlocked("component_loadout", "component_cannon");
+            Assert.That(Unlocked("component_full"), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ComponentInventoryKey), Is.False);
             AchievementCatalog.CaptureProgress();
             foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot))) PlayerPrefs.DeleteKey(CoreGameplayDemoController.ComponentLoadoutKey(slot));
-            AssertUnlocked("component_loadout", "component_cannon", "component_full");
+            AssertUnlocked("component_loadout", "component_cannon");
+            Assert.That(Unlocked("component_full"), Is.False);
         }
 
         [Test]
-        public void GraduatedSaveCanRecoverMissingOneTimeRewardFlagsThroughCurrentOwnership()
+        public void GraduationAndUnrelatedOwnedRewardsCannotImplyTutorialCompassOrPlayerInstallation()
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             var collection = new CoreWarehouseCollection();
@@ -263,7 +267,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(inventory.Grant(art.Entries[0]), Is.Not.Null);
             SaveInventory(inventory);
             AchievementCatalog.CaptureProgress();
-            AssertUnlocked("tutorial_checkpoint", "tutorial_reward", "tutorial_component");
+            AssertUnlocked("tutorial_checkpoint");
+            Assert.That(Unlocked("tutorial_reward"), Is.False);
+            Assert.That(Unlocked("tutorial_component"), Is.False);
+            Assert.That(Unlocked("warehouse_one"), Is.False, "Existing collection stock cannot invent voyage reward evidence.");
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TutorialRewardGrantedKey), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.GuidedTutorialComponentRewardKey), Is.False);
         }
@@ -282,7 +289,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void CaptureMigratesOldTutorialFlagsBeforeTransientStateIsReset()
+        public void CaptureDoesNotPromoteTheOldLooseRecoveryFlagToAChallenge()
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.GuidedTutorialDeckEditedKey, 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.GuidedTutorialRecoveryKey, 1);
@@ -291,7 +298,8 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.GuidedTutorialDeckEditedKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.GuidedTutorialRecoveryKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.GuidedTutorialNavigatorEventKey);
-            AssertUnlocked("tutorial_deck", "tutorial_recovery", "tutorial_navigator");
+            AssertUnlocked("tutorial_deck", "tutorial_navigator");
+            Assert.That(Unlocked("tutorial_recovery"), Is.False);
         }
 
         [Test]
@@ -302,7 +310,8 @@ namespace ShatteredSail.Presentation.Tests
                 PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, port);
                 AchievementCatalog.CaptureProgress();
             }
-            AchievementCatalog.RecordDeckEdited();
+            AchievementCatalog.RecordDeckEdited(NavalBattleStage.Naval);
+            AchievementCatalog.RecordAuthoredDeckVictories(1 << (int)NavalBattleStage.Naval);
             AchievementCatalog.RecordDamagedReturn();
             AchievementCatalog.RecordNavigatorVoyage();
             ProfileGoldPersistence.Save(17m);
@@ -310,6 +319,7 @@ namespace ShatteredSail.Presentation.Tests
             AchievementCatalog.ClearProgress();
             Assert.That(AchievementCatalog.PersistenceKeys.Any(PlayerPrefs.HasKey), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.BattleDeckEditedKey), Is.False);
+            foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) Assert.That(PlayerPrefs.HasKey(key), Is.False);
             Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(17m));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey), Is.EqualTo(Ports[0]));
             AchievementCatalog.CaptureProgress();
@@ -328,6 +338,8 @@ namespace ShatteredSail.Presentation.Tests
             AchievementCatalog.RecordNavigatorVoyage();
             var collection = new CoreWarehouseCollection();
             foreach (CoreWarehouseTreasureDefinition item in CoreWarehouseCollection.Catalog.Take(10)) Assert.That(collection.Grant(item.Id), Is.True);
+            collection.Grant(CoreWarehouseCollection.TutorialTreasureId);
+            collection.Grant("seventh_harbor_beacon_lantern");
             for (int slot = 0; slot < CoreWarehouseCollection.DisplaySlotCount; slot++) Assert.That(collection.TryDisplay(collection.OwnedIds[slot], slot), Is.True);
             PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, collection.ExportOwned());
             PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseDisplayKey, collection.ExportDisplay());
@@ -346,8 +358,14 @@ namespace ShatteredSail.Presentation.Tests
                 AchievementCatalog.CaptureProgress();
             }
             for (int ship = 1; ship < CoreVoyageSession.Ships.Count; ship++) PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(ship), 1);
-            var inventory = new OwnedShipComponentInventory(new ComponentArtCatalog());
-            inventory.EnsureLoadout(0);
+            var art = new ComponentArtCatalog();
+            var inventory = new OwnedShipComponentInventory(art);
+            inventory.InitializeEmptyLoadout(0);
+            foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
+            {
+                var item = inventory.Grant(art.ExpandedEntries.First(entry => entry.Slot == slot && entry.Rarity == ComponentRarity.Rare));
+                Assert.That(inventory.TryEquip(0, item.InstanceId), Is.True);
+            }
             SaveInventory(inventory);
             PlayerPrefs.SetInt(CoreGameplayDemoController.ComponentPurchaseAchievementKey, 1);
             AchievementCatalog.CaptureProgress();
@@ -356,7 +374,13 @@ namespace ShatteredSail.Presentation.Tests
 
             var session = new CoreVoyageSession();
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
+            {
                 PlayerPrefs.SetString(CoreGameplayDemoController.StageBattleDeckKey(stage), string.Join(",", session.GetBattleDeck(stage)));
+                AchievementCatalog.RecordDeckEdited(stage);
+            }
+            AchievementCatalog.RecordAuthoredDeckVictories(7);
+            AchievementCatalog.RecordVoyageTreasure();
+            AchievementCatalog.RecordSuppliedLongVoyage();
             PlayerPrefs.SetString(CoreGameplayDemoController.BattleDeckKey, string.Join(",", session.BattleDeck));
             int card = session.GetBattleDeck(NavalBattleStage.Preparation)[0];
             Assert.That(session.TryUpgradeBattleCard(card, out string reason), Is.True, reason);

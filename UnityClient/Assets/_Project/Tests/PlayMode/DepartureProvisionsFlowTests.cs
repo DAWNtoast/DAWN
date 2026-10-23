@@ -83,7 +83,7 @@ namespace ShatteredSail.Presentation.Tests
                     ClickAcceptanceButton("Route 0"); yield return null;
                     decimal gold = controller.Session.ProfileGold;
                     Assert.That(ActiveButton("Departure Buy Provisions").interactable, Is.True, problem);
-                    yield return SetRecommendedDepartureWaterFood();
+                    yield return SetExplicitDepartureWaterFood(controller, 26);
                     Assert.That(ActiveButton("Departure Basic Supplies Purchase").interactable, Is.False, problem);
                     Assert.That(GameObject.Find("Departure Provision Quote"), Is.Null,
                         "Provisioning remains available without the removed detailed summary.");
@@ -113,7 +113,7 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (PortMarketItem item in new[] { PortMarketItem.Water, PortMarketItem.Food })
                     PlayerPrefs.SetInt(CoreGameplayDemoController.MarketPurchaseKey("断锚港", now, item), PortMarketCatalog.MaxPurchaseQuota(item, 0));
                 ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
-                yield return SetRecommendedDepartureWaterFood();
+                yield return SetExplicitDepartureWaterFood(controller, 26);
                 Assert.That(ActiveButton("Departure Basic Supplies Purchase").interactable, Is.False);
                 Button oldQuote = ActiveButton("Departure Basic Supplies Purchase");
                 decimal gold = controller.Session.ProfileGold;
@@ -160,7 +160,7 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
                 int quantity = ExpectedProvisionQuantity(controller, 20);
                 decimal gold = controller.Session.ProfileGold;
-                yield return SetRecommendedDepartureWaterFood();
+                yield return SetExplicitDepartureWaterFood(controller, 20);
                 Assert.That(ActiveButton("Departure Basic Supplies Purchase").GetComponentInChildren<Text>().text,
                     Does.Contain(PortMarketCatalog.FormatPrice(ProvisionCost(controller, now, 0, quantity)) + " 金"),
                     "The remaining purchase action quotes the treasure voyage's own missing provisions.");
@@ -189,7 +189,24 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         private static int ExpectedProvisionQuantity(CoreGameplayDemoController controller, int days) =>
-            controller.Session.CrewCountValue * days;
+            (int)Math.Ceiling(controller.Session.EstimateDailyRationConsumption(
+                controller.Session.EffectiveCrewCount, controller.Session.HasCook) * days - 1e-9d);
+
+        // Purchase validation tests intentionally retain a complete water/food draft even
+        // when a recommendation would trim it to fit the hold or the market quota.
+        private static IEnumerator SetExplicitDepartureWaterFood(CoreGameplayDemoController controller, int days)
+        {
+            ClickAcceptanceButton("Departure Buy Provisions"); yield return null;
+            var quantities = (Dictionary<PortMarketItem, int>)typeof(CoreGameplayDemoController)
+                .GetField("departureBasicSupplyQuantities", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            foreach (PortMarketItem item in PortMarketCatalog.AllItems) quantities[item] = 0;
+            int target = ExpectedProvisionQuantity(controller, days);
+            quantities[PortMarketItem.Water] = Math.Max(0, target - controller.Session.Cargo.Water);
+            quantities[PortMarketItem.Food] = Math.Max(0, target - controller.Session.Cargo.Food);
+            typeof(CoreGameplayDemoController).GetMethod("RefreshDepartureBasicSupplies", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, new object[] { string.Empty });
+            yield return null;
+        }
         private static decimal ProvisionCost(CoreGameplayDemoController controller, DateTime date, int water, int food) =>
             PortMarketCatalog.CalculateBuyCost(controller.Session.CurrentPort, PortMarketItem.Water, date, water) +
             PortMarketCatalog.CalculateBuyCost(controller.Session.CurrentPort, PortMarketItem.Food, date, food);

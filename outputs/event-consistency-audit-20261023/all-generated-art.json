@@ -1,0 +1,272 @@
+{
+  "count": 38,
+  "assets": [
+    {
+      "key": "core_weathered",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. Inside a gigantic flooded ancient wooden ship workshop. A heavy hoisting winch at an opened upper hatch, ropes lifting a massive beam, a brass diving bell descending into clear teal water to recover delicate ancient gear assemblies and a compass from a precision workbench below. Show both tools and preserved machinery as central story. Wide cutaway view grounded in a full sea wreck setting. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-83479cf3-619d-4163-bd07-e919638d0691.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\core_weathered.png",
+      "sha256": "DE43560D5267AE2EFFF6E20AD42308C3E3D7A5BA5E74C92BF2F387EC10076482"
+    },
+    {
+      "key": "core_gilded",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. Grand sealed merchant guild warehouse at a seaport. Rows of inherited cargo crates with wax seals, closed iron lattice store rooms, clerk's desk with notarized cargo manifest and brass scales, a discreet narrow smuggler passage behind stacked crates. Warm gold sunlight from sea-facing doors. The warehouse itself is the subject, no giant treasure chest. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-89bb8488-90ed-46e4-87db-5e257787708e.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\core_gilded.png",
+      "sha256": "9BC2441779D759800615F61985C169F2E49587294B644DF7C16F3E65486B0FD3"
+    },
+    {
+      "key": "core_moonlit",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. An ancient sanctuary among ocean ruins where THREE separate beams from three distant altars converge above a relic on a central stone dais: pale daylight gold, dusk amber, midnight silver blue. Black pearls and ancient carved compass beside the dais. Eclipsed moon above ruined sea pillars. Mysterious ritual not a warehouse or vault door. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-7ebcd3f1-cff4-4094-b036-e2ba92c1b0f2.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\core_moonlit.png",
+      "sha256": "FB5AFC009B057B1C7AD31750BFF0A6DFD2F15B5C9554A1FDA13E0AEA04B958B5"
+    },
+    {
+      "key": "tutorial_note",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. On the wooden deck of a sailing ship, sailors have opened their old captain's weathered sea chest. One holds a single torn parchment with six harbor symbols and incomprehensible tidal route markings, beside a compass. The six symbols are abstract tiny drawings, NO letters. The mysterious old sea-route page is central, curious sailors and ocean behind. No merchant ledger or money dealing. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-f65a58e7-a09d-4708-ae68-164bf7f06fca.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\tutorial_note.png",
+      "sha256": "63F936C5E44C9BA5BF42B0D0ACDDB36FFC6AB6E7C86DE70F10833B57287E5BD1"
+    },
+    {
+      "key": "tutorial_message_ship",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. Two small sailing ships close beside one another on calm blue sea under a favorable wind. A courier on the passing fast cutter reaches across with a wax-sealed urgent letter and a modest coin pouch to a sailor on viewer's deck. Both boats visible, full ocean setting; exchange of message central. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-097b91d4-7a88-403b-882a-e184fa51dcd4.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\tutorial_message_ship.png",
+      "sha256": "7A9357B6626B0E3679913AE6A260AD736D69401F3EC86004F59C01C5470B9731"
+    },
+    {
+      "key": "tutorial_message_tube",
+      "prompt": "Use case: illustration-story. Standalone fantasy nautical adventure game card painting, ONE landscape 1536x1024 scene. A sailor leaning over a ship's rail uses a boat hook to retrieve a floating waterproof cylindrical leather and brass message tube. Its opened end reveals a curled merchant receipt with a wax seal. Small tube in foreground close enough to read visually as a tube, sparkling seawater, deck and hand, no legible text. Detailed hand-painted early-modern sailing-era maritime adventure, natural human proportions, realistic aged wood and brass, rich painterly texture, visually readable at small card size. Full opaque scenic background. No readable text, letters, numbers, caption, UI, frames, watermarks, collages or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-3cd756e4-e710-4f6c-a6a9-6c15946c95e8.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\tutorial_message_tube.png",
+      "sha256": "D5F8A9EA921D9F29C2166746D41CDBB42B06A36C615BC226462239AD750C2AA1"
+    },
+    {
+      "key": "tutorial_tide_buoy",
+      "prompt": "Use case: illustration-story. Standalone fantasy nautical adventure game card painting, ONE landscape 1536x1024 scene. Wooden sailing ship approaching a discreet moored navigation buoy amid tropical reefs. A navigator holds a tide chart matching subtle carved tide symbols on the buoy. Clear water reveals a small tightly sealed wooden casket tied beneath the buoy. Focus on buoy and underwater casket together, full ocean scene. Detailed hand-painted early-modern sailing-era maritime adventure, natural human proportions, realistic aged wood and brass, rich painterly texture, visually readable at small card size. Full opaque scenic background. No readable text, letters, numbers, caption, UI, frames, watermarks, collages or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-ddbc98af-22ed-4eeb-ae20-b8b8d4176979.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\tutorial_tide_buoy.png",
+      "sha256": "90A264E6349D1A26E8FF06DBFA69B2CFDF35BBBBD5C1D7B77B9596FDC7DE3170"
+    },
+    {
+      "key": "reef_tide_cache",
+      "prompt": "Use case: illustration-story. Standalone fantasy nautical adventure game card painting, ONE landscape 1536x1024 scene. Hidden storage chamber inside an old tidal shipyard at low tide. Tide marks on stone walls lead to ordinary stone coffers and a separate tightly closed mechanical compartment with a wheel, lock pins and pulley sequence; navigator's dock blueprint unrolled nearby. Ocean visible through entrance. Mystery of engineering lock central, no mountain of treasure. Detailed hand-painted early-modern sailing-era maritime adventure, natural human proportions, realistic aged wood and brass, rich painterly texture, visually readable at small card size. Full opaque scenic background. No readable text, letters, numbers, caption, UI, frames, watermarks, collages or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-9b8c4ac0-6a55-4b0c-ba0a-6deba99ed221.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\reef_tide_cache.png",
+      "sha256": "8713F0F5FBCD93F9306349E18C10D2F993777F77B532F7B876A7454D48194340"
+    },
+    {
+      "key": "reef_broken_mast",
+      "prompt": "Use case: illustration-story. Standalone fantasy nautical adventure game card painting, ONE landscape 1536x1024 scene. A stranded ship with a visibly snapped mainmast at a tropical reef. A tired shipwright still aboard tightly protects a rolled shipyard blueprint, gesturing toward broken timber and needed repair materials. Player boat is drawing alongside carrying lumber. The man is safely on damaged deck, not swimming or drowning. Detailed hand-painted early-modern sailing-era maritime adventure, natural human proportions, realistic aged wood and brass, rich painterly texture, visually readable at small card size. Full opaque scenic background. No readable text, letters, numbers, caption, UI, frames, watermarks, collages or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-6eb475ea-a131-4403-982f-b05f7215c87b.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\reef_broken_mast.png",
+      "sha256": "99EEDD8FB45DD3FA0A974937E09C7BACA01C09DAA7B867058E372418B74499D4"
+    },
+    {
+      "key": "reef_chart_current",
+      "prompt": "Use case: illustration-story. Standalone fantasy nautical adventure game card painting, ONE landscape 1536x1024 scene. View from the bow of a wooden ship lifted by a rolling turquoise current between black reefs. Several fragments of ancient nautical parchment crusted in white salt drift at the water surface, discernible abstract chart route markings. Boat hook ready to retrieve them. Sea current and salt-encrusted floating charts both prominent. Detailed hand-painted early-modern sailing-era maritime adventure, natural human proportions, realistic aged wood and brass, rich painterly texture, visually readable at small card size. Full opaque scenic background. No readable text, letters, numbers, caption, UI, frames, watermarks, collages or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-fa170ac2-5492-4339-b091-a32b82cd8554.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\reef_chart_current.png",
+      "sha256": "1995B5C9479F29C6EAC3A1BC8B0809375F8D45388BB291655C48F8B4D053CC10"
+    },
+    {
+      "key": "storm_debris",
+      "prompt": "Use case: illustration-story. Standalone fantasy nautical adventure game card painting, ONE landscape 1536x1024 scene. Broken wooden masts and tangled rigging rolling in storm waves beneath thunderclouds. View from intact player's sailing ship at the side, a snapping spar about to sweep close to the hull. Debris is central foreground, large threatening ocean backdrop, no sailors just trimming intact sails. Detailed hand-painted early-modern sailing-era maritime adventure, natural human proportions, realistic aged wood and brass, rich painterly texture, visually readable at small card size. Full opaque scenic background. No readable text, letters, numbers, caption, UI, frames, watermarks, collages or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-3035ae0b-5530-485f-8927-1c171a37ab7f.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\storm_debris.png",
+      "sha256": "378A2294012225D18653134ADE8B711EAAACFFA723D197F05FE4DFD28DC569FD"
+    },
+    {
+      "key": "pearl_divers",
+      "prompt": "Use case: illustration-story. Standalone fantasy nautical adventure game card painting, ONE landscape 1536x1024 scene. Traditional pearl divers' small workboat resting in the sheltered lee of a tropical coral reef. Divers with simple baskets returning with modest pearl oysters, clear shallow turquoise water, rock shelter and calm sea. Ordinary human pearl diving, no glowing lunar relics, no underwater ruins. Detailed hand-painted early-modern sailing-era maritime adventure, natural human proportions, realistic aged wood and brass, rich painterly texture, visually readable at small card size. Full opaque scenic background. No readable text, letters, numbers, caption, UI, frames, watermarks, collages or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-7aa90958-9f77-40d8-9c9e-7d8e69f20199.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\pearl_divers.png",
+      "sha256": "3987031CA9E035DAA082046026C4A6F4B205283861F5FE08E79F2B1BE4F36E41"
+    },
+    {
+      "key": "weathered_chain",
+      "prompt": "Use case: illustration-story. Standalone fantasy nautical adventure game card painting, ONE landscape 1536x1024 scene. Two derelict wooden ships on opposite sides of a sea channel, a thick rusty iron chain stretched taut between their hulls across the swift current. Old winch hook on nearby shore in foreground. Chain blocks passage; ship remains and rushing sea are all visible. No bridge between stone pillars. Detailed hand-painted early-modern sailing-era maritime adventure, natural human proportions, realistic aged wood and brass, rich painterly texture, visually readable at small card size. Full opaque scenic background. No readable text, letters, numbers, caption, UI, frames, watermarks, collages or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-5cc81430-015b-4ef1-a250-88e7f8569b0f.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\weathered_chain.png",
+      "sha256": "8374CDADC7CE1C31B4EA31477F75D056EBFF7CD308A36F5A9765C214750DD716"
+    },
+    {
+      "key": "weathered_keel",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game card art, one landscape 1536x1024 painting. A shipwreck's submerged belly crushed shut by a massive length of timber keel. A salvage winch above water has ropes around this giant timber; a brass diving bell waits beside the sealed inner compartment underwater. Clear cross-water viewpoint showing compartment and heavy keel obstacle, ancient copper mechanism glimpse inside. Painterly age-of-sail maritime adventure, realistic aged timber and brass, detailed full opaque sea backdrop, no text, UI, watermark or panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-908fd55d-aaf6-41ae-88c5-e8deae8d7dbf.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\weathered_keel.png",
+      "sha256": "CFEF68F68E2108D68CC7475401A48EE27FC99D86B833927AE0C84B7E4BD33603"
+    },
+    {
+      "key": "weathered_rustyard",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game event painting, ONE complete landscape 1536x1024 image. Abandoned nautical scrapyard in a tidal shipyard, dismantling racks piled with rusty anchors, corroded iron fittings, old cast ingots marked with matching abstract furnace symbols, reusable timbers and a small cold forge nearby. Sea and wreck skeletons beyond. Rusty iron salvage is central, no clean repair cave. Detailed hand-painted age-of-sail adventure illustration with realistically aged timber, brass and cloth, clear story composition, natural human anatomy, full opaque background. No readable words, letters, numbers, UI, border, watermark, collage or multiple panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-4261d0a0-ca5e-4fb7-a8ba-74a776b5ccc8.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\weathered_rustyard.png",
+      "sha256": "14E6C47F47381F7D9AD73ECDADBE5BA404C277A41F4E401C3A45DDF9FB2D93D2"
+    },
+    {
+      "key": "weathered_buoy",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game event painting, ONE complete landscape 1536x1024 image. A lonely unsteady lantern floating above clear sea water. Underneath it a heavy brass graduated depth-measuring dial and base have sunk tilted deep into the seabed next to old shipwrecks. A diving bell approaches the tilted dial. Show water surface and underwater dial together in a natural cutaway scene. One sunken buoy, not three bells. Detailed hand-painted age-of-sail adventure illustration with realistically aged timber, brass and cloth, clear story composition, natural human anatomy, full opaque background. No readable words, letters, numbers, UI, border, watermark, collage or multiple panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-d2ca4c4a-2941-427e-9c30-b6c5e080bf1c.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\weathered_buoy.png",
+      "sha256": "AA00F65F5BECA92ADD151E3672D13E34CFCB0536D38D44041B54510832FFCC20"
+    },
+    {
+      "key": "weathered_caisson",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game event painting, ONE complete landscape 1536x1024 image. A large timber and iron marine engineering caisson, a rectangular construction chamber partly submerged at an old sea dock, visibly cracked by pressure. Divers in an adjacent brass diving bell inspect the inside fracture, loose wood bracing on a workboat. Water leaking through the caisson wall, clearly not the inside of player's ship hold. Detailed hand-painted age-of-sail adventure illustration with realistically aged timber, brass and cloth, clear story composition, natural human anatomy, full opaque background. No readable words, letters, numbers, UI, border, watermark, collage or multiple panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-7b1a710c-458c-488a-a158-b02d420a393b.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\weathered_caisson.png",
+      "sha256": "3F6AAB3D83942458DCA11EA7AC073328286CCCB400C90746BDA5456DA6134665"
+    },
+    {
+      "key": "gilded_witness",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game event painting, ONE complete landscape 1536x1024 image. A frightened merchant cargo escort hiding low in a drifting small dinghy, clutching several shipping receipts tightly to his chest. Half hidden by a worn canvas tarp, distant patrol ship causing him to glance nervously. Main ship approaching, golden trade coast, full ocean background. Not a confident rowing captain. Detailed hand-painted age-of-sail adventure illustration with realistically aged timber, brass and cloth, clear story composition, natural human anatomy, full opaque background. No readable words, letters, numbers, UI, border, watermark, collage or multiple panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-96c3465c-d203-43f5-b1a6-a2869e0af8fb.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\gilded_witness.png",
+      "sha256": "B19B3C9E5F7FA5343F7F47840A4341D14274C1DE908BE8F2CC22FF4C04624346"
+    },
+    {
+      "key": "gilded_relief",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game event painting, ONE complete landscape 1536x1024 image. A relief supply ship docked offshore with a crowded deck of hungry ordinary people awaiting grain sacks and water casks. Quartermaster at nearly empty distribution table, sailors preparing to unload new supplies from a visiting boat. Golden trade route seaside atmosphere, compassion and shortage, not armed convoy. Detailed hand-painted age-of-sail adventure illustration with realistically aged timber, brass and cloth, clear story composition, natural human anatomy, full opaque background. No readable words, letters, numbers, UI, border, watermark, collage or multiple panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-41b72591-3b37-4a32-bd95-f5f3ba8e1d25.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\gilded_relief.png",
+      "sha256": "079A7C10929DEB1D018B4A13382317375282BAF73375364EF51683BB83D82DC8"
+    },
+    {
+      "key": "gilded_auction",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game event painting, ONE complete landscape 1536x1024 image. Auction on the deck of a small merchant boat. Auctioneer holds up a preserved navigation kit: brass compass, sextant and copper sea lantern. Bidders raise sealed guild credentials and coin pouches. Sea visible all around, warm light. Navigational instruments clearly central, NO food or spice auction. Detailed hand-painted age-of-sail adventure illustration with realistically aged timber, brass and cloth, clear story composition, natural human anatomy, full opaque background. No readable words, letters, numbers, UI, border, watermark, collage or multiple panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-c1dfe547-a616-443c-bd9e-c4057bad42af.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\gilded_auction.png",
+      "sha256": "66F360AA12990FDAC0448EC854D3AD7C3BAC9A92CE7EE0C0AFE1306D3BBBA7C2"
+    },
+    {
+      "key": "gilded_convoy",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game event painting, ONE complete landscape 1536x1024 image. A group of merchant sailing ships struggling against a headwind in a narrow sea passage, forward sails luffing, sailors switching sails and consulting a pilot. Valuable sealed cargo crates temporarily exposed beside an open hatch in foreground. Golden merchant coast; practical tension, not an easy downwind voyage. Detailed hand-painted age-of-sail adventure illustration with realistically aged timber, brass and cloth, clear story composition, natural human anatomy, full opaque background. No readable words, letters, numbers, UI, border, watermark, collage or multiple panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-0f740348-33db-4abd-ac72-d4f6b27ecc15.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\gilded_convoy.png",
+      "sha256": "D2BC9016A84D95AF2AE8194BC955B76D397D6AAE9DCAB013F2EC62872050E4BE"
+    },
+    {
+      "key": "gilded_ledger_buoy",
+      "prompt": "Use case: illustration-story. Standalone nautical fantasy game event painting, ONE complete landscape 1536x1024 image. A small moored buoy in golden-blue merchant waters, a rope below it suspending a waterproof box containing old guild ledgers. Sailor lifting the dripping open box onto boat rail; old accounts with visibly overwritten abstract ink strokes and seals, no readable words. Buoy, water, hanging box and ledger all visible, not a desk office. Detailed hand-painted age-of-sail adventure illustration with realistically aged timber, brass and cloth, clear story composition, natural human anatomy, full opaque background. No readable words, letters, numbers, UI, border, watermark, collage or multiple panels.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-61ff1a8b-1e9b-46ba-b4f8-6c8f6d21f95e.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\gilded_ledger_buoy.png",
+      "sha256": "AE0F40AED98E3A9E926FA4C5676FB9EA484409B1EED6D5A9FD825AE9D7F089FB"
+    },
+    {
+      "key": "moonlit_dawn",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. Ancient sea-ruin altar engraved with a radiant sun/daylight motif, standing among wet pillars and waves. Brilliant DAYTIME sky and warm daylight illuminates a small unlit ritual vessel at its center. Ritual carvings leading toward ocean sanctuary, visible ship at distance. Sole daylight altar. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a1675b-440f-7850-bd81-399a50934f38\\exec-b1aa9346-98c3-4080-b402-7b56d083c757.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\moonlit_dawn.png",
+      "sha256": "44CE22E9DA531ABB70FDF4150FC45DEBFC8E492534560C43DD2FF6ACA54872D6"
+    },
+    {
+      "key": "moonlit_dusk",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. Ancient sea-ruin altar engraved with a setting sun and tide motif, standing among wet pillars and waves. Orange-purple DUSK, just setting sun, tide channels glow amber along stone. Small ritual vessel in center. Sole twilight altar, full ocean background. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a1675b-440f-7850-bd81-399a50934f38\\exec-ed360b05-6f2e-4462-85b9-ec3f72c9eb32.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\moonlit_dusk.png",
+      "sha256": "C42B463C8052C6BE337D4E2CC4B58F1363E3D1B476D776E9BE18310A64948949"
+    },
+    {
+      "key": "moonlit_midnight",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. Ancient sea-ruin altar engraved with stars and crescent moon motif, standing among wet pillars and waves. Deep MIDNIGHT sky, silver moonlight, cold blue tide channels on stone, small ritual vessel centered. Sole night altar, no sunset sunlight, full ocean background. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a1675b-440f-7850-bd81-399a50934f38\\exec-e6d5528e-4a10-4e41-8e85-065240d1f5cd.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\moonlit_midnight.png",
+      "sha256": "04A392041401C275A5F995EB96A27F75DB43D3263E29E60A28B7914E93EE7175"
+    },
+    {
+      "key": "moonlit_choir",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. Moonlit reef of fissured dark stone. A small ancient BONE FLUTE embedded deep in a central fissure, holes linked to carved twilight tide patterns on the surrounding rock. Waves passing through cracks seem to sing, dim silver glow, ruined ocean coast. Bone flute and stone carvings central, no mechanical horns or metal pipes. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a1675b-440f-7850-bd81-399a50934f38\\exec-2660fed6-9438-498a-b7cb-fdad02e2e5f7.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\moonlit_choir.png",
+      "sha256": "D821233654BF79AA096F43570D8CAE20BAB8E4A5146BC15B38A4BBC77168A500"
+    },
+    {
+      "key": "moonlit_guardian",
+      "prompt": "Edit only the stone guardian's hands in this nautical event illustration. Correct the confusing extra hand/finger shapes to EXACTLY TWO anatomically clear stone hands, each attached to its own wrist and forearm. The hand entering from image-left supports the moon orb from BELOW with a simple upward-facing palm and five natural fingers. The hand entering from image-right cups the RIGHT SIDE of the orb with five natural fingers. Remove the additional upward-curving hand-like cluster at the orb's upper left; that area should be empty air and visible guardian chest. Keep one single pale moon core, the two soft moonlight rings, closed eyes, peaceful seated pose, stone materials, full ocean and shrine background, ships, composition, lighting and painterly style unchanged. The guardian has only two arms and two hands. Full opaque 1536x1024 landscape. No text, UI, border, watermark or collage.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a1675b-440f-7850-bd81-399a50934f38\\exec-bc0b8c47-31d5-49d6-8d6a-9b6ac36a8723.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\moonlit_guardian.png",
+      "sha256": "C381C5C1976FAE3EDDDB4529F6BEE2190ACC5A8940C2AB5693E96BFC7741F0FA"
+    },
+    {
+      "key": "moonlit_well",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. An ancient round stone well on a moonlit seaside terrace, still clear water reflects an enduring bright moon. Silver sand sparkles below the water. Sealed water jars and grain sacks sit beside the well, subtle night-phase carvings. Small deep WELL, not a broad reflecting pool. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a1675b-440f-7850-bd81-399a50934f38\\exec-f1ef5afb-13d9-443d-8777-f00860ec8a68.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\moonlit_well.png",
+      "sha256": "AE36FB63DA2D14A50525B518D3FC47C2C93F4CF1A235FF96DE361FA669850D8B"
+    },
+    {
+      "key": "treasure_guard_ship",
+      "prompt": "Use case: illustration-story. Asset: standalone Chinese fantasy nautical game event card art. Paint ONE complete landscape 1536x1024 scene. An imposing ancient guardian warship slowly patrols an empty palace harbor under the moon. At its bow a huge EYELESS STONE FIGUREHEAD faces the treasure entrance, dark mineral-coated hull, weathered royal moon sigils on sails, silent high ruined piers and vast open water. Low angle from a small boat for dread and scale. Complete background, no transparency, no ordinary skeleton pirate. Style: detailed hand-painted maritime adventure illustration, realistic materials, rich brushwork, legible composition at card size, restrained dramatic cinematic light, matching the existing nautical paintings. No text, letters, subtitles, UI, border, watermark, collage or multiple panels. Full opaque background.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a1675b-440f-7850-bd81-399a50934f38\\exec-3c9da3b5-b5d2-43f1-903c-1eb852c82ebc.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\treasure_guard_ship.png",
+      "sha256": "F23609648E6A39A20391CED89055E27CAC45D46B4E5ADD68E9529BEF96673D41"
+    },
+    {
+      "key": "event_trade_debt_collector",
+      "prompt": "Use case: illustration-story. Create a 1536x1024 opaque landscape event illustration, refined hand-painted maritime fantasy adventure with crisp tangible wood, ropes and cloth, readable at small card size. Golden Tide trade route, warm gold sunlight over bright turquoise open water. A debt collector in his narrow launch has blocked a small working fishing boat across the sea lane. Foreground fisherman urgently holds up an already-paid paper receipt with a prominent paid seal, showing it to the arriving viewer's ship; collector leans over from the blocking boat. Fishing nets and modest catch identify the fisher. Clear spatial storytelling: two distinct boats afloat, crossed path and held-out receipt are the focal points. No dock, no land-based argument, no battle. No legible text, no border, UI, logo or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-89b15fd3-cf1b-4d30-9049-49faa453d773.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_trade_debt_collector.png",
+      "sha256": "d467b5e6170b6661425ff16ccae9cd09e13795d56610e6807099d6a0d2cddc58"
+    },
+    {
+      "key": "event_trade_merchant_distress",
+      "prompt": "Use case: illustration-story. 1536x1024 opaque landscape, finely hand-painted maritime fantasy event art, tactile wood and torn canvas, strong readable focal scene. Golden Tide open sea, turquoise waves and golden daylight. A badly damaged merchant sailing ship is limping toward the viewer, broken railing and cracked hull above water, torn reddish sails, crew urgently waving for help. Bright red distress flare with a distinct smoke trail rises from its deck. Far behind, two hostile small fast ships with unmistakable triangular sails are closing in. Compose the desperate merchant ship prominently and pursuing triangle sails visible in distance; smoke is a signal flare, not a burning powder ship. No text, border, UI, logo or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-28401482-9c2e-4707-814e-c4421fd93f01.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_trade_merchant_distress.png",
+      "sha256": "4c18aeae92b36632ca2b78e7399b999a1c3062a8874af60c433ce5c7f35f6b9d"
+    },
+    {
+      "key": "event_moon_mirror_pool",
+      "prompt": "Use case: illustration-story. Create a 1536x1024 opaque landscape, refined hand-painted nautical fantasy event scene. Under thin silver mist, a broad still tidal pool among dark coastal rocks fills the foreground. Its mirror surface clearly reflects an upside-down elaborate harbor with quays, moored ships and tall distinctive channel marker beacons, crisp and luminous enough to navigate by. Yet the real view immediately above the pool is EMPTY open moonlit sea with no harbor or buildings: the impossible harbor exists ONLY as a reflection inside the pool. Show this uncanny contradiction clearly in one coherent perspective. Deep indigo, silver moonlight, subtle cyan, richly textured wet stone, painterly realism. No text, UI, border or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-8de1142b-ea98-404d-9743-7135f2cef9ad.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_mirror_pool.png",
+      "sha256": "f7881f73cf0af1d6ef4f0f7df28511d92a9b0c25ec26ef694f8f09e05c3ff019"
+    },
+    {
+      "key": "event_moon_lunar_observatory",
+      "prompt": "Use case: illustration-story. 1536x1024 opaque landscape event illustration, refined hand-painted nautical fantasy. On the OPEN SEA beneath a silver full moon, a weathered floating wooden platform is tethered by heavy chains and ancient anchors visible just beneath the clear water. A large patinated BRONZE OBSERVATION DISC with concentric rings sits on its central pedestal, tilted toward the moon on a slowly turning geared mount. The deck is clearly above the waterline, with waves gently lapping its floats; expansive sea and dark indigo sky behind. Silver-cyan moonlight on bronze, subtle instrument engravings without legible lettering. Show a practical ancient marine observatory, no dome, no underwater ruins, no city. Full environmental scene, no text, UI, border or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-a5c89469-3d09-4476-a5d4-9e9309de4360.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_lunar_observatory.png",
+      "sha256": "4cb7e85e7e329b5c85d2151773f6c6b05e08c6670187daec5877885dd5566fdc"
+    },
+    {
+      "key": "moon_ghost",
+      "prompt": "Use case: illustration-story. 1536x1024 opaque landscape game event artwork in refined hand-painted maritime fantasy style. View from a sailing ship approaching a moonlit sea lane: a silent ANCIENT wooden sailing vessel slowly crosses directly across the viewer's route, seen three-quarter broadside among silver sea mist. Weathered black hull, faded ragged gray sails, salt-worn ropes and old carved stern. Every window, port, lantern and deck is completely DARK: no lights aboard, no glow in windows, no fire, no luminous crew. Only exterior silver moonlight rims the hull and sails against a deep indigo sky and softly rippling open sea. A small part of the viewer's bow establishes the blocked crossing. Mysterious and clear, full sea background, no text, frame, UI, logo or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-5878b272-f6fc-4d92-8307-39593130a741.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\moon_ghost.png",
+      "sha256": "10bdbd625a1a7c11ca15af75d5cb722ee68f413b2ac7a64d46aedff76efd5f9e"
+    },
+    {
+      "key": "event_moon_v2_borrowed_shadow",
+      "prompt": "Use case: illustration-story. Create a 1536x1024 opaque landscape, finely hand-painted nautical fantasy event illustration. Seen downward from a larger sailing ship's railing, a small ferry runs alongside on very calm silver-blue moonlit water. A hooded ferryman reaches toward the sailor's long shadow on the large ship's deck, proposing to borrow it, while the sailor offers a small self-revealing lantern. ESSENTIAL VISUAL PARADOX: the ferry and ferryman cast absolutely NO reflection or dark silhouette into the water. Directly underneath and all around the ferry is continuous pale moonlit rippled water, clean and clearly visible; no inverted boat, face, figure or black patch. The larger ship does reflect normally elsewhere for contrast. Indigo mist, delicate warm lantern, realistic wet wood and ropes, quiet magical negotiation. No text, frame, UI or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-3a033a6d-28bc-4012-8175-2e806171c80d.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_v2_borrowed_shadow.png",
+      "sha256": "434ab973815ec757092e70ce812c664e94bd5824fa89ee900fd910c747a0aa36"
+    },
+    {
+      "key": "event_moon_drowned_library",
+      "prompt": "Use case: illustration-story. 1536x1024 opaque landscape maritime fantasy event art, refined hand-painted textures and blue-silver moonlight. Broken stone steps descend from the foreground into an ancient library only HALF FLOODED by the sea. The room's upper walls, roof gaps and upper bookshelves are clearly in air; a visible horizontal waterline crosses the lower part of the room. In the center, several sturdy sealed wooden BOOK CHESTS with waxed joints and metal clasps are wedged beneath a collapsed timber beam and fractured stone pillar, partly in shallow water and reachable from the stairs. Moonlight through the broken roof reveals the chests as the main salvage target. Quiet ruined architecture, wet paper remnants on dry ledges, realistic water. Not a fully submerged seabed library, no divers or underwater fish. No text, frame, UI or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-b1eabc5b-2932-4033-a8d7-99f1ff12b9a4.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_drowned_library.png",
+      "sha256": "304f538ec62247df1c090268120521b75ef520053b5237f90677d2f985154174"
+    },
+    {
+      "key": "event_moon_healing_spring",
+      "prompt": "Use case: illustration-story. Create a 1536x1024 opaque landscape, refined hand-painted nautical fantasy event scene. On a shallow rocky SHORE beside the moonlit ocean, a small freshwater spring wells up from a natural stone basin with a faint pale-blue glow. Clear clean water runs visibly downhill along an ancient carved stone trough into the nearby sea. Camera above the shoreline shows the spring, shallow basin, connected trough and sea together; the spring and stonework are exposed to AIR, with sky and horizon behind. Silver moonlight, indigo sea, gentle cyan in fresh water, detailed wet stones and a few shore plants, calm restorative mood. No underwater setting, no seabed, no swimming fish around the spring, no giant monument. No text, UI, border or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-172d130f-b352-4788-b5e5-29786c7a8ac8.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_healing_spring.png",
+      "sha256": "03acb7a3b955034e3281b06269d283d3047c6f587c527d0ac1274e77e22aec7f"
+    },
+    {
+      "key": "event_moon_spectral_debris",
+      "prompt": "Use case: illustration-story. Opaque 1536x1024 landscape, finely hand-painted maritime fantasy, indigo and silver moonlight, readable event-card composition. A single broken section of an ancient wooden ship cabin floats AT THE SURFACE of the sea within slow thick mist. The recognizable shattered cabin has a slanted fragment of roof, exposed ribs, cracked doorway and one broken window; it is only a short severed cabin section, not a complete ship. Heavy old anchor-chain links hang over the broken timbers and knock together just above the rippling water. Moonlit waves visibly support and rock the floating debris; open hazy horizon behind. Quiet uncanny atmosphere, rich wet wood and corroded iron textures. No seabed, no whole submerged wreck, no people, no text, UI, frame or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-d40ae662-cf69-4e64-a5a2-e4f79b05ed21.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_spectral_debris.png",
+      "sha256": "698c81c05694db5a02fd62f13ab677b820a99555e668f0ce3c0430c8db844e3a"
+    }
+  ],
+  "tool": "built-in image_gen"
+}

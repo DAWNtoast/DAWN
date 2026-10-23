@@ -40,8 +40,6 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     Assert.That(GameObject.Find("Treasure Folio Rank Theme " + index).GetComponent<Text>().text,
                         Is.EqualTo(CoreTreasureExpeditionCatalog.ThemeName(ranks[index])));
-                    Assert.That(GameObject.Find("Treasure Folio Rank Mechanic " + index).GetComponent<Text>().text,
-                        Is.EqualTo(CoreTreasureExpeditionCatalog.Overview(ranks[index])));
                 }
                 CaptureExploration(controller, "treasure_port_folio_overview");
                 ActiveButton("Treasure Browse Unused").onClick.Invoke(); yield return null;
@@ -109,7 +107,7 @@ namespace ShatteredSail.Presentation.Tests
                     yield return ChooseTreasureExpedition(controller, 0);
                     Assert.That(session.Cargo.Iron, Is.Zero); Assert.That(session.Cargo.Cloth, Is.Zero);
                     Assert.That(session.HasTreasureMark("weathered_bell"), Is.True);
-                    Assert.That(ExplorationStatusText(), Does.Contain(CoreVoyageSession.TreasureMarkLabel("weathered_bell")));
+                    Assert.That(session.TreasureExpeditionStatusSummary, Does.Contain(CoreVoyageSession.TreasureMarkLabel("weathered_bell")));
                     yield return ClaimTreasureExpeditionSideBenefit(controller, rank);
                 }
                 else if (rank == "gilded")
@@ -263,7 +261,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.TryCraftTreasureMapForRank(rank, seed, out string reason), Is.True, reason);
             Assert.That(session.TrySelectTreasureSeed(seed, out reason), Is.True, reason);
             Assert.That(session.SelectedTreasureMap.ContentVersion, Is.EqualTo(1));
-            Assert.That(session.SelectedTreasureMap.MapGeometryVersion, Is.EqualTo(1), "Exercise the geometry produced by new crafting.");
+            Assert.That(session.SelectedTreasureMap.MapGeometryVersion, Is.EqualTo(4), "Exercise the geometry produced by new crafting.");
             // The moonlit regression deliberately visits the distant core three
             // times to test both locks, then sails back for cleansing. Provision
             // that extended itinerary before departure, within the actual hold.

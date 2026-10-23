@@ -272,7 +272,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             CoreBattleCard[] originals = CoreVoyageSession.CardLibrary.Where(card => card.SchoolEffect?.Mechanic == mechanic).ToArray();
-            Assert.That(originals, Is.Not.Empty);
+            // These legacy mechanics can have no live sources after the field-component redesign.
             foreach (CoreBattleCard original in originals)
                 for (int level = 0; level <= 3; level++)
                 {
@@ -289,6 +289,13 @@ namespace ShatteredSail.Core.Tests
                 .Invoke(null, new object[] { mixed, 3 });
             Assert.That(result.Draw, Is.EqualTo(2));
             Assert.That(result.SchoolEffect.Power, Is.EqualTo(2), "A card with both draw routes receives the upgrade on only one route.");
+            var conditionalOnly = new CoreBattleCard("legacy_conditional_draw", "条件抽牌", "策略", 1, 0, 0, 0, 0, 0,
+                "抽 {schoolPower}", schoolEffect: new CoreSchoolCardEffect(mechanic, power: 2, threshold: 3, upgrades: CoreSchoolUpgradeFields.None));
+            var conditionalUpgrade = (CoreBattleCard)typeof(CoreVoyageSession).GetMethod("BuildUpgradedCardDefinition", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { conditionalOnly, 3 });
+            Assert.That(conditionalUpgrade.Draw, Is.Zero);
+            Assert.That(conditionalUpgrade.SchoolEffect.Power, Is.EqualTo(3));
+            Assert.That(conditionalUpgrade.SchoolEffect.Threshold, Is.EqualTo(3));
         }
 
         private static int Scaled(int value, decimal multiplier) =>

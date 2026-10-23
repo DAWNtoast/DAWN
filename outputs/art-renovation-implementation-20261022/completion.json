@@ -1,0 +1,66 @@
+{
+  "status": "complete",
+  "completedDate": "2026-10-23",
+  "task": "完成战术俯视舰船、战术海面与出航船员头像三项翻新",
+  "deliverables": [
+    {
+      "item": "战术俯视舰船",
+      "count": 24,
+      "breakdown": {
+        "playerHulls": 12,
+        "routeBosses": 6,
+        "legendaryShips": 6
+      },
+      "path": "D:/Game/UnityClient/Assets/_Project/Resources/NavalTactics/Ships",
+      "preview": "D:/Game/outputs/art-renovation-implementation-20261022/ships/ships-contact.png",
+      "behavior": "敌我按船型/遭遇身份选择新图；普通敌船映射现有基础舰型；统一朝上、透明留边与1024×1536画布；启用mipmap改善缩小时的闪点"
+    },
+    {
+      "item": "战术海面",
+      "count": 6,
+      "path": "D:/Game/UnityClient/Assets/_Project/Resources/NavalTactics/Seas",
+      "preview": "D:/Game/outputs/art-renovation-implementation-20261022/sea/sea-contact.png",
+      "behavior": "开阔水域、近岸、礁区、海峡、迷雾、风暴，按地形切换；固定世界纹理尺度并Clamp；风暴亮度0.8以保护网格和路线可读性"
+    },
+    {
+      "item": "出航船员头像",
+      "count": 36,
+      "path": "D:/Game/UnityClient/Assets/_Project/Resources/PortArt/CrewAvatars",
+      "preview": "D:/Game/outputs/art-renovation-implementation-20261022/crew/all-36-avatars.jpg",
+      "behavior": "六港36角色逐人裁切256×336头肩像，按ID惰性加载；全36源档案哈希保持不变，保留旧调用与缺图回退"
+    }
+  ],
+  "generation": {
+    "mode": "built-in image_gen",
+    "externalImageApisUsed": false,
+    "prompts": "D:/Game/outputs/art-renovation-implementation-20261022/generation-prompts.json",
+    "crewOperation": "Local crop and proportional resize only"
+  },
+  "validation": {
+    "editMode": {
+      "passed": 54,
+      "failed": 0,
+      "result": "final24/edit-results.xml"
+    },
+    "distinctPlayModeScenariosPassed": 9,
+    "playResults": [
+      "seas-motion/play-results.xml",
+      "avatars-and-seas/play-results.xml",
+      "final-fleets/play-results.xml",
+      "final24/play-results.xml"
+    ],
+    "shipAlphaAndGuidAudit": "ships/independent-qa.json",
+    "crewSourceAndCropAudit": "crew/verification.json",
+    "seaContrastAudit": "sea/verification.json",
+    "finalScreenshots": "final24/Artifacts/play-captures",
+    "crewScreenshots": "avatars-and-seas/Artifacts/play-captures",
+    "scope": "Targeted Unity validation in isolated project; not a claim that the full project suite was run.",
+    "existingUnrelatedWarnings": "Unity logs contain pre-existing EncounterIllustrations .meta parsing warnings; these unrelated files were not modified."
+  },
+  "preserved": {
+    "sideViewShipArt": true,
+    "crewSourceDossiers": true,
+    "combatCoordinatesAndGeometry": true,
+    "retiredUIPreviewsForMeNotRegenerated": true
+  }
+}

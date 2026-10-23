@@ -1,0 +1,7 @@
+{
+  "eventId": "event_reef_v2_tidal_hoist",
+  "source": "C:/Users/Admin/.codex/generated_images/01a1630b-0426-7de1-9802-03c061f4820c/exec-a6eceb9f-dab0-4536-a5ce-9971be263bd9.png",
+  "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_tidal_hoist_v1.png",
+  "tool": "built-in image_gen",
+  "prompt": "Use case: illustration-story. Asset type: final in-game nautical encounter illustration, one single full-bleed landscape scene, 4:3 composition, preferably 1536x1152. Style: richly detailed hand-painted maritime adventure storybook painting, matching classic pirate adventure game illustrations, believable weathered timber, saltwater, rope and brass, crisp central silhouette readable at 256px. Keep crucial forms within central 80%, generous environment context, no borders, panels, text, lettering, captions, logos, watermark, modern objects or photorealistic finish. Scene: A tide-powered old wooden lifting platform above a rocky turquoise channel. One surviving heavy iron hook hangs from a coherent single block-and-tackle lifting rig; below it, a damaged ship skeleton lies on one side and a tightly sealed metal mechanism chest rests on the other side of the salvage bay, clearly two possible loads. Rope is frayed and shipwrights examine it with replacement strips and timber ready. Tide water passes beneath the aged platform, warm sun, strongly readable crane, hook, ship ribs and sealed machine chest."
+}

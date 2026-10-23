@@ -22,13 +22,21 @@ namespace ShatteredSail.Presentation
             if (track == null) return;
             Image hull = track.Find(side + " Battle Hull Bar")?.GetComponent<Image>();
             if (hull == null) return;
+            if (!boarding)
+            {
+                hull.rectTransform.sizeDelta = new Vector2(hull.rectTransform.sizeDelta.x, 12f);
+                RectTransform meter = (RectTransform)track;
+                meter.sizeDelta = hull.rectTransform.sizeDelta;
+                Outline border = track.GetComponent<Outline>();
+                if (border != null) border.enabled = false;
+            }
             Vector2 size = hull.rectTransform.sizeDelta;
             Image chip = CreateImage(side + " Hull Damage Trail", track, size, Vector2.zero, new Color(1f, 0.78f, 0.43f));
             chip.sprite = BattleDefenseHud.FillSprite;
             chip.type = Image.Type.Filled; chip.fillMethod = Image.FillMethod.Horizontal;
             chip.raycastTarget = false; chip.transform.SetSiblingIndex(hull.transform.GetSiblingIndex());
-            Image[] frame = new Image[4];
-            for (int i = 0; i < 4; i++)
+            Image[] frame = new Image[boarding ? 4 : 0];
+            for (int i = 0; i < frame.Length; i++)
             {
                 bool horizontal = i < 2;
                 Vector2 edgeSize = horizontal ? new Vector2(size.x + 20f, 2f) : new Vector2(2f, size.y + 20f);
@@ -37,15 +45,16 @@ namespace ShatteredSail.Presentation
                 frame[i] = CreateImage(side + " Armor Frame " + i, track, edgeSize, edgePosition, Color.white);
                 frame[i].raycastTarget = false;
             }
-            Image top = CreateImage(side + " Armor Bar", track, new Vector2(size.x + 10f, 4f), new Vector2(0f, size.y * 0.5f + 5f), Color.white);
-            Image bottom = CreateImage(side + " Armor Bar Lower", track, new Vector2(size.x + 10f, 4f), new Vector2(0f, -size.y * 0.5f - 5f), Color.white);
+            Image top = boarding ? CreateImage(side + " Armor Bar", track, new Vector2(size.x + 10f, 4f), new Vector2(0f, size.y * 0.5f + 5f), Color.white) : null;
+            Image bottom = boarding ? CreateImage(side + " Armor Bar Lower", track, new Vector2(size.x + 10f, 4f), new Vector2(0f, -size.y * 0.5f - 5f), Color.white) : null;
             foreach (Image rail in new[] { top, bottom })
             {
+                if (rail == null) continue;
                 rail.sprite = BattleDefenseHud.FillSprite;
                 rail.type = Image.Type.Filled; rail.fillMethod = Image.FillMethod.Horizontal; rail.raycastTarget = false;
             }
-            Text hp = CreateText(side + " Hull Numeric", track, new Vector2(size.x - 12f, 30f),
-                Vector2.zero, 23, FontStyle.Bold, TextAnchor.MiddleCenter, Color.white);
+            Text hp = CreateText(side + " Hull Numeric", track, new Vector2(size.x - 12f, boarding ? 30f : 38f),
+                Vector2.zero, boarding ? 23 : 26, FontStyle.Bold, TextAnchor.MiddleCenter, Color.white);
             hp.raycastTarget = false;
             hp.color = Color.white;
             AddSceneLabelOutline(hp);

@@ -77,17 +77,6 @@ namespace ShatteredSail.Presentation
             SetNavalHudRect(curse, new Vector2(230f, 70f), new Vector2(-735f, 310f));
             SetNavalHudText(curse, "Battle Curse Status", new Vector2(212f, 60f), Vector2.zero, 14);
 
-            // These readouts are siblings of the battlefield so the header,
-            // names and controls do not rotate with the chart camera.
-            Text range = FindBattleReadout(root, "Battle Range");
-            if (range != null) range.text = session.NavalDistanceCells + " 格 / 炮击4格";
-            Text alignment = FindBattleReadout(root, "Battle Alignment");
-            if (alignment != null)
-            {
-                string[] directions = { "东", "东北", "北", "西北", "西", "西南", "南", "东南" };
-                int heading = Mathf.RoundToInt(Mathf.Repeat(battle.PlayerHeadingDegrees, 360f) / 45f) % directions.Length;
-                alignment.text = "航向 " + directions[heading] + "\n镜头跟随 · 我舰居左";
-            }
             RefreshNavalActionHud(root, battle);
         }
 

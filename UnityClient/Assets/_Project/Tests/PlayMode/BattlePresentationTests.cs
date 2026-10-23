@@ -185,7 +185,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(battleSurface.localScale.y, Is.EqualTo(972f / 900f).Within(0.001f));
             Assert.That(controller.Session.BattleTerrain, Is.EqualTo(SeaTerrainType.Reef));
             RawImage backdrop = GameObject.Find("Shared tactical sea").GetComponent<RawImage>();
-            Assert.That(backdrop.texture, Is.SameAs(Resources.Load<Texture2D>("NavalTactics/tactical_sea_v1")));
+            Assert.That(backdrop.texture, Is.SameAs(NavalTacticalArtCatalog.ForSea(controller.Session.BattleTerrain)));
             Assert.That(backdrop.raycastTarget, Is.False);
             Assert.That(GameObject.Find("Naval Tactical Board").GetComponent<RectMask2D>(), Is.Not.Null);
             Assert.That(GameObject.Find("100 metre grid").GetComponent<NavalTacticalGridGraphic>(), Is.Not.Null);
@@ -236,14 +236,11 @@ namespace ShatteredSail.Presentation.Tests
             Rect inspectedFrame = WorldRect(firstCard.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
             Assert.That(cardRect.localScale.x, Is.GreaterThan(restingCardScale));
             Assert.That(inspectedFrame.yMax, Is.GreaterThan(restingFrame.yMax + 1f), "The inspected upper edge rises while the whole taller frame stays visible");
-            Transform inspectedBubble = firstCard.transform.Find("Card Keyword Bubble 0");
             string unavailableReason = controller.Session.CardUnavailableReason(0);
             Assert.That(firstCard.interactable, Is.False, "The naval cannon requires energy before it can be played.");
             Assert.That(unavailableReason, Does.Contain("能量不足"), "The fixture deliberately has zero energy.");
-            Assert.That(inspectedBubble, Is.Not.Null);
-            Assert.That(inspectedBubble.gameObject.activeInHierarchy, Is.True);
-            Assert.That(inspectedBubble.Find("Keyword Bubble Text").GetComponent<Text>().text,
-                Does.Contain("当前不能使用").And.Contain(unavailableReason));
+            CoreGameplayDemoSceneTests.AssertKeywordOnlyCardHover(firstCard, 0, controller.Session,
+                controller.Session.GetBattleCard(controller.Session.Battle.Hand[0]), "unaffordable cannon card");
             yield return AssertBattleSurfaces(controller);
 
             ExecuteEvents.Execute(firstCard.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerExitHandler);
@@ -293,11 +290,13 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(referenceEffect.fontSize, Is.EqualTo(CardFaceLayout.EffectFontSize));
             Assert.That(dragonbreathEffect.fontSize, Is.InRange(12, CardFaceLayout.EffectFontSize),
                 "The conditional dragonbreath effect fits its fixed window at a readable adaptive size.");
-            Assert.That(longEffect.fontSize, Is.LessThan(referenceEffect.fontSize),
-                "The long strategy effect reduces only its own text size while retaining the shared card geometry.");
+            Assert.That(longEffect.fontSize, Is.InRange(12, CardFaceLayout.EffectFontSize),
+                "Current manuscript wording may fit at the shared size; only overflowing text needs to shrink.");
+            foreach (Text effect in new[] { referenceEffect, dragonbreathEffect, longEffect })
+                AssertCompleteEffectFitsFixedWindow(effect);
             Assert.That(GameObject.Find("Card Powder Cost 2").GetComponent<Text>().text, Is.EqualTo("1"));
             Assert.That(GameObject.Find("Battle Card 2").transform.Find("Label").GetComponent<Text>().text,
-                Does.Contain("<b>4格内</b>"), "The actual cannon card emphasizes its range condition.");
+                Does.Contain("<b>范围1-4格</b>"), "The actual cannon card emphasizes its complete range condition.");
             NavalBattleVisualCapture.Capture(controller, "reference-card-layouts.png",
                 "Actual capped upgrades with corner-aligned blue/red square crystals, matching resource HUD crystals, bold cannon range and a long strategy effect in fixed windows.");
             LogAssert.NoUnexpectedReceived();
@@ -325,7 +324,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return null;
                 Assert.That(session.Battle.IsBoss, Is.True);
                 Image enemy = GameObject.Find("Enemy Ship Art").GetComponent<Image>();
-                Assert.That(enemy.sprite, Is.SameAs(Resources.Load<Sprite>("NavalTactics/tactical_ship_v1")));
+                Assert.That(enemy.sprite, Is.SameAs(NavalTacticalArtCatalog.ForEnemy(session.Battle, session.ActiveEncounter, session.SelectedRouteIndex)));
                 Assert.That(enemy.preserveAspect, Is.True);
                 Assert.That(enemy.GetComponent<Outline>().effectColor.r, Is.GreaterThan(.9f), "Enemy markers remain visually distinct from the player's marker.");
                 checkedRoutes.Add(session.SelectedRouteIndex);
@@ -511,8 +510,8 @@ namespace ShatteredSail.Presentation.Tests
             AssertInspectionFitsClearSpace(hovered.GetComponent<RectTransform>(), restingScale.x);
             Assert.That(hoverCanvas.sortingOrder, Is.GreaterThan(hand.GetComponentInParent<Canvas>().sortingOrder),
                 "An overlapped card must render above its neighboring cards while inspected.");
-            Assert.That(hovered.transform.Find("Card Keyword Bubble 3"), Is.Null,
-                "Naval cards still rise above the fan without a calculation tooltip.");
+            CoreGameplayDemoSceneTests.AssertKeywordOnlyCardHover(hovered, 3, controller.Session,
+                controller.Session.GetBattleCard(controller.Session.Battle.Hand[3]), "overlapped naval card");
             ExecuteEvents.Execute(hovered.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerExitHandler);
             yield return new WaitForSecondsRealtime(0.4f);
             Assert.That(hoverCanvas.overrideSorting, Is.False);
@@ -749,7 +748,9 @@ namespace ShatteredSail.Presentation.Tests
             {
                 RectTransform ship = side == "Player" ? player : enemy;
                 Image marker = ship.GetComponent<Image>();
-                Assert.That(marker.sprite, Is.SameAs(Resources.Load<Sprite>("NavalTactics/tactical_ship_v1")));
+                CoreVoyageSession artSession = controller.Session;
+                Assert.That(marker.sprite, Is.SameAs(side == "Player" ? NavalTacticalArtCatalog.ForPlayer(artSession.SelectedShip.Id) :
+                    NavalTacticalArtCatalog.ForEnemy(artSession.Battle, artSession.ActiveEncounter, artSession.SelectedRouteIndex)));
                 Assert.That(marker.preserveAspect, Is.True);
                 Assert.That(marker.raycastTarget, Is.EqualTo(side == "Player"), "Only the player marker captures route selection.");
                 Vector2 expected = side == "Player" ? board.PlayerScreenPosition : board.EnemyScreenPosition;
@@ -1001,6 +1002,27 @@ namespace ShatteredSail.Presentation.Tests
 
         private static string CompactCardText(string value) => Regex.Replace(value, @"</?(?:b|i|size|color|material)(?:=[^>]*)?>", string.Empty)
             .Replace("\u00a0", " ").Replace("\n", string.Empty).Replace("\r", string.Empty);
+
+        private static void AssertCompleteEffectFitsFixedWindow(Text effect)
+        {
+            Assert.That(effect.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize), effect.transform.parent.name);
+            Rect bounds = effect.rectTransform.rect;
+            TextGenerationSettings settings = effect.GetGenerationSettings(bounds.size);
+            settings.scaleFactor = 1f;
+            settings.fontSize = effect.fontSize;
+            settings.resizeTextForBestFit = false;
+            // Measure every explicit rendered line without allowing automatic wrapping
+            // or truncation to conceal a line wider/taller than the fixed effect window.
+            settings.horizontalOverflow = HorizontalWrapMode.Overflow;
+            settings.verticalOverflow = VerticalWrapMode.Overflow;
+            using (var generator = new TextGenerator())
+            {
+                Assert.That(generator.GetPreferredWidth(effect.text, settings),
+                    Is.LessThanOrEqualTo(bounds.width + .01f), effect.transform.parent.name + " full line width");
+                Assert.That(generator.GetPreferredHeight(effect.text, settings),
+                    Is.LessThanOrEqualTo(bounds.height + .01f), effect.transform.parent.name + " complete text height");
+            }
+        }
 
         internal static void AssertVisibleWordsAndClauseBoundaries(string source, string rendered, string context)
         {

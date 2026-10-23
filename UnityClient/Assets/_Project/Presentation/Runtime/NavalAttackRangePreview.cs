@@ -14,12 +14,12 @@ namespace ShatteredSail.Presentation
         private CoreBattleState battle;
         private NavalTacticalBoardView board;
         private NavalTacticalAttackRangeGraphic graphic;
-        private Text caption;
         private Func<bool> inputBlocked;
         private Component hoverOwner;
         private Func<CoreBattleCard> hoveredCard;
         private readonly List<VoyagePoint> cells = new List<VoyagePoint>();
         private readonly List<CoreNavalAttackRange> ranges = new List<CoreNavalAttackRange>();
+        private readonly List<VoyagePoint> attackOrigins = new List<VoyagePoint>();
         private IReadOnlyList<VoyagePoint> visibleMovementCells;
         private int? previousSignature;
 
@@ -35,13 +35,6 @@ namespace ShatteredSail.Presentation
             rangeRect.SetSiblingIndex(1);
             graphic = rangeRect.gameObject.AddComponent<NavalTacticalAttackRangeGraphic>();
             graphic.raycastTarget = false;
-            RectTransform label = MakeRect("Naval attack range caption", parent, new Vector2(440f, 64f));
-            label.anchorMin = label.anchorMax = new Vector2(0f, .5f);
-            label.anchoredPosition = new Vector2(315f, 124f);
-            caption = label.gameObject.AddComponent<Text>();
-            caption.font = font; caption.fontSize = 18; caption.alignment = TextAnchor.MiddleLeft;
-            caption.color = new Color(1f, .81f, .74f);
-            caption.raycastTarget = false;
             RefreshNow();
         }
 
@@ -110,6 +103,14 @@ namespace ShatteredSail.Presentation
                     signature = signature * 31 + battle.EnemyPositionMeters.X.GetHashCode();
                     signature = signature * 31 + battle.EnemyPositionMeters.Y.GetHashCode();
                     signature = signature * 31 + (int)battle.Stage;
+                    signature = signature * 31 + battle.Turn;
+                    signature = signature * 31 + battle.PhaseTurn;
+                    signature = signature * 31 + battle.TacticalRevision;
+                    signature = signature * 31 + battle.PlayerHeadingDegrees.GetHashCode();
+                    signature = signature * 31 + battle.NavalActionPoints;
+                    signature = signature * 31 + (battle.NavalAwaitingHeadingSelection ? 1 : 0);
+                    signature = signature * 31 + battle.CardsPlayedThisTurn;
+                    signature = signature * 31 + (int)session.GuidedBossStep;
                     foreach (int id in battle.Hand) signature = signature * 31 + id;
                 }
             }
@@ -127,19 +128,16 @@ namespace ShatteredSail.Presentation
             if (!CanPreview || Blocked)
             {
                 graphic.Configure(board, cells);
-                caption.text = string.Empty;
                 return;
             }
             CoreBattleCard card = hoverOwner != null && hoverOwner.gameObject.activeInHierarchy ? hoveredCard?.Invoke() : null;
             CoreNavalAttackRange cardRange = card == null ? default : session.GetNavalCardAttackRange(card);
             NavalTacticalMovementInput movement = GetComponent<NavalTacticalMovementInput>();
             if (movement != null && movement.IsMovementRangeVisible) visibleMovementCells = movement.ReachableCells;
-            string movementLegend = visibleMovementCells != null ? "\n青格：可达海域优先 · 金线：已选航线" : string.Empty;
             if (cardRange.IsDamageCard)
             {
                 ShowingCardId = card.Id;
                 ranges.Add(cardRange);
-                caption.text = "红格：" + card.Name + " · " + RangeCaption(cardRange) + movementLegend;
             }
             else if (ShipRangePinned)
             {
@@ -149,9 +147,7 @@ namespace ShatteredSail.Presentation
                     CoreNavalAttackRange range = session.GetNavalCardAttackRange(session.GetBattleCard(id));
                     if (range.IsDamageCard) ranges.Add(range);
                 }
-                caption.text = "红格：炮击与当前手牌的攻击范围" + movementLegend + "\n再次点击我舰收起范围";
             }
-            else caption.text = "点击我舰：查看移动海域与攻击范围\n按住我舰拖动航线 · 悬停伤害牌查看范围";
 
             if (ranges.Count > 0 && CollectCells()) return;
             graphic.Configure(board, cells, visibleMovementCells);
@@ -166,7 +162,24 @@ namespace ShatteredSail.Presentation
             bool unlimited = false;
             foreach (CoreNavalAttackRange range in ranges)
             { radius = Math.Max(radius, range.ScanRadiusCells); unlimited |= range.IsUnlimited; }
+            attackOrigins.Clear();
+            attackOrigins.Add(origin);
+            // The ship overview includes attacks after any legal movement. Hovering
+            // a specific card still previews targets available from the current pose.
+            if (!unlimited && ShowingCardId == null && ShipRangePinned)
+                foreach (VoyagePoint point in session.GetNavalReachableAttackOrigins())
+                    if (CoreVoyageSession.NavalGridDistance(point, battle.EnemyPositionMeters) != 0 &&
+                        CoreVoyageSession.NavalGridDistance(point, origin) != 0)
+                        attackOrigins.Add(point);
             int minX = centerX - radius, maxX = centerX + radius, minY = centerY - radius, maxY = centerY + radius;
+            foreach (VoyagePoint attackOrigin in attackOrigins)
+            {
+                int x = Mathf.RoundToInt(attackOrigin.X / size), y = Mathf.RoundToInt(attackOrigin.Y / size);
+                minX = Math.Min(minX, x - radius); maxX = Math.Max(maxX, x + radius);
+                minY = Math.Min(minY, y - radius); maxY = Math.Max(maxY, y + radius);
+            }
+            // Expand each weapon radius locally instead of scanning every origin for every target.
+            if (!unlimited) { CollectFiniteCells(radius); return false; }
             Rect visible = ((RectTransform)board.transform).rect;
             if (unlimited)
             {
@@ -193,14 +206,43 @@ namespace ShatteredSail.Presentation
                 {
                     var target = new VoyagePoint(x * size, y * size);
                     if (unlimited && !visible.Contains(board.WorldToBoard(target))) continue;
-                    foreach (CoreNavalAttackRange range in ranges)
-                        if (range.Contains(origin, target)) { cells.Add(target); break; }
+                    if (CoreVoyageSession.NavalGridDistance(origin, target) == 0) continue;
+                    bool inRange = false;
+                    foreach (VoyagePoint attackOrigin in attackOrigins)
+                    {
+                        foreach (CoreNavalAttackRange range in ranges)
+                            if (range.Contains(attackOrigin, target)) { inRange = true; break; }
+                        if (inRange) break;
+                    }
+                    if (inRange) cells.Add(target);
                 }
             return false;
         }
 
-        private static string RangeCaption(CoreNavalAttackRange range) => range.Kind == CoreNavalAttackRangeKind.CannonCells
-            ? "横纵相加4格" : range.IsUnlimited ? "无距离限制" : range.Meters.ToString("0") + "米";
+        private void CollectFiniteCells(int radius)
+        {
+            const float size = CoreVoyageSession.NavalGridCellMeters;
+            var painted = new HashSet<long>();
+            foreach (VoyagePoint origin in attackOrigins)
+            {
+                int cx = Mathf.RoundToInt(origin.X / size), cy = Mathf.RoundToInt(origin.Y / size);
+                for (int x = cx - radius; x <= cx + radius; x++)
+                    for (int y = cy - radius; y <= cy + radius; y++)
+                    {
+                        long key = ((long)x << 32) | (uint)y;
+                        if (painted.Contains(key)) continue;
+                        var target = new VoyagePoint(x * size, y * size);
+                        if (CoreVoyageSession.NavalGridDistance(battle.PlayerPositionMeters, target) == 0) continue;
+                        foreach (CoreNavalAttackRange range in ranges)
+                            if (range.Contains(origin, target))
+                            {
+                                painted.Add(key);
+                                cells.Add(target);
+                                break;
+                            }
+                    }
+            }
+        }
 
         private static RectTransform MakeRect(string name, RectTransform parent, Vector2 size)
         {

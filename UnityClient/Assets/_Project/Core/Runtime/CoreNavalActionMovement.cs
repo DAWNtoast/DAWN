@@ -27,7 +27,7 @@ namespace ShatteredSail.Core.Gameplay
             result = result.Replace("再转舵与推进以占据侧翼；", string.Empty)
                 .Replace("朝敌舰航行时准备冲撞；", string.Empty)
                 .Replace("朝敌舰航行时准备冲撞。", string.Empty)
-                .Replace("平行且距离不超过 60 米可接舷。", "两舰上下左右相邻且同向时，消耗 1 行动点接舷。");
+                .Replace("平行且距离不超过 60 米可接舷。", "两舰平行且舷侧相邻（100 米）时，消耗 1 行动点接舷；同向或反向均可，首尾相邻不可接舷。");
             return result;
         }
     }
@@ -52,6 +52,20 @@ namespace ShatteredSail.Core.Gameplay
             get { EnsureNavalMovementPath(); return navalMovementPath.AsReadOnly(); }
         }
         public int NavalMovementPlannedSteps { get { EnsureNavalMovementPath(); return Math.Max(0, navalMovementPath.Count - 1); } }
+
+        public bool NavalMovementEndsInRam
+        {
+            get
+            {
+                if (!NavalActionMovementActive) return false;
+                EnsureNavalMovementPath();
+                return navalMovementPath.Count > 1 &&
+                    NavalMovementTargetsEnemy(navalMovementPath[navalMovementPath.Count - 1].PositionMeters);
+            }
+        }
+
+        private bool NavalMovementTargetsEnemy(VoyagePoint point) => Battle != null &&
+            NavalPointDistance(point, Battle.EnemyPositionMeters) < NavalContactTolerance;
 
         private void EnsureNavalMovementPath()
         {
@@ -99,6 +113,14 @@ namespace ShatteredSail.Core.Gameplay
             float turn = Math.Abs(NavalAngleDelta(previous.HeadingDegrees, heading));
             if (precedingSteps == 0 && turn > .01f) return "第一格必须沿当前船头正前方航行";
             if (precedingSteps > 0 && turn > 90.01f) return "航行中只能直行或左右转，不能直接反向";
+            if (NavalMovementTargetsEnemy(previous.PositionMeters))
+                return "驶入敌舰海域将主动冲撞，航线必须在敌舰格结束";
+            if (NavalMovementTargetsEnemy(targetMeters))
+            {
+                if (Battle.Stage != NavalBattleStage.Naval) return "仅炮战阶段可以驶入敌舰海域冲撞";
+                if (IsGuidedBossBattle && !GuidedBossAllowsRam) return "请先完成当前教学动作";
+                return string.Empty;
+            }
             if (NavalSegmentDistance(previous.PositionMeters, targetMeters, Battle.EnemyPositionMeters) < MinimumNavalDistanceMeters - .01f)
                 return "该格航线被敌舰占据";
             return string.Empty;
@@ -146,8 +168,12 @@ namespace ShatteredSail.Core.Gameplay
             EnsureNavalMovementPath();
         }
 
-        public bool CommitNavalMovement(out string reason)
+        public bool CommitNavalMovement(out string reason) => CommitNavalMovement(out reason, out _);
+
+        /// <summary>The final step into an enemy cell pays for a ram instead of ordinary sailing.</summary>
+        public bool CommitNavalMovement(out string reason, out NavalBoardingConnection ramConnection)
         {
+            ramConnection = NavalBoardingConnection.Planned;
             if (!NavalActionMovementActive) { reason = "当前不是行动点海战"; return false; }
             if (Battle.NavalAwaitingHeadingSelection) { reason = "请先确定到达朝向"; return false; }
             EnsureNavalMovementPath();
@@ -167,9 +193,19 @@ namespace ShatteredSail.Core.Gameplay
             var frames = new List<CoreNavalTacticalFrame> { committedBattle.TacticalFrame };
             float initialRange = Battle.DistanceMeters;
             int steps = 0;
+            bool ramAtDestination = false;
+            float ramHeading = 0f;
             for (int index = 1; index < navalMovementPath.Count; index++)
             {
                 CoreNavalMovementNode node = navalMovementPath[index];
+                if (NavalMovementTargetsEnemy(node.PositionMeters))
+                {
+                    // Keep the adjacent contact pose for normal ram geometry, armor and
+                    // impact presentation. Do not sail through or overlap the target.
+                    ramAtDestination = true;
+                    ramHeading = node.HeadingDegrees;
+                    break;
+                }
                 TurnNavalShip(true, node.HeadingDegrees, frames);
                 AdvanceNavalShip(true, NavalGridCellMeters, frames);
                 steps++;
@@ -185,12 +221,28 @@ namespace ShatteredSail.Core.Gameplay
                 }
                 if (interrupted) break;
             }
-            NavalFieldsMovementEnded(true, frames);
+            if (steps > 0) NavalFieldsMovementEnded(true, frames);
             if (!NavalActionMovementActive)
             {
                 committedBattle.CommitTacticalMovement(frames);
                 reason = string.Empty;
                 return true;
+            }
+            if (ramAtDestination && NavalPlayerContactGeometryReason(false, ramHeading).Length == 0)
+            {
+                // The route budget already includes its final one-point collision step.
+                // Resolve all preceding movement/terrain first and discard unused points.
+                Battle.NavalActionPoints = 0;
+                ClearNavalArrivalContactState();
+                TurnNavalShip(true, ramHeading, frames);
+                FinishNavalMovement(frames, true, Battle.DistanceMeters < initialRange - .01f);
+                ClearNavalMovementPath();
+                ramConnection = NavalRamConnection(true);
+                bool completed = ExecutePlayerRam();
+                frames.Add(committedBattle.TacticalFrame);
+                committedBattle.CommitTacticalMovement(frames);
+                reason = string.Empty;
+                return completed;
             }
             navalArrivalHeading = Battle.PlayerHeadingDegrees;
             Battle.NavalArrivalActionPoints = Battle.NavalActionPoints - steps;

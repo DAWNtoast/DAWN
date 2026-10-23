@@ -34,7 +34,7 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
             RectTransform modal = Find<RectTransform>("Departure Basic Supplies");
             Assert.That(modal.rect.width, Is.EqualTo(1080f).Within(.1f));
-            Assert.That(modal.rect.height, Is.EqualTo(660f).Within(.1f));
+            Assert.That(modal.rect.height, Is.EqualTo(800f).Within(.1f));
             Assert.That(modal.anchoredPosition, Is.EqualTo(Vector2.zero));
             Image overlay = Find<Image>("Departure Basic Supplies Overlay");
             Assert.That(overlay.raycastTarget, Is.True, "The modal background blocks the departure controls below it.");
@@ -56,10 +56,25 @@ namespace ShatteredSail.Presentation.Tests
                 Rect minus = Bounds(modal, Find<Button>("Departure Basic Supply Decrease " + key).GetComponent<RectTransform>());
                 Rect quantity = Bounds(modal, Find<Text>("Departure Basic Supply Quantity " + key).rectTransform);
                 Rect plus = Bounds(modal, Find<Button>("Departure Basic Supply Increase " + key).GetComponent<RectTransform>());
+                InputField input = Find<InputField>("Departure Basic Supply Quantity Input " + key);
+                Assert.That(input.textComponent, Is.SameAs(Find<Text>("Departure Basic Supply Quantity " + key)));
+                Assert.That(input.contentType, Is.EqualTo(InputField.ContentType.IntegerNumber));
+                Assert.That(input.interactable, Is.False, "Editor preview cannot edit a persisted basket.");
+                Rect minusTen = Bounds(modal, Find<Button>("Departure Basic Supply Decrease Ten " + key).GetComponent<RectTransform>());
+                Rect plusTen = Bounds(modal, Find<Button>("Departure Basic Supply Increase Ten " + key).GetComponent<RectTransform>());
+                Assert.That(minusTen.xMax, Is.LessThanOrEqualTo(minus.xMin), key + " -10 / -1");
+                Assert.That(plus.xMax, Is.LessThanOrEqualTo(plusTen.xMin), key + " +1 / +10");
+                Text unitPrice = Find<Text>("Departure Basic Supply Unit Price " + key);
+                Text subtotal = Find<Text>("Departure Basic Supply Subtotal " + key);
+                Assert.That(unitPrice.text, Does.StartWith("单价 ").And.EndWith(" 金"));
+                Assert.That(subtotal.text, Is.EqualTo("小计 0 金"));
+                Assert.That(Bounds(modal, unitPrice.rectTransform).Overlaps(heldBounds), Is.False, key + " held / unit price");
+                Assert.That(Bounds(modal, subtotal.rectTransform).Overlaps(quantity), Is.False, key + " quantity / subtotal");
                 Assert.That(minus.xMax, Is.LessThanOrEqualTo(quantity.xMin), key + " minus / quantity");
                 Assert.That(quantity.xMax, Is.LessThanOrEqualTo(plus.xMin), key + " quantity / plus");
                 Assert.That(minus.center.y, Is.EqualTo(plus.center.y).Within(.1f), key);
-                foreach (Rect bounds in new[] { art, heldBounds, minus, quantity, plus }) AssertInside(modal, bounds, key);
+                foreach (Rect bounds in new[] { art, heldBounds, minus, quantity, plus, minusTen, plusTen,
+                    Bounds(modal, unitPrice.rectTransform), Bounds(modal, subtotal.rectTransform) }) AssertInside(modal, bounds, key);
                 Text endurance = controller.GetComponentsInChildren<Text>(true)
                     .SingleOrDefault(text => text.name == "Departure Basic Supply Endurance " + key);
                 Assert.That(endurance != null, Is.EqualTo(item == PortMarketItem.Water || item == PortMarketItem.Food), key);
@@ -69,6 +84,7 @@ namespace ShatteredSail.Presentation.Tests
                     Rect enduranceBounds = Bounds(modal, endurance.rectTransform);
                     AssertInside(modal, enduranceBounds, key);
                     Assert.That(enduranceBounds.Overlaps(art), Is.False, key + " endurance / icon");
+                    Assert.That(enduranceBounds.Overlaps(Bounds(modal, subtotal.rectTransform)), Is.False, key + " endurance / subtotal");
                 }
                 Assert.That(held.preferredHeight, Is.LessThanOrEqualTo(held.rectTransform.rect.height + 1f), key);
             }

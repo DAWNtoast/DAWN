@@ -38,7 +38,7 @@ namespace ShatteredSail.Presentation
 
         private string DeckBuilderStatusText => DeckBuilderNeedsMoreCards
             ? DeckBuilderMinimumNotice + "（当前 " + CurrentDeckBuilderCards.Count + " 张，请补足后离开）"
-            : string.IsNullOrEmpty(deckBuilderNotice) ? DeckBuilderMinimumNotice : deckBuilderNotice;
+            : deckBuilderNotice ?? string.Empty;
 
         private bool BlockIncompleteDeckBuilderNavigation()
         {
@@ -99,6 +99,9 @@ namespace ShatteredSail.Presentation
         private void SaveStageBattleDecks()
         {
             if (session == null || session.Phase != CoreDemoPhase.Port) return;
+            // Old voyage checkpoints have no edit evidence; restore the profile's
+            // confirmed edits only after returning to port, for the next voyage.
+            session.ConfigureAchievementEditedDeckStages(AchievementCatalog.EditedDeckStages | pendingAchievementEditedDeckStages);
             foreach (NavalBattleStage stage in WorkshopBattleStages)
             {
                 IReadOnlyList<int> cards = session.GetBattleDeck(stage);
@@ -186,7 +189,8 @@ namespace ShatteredSail.Presentation
             {
                 // Restoring the curated defaults is part of profile loading;
                 // only a real workshop change counts toward deck achievements.
-                AchievementCatalog.RecordDeckEdited();
+                pendingAchievementEditedDeckStages |= 1 << (int)selectedBattleDeckStage;
+                session.ConfigureAchievementEditedDeckStages(AchievementCatalog.EditedDeckStages | pendingAchievementEditedDeckStages);
             }
             SaveProgress();
             portNotice = WorkshopStageName(selectedBattleDeckStage) + "已保存：基础 " + updated.Count + "/" + CoreVoyageSession.MaximumBaseBattleDeckSize + " 张，船员追加 " + session.GetCrewBattleCards(selectedBattleDeckStage).Count + " 张。";

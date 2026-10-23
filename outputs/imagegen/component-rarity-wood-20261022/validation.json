@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "scope": "Component shop catalogue rarity-specific wooden backgrounds",
+  "project": "D:/Game/tmp/component-rarity-wood-20261022",
+  "editMode": {"passed": 75, "failed": 0, "results": "D:/Game/Artifacts/ComponentRarityWood20261022/Edit01/results.xml"},
+  "playMode": {"passed": 2, "failed": 0, "results": "D:/Game/Artifacts/ComponentRarityWood20261022/Play01/results.xml"},
+  "capture": "D:/Game/Artifacts/ComponentRarityWood20261022/Capture01/images",
+  "visualReview": "Reviewed normal Broken Anchor stock and the five-rarity production showroom fixture. All five board colors are distinct; labels and artwork fit without overlap.",
+  "artworkTool": "built-in image_gen",
+  "prompts": "generation-record.json",
+  "assetVerification": "asset-verification.json"
+}

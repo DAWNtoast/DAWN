@@ -26,7 +26,7 @@ namespace ShatteredSail.Presentation
                 battle.EnemyHull, battle.EnemyMaxHull, Coral);
             board.Configure(battle, player.rectTransform, enemy.rectTransform,
                 root.Find("Player Battle Hull Bar Track") as RectTransform,
-                root.Find("Enemy Battle Hull Bar Track") as RectTransform, interfaceFont);
+                root.Find("Enemy Battle Hull Bar Track") as RectTransform, interfaceFont, session);
             NavalAttackRangePreview attackRange = boardRect.gameObject.AddComponent<NavalAttackRangePreview>();
             attackRange.Configure(session, board, interfaceFont,
                 () => !isActiveAndEnabled || battleAnimationPlaying || BattleInspectionBlocksInput || IsBoardingCardChoiceOpen || IsNavalCardChoiceOpen);
@@ -61,9 +61,10 @@ namespace ShatteredSail.Presentation
                 CoreBattleState battle = session.Battle;
                 if (battle == null) yield break;
                 BattleAnimationSnapshot before = new BattleAnimationSnapshot(session, battle);
+                NavalBoardingConnection ramConnection = NavalBoardingConnection.Planned;
                 bool committed = arrivalHeading.HasValue
                     ? session.ConfirmNavalArrivalHeading(arrivalHeading.Value, out _)
-                    : session.CommitNavalMovement(out _);
+                    : session.CommitNavalMovement(out _, out ramConnection);
                 if (!committed) yield break;
                 BattleAnimationSnapshot after = new BattleAnimationSnapshot(session, session.Battle ?? battle);
                 RectTransform stage = board.transform.parent as RectTransform;
@@ -73,12 +74,15 @@ namespace ShatteredSail.Presentation
                 // A lethal field clears session.Battle during the commit. The captured
                 // battle retains the authoritative shortened route and terminal result.
                 yield return board.AnimateMovement(battle.LastTacticalMovement);
+                if (ramConnection != NavalBoardingConnection.Planned && stage != null)
+                    yield return AnimateCommittedPlayerRam(stage, stage.Find("Player Ship Art") as RectTransform,
+                        stage.Find("Enemy Ship Art") as RectTransform, before, after, ramConnection, true);
                 if (session.Phase != CoreDemoPhase.Battle && stage != null)
                 {
                     RectTransform player = stage.Find("Player Ship Art") as RectTransform;
                     RectTransform enemy = stage.Find("Enemy Ship Art") as RectTransform;
                     Image playerHull = stage.Find("Player Battle Hull Bar Track/Player Battle Hull Bar")?.GetComponent<Image>();
-                    if (playerHull != null)
+                    if (playerHull != null && ramConnection == NavalBoardingConnection.Planned)
                         yield return AnimateBattleDamage(playerHull, before.PlayerHull, after.PlayerHull,
                             before.PlayerMaxHull, before.PlayerBlock, after.PlayerBlock, stage);
                     yield return AnimateStagedBattleResolution(stage, player, enemy, before, after);

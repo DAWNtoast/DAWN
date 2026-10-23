@@ -1,0 +1,89 @@
+{
+    "scope": "Disposable production battle UI, with representative in-memory statuses. Original CanvasScaler and target geometry verified. No saves or scene regeneration.",
+    "frames": [
+        {
+            "state": "Naval",
+            "file": "Naval_1920x1080.png",
+            "error": "",
+            "width": 1920,
+            "height": 1080,
+            "playerStatuses": 9,
+            "enemyStatuses": 6,
+            "scaleFactor": 1.0,
+            "expectedScaleFactor": 1.0,
+            "renderingDisplaySize": {
+                "x": 1920.0001220703125,
+                "y": 1080.0
+            },
+            "logicalCanvasSize": {
+                "x": 1920.0001220703125,
+                "y": 1080.0
+            },
+            "canvasPixelRect": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 1920.0,
+                "height": 1080.0
+            },
+            "verifiedScaler": true,
+            "intentCount": 3,
+            "movementSelected": false,
+            "intents": [
+                "enemy_move=1",
+                "enemy_guard=0",
+                "enemy_load=2"
+            ],
+            "playerStatusAlpha": 1.0,
+            "enemyStatusAlpha": 1.0,
+            "playerInheritedAlphaMax": 1.0,
+            "enemyInheritedAlphaMax": 1.0,
+            "playerStatusRaycasts": true,
+            "enemyStatusRaycasts": true,
+            "verifiedStatusVisibility": true,
+            "cannonValue": "",
+            "cannonTooltip": ""
+        },
+        {
+            "state": "Boarding",
+            "file": "Boarding_1920x1080.png",
+            "error": "",
+            "width": 1920,
+            "height": 1080,
+            "playerStatuses": 9,
+            "enemyStatuses": 4,
+            "scaleFactor": 1.0,
+            "expectedScaleFactor": 1.0,
+            "renderingDisplaySize": {
+                "x": 1920.0001220703125,
+                "y": 1080.0
+            },
+            "logicalCanvasSize": {
+                "x": 1920.0001220703125,
+                "y": 1080.0
+            },
+            "canvasPixelRect": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 1920.0,
+                "height": 1080.0
+            },
+            "verifiedScaler": true,
+            "intentCount": 1,
+            "movementSelected": false,
+            "intents": [
+                "enemy_boarding_0_enemy_boarding_neutral_01_attack=4"
+            ],
+            "playerStatusAlpha": 1.0,
+            "enemyStatusAlpha": 1.0,
+            "playerInheritedAlphaMax": 1.0,
+            "enemyInheritedAlphaMax": 1.0,
+            "playerStatusRaycasts": true,
+            "enemyStatusRaycasts": true,
+            "verifiedStatusVisibility": true,
+            "cannonValue": "",
+            "cannonTooltip": ""
+        }
+    ]
+}

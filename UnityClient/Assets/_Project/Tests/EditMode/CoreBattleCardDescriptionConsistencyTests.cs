@@ -47,6 +47,20 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(levels[level].CannonballCost, Is.EqualTo(original.CannonballCost), "Upgrades preserve cannonball costs.");
             }
 
+            if (original.Id == "card_school_fire_b01")
+            {
+                foreach (CoreBattleCard card in levels)
+                {
+                    Assert.That(card.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.FireLoad));
+                    string expected = "获得 " + card.SchoolEffect.Secondary + " 发附火";
+                    if (card.SchoolEffect.Power != 4)
+                        expected += "（燃烧 " + card.SchoolEffect.Power + " 层）";
+                    Assert.That(card.Description, Is.EqualTo(expected + "。"),
+                        card.Id + " rank " + card.UpgradeLevel + " shows the enhanced payload instead of repeating the shared four-stack rule.");
+                }
+                return;
+            }
+
             if (original.BoardingSpec == null)
             {
                 Assert.That(WithoutNumbers(levels[1].Description), Is.EqualTo(WithoutNumbers(original.Description)),
@@ -109,11 +123,16 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             CoreBattleCard chain = Card(session, "card_chain_shot", level);
-            Assert.That(chain.Description, Does.Contain("4 格内：" + chain.Damage + " 点船体伤害；\n消耗 1 火药、1 炮弹。"));
+            Assert.That(chain.Description, Does.Contain("范围 1-4 格：造成 " + chain.Damage + " 点船体伤害。")
+                .And.Not.Contain("消耗"));
+            Assert.That(chain.PowderCost, Is.EqualTo(1));
+            Assert.That(chain.CannonballCost, Is.EqualTo(1));
 
             CoreBattleCard barrage = Card(session, "card_cannon_barrage", level);
-            Assert.That(barrage.Description, Does.Contain("4 格内：" + barrage.Damage + " 点船体伤害"));
-            Assert.That(barrage.Description, Does.Contain("消耗 1 火药、1 炮弹。"));
+            Assert.That(barrage.Description, Does.Contain("范围 1-4 格：造成 " + barrage.Damage + " 点船体伤害"));
+            Assert.That(barrage.Description, Does.Not.Contain("消耗"));
+            Assert.That(barrage.PowderCost, Is.EqualTo(1));
+            Assert.That(barrage.CannonballCost, Is.EqualTo(1));
 
             CoreBattleCard parallel = Card(session, "card_parallel_course", level);
             Assert.That(parallel.Id, Is.EqualTo("card_approach"), "The retired parallel card resolves to the canonical maneuver.");
@@ -122,12 +141,13 @@ namespace ShatteredSail.Core.Tests
             Assert.That(parallel.Description, Is.EqualTo("获得 " + maneuverActionPoints + " 点行动点。"));
 
             CoreBattleCard sabotage = Card(session, "card_diver_sabotage", level);
-            Assert.That(sabotage.Description, Does.Contain("150 米内：敌舰船体 -" + sabotage.Damage + "，无需弹药。"));
+            Assert.That(sabotage.Description, Does.Contain("范围 1-2 格：造成 " + sabotage.Damage + " 点船体伤害。"));
+            Assert.That(sabotage.PowderCost + sabotage.CannonballCost, Is.Zero);
 
             CoreBattleCard fire = Card(session, "card_special_crew_salt_crown_gunner_rokan", level);
-            Assert.That(fire.Description, Does.Contain("获得 " + fire.StrategyAmount + " 发烈焰强化，上限 " + fire.StrategyLimit + "；"));
-            Assert.That(fire.Description, Does.Contain("炮击造成有效直伤后灼烧 " + fire.BurnDamage + "×2 回合"),
-                "Upgrade burn damage, but retain reserve quantity, duration and the requirement to damage through block.");
+            Assert.That(fire.Description, Does.Contain("获得 " + fire.StrategyAmount + " 发烈焰强化，最多储备 " + fire.StrategyLimit + " 发；"));
+            Assert.That(fire.Description, Does.Contain("炮击造成有效直伤后，施加 " + fire.BurnDamage + " 层燃烧"),
+                "Upgrades scale burning stacks while preserving reserve quantity and the requirement to damage through block.");
         }
 
         [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)]
@@ -141,28 +161,30 @@ namespace ShatteredSail.Core.Tests
             int precision = Card(session, "card_gunner_precision", level).StrategyAmount;
             int circleGuard = Card(session, "card_circle_enemy", level).Block;
             Assert.That(Card(session, "card_deck_polish", level).Description,
-                Does.Contain("本场船体防御牌额外 +" + polish + " 格挡，可叠至 +" + polishLimit + "。"));
+                Does.Contain("额外格挡：" + polish + "。"));
             Assert.That(Card(session, "card_load_shot", level).Description,
-                Does.Contain("下次炮击 +" + load + "，最多 +" + loadLimit + "；"));
-            Assert.That(Card(session, "card_load_shot", level).Description, Does.Contain("消耗 1 火药"));
-            Assert.That(Card(session, "card_load_shot", level).Description, Does.Contain("开炮另付弹药并清空增益。"));
+                Does.Contain("额外装药：" + load + "；"));
+            Assert.That(Card(session, "card_load_shot", level).Description, Does.Not.Contain("消耗"));
+            Assert.That(Card(session, "card_load_shot", level).PowderCost, Is.EqualTo(1));
+            Assert.That(Card(session, "card_load_shot", level).Description, Does.Not.Contain("开炮另付弹药并清空增益。"));
             Assert.That(Card(session, "card_gunner_precision", level).Description,
-                Does.Contain("下次炮击 +" + precision + "，最多 +" + loadLimit + "；"));
-            Assert.That(Card(session, "card_gunner_precision", level).Description, Does.Contain("消耗 1 火药"));
-            Assert.That(Card(session, "card_circle_enemy", level).Description, Does.Contain("格挡 +" + circleGuard),
+                Does.Contain("额外装药：" + precision + "；"));
+            Assert.That(Card(session, "card_gunner_precision", level).Description, Does.Not.Contain("消耗"));
+            Assert.That(Card(session, "card_gunner_precision", level).PowderCost, Is.EqualTo(1));
+            Assert.That(Card(session, "card_circle_enemy", level).Description, Does.Contain("获得 " + circleGuard + " 点格挡"),
                 "Circle already grants guard at level zero; its description must not imply that upgrading adds a new effect.");
         }
 
-        [TestCase("card_evasive_maneuver", "保留当前航向与距离。")]
-        [TestCase("card_brace", "准备阶段的格挡保留到首轮炮战。")]
-        [TestCase("card_deck_polish", "本场船体防御牌")]
-        [TestCase("card_load_shot", "开炮另付弹药并清空增益。")]
+        [TestCase("card_evasive_maneuver", "格挡")]
+        [TestCase("card_brace", "格挡")]
+        [TestCase("card_deck_polish", "额外格挡：")]
+        [TestCase("card_load_shot", "额外装药：")]
         [TestCase("card_crew_guard", "格挡") ]
-        [TestCase("card_crew_rally", "张。") ]
-        [TestCase("card_cook_rations", "炮战修复")]
-        [TestCase("card_cook_rations", "白刃战恢复")]
-        [TestCase("card_diver_sabotage", "无需弹药。")]
-        [TestCase("card_component_bow", "无需弹药。")]
+        [TestCase("card_crew_rally", "张牌。") ]
+        [TestCase("card_cook_rations", "海战：修复")]
+        [TestCase("card_cook_rations", "接舷战：恢复")]
+        [TestCase("card_diver_sabotage", "范围 1-2 格：")]
+        [TestCase("card_component_bow", "范围 1-2 格：")]
         public void EveryLevel_RetainsCardSpecificRules(string id, string rule)
         {
             var session = new CoreVoyageSession();
@@ -181,10 +203,14 @@ namespace ShatteredSail.Core.Tests
                     for (int level = 0; level <= 3; level++)
                     {
                         CoreBattleCard card = Card(session, definition.Card.Id, level);
-                        Assert.That(card.Description, Does.Contain("150 米内"));
+                        Assert.That(card.Description, Does.Contain("范围 1-2 格："));
                         if (card.PowderCost > 0)
-                            Assert.That(card.Description, Does.Contain("消耗 " + card.PowderCost + " 火药"),
-                                "Fire sabotage consumes its authored ignition powder despite not firing a cannonball.");
+                        {
+                            Assert.That(card.Description, Does.Not.Contain("消耗 " + card.PowderCost + " 火药"),
+                                "The powder icon owns the fixed ignition cost.");
+                            Assert.That(card.PowderCost, Is.EqualTo(definition.Card.PowderCost),
+                                "Fire sabotage still pays its authored powder despite not firing a cannonball.");
+                        }
                         Assert.That(card.CannonballCost, Is.Zero);
                     }
                     continue;
@@ -205,8 +231,12 @@ namespace ShatteredSail.Core.Tests
                 }
                 if (definition.Card.Action != NavalBattleCardAction.Sabotage) continue;
                 for (int level = 0; level <= 3; level++)
-                    Assert.That(Card(session, definition.Card.Id, level).Description, Does.Contain("无需弹药"),
+                {
+                    CoreBattleCard card = Card(session, definition.Card.Id, level);
+                    Assert.That(card.Description, Does.Contain("范围 1-2 格：").And.Not.Contain("无需弹药"),
                         definition.Card.Id + " level " + level);
+                    Assert.That(card.PowderCost + card.CannonballCost, Is.Zero);
+                }
             }
         }
 
@@ -216,19 +246,21 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = BoardingPreviewSession(1);
 
             CoreBattleCard bandage = Card(session, "card_crew_bandage", level);
-            int baseHealing = bandage.Repair;
-            Assert.That(bandage.Description, Does.Contain("恢复 " + baseHealing + " 生命"));
+            int baseHealing = System.Math.Min(CoreBattleCardEffects.UnprovisionedRepair, bandage.Repair);
+            int extraHealing = bandage.Repair - baseHealing;
+            Assert.That(bandage.Description, Does.Contain("恢复 " + baseHealing + " 点生命值")
+                .And.Contain("消耗 1 药物额外恢复 " + extraHealing + " 点生命值"));
             string preview = session.BattleCardPortDescription(bandage);
             Assert.That(preview, Does.Contain("恢复 " + baseHealing));
-            Assert.That(preview, Does.Contain("无药物恢复2"));
-            Assert.That(preview, Does.Contain("使用1药物"));
+            Assert.That(preview, Does.Contain("消耗 1 药物额外恢复 " + extraHealing + " 点生命值"));
+            Assert.That(baseHealing + extraHealing, Is.EqualTo(session.GetBattleCardEffects(bandage, NavalBattleStage.Boarding).FullRepair));
             Assert.That(session.Cargo.Medicine, Is.EqualTo(1), "Rendering a preview must not consume its quoted resource.");
         }
 
-        [TestCase("arcane_04", "即30/38/45/53", 53)]
-        [TestCase("arcane_06", "每枚6伤害，总计12/18/24/30", 30)]
-        [TestCase("blood_07", "第二击+5，总计30或35", 35)]
-        [TestCase("thunder_11", "总计8至24", 18)]
+        [TestCase("arcane_04", "(24+6X)×1.25（结果四舍五入）", 53)]
+        [TestCase("arcane_06", "造成 6 点伤害 2+X 次", 30)]
+        [TestCase("blood_07", "第二击伤害提高 5 点", 35)]
+        [TestCase("thunder_11", "(3+出牌前连锁层数)×1.33（结果四舍五入）", 18)]
         public void BoardingSavedUpgradeRank_DescriptionsMatchWholeFormulaAndPerHitRounding(string key, string expected, int damage)
         {
             var session = new CoreVoyageSession();
@@ -239,7 +271,8 @@ namespace ShatteredSail.Core.Tests
             typeof(CoreSchoolBattleState).GetProperty("ThunderChain").SetValue(session.Battle.Schools, 4);
             session.Battle.EnemyBlock = 0;
             CoreBattleCard card = Card(session, "card_boarding_" + key, 1);
-            Assert.That(card.Description, Does.Contain(expected));
+            Assert.That(card.Description, Does.Contain(expected).And.Not.Contain("总计")
+                .And.Not.Match(@"即\s*\d"));
             Assert.That(session.GetBoardingCardDamageQuote(card), Is.EqualTo(damage));
         }
 
@@ -262,9 +295,9 @@ namespace ShatteredSail.Core.Tests
                 if (CoreBoardingCardCatalog.FindByKey(key).DescriptionTemplate.Contains("{draw}"))
                     AssertDrawText(card, card.Description, expected[level]);
                 if (key == "arcane_09")
-                    Assert.That(card.Description, Does.Contain("查看牌库顶5张").And.Contain("张入手").And.Contain("其余按原顺序放回牌库底"));
+                    Assert.That(card.Description, Does.Contain("查看牌库顶 5 张牌").And.Contain("张加入手牌").And.Contain("其余按原顺序放回牌库底"));
                 if (key == "thunder_08")
-                    Assert.That(card.Description, Does.Contain("出牌前至少3连锁时额外抽1张").And.Contain("不消耗连锁"),
+                    Assert.That(card.Description, Does.Contain("连锁 3：额外抽 1 张牌"),
                         "The conditional extra draw and chain threshold stay fixed when the base draw grows.");
             }
         }
@@ -292,12 +325,22 @@ namespace ShatteredSail.Core.Tests
         private static void AssertDrawText(CoreBattleCard original, string description, int expectedDraw)
         {
             string verb = original.BoardingSpec?.Key == "arcane_09" ? "选择" : "抽";
-            Assert.That(description, Does.Contain(verb + " " + expectedDraw + " 张"), original.Id);
-            Assert.That(Regex.Matches(description, verb + @" \d+ 张").Count, Is.EqualTo(1),
+            string cardNoun = original.BoardingSpec?.Key == "arcane_09" ? " 张加入手牌" : @" 张(?:当前阶段|本阶段)?牌";
+            Assert.That(Regex.IsMatch(description, @"(?<!额外)" + verb + " " + expectedDraw + cardNoun),
+                Is.True, original.Id + " expected main draw/selection amount " + expectedDraw + ": " + description);
+            Assert.That(Regex.Matches(description, @"(?<!额外)" + verb + @" \d+" + cardNoun).Count, Is.EqualTo(1),
                 original.Id + " existing draw/selection effects must be updated rather than duplicated.");
         }
 
-        private static string WithoutNumbers(string description) => Regex.Replace(description, @"\d+", "#");
+        private static string WithoutNumbers(string description)
+        {
+            // An upgrade that raises repair above the free two-point base gains
+            // a paid-supply clause. Its arithmetic is verified separately; every
+            // other word, clause and hard break must still remain unchanged.
+            string withoutSupplyBonus = Regex.Replace(description,
+                @"；\s*消耗\s*1\s*(?:药物|木板)额外(?:恢复|修复)\s*\d+\s*点(?:生命值|船体)", string.Empty);
+            return Regex.Replace(withoutSupplyBonus, @"\d+", "#");
+        }
 
         private static CoreVoyageSession BoardingPreviewSession(int medicine)
         {

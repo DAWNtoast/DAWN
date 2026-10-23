@@ -19,12 +19,12 @@ namespace ShatteredSail.Presentation.Tests
             if (host != null) Object.DestroyImmediate(host);
         }
 
-        [TestCase(CoreGameplayPreviewPort.BrokenAnchor, "voyage_broken_anchor_open_berth_v1")]
-        [TestCase(CoreGameplayPreviewPort.WhiteShell, "voyage_white_shell_open_berth_v1")]
-        [TestCase(CoreGameplayPreviewPort.BronzeBell, "voyage_bronze_bell_open_berth_v1")]
-        [TestCase(CoreGameplayPreviewPort.SaltCrown, "voyage_salt_crown_open_berth_v1")]
-        [TestCase(CoreGameplayPreviewPort.TwilightTide, "voyage_twilight_tide_open_berth_v1")]
-        [TestCase(CoreGameplayPreviewPort.GrayGull, "voyage_gray_gull_open_berth_v1")]
+        [TestCase(CoreGameplayPreviewPort.BrokenAnchor, "voyage_broken_anchor_crew_integrated_v1")]
+        [TestCase(CoreGameplayPreviewPort.WhiteShell, "voyage_white_shell_crew_integrated_v1")]
+        [TestCase(CoreGameplayPreviewPort.BronzeBell, "voyage_bronze_bell_crew_integrated_v1")]
+        [TestCase(CoreGameplayPreviewPort.SaltCrown, "voyage_salt_crown_crew_integrated_v1")]
+        [TestCase(CoreGameplayPreviewPort.TwilightTide, "voyage_twilight_tide_crew_integrated_v1")]
+        [TestCase(CoreGameplayPreviewPort.GrayGull, "voyage_gray_gull_crew_integrated_v1")]
         public void RegionalDockUsesAnEmptyBerthWithIndependentVesselAndNonBlockingSceneRoots(
             CoreGameplayPreviewPort port, string sceneResource)
         {
@@ -88,23 +88,28 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void VesselControlsAndCrewReadoutsStayOutsideTheOpenWaterBerth()
+        public void VesselArrowsFlankTheShipWithoutATitleStripAndCrewReadoutsStayOutsideTheBerth()
         {
             Preview(CoreGameplayPreviewPort.BrokenAnchor);
             RectTransform setup = Find<RectTransform>("Voyage Setup");
             RectTransform inspect = Find<RectTransform>("Inspect Departure Vessel");
             Rect shipBounds = BoundsIn(setup, inspect);
-            Image controls = Find<Image>("Departure Dock Vessel Controls");
             Image crew = Find<Image>("Departure Dock Crew Readout Panel");
-            foreach (Image panel in new[] { controls, crew })
-            {
-                Assert.That(panel.color.a, Is.GreaterThan(0f), "The controls have an independent visible backing.");
-                Assert.That(panel.raycastTarget, Is.False, "Backing artwork must not swallow its controls.");
-                Assert.That(BoundsIn(setup, panel.rectTransform).Overlaps(shipBounds), Is.False,
-                    panel.name + " must not overlap the ship or its open-water hit area.");
-            }
-            foreach (string name in new[] { "Setup Title", "Departure Dock Ship Hint", "Departure Previous Vessel", "Departure Next Vessel" })
-                AssertContained(controls.rectTransform, Find<RectTransform>(name));
+            Assert.That(crew.color.a, Is.Zero, "The crew desk is part of the regional painting, not an independent overlay.");
+            Assert.That(crew.sprite, Is.Null);
+            Assert.That(crew.overrideSprite, Is.Null);
+            Assert.That(crew.raycastTarget, Is.False, "Backing artwork must not swallow its controls.");
+            Assert.That(BoundsIn(setup, crew.rectTransform).Overlaps(shipBounds), Is.False,
+                crew.name + " must not overlap the ship or its open-water hit area.");
+            Assert.That(Find<Text>("Setup Title").enabled, Is.False, "Ship selection only displays the two arrows.");
+            foreach (string name in new[] { "Departure Dock Vessel Controls", "Departure Dock Ship Hint" })
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == name && item.gameObject.activeInHierarchy),
+                    Is.False, name + " must not restore the old title strip.");
+            Rect previous = BoundsIn(setup, Find<RectTransform>("Departure Previous Vessel"));
+            Rect next = BoundsIn(setup, Find<RectTransform>("Departure Next Vessel"));
+            Assert.That(previous.xMax, Is.LessThan(shipBounds.center.x));
+            Assert.That(next.xMin, Is.GreaterThan(shipBounds.center.x));
+            Assert.That(previous.center.y, Is.EqualTo(next.center.y).Within(.1f), "Both arrows flank the ship at the same height.");
             foreach (string name in new[] { "Departure Dock Ordinary Readout", "Departure Dock Special Readout", "Departure Dock Speed Readout",
                 "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton" })
                 AssertContained(crew.rectTransform, Find<RectTransform>(name));
@@ -268,7 +273,7 @@ namespace ShatteredSail.Presentation.Tests
             float sourceAspect = Mathf.Abs(expectedUv.width * expectedTexture.width / (expectedUv.height * expectedTexture.height));
             Assert.That(hull.rectTransform.rect.width / hull.rectTransform.rect.height,
                 Is.EqualTo(sourceAspect).Within(.0001f), "The vessel must not stretch to fill the berth.");
-            Assert.That(Find<Text>("Setup Title").text, Does.Contain(CoreVoyageSession.Ships[shipIndex].Name));
+            Assert.That(Find<Text>("Setup Title").enabled, Is.False, "Changing ships must not reveal a ship-name strip.");
 
             Vector2 hullSize = hull.rectTransform.sizeDelta;
             Vector3 hullPosition = hull.rectTransform.position;

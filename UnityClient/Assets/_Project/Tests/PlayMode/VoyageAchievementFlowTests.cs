@@ -14,6 +14,137 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class MainMenuSceneTests
     {
         [UnityTest, Timeout(120000)]
+        public IEnumerator AchievementChallenge_LegacyCheckpointReturnRestoresEditedStagesForNextVoyage()
+        {
+            using (var scope = new ProfileJournalSceneScope())
+            {
+                SeedJournalSceneProfile();
+                AchievementCatalog.RecordDeckEdited(NavalBattleStage.Preparation);
+                SceneManager.LoadScene(MainMenuController.MainSceneName);
+                yield return null; yield return null;
+                var game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                Assert.That(game.Session.RestoreCollectionProgress(new CoreCollectionProgress
+                    { defeatedBossIds = new[] { CoreGuidedTutorialContent.BossEventId } }), Is.True);
+                game.Session.StartVoyage();
+                CoreVoyageCheckpoint checkpoint = game.Session.CaptureVoyageCheckpoint();
+                checkpoint.achievementProgressVersion = 0;
+                checkpoint.achievementEditedDeckStages = 0;
+                checkpoint.achievementVoyageSupplyEvidenceAvailable = false;
+                Assert.That(game.Session.SafeReturn(), Is.True);
+                game.Session.ReturnToPortAfterSettlement();
+                Assert.That(game.Session.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
+                Assert.That(game.Session.CaptureVoyageCheckpoint().achievementEditedDeckStages, Is.Zero);
+                Assert.That(game.Session.SafeReturn(), Is.True);
+                InvokeGame(game, "ConfirmVoyageSettlement");
+                Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey), Does.Contain("first_victory_compass"),
+                    "The old boss qualification is still reconciled into the warehouse.");
+                Assert.That(VoyageAchievementUnlocked("warehouse_one"), Is.False, "A legacy checkpoint cannot turn old unclaimed collection eligibility into a new voyage reward.");
+                InvokeGame(game, "SaveStageBattleDecks");
+                game.Session.StartVoyage();
+                Assert.That(game.Session.CaptureVoyageCheckpoint().achievementEditedDeckStages, Is.EqualTo(1),
+                    "The next departure uses the profile's authored stages, not the legacy checkpoint's empty mask.");
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator AchievementChallenge_RealBattleAndDamagedReturnCommitOnlyAfterConfirmation()
+        {
+            using (var scope = new ProfileJournalSceneScope())
+            {
+                SeedJournalSceneProfile();
+                AchievementCatalog.RecordDeckEdited(NavalBattleStage.Preparation);
+                SceneManager.LoadScene(MainMenuController.MainSceneName);
+                yield return null; yield return null;
+                var game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                PrepareVoyageAchievementSettlement(game, 0, beforeSettlement: session =>
+                {
+                    typeof(CoreVoyageSession).GetMethod("StartBattle", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                        .Invoke(session, new object[] { new CoreEncounter("achievement_flow_fixture", "验证敌舰", "海战", "测试", true, false, 1, 70), false });
+                    int guard = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).First(index => CoreVoyageSession.CardLibrary[index].Id == "card_brace");
+                    session.Battle.Hand.Clear();
+                    session.Battle.Hand.Add(guard);
+                    session.Battle.Energy = 20;
+                    Assert.That(session.PlayCard(0), Is.True);
+                    session.Battle.EnemyHull = 0;
+                    typeof(CoreVoyageSession).GetMethod("ResolveBattleOutcome", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(session, null);
+                    Assert.That(session.AchievementVoyageBattleWins, Is.EqualTo(1));
+                    Assert.That(session.AchievementWonEditedDeckStages, Is.EqualTo(1));
+                    typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, session.MaxHull / 4);
+                });
+                Assert.That(VoyageAchievementUnlocked("tutorial_recovery"), Is.False);
+                Assert.That(VoyageAchievementUnlocked("battle_deck"), Is.False);
+                yield return ConfirmAchievementSettlement();
+                Assert.That(VoyageAchievementUnlocked("tutorial_recovery"), Is.True);
+                Assert.That(VoyageAchievementUnlocked("battle_deck"), Is.True);
+                Assert.That(VoyageAchievementUnlocked("battle_stages"), Is.False);
+                SceneManager.LoadScene(MainMenuController.MainSceneName);
+                yield return null; yield return null;
+                Assert.That(VoyageAchievementUnlocked("tutorial_recovery"), Is.True);
+                Assert.That(VoyageAchievementUnlocked("battle_deck"), Is.True);
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator AchievementChallenge_LongVoyageRequiresUnbrokenSuppliesAndNewTreasureRequiresArrival()
+        {
+            using (var scope = new ProfileJournalSceneScope())
+            {
+                SeedJournalSceneProfile();
+                SceneManager.LoadScene(MainMenuController.MainSceneName);
+                yield return null; yield return null;
+                var game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                foreach (bool depleted in new[] { true, false })
+                {
+                    PrepareVoyageAchievementSettlement(game, 0, 0f, true, session =>
+                    {
+                        if (depleted) session.Cargo.Water = 0;
+                        session.Cargo.Water = session.Cargo.Food = 500;
+                        typeof(CoreVoyageSession).GetProperty("TotalHours").SetValue(session, 240d);
+                    });
+                    Assert.That(VoyageAchievementUnlocked("cargo_all"), Is.False);
+                    if (depleted) Assert.That(VoyageAchievementUnlocked("warehouse_one"), Is.False);
+                    yield return ConfirmAchievementSettlement();
+                    Assert.That(VoyageAchievementUnlocked("cargo_all"), Is.EqualTo(!depleted));
+                    Assert.That(VoyageAchievementUnlocked("warehouse_one"), Is.True, "A newly completed ordinary chart grants a new collection reward at confirmed arrival.");
+                }
+                SceneManager.LoadScene(MainMenuController.MainSceneName);
+                yield return null; yield return null;
+                Assert.That(VoyageAchievementUnlocked("cargo_all"), Is.True);
+                Assert.That(VoyageAchievementUnlocked("warehouse_one"), Is.True);
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator AchievementChallenge_ReplayedTutorialChartAfterGraduationCannotGrantOrdinaryVoyageChallenges()
+        {
+            using (var scope = new ProfileJournalSceneScope())
+            {
+                SeedJournalSceneProfile();
+                var tutorial = new CoreVoyageSession();
+                Assert.That(tutorial.ConfigureGuidedTutorialVoyage(1), Is.True);
+                tutorial.StartVoyage();
+                string seed = tutorial.CurrentChartSeed;
+                Assert.That(CoreVoyageSession.TryParseChartSeed(seed, out CoreSeaChartDefinition definition), Is.True);
+                Assert.That(definition.TutorialWaters, Is.True);
+                SceneManager.LoadScene(MainMenuController.MainSceneName);
+                yield return null; yield return null;
+                var game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                Assert.That(game.Session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
+                PrepareVoyageAchievementSettlement(game, 0, 100f);
+                game.Session.Settlement.CompletedEvents = 6;
+                yield return ConfirmAchievementSettlement();
+                Assert.That(VoyageAchievementUnlocked(), Is.False);
+                Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageHalfChartId), Is.False);
+                Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageEventArrivalId), Is.False);
+                Assert.That(VoyageAchievementUnlocked("warehouse_one"), Is.False);
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        [UnityTest, Timeout(120000)]
         public IEnumerator VoyageThreeEvents_OnlyConfirmedSingleVoyageUnlocksAndSurvivesReload()
         {
             using (var scope = new ProfileJournalSceneScope())
@@ -172,6 +303,9 @@ namespace ShatteredSail.Presentation.Tests
                 yield return null; yield return null;
                 var game = Object.FindFirstObjectByType<CoreGameplayDemoController>();
                 PrepareVoyageAchievementSettlement(game, 6, 60f, true);
+                game.Session.Settlement.Hours = 240d;
+                AchievementCatalog.RecordDeckEdited(NavalBattleStage.Preparation);
+                typeof(CoreVoyageSession).GetProperty("AchievementWonEditedDeckStages").SetValue(game.Session, 1);
                 yield return null;
                 if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
                     yield return ClickAchievementIconControl("Skip Settlement Reveal");
@@ -186,6 +320,9 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(VoyageAchievementUnlocked(), Is.False);
                     Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageHalfChartId), Is.False);
                     Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageEventArrivalId), Is.False);
+                    Assert.That(VoyageAchievementUnlocked("cargo_all"), Is.False);
+                    Assert.That(VoyageAchievementUnlocked("battle_deck"), Is.False);
+                    Assert.That(VoyageAchievementUnlocked("warehouse_one"), Is.False);
                     Assert.That(GameObject.Find("Achievement Notification"), Is.Null);
                 }
                 yield return ClickAchievementIconControl("Recover Profile Save");
@@ -200,6 +337,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(VoyageAchievementUnlocked(), Is.False, "An unrelated later save must not inherit the failed confirmation.");
                 Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageHalfChartId), Is.False);
                 Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageEventArrivalId), Is.False);
+                Assert.That(VoyageAchievementUnlocked("cargo_all"), Is.False);
+                Assert.That(VoyageAchievementUnlocked("battle_deck"), Is.False);
+                Assert.That(VoyageAchievementUnlocked("warehouse_one"), Is.False);
                 LogAssert.NoUnexpectedReceived();
             }
         }
@@ -277,7 +417,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         private static void PrepareVoyageAchievementSettlement(CoreGameplayDemoController game, int completed,
-            float coverage = 0f, bool arrive = false)
+            float coverage = 0f, bool arrive = false, System.Action<CoreVoyageSession> beforeSettlement = null)
         {
             CoreVoyageSession session = game.Session;
             session.Cargo.Water = 20;
@@ -287,6 +427,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(game.IsTutorialActive, Is.False);
             Assert.That(session.GuidedTutorialLeg, Is.Zero);
             Assert.That(session.IsTreasureVoyage, Is.False);
+            beforeSettlement?.Invoke(session);
             Assert.That(session.Map.Nodes.Count, Is.GreaterThanOrEqualTo(completed));
             // Arrange completed map events and revealed cells. Production
             // SafeReturn/Sail builds settlement and the real button commits it.
@@ -310,6 +451,15 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Settlement.Outcome, Is.EqualTo(arrive ? VoyageOutcome.ArrivedAtPort : VoyageOutcome.SafeReturn));
             Assert.That(session.Settlement.CompletedEvents, Is.EqualTo(completed));
             InvokeGame(game, "Render");
+        }
+
+        private static IEnumerator ConfirmAchievementSettlement()
+        {
+            yield return null;
+            if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
+                yield return ClickAchievementIconControl("Skip Settlement Reveal");
+            yield return ClickAchievementIconControl("Return To Port");
+            yield return SchoolUnlockNoticeTestActions.ConfirmAll();
         }
     }
 }

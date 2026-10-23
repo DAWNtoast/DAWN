@@ -93,7 +93,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(target.IntelRevealed, Is.True, "The authored choice must reveal the real target coordinate.");
                 Assert.That(target.Visited, Is.False);
                 Assert.That(ActiveButton("Event Node " + target.Id).interactable, Is.True);
-                AssertExplorationStatus(ExplorationClues[route], ExplorationTargets[route]);
+                AssertExplorationStatus(session, ExplorationClues[route], ExplorationTargets[route]);
                 yield return new WaitForSecondsRealtime(.5f);
                 CaptureExploration(controller, ExplorationNames[route] + "_clue_acquired");
 
@@ -103,7 +103,7 @@ namespace ShatteredSail.Presentation.Tests
                 session = controller.Session;
                 Assert.That(session.HasDiscovery(ExplorationClues[route]), Is.True);
                 Assert.That(ExplorationNode(session, ExplorationTargets[route]).IntelRevealed, Is.True);
-                AssertExplorationStatus(ExplorationClues[route], ExplorationTargets[route]);
+                AssertExplorationStatus(session, ExplorationClues[route], ExplorationTargets[route]);
                 float distanceBeforeTarget = session.TotalDistanceNm;
                 yield return SailExplorationTo(controller, ExplorationTargets[route]);
                 Assert.That(session.TotalDistanceNm, Is.GreaterThan(distanceBeforeTarget), "Obtaining a clue must still require actual travel to its target.");
@@ -126,7 +126,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(hull, Is.LessThanOrEqualTo(session.MaxHull - 8), "The controlled hull damage must leave room to observe the full repair.");
                     Assert.That(session.Hull, Is.EqualTo(Math.Min(session.MaxHull, hull + 8)));
                     Assert.That(session.SailingBoostHoursRemaining, Is.EqualTo(16d));
-                    Assert.That(ExplorationStatusText(), Does.Contain("航速 +25%"));
+                    Assert.That(session.ExplorationStatusSummary, Does.Contain("航速 +25%"));
                 }
                 else if (route == 1)
                 {
@@ -139,10 +139,10 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(session.Cargo.AncientMaterial, Is.EqualTo(ancient - 1));
                     Assert.That(session.Cargo.Relic, Is.EqualTo(relics + 1));
                     Assert.That(session.SurveyBoostHoursRemaining, Is.EqualTo(18d));
-                    Assert.That(ExplorationStatusText(), Does.Contain("瞭望 +35%"));
+                    Assert.That(session.ExplorationStatusSummary, Does.Contain("瞭望 +35%"));
                 }
                 Assert.That(ActiveButton("Event Node " + ExplorationNode(session, ExplorationTargets[route]).Id).interactable, Is.False);
-                Assert.That(ExplorationStatusText(), Does.Contain("（已探索）"));
+                Assert.That(session.ExplorationStatusSummary, Does.Contain("（已探索）"));
                 yield return new WaitForSecondsRealtime(.5f);
                 CaptureExploration(controller, ExplorationNames[route] + "_completed");
                 yield return SaveAndResumeExploration(controller, storage, ExplorationNames[route] + "_reward");
@@ -150,7 +150,7 @@ namespace ShatteredSail.Presentation.Tests
                 session = controller.Session;
                 Assert.That(ExplorationNode(session, ExplorationTargets[route]).Visited, Is.True);
                 Assert.That(ActiveButton("Event Node " + ExplorationNode(session, ExplorationTargets[route]).Id).interactable, Is.False);
-                Assert.That(ExplorationStatusText(), Does.Contain("（已探索）"));
+                Assert.That(session.ExplorationStatusSummary, Does.Contain("（已探索）"));
                 if (route == 0) Assert.That(session.SailingBoostHoursRemaining, Is.EqualTo(16d));
                 if (route == 2) Assert.That(session.SurveyBoostHoursRemaining, Is.EqualTo(18d));
                 yield return new WaitForSecondsRealtime(.5f);
@@ -303,11 +303,12 @@ namespace ShatteredSail.Presentation.Tests
 
         private static CoreMapNode ExplorationNode(CoreVoyageSession session, string id) => session.Map.Nodes.Single(node => node.Encounter.Id == id);
         private static int ExplorationTargetChoice(CoreVoyageSession session, int route) => session.ActiveEncounter.Choices.Count - (route == 2 ? 2 : 1);
-        private static string ExplorationStatusText() => GameObject.Find("Voyage Exploration Status Text").GetComponent<Text>().text;
-        private static void AssertExplorationStatus(string clue, string target)
+        private static void AssertExplorationStatus(CoreVoyageSession session, string clue, string target)
         {
-            Assert.That(ExplorationStatusText(), Does.Contain(CoreVoyageSession.DiscoveryLabel(clue)));
-            Assert.That(ExplorationStatusText(), Does.Contain(CoreVoyageEventCatalog.DiscoveryTargetName(target)));
+            Assert.That(GameObject.Find("Voyage Exploration Status"), Is.Null);
+            Assert.That(GameObject.Find("Voyage Exploration Status Text"), Is.Null);
+            Assert.That(session.ExplorationStatusSummary, Does.Contain(CoreVoyageSession.DiscoveryLabel(clue)));
+            Assert.That(session.ExplorationStatusSummary, Does.Contain(CoreVoyageEventCatalog.DiscoveryTargetName(target)));
         }
         private static void RenderExploration(CoreGameplayDemoController controller) => typeof(CoreGameplayDemoController).GetMethod("Render", ExplorationHidden).Invoke(controller, null);
         private static void CaptureExploration(CoreGameplayDemoController controller, string state, int choice = -1)

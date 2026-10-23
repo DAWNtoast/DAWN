@@ -1,0 +1,26 @@
+[
+  {
+    "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\BattleStatusIconGraphic.cs",
+    "SHA256": "A3139C7273BD143616AA3C4EF48CE2A2AA0BE2A1594F676B0758F735D83293C0"
+  },
+  {
+    "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\BattleCommandIconGraphic.cs",
+    "SHA256": "77EDB7CF0A951F13D879676CA5AEF63D82AD7EDB3455863E48EC657456ACC2AF"
+  },
+  {
+    "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\BattleHeaderIconGraphic.cs",
+    "SHA256": "35D34BE966BEBB087435D3D3EB0562B21AD31BE95C3AFB2D03CB854FE5A377F4"
+  },
+  {
+    "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\BattleCardFlightBackGraphic.cs",
+    "SHA256": "0E84E79DBCFF6293DA93091E3877FA211E221B8A119DB411F76D433D96D8C57C"
+  },
+  {
+    "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\NavalFieldGraphic.cs",
+    "SHA256": "615F4C7430AC18368BB6DF4AEF16290800F0F7E45804CE4E14F0EEDC6C4051DA"
+  },
+  {
+    "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\NavalTacticalTrackGraphic.cs",
+    "SHA256": "410258E25F75BEEFE50F0DCFB672530F3DB31D39B207A888E136B6D5DA52B80D"
+  }
+]

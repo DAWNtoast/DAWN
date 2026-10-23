@@ -14,7 +14,7 @@ namespace ShatteredSail.Presentation
             DeparturePaintedHotspot.RestoreAll(routes);
             DeparturePaintedHotspot.RestoreAll(setup);
             if (setup != null)
-                foreach (string name in new[] { "DepartureOrdinaryCrewCount", "DepartureCrewSpeedPreview", "Departure Dock Ship Hint" })
+                foreach (string name in new[] { "Setup Title", "DepartureOrdinaryCrewCount", "DepartureCrewSpeedPreview" })
                 {
                     Text label = setup.Find(name)?.GetComponent<Text>();
                     if (label != null) label.enabled = true;
@@ -79,12 +79,6 @@ namespace ShatteredSail.Presentation
             bool berth = compact && !crew;
             if (berth && inspect != null)
             {
-                Text hint = setup.Find("Departure Dock Ship Hint")?.GetComponent<Text>();
-                if (hint == null)
-                    hint = CreateText("Departure Dock Ship Hint", setup, new Vector2(550, 28),
-                        new Vector2(300, 377), 16, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-                hint.text = "点击旗舰 · 查看配件装配";
-                hint.raycastTarget = false;
                 RectTransform contact = FindActiveGuidedContent("Departure Dock Water Contact") as RectTransform;
                 if (contact == null) contact = CreateRect("Departure Dock Water Contact", contentRoot, Vector2.one, Vector2.zero);
                 contact.anchoredPosition = new Vector2(DepartureDockSceneLayout.ShipCenterX, DepartureDockSceneLayout.ShipWaterlineY);
@@ -99,13 +93,13 @@ namespace ShatteredSail.Presentation
                 foreground.SetTexture(facilityArt.RegionalBackground(PortFacilityArtCatalog.VoyageFacilityIndex, session.CurrentPort));
                 foreground.transform.SetSiblingIndex(inspect.GetSiblingIndex() + 1);
             }
-            foreach (string name in new[] { "Departure Dock Foreground", "Departure Dock Ship Hint", "Departure Dock Water Blend", "Departure Dock Water Ripple" })
+            foreach (string name in new[] { "Departure Dock Foreground", "Departure Dock Water Blend", "Departure Dock Water Ripple" })
             {
                 Transform child = setup.Find(name);
                 if (child != null) child.gameObject.SetActive(berth);
             }
             DepartureDockSceneLayout.Apply(routes, setup, DepartureChartModeActive, treasure, crew,
-                session.SelectedRouteIndex, session.SelectedShip.Name);
+                session.SelectedRouteIndex);
             RefreshDepartureDockChartRecords();
             if (berth && inspect != null)
             {
@@ -114,7 +108,7 @@ namespace ShatteredSail.Presentation
                 DepartureDockShipLayout.Apply(ship, hull, session.SelectedShipIndex, DepartureDockSceneLayout.ShipWaterlineY - inspect.anchoredPosition.y);
                 DepartureDockShipLighting.Apply(hull, session.CurrentPort);
                 ApplyDepartureDockWaterContact(setup, inspect, hull);
-                foreach (string name in new[] { "Setup Title", "Departure Dock Ship Hint", "Departure Dock Ordinary Readout", "Departure Dock Special Readout", "Departure Dock Speed Readout" })
+                foreach (string name in new[] { "Departure Dock Crew Heading", "Departure Dock Ordinary Readout", "Departure Dock Special Readout", "Departure Dock Speed Readout" })
                     setup.Find(name)?.SetAsLastSibling();
             }
             // The scene is textless below the common facility header. Keep its
@@ -159,21 +153,7 @@ namespace ShatteredSail.Presentation
                     departureChartToggle.isOn = false;
                 });
             }
-            Button shortcut = routes.Find("Departure Dock Chart Shortcut")?.GetComponent<Button>();
-            if (shortcut == null)
-            {
-                shortcut = CreateButton("Departure Dock Chart Shortcut", routes, Vector2.one, Vector2.zero, Color.clear, Ink, 18);
-                shortcut.onClick.AddListener(() =>
-                {
-                    if (!shortcut.gameObject.activeInHierarchy || !IsDepartureShipView() || departureCrewConfigurationOpen || departureChartToggle == null ||
-                        !departureChartToggle.IsInteractable()) return;
-                    departureChartToggle.isOn = true;
-                    if (departureChartInput != null) departureChartInput.ActivateInputField();
-                });
-            }
-            shortcut.interactable = session.CanDrawSeaChart && !tutorialActive;
             ordinary.gameObject.SetActive(compact);
-            shortcut.gameObject.SetActive(compact);
 
             if (!compact)
             {
@@ -191,6 +171,7 @@ namespace ShatteredSail.Presentation
                 PaintedReadout(routes, "Departure Dock Route Lock " + index,
                     session.PirateLevel < route.UnlockLevel ? "等级 " + route.UnlockLevel + " 开放" : string.Empty, compact);
             }
+            PaintedReadout(setup, "Departure Dock Crew Heading", "船员调配", compact);
             PaintedReadout(setup, "Departure Dock Ordinary Readout", "普通船员 " + selectedDepartureOrdinaryCrew + "/" + session.CrewCountValue, compact);
             PaintedReadout(setup, "Departure Dock Special Readout", "特殊船员 " + selectedDepartureSpecialCrew.Count +
                 " · 普通上限 " + Mathf.Max(0, session.CrewCountValue - selectedDepartureSpecialCrew.Count), compact);

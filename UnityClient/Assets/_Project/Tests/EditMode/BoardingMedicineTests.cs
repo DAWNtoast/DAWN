@@ -71,13 +71,20 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Boarding.TidePower, Is.Zero);
             if (delayed)
             {
+                // Current treatment adds a decaying recovery pool: each player end
+                // heals its remaining layers, then consumes exactly one layer.
+                int health = 1;
+                Assert.That(session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(heal));
+                for (int remaining = heal; remaining > 0; remaining--)
+                {
+                    health = Math.Min(session.Battle.PlayerMaxBoardingHealth, health + remaining);
+                    Invoke(session, "BPlayerEnd");
+                    Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health));
+                    Assert.That(session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(remaining - 1));
+                    Assert.That(session.Cargo.Medicine, Is.Zero, "Recovery pays medicine only when the card is played.");
+                }
                 Invoke(session, "BPlayerEnd");
-                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1 + heal));
-                Invoke(session, "BPlayerEnd");
-                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1 + 2 * heal));
-                Invoke(session, "BPlayerEnd");
-                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(1 + 2 * heal));
-                Assert.That(session.Cargo.Medicine, Is.Zero, "Two ticks pay medicine only once.");
+                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health), "An exhausted recovery pool cannot heal again.");
             }
             Assert.That(session.Hull, Is.EqualTo(hull));
         }
@@ -235,7 +242,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(session.Cargo.Medicine, Is.EqualTo(1));
             }
             Start(ref session);
-            Assert.That(session.BattleCardDescription(card), Does.Contain("恢复 " + enhanced).And.Contain("无药物恢复2"));
+            Assert.That(session.BattleCardDescription(card), Does.Contain("恢复 2 点生命值").And.Contain("消耗 1 药物额外恢复 " + (enhanced - 2) + " 点生命值"));
             Assert.That(session.Cargo.Medicine, Is.EqualTo(1));
         }
 

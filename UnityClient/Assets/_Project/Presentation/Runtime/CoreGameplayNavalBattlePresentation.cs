@@ -448,6 +448,7 @@ namespace ShatteredSail.Presentation
         {
             NavalBoardingConnection connection = battle == null ? NavalBoardingConnection.Planned : battle.BoardingConnection;
             string connectionLabel = connection == NavalBoardingConnection.RamBowToBow ? "\u89D2\u5BF9\u89D2\u9501\u5B9A" :
+                connection == NavalBoardingConnection.RamBowToStern ? "舰艏撞船尾" :
                 connection == NavalBoardingConnection.RamBowToBroadside ? "\u89D2\u5BF9\u4FA7\u8237\u5361\u9501" : "\u8DF3\u677F\u63A5\u8237";
             Color accent = connection == NavalBoardingConnection.RamBowToBroadside ? Coral : Gold;
             RectTransform zone = CreateFixedPanel("Boarding Clash Zone", root, new Vector2(244f, 68f), new Vector2(0f, 68f),
@@ -494,11 +495,13 @@ namespace ShatteredSail.Presentation
         private void BuildNavalBattleTactics(RectTransform root, CoreBattleState battle, RectTransform readoutRoot)
         {
             bool boarding = battle.Stage == NavalBattleStage.Boarding;
-            // Stage progress and instruction banners were removed from the authored layout. The compact range/alignment readouts live in their own top-level overlay so they can render above Voyage Header.
-            Text range = CreateText("Battle Range", readoutRoot, new Vector2(250f, 62f) / readoutRoot.localScale.x, new Vector2(-250f, 540f - PhaseSurfaceLayout.GetHeaderHeight(tutorialActive) * .5f) / readoutRoot.localScale.x, 29, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
-            range.text = boarding ? "接舷交战" : session.NavalDistanceCells + " 格 / 炮击4格";
-            Text alignment = CreateText("Battle Alignment", readoutRoot, new Vector2(250f, 62f) / readoutRoot.localScale.x, new Vector2(250f, 540f - PhaseSurfaceLayout.GetHeaderHeight(tutorialActive) * .5f) / readoutRoot.localScale.x, 17, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
-            alignment.text = boarding ? BoardingConnectionLabel(battle) : battle.Alignment == NavalBattleAlignment.HeadOn ? "→ 舰艏 ⇄ 舰艏 ←\n迎头相对" : battle.Alignment == NavalBattleAlignment.EnemyBroadside ? "→ 舰艏 ⊥ 侧舷\n我方对准敌舰侧面" : "舰艏 →    → 舰艏\n并排行船";
+            if (boarding)
+            {
+                Text range = CreateText("Battle Range", readoutRoot, new Vector2(250f, 62f) / readoutRoot.localScale.x, new Vector2(-250f, 540f - PhaseSurfaceLayout.GetHeaderHeight(tutorialActive) * .5f) / readoutRoot.localScale.x, 29, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
+                range.text = "接舷交战";
+                Text alignment = CreateText("Battle Alignment", readoutRoot, new Vector2(250f, 62f) / readoutRoot.localScale.x, new Vector2(250f, 540f - PhaseSurfaceLayout.GetHeaderHeight(tutorialActive) * .5f) / readoutRoot.localScale.x, 17, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
+                alignment.text = BoardingConnectionLabel(battle);
+            }
             RectTransform buffPanel = CreateFixedPanel("Battle Buff Panel", root, new Vector2(230f, 90f), new Vector2(-735f, -181f), PanelRaised);
             ApplyRetreatBattleWoodBoard(buffPanel.GetComponent<Image>());
             buffPanel.GetComponent<Image>().raycastTarget = false;
@@ -555,8 +558,8 @@ namespace ShatteredSail.Presentation
                     ? "到达剩余 " + battle.NavalArrivalActionPoints + " 点 · 自动朝" + NavalContactHeadingLabel(arrivalHeading) +
                         "\n不耗能量 · 普通定向清空余量"
                     : boarding
-                    ? "上下左右相邻 · 船头同向\n逆向不可 · 不耗能量"
-                    : "上下左右相邻 · 两舰垂直\n我舰船头朝敌 · 不耗能量";
+                    ? "平行且舷侧相邻 · 同向或反向\n相邻两行/两列 · 不耗能量"
+                    : "上下左右相邻 · 我舰船头朝敌\n可撞敌舰前后左右 · 不耗能量";
                 ConfigureCompactBattleHover(button.gameObject, root, boarding ? "接舷" : "冲撞并接舷",
                     "消耗 1 行动点。\n" + hint.text);
             }
@@ -590,6 +593,7 @@ namespace ShatteredSail.Presentation
             switch (battle.BoardingConnection)
             {
                 case NavalBoardingConnection.RamBowToBow: return "角对角冲撞 · 横向接舷\n" + initiative;
+                case NavalBoardingConnection.RamBowToStern: return "舰艏撞船尾 · 横向接舷\n" + initiative;
                 case NavalBoardingConnection.RamBowToBroadside: return "角对侧舷冲撞 · 斜向接舷\n" + initiative;
                 default: return "船体 → 船员生命\n" + initiative;
             }
@@ -599,9 +603,12 @@ namespace ShatteredSail.Presentation
         {
             if (battle != null && battle.BoardingInitiatedByEnemy)
                 return (battle.BoardingConnection == NavalBoardingConnection.RamBowToBroadside
-                    ? "敌舰舰艏卡住我方侧舷" : "敌舰迎头撞击并锁定船体") + " · 敌方先手 · 白刃牌组已切换";
+                    ? "敌舰舰艏卡住我方侧舷" : battle.BoardingConnection == NavalBoardingConnection.RamBowToStern
+                    ? "敌舰从后方撞击我方船尾" : "敌舰迎头撞击并锁定船体") + " · 敌方先手 · 白刃牌组已切换";
             if (battle != null && battle.BoardingConnection == NavalBoardingConnection.RamBowToBow)
                 return "角对角冲撞已锁定船体 · 横向跳板连接 · 白刃牌组已切换";
+            if (battle != null && battle.BoardingConnection == NavalBoardingConnection.RamBowToStern)
+                return "舰艏撞击敌舰船尾 · 横向跳板连接 · 白刃牌组已切换";
             if (battle != null && battle.BoardingConnection == NavalBoardingConnection.RamBowToBroadside)
                 return "角对侧舷冲撞已卡住敌舰 · 斜向钩索连接 · 白刃牌组已切换";
             return "击败守备队即可夺船 · 金币与声望×2";
@@ -627,6 +634,7 @@ namespace ShatteredSail.Presentation
             {
                 CoreBattleState battle = session.Battle;
                 bool arrival = battle.NavalAwaitingHeadingSelection;
+                NavalBoardingConnection ramConnection = session.PlayerRamConnection;
                 BattleAnimationSnapshot before = new BattleAnimationSnapshot(session, battle);
                 RectTransform root = GameObject.Find("Battle Card").GetComponent<RectTransform>();
                 RectTransform player = GameObject.Find("Player Ship Art").GetComponent<RectTransform>();
@@ -647,33 +655,42 @@ namespace ShatteredSail.Presentation
                 }
                 else
                 {
-                    // A legal live ram is always bow-to-broadside. The legacy
-                    // alignment summary can lag behind the actual grid pose.
-                    Texture2D ramComic = RamComicTexture(false, NavalBattleAlignment.EnemyBroadside);
-                    if (ramComic != null) yield return AnimateRamComic(ramComic, false, before, after, 0);
-                    else
-                    {
-                        // A missing optional comic retains the existing physical
-                        // presentation and never prevents the committed action.
-                        yield return AnimateShipWindup(player, DirectionToward(player, enemy), true);
-                        yield return AnimateImpact(root, enemy, Coral, "冲撞 -" + (before.EnemyHull - after.EnemyHull), "Enemy Ram Impact");
-                        yield return AnimateHealthBar(root.Find("Enemy Battle Hull Bar Track/Enemy Battle Hull Bar")?.GetComponent<Image>(), before.EnemyHull, after.EnemyHull, before.EnemyMaxHull, Coral);
-                        yield return AnimateImpact(root, player, Coral, "反伤 -" + (before.PlayerHull - after.PlayerHull), "Player Ram Recoil");
-                        yield return AnimateHealthBar(root.Find("Player Battle Hull Bar Track/Player Battle Hull Bar")?.GetComponent<Image>(), before.PlayerHull, after.PlayerHull, before.PlayerMaxHull, Coral);
-                        if (session.Phase == CoreDemoPhase.Battle && after.Stage == NavalBattleStage.Boarding)
-                        {
-                            yield return AnimateBoardingApproach(root, player, enemy, battle.BoardingApproach);
-                            yield return AnimateFloatingText(root, new Vector2(0f, 110f),
-                                battle.BoardingConnection == NavalBoardingConnection.RamBowToBow ? "角对角锁定 · 接舷近战" : "角对侧舷卡锁 · 接舷近战",
-                                Gold, "Ram Boarding Transition");
-                            yield return AnimateBoardingSceneTransition();
-                        }
-                    }
+                    yield return AnimateCommittedPlayerRam(root, player, enemy, before, after, ramConnection);
                 }
                 if (session.Phase != CoreDemoPhase.Battle)
                     yield return AnimateStagedBattleResolution(root, player, enemy, before, after);
             }
             finally { CompleteStagedBattleAnimation(); }
+        }
+
+        // Both the explicit ram action and sailing into the enemy cell commit
+        // in Core before reaching this presentation. Never submit another ram.
+        private IEnumerator AnimateCommittedPlayerRam(RectTransform root, RectTransform player, RectTransform enemy,
+            BattleAnimationSnapshot before, BattleAnimationSnapshot after, NavalBoardingConnection ramConnection,
+            bool includesMovementDamage = false)
+        {
+            Texture2D ramComic = RamComicTextureForConnection(false, ramConnection);
+            if (ramComic != null)
+            {
+                yield return AnimateRamComic(ramComic, false, before, after, 0, ramConnection);
+                yield break;
+            }
+
+            yield return AnimateShipWindup(player, DirectionToward(player, enemy), true);
+            yield return AnimateImpact(root, enemy, Coral, "冲撞 -" + (before.EnemyHull - after.EnemyHull), "Enemy Ram Impact");
+            yield return AnimateHealthBar(root.Find("Enemy Battle Hull Bar Track/Enemy Battle Hull Bar")?.GetComponent<Image>(), before.EnemyHull, after.EnemyHull, before.EnemyMaxHull, Coral);
+            yield return AnimateImpact(root, player, Coral, (includesMovementDamage ? "船体受损 -" : "反伤 -") +
+                (before.PlayerHull - after.PlayerHull), "Player Ram Recoil");
+            yield return AnimateHealthBar(root.Find("Player Battle Hull Bar Track/Player Battle Hull Bar")?.GetComponent<Image>(), before.PlayerHull, after.PlayerHull, before.PlayerMaxHull, Coral);
+            if (session.Phase == CoreDemoPhase.Battle && after.Stage == NavalBattleStage.Boarding)
+            {
+                yield return AnimateBoardingApproach(root, player, enemy, session.Battle.BoardingApproach);
+                yield return AnimateFloatingText(root, new Vector2(0f, 110f),
+                    ramConnection == NavalBoardingConnection.RamBowToBow ? "角对角锁定 · 接舷近战" :
+                    ramConnection == NavalBoardingConnection.RamBowToStern ? "舰艏撞船尾 · 接舷近战" : "角对侧舷卡锁 · 接舷近战",
+                    Gold, "Ram Boarding Transition");
+                yield return AnimateBoardingSceneTransition();
+            }
         }
     }
 }

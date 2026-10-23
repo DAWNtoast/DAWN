@@ -39,18 +39,19 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void LethalNavalBurn_HasNoCannonOrRamIntent()
+        public void LethalNavalBurn_StillAllowsTheEnemyActionBeforeItsTurnEnd()
         {
             var session = Training(NavalBattleStage.Naval);
             session.Battle.EnemyHull = 5;
             session.Battle.EnemyBurnDamage = 5;
-            session.Battle.EnemyBurnTurns = 2;
+            session.Battle.EnemyBurnTurns = 5;
             var intents = CoreBattleIntentPresentation.Build(session);
-            Assert.That(intents.Count, Is.EqualTo(1));
-            Assert.That(intents[0].Kind, Is.EqualTo(CoreBattleIntentKind.Wait));
-            Assert.That(intents[0].Value, Is.Empty);
-            Assert.That(intents[0].Tooltip, Does.Contain("燃烧"));
-            Assert.That(intents.Any(intent => intent.IsAttack), Is.False);
+            Assert.That(intents.Any(intent => intent.IsAttack), Is.True);
+            Assert.That(intents.Any(intent => intent.Id == "enemy_cannot_act"), Is.False);
+            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(5), "Intent reads must not settle burn early.");
+            int hull = session.Hull;
+            Assert.That(session.EndBattleTurn(), Is.True);
+            Assert.That(session.Hull, Is.LessThan(hull));
         }
 
         [Test]

@@ -249,7 +249,7 @@ namespace ShatteredSail.Presentation
                 case MaintenanceFacilityIndex:
                     return "PortFacilities/Regional/Maintenance/maintenance_" + portSlug + "_side_v2";
                 case VoyageFacilityIndex:
-                    return "PortFacilities/Regional/Voyage/voyage_" + portSlug + "_open_berth_v1";
+                    return "PortFacilities/Regional/Voyage/voyage_" + portSlug + "_crew_integrated_v1";
                 default:
                     return string.Empty;
             }

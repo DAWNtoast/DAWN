@@ -87,6 +87,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildShipyardFacility()
         {
+            RoyalShipyardHeaderSkin.Apply(contentRoot);
             shipyardViewRevision++;
             shipyardVesselQuote = null;
             selectedShipPreview = Mathf.Clamp(selectedShipPreview, 0, CoreVoyageSession.Ships.Count - 1);
@@ -102,48 +103,38 @@ namespace ShatteredSail.Presentation
             }
             RectTransform panel = CreateFixedPanel("Shipyard Panel", contentRoot, new Vector2(1820f, 780f), new Vector2(0f, -55f), Color.clear);
             panel.GetComponent<Image>().raycastTarget = false;
-            if (shipyardDetailOpen)
-            {
-                BuildShipyardDossier(panel, selectedShipPreview);
-                return;
-            }
-
             int index = selectedShipPreview;
             Vector2 waterline = new Vector2(0f, -145f);
             RectTransform waterShadow = CreateShipyardWater("Shipyard Water Shadow", panel, waterline, false);
             Image glow = CreateImage("Shipyard Berth Glow " + index, panel, new Vector2(620f, 40f), waterline, Color.clear, circleSprite);
             glow.raycastTarget = false;
             RectTransform vessel = CreateRect("Shipyard Floating Vessel", panel, new Vector2(780f, 590f), Vector2.zero);
-            // Clip the base hull at the gallery waterline. The dossier is uncut.
+            // Keep the harbour vessel at the same waterline behind the dossier.
             RectTransform waterClip = CreateRect("Shipyard Waterline Clip", vessel, new Vector2(920f, 575f), new Vector2(0f, 134.5f));
             waterClip.gameObject.AddComponent<RectMask2D>().softness = new Vector2Int(0, 8);
             Graphic shipArt = BuildShipyardVessel(waterClip, index, waterline - waterClip.anchoredPosition, 1f, "Shipyard");
-            Button inspect = vessel.gameObject.AddComponent<Button>();
-            inspect.targetGraphic = shipArt;
-            inspect.gameObject.name = "Shipyard Ship " + index;
+            vessel.gameObject.name = "Shipyard Ship " + index;
             RectTransform waterContact = CreateShipyardWater("Shipyard Water Contact", panel, waterline, true);
             ConfigureShipyardWaterForHull(panel, (RawImage)shipArt, waterline, waterShadow, waterContact);
 
+            if (shipyardDetailOpen)
+            {
+                // The scene vessel stays in its berth. The framed portrait is
+                // separate artwork, and nothing beneath the sheet is clickable.
+                foreach (Graphic layer in vessel.GetComponentsInChildren<Graphic>()) layer.raycastTarget = false;
+                BuildShipyardDossier(panel, index);
+                return;
+            }
+            Button inspect = vessel.gameObject.AddComponent<Button>();
+            inspect.targetGraphic = shipArt;
+
             // The ship can be inspected regardless of price or ownership. The
             // gallery never invokes payment or silently switches the flagship.
-            RectTransform plaque = CreateFixedPanel("Shipyard Gallery Plaque", panel, new Vector2(780f, 114f), new Vector2(0f, -337f), ScenePlaqueColor(0.91f));
-            plaque.GetComponent<Image>().raycastTarget = false;
-            Text title = ShipyardText("Shipyard Ship Name " + index, plaque, new Vector2(750f, 42f), new Vector2(0f, 30f), 30, Gold);
-            title.text = CoreVoyageSession.Ships[index].Name;
-            ShipyardText("Shipyard Gallery Role", plaque, new Vector2(750f, 28f), Vector2.zero, 20, Ink).text =
-                CoreShipMarketCatalog.Role(index) + "　·　" + port + "售 " + CoreShipMarketCatalog.ShipsForPort(ShipyardPortIndex()).Count + " 型";
-            ShipyardText("Shipyard Gallery Ownership", plaque, new Vector2(750f, 28f), new Vector2(0f, -32f), 19, Ink).text =
-                ShipyardOwnershipLabel(index) + "　·　" + (visibleShips.IndexOf(index) + 1) + " / " + visibleShips.Count;
+            Text title = BuildRoyalShipyardConsole(panel, index, visibleShips, out Button inspectAction);
             ConfigureGroundedObjectHover(inspect, glow, shipArt, title, Gold);
             ConfigureShipyardSilhouetteHover(inspect, waterClip, glow);
-            inspect.onClick.AddListener(() =>
-            {
-                if (!IsCurrentShipyardControl(inspect, owner, port, revision)) return;
-                shipyardDetailOpen = true;
-                shipyardDossierTab = ShipyardDossierTab.Performance;
-                ResetShipyardEquipmentSelection();
-                RefreshShipyardDossierView();
-            });
+            inspect.onClick.AddListener(() => InspectShipyardVessel(inspect, owner, port, revision));
+            inspectAction.onClick.AddListener(() => InspectShipyardVessel(inspectAction, owner, port, revision));
 
             Button previous = CreateShipyardArrow(panel, false);
             previous.interactable = visibleShips.Count > 1;
@@ -157,18 +148,28 @@ namespace ShatteredSail.Presentation
             {
                 if (IsCurrentShipyardControl(next, owner, port, revision)) BrowseShipyard(1);
             });
-            ShipyardText("Shipyard Previous Caption", panel, new Vector2(220f, 36f), new Vector2(-665f, -91f), 21, Ink).text = "上一艘";
-            ShipyardText("Shipyard Next Caption", panel, new Vector2(220f, 36f), new Vector2(665f, -91f), 21, Ink).text = "下一艘";
+        }
+
+        private void InspectShipyardVessel(Component control, CoreVoyageSession owner, string port, int revision)
+        {
+            if (!IsCurrentShipyardControl(control, owner, port, revision)) return;
+            shipyardDetailOpen = true;
+            shipyardDossierTab = ShipyardDossierTab.Performance;
+            ResetShipyardEquipmentSelection();
+            RefreshShipyardDossierView();
         }
 
         private Button CreateShipyardArrow(Transform parent, bool forward)
         {
             string name = forward ? "Shipyard Next Vessel" : "Shipyard Previous Vessel";
-            Button button = CreateButton(name, parent, new Vector2(148f, 78f), new Vector2(forward ? 665f : -665f, -30f), Color.white, Gold, 30);
+            Button button = CreateButton(name, parent, new Vector2(100f, 108f), new Vector2(forward ? 814f : -814f, -351f), Color.white, Gold, 30);
             button.GetComponentInChildren<Text>().text = string.Empty;
+            button.GetComponent<Image>().pixelsPerUnitMultiplier = 12f;
             float direction = forward ? 1f : -1f;
-            CreateLine(button.transform, new Vector2(-12f * direction, 19f), new Vector2(12f * direction, 0f), Gold, 4f);
-            CreateLine(button.transform, new Vector2(12f * direction, 0f), new Vector2(-12f * direction, -19f), Gold, 4f);
+            CreateLine(button.transform, new Vector2(-9f * direction, 31f), new Vector2(10f * direction, 14f), Gold, 3f);
+            CreateLine(button.transform, new Vector2(10f * direction, 14f), new Vector2(-9f * direction, -3f), Gold, 3f);
+            ShipyardText(forward ? "Shipyard Next Caption" : "Shipyard Previous Caption", button.transform,
+                new Vector2(88f, 28f), new Vector2(0f, -27f), 18, Ink).text = forward ? "下一艘" : "上一艘";
             return button;
         }
 
@@ -284,11 +285,17 @@ namespace ShatteredSail.Presentation
             role.text =
                 ShipyardVesselHomePort(index) + "　·　" + CoreShipMarketCatalog.Role(index);
             string[] tabLabels = { "船只性能", "船只背景", "配件装配" };
+            Vector2 dossierButtonSize = new Vector2(420f, 44f);
+            const float buttonColumnOffset = 240f;
+            const float footerButtonY = -232f;
             for (int tabIndex = 0; tabIndex < tabLabels.Length; tabIndex++)
             {
                 ShipyardDossierTab tab = (ShipyardDossierTab)tabIndex;
-                Button tabButton = CreateButton("Shipyard Dossier Tab " + tab, profile, new Vector2(294f, 42f),
-                    new Vector2((tabIndex - 1) * 318f, 160f), Gold, Ink, 24);
+                Vector2 buttonPosition = tab == ShipyardDossierTab.Equipment
+                    ? new Vector2(-buttonColumnOffset, footerButtonY)
+                    : new Vector2((tabIndex == 0 ? -1f : 1f) * buttonColumnOffset, 160f);
+                Button tabButton = CreateButton("Shipyard Dossier Tab " + tab, profile, dossierButtonSize,
+                    buttonPosition, Gold, Ink, 24);
                 tabButton.GetComponentInChildren<Text>().text = tabLabels[tabIndex];
                 WoodButtonSkin.SetSelected(tabButton, shipyardDossierTab == tab);
                 tabButton.onClick.AddListener(() =>
@@ -316,12 +323,8 @@ namespace ShatteredSail.Presentation
             bool affordable = session.ProfileGold >= purchaseCost;
             bool present = !owned || IsShipyardVesselAtCurrentPort(index);
             bool cargoFits = session.CanSelectShip(index);
-            ShipyardText("Shipyard Dossier Price", detail, new Vector2(450f, 48f), new Vector2(-25f, -242f), 20, muted, TextAnchor.MiddleLeft).text =
-                !present ? "此船停泊在" + session.ShipPort(index) :
-                !cargoFits ? "货舱不足 · 请先将货物存入本港仓库或出售" :
-                (owned ? "已拥有 · 停泊本港，可设为旗舰或改装" :
-                    local ? "购船价 " + purchaseCost + " 金币" : "本港不出售此船型 · 所属港：" + ShipyardVesselHomePort(index));
-            Button confirm = CreateButton("Confirm Shipyard Vessel", detail, new Vector2(330f, 44f), new Vector2(427f, -242f), Html("#28594E"), Ink, 22);
+            Button confirm = CreateButton("Confirm Shipyard Vessel", profile, dossierButtonSize,
+                new Vector2(buttonColumnOffset, footerButtonY), Html("#28594E"), Ink, 24);
             confirm.GetComponentInChildren<Text>().text = selected ? "当前旗舰" : !present ? "此船未停泊本港" : !cargoFits ? "货物超过该船舱容" : owned ? "设为旗舰" :
                 !local ? "本港不出售此船型" : affordable ? "购买并启用 · " + purchaseCost + " 金币" :
                 "金币不足 · 还需 " + (purchaseCost - session.ProfileGold);
@@ -342,10 +345,6 @@ namespace ShatteredSail.Presentation
         private void BuildShipyardDossierArt(RectTransform detail, int index)
         {
             RectTransform art = CreateRect("Shipyard Dossier Art", detail, new Vector2(1820f, 650f), Vector2.zero);
-            Image frame = CreateImage("Shipyard Dossier Frame", art, new Vector2(1780f, 705f),
-                new Vector2(0f, -4f), Color.white);
-            NauticalSurfaceSkin.ApplyReadingPanel(frame);
-            frame.raycastTarget = false;
             RectTransform window = CreateRect("Shipyard Dossier Ship Window", art,
                 TavernDossierLayerWindowSize, TavernDossierLayerWindowPosition);
             window.gameObject.AddComponent<RectMask2D>();
@@ -353,16 +352,24 @@ namespace ShatteredSail.Presentation
                 window.sizeDelta, Vector2.zero, Color.clear);
             backdrop.raycastTarget = false;
 
-            RawImage ship = (RawImage)BuildShipyardVessel(window, index, Vector2.zero, 1f, "Shipyard Dossier");
-            RectTransform vessel = (RectTransform)ship.transform.parent;
-            // The portrait frame is shared with the tavern. Fit the entire
-            // landscape vessel inside it; never crop the bowsprit or masts.
-            Vector2 available = window.sizeDelta - new Vector2(32f, 48f);
-            Vector2 source = ship.rectTransform.sizeDelta;
-            float fit = Mathf.Min(available.x / source.x, available.y / source.y);
-            vessel.anchoredPosition = Vector2.zero;
-            vessel.localScale = new Vector3(fit, fit, 1f);
+            Texture2D portrait = portArt.ShipDossierPortrait(CoreVoyageSession.Ships[index].Id);
+            if (portrait != null)
+            {
+                // The dedicated portrait includes its own harbour backdrop.
+                // Cover the measured opening without stretching the painting.
+                Vector2 source = new Vector2(portrait.width, portrait.height);
+                float fit = Mathf.Max(window.sizeDelta.x / source.x, window.sizeDelta.y / source.y);
+                RawImage painting = CreateRawImage("Shipyard Dossier Portrait", window, source * fit,
+                    Vector2.zero, portrait, new Rect(0f, 0f, 1f, 1f));
+                painting.raycastTarget = false;
+            }
 
+            // Share the crew dossier's curled parchment, seals and nautical
+            // ornaments. Draw its keyed portrait rim over the painting.
+            RawImage frame = CreateRawImage("Shipyard Dossier Frame", art, new Vector2(1780f, 705f),
+                new Vector2(0f, -4f), portArt.DossierFrame, new Rect(0f, 0f, 1f, 1f));
+            frame.raycastTarget = false;
+            CrewArtChromaKey.Attach(frame, tolerance: .12f);
         }
 
         private void BuildShipyardPerformancePage(Transform detail, int index, Color ink, Color muted)

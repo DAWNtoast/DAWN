@@ -158,7 +158,9 @@ namespace ShatteredSail.Core.Tests
         [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)] [TestCase(4)] [TestCase(5)]
         public void FinalTextAndActionsFitTheirAuthoredBounds(int scenario)
         {
-            Create(); Render(SettlementPreviewSamples.Create(scenario, "盐冠港"));
+            Create();
+            VoyageSettlement result = SettlementPreviewSamples.Create(scenario, "盐冠港");
+            Render(result);
             var card = Find<RectTransform>("Settlement Card");
             // Validate authored logical geometry independently of the batch
             // Editor's Game View size. Production scaler behavior is covered by
@@ -225,7 +227,20 @@ namespace ShatteredSail.Core.Tests
             }
             Assert.That(labels.Any(label => label.text == "船体修缮" || label.text == "铸造储备" || label.text == "远航声名"),
                 Is.False, "Removed material/reputation hints must be absent, including when a material is the featured reward.");
-            Assert.That(labels.Count(label => label.text == "船长资金"), Is.EqualTo(1), "The gold detail remains in its featured or small card.");
+            Assert.That(card.GetComponentsInChildren<Transform>(true).Any(item =>
+                item.name == "Settlement Featured Detail" || item.name == "Settlement Journal Caption"), Is.False,
+                "Removed explanatory captions must not return.");
+            string[] rewardIds = { "Gold", "Wood", "Iron", "Fame" };
+            string[] rewardNames = { "金币", "木材", "铁矿", "声望" };
+            int[] rewardAmounts = { result.BankedGold, result.BankedWood, result.BankedIron, result.BankedFame };
+            for (int i = 0; i < rewardIds.Length; i++)
+            {
+                Assert.That(labels.Count(label => label.text == rewardNames[i]), Is.EqualTo(1),
+                    rewardIds[i] + " keeps its resource name after explanatory captions are removed.");
+                Assert.That(Find<Text>("Settlement Reward " + rewardIds[i]).text,
+                    Is.EqualTo((rewardAmounts[i] > 0 ? "+" : "") + rewardAmounts[i].ToString("N0")),
+                    rewardIds[i] + " keeps the complete, exact settled amount.");
+            }
             foreach (Button button in card.GetComponentsInChildren<Button>())
             {
                 Vector3[] corners = new Vector3[4]; button.GetComponent<RectTransform>().GetWorldCorners(corners);

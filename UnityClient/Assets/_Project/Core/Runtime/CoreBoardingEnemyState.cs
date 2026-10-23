@@ -5,8 +5,8 @@ namespace ShatteredSail.Core.Gameplay
 {
     public sealed class CoreBoardingEnemyState
     {
-        public const int BurnLimit = 6, ManaLimit = 3, ThunderChainLimit = 6;
-        public const int CurseMarkLimit = 6, TidePowerLimit = 12, BloodLossLimit = 12;
+        public const int BurnLimit = int.MaxValue, ManaLimit = 3, ThunderChainLimit = 6;
+        public const int CurseMarkLimit = int.MaxValue, TidePowerLimit = 12, BloodLossLimit = 12;
         public CoreBoardingEnemyDeck Deck { get; internal set; }
         public int PlayerBurnDamage { get; internal set; }
         public int PlayerBurnTurns { get; internal set; }
@@ -26,6 +26,8 @@ namespace ShatteredSail.Core.Gameplay
         public int LastAttackHealthLost { get; internal set; }
         public int LastBurnPlayerHealth { get; internal set; }
         public int LastBurnHealthLost { get; internal set; }
+        public int LastCursePlayerHealth { get; internal set; }
+        public int LastCurseHealthLost { get; internal set; }
         public int LastSelfBurnHealthLost { get; internal set; }
 
         internal CoreBoardingEnemyState CopyResources()
@@ -44,6 +46,7 @@ namespace ShatteredSail.Core.Gameplay
             ExecutedActions.Clear(); LastAttackExecuted = false;
             LastAttackPlayerHealth = LastAttackHealthLost = 0;
             LastBurnPlayerHealth = LastBurnHealthLost = LastSelfBurnHealthLost = 0;
+            LastCursePlayerHealth = LastCurseHealthLost = 0;
         }
 
         internal void RecordAttack(int health, int lost)
@@ -86,6 +89,7 @@ namespace ShatteredSail.Core.Gameplay
         public int PiercingDamage { get; internal set; }
         public int PlayerHealthLoss { get; internal set; }
         public int PlayerBurnDamage { get; internal set; }
+        public int PlayerCurseDamage { get; internal set; }
         public int EnemySelfBurnDamage { get; internal set; }
         public CoreBoardingEnemyState ResourcesAfter { get; internal set; }
     }

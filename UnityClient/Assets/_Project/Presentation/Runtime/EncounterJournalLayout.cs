@@ -7,7 +7,8 @@ namespace ShatteredSail.Presentation
     /// <summary>Readable journal geometry for the full-height voyage event panel.</summary>
     public static class EncounterJournalLayout
     {
-        private const float RowGap = 12f;
+        private const float RowGap = 10f;
+        private const float ScrollbarGutter = 20f;
 
         public static void Apply(RectTransform card)
         {
@@ -20,22 +21,17 @@ namespace ShatteredSail.Presentation
             Box(content, size, Vector2.zero);
             float top = size.y * .5f, bottom = -top;
 
-            RectTransform badge = Child(content, "Encounter Badge");
-            float badgeWidth = size.x - 196f;
-            float headingHeight = Mathf.Max(24f, Measure(badge, 16, badgeWidth, 22f));
-            TextBox(Child(content, "Encounter Journal Heading"), new Vector2(180f, headingHeight),
-                new Vector2(-size.x * .5f + 90f, top - headingHeight * .5f), 18);
-            TextBox(badge, new Vector2(badgeWidth, headingHeight),
-                new Vector2(size.x * .5f - badgeWidth * .5f, top - headingHeight * .5f), 16);
             RectTransform title = Child(content, "Encounter Title");
-            float titleTop = top - headingHeight - 12f;
+            float titleTop = top;
             float titleHeight = Measure(title, 32, size.x, 40f);
             TextBox(title, new Vector2(size.x, titleHeight), new Vector2(0f, titleTop - titleHeight * .5f), 32);
 
             float dividerY = titleTop - titleHeight - 10f;
             Box(Child(content, "Encounter Header Divider"), new Vector2(size.x, 1f), new Vector2(0f, dividerY));
             float heroTop = dividerY - 14f;
-            const float artWidth = 328f, artHeight = 248f;
+            // Give the prose at least half of the narrow column, while keeping
+            // the painting's inner 4:3 composition and room for the decisions.
+            const float artWidth = 256f, artHeight = 194f;
             float artCenter = -size.x * .5f + artWidth * .5f;
             RectTransform mount = Child(content, "Encounter Illustration Mount");
             Box(mount, new Vector2(artWidth, artHeight), new Vector2(artCenter, heroTop - artHeight * .5f));
@@ -47,26 +43,17 @@ namespace ShatteredSail.Presentation
             if (art != null && SpecialWarshipArtCatalog.IsSpecialTexture(art.texture))
                 artSize = UiImageAspect.FitSize(art.texture, art.uvRect, artSize);
             Box(artRect, artSize, Vector2.zero);
-            RectTransform location = Child(content, "Encounter Location");
-            float locationHeight = Measure(location, 18, size.x, 22f);
-            float locationTop = heroTop - artHeight - 6f;
-            TextBox(location, new Vector2(size.x, locationHeight),
-                new Vector2(0f, locationTop - locationHeight * .5f), 18);
 
-            float narrativeWidth = size.x - artWidth - 18f;
+            float narrativeWidth = size.x - artWidth - 20f;
             float narrativeCenter = size.x * .5f - narrativeWidth * .5f;
             float narrativeBottom = heroTop - artHeight;
             LayoutNarrative(content, narrativeWidth, narrativeCenter, heroTop, narrativeBottom);
 
-            float decisionTop = locationTop - locationHeight - 8f;
-            TextBox(Child(content, "Encounter Decision Heading"), new Vector2(size.x - 228f, 26f),
-                new Vector2(-114f, decisionTop - 13f), 22);
-            TextBox(Child(content, "Encounter Decision Footer"), new Vector2(212f, 26f),
-                new Vector2(size.x * .5f - 106f, decisionTop - 13f), 16);
-            Box(Child(content, "Encounter Decision Rule"), new Vector2(size.x, 1f), new Vector2(0f, decisionTop - 32f));
+            float decisionTop = narrativeBottom - 16f;
+            Box(Child(content, "Encounter Decision Rule"), new Vector2(size.x, 1f), new Vector2(0f, decisionTop));
 
             float secondaryTop = LayoutSecondaryActions(content, size.x, bottom);
-            LayoutDecisions(content, size.x, decisionTop - 42f, secondaryTop + 12f);
+            LayoutDecisions(content, size.x, decisionTop - 12f, secondaryTop + 12f);
         }
 
         private static void LayoutNarrative(RectTransform content, float width, float center, float top, float bottom)
@@ -77,20 +64,18 @@ namespace ShatteredSail.Presentation
             if (viewport == null || body == null || description == null) return;
             ScrollRect scroll = viewport.GetComponent<ScrollRect>();
             float normalized = ScrollPosition(scroll, body);
+            // The measured paragraph box remains top-anchored. Center its
+            // glyphs inside that box so CJK ascenders get clearance at the mask.
+            description.GetComponent<Text>().alignment = TextAnchor.MiddleLeft;
             float textHeight = Measure(description, 22, width, 26f);
             float availableHeight = Mathf.Max(40f, top - bottom);
             bool overflow = textHeight > availableHeight + .5f;
-            float hintHeight = overflow ? 24f : 0f;
-            float viewportHeight = Mathf.Max(40f, availableHeight - hintHeight);
+            float viewportHeight = availableHeight;
             Box(viewport, new Vector2(width, viewportHeight), new Vector2(center, top - viewportHeight * .5f));
             TopContent(body, new Vector2(width, Mathf.Max(viewportHeight, textHeight)));
             description.anchorMin = description.anchorMax = new Vector2(.5f, 1f);
             description.pivot = new Vector2(.5f, 1f);
             TextBox(description, new Vector2(width, textHeight), Vector2.zero, 22);
-            RectTransform hint = Child(content, "Encounter Description Hint");
-            TextBox(hint, new Vector2(width, 22f), new Vector2(center, bottom + 10f), 16);
-            Text hintText = hint == null ? null : hint.GetComponent<Text>();
-            if (hintText != null) hintText.text = overflow ? "滚动阅读完整记录" : string.Empty;
             if (scroll == null) return;
             scroll.horizontal = false;
             scroll.vertical = overflow;
@@ -100,9 +85,6 @@ namespace ShatteredSail.Presentation
 
         private static float LayoutSecondaryActions(RectTransform content, float width, float bottom)
         {
-            RectTransform note = Child(content, "Encounter Footer Note");
-            float noteHeight = Measure(note, 18, width, 22f);
-            TextBox(note, new Vector2(width, noteHeight), new Vector2(0f, bottom + noteHeight * .5f), 18);
             RectTransform root = Child(content, "Encounter Secondary Actions");
             var buttons = new List<RectTransform>();
             if (root != null)
@@ -110,15 +92,15 @@ namespace ShatteredSail.Presentation
                     if (child.gameObject.activeSelf && child.GetComponent<Button>() != null) buttons.Add((RectTransform)child);
             if (buttons.Count == 0)
             {
-                Box(root, new Vector2(width, 0f), new Vector2(0f, bottom + noteHeight));
-                return bottom + noteHeight;
+                Box(root, new Vector2(width, 0f), new Vector2(0f, bottom));
+                return bottom;
             }
             // A rescue action is uncommon but must remain readable alongside
             // skip. Stack both in the narrow column instead of halving labels.
             float height = 0f;
             foreach (RectTransform row in buttons) height += MeasureRow(row, width, true) + 8f;
             height -= 8f;
-            float rowBottom = bottom + noteHeight + 6f;
+            float rowBottom = bottom;
             Box(root, new Vector2(width, height), new Vector2(0f, rowBottom + height * .5f));
             float cursor = height * .5f;
             for (int index = 0; index < buttons.Count; index++)
@@ -144,8 +126,12 @@ namespace ShatteredSail.Presentation
             // Anchor the minimum readable viewport above the fixed actions.
             // An unusually tall footer must never push it into those controls.
             top = bottom + viewportHeight;
-            float rowWidth = width - 26f;
-            Box(viewport, new Vector2(rowWidth, viewportHeight), new Vector2(-13f, top - viewportHeight * .5f));
+            // Measure at full width first so a previously visible scrollbar
+            // cannot leave an empty gutter after shorter choices are shown.
+            bool overflow = MeasureChoices(actions, width) > viewportHeight + .5f;
+            float gutter = overflow ? ScrollbarGutter : 0f;
+            float rowWidth = width - gutter;
+            Box(viewport, new Vector2(rowWidth, viewportHeight), new Vector2(-gutter * .5f, top - viewportHeight * .5f));
             float cursor = 0f;
             foreach (Transform child in actions)
             {
@@ -160,7 +146,7 @@ namespace ShatteredSail.Presentation
             }
             float needed = Mathf.Max(0f, cursor - RowGap);
             TopContent(actions, new Vector2(rowWidth, Mathf.Max(viewportHeight, needed)));
-            bool overflow = needed > viewportHeight + .5f;
+            overflow = needed > viewportHeight + .5f;
             RectTransform barRect = Child(content, "Encounter Decision Scrollbar");
             Box(barRect, new Vector2(12f, viewportHeight), new Vector2(width * .5f - 6f, top - viewportHeight * .5f));
             Scrollbar bar = barRect == null ? null : barRect.GetComponent<Scrollbar>();
@@ -178,19 +164,26 @@ namespace ShatteredSail.Presentation
                 scroll.verticalNormalizedPosition = overflow ? Mathf.Clamp01(normalized) : 1f;
                 if (bar != null) bar.SetValueWithoutNotify(scroll.verticalNormalizedPosition);
             }
-            Text footer = Child(content, "Encounter Decision Footer")?.GetComponent<Text>();
-            if (footer != null) footer.text = overflow ? "上下滚动 · 查看全部方案" : "选择方案后立即结算";
+        }
+
+        private static float MeasureChoices(RectTransform actions, float width)
+        {
+            float height = 0f;
+            foreach (Transform child in actions)
+                if (child.gameObject.activeSelf && child.GetComponent<Button>() != null)
+                    height += MeasureRow((RectTransform)child, width, false) + RowGap;
+            return Mathf.Max(0f, height - RowGap);
         }
 
         private static float MeasureRow(RectTransform row, float width, bool secondary)
         {
             float labelHeight = Measure(Child(row, "Label"), 24, width - 186f, 30f);
             float hoursHeight = Measure(Child(row, "Hours"), 20, 100f, secondary ? 26f : 42f);
-            float detailHeight = Measure(Child(row, "Detail"), 20, width - 36f, 24f);
+            float detailHeight = Measure(Child(row, "Detail"), 20, width - 36f, 0f);
             float requirementHeight = Measure(Child(row, "Requirement"), 20, width - 36f, 0f);
-            float height = Mathf.Max(labelHeight, hoursHeight) + 6f + detailHeight +
+            float height = Mathf.Max(labelHeight, hoursHeight) + (detailHeight > 0f ? detailHeight + 6f : 0f) +
                 (requirementHeight > 0f ? requirementHeight + 6f : 0f) + (secondary ? 24f : 28f);
-            return Mathf.Max(secondary ? 78f : 104f, height);
+            return Mathf.Max(secondary ? 56f : 104f, height);
         }
 
         private static void LayoutRow(RectTransform row, float width, float height, bool secondary)
@@ -198,24 +191,28 @@ namespace ShatteredSail.Presentation
             float labelWidth = width - 186f;
             float labelCenter = -width * .5f + 54f + labelWidth * .5f;
             float bodyWidth = width - 36f;
-            float cursor = height * .5f - (secondary ? 12f : 14f);
             RectTransform label = Child(row, "Label"), detail = Child(row, "Detail"), requirement = Child(row, "Requirement");
             float labelHeight = Measure(label, 24, labelWidth, 30f);
             float hoursHeight = Measure(Child(row, "Hours"), 20, 100f, secondary ? 26f : 42f);
             float headingHeight = Mathf.Max(labelHeight, hoursHeight);
-            float detailHeight = Measure(detail, 20, bodyWidth, 24f);
+            float detailHeight = Measure(detail, 20, bodyWidth, 0f);
             float requirementHeight = Measure(requirement, 20, bodyWidth, 0f);
+            float contentHeight = headingHeight + (detailHeight > 0f ? detailHeight + 6f : 0f) +
+                (requirementHeight > 0f ? requirementHeight + 6f : 0f);
+            float cursor = secondary ? contentHeight * .5f : height * .5f - 14f;
             TextBox(label, new Vector2(labelWidth, labelHeight), new Vector2(labelCenter, cursor - labelHeight * .5f), 24);
             float timeCenter = width * .5f - 66f;
             TextBox(Child(row, "Hours"), new Vector2(100f, hoursHeight), new Vector2(timeCenter, cursor - hoursHeight * .5f), 20);
             Box(Child(row, "Time Rule"), new Vector2(1f, headingHeight), new Vector2(width * .5f - 124f, cursor - headingHeight * .5f));
             TextBox(Child(row, "Decision Number"), new Vector2(30f, 30f),
                 new Vector2(-width * .5f + 26f, cursor - 15f), 20);
-            cursor -= headingHeight + 6f;
+            cursor -= headingHeight;
             // Details and requirements use the complete row width beneath the
             // title/time band, keeping long resource and crew text readable.
+            if (detailHeight > 0f) cursor -= 6f;
             TextBox(detail, new Vector2(bodyWidth, detailHeight), new Vector2(0f, cursor - detailHeight * .5f), 20);
-            cursor -= detailHeight + 6f;
+            cursor -= detailHeight;
+            if (requirementHeight > 0f) cursor -= 6f;
             TextBox(requirement, new Vector2(bodyWidth, requirementHeight), new Vector2(0f, cursor - requirementHeight * .5f), 20);
             Box(Child(row, "Choice Accent"), new Vector2(4f, height - 12f), new Vector2(-width * .5f + 3f, 0f));
         }
@@ -226,7 +223,32 @@ namespace ShatteredSail.Presentation
             if (text == null || string.IsNullOrEmpty(text.text)) return minimum;
             Font(text, size);
             rect.sizeDelta = new Vector2(Mathf.Max(1f, width), Mathf.Max(1f, minimum));
-            return Mathf.Max(minimum, Mathf.Ceil(text.preferredHeight) + 2f);
+            float height = Mathf.Max(minimum, Mathf.Ceil(text.preferredHeight) + 2f);
+            // The CJK font's painted glyphs extend beyond preferredHeight.
+            // Measure the actual alignment at the live and reference scales;
+            // centered text needs clearance on both sides of its baseline.
+            TextGenerationSettings settings = text.GetGenerationSettings(rect.rect.size);
+            settings.generateOutOfBounds = true;
+            using (var generator = new TextGenerator())
+                foreach (float scale in new[] { Mathf.Max(.01f, settings.scaleFactor), 2f / 3f, 1f })
+                {
+                    settings.scaleFactor = scale;
+                    for (int pass = 0; pass < 3; pass++)
+                    {
+                        settings.generationExtents = new Vector2(Mathf.Max(1f, width), height);
+                        generator.Populate(text.text, settings);
+                        float low = -settings.pivot.y * height, high = low + height;
+                        float overflow = 0f;
+                        foreach (UIVertex vertex in generator.verts)
+                        {
+                            float y = vertex.position.y / scale;
+                            overflow = Mathf.Max(overflow, low - y, y - high);
+                        }
+                        if (overflow <= .01f) break;
+                        height += Mathf.Ceil(overflow * 2f) + 2f;
+                    }
+                }
+            return Mathf.Ceil(height);
         }
 
         private static void TextBox(RectTransform rect, Vector2 size, Vector2 position, int fontSize)
@@ -241,7 +263,9 @@ namespace ShatteredSail.Presentation
             text.fontSize = size;
             text.resizeTextForBestFit = false;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
+            // Allocated bounds include the glyph mesh; only the explicit
+            // narrative and decision viewports should clip scrolling content.
+            text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
         }
 

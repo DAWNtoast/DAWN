@@ -22,11 +22,12 @@ namespace ShatteredSail.Core.Tests
             session.Battle.EnemyBlock = 15;
             int hp = session.Battle.EnemyHull;
             CoreBattleCard missile = session.GetBattleCard(CardIndex("card_school_arcane_b03"));
-            Assert.That(session.GetBattleCardDamage(missile, NavalBattleStage.Naval), Is.EqualTo(14));
+            Assert.That(session.GetBattleCardDamage(missile, NavalBattleStage.Naval), Is.EqualTo(9));
             Assert.That(session.Battle.NavalFields.Player.BloodAttackBonus, Is.EqualTo(4), "Quotes cannot spend the next-attack buff.");
             Play(session, missile.Id);
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 4));
-            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(5), "Only the ten non-piercing points consume guard.");
+            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(10), "Only the five non-piercing points consume guard.");
+            Assert.That(session.Battle.Schools.ArcaneNextAttackDamage, Is.EqualTo(5));
             Assert.That(session.Battle.NavalFields.Player.ArcanePiercing, Is.Zero);
             Assert.That(session.Battle.NavalFields.Player.BloodAttackBonus, Is.Zero);
             Assert.That(session.Battle.Schools.Mana, Is.EqualTo(1));
@@ -42,7 +43,8 @@ namespace ShatteredSail.Core.Tests
             session.Battle.NavalFields.Player.ArcanePiercing = 4;
             int hp = session.Battle.EnemyHull;
             Play(session, "card_school_arcane_b05");
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(15));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(5));
+            Assert.That(session.Battle.Schools.ArcaneNextBlockBonus, Is.EqualTo(5));
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp));
             Assert.That(session.Battle.NavalFields.Player.BloodAttackBonus, Is.EqualTo(4));
             Assert.That(session.Battle.NavalFields.Player.ArcanePiercing, Is.EqualTo(4));
@@ -58,14 +60,14 @@ namespace ShatteredSail.Core.Tests
             Play(session, "card_school_fire_b03");
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp));
             Assert.That(session.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.EqualTo(2));
-            Assert.That(session.Battle.EnemyBurnTurns, Is.Zero);
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(2), "The authored fire layers do not require hull damage.");
             session.Battle.EnemyBlock = 0;
             int quote = session.GetBattleCardDamage(session.GetBattleCard(CardIndex("card_school_fire_b03")), NavalBattleStage.Naval);
             Play(session, "card_school_fire_b03");
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - quote - 4));
             Assert.That(session.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.Zero);
-            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(3));
-            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(2));
+            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(6));
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(6));
             Play(session, "card_school_fire_b03");
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - quote * 2 - 4));
         }
@@ -75,12 +77,12 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = NewBattle();
             session.Battle.NavalExpansion.OilPlayerEndsRemaining = 2;
-            session.Battle.EnemyBurnDamage = 3;
+            session.Battle.EnemyBurnDamage = 2;
             session.Battle.EnemyBurnTurns = 2;
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 2, 0, false, 0, 0), Is.True);
             int hp = session.Battle.EnemyHull;
             session.EndBattleTurn();
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 3), "The target's two ordinary guard absorb the passive fire after its action.");
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 2), "The target's two ordinary guard absorb the passive fire; two burn layers tick after its action.");
             Assert.That(session.Battle.EnemyBlock, Is.Zero);
             Assert.That(session.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.EqualTo(1));
             Assert.That(session.Battle.Schools.ThunderChain, Is.Zero);
@@ -119,15 +121,17 @@ namespace ShatteredSail.Core.Tests
             Play(session, "card_school_curse_b05");
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp));
             Assert.That(session.Battle.Schools.CurseMarks, Is.EqualTo(2));
-            Assert.That(session.Battle.Schools.CurseNextTickBonus, Is.EqualTo(2));
+            Assert.That(session.Battle.Schools.CurseTickBonus, Is.EqualTo(2));
             session.EndBattleTurn();
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 12));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 6), "Two layers plus separate flat two-point detonation and domain bonuses.");
             Assert.That(session.Battle.EnemyBlock, Is.EqualTo(2), "The existing curse tick bypasses guard, including the domain's addition.");
             Assert.That(session.Battle.Schools.CurseNextTickBonus, Is.Zero);
-            Assert.That(session.Battle.Schools.CurseMarks, Is.EqualTo(2));
-            Assert.That(session.Battle.Schools.CurseTurns, Is.EqualTo(2));
+            Assert.That(session.Battle.Schools.CurseTickBonus, Is.EqualTo(2));
+            Assert.That(session.Battle.Schools.CurseMarks, Is.EqualTo(1));
+            Assert.That(session.Battle.Schools.CurseTurns, Is.EqualTo(1));
             session.EndBattleTurn();
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 20));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 11));
+            Assert.That(session.Battle.Schools.CurseTickBonus, Is.Zero);
             Assert.That(session.Battle.NavalFields.Cells, Is.Empty);
         }
 

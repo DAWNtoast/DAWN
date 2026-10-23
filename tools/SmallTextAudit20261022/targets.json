@@ -1,0 +1,19 @@
+[
+  {"title":"皇家船坞总览", "file":"Shipyard_1920x1080.png", "labels":["Shipyard Inspection Hint"], "note":"查看船只档案按钮下方。"},
+  {"title":"配件装配", "file":"Shipyard_AuditShipyardEquipment_1920x1080.png", "labels":["Shipyard Equipment Installed Heading","Shipyard Equipment Help","Shipyard Equipment Selected Comparison Slot"], "note":"船图下方、待替换配件栏和页面底部；拥有船只且未选择替换配件时。"},
+  {"title":"出航：购买基础物资", "file":"VoyageDeparture_BasicSupplies_1920x1080.png", "labels":["Departure Basic Supplies Hint"], "note":"购买弹窗底部，未出现错误或操作结果时。"},
+  {"title":"出航：使用已绘海图", "file":"VoyageDeparture_AuditDepartureCharts_1920x1080.png", "labels":["Departure Chart Preview Empty","Chart Seed Validation","Departure Dock Chart Records Heading","Departure Dock Chart Records Empty"], "note":"启用“使用已绘海图”后；空列表和未选海图状态。"},
+  {"title":"出航：藏宝海图", "file":"VoyageDeparture_AuditDepartureTreasure_1920x1080.png", "labels":["Departure Dock Treasure Empty","Departure Dock Treasure Detail","Departure Dock Treasure Consumption","Departure Dock Treasure Status"], "note":"选择藏宝海图区域；没有可用种子时的说明。"},
+  {"title":"仓库：存入／取出弹窗", "file":"Warehouse_Adjustment_1920x1080.png", "labels":["Warehouse Cargo Adjustment Status"], "note":"滑条尚未调整时。选择数量后同一位置会显示确认说明。"},
+  {"title":"仓库：出售弹窗", "file":"Warehouse_Sale_1920x1080.png", "labels":["Warehouse Cargo Sale Status"], "note":"出售数量为零时。选定数量后会改为出售规则说明。"},
+  {"title":"藏图册：未使用列表为空", "file":"TreasureMap_AuditFolioEmptyUnused_1920x1080.png", "labels":["Treasure Empty Inventory Guide"], "note":"尚未获得可用藏宝海图时。"},
+  {"title":"藏图册：已使用列表为空", "file":"TreasureMap_AuditFolioEmptyUsed_1920x1080.png", "labels":["Treasure Empty Inventory Guide"], "note":"尚未使用过藏宝图时。"},
+  {"title":"航行船舱：物品详情空态", "file":"Navigation_Cargo_1920x1080.png", "labels":["Voyage Cargo Selection Hint"], "note":"尚未选择物品时。底部“编辑预览”仅为截图环境提示，未列入游戏说明。"},
+  {"title":"航海结算", "file":"Settlement_1920x1080.png", "labels":["Settlement Note","Settlement Featured Detail","Settlement Journal Caption"], "note":"货物入库选项说明、金币释义与页面用途说明。顶部“结算预览”仅为截图环境提示，未列入游戏说明。"},
+  {"title":"卡组编辑", "file":"DeckBuilder_1920x1080.png", "labels":["Deck Builder Status"], "note":"右栏底部的牌组张数规则。"},
+  {"title":"卡牌强化", "file":"CardUpgrade_1920x1080.png", "labels":["Upgrade Limit"], "note":"强化确认页的强化上限说明。"},
+  {"title":"接舷战：敌方战术检查", "file":"Battle_AuditEnemyOverview_1920x1080.png", "labels":["Battle Deck Summary","Battle Deck Footer"], "note":"打开敌方战术弹窗后，上方行动顺序说明和底部滚轮／关闭提示。"},
+  {"title":"战斗：资源检查", "file":"Battle_AuditResourceOverview_1920x1080.png", "labels":["Battle Deck Summary","Battle Deck Footer"], "note":"打开行动点、能量与补给检查弹窗时。"},
+  {"title":"海战：航行规划", "file":"Battle_AuditNavalMovement_1920x1080.png", "labels":["Naval movement instruction"], "note":"选中我方船只、开始规划航线时。"},
+  {"title":"航海事件：长文阅读", "file":"Encounter_AuditEncounterOverflow_1920x1080.png", "labels":["Encounter Description Hint"], "note":"事件正文超过阅读区域时才显示。截图使用项目现有长事件原文。"}
+]

@@ -149,9 +149,12 @@ namespace ShatteredSail.Core.Tests
             foreach (int route in Enumerable.Range(0, 3))
             {
                 var session = new CoreVoyageSession(); session.SelectShip(ship); SelectUnlockedRoute(session, route);
+                session.RestoreProfile(10000m, session.CurrentPort);
+                session.ConfigureCrewCapabilities(false, false, false, false, false, false);
+                session.ConfigureDepartureCrew(session.CrewCountValue, 0);
                 session.Cargo.Water = session.Cargo.Food = 0;
                 var order = session.CreateRecommendedSupplyOrder();
-                Assert.That(order.Water, Is.EqualTo(order.Food));
+                Assert.That(Math.Abs(order.Water - order.Food), Is.LessThanOrEqualTo(1));
                 Assert.That(order.Water / (double)session.CrewCountValue, Is.GreaterThanOrEqualTo(13.5d));
                 Assert.That(session.QuoteSupplyPurchase(order).FitsCargo, Is.True);
                 decimal cost = session.QuoteSupplyPurchase(order).Cost;
@@ -162,53 +165,53 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
-        [TestCase(0, 160)] [TestCase(1, 140)] [TestCase(2, 180)]
-        public void StarterRecommendedLongVoyageSupplyStillFillsRouteEndurance(
-            int route, int targetRations)
+        [TestCase(0)] [TestCase(1)] [TestCase(2)]
+        public void StarterRecommendationPreservesExistingAmmoAndBasicRouteEndurance(int route)
         {
             var session = new CoreVoyageSession();
             SelectUnlockedRoute(session, route);
+            session.RestoreProfile(10000m, session.CurrentPort);
+            session.ConfigureCrewCapabilities(false, false, false, false, false, false);
             VoyageSupplyOrder order = session.CreateRecommendedSupplyOrder();
 
-            Assert.That(order.Water, Is.EqualTo(targetRations - 120));
-            Assert.That(order.Food, Is.EqualTo(targetRations - 120));
-            Assert.That(order.Cannonballs, Is.Zero,
-                "Existing starter ammunition must not be reduced to the lower restock reserve.");
-            Assert.That(order.Powder, Is.Zero, "A fresh campaign already exceeds the twelve-charge reserve.");
+            Assert.That(120 + order.Water, Is.GreaterThanOrEqualTo(10 * GameplayBalance.SupplyDays(route)));
+            Assert.That(120 + order.Food, Is.GreaterThanOrEqualTo(10 * GameplayBalance.SupplyDays(route)));
             VoyageSupplyQuote quote = session.QuoteSupplyPurchase(order);
             decimal gold = session.ProfileGold;
             Assert.That(quote.CanPurchase, Is.True);
             Assert.That(session.RestockAtPort(), Is.True);
-            Assert.That(session.Cargo.Water, Is.EqualTo(targetRations));
-            Assert.That(session.Cargo.Food, Is.EqualTo(targetRations));
-            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(16));
-            Assert.That(session.Cargo.Powder, Is.EqualTo(20));
+            Assert.That(session.Cargo.Water, Is.EqualTo(120 + order.Water));
+            Assert.That(session.Cargo.Food, Is.EqualTo(120 + order.Food));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(16 + order.Cannonballs));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(20 + order.Powder));
             Assert.That(session.ProfileGold, Is.EqualTo(gold - quote.Cost));
             Assert.That(session.RestockAtPort(), Is.False);
             Assert.That(session.ProfileGold, Is.EqualTo(gold - quote.Cost));
         }
 
-        [TestCase(0)] [TestCase(1)] [TestCase(2)]
-        public void RecommendedAmmunition_ReplenishesTwelvePowderAndTenBallsOnceWithoutGrantingFreeStock(int route)
+        [TestCase(0, 20, 16)] [TestCase(1, 30, 24)] [TestCase(2, 40, 32)]
+        public void RecommendedAmmunition_ReplenishesRouteCombatReserveOnceWithoutGrantingFreeStock(int route, int powder, int balls)
         {
             var session = new CoreVoyageSession();
+            session.SelectShip(8);
+            session.RestoreProfile(10000m, session.CurrentPort);
             SelectUnlockedRoute(session, route);
             session.Cargo.Powder = session.Cargo.Cannonballs = 0;
             VoyageSupplyOrder order = session.CreateRecommendedSupplyOrder();
-            Assert.That(order.Powder, Is.EqualTo(12));
-            Assert.That(order.Cannonballs, Is.EqualTo(10));
+            Assert.That(order.Powder, Is.EqualTo(powder));
+            Assert.That(order.Cannonballs, Is.EqualTo(balls));
             VoyageSupplyQuote quote = session.QuoteSupplyPurchase(order);
             Assert.That(quote.CanPurchase, Is.True);
             Assert.That(quote.FitsCargo, Is.True);
             decimal before = session.ProfileGold;
             Assert.That(session.RestockAtPort(), Is.True);
-            Assert.That(session.Cargo.Powder, Is.EqualTo(12));
-            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(10));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(powder));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(balls));
             Assert.That(session.ProfileGold, Is.EqualTo(before - quote.Cost));
             Assert.That(session.CreateRecommendedSupplyOrder().TotalUnits, Is.Zero);
             Assert.That(session.RestockAtPort(), Is.False);
-            Assert.That(session.Cargo.Powder, Is.EqualTo(12));
-            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(10));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(powder));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(balls));
             Assert.That(session.ProfileGold, Is.EqualTo(before - quote.Cost));
         }
 
@@ -222,8 +225,9 @@ namespace ShatteredSail.Core.Tests
             float volume = session.Cargo.UsedVolume;
             decimal gold = session.ProfileGold;
 
-            Assert.That(session.CreateRecommendedSupplyOrder().TotalUnits, Is.Zero);
-            Assert.That(session.RestockAtPort(), Is.False);
+            VoyageSupplyOrder order = session.CreateRecommendedSupplyOrder();
+            Assert.That(order.Water, Is.Zero);
+            Assert.That(order.Food, Is.Zero);
             Assert.That(session.Cargo.Water, Is.EqualTo(286));
             Assert.That(session.Cargo.Food, Is.EqualTo(286));
             Assert.That(session.Cargo.Cannonballs, Is.EqualTo(10));

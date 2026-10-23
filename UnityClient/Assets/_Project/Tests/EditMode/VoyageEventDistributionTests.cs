@@ -15,13 +15,17 @@ namespace ShatteredSail.Core.Tests
         private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
 
         [Test]
-        public void NewChartUsesSs5WhileHistoricalSs3RetainsItsVersion()
+        public void NewChartUsesSs6WhileHistoricalSs3RetainsItsVersion()
         {
             string seed = CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
-            Assert.That(seed, Does.StartWith("SS5."));
+            Assert.That(seed, Does.StartWith("SS6."));
             Assert.That(CoreVoyageSession.TryParseChartSeed(seed, out CoreSeaChartDefinition chart), Is.True);
-            Assert.That(chart.MapGeometryVersion, Is.EqualTo(3));
-            Assert.That(CoreVoyageSession.TryParseChartSeed(seed.Replace("SS5.", "SS3."), out _), Is.False);
+            Assert.That(chart.MapGeometryVersion, Is.EqualTo(4));
+            Assert.That(CoreVoyageSession.TryParseChartSeed(seed.Replace("SS6.", "SS5."), out _), Is.False);
+            var compact = new CoreVoyageMap(chart.MapGeometryVersion);
+            Assert.That(compact.FineColumns, Is.EqualTo(96));
+            Assert.That(compact.FineRows, Is.EqualTo(68));
+            Assert.That(compact.CellWidth, Is.EqualTo(compact.CellHeight).Within(.00001f));
             const string legacy = "SS3.0.0.1.0.0.6286796D.78C3DA98.0D9FC4B6";
             Assert.That(CoreVoyageSession.TryParseChartSeed(legacy, out chart), Is.True);
             Assert.That(chart.MapGeometryVersion, Is.EqualTo(1));
@@ -30,6 +34,31 @@ namespace ShatteredSail.Core.Tests
             Assert.That(geometry.WorldHeight, Is.EqualTo(75f));
             Assert.That(geometry.FineColumns, Is.EqualTo(96));
             Assert.That(geometry.FineRows, Is.EqualTo(72));
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        public void CompactChartsKeepEveryEventInsideTheSeaAndReachable(int route)
+        {
+            for (int sample = 0; sample < 12; sample++)
+            {
+                CoreVoyageMap map = Generate(4, route, sample, out CoreVoyageSession session);
+                Assert.That(map.Columns, Is.EqualTo(48));
+                Assert.That(map.Rows, Is.EqualTo(34));
+                Assert.That(map.WorldHeight, Is.EqualTo(100f * 34f / 48f).Within(.00001f));
+                foreach (CoreMapNode node in map.Nodes)
+                {
+                    Assert.That(node.Position.X, Is.InRange(0f, map.WorldWidth), node.Encounter.Id);
+                    Assert.That(node.Position.Y, Is.InRange(0f, map.WorldHeight), node.Encounter.Id);
+                    Assert.That(session.PlanNavigablePath(map.Departure, node.Position).Count,
+                        Is.GreaterThanOrEqualTo(2), "Unreachable compact-chart event " + node.Encounter.Id);
+                }
+                Assert.That(session.PlanNavigablePath(map.Departure, map.Destination).Count, Is.EqualTo(2));
+                Assert.That(session.PlanNavigablePath(map.Destination, map.Departure).Count, Is.EqualTo(2));
+                Assert.That(Signature(Generate(4, route, sample, out _)), Is.EqualTo(Signature(map)),
+                    "Compact charts must regenerate the same events, terrain and coordinates.");
+            }
         }
 
         // Captured from the unmodified geometry 0/1 generator before the event

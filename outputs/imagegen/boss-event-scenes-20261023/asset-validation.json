@@ -1,0 +1,122 @@
+[
+  {
+    "key": "boss_blood",
+    "name": "税金女王号",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-8dd13930-e2e7-4a40-8897-74bf9aec9123.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_blood.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "C8380DEA475C05E0542F802B0BE8D7A3FC030BE3615C85C1C0455770FB37FF2C"
+  },
+  {
+    "key": "boss_thunder",
+    "name": "极光敕令号",
+    "source": "C:/Users/Admin/.codex/generated_images/01a16314-6bf8-7160-9e2e-6d729e4acbd7/exec-66cc2cb5-6d11-48c1-96c5-74f1eca5394f.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_thunder.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "D62A50054A5206206DF93FF6D257AAA3A46FD6C730D75EF91DBEA0F7598C2581"
+  },
+  {
+    "key": "legendary_blood",
+    "name": "绯刃寡妇号",
+    "source": "C:/Users/Admin/.codex/generated_images/01a16314-6bf8-7160-9e2e-6d729e4acbd7/exec-69227d79-6307-4b2a-aec5-925498ecee58.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_blood.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "CBEB4D2D11A1BEF28EE55E748BB64885AD327C26322DE3B047F1B636A8634B69"
+  },
+  {
+    "key": "boss_curse",
+    "name": "月蚀圣骸",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-d4c541fc-97b9-4fc1-aa3d-7b98ef59690c.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_curse.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "A462D1B47476C0FB8FF25643E26E96F159D782C8AC3B9B4A1B571685BE36F556"
+  },
+  {
+    "key": "boss_arcane",
+    "name": "月织星槎号",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-d83a10b0-fb4c-42ce-8aba-277965ddfbc2.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_arcane.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "797BAE60436C48FAD40F72FDFBAC6FF0707B00F73AD1712A5C559DF59278CE93"
+  },
+  {
+    "key": "legendary_curse",
+    "name": "铁誓不沉号",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-24a24968-a2b0-4afb-b06b-42df50eca166.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_curse.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "F73150ECB4CC491875ECC555BFD81FD9877C01408DBA5CD85294A9EF2013BB97"
+  },
+  {
+    "key": "legendary_arcane",
+    "name": "终界观星号",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-5af137a8-6db1-442b-9fbe-e8d87e86bec5.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_arcane.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "F1BBA249869E1CF2FE410221DD5F4F555F651A07C0A5DA7A43189BB5792DA3CC"
+  },
+  {
+    "key": "boss_fire",
+    "name": "裂桅号",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-ddb9379b-7432-471e-9aa4-ca9de530c63d.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_fire.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "5B37250804D18C54685CA19EB6EBAEB1599970894D2A46094BA6AE9F1F69209F"
+  },
+  {
+    "key": "boss_tide",
+    "name": "幽礁潜猎号",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-818d977d-ae19-4f77-8085-2be731604a4a.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_tide.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "0F0DC59685905FF31ED2C7BE796FC6E9B4D292614B01901CB2E8954E62D97A5D"
+  },
+  {
+    "key": "legendary_fire",
+    "name": "余烬方舟号",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-96723996-95e6-4a29-b823-ce002d505807.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_fire.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "FCFBAB5EDCE304BE39EDE49520C08385C6175DF8AA543EA5E8A4CE24946CC69A"
+  },
+  {
+    "key": "legendary_thunder",
+    "name": "雷冠审判号",
+    "source": "C:/Users/Admin/.codex/generated_images/01a16314-10e2-7ae2-a926-0a9da6758c9f/exec-fff4fce5-47a9-4304-b2e2-a926696e71c0.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_thunder.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "9F21043195030CDEF13FE735E86943BF4DC1FE00A81140F8E10B6C92E5249CC5"
+  },
+  {
+    "key": "legendary_tide",
+    "name": "潮汐镇魂号",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-ed4f6119-803f-4f9d-ba5f-0e094e5b0b22.png",
+    "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_tide.png",
+    "width": 1536,
+    "height": 1024,
+    "minimumAlpha": 255,
+    "sha256": "2CE371E8EAEEA083B2D81BC9E049E246FA6C1ACEA102F15082B437FFEBDB3EF0"
+  }
+]

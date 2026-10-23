@@ -29,7 +29,8 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(quote.WoodCost, Is.EqualTo(cost));
                         Assert.That(quote.MedicineCost, Is.Zero);
                         Assert.That(session.Cargo.Wood, Is.EqualTo(wood), "Quotes cannot spend wood.");
-                        Assert.That(session.BattleCardFaceDescription(card, stage), Does.Contain("消耗 " + cost + " 木板"));
+                        Assert.That(session.BattleCardFaceDescription(card, stage), Does.Contain("修复 2 点船体")
+                            .And.Contain("消耗 1 木板额外修复 " + (quote.FullRepair - 2) + " 点船体"));
                         Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
                         Assert.That(session.Hull, Is.EqualTo(session.MaxHull - wound + heal));
                         Assert.That(session.Cargo.Wood, Is.EqualTo(wood - cost));

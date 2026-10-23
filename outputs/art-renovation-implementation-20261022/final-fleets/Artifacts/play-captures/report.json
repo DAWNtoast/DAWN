@@ -1,0 +1,607 @@
+{
+    "scope": "Actual Unity PlayMode battle UI captured during the visual-feedback regression tests. Only isolated in-memory fixtures are arranged; each action uses the real UI callback and combat rules.",
+    "width": 1920,
+    "height": 1080,
+    "frames": [
+        {
+            "file": "card-frames-six-types.png",
+            "caption": "Live ordinary-card hand: six functional categories retain their shared wooden school-neutral frame.",
+            "capturedAtUtc": "2026-10-22T16:05:43.3844229Z",
+            "animationPlaying": false,
+            "stage": "Naval",
+            "distanceMeters": 350.0,
+            "alignment": "Parallel",
+            "playerHull": 55,
+            "enemyHull": 62,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "链弹",
+                    "fontSize": 17,
+                    "glyphs": 2,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -19.233562469482423,
+                        "y": -12.668612480163575,
+                        "width": 38.54881286621094,
+                        "height": 21.6304988861084
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 1",
+                    "text": "满帆转向",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.61479187011719,
+                        "height": 23.13631820678711
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 2",
+                    "text": "试探突击",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 3",
+                    "text": "紧急修理",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -35.74712371826172,
+                        "y": -12.668612480163575,
+                        "width": 72.58450317382813,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 4",
+                    "text": "稳固船身",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.61479187011719,
+                        "height": 23.13631820678711
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 5",
+                    "text": "装填弹药",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_00.png",
+            "caption": "轻帆船 · 灰鸥：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:14.1411424Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 55,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_01.png",
+            "caption": "双桅商船 · 金潮：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:14.2586284Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 95,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_02.png",
+            "caption": "巡防舰 · 铜钟：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:14.3873107Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 155,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_03.png",
+            "caption": "遗迹猎船 · 月蚀：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:14.5114675Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 110,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_04.png",
+            "caption": "打捞船 · 拾潮：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:14.6382040Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 125,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_05.png",
+            "caption": "快帆邮船 · 白羽：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:14.7667435Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 65,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_06.png",
+            "caption": "补给船 · 丰穗：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:14.8891817Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 115,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_07.png",
+            "caption": "重炮舰 · 雷铸：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:15.0231697Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 240,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_08.png",
+            "caption": "远洋货驳 · 盐山：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:15.1684710Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 170,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_09.png",
+            "caption": "武装商船 · 誓金：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:15.2965385Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 190,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_10.png",
+            "caption": "雾行船 · 夜灯：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:15.4219033Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 135,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "ShipAudit_Naval_11.png",
+            "caption": "飞剪商船 · 逐风：一格接触距离，验证战术船标、投影位置及装备保留",
+            "capturedAtUtc": "2026-10-22T16:06:15.5502620Z",
+            "animationPlaying": true,
+            "stage": "Naval",
+            "distanceMeters": 100.0,
+            "alignment": "HeadOn",
+            "playerHull": 145,
+            "enemyHull": 125,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        }
+    ]
+}

@@ -293,10 +293,8 @@ namespace ShatteredSail.Presentation
                     mode && !departureChartValid && !empty ? Coral : MutedInk);
                 departureChartValidation.text = tutorialActive ? "教学使用指定航程；结束后可选海图。" : mode
                     ? departureChartValid ? "海图已确认，备好补给后出航。"
-                        : empty ? "选择已绘海图，或输入完整种子。" : "无法出航：" + departureChartFailure
-                    : departureChartDropdown != null && departureChartDropdown.options.Count <= 1
-                        ? "暂无已绘海图；勾选后可输入完整种子。"
-                        : "出航时生成随机海图；勾选可复用已绘海图。";
+                        : empty ? string.Empty : "无法出航：" + departureChartFailure
+                    : string.Empty;
             }
             Transform routePanel = contentRoot == null ? null : FindActiveGuidedContent("Route Selection");
             if (routePanel != null)

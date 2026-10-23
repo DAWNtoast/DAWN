@@ -124,15 +124,18 @@ namespace ShatteredSail.Presentation
             Button card = CreateButton(name, parent, bounds.size * scale, position, Color.clear, Ink, 16);
             card.GetComponentInChildren<Text>().text = string.Empty;
             card.transition = Selectable.Transition.None;
+            string description = session.BattleCardFaceDescription(data, selectedBattleDeckStage);
             RectTransform face = CreateCollectionCardFace(card.transform, data, prefix,
                 collection ? "Workshop Card Art " + index : prefix + " Art",
                 collection ? "Workshop Card Name " + index : prefix + " Name", scale,
-                session.BattleCardFaceDescription(data, selectedBattleDeckStage),
+                description,
                 collection ? "Workshop Card Description " + index : prefix + " Effect");
+            RefreshCardSupplyCost(face, data, previewStage: selectedBattleDeckStage);
             face.anchoredPosition = -bounds.center * scale;
             // The full frame defines one hit area; nested cost ornaments cannot steal the drag.
             foreach (Graphic graphic in face.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;
             card.image.raycastPadding = Vector4.zero;
+            CollectionCardKeywordHover.Bind(card.gameObject, face, data, FormatBattleCardDescription(description));
             return card;
         }
 
@@ -148,6 +151,7 @@ namespace ShatteredSail.Presentation
                 const float scale = .70f;
                 RectTransform face = CreateCollectionCardFace(ghost, data, "Deck Drag", "Deck Drag Art", "Deck Drag Name",
                     scale, session.BattleCardFaceDescription(data, selectedBattleDeckStage));
+                RefreshCardSupplyCost(face, data, previewStage: selectedBattleDeckStage);
                 face.anchoredPosition = -CardSchoolArtCatalog.FrameBounds(data).center * scale;
                 return ghost;
             }, () => AdjustBattleDeck(index, fromDeck ? -1 : 1),
@@ -281,17 +285,23 @@ namespace ShatteredSail.Presentation
             CanvasGroup group = deckBuilderHoverPreview.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             group.interactable = false;
+            string description = session.BattleCardFaceDescription(data, selectedBattleDeckStage);
             RectTransform face = CreateCollectionCardFace(deckBuilderHoverPreview, data, "Deck Hover",
                 "Deck Hover Art", "Deck Hover Name", scale,
-                session.BattleCardFaceDescription(data, selectedBattleDeckStage), "Deck Hover Effect");
+                description, "Deck Hover Effect");
+            RefreshCardSupplyCost(face, data, previewStage: selectedBattleDeckStage);
             face.anchoredPosition = -bounds.center * scale;
             foreach (Graphic graphic in deckBuilderHoverPreview.GetComponentsInChildren<Graphic>(true))
                 graphic.raycastTarget = false;
             deckBuilderHoverPreview.SetAsLastSibling();
+            CollectionCardKeywordHover.Bind(source.gameObject, face, data,
+                FormatBattleCardDescription(description)).Show();
         }
 
         private void HideDeckBuilderHoverPreview()
         {
+            if (deckBuilderHoverSource != null)
+                deckBuilderHoverSource.GetComponent<CollectionCardKeywordHover>()?.Hide();
             RectTransform preview = deckBuilderHoverPreview;
             deckBuilderHoverPreview = null;
             deckBuilderHoverSource = null;

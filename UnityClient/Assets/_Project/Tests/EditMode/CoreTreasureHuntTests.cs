@@ -711,14 +711,14 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void EmptyOrdinaryFailure_PreservesExistingDistanceExperience()
+        public void EmptyOrdinaryFailure_DoesNotAwardDistanceExperience()
         {
             var session = ShortReturnProfile();
             SailEmptyTwentyMiles(session);
             session.Cargo.Water = 0;
             Assert.That(session.SafeReturn(), Is.True);
             Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
-            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(20));
+            Assert.That(session.Settlement.BankedPirateExperience, Is.Zero);
         }
 
         private static CoreVoyageSession ShortReturnProfile()

@@ -63,6 +63,7 @@ namespace ShatteredSail.Core.Gameplay
         public string Label = "延迟攻击";
         public string SourceSchoolId = string.Empty;
         public string SourceCardId = string.Empty;
+        internal List<CoreBattleCard> EchoCards { get; } = new List<CoreBattleCard>();
     }
 
     public sealed class CoreBoardingHealingTick
@@ -87,6 +88,9 @@ namespace ShatteredSail.Core.Gameplay
         public List<CoreBoardingTimedStacks> SelfBurn { get; } = new List<CoreBoardingTimedStacks>();
         public List<CoreBoardingDelayedDamage> DelayedDamage { get; } = new List<CoreBoardingDelayedDamage>();
         public List<CoreBoardingHealingTick> HealingTicks { get; } = new List<CoreBoardingHealingTick>();
+        public int ContinuousRecovery { get { int total = 0; foreach (var tick in HealingTicks) total += tick.Amount; return total; } }
+        public int SelfBurnStacks { get { int total = 0; foreach (var stack in SelfBurn) total += stack.Amount; return total; } }
+        public int EnemyBurnStacks { get { int total = 0; foreach (var stack in EnemyBurn) total += stack.Amount; return total; } }
         public List<CoreBoardingHeldCard> HeldCards { get; } = new List<CoreBoardingHeldCard>();
         public List<int> ExhaustedCards { get; } = new List<int>();
         internal HashSet<string> TurnUses { get; } = new HashSet<string>(StringComparer.Ordinal);
@@ -99,6 +103,8 @@ namespace ShatteredSail.Core.Gameplay
         public int ArcaneRetainedGuard;
         public int ArcaneGuardExpiry;
         public bool ArcaneEchoReady;
+        public int ArcaneEchoCharges;
+        internal List<CoreBattleCard> ArcaneEchoCards { get; } = new List<CoreBattleCard>();
         public CoreBattleCard ArcaneEchoCard;
         public int ThunderReady;
         public int ThunderResidualCharges;
@@ -109,6 +115,7 @@ namespace ShatteredSail.Core.Gameplay
         public bool ActiveCritical;
         public bool ActiveAttack;
         public int ActiveAuthoredDamage;
+        internal List<CoreBattleCard> ActiveDelayedEchoCards;
         public CoreBattleCard ActiveCard;
         public int BurnedAttackCount;
         internal List<CoreBoardingHeldCard> SelectedHeldCards = new List<CoreBoardingHeldCard>();

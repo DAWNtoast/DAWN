@@ -86,6 +86,68 @@ namespace ShatteredSail.Core.Tests
             Assert.That(CoreAchievementCatalog.MeetsVoyageEventArrivalRequirement(null, false, false), Is.False);
         }
 
+        [TestCase(VoyageOutcome.SafeReturn, 1, 25, 100, true)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, 1, 25, 100, true)]
+        [TestCase(VoyageOutcome.SafeReturn, 2, 1, 100, true)]
+        [TestCase(VoyageOutcome.SafeReturn, 1, 26, 100, false)]
+        [TestCase(VoyageOutcome.SafeReturn, 1, 13, 55, true)]
+        [TestCase(VoyageOutcome.SafeReturn, 1, 14, 55, false)]
+        [TestCase(VoyageOutcome.SafeReturn, 0, 25, 100, false)]
+        [TestCase(VoyageOutcome.SafeReturn, -1, 25, 100, false)]
+        [TestCase(VoyageOutcome.SafeReturn, 1, 0, 100, false)]
+        [TestCase(VoyageOutcome.SafeReturn, 1, -1, 100, false)]
+        [TestCase(VoyageOutcome.SafeReturn, 1, 1, 0, false)]
+        [TestCase(VoyageOutcome.SafeReturn, 1, 1, -1, false)]
+        [TestCase(VoyageOutcome.SafeReturn, 1, int.MaxValue, int.MaxValue, false)]
+        [TestCase(VoyageOutcome.Failure, 1, 25, 100, false)]
+        [TestCase(VoyageOutcome.TreasureRecovered, 1, 25, 100, false)]
+        public void DamagedReturn_RequiresVictoryAndSurvivingQuarterHull(
+            VoyageOutcome outcome, int victories, int hull, int maxHull, bool expected)
+        {
+            var settlement = new VoyageSettlement { Outcome = outcome };
+            Assert.That(CoreAchievementCatalog.MeetsDamagedReturnRequirement(
+                settlement, false, false, victories, hull, maxHull), Is.EqualTo(expected));
+        }
+
+        [TestCase(VoyageOutcome.ArrivedAtPort, 240d, true, false, true)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, 300d, true, false, true)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, 239.99d, true, false, false)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, 0d, true, false, false)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, -1d, true, false, false)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, double.NaN, true, false, false)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, double.PositiveInfinity, true, false, false)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, 240d, false, false, false)]
+        [TestCase(VoyageOutcome.ArrivedAtPort, 240d, true, true, false)]
+        [TestCase(VoyageOutcome.SafeReturn, 240d, true, false, false)]
+        [TestCase(VoyageOutcome.Failure, 240d, true, false, false)]
+        [TestCase(VoyageOutcome.TreasureRecovered, 240d, true, false, false)]
+        public void SuppliedVoyage_RequiresTenDaysArrivalAndUnbrokenSupplyEvidence(
+            VoyageOutcome outcome, double hours, bool hasEvidence, bool ranOut, bool expected)
+        {
+            var settlement = new VoyageSettlement { Outcome = outcome, Hours = hours };
+            Assert.That(CoreAchievementCatalog.MeetsSupplyVoyageRequirement(
+                settlement, false, false, hasEvidence, ranOut), Is.EqualTo(expected));
+        }
+
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void VoyageChallenges_ExcludeTutorialAndTreasureVoyages(bool tutorial, bool treasure)
+        {
+            var settlement = new VoyageSettlement { Outcome = VoyageOutcome.ArrivedAtPort, Hours = 240d };
+            Assert.That(CoreAchievementCatalog.MeetsDamagedReturnRequirement(
+                settlement, tutorial, treasure, 1, 25, 100), Is.False);
+            Assert.That(CoreAchievementCatalog.MeetsSupplyVoyageRequirement(
+                settlement, tutorial, treasure, true, false), Is.False);
+        }
+
+        [Test]
+        public void VoyageChallenges_MissingSettlementCannotUnlock()
+        {
+            Assert.That(CoreAchievementCatalog.MeetsDamagedReturnRequirement(null, false, false, 1, 25, 100), Is.False);
+            Assert.That(CoreAchievementCatalog.MeetsSupplyVoyageRequirement(null, false, false, true, false), Is.False);
+        }
+
         [Test]
         public void VoyageHalfChart_PreviousVoyageCoverageCannotQualifyANewShortVoyage()
         {

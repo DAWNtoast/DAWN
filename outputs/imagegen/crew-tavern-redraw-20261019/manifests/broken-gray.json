@@ -1,0 +1,23 @@
+[
+  {
+    "id": "crew_broken_anchor_navigator_lorne",
+    "name": "测潮师 洛恩",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a154c3-b798-7921-bea3-7cc60514df32\\exec-3b8979ae-13c1-4086-a7ac-e95569bf4c74.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261019\\references\\crew_broken_anchor_navigator_lorne_tavern.png",
+    "final": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261019\\final\\crew_broken_anchor_navigator_lorne.png",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_navigator_lorne_portrait_v2.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261019\\prompts\\crew_broken_anchor_navigator_lorne.txt",
+    "generated_size": [
+      1122,
+      1402
+    ],
+    "target_size": [
+      1122,
+      1402
+    ],
+    "tool": "built-in image_gen",
+    "status": "integrated",
+    "qa": "Visually checked against current tavern reference; face, hair, clothing, signature props and single-character framing preserved.",
+    "sha256": "e0e2f3000d77acf52f4a5f53c85a6345f0639fbe820c26f2c0147a8ad01608d3"
+  }
+]

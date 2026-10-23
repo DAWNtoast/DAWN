@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-22 15:36:18Z" end-time="2026-10-22 15:36:27Z" duration="8.5976924">
+  <test-suite type="TestSuite" id="1656" name="ArtRenovationValidation20261022" fullname="ArtRenovationValidation20261022" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 15:36:18Z" end-time="2026-10-22 15:36:27Z" duration="8.597692" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1649" name="ShatteredSail.Presentation.PlayModeTests.dll" fullname="D:/Game/tmp/shipyard-detail-clean-20261011/Library/ScriptAssemblies/ShatteredSail.Presentation.PlayModeTests.dll" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 15:36:18Z" end-time="2026-10-22 15:36:27Z" duration="8.591762" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="32408" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1650" name="ShatteredSail" fullname="ShatteredSail" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 15:36:18Z" end-time="2026-10-22 15:36:27Z" duration="8.589415" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1651" name="Presentation" fullname="ShatteredSail.Presentation" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 15:36:18Z" end-time="2026-10-22 15:36:27Z" duration="8.587167" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1652" name="Tests" fullname="ShatteredSail.Presentation.Tests" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 15:36:18Z" end-time="2026-10-22 15:36:27Z" duration="8.584853" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1561" name="NavalBattleVisualFeedbackTests" fullname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests" classname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-10-22 15:36:18Z" end-time="2026-10-22 15:36:25Z" duration="6.704623" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1563" name="ApproachAndRetreat_GrantActionPointsAndAnimateCommittedRoutesOnTheRetainedBoard" fullname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests.ApproachAndRetreat_GrantActionPointsAndAnimateCommittedRoutesOnTheRetainedBoard" methodname="ApproachAndRetreat_GrantActionPointsAndAnimateCommittedRoutesOnTheRetainedBoard" classname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests" runstate="Runnable" seed="979511792" result="Passed" start-time="2026-10-22 15:36:18Z" end-time="2026-10-22 15:36:23Z" duration="4.556185" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1564" name="CirclingEnemy_GrantsActionPointThenBentRouteRotatesTheTacticalCameraThroughIntermediatePoses" fullname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests.CirclingEnemy_GrantsActionPointThenBentRouteRotatesTheTacticalCameraThroughIntermediatePoses" methodname="CirclingEnemy_GrantsActionPointThenBentRouteRotatesTheTacticalCameraThroughIntermediatePoses" classname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests" runstate="Runnable" seed="1405808192" result="Passed" start-time="2026-10-22 15:36:23Z" end-time="2026-10-22 15:36:25Z" duration="2.140490" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1569" name="NavalTacticalArtFlowTests" fullname="ShatteredSail.Presentation.Tests.NavalTacticalArtFlowTests" classname="ShatteredSail.Presentation.Tests.NavalTacticalArtFlowTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-10-22 15:36:25Z" end-time="2026-10-22 15:36:27Z" duration="1.870207" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1570" name="ProductionBattle_UsesSelectedHullNamedEnemyAndAllSixSeas_WithoutChangingPoses" fullname="ShatteredSail.Presentation.Tests.NavalTacticalArtFlowTests.ProductionBattle_UsesSelectedHullNamedEnemyAndAllSixSeas_WithoutChangingPoses" methodname="ProductionBattle_UsesSelectedHullNamedEnemyAndAllSixSeas_WithoutChangingPoses" classname="ShatteredSail.Presentation.Tests.NavalTacticalArtFlowTests" runstate="Runnable" seed="977386520" result="Passed" start-time="2026-10-22 15:36:25Z" end-time="2026-10-22 15:36:27Z" duration="1.854539" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/Admin/AppData/LocalLow/CodexArtRenovation20261022/ArtRenovationValidation20261022\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

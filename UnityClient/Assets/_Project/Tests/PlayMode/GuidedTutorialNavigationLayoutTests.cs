@@ -29,6 +29,8 @@ namespace ShatteredSail.Presentation.Tests
             {
                 yield return AssertGuidedNavigationLayoutSizes(viewport, controller, "Heading East", "罗盘");
                 Button east = RequireGuidedButton("Heading East");
+                GameObject retainedChart = GameObject.Find("Navigation Chart");
+                Button.ButtonClickedEvent priorHeadingClick = east.onClick;
                 var eastFocus = RequireSingleGuidedLayoutFocus();
                 Assert.That(eastFocus.VisualTarget, Is.SameAs(east.transform.Find("Label")),
                     "A radial heading uses its direction label, never the whole compass square.");
@@ -36,6 +38,13 @@ namespace ShatteredSail.Presentation.Tests
                 ClickNavigationInterfaceRefreshGraphic(east.gameObject,
                     Vector2.right * eastRect.rect.width * .335f);
                 yield return null;
+
+                Assert.That(GameObject.Find("Navigation Chart"), Is.SameAs(retainedChart));
+                Assert.That(RequireGuidedButton("Heading East"), Is.SameAs(east));
+                Assert.That(east.IsInteractable(), Is.False, "The same heading button must become locked at the Sail step.");
+                priorHeadingClick.Invoke();
+                Assert.That(controller.CurrentGuidedTutorialNavigationInputStep,
+                    Is.EqualTo(GuidedTutorialNavigationInputStep.Sail), "Retired tutorial wrappers cannot reopen the heading step.");
 
                 Assert.That(controller.CurrentGuidedTutorialNavigationInputStep,
                     Is.EqualTo(GuidedTutorialNavigationInputStep.Sail),

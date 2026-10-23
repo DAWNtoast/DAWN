@@ -1,0 +1,14 @@
+﻿Current production Core probe; isolated fixture uses reflection only to enter sampled events, no player save access.
+chart=SS6.2.0.1.0.0.9F0725AC.95E3DF52.B9A8439A
+case=event_moon_relic_diver visit=1 claim=0 multiplier=1 available=True quotedCompass=1 quotedRelic=0
+resolved=True ironDelta=-6 woodDelta=-3 lanternDelta=0 relicDelta=0 compassDelta=1 curseDelta=0 waterDelta=-1 foodDelta=-1
+case=event_moon_relic_diver visit=2 claim=1 multiplier=0.5 available=True quotedCompass=0 quotedRelic=0
+resolved=True ironDelta=-6 woodDelta=-3 lanternDelta=0 relicDelta=0 compassDelta=0 curseDelta=0 waterDelta=-1 foodDelta=-1
+chart=SS6.2.0.1.0.0.364E6B56.185B1C27.1EB4614E
+case=event_moon_v2_ossuary_buoy visit=1 claim=0 multiplier=1 available=True quotedCompass=0 quotedRelic=1
+resolved=True ironDelta=0 woodDelta=0 lanternDelta=-1 relicDelta=1 compassDelta=0 curseDelta=1 waterDelta=-1 foodDelta=-1
+case=event_moon_v2_ossuary_buoy visit=2 claim=1 multiplier=0.5 available=True quotedCompass=0 quotedRelic=0
+resolved=True ironDelta=0 woodDelta=0 lanternDelta=-1 relicDelta=0 compassDelta=0 curseDelta=1 waterDelta=-1 foodDelta=-1
+settlement=SafeReturn earnedAncient=1 retainedAncient=0 earnedWood=1 retainedWood=0
+settlement=ArrivedAtPort earnedAncient=1 retainedAncient=0 earnedWood=1 retainedWood=0
+﻿

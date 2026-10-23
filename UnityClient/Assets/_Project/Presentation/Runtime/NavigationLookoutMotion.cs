@@ -80,6 +80,30 @@ namespace ShatteredSail.Presentation
             });
         }
 
+        public void ReplaceObservations(IReadOnlyList<LookoutObservation> observations, SeaTerrainType terrain,
+            Color tint, Func<LookoutObservation, Color, RawImage> createScenery)
+        {
+            // Turning in place changes projected targets, not the ocean or its
+            // animation clock. Retire only the small scenery set; no chart,
+            // backdrop, captions or input surface is rebuilt.
+            foreach (Scenery track in scenery)
+            {
+                if (track.Image == null) continue;
+                track.Image.gameObject.SetActive(false);
+                if (Application.isPlaying) Destroy(track.Image.gameObject); else DestroyImmediate(track.Image.gameObject);
+            }
+            scenery.Clear();
+            frameCount = 0;
+            progress = 0f;
+            foreach (LookoutObservation item in observations)
+            {
+                if (NavigationLookoutArtCatalog.ShouldSkipLocalWeather(item, terrain)) continue;
+                RawImage image = createScenery(item, tint);
+                Register(item, image);
+                image.transform.SetSiblingIndex(oceans.Count + scenery.Count - 1);
+            }
+        }
+
         public static NavigationLookoutPose ProjectPose(LookoutObservation item, float aspect, float contactRatio, Color tint)
         {
             bool weather = item.Kind == LookoutSceneryKind.Storm || item.Kind == LookoutSceneryKind.Fog;

@@ -7,7 +7,7 @@
 顺序为 `DesktopRelease.ps1 Snapshot` → 完整 EditMode / PlayMode → `Verify.ps1` → 提交并推送 Git → `Windows` → `Smoke` → `Package` → `Seal`。以下是流程说明，不代表本轮测试或发布已经通过。
 
 1. 在 `D:/Game/tmp` 下准备独立 Unity 工程，使用全新的快照、测试、验收和发布目录。调用 `DesktopRelease.ps1 -Stage Snapshot`，显式指定 `-ProjectPath`、`-EvidenceDirectory`、`-ReleaseDirectory`、`-Version`、`-ZipFileName` 与 `-ValidationSummary`；后续各阶段沿用相同参数。`-ValidationSummary` 指向稍后由 `Verify.ps1` 生成的 `verification-summary.json`。不要预先创建 Windows 成品目录，不覆盖历史证据，不恢复 `UIPreviewsForMe`。
-2. 对同一快照分别运行完整 EditMode 和 PlayMode，两次都必须传 `-SourceManifest`，不可带 `-TestFilter`。测试需要图形设备，使用 `RunTests.ps1` 的默认图形参数，不加 `-nographics`。例如下列路径必须先由本轮 Snapshot 准备；每次重跑换新的输出目录：
+2. 对同一快照分别运行完整 EditMode 和 PlayMode，两次都必须传 `-SourceManifest`，不可带 `-TestFilter`。完整交互回归可能运行约40分钟，单轮超时默认为60分钟，可用 `-TimeoutMinutes` 显式设置（1–240分钟）；不会改变用例筛选或通过标准。测试需要图形设备，使用 `RunTests.ps1` 的默认图形参数，不加 `-nographics`。例如下列路径必须先由本轮 Snapshot 准备；每次重跑换新的输出目录：
 
 ```powershell
 $project = 'D:/Game/tmp/release-20261018-01'
@@ -22,6 +22,10 @@ $verification = 'D:/Game/Artifacts/Release20261018/Verification01'
 
 3. 只有两套完整测试及 `Verify.ps1` 均成功后，才提交、推送已审核的源码和工具到 Git。校验器核对测试前后的输入清单哈希、结果 XML 哈希和逐项数量；`skipped-tests.json` 单独记录退役及专项条件跳过项，不能把跳过项算作通过。源码有修复时应重新建立快照并验证，不能沿用旧快照的通过结果。
 4. 使用同一快照依次运行 `DesktopRelease.ps1 -Stage Windows`、`-Stage Smoke`。添加准确的发布说明后运行 `-Stage Package`、`-Stage Seal`；每阶段成功再继续。实际成品冒烟与 ZIP 逐文件哈希检查属于出包验收，Git 推送成功不代替这些检查。
+
+Snapshot 创建前及 RunTests 启动 Unity 前会只读检查全部 Assets `.meta`：每份须有唯一的 32 位十六进制 GUID，资产之间不能重复，失败会列出路径并停止。可单独调用 `AssertMetaGuids.ps1 -AssetsPath <Assets目录>`；`TestMetaGuids.ps1` 使用 `tmp` 内隔离合成数据验证规则和两个入口，不启动 Unity。
+
+若已决定发布审核完成的快照、把主工程的后续改动留到下一版，可将 `source-manifest.csv` 对应的生产源码按原路径与哈希完整保存为冻结镜像，后续 `DesktopRelease.ps1` 调用统一传 `-SourceProjectPath 'D:/Game/Artifacts/CodeReviewRelease20261023/FrozenSource11/UnityClient'`。默认仍为工作区 `UnityClient`；指定目录必须在工作区内，且与 `-ProjectPath` 独立、互不包含。Windows/Seal 仍完整校验镜像与隔离工程的文件清单、快照和测试哈希及版本，镜像不能直接使用含验证身份覆盖项的隔离工程。
 
 每次发布必须明确版本：通用脚本传 `-Version`（例如 `0.3.20261018.1`，四段数字），直接调用 Unity builder 时传 `-releaseVersion`。示例版本仅供说明，发布时使用本轮指定的新版本；不要依赖 builder 的历史默认版本。下面保留的旧示例用于说明单项操作，不代替上述完整流程。
 
@@ -46,7 +50,7 @@ $verification = 'D:/Game/Artifacts/Release20261018/Verification01'
   -logFile D:/Game/UnityClient/Artifacts/ReleaseAudit20260916/Player.log
 ```
 
-`-shatteredSailSmokeTest` 是显式只读验收开关：检查启动场景、资源、中文字体引用、输入系统、设置打开/关闭、绘制帧和打包场景；还用成品 Shader 离屏绘制四艘船的完整图块、镜像及不同转向，检查边缘透明和船体可见。写出截图与报告后以 0（通过）或 1（失败）退出。不会开始新游戏、应用设置或执行 GM，不写 PlayerPrefs。普通双击不创建此检查器。
+`-shatteredSailSmokeTest` 是显式只读验收开关：检查启动场景、资源、中文字体引用、输入系统、设置打开/关闭、绘制帧和打包场景；还用成品 Shader 离屏绘制全部船型的完整图块、镜像及不同转向，检查边缘透明和船体可见。写出截图与报告后以 0（通过）或 1（失败）退出。不会开始新游戏、应用设置或执行 GM，不写 PlayerPrefs。普通双击不创建此检查器。
 
 隐藏窗口没有可读屏幕缓冲区时，成品中的真实主菜单 Canvas 通过当前渲染管线输出到 1920×1080 RenderTexture；这是打包后的 UI 渲染，不是 Windows 桌面截图，也不使用 Editor 预览素材。
 

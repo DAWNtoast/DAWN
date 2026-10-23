@@ -189,6 +189,29 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
+        [UnityTest, Timeout(360000)]
+        public IEnumerator GuidedBossScript_ContinuousRecoveryDecaysAndInspectionExplainsRemainingLayers()
+        {
+            using (var storage = new VoyageCargoStorageScope())
+            {
+                yield return EnterGuidedCardCourse();
+                var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseAid);
+                Assert.That(controller.Session.Battle.Boarding.ContinuousRecovery, Is.Zero);
+                int medicine = controller.Session.Cargo.Medicine;
+                yield return PlayGuidedScriptAction(controller, false, null);
+                Assert.That(controller.Session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(5));
+                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseEffectsInspect);
+                Assert.That(controller.Session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(4));
+                yield return PlayGuidedScriptAction(controller, false, null);
+                yield return PlayGuidedScriptAction(controller, false, null);
+                Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseBoardingDone));
+                Assert.That(controller.Session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(3));
+                Assert.That(controller.Session.Cargo.Medicine, Is.EqualTo(medicine - 1));
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
         private static void AssertGuidedCourseCoverage(ISet<string> seen)
         {
             foreach (GuidedBossLesson lesson in Enum.GetValues(typeof(GuidedBossLesson)))
@@ -450,6 +473,19 @@ namespace ShatteredSail.Presentation.Tests
                         Assert.That(detail.text, Does.Contain("火药 " + session.Cargo.Powder));
                         Assert.That(detail.text, Does.Contain("药品 " + session.Cargo.Medicine));
                         Assert.That(detail.text, Does.Contain("抽牌堆 " + session.Battle.DrawPile.Count));
+                        if (step == GuidedBossBattleStep.CourseEffectsInspect)
+                        {
+                            Assert.That(session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(4));
+                            Assert.That(detail.text, Does.Contain("持续恢复：4 层")
+                                .And.Contain("下次己方回合结束恢复 4 点船员生命")
+                                .And.Contain("然后减少 1 层")
+                                .And.Contain("之后按剩余层数继续恢复"));
+                            Assert.That(detail.text, Does.Not.Contain("次，每次恢复"));
+                            Canvas.ForceUpdateCanvases();
+                            Assert.That(detail.fontSize, Is.GreaterThanOrEqualTo(24));
+                            Assert.That(detail.preferredHeight, Is.LessThanOrEqualTo(detail.rectTransform.rect.height + .5f),
+                                "The recovery layers and decay explanation must fit the reading surface.");
+                        }
                     }
                 }
                 ClickAcceptanceButton("Close Battle Deck"); yield return null;
@@ -546,7 +582,7 @@ namespace ShatteredSail.Presentation.Tests
         private sealed class GuidedCourseState
         {
             internal readonly int Hull, EnemyHull, PlayerHp, EnemyHp, Energy, Ap, Played, Hand, Powder, Balls, Medicine, Wood, Guard, Turn;
-            internal readonly int Cost, Recovery, Shuffles, HealTicks, Delays, EnemyGuard, Discard, AttackQuote, CriticalChance;
+            internal readonly int Cost, Recovery, Shuffles, ContinuousRecovery, Delays, EnemyGuard, Discard, AttackQuote, CriticalChance;
             internal GuidedCourseState(CoreVoyageSession session, int hand)
             {
                 var b = session.Battle;
@@ -554,7 +590,7 @@ namespace ShatteredSail.Presentation.Tests
                 Energy = b.Energy; Ap = b.NavalActionPoints; Played = b.CardsPlayedThisTurn; Hand = b.Hand.Count;
                 Guard = b.PlayerBlock; Turn = b.Turn; Powder = session.Cargo.Powder; Balls = session.Cargo.Cannonballs;
                 Medicine = session.Cargo.Medicine; Wood = session.Cargo.Wood; Shuffles = session.GuidedBossDeckShuffles;
-                HealTicks = b.Boarding.HealingTicks.Count; Delays = b.Boarding.DelayedDamage.Count;
+                ContinuousRecovery = b.Boarding.ContinuousRecovery; Delays = b.Boarding.DelayedDamage.Count;
                 EnemyGuard = b.EnemyBlock; Discard = b.DiscardPile.Count; CriticalChance = session.BoardingCriticalChancePercent;
                 if (hand < 0) return;
                 CoreBattleCard card = session.GetBattleCard(b.Hand[hand]);
@@ -650,8 +686,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(battle.Hand.Count, Is.EqualTo(before.Hand + 2)); break;
                 case GuidedBossBattleStep.CourseAid:
                     Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp));
-                    Assert.That(battle.Boarding.HealingTicks.Count, Is.EqualTo(before.HealTicks + 1));
-                    Assert.That(battle.Boarding.HealingTicks.Last().Remaining, Is.EqualTo(2));
+                    Assert.That(battle.Boarding.ContinuousRecovery, Is.EqualTo(before.ContinuousRecovery + 5));
                     Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine - 1)); break;
                 case GuidedBossBattleStep.CourseAmbush:
                     Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(before.EnemyHp));
@@ -659,10 +694,12 @@ namespace ShatteredSail.Presentation.Tests
                 case GuidedBossBattleStep.CourseBoardingEnd3:
                     Assert.That(battle.Boarding.DelayedDamage, Is.Empty);
                     Assert.That(battle.EnemyBoardingHealth, Is.LessThan(before.EnemyHp));
-                    Assert.That(battle.Boarding.HealingTicks.Single().Remaining, Is.EqualTo(1));
+                    Assert.That(before.ContinuousRecovery, Is.EqualTo(5));
+                    AssertGuidedRecoveryEnd(battle, before);
                     Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine)); break;
                 case GuidedBossBattleStep.CourseBoardingEnd4:
-                    Assert.That(battle.Boarding.HealingTicks, Is.Empty);
+                    Assert.That(before.ContinuousRecovery, Is.EqualTo(4));
+                    AssertGuidedRecoveryEnd(battle, before);
                     Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine)); break;
             }
             if (kind == GuidedBossActionKind.EndTurn)
@@ -671,6 +708,18 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(battle.Energy, Is.EqualTo(3));
                 Assert.That(battle.CardsPlayedThisTurn, Is.Zero);
             }
+        }
+
+        private static void AssertGuidedRecoveryEnd(CoreBattleState battle, GuidedCourseState before)
+        {
+            Assert.That(battle.Boarding.ContinuousRecovery, Is.EqualTo(before.ContinuousRecovery - 1));
+            int healedHealth = Math.Min(battle.PlayerMaxBoardingHealth, before.PlayerHp + before.ContinuousRecovery);
+            if (battle.BoardingEnemy.LastAttackExecuted)
+                Assert.That(battle.BoardingEnemy.LastAttackPlayerHealth, Is.EqualTo(healedHealth),
+                    "The current recovery layers heal before the enemy acts.");
+            Assert.That(battle.PlayerBoardingHealth,
+                Is.EqualTo(Math.Max(0, healedHealth - battle.BoardingEnemy.LastAttackHealthLost)),
+                "Each tick heals its current layer count, capped at maximum health, before real enemy damage.");
         }
 
         private static IEnumerator PlayGuidedFinalBattleAction(CoreGameplayDemoController controller)
@@ -750,7 +799,7 @@ namespace ShatteredSail.Presentation.Tests
                 b.NavalActionPoints + ":" + b.NavalArrivalActionPoints + ":" + b.NavalAwaitingHeadingSelection + ":" + b.PlayerPositionMeters.X + ":" + b.PlayerPositionMeters.Y + ":" +
                 b.PlayerHeadingDegrees + ":" + b.EnemyPositionMeters.X + ":" + b.EnemyPositionMeters.Y + ":" + b.EnemyHeadingDegrees + ":" +
                 b.EnemyHull + ":" + b.PlayerBlock + ":" + b.EnemyBlock + ":" + b.PlayerBoardingHealth + ":" + b.EnemyBoardingHealth + ":" +
-                b.PlayerLoadedShot + ":" + b.CardsPlayedThisTurn + ":" + b.Boarding.HealingTicks.Count + ":" + b.Boarding.DelayedDamage.Count + "|" +
+                b.PlayerLoadedShot + ":" + b.CardsPlayedThisTurn + ":" + b.Boarding.HealingTicks.Count + ":" + b.Boarding.ContinuousRecovery + ":" + b.Boarding.DelayedDamage.Count + "|" +
                 string.Join(",", b.Hand) + "|" + string.Join(",", b.DrawPile) + "|" + string.Join(",", b.DiscardPile));
         }
     }

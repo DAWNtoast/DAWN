@@ -101,7 +101,7 @@ namespace ShatteredSail.Presentation
             }
             else
             {
-                departureChartPreviewEmpty.text = "从上方记录中选择海图种子\n即可预览海图与两端港口";
+                departureChartPreviewEmpty.text = string.Empty;
             }
         }
 

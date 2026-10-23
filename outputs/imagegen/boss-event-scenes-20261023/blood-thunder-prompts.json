@@ -1,0 +1,20 @@
+[
+  {
+    "key": "boss_blood",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-8dd13930-e2e7-4a40-8897-74bf9aec9123.png",
+    "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_blood.png",
+    "prompt": "Paint a complete 1536x1024 dark-fantasy naval boss encounter using this ship as identity reference. The colossal Tax Queen advances through crimson moonlit waves, seen from water-level, filling 60% of the frame with expansive sea and storm sky. Retain the two masts, red-striped sails, iron-plated whale-fang bow, heavy deck mortars, red copper pipes and stern crimson glass instrument. Entire masts and bow visible. Crimson moon above distant horizon, huge foreground surf and tiny distant ship emphasize scale. Unified richly hand-painted pirate adventure concept art, imposing and dangerous, no gore. Opaque full scene, no cutout, text, UI, border or watermark."
+  },
+  {
+    "key": "boss_thunder",
+    "source": "C:/Users/Admin/.codex/generated_images/01a16314-6bf8-7160-9e2e-6d729e4acbd7/exec-66cc2cb5-6d11-48c1-96c5-74f1eca5394f.png",
+    "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_thunder.png",
+    "prompt": "Epic 1536x1024 hand-painted pirate fantasy boss encounter, complete opaque storm seascape. Aurora Edict is a colossal two-masted imperial warship with huge radial fan sails of ivory cloth shimmering turquoise and violet, layered glowing blue-violet armor plates over dark timber, gold/brass fittings, copper-sleeved broadside cannons, a thick riveted conical bow ram and a brass navigation machine with blue crystal lenses on the stern. Water-level camera looks up at its bow advancing diagonally right, ship fills 60% of frame; whole masts and ram visible. Vast purple-blue thunderstorm ocean and sky, towering waves in foreground, forked lightning illuminating wet sails, subtle electric arcs along fitted cannons, tiny distant rocky lighthouse for scale. Menacing overwhelming presence, rich wood, cloth and metal detail, unified cinematic sea spray and storm lighting. No cutout, text, UI, border or watermark."
+  },
+  {
+    "key": "legendary_blood",
+    "source": "C:/Users/Admin/.codex/generated_images/01a16314-6bf8-7160-9e2e-6d729e4acbd7/exec-69227d79-6307-4b2a-aec5-925498ecee58.png",
+    "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/legendary_blood.png",
+    "prompt": "Epic 1536x1024 hand-painted pirate fantasy legendary boss encounter, complete opaque seascape. Scarlet Blade Widow is a colossal lean three-masted raider with cream sails bearing large crimson wing shapes, long red pennants, dark red timber and gold trim, living twisted timber ribs along its hull, very long steel bow lance, crimson-shielded broadside guns and a glowing red eye in a brass sextant atop its high stern. From very low water level its enormous bow rushes diagonally toward the viewer, ship occupies 60% of frame with all masts and lance visible. Broad crimson moonlit ocean, foreground black-red waves curl toward camera, distant ruined harbor and tiny rowing boat emphasize overwhelming scale. Layered storm clouds, blood-red moon partly hidden at upper left, wet wood and sharp warm metal reflections. Integrated cinematic environment, threatening yet no gore, no cutout, words, UI, border or watermark."
+  }
+]

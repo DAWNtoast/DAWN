@@ -111,14 +111,14 @@ namespace ShatteredSail.Presentation.Tests
                 CollectionAssert.AreEqual(new[]
                 {
                     "LegacyDemo/shattered_sail_route_map_v2", "LegacyDemo/moon_tide_route_map_v2",
-                    "LegacyDemo/shattered_sail_event_sheet_v2",
+                    "EncounterIllustrations/legacy_reef_v3",
                 }, requests);
             }
             finally { UnityEngine.Object.DestroyImmediate(texture); }
         }
 
         [Test]
-        public void PaintedEventSheets_UseSmoothClampedSamplingForDetailViews()
+        public void PaintedEventSheets_UseTrilinearClampedSamplingForDetailViews()
         {
             var texture = new Texture2D(10, 8) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
             try
@@ -126,7 +126,7 @@ namespace ShatteredSail.Presentation.Tests
                 var catalog = Create<LegacyDemoArtCatalog>(path => texture);
                 for (int route = 0; route < 3; route++)
                 {
-                    Assert.That(catalog.EventSheet(route).filterMode, Is.EqualTo(FilterMode.Bilinear));
+                    Assert.That(catalog.EventSheet(route).filterMode, Is.EqualTo(FilterMode.Trilinear));
                     Assert.That(catalog.EventSheet(route).wrapMode, Is.EqualTo(TextureWrapMode.Clamp));
                 }
             }
@@ -161,7 +161,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(catalog.IsAvailable, Is.EqualTo(!missingLaterMap));
                 Assert.That(requests.Count, Is.EqualTo(10));
                 Assert.That(new HashSet<string>(requests).Count, Is.EqualTo(10));
-                Assert.That(requests, Does.Contain("LegacyDemo/moon_tide_event_sheet_v2"));
+                Assert.That(requests, Does.Contain("EncounterIllustrations/legacy_moon_v3"));
             }
             finally { UnityEngine.Object.DestroyImmediate(texture); }
         }

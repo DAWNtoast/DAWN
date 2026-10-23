@@ -79,77 +79,77 @@ namespace ShatteredSail.Core.Gameplay
             Add(entries, "card_special_instrument_tradeledger_oracle", 1, "150", draw: "1", note: "稀有高费补牌，抽3/4");
             Add(entries, "card_special_instrument_deepwater_abacus", 2, "120/160", repair: "140/180", note: "稀有修补算盘，治疗5/7/9");
 
-            // Fire: epic engines stop at +2; legendary damage engines can reach +3.
-            Add(entries, "card_special_bow_nightkraken_tusk", 2, "129/171", effect: "125/150", block: "150/200", note: "史诗切入，灼烧4/5/6");
-            Add(entries, "card_special_sail_starshear_rig", 2, "140/180", effect: "100", actionPoints: "1/1", note: "史诗延烧帆，时长固定，首阶增加行动点");
-            Add(entries, "card_special_cannon_blueflare_organ", 2, "126/153", effect: "120/160", note: "史诗火炮，灼烧5/6/8");
-            Add(entries, "card_special_plating_starseal_panels", 2, "129/171", effect: "125/175", note: "史诗热盾，每次自然燃烧格挡4/5/7");
-            Add(entries, "card_special_instrument_whalestar_receiver", 2, "133/200", effect: "140/180", note: "史诗附火5/7/9，弹数固定");
-            Add(entries, "card_special_bow_dragonwake_ram", 3, "131/169/215", effect: "140/180/220", block: "150/200/250", note: "传奇切入，灼烧5/7/9/11及额外结算");
-            Add(entries, "card_special_sail_thunderphoenix", 3, "143/186/243", effect: "150/200/250", actionPoints: "1/1/1", note: "传奇追焰，追加伤害4/6/8/10，首阶增加行动点");
-            Add(entries, "card_special_cannon_dragonbreath_battery", 3, "128/162/203", effect: "150/183/233", note: "传奇火炮，灼烧6/9/11/14及额外结算");
-            Add(entries, "card_special_plating_dragonwake_armor", 3, "130/170/220", effect: "140/180/240", note: "传奇熔鳞，三次追加伤害5/7/9/12");
-            Add(entries, "card_special_instrument_celestial_engine", 2, "100", draw: "1/2", effect: "100", note: "传奇火焰特权固定，抽1/2/3");
+            // Fire field component cards retain their source-specific maximum ranks.
+            Add(entries, "card_special_bow_nightkraken_tusk", 2, "129/171", effect: "150/200", block: "150/200", note: "史诗火场扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_starshear_rig", 2, "140/180", effect: "200/300", actionPoints: "1/1", note: "史诗火场延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_blueflare_organ", 2, "128/161", effect: "130/170", note: "史诗火场炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_starseal_panels", 2, "133/167", effect: "150/200", note: "史诗火场护舷，基础和场地格挡分别成长，场地免疫时长固定");
+            Add(entries, "card_special_instrument_whalestar_receiver", 2, "100", effect: "150/200", note: "史诗火场脉冲，条件收益随强化成长");
+            Add(entries, "card_special_bow_dragonwake_ram", 3, "131/169/215", effect: "150/200/250", block: "150/200/250", note: "传说火场扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_thunderphoenix", 3, "140/180/240", effect: "150/200/250", actionPoints: "1/1/1", note: "传说火场延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_dragonbreath_battery", 3, "127/162/208", effect: "133/172/222", note: "传说火场炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_dragonwake_armor", 3, "140/190/250", effect: "140/190/250", note: "传说火场护舷，基础和场地格挡分别成长，场地免疫时长固定");
+            Add(entries, "card_special_instrument_celestial_engine", 2, "100", effect: "150/200", draw: "1/2", note: "传说火场统御，扩张4/6/8格，延长2回合固定，抽1/2/3");
 
-            // Arcane: mana costs and generation stay fixed; released output may grow.
-            Add(entries, "card_special_bow_voidray_edge", 2, "129/171", effect: "133/167", block: "150/200", note: "史诗凝星，法力追加9/12/15");
-            Add(entries, "card_special_sail_moonweave", 2, "150/200", effect: "100", actionPoints: "1/1", note: "史诗蓄辉，临时法力固定，格挡4/6/8，首阶增加行动点");
-            Add(entries, "card_special_cannon_starfire_battery", 2, "128/161", effect: "123/154", note: "史诗星火，法力追加13/16/20");
-            Add(entries, "card_special_plating_moonsilver_skin", 2, "140/200", effect: "130/170", note: "史诗月银，法力追加格挡10/13/17");
-            Add(entries, "card_special_instrument_lunar_astrolabe", 2, "150/225", draw: "0/1", effect: "100", note: "史诗星盘，回3法力固定，第二阶补牌");
-            Add(entries, "card_special_bow_last_horizon", 3, "129/164/207", effect: "129/165/212", block: "150/200/250", note: "传奇凝星，法力追加17/22/28/36");
-            Add(entries, "card_special_sail_last_free_wind", 2, "160/220", draw: "1/2", effect: "100", actionPoints: "1/1", note: "传奇星风，法力抽牌2/3/4，首阶增加行动点");
-            Add(entries, "card_special_cannon_worlds_end_volley", 3, "129/164/207", effect: "132/173/223", note: "传奇星坠，法力追加22/29/38/49");
-            Add(entries, "card_special_plating_worldtree_bark", 3, "150/200/263", effect: "133/178/244", repair: "160/240/340", note: "传奇再生，基础修复与法力修复分别成长");
-            Add(entries, "card_special_instrument_last_horizon_lens", 2, "100", draw: "1/2", effect: "100", note: "传奇秘术特权固定，抽1/2/3");
+            // Arcane field rewards grow without introducing additional resource costs.
+            Add(entries, "card_special_bow_voidray_edge", 2, "129/171", effect: "150/200", block: "150/200", note: "史诗折射阵扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_moonweave", 2, "140/180", effect: "200/300", actionPoints: "1/1", note: "史诗折射阵延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_starfire_battery", 2, "128/161", effect: "130/170", note: "史诗折射阵炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_moonsilver_skin", 2, "133/167", effect: "150/200", note: "史诗折射阵护舷，基础和场地格挡分别成长，场地恢复法力同步成长");
+            Add(entries, "card_special_instrument_lunar_astrolabe", 2, "100", effect: "150/200", draw: "0/1", note: "史诗折射阵脉冲，条件收益随强化成长");
+            Add(entries, "card_special_bow_last_horizon", 3, "131/169/215", effect: "150/200/250", block: "150/200/250", note: "传说折射阵扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_last_free_wind", 2, "140/180", effect: "150/200", draw: "1/2", actionPoints: "1/1", note: "传说折射阵延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_worlds_end_volley", 3, "127/162/208", effect: "133/172/222", note: "传说折射阵炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_worldtree_bark", 3, "140/190/250", effect: "140/190/250", note: "传说折射阵护舷，基础和场地格挡分别成长，场地恢复法力同步成长");
+            Add(entries, "card_special_instrument_last_horizon_lens", 2, "100", effect: "150/200", draw: "1/2", note: "传说折射阵统御，扩张4/6/8格，延长2回合固定，抽1/2/3");
 
-            // Curse: marks and their duration remain fixed; payoff damage/guard grows.
-            Add(entries, "card_special_bow_gravecurrent_spur", 2, "129/171", effect: "100", block: "133/200", note: "史诗点名，强化直伤，咒印固定");
-            Add(entries, "card_special_sail_eclipse_shroud", 2, "150/225", effect: "100", actionPoints: "1/1", note: "史诗锁航，咒印固定，首阶增加行动点");
-            Add(entries, "card_special_cannon_voidbell_mortar", 2, "128/167", effect: "100", note: "史诗索命，强化炮伤，咒印固定");
-            Add(entries, "card_special_plating_eclipse_mail", 2, "140/200", effect: "133/167", note: "史诗替伤，每印格挡3/4/5");
-            Add(entries, "card_special_instrument_eclipse_orrery", 2, "167/233", draw: "0/1", effect: "100", note: "史诗注咒，层数与时长固定，第二阶补牌");
-            Add(entries, "card_special_bow_crownless_colossus", 3, "131/169/215", effect: "140/180/240", block: "167/233/300", note: "传奇终刑，每印追加5/7/9/12");
-            Add(entries, "card_special_sail_crown_of_gales", 3, "140/200/280", effect: "133/167/233", actionPoints: "1/1/1", note: "传奇囚风，每印格挡3/4/5/7，首阶增加行动点");
-            Add(entries, "card_special_cannon_krakens_thunder", 3, "130/167/211", effect: "133/183/233", note: "传奇判钟，每印追加6/8/11/14");
-            Add(entries, "card_special_plating_freedom_ark", 3, "144/200/267", effect: "150/200/275", note: "传奇解契，每印格挡4/6/8/11");
-            Add(entries, "card_special_instrument_eye_of_depths", 2, "100", draw: "1/2", effect: "100", note: "传奇诅咒特权固定，抽1/2/3");
+            // Curse field expansion, timing and conditional rewards grow independently.
+            Add(entries, "card_special_bow_gravecurrent_spur", 2, "129/171", effect: "150/200", block: "150/200", note: "史诗禁域扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_eclipse_shroud", 2, "140/180", effect: "200/300", actionPoints: "1/1", note: "史诗禁域延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_voidbell_mortar", 2, "128/161", effect: "130/170", note: "史诗禁域炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_eclipse_mail", 2, "133/167", effect: "150/200", note: "史诗禁域护舷，基础和场地格挡分别成长，场地免疫时长固定");
+            Add(entries, "card_special_instrument_eclipse_orrery", 2, "100", effect: "150/200", draw: "0/1", note: "史诗禁域脉冲，条件收益随强化成长");
+            Add(entries, "card_special_bow_crownless_colossus", 3, "131/169/215", effect: "150/200/250", block: "150/200/250", note: "传说禁域扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_crown_of_gales", 3, "140/180/240", effect: "150/200/250", actionPoints: "1/1/1", note: "传说禁域延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_krakens_thunder", 3, "127/162/208", effect: "133/172/222", note: "传说禁域炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_freedom_ark", 3, "140/190/250", effect: "140/190/250", note: "传说禁域护舷，基础和场地格挡分别成长，场地免疫时长固定");
+            Add(entries, "card_special_instrument_eye_of_depths", 2, "100", effect: "150/200", draw: "1/2", note: "传说禁域统御，扩张4/6/8格，延长2回合固定，抽1/2/3");
 
-            // Tide: the epic 150% / legendary 175% conversion and resource caps stay fixed.
-            Add(entries, "card_special_bow_abyssal_fang", 2, "129/171", effect: "100", block: "150/200", note: "史诗潮击，强化直伤与格挡");
-            Add(entries, "card_special_sail_ghostcurrent_canvas", 2, "129/171", effect: "100", actionPoints: "1/1", note: "史诗潮盾帆，格挡7/9/12，行动点1/2/2");
-            Add(entries, "card_special_cannon_deepstar_lance", 2, "129/165", effect: "100", note: "史诗返浪，炮伤17/22/28");
-            Add(entries, "card_special_plating_ghostreef_carapace", 2, "138/188", effect: "100", note: "史诗承潮，格挡8/11/15");
-            Add(entries, "card_special_instrument_reefstar_astrolabe", 2, "100", effect: "133/183", note: "史诗破蓄，普通格挡12/16/22，耗潮固定");
-            Add(entries, "card_special_bow_leviathan_ram", 3, "131/169/223", effect: "100", block: "150/200/275", note: "传奇潮击，直伤与175%潮势转化");
-            Add(entries, "card_special_sail_tempest_wing", 3, "131/169/215", effect: "100", actionPoints: "1/2/2", note: "传奇潮盾帆，格挡13/17/22/28，行动点1/2/3/3");
-            Add(entries, "card_special_cannon_liberty_salute", 3, "133/175/225", effect: "100", note: "传奇归潮，炮伤24/32/42/54");
-            Add(entries, "card_special_plating_leviathan_scales", 3, "133/173/220", effect: "100", note: "传奇王鳞，格挡15/20/26/33");
-            Add(entries, "card_special_instrument_worldcompass", 2, "100", draw: "1/2", effect: "100", note: "传奇潮汐特权固定，抽1/2/3");
+            // Tide components now interact with directional currents.
+            Add(entries, "card_special_bow_abyssal_fang", 2, "129/171", effect: "150/200", block: "150/200", note: "史诗定向水流扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_ghostcurrent_canvas", 2, "140/180", effect: "200/300", actionPoints: "1/1", note: "史诗定向水流延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_deepstar_lance", 2, "128/161", effect: "130/170", note: "史诗定向水流炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_ghostreef_carapace", 2, "133/167", effect: "150/200", note: "史诗定向水流护舷，基础和场地格挡分别成长，场地免疫时长固定");
+            Add(entries, "card_special_instrument_reefstar_astrolabe", 2, "100", effect: "150/200", note: "史诗定向水流脉冲，条件收益随强化成长");
+            Add(entries, "card_special_bow_leviathan_ram", 3, "131/169/215", effect: "150/200/250", block: "150/200/250", note: "传说定向水流扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_tempest_wing", 3, "140/180/240", effect: "150/200/250", actionPoints: "1/2/2", note: "传说定向水流延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_liberty_salute", 3, "127/162/208", effect: "133/172/222", note: "传说定向水流炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_leviathan_scales", 3, "140/190/250", effect: "140/190/250", note: "传说定向水流护舷，基础和场地格挡分别成长，场地免疫时长固定");
+            Add(entries, "card_special_instrument_worldcompass", 2, "100", effect: "150/200", draw: "1/2", note: "传说定向水流统御，扩张4/6/8格，延长2回合固定，抽1/2/3");
 
-            // Thunder: chain generation remains fixed; damage per chain and readiness grow.
-            Add(entries, "card_special_bow_blackreef_hammer", 2, "129/171", effect: "125/150", block: "150/200", note: "史诗震击，每链追加4/5/6");
-            Add(entries, "card_special_sail_aurora_fan", 2, "150/200", effect: "100", actionPoints: "1/1", note: "史诗零费闪位，首阶增加行动点，条件抽2固定");
-            Add(entries, "card_special_cannon_sunforge_salvo", 2, "129/162", effect: "125/150", note: "史诗连轰，每链追加4/5/6");
-            Add(entries, "card_special_plating_aurora_laminate", 2, "133/183", effect: "130/160", note: "史诗导流，蓄雷10/13/16");
-            Add(entries, "card_special_instrument_aurora_calculator", 2, "133/200", effect: "143/171", note: "史诗解算，蓄雷7/10/12，抽2固定");
-            Add(entries, "card_special_bow_worldsplitter", 3, "131/169/215", effect: "133/178/233", block: "200/300/400", note: "传奇奔雷，每链追加9/12/16/21");
-            Add(entries, "card_special_sail_skybreaker_array", 2, "167/233", effect: "138/185", actionPoints: "1/1", note: "传奇蓄势，蓄雷13/18/24，首阶增加行动点");
-            Add(entries, "card_special_cannon_stormcrown_broadsides", 3, "129/164/211", effect: "143/186/243", note: "传奇终鸣，每链追加7/10/13/17");
-            Add(entries, "card_special_plating_stormark_bulwark", 3, "140/190/250", effect: "125/155/195", note: "传奇过载，蓄雷20/25/31/39");
-            Add(entries, "card_special_instrument_stormoracle", 2, "100", draw: "1/2", effect: "100", note: "传奇雷霆特权固定，抽1/2/3");
+            // Thunder components now interact with thunder barriers.
+            Add(entries, "card_special_bow_blackreef_hammer", 2, "129/171", effect: "150/200", block: "150/200", note: "史诗雷栅扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_aurora_fan", 2, "140/180", effect: "200/300", actionPoints: "1/1", note: "史诗雷栅延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_sunforge_salvo", 2, "128/161", effect: "130/170", note: "史诗雷栅炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_aurora_laminate", 2, "133/167", effect: "150/200", note: "史诗雷栅护舷，基础和场地格挡分别成长，场地免疫时长固定");
+            Add(entries, "card_special_instrument_aurora_calculator", 2, "100", effect: "150/200", note: "史诗雷栅脉冲，条件收益随强化成长");
+            Add(entries, "card_special_bow_worldsplitter", 3, "131/169/215", effect: "150/200/250", block: "150/200/250", note: "传说雷栅扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_skybreaker_array", 2, "140/180", effect: "150/200", actionPoints: "1/1", note: "传说雷栅延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_stormcrown_broadsides", 3, "127/162/208", effect: "133/172/222", note: "传说雷栅炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_stormark_bulwark", 3, "140/190/250", effect: "140/190/250", note: "传说雷栅护舷，基础和场地格挡分别成长，场地免疫时长固定");
+            Add(entries, "card_special_instrument_stormoracle", 2, "100", effect: "150/200", draw: "1/2", note: "传说雷栅统御，扩张4/6/8格，延长2回合固定，抽1/2/3");
 
-            // Blood: paid life and drain/mend ratios/caps remain fixed; direct payoffs grow.
-            Add(entries, "card_special_bow_deepcurrent_fang", 2, "133/178", effect: "100", block: "150/200", note: "史诗索还，直伤9/12/16，吸血比例和上限固定");
-            Add(entries, "card_special_sail_fogshroud_wing", 2, "120/160", effect: "133/167", actionPoints: "1/1", note: "史诗献帆，追加格挡9/12/15，首阶增加行动点，生命费用固定");
-            Add(entries, "card_special_cannon_cometfall_battery", 2, "129/162", effect: "129/164", note: "史诗血誓，献血追加14/18/23");
-            Add(entries, "card_special_plating_fogiron_carapace", 2, "133/183", effect: "133/167", note: "史诗偿伤，追加格挡9/12/15，生命费用固定");
-            Add(entries, "card_special_instrument_ghostmap_projector", 2, "167/233", draw: "0/1", effect: "100", note: "史诗回魂，固定失血恢复，强化格挡与补牌");
-            Add(entries, "card_special_bow_freewake_lance", 3, "133/173/227", effect: "133/180/240", block: "200/300/400", note: "传奇赤锋，处决追加15/20/27/36");
-            Add(entries, "card_special_sail_thunderreef_wing", 3, "143/200/271", effect: "133/175/225", actionPoints: "1/1/1", note: "传奇献帆，追加格挡12/16/21/27，首阶增加行动点，生命费用固定");
-            Add(entries, "card_special_cannon_queens_broadside", 3, "131/172/225", effect: "100", note: "传奇索偿，直伤32/42/55/72，吸血上限12固定");
-            Add(entries, "card_special_plating_living_hull", 3, "140/200/270", effect: "100", note: "传奇活舟，格挡10/14/20/27，回血上限12固定");
-            Add(entries, "card_special_instrument_allseeing_sextant", 2, "100", draw: "1/2", effect: "100", note: "传奇血契特权固定，抽1/2/3");
+            // Blood field rewards do not spend hull or repair supplies.
+            Add(entries, "card_special_bow_deepcurrent_fang", 2, "129/171", effect: "150/200", block: "150/200", note: "史诗血誓阵扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_fogshroud_wing", 2, "140/180", effect: "200/300", actionPoints: "1/1", note: "史诗血誓阵延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_cometfall_battery", 2, "128/161", effect: "130/170", note: "史诗血誓阵炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_fogiron_carapace", 2, "133/167", effect: "150/200", note: "史诗血誓阵护舷，基础和场地格挡分别成长，场地修复船体同步成长");
+            Add(entries, "card_special_instrument_ghostmap_projector", 2, "100", effect: "150/200", draw: "0/1", note: "史诗血誓阵脉冲，条件收益随强化成长");
+            Add(entries, "card_special_bow_freewake_lance", 3, "131/169/215", effect: "150/200/250", block: "150/200/250", note: "传说血誓阵扩张，伤害、格挡与新增格数随强化成长");
+            Add(entries, "card_special_sail_thunderreef_wing", 3, "140/180/240", effect: "150/200/250", actionPoints: "1/1/1", note: "传说血誓阵延时，延长回合逐阶增加，保留行动点成长");
+            Add(entries, "card_special_cannon_queens_broadside", 3, "127/162/208", effect: "133/172/222", note: "传说血誓阵炮击，基础伤害和场地内目标增伤分别成长");
+            Add(entries, "card_special_plating_living_hull", 3, "140/190/250", effect: "140/190/250", note: "传说血誓阵护舷，基础和场地格挡分别成长，场地修复船体同步成长");
+            Add(entries, "card_special_instrument_allseeing_sextant", 2, "100", effect: "150/200", draw: "1/2", note: "传说血誓阵统御，扩张4/6/8格，延长2回合固定，抽1/2/3");
         }
     }
 }

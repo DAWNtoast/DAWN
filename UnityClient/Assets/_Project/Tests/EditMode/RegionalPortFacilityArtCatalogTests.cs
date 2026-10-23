@@ -56,8 +56,8 @@ namespace ShatteredSail.Core.Tests
                 "Facilities outside the regional contract should retain their existing background lookup.");
             Assert.That(PortFacilityArtCatalog.RegionalBackgroundResourcePath(
                     PortFacilityArtCatalog.VoyageFacilityIndex, "断锚港"),
-                Is.EqualTo("PortFacilities/Regional/Voyage/voyage_broken_anchor_open_berth_v1"),
-                "The scene uses its empty berth painting so the active vessel remains an independent layer.");
+                Is.EqualTo("PortFacilities/Regional/Voyage/voyage_broken_anchor_crew_integrated_v1"),
+                "The regional painting integrates the crew desk while leaving the active vessel as an independent layer.");
         }
 
         [Test]

@@ -47,8 +47,9 @@ namespace ShatteredSail.Presentation
         private static string referenceEffect;
         private static readonly Regex UsageConditions = new Regex(
             @"<b>[\s\S]*?</b>|(?:平行且)?距离不超过[ \u00a0]*[0-9]+(?:\.[0-9]+)?[ \u00a0]*(?:米|格)" +
+            @"|范围[ \u00a0]*[0-9]+(?:\.[0-9]+)?(?:[ \u00a0]*[-–—~～至][ \u00a0]*[0-9]+(?:\.[0-9]+)?)?[ \u00a0]*(?:米|格)" +
             @"|[0-9]+(?:\.[0-9]+)?[ \u00a0]*(?:米|格)(?:以内|以外|内|外)" +
-            @"|两舰上下左右相邻且同向(?=时)|须(?:再次推进|推进后)才能冲撞|再次推进后(?=可冲撞)", RegexOptions.CultureInvariant);
+            @"|两舰平行且舷侧相邻(?:（[ \u00a0]*[0-9]+(?:\.[0-9]+)?[ \u00a0]*米）)?(?=时)|须(?:再次推进|推进后)才能冲撞|再次推进后(?=可冲撞)", RegexOptions.CultureInvariant);
 
         public static string DisplayName(CoreBattleCard card) => card.Name +
             (card.UpgradeLevel > 0 ? "+" + card.UpgradeLevel : string.Empty);
@@ -98,18 +99,26 @@ namespace ShatteredSail.Presentation
             text.resizeTextForBestFit = false;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
-            text.lineSpacing = 1f;
-            for (int size = EffectFontSize; size >= 1; size--)
+            bool fitted = false;
+            for (int size = EffectFontSize; size >= 1 && !fitted; size--)
             {
                 text.fontSize = size;
-                text.text = CardDescriptionText.Wrap(text, source, size);
-                if (Fits(text, text.text, size, false) && text.preferredHeight <= text.rectTransform.rect.height) break;
-                // Short independent clauses can waste whole rows. Preserve their
-                // boundaries with semicolons before reducing the shared type size.
-                if (source.IndexOf('\n') >= 0)
+                // Reclaim the body font's extra leading before shrinking glyphs.
+                // Its rounded line advance fits six 16px rows at this spacing;
+                // short cards and smaller type retain normal leading.
+                int spacingOptions = size == EffectFontSize ? 2 : 1;
+                for (int option = 0; option < spacingOptions && !fitted; option++)
                 {
-                    text.text = CardDescriptionText.Wrap(text, source, size, true);
-                    if (Fits(text, text.text, size, false) && text.preferredHeight <= text.rectTransform.rect.height) break;
+                    text.lineSpacing = option == 0 ? 1f : .86f;
+                    text.text = CardDescriptionText.Wrap(text, source, size);
+                    fitted = Fits(text, text.text, size, false) && text.preferredHeight <= text.rectTransform.rect.height;
+                    // Short independent clauses can share rows, preserving their
+                    // boundaries with semicolons before reducing the type size.
+                    if (!fitted && source.IndexOf('\n') >= 0)
+                    {
+                        text.text = CardDescriptionText.Wrap(text, source, size, true);
+                        fitted = Fits(text, text.text, size, false) && text.preferredHeight <= text.rectTransform.rect.height;
+                    }
                 }
             }
             text.resizeTextMinSize = text.fontSize;
@@ -137,7 +146,7 @@ namespace ShatteredSail.Presentation
             settings.resizeTextForBestFit = false;
             settings.horizontalOverflow = singleLine ? HorizontalWrapMode.Overflow : HorizontalWrapMode.Wrap;
             settings.verticalOverflow = VerticalWrapMode.Overflow;
-            settings.lineSpacing = 1f;
+            settings.lineSpacing = text.lineSpacing;
             TextGenerator generator = text.cachedTextGeneratorForLayout;
             float height = generator.GetPreferredHeight(content, settings);
             if (height > bounds.y) return false;

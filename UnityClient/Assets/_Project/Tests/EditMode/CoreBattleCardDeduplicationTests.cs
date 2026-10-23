@@ -256,7 +256,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetBattleCard(first).ArtId, Is.EqualTo(CoreVoyageSession.CardLibrary[first].ArtId));
             Assert.That(session.GetBattleCard(second).ArtId, Is.EqualTo(CoreVoyageSession.CardLibrary[second].ArtId));
             session.RestoreSpecialCardExperience(new Dictionary<string, int> { [firstId] = 840, [secondId] = 120 });
-            Assert.That(session.GetBattleCard(first).UpgradeLevel, Is.EqualTo(1));
+            Assert.That(session.GetBattleCard(first).UpgradeLevel, Is.EqualTo(session.GetCardMaximumUpgradeLevel(first)));
             Assert.That(session.GetBattleCard(second).UpgradeLevel, Is.EqualTo(1));
             Assert.That(session.GetSpecialCardExperience(firstId), Is.EqualTo(840));
             Assert.That(session.GetSpecialCardExperience(secondId), Is.EqualTo(120));
@@ -275,8 +275,8 @@ namespace ShatteredSail.Core.Tests
             int moon = Index(moonId), tree = Index(treeId);
             CoreBattleCard first = session.GetBattleCard(moon, NavalBattleStage.Naval);
             CoreBattleCard second = session.GetBattleCard(tree, NavalBattleStage.Naval);
-            Assert.That(first.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ArcaneWard));
-            Assert.That(second.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ArcaneMend));
+            Assert.That(first.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ComponentFieldShelter));
+            Assert.That(second.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ComponentFieldShelter));
             Assert.That(first.Id, Is.Not.EqualTo(second.Id));
             Assert.That(first.RequiredComponent, Is.Not.EqualTo(second.RequiredComponent));
             CollectionAssert.Contains(session.GetBonusBattleCards(NavalBattleStage.Naval), moon);
@@ -284,7 +284,7 @@ namespace ShatteredSail.Core.Tests
             CollectionAssert.DoesNotContain(session.GetBonusBattleCards(NavalBattleStage.Boarding), moon);
             CollectionAssert.DoesNotContain(session.GetBonusBattleCards(NavalBattleStage.Boarding), tree);
             session.RestoreSpecialCardExperience(new Dictionary<string, int> { [moonId] = 840, [treeId] = 120 });
-            Assert.That(session.GetCardUpgradeLevel(moonId), Is.EqualTo(2));
+            Assert.That(session.GetCardUpgradeLevel(moonId), Is.EqualTo(session.GetCardMaximumUpgradeLevel(moonId)));
             Assert.That(session.GetCardUpgradeLevel(treeId), Is.EqualTo(1));
             session.ConfigureSpecialCardSources(null, new[] { "plating_worldtree_bark" });
             CollectionAssert.DoesNotContain(session.GetBonusBattleCards(NavalBattleStage.Naval), moon);

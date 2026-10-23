@@ -102,7 +102,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void RemovedInventoryIsRevalidatedAndEmptyInventoryExplainsAssembly()
+        public void RemovedInventoryIsRevalidatedAndEmptyInventoryKeepsAssemblyAccess()
         {
             Create(CoreGameplayPreviewPort.GrayGull, 1, false);
             Find<Button>("Departure Treasure Seed Picker").onClick.Invoke();
@@ -114,7 +114,7 @@ namespace ShatteredSail.Presentation.Tests
             Render();
             if (!HasActive("Departure Dock Treasure Selection"))
                 Find<Button>("Departure Treasure Seed Picker").onClick.Invoke();
-            Assert.That(Find<Text>("Departure Dock Treasure Empty").text, Does.Contain("鉴定碎片"));
+            Assert.That(Find<Text>("Departure Dock Treasure Empty").text, Is.Empty);
             Assert.That(Find<Dropdown>("Departure Dock Treasure Dropdown").IsInteractable(), Is.False);
             Assert.That(Find<Button>("Departure Treasure Seed Table").IsInteractable(), Is.True);
         }
@@ -152,7 +152,7 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
             RectTransform route = Find<RectTransform>("Route Selection");
             string[] names = {
-                "Departure Dock Ordinary Voyage", "Departure Dock Chart Shortcut", "Departure Treasure Seed Picker",
+                "Departure Dock Ordinary Voyage", "Departure Treasure Seed Picker",
                 "Departure Dock Treasure Preview", "Departure Dock Treasure Dropdown", "Departure Dock Treasure Detail",
                 "Departure Dock Treasure Consumption", "Departure Dock Treasure Status", "Departure Treasure Seed Table"
             };
@@ -272,7 +272,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void DockRemovedInventoryIsRevalidatedAndEmptyInventoryExplainsAssembly()
+        public void DockRemovedInventoryIsRevalidatedAndEmptyInventoryKeepsDepartureDisabled()
         {
             Create(CoreGameplayPreviewPort.BrokenAnchor, 1, false);
             Find<Button>("Departure Treasure Seed Picker").onClick.Invoke();
@@ -283,7 +283,7 @@ namespace ShatteredSail.Presentation.Tests
             Render();
             if (!HasActive("Departure Dock Treasure Selection"))
                 Find<Button>("Departure Treasure Seed Picker").onClick.Invoke();
-            Assert.That(Find<Text>("Departure Dock Treasure Empty").text, Does.Contain("鉴定碎片"));
+            Assert.That(Find<Text>("Departure Dock Treasure Empty").text, Is.Empty);
             Assert.That(Find<Dropdown>("Departure Dock Treasure Dropdown").IsInteractable(), Is.False);
             Assert.That(Find<Button>("Start Voyage").IsInteractable(), Is.False);
             Assert.That(HasActive("Departure Treasure Seed Selection"), Is.False);

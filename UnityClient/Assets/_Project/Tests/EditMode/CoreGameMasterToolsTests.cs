@@ -211,6 +211,187 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.ProfileGold, Is.EqualTo(before));
         }
 
+        private static string[] KnownPorts => CoreVoyageSession.DestinationPorts.ToArray();
+
+        [TestCaseSource(nameof(KnownPorts))]
+        public void MoveToPort_MovesOnlyCaptainAndFlagshipWithoutSpendingOrAwardingProgress(string destination)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreProfile(1234.5678m, "断锚港");
+            Assert.That(session.RegisterShipAtCurrentPort(1), Is.True);
+            session.RestoreTreasureProgress(new CoreTreasureProgress {
+                pirateExperience = 900, fragments = 12, identifiedWeatheredFragments = 3,
+                maps = new[] { new CoreTreasureMapSave { id = "weathered:KEPT", seed = "KEPT", rankId = "weathered" } },
+                selectedMapId = "weathered:KEPT", gems = 2, ancientMaterials = 3,
+            });
+            string treasure = UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress());
+            string collection = UnityEngine.JsonUtility.ToJson(session.CaptureCollectionProgress());
+            string charts = UnityEngine.JsonUtility.ToJson(session.CaptureSeaChartProgress());
+            var cargo = session.Cargo;
+            int cash = cargo.Gold, water = cargo.Water, food = cargo.Food;
+            int hull = session.Hull, morale = session.Morale;
+
+            Assert.That(session.TryGameMasterMoveToPort(" " + destination + " "), Is.True);
+
+            Assert.That(session.CurrentPort, Is.EqualTo(destination));
+            Assert.That(session.ShipPort(session.SelectedShipIndex), Is.EqualTo(destination));
+            Assert.That(session.ShipPort(1), Is.EqualTo("断锚港"), "Inactive vessels must stay at their existing berth.");
+            Assert.That(session.CaptureShipPortProgress().ships.Length, Is.EqualTo(2));
+            Assert.That(session.SelectedDestinationPort, Is.Not.EqualTo(destination));
+            Assert.That(CoreVoyageSession.DestinationPorts, Does.Contain(session.SelectedDestinationPort));
+            Assert.That(session.SelectedShipIndex, Is.Zero);
+            Assert.That(session.ProfileGold, Is.EqualTo(1234.5678m));
+            Assert.That(session.Cargo, Is.SameAs(cargo));
+            Assert.That(cargo.Gold, Is.EqualTo(cash));
+            Assert.That(cargo.Water, Is.EqualTo(water));
+            Assert.That(cargo.Food, Is.EqualTo(food));
+            Assert.That(session.Hull, Is.EqualTo(hull));
+            Assert.That(session.Morale, Is.EqualTo(morale));
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(treasure));
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureCollectionProgress()), Is.EqualTo(collection));
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureSeaChartProgress()), Is.EqualTo(charts));
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
+            Assert.That(session.Map, Is.Null);
+            Assert.That(session.Settlement, Is.Null);
+        }
+
+        [Test]
+        public void MoveToPort_PreservesChartAtItsOtherEndpointAndCanDepart()
+        {
+            var session = new CoreVoyageSession();
+            string seed = CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
+            Assert.That(session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
+            CoreSeaChartDefinition chart = session.SelectedChartDefinition;
+
+            Assert.That(session.TryGameMasterMoveToPort("白贝港"), Is.True);
+
+            Assert.That(session.SelectedChartDefinition, Is.SameAs(chart));
+            Assert.That(session.SelectedSeed, Is.EqualTo(seed));
+            Assert.That(session.SelectedDestinationPort, Is.EqualTo("断锚港"));
+            Assert.That(session.CanStartSelectedChart(out reason), Is.True, reason);
+            session.StartVoyage();
+            Assert.That(session.Map.DepartureName, Is.EqualTo("白贝港"));
+            Assert.That(session.Map.DestinationName, Is.EqualTo("断锚港"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void MoveToPort_ClearsUnrelatedChartAndItsStructuredSeedBeforeDeparture(bool clearedSelection)
+        {
+            var session = new CoreVoyageSession();
+            string seed = CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
+            Assert.That(session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
+            if (clearedSelection) session.ClearChartSeedSelection();
+
+            Assert.That(session.TryGameMasterMoveToPort("铜钟港"), Is.True);
+
+            Assert.That(session.SelectedChartDefinition, Is.Null);
+            Assert.That(session.SelectedSeed, Is.Not.EqualTo(seed));
+            Assert.That(session.CaptureSeaChartProgress().charts, Is.Empty);
+            session.StartVoyage();
+            Assert.That(session.Map.DepartureName, Is.EqualTo("铜钟港"));
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(" ")]
+        [TestCase("不存在的港口")]
+        public void MoveToPort_RejectsUnknownPortsWithoutChangingState(string destination)
+        {
+            var session = new CoreVoyageSession();
+            string seed = CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
+            Assert.That(session.TrySelectChartSeed(seed, out _), Is.True);
+            string shipPorts = UnityEngine.JsonUtility.ToJson(session.CaptureShipPortProgress());
+            int logCount = session.LogEntries.Count;
+
+            Assert.That(session.TryGameMasterMoveToPort(destination), Is.False);
+
+            Assert.That(session.CurrentPort, Is.EqualTo("断锚港"));
+            Assert.That(session.SelectedDestinationPort, Is.EqualTo("白贝港"));
+            Assert.That(session.SelectedSeed, Is.EqualTo(seed));
+            Assert.That(session.IsChartSeedSelected, Is.True);
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureShipPortProgress()), Is.EqualTo(shipPorts));
+            Assert.That(session.LogEntries.Count, Is.EqualTo(logCount));
+        }
+
+        [TestCase(0)]
+        [TestCase(900)]
+        [TestCase(5400)]
+        [TestCase(6400)]
+        [TestCase(int.MaxValue)]
+        public void RaisePirateLevelToTen_ChangesOnlyExperienceAndPreservesExcess(int experience)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress {
+                pirateExperience = experience, fragments = 12,
+                identifiedWeatheredFragments = 3, identifiedGildedFragments = 5, identifiedMoonlitFragments = 2,
+                identificationSeed = "GM-LEVEL-KEEPS-IDENTIFICATION", identificationSequence = 17, moonlitPityCount = 2,
+                selectedMapId = "weathered:HELD", maps = new[] {
+                    new CoreTreasureMapSave { id = "weathered:HELD", seed = "HELD", rankId = "weathered" } },
+                completedSeeds = new[] { "COMPLETED" }, issuedSeeds = new[] { "HELD", "COMPLETED" },
+                gems = 2, ancientMaterials = 3, relics = 4, blackPearls = 5, ancientCompasses = 6, lanterns = 7, curses = 8,
+            });
+            CoreTreasureProgress expected = session.CaptureTreasureProgress();
+            expected.pirateExperience = Math.Max(experience, CoreVoyageSession.PirateExperienceForLevel(10));
+            decimal gold = session.ProfileGold;
+            var cargo = session.Cargo;
+            string collection = UnityEngine.JsonUtility.ToJson(session.CaptureCollectionProgress());
+
+            Assert.That(session.TryGameMasterRaisePirateLevelToTen(), Is.True);
+
+            Assert.That(session.PirateLevel, Is.EqualTo(10));
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress()),
+                Is.EqualTo(UnityEngine.JsonUtility.ToJson(expected)));
+            Assert.That(session.ProfileGold, Is.EqualTo(gold));
+            Assert.That(session.Cargo, Is.SameAs(cargo));
+            Assert.That(session.CurrentPort, Is.EqualTo("断锚港"));
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureCollectionProgress()), Is.EqualTo(collection));
+        }
+
+        [Test]
+        public void RaisePirateLevelToTen_UsesNormalRouteAndBloodSchoolUnlocksAndSurvivesRestore()
+        {
+            var session = new CoreVoyageSession();
+            var blood = CoreBoardingCardCatalog.All.First(card => card.SchoolId == "blood");
+            Assert.That(session.IsBattleCardUnlocked(blood), Is.False);
+            Assert.That(session.TryGameMasterRaisePirateLevelToTen(), Is.True);
+
+            var restored = new CoreVoyageSession();
+            restored.RestoreTreasureProgress(session.CaptureTreasureProgress());
+
+            Assert.That(restored.PirateLevel, Is.EqualTo(10));
+            Assert.That(restored.IsBattleCardUnlocked(blood), Is.True);
+            for (int route = 0; route < CoreVoyageSession.Routes.Count; route++)
+                Assert.That(restored.CanSelectRoute(route, out string reason), Is.True, reason);
+        }
+
+        [TestCase(CoreDemoPhase.Sailing)]
+        [TestCase(CoreDemoPhase.Encounter)]
+        [TestCase(CoreDemoPhase.Battle)]
+        [TestCase(CoreDemoPhase.Settlement)]
+        public void MoveAndRaiseLevel_RejectNonPortPhasesWithoutPartialMutation(CoreDemoPhase phase)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = 900, fragments = 12 });
+            string treasure = UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress());
+            string shipPorts = UnityEngine.JsonUtility.ToJson(session.CaptureShipPortProgress());
+            string destination = session.SelectedDestinationPort, seed = session.SelectedSeed;
+            int logCount = session.LogEntries.Count;
+            typeof(CoreVoyageSession).GetProperty("Phase", BindingFlags.Public | BindingFlags.Instance).SetValue(session, phase);
+
+            Assert.That(session.TryGameMasterMoveToPort("铜钟港"), Is.False);
+            Assert.That(session.TryGameMasterRaisePirateLevelToTen(), Is.False);
+
+            Assert.That(session.CurrentPort, Is.EqualTo("断锚港"));
+            Assert.That(session.SelectedDestinationPort, Is.EqualTo(destination));
+            Assert.That(session.SelectedSeed, Is.EqualTo(seed));
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(treasure));
+            Assert.That(UnityEngine.JsonUtility.ToJson(session.CaptureShipPortProgress()), Is.EqualTo(shipPorts));
+            Assert.That(session.LogEntries.Count, Is.EqualTo(logCount));
+        }
+
         [Test]
         public void RevisionZero_PreservesLegacyStockAndPurchaseIds()
         {

@@ -1,0 +1,8 @@
+﻿Passed=161 Failed=1 Skipped=0 Inconclusive=0
+ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.FullyExhaustedMandatoryLocationAllowsFreeSkipInsteadOfForcingRescue
+  Expected: True
+  But was:  False
+
+at ShatteredSail.Core.Tests.CoreSeaChartExhaustedRewardTests.FullyExhaustedMandatoryLocationAllowsFreeSkipInsteadOfForcingRescue () [0x0013a] in <4b17e43bc5f2481da1b55963a647513f>:0
+
+﻿

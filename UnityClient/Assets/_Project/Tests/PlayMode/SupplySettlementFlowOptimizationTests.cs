@@ -67,7 +67,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.Session.Cargo.Food, Is.Zero);
                 Assert.That(GameObject.Find("Departure Basic Supplies"), Is.Null,
                     "A replaced entry callback cannot reopen a stale departure purchase panel.");
-                yield return SetRecommendedDepartureWaterFood();
+                yield return SetExplicitDepartureWaterFood(controller,
+                    CoreVoyageSession.Routes[controller.Session.SelectedRouteIndex].RecommendedVoyageDays + 2);
                 Button current = ActiveButton("Departure Basic Supplies Purchase");
                 Button.ButtonClickedEvent currentClick = current.onClick;
                 GameObject panel = GameObject.Find("Voyage Setup");

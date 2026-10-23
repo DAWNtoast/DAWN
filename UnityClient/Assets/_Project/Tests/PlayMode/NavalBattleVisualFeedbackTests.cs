@@ -111,18 +111,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(enemyHud.DisplayedGuard, Is.EqualTo(6f));
             Assert.That(Find<BattleStatusRow>("Enemy Battle Status Row").transform.Find("Status guard/Amount").GetComponent<Text>().text,
                 Is.EqualTo("6"), "Current guard is labeled by the status icon below the health bar.");
-            Image whiteGuard = Find<Image>("Enemy Armor Bar");
+            Assert.That(enemyHud.transform.Find("Enemy Armor Bar"), Is.Null);
             Assert.That(enemyHud.HullBar.sprite, Is.Not.Null, "UGUI ignores fillAmount when a Filled Image has no sprite.");
             Assert.That(enemyHud.ChipBar.sprite, Is.Not.Null);
-            Assert.That(whiteGuard.sprite, Is.Not.Null);
-            Assert.That(whiteGuard.fillAmount, Is.EqualTo(1f));
-            Assert.That(whiteGuard.color.r, Is.GreaterThan(0.85f));
-            Assert.That(whiteGuard.color.g, Is.GreaterThan(0.85f));
-            Assert.That(whiteGuard.color.b, Is.GreaterThan(0.85f));
-            Assert.That(Find<RectTransform>("Enemy Armor Frame 0").anchoredPosition.y,
-                Is.GreaterThan(enemyHud.HullBar.rectTransform.rect.height * 0.5f), "White armor surrounds rather than replaces the health fill.");
-            Assert.That(Find<RectTransform>("Enemy Armor Frame 1").anchoredPosition.y,
-                Is.LessThan(-enemyHud.HullBar.rectTransform.rect.height * 0.5f));
+            Assert.That(enemyHud.transform.Find("Enemy Armor Frame 0"), Is.Null);
+            Assert.That(enemyHud.transform.Find("Enemy Armor Frame 1"), Is.Null);
             int permanentArmor = session.Armor;
             Assert.That(playerHud.PermanentArmor, Is.EqualTo(permanentArmor));
             int hullBefore = session.Battle.EnemyHull;
@@ -132,7 +125,7 @@ namespace ShatteredSail.Presentation.Tests
             int enemyBlockBefore = session.Battle.EnemyBlock;
             int expectedDamage = Mathf.Max(0, session.GetBattleCardDamage(card, session.Battle.Stage) - enemyBlockBefore);
             Assert.That(expectedDamage, Is.GreaterThan(0), "Fixture must break guard and visibly damage the hull.");
-            NavalBattleVisualCapture.Capture(controller, "07_Cannon_GuardBefore.png", "炮击前：白色外围护甲条、格挡数值与船体生命");
+            NavalBattleVisualCapture.Capture(controller, "07_Cannon_GuardBefore.png", "炮击前：无外框细血条、格挡状态图标与船体生命");
 
             Button source = Find<Button>("Battle Card 0");
             source.onClick.Invoke();
@@ -220,7 +213,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(updated.ChipBar.fillAmount, Is.EqualTo(updated.HullBar.fillAmount).Within(0.001f));
             AssertFilledMeshWidth(updated.HullBar);
             AssertFilledMeshWidth(updated.ChipBar);
-            AssertFilledMeshWidth(Find<Image>("Enemy Armor Bar"));
+            Assert.That(updated.transform.Find("Enemy Armor Bar"), Is.Null);
             Assert.That(Find<Text>("Enemy Hull Numeric").text, Does.StartWith((hullBefore - expectedDamage).ToString()));
             Assert.That(session.Armor, Is.EqualTo(permanentArmor), "Visual guard depletion must not consume permanent ship armor.");
             Assert.That(Find<BattleDefenseHud>("Player Battle Hull Bar Track").PermanentArmor, Is.EqualTo(permanentArmor));
@@ -576,7 +569,9 @@ namespace ShatteredSail.Presentation.Tests
             foreach (string side in new[] { "Player", "Enemy" })
             {
                 Image marker = Find<Image>(side + " Ship Art");
-                Assert.That(marker.sprite, Is.SameAs(Resources.Load<Sprite>("NavalTactics/tactical_ship_v1")));
+                CoreVoyageSession artSession = Object.FindFirstObjectByType<CoreGameplayDemoController>().Session;
+                Assert.That(marker.sprite, Is.SameAs(side == "Player" ? NavalTacticalArtCatalog.ForPlayer(artSession.SelectedShip.Id) :
+                    NavalTacticalArtCatalog.ForEnemy(artSession.Battle, artSession.ActiveEncounter, artSession.SelectedRouteIndex)));
                 Assert.That(marker.preserveAspect, Is.True);
                 Assert.That(marker.raycastTarget, Is.EqualTo(side == "Player"));
                 Assert.That(Vector2.Distance(marker.rectTransform.anchoredPosition,

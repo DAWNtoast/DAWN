@@ -189,7 +189,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(session.Battle, Is.Not.Null);
                 Assert.That(Describe(session.Battle.BoardingEnemy.LastActions), Is.EqualTo(expected));
                 Assert.That(playerHealth - session.Battle.PlayerBoardingHealth,
-                    Is.EqualTo(preview.PlayerHealthLoss + preview.PlayerBurnDamage));
+                    Is.EqualTo(preview.PlayerHealthLoss + preview.PlayerBurnDamage + preview.PlayerCurseDamage));
                 AssertCaps(session.Battle.BoardingEnemy, session.Battle.Profile.BoardingGuard);
                 foreach (CoreBoardingEnemyActionResult action in session.Battle.BoardingEnemy.LastActions)
                 {
@@ -197,7 +197,7 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(action.EnemyHealthAfter, Is.InRange(1, session.Battle.EnemyMaxBoardingHealth));
                 }
                 Assert.That(session.Battle.BoardingEnemy.ThunderChain, Is.Zero);
-                settledDamage.Add(preview.AttackDamage + preview.PlayerBurnDamage);
+                settledDamage.Add(preview.AttackDamage + preview.PlayerBurnDamage + preview.PlayerCurseDamage);
             }
             CollectionAssert.AreEqual(settledDamage.Skip(energy.Length * 4).Take(energy.Length),
                 settledDamage.Skip(energy.Length * 5), "Established cycles must not accumulate permanent damage growth.");
@@ -230,9 +230,9 @@ namespace ShatteredSail.Core.Tests
         private static void AssertCaps(CoreBoardingEnemyState state, int guard)
         {
             Assert.That(state.PlayerBurnDamage, Is.InRange(0, CoreBoardingEnemyState.BurnLimit));
-            Assert.That(state.PlayerBurnTurns, Is.InRange(0, 2));
+            Assert.That(state.PlayerBurnTurns, Is.EqualTo(state.PlayerBurnDamage));
             Assert.That(state.SelfBurnDamage, Is.InRange(0, CoreBoardingEnemyState.BurnLimit));
-            Assert.That(state.SelfBurnTurns, Is.InRange(0, 2));
+            Assert.That(state.SelfBurnTurns, Is.EqualTo(state.SelfBurnDamage));
             Assert.That(state.Mana, Is.InRange(0, CoreBoardingEnemyState.ManaLimit));
             Assert.That(state.ThunderChain, Is.InRange(0, CoreBoardingEnemyState.ThunderChainLimit));
             Assert.That(state.CurseMarks, Is.InRange(0, CoreBoardingEnemyState.CurseMarkLimit));
@@ -269,6 +269,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.EndBattleTurn(), Is.True);
             session.Battle.EnemyHull = session.Battle.EnemyMaxHull = 10000;
             session.Battle.DistanceMeters = 100f;
+            SetProperty(session.Battle, "EnemyHeadingDegrees", 90f);
             SetProperty(session.Battle, "PlayerHeadingDegrees", session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(session.TryBoard(), Is.True);

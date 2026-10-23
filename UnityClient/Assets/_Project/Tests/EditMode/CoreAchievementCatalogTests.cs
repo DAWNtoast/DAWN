@@ -106,6 +106,35 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void StarterInventoryAndConfiguredDecksCannotAwardActionChallenges()
+        {
+            var progress = new CoreAchievementProgress();
+            progress.SetCounter("warehouse_treasures_owned", 1);
+            progress.SetCounter("components_equipped", 5);
+            progress.SetCounter("configured_cards", 12);
+            progress.SetCounter("configured_deck_stages", 3);
+            progress.SetFlag("all_base_cargo_present");
+            progress.SetFlag("tutorial_component_reward");
+
+            foreach (string id in new[] { "warehouse_one", "component_full", "battle_deck", "battle_stages", "cargo_all", "tutorial_component" })
+                Assert.That(progress.IsUnlocked(CoreAchievementCatalog.Find(id)), Is.False, id);
+            Assert.That(progress.IsUnlocked(CoreAchievementCatalog.Find("tutorial_warehouse")), Is.True,
+                "The first collection remains a separate introductory milestone.");
+        }
+
+        [Test]
+        public void ThreeBattleStylesRequiresVictoriousAuthoredStagesInsteadOfSavedDefaults()
+        {
+            var progress = new CoreAchievementProgress();
+            CoreAchievementDefinition achievement = CoreAchievementCatalog.Find("battle_stages");
+            progress.SetCounter("configured_deck_stages", 3);
+            progress.SetCounter("authored_deck_victory_stages", 2);
+            Assert.That(progress.IsUnlocked(achievement), Is.False);
+            progress.Increment("authored_deck_victory_stages");
+            Assert.That(progress.IsUnlocked(achievement), Is.True);
+        }
+
+        [Test]
         public void Progress_IncrementAtIntegerLimitRetainsUnlockedAchievements()
         {
             var progress = new CoreAchievementProgress();

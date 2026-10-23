@@ -19,20 +19,20 @@ namespace ShatteredSail.Core.Tests
             CoreBattleCard two = session.GetBattleCardAtLevel(card, 2);
             Assert.That(zero.Damage, Is.GreaterThan(0));
             Assert.That(one.Damage, Is.EqualTo(CoreBattleUpgradeBalance.ScaleNumerical(zero.Damage, 1)));
-            Assert.That(one.SchoolEffect.Power, Is.EqualTo(CoreBattleUpgradeBalance.ScaleNumerical(zero.SchoolEffect.Power, 1)));
+            Assert.That(one.SchoolEffect.Power, Is.EqualTo(CoreCardUpgradeDesign.ScaleEffect(zero, zero.SchoolEffect.Power, 1)));
             Assert.That(one.SchoolEffect.Duration, Is.EqualTo(2));
             Assert.That(two.Damage, Is.EqualTo(CoreBattleUpgradeBalance.ScaleNumerical(zero.Damage, 2)));
             Assert.That(two.Energy, Is.EqualTo(zero.Energy));
             Assert.That(session.GetBattleCardEffects(zero, NavalBattleStage.Naval).Damage, Is.EqualTo(zero.Damage));
             Assert.That(session.GetBattleCardEffects(session.GetBattleCardAtLevel(Index("card_chain_shot"), 0), NavalBattleStage.Naval).Damage, Is.EqualTo(10));
-            Assert.That(session.GetBattleCardAtLevel(Index(Art("card_school_fire_e02")), 1).SchoolEffect.Power, Is.EqualTo(1));
+            Assert.That(session.GetBattleCardAtLevel(Index(Art("card_school_fire_e02")), 1).SchoolEffect.Power, Is.EqualTo(2));
         }
 
-        [TestCase(0, 5, 10)]
-        [TestCase(1, 7, 13)]
-        [TestCase(2, 9, 17)]
-        [TestCase(3, 9, 17)]
-        public void ReducedArcaneBaseGuardKeepsItsPaidBonusAndManaCost(int rank, int baseGuard, int paidBonus)
+        [TestCase(0, 5, 5)]
+        [TestCase(1, 7, 7)]
+        [TestCase(2, 9, 9)]
+        [TestCase(3, 9, 9)]
+        public void ArcaneBaseGuardKeepsItsNextGainReserveAndManaCost(int rank, int baseGuard, int paidBonus)
         {
             CoreVoyageSession s = Battle(upgradedCard: "card_school_arcane_b05", rank: rank);
             CoreBattleCard ward = s.GetBattleCard(Index("card_school_arcane_b05"));
@@ -43,10 +43,11 @@ namespace ShatteredSail.Core.Tests
                 "An unfunded quote cannot include the mana-paid shield.");
             Play(s, "card_school_arcane_b06");
             Assert.That(s.Battle.Schools.Mana, Is.EqualTo(2));
-            Assert.That(s.GetBattleCardEffects(ward, NavalBattleStage.Naval).Block, Is.EqualTo(baseGuard + paidBonus),
-                "The authored basic shield and paid bonus each keep their own upgrade scaling.");
+            Assert.That(s.GetBattleCardEffects(ward, NavalBattleStage.Naval).Block, Is.EqualTo(baseGuard),
+                "Funding the card prepares a later bonus instead of changing this card's own guard.");
             Play(s, ward.Id);
-            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(baseGuard + paidBonus));
+            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(baseGuard));
+            Assert.That(s.Battle.Schools.ArcaneNextBlockBonus, Is.EqualTo(paidBonus));
             Assert.That(s.Battle.Schools.Mana, Is.Zero);
         }
 
@@ -69,22 +70,22 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void FireAlias_UsesFourBurnAtLowCrew_AndNewLayersKeepIndependentDurations()
+        public void FireAlias_UsesFourBurnAtLowCrew_AndNewLayersJoinTheRemainingTotal()
         {
             CoreVoyageSession s = Battle(true, 7); s.Battle.Profile = Profile(0);
             int powder = s.Cargo.Powder;
             Play(s, "card_school_fire_b07");
             Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(4));
-            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(2));
+            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(4));
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(1));
+            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(3));
             Play(s, "card_school_fire_b07");
-            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(8));
+            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(7));
             int hp = s.Battle.EnemyBoardingHealth;
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp - 8));
-            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(4));
-            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(1), "Adding fire cannot refresh the older batch.");
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp - 7));
+            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(6));
+            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(6), "All additions share the same decaying total.");
             Assert.That(s.Cargo.Powder, Is.EqualTo(powder - 2));
         }
 
@@ -113,25 +114,25 @@ namespace ShatteredSail.Core.Tests
             int before = s.Battle.EnemyBoardingHealth;
             Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(s.Battle.LastEnemyGuardAbsorbed, Is.EqualTo(8));
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(before - 4));
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(before - 2));
             Assert.That(s.Battle.Schools.NaturalFireGuardTurns, Is.Zero, "The legacy natural-tick ward must not also run.");
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(before - 4), "Retaliation is consumed after one absorbed attack.");
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(before - 2), "The player-end tick reduces self-burn before the enemy attacks.");
             Assert.That(s.Battle.Boarding.SelfBurn, Is.Empty);
         }
 
         [Test]
-        public void ExtraTick_DoesNotConsumeDuration_OrRepeatInSameWindow()
+        public void FieldCannonWithoutAMatchingFieldDoesNotSettleOrExtendExistingBurn()
         {
             CoreVoyageSession s = Battle();
             Play(s, "card_school_fire_b03");
             int before = s.Battle.EnemyHull;
             CoreBattleCard card = Card(s, Art("card_school_fire_l03"));
-            int tick = Math.Max(s.Battle.EnemyBurnDamage, card.SchoolEffect.Power);
+            int burn = s.Battle.EnemyBurnTurns;
             Play(s, Art("card_school_fire_l03"));
-            Assert.That(s.Battle.EnemyHull, Is.EqualTo(before - card.Damage - tick));
-            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(2));
-            Assert.That(s.Battle.Schools.ExtraFireTickUsed, Is.True);
+            Assert.That(s.Battle.EnemyHull, Is.EqualTo(before - card.Damage));
+            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(burn));
+            Assert.That(s.Battle.Schools.ExtraFireTickUsed, Is.False);
             s.Battle.Energy = 20;
             before = s.Battle.EnemyHull;
             Play(s, Art("card_school_fire_l03"), false);
@@ -139,26 +140,27 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void FireDoctrine_TriggersOnceOnTheFirstOtherFireCardWithoutInventingLoading()
+        public void FireFieldMasteryAndExtensionDoNotInstallRetiredPassiveBurnOrLoading()
         {
             CoreVoyageSession s = Battle();
+            s.Battle.EnemyBurnDamage = s.Battle.EnemyBurnTurns = 0;
             Play(s, Art("card_school_fire_l05"));
-            Assert.That(s.Battle.SpecialCards.IsActive("fire"), Is.True);
-            Assert.That(s.Battle.EnemyBurnTurns, Is.Zero, "Installation does not spend its own trigger.");
+            Assert.That(s.Battle.SpecialCards.IsActive("fire"), Is.False);
+            Assert.That(s.Battle.EnemyBurnTurns, Is.Zero);
             Play(s, Art("card_school_fire_e02"));
-            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(3));
-            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(2));
+            Assert.That(s.Battle.EnemyBurnDamage, Is.Zero);
+            Assert.That(s.Battle.EnemyBurnTurns, Is.Zero);
             Assert.That(s.Battle.PlayerLoadedShot, Is.Zero);
             Assert.That(s.Battle.Schools.OverflowContribution, Is.Zero);
             s.Battle.Energy = 20;
             Play(s, Art("card_school_fire_e02"), false);
-            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(3));
-            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(3), "The second card only extends the existing burn.");
+            Assert.That(s.Battle.EnemyBurnDamage, Is.Zero);
+            Assert.That(s.Battle.EnemyBurnTurns, Is.Zero, "The sail extends matching naval fields only.");
             Assert.That(s.Battle.Schools.OverflowContribution, Is.Zero);
         }
 
         [Test]
-        public void FireDoctrine_DoesNotChangeLegacyLoadingOnEitherKindOfCannon()
+        public void FireFieldMasteryDoesNotChangeLegacyLoadingOnEitherKindOfCannon()
         {
             CoreVoyageSession s = Battle();
             int load = Card(s, "card_load_shot").StrategyAmount;
@@ -174,7 +176,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void FireDoctrine_RefreshesItsTriggerOnTheNextNavalTurn()
+        public void FireFieldMasteryDoesNotLeaveAPassiveTriggerOnTheNextNavalTurn()
         {
             CoreVoyageSession s = Battle();
             Play(s, Art("card_school_fire_l05"));
@@ -182,16 +184,16 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.SpecialCards.HasPlayed("fire"), Is.True);
             s.Battle.DistanceMeters = 300;
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.SpecialCards.IsActive("fire"), Is.True);
+            Assert.That(s.Battle.SpecialCards.IsActive("fire"), Is.False);
             Assert.That(s.Battle.SpecialCards.HasPlayed("fire"), Is.False);
             s.Battle.EnemyBurnDamage = 0; s.Battle.EnemyBurnTurns = 0;
             Play(s, Art("card_school_fire_e02"));
-            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(3));
-            Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(2));
+            Assert.That(s.Battle.EnemyBurnDamage, Is.Zero);
+            Assert.That(s.Battle.EnemyBurnTurns, Is.Zero);
         }
 
         [Test]
-        public void LegacyLoadAfterFireDoctrine_UsesRemainingRoomAndKeepsAuthoredDrawAtCap()
+        public void LegacyLoadAfterFireFieldMasteryUsesRemainingRoomAndKeepsAuthoredDrawAtCap()
         {
             CoreVoyageSession s = Battle();
             Play(s, Art("card_school_fire_l05"));
@@ -221,6 +223,7 @@ namespace ShatteredSail.Core.Tests
             Play(s, Art("card_school_fire_l01"));
             Play(s, Art("card_school_fire_l02"));
             s.Battle.DistanceMeters = 100;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             Assert.That(s.TryBoard(), Is.True);
             Assert.That(s.Battle.EnemyBurnDamage, Is.Zero);
@@ -258,12 +261,13 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.Schools.Mana, Is.EqualTo(mana));
             CoreBattleCard release = s.GetBattleCard(Index("card_school_arcane_b04"));
             Assert.That(mana, Is.GreaterThanOrEqualTo(release.SchoolEffect.Threshold));
-            int damage = release.Damage + release.SchoolEffect.Power;
+            int damage = release.Damage;
             Assert.That(s.GetBattleCardDamage(release, NavalBattleStage.Naval), Is.EqualTo(damage));
             int before = s.Battle.EnemyHull;
             Play(s, release.Id);
             Assert.That(s.Battle.EnemyHull, Is.EqualTo(before - damage));
             Assert.That(s.Battle.Schools.Mana, Is.EqualTo(mana - release.SchoolEffect.Threshold));
+            Assert.That(s.Battle.Schools.ArcaneNextAttackDamage, Is.EqualTo(release.SchoolEffect.Power));
         }
 
         [Test]
@@ -274,6 +278,7 @@ namespace ShatteredSail.Core.Tests
             typeof(CoreSchoolBattleState).GetProperty("TemporaryMana").SetValue(s.Battle.Schools, 3);
             typeof(CoreSchoolBattleState).GetProperty("CurseMarks").SetValue(s.Battle.Schools, 4);
             s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);
@@ -283,23 +288,23 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void BoardingCurseAlias_NeverTicksDamage_WhileNavalCurseKeepsItsExistingTick()
+        public void BoardingAndNavalCurseBothTickTheirLayersAndDecayAtEnemyEnd()
         {
             CoreVoyageSession s = Battle(true); s.Battle.Profile = Profile(20);
             int initial = s.Battle.EnemyBoardingHealth;
             Play(s, "card_school_curse_b07");
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(initial - 6));
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(initial - 8));
             Assert.That(s.Battle.Schools.CurseMarks, Is.EqualTo(1));
             for (int i = 0; i < 3; i++)
             {
                 Assert.That(s.EndBattleTurn(), Is.True);
-                Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(initial - 6));
+                Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(initial - 9));
             }
             Assert.That(s.Battle.Schools.CurseMarks, Is.Zero);
             s = Battle(); Play(s, "card_school_curse_b03");
             int before = s.Battle.EnemyHull, marks = s.Battle.Schools.CurseMarks;
             CoreBattleCard detonate = Card(s, "card_school_curse_b05");
-            int damage = marks * (s.Battle.Schools.CurseDamagePerMark + detonate.SchoolEffect.Power);
+            int damage = marks + detonate.SchoolEffect.Power;
             Play(s, detonate.Id);
             Assert.That(s.Battle.EnemyHull, Is.EqualTo(before));
             Assert.That(s.Battle.Schools.CurseMarks, Is.EqualTo(marks));
@@ -327,15 +332,19 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void TideCleanse_ClearsTheRealEnemyCannonLoad()
+        public void TideFieldPulsePreservesEnemyCannonLoadAndGrantsOnlyItsConditionalMomentum()
         {
             CoreVoyageSession s = Battle();
             s.Battle.EnemyLoadedShot = 10;
             typeof(CoreSchoolBattleState).GetProperty("TidePower").SetValue(s.Battle.Schools, 8);
+            typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(s.Battle, new object[] { true, new VoyagePoint(0, 0), 0f });
+            Assert.That(s.PlaceNavalField(CoreNavalFieldKind.Tide, true, 0, 0, false, 1, 0), Is.True);
             Play(s, Art("card_school_tide_e05"));
-            Assert.That(s.Battle.EnemyLoadedShot, Is.Zero);
+            Assert.That(s.Battle.EnemyLoadedShot, Is.EqualTo(10));
             CoreBattleCard card = Card(s, Art("card_school_tide_e05"));
-            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(card.Block + card.SchoolEffect.Power));
+            Assert.That(s.Battle.PlayerBlock, Is.Zero);
+            Assert.That(s.Battle.Schools.TidePower, Is.EqualTo(8 + card.SchoolEffect.Power));
         }
 
         [TestCase(false, 28)]
@@ -453,11 +462,11 @@ namespace ShatteredSail.Core.Tests
             Play(s, "card_school_curse_b07");
             Play(s, "card_school_curse_b10");
             Assert.That(s.Battle.Schools.CurseMarks, Is.Zero);
-            Assert.That(s.Battle.Schools.CurseDamagePerMark, Is.Zero);
+            Assert.That(s.Battle.Schools.CurseDamagePerMark, Is.EqualTo(1));
             Assert.That(s.Battle.Schools.CurseNextTickBonus, Is.Zero);
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 8 - 6 - 28));
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 8 - 8 - 28));
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 8 - 6 - 28 - 4));
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 8 - 8 - 28 - 4));
         }
 
         [TestCase(7)] [TestCase(28)] [TestCase(56)]
@@ -523,6 +532,7 @@ namespace ShatteredSail.Core.Tests
             if (boarding)
             {
                 s.Battle.DistanceMeters = 100;
+                typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
                 typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
                 Assert.That(s.TryBoard(), Is.True);
                 s.Battle.PlayerBoardingHealth = s.Battle.PlayerMaxBoardingHealth = 1000;

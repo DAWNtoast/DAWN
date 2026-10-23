@@ -1578,7 +1578,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator Achievements_ConfirmedVoyageReturnRecordsDamageAndSuccessfulNavigatorVoyage()
+        public IEnumerator Achievements_FailedOrUnfoughtReturnsDoNotEarnRecoveryButSuccessfulNavigatorVoyageDoes()
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
@@ -1603,20 +1603,21 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.Settlement.Outcome,
                     Is.EqualTo(voyage == 1 ? VoyageOutcome.Failure : VoyageOutcome.SafeReturn));
                 RenderResponsiveBattle(controller); yield return null;
-                Assert.That(AchievementUnlocked("tutorial_recovery"), Is.EqualTo(voyage == 2));
+                Assert.That(AchievementUnlocked("tutorial_recovery"), Is.False);
                 Assert.That(AchievementUnlocked("tutorial_navigator"), Is.False,
                     "An unconfirmed settlement must not record a completed voyage.");
                 Button skip = ActiveButton("Skip Settlement Reveal");
                 if (skip != null && skip.IsInteractable()) { skip.onClick.Invoke(); yield return null; }
                 ActiveButton("Return To Port").onClick.Invoke(); yield return null;
                 Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
-                Assert.That(AchievementUnlocked("tutorial_recovery"), Is.EqualTo(voyage >= 1));
+                Assert.That(AchievementUnlocked("tutorial_recovery"), Is.False,
+                    "Neither a failed lightly damaged return nor an unfought safe return proves the recovery challenge.");
                 Assert.That(AchievementUnlocked("tutorial_navigator"), Is.EqualTo(voyage == 2),
                     "A failed voyage with a navigator must not count as a successful navigator voyage.");
             }
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null; yield return null;
-            Assert.That(AchievementUnlocked("tutorial_recovery"), Is.True);
+            Assert.That(AchievementUnlocked("tutorial_recovery"), Is.False);
             Assert.That(AchievementUnlocked("tutorial_navigator"), Is.True);
             LogAssert.NoUnexpectedReceived();
         }

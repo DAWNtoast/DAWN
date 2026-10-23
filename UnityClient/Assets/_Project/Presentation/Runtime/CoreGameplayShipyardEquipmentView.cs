@@ -39,10 +39,6 @@ namespace ShatteredSail.Presentation
             bool owned = OwnsShipyardVessel(index);
             bool editable = Application.isPlaying && !editorPreviewBuilding && IsShipyardVesselAtCurrentPort(index);
             BuildShipyardEquipmentVessel(page, index);
-            WorkbenchRule("Shipyard Equipment Installed Heading Surface", page, new Vector2(730f, 28f),
-                new Vector2(-550f, -378f), ShipyardWorkbenchVesselSurface);
-            ShipyardText("Shipyard Equipment Installed Heading", page, new Vector2(730f, 28f),
-                new Vector2(-550f, -378f), 19, ShipyardWorkbenchLightMuted).text = owned ? "本船当前装配 · 点击槽位筛选配件" : "原装配置预览 · 购买后可改装";
             Vector2[] slotPositions = { new Vector2(-350f, -303f), new Vector2(-350f, 236f),
                 new Vector2(-750f, -303f), new Vector2(-550f, -454f), new Vector2(-750f, 236f) };
 
@@ -197,9 +193,9 @@ namespace ShatteredSail.Presentation
                 selectedShipyardComponentInstanceId = null;
                 RefreshShipyardDossierView();
             });
-            ShipyardText("Shipyard Equipment Help", page, new Vector2(1040f, 54f), new Vector2(400f, -481f), 20, muted).text =
-                !owned ? "购买此船后可装配，当前为原装预览" : !IsShipyardVesselAtCurrentPort(index) ? "此船未停泊本港，暂时无法装配" :
-                "装卸不消耗金币 · 替换下来的配件自动放回库存";
+            if (!owned || !IsShipyardVesselAtCurrentPort(index))
+                ShipyardText("Shipyard Equipment Help", page, new Vector2(1040f, 54f), new Vector2(400f, -481f), 20, muted).text =
+                    !owned ? "购买此船后可装配，当前为原装预览" : "此船未停泊本港，暂时无法装配";
         }
 
         private static string ShipyardColoredComparison(ShipyardComponentComparison comparison)
@@ -235,7 +231,7 @@ namespace ShatteredSail.Presentation
             Text name = ShipyardText(prefix + " Name", card, new Vector2(302f, 64f), new Vector2(0f, 27f), 27, ShipyardWorkbenchLight);
             name.text = componentName;
             ShipyardText(prefix + " Slot", card, new Vector2(302f, 30f), new Vector2(0f, -25f), 21, ShipyardWorkbenchLightMuted).text =
-                entry == null ? (side == "Selected" ? "从左侧库存选择配件" : "选择配件以填入此槽位") : ComponentArtCatalog.SlotName(entry.Slot);
+                entry == null ? string.Empty : ComponentArtCatalog.SlotName(entry.Slot);
             WorkbenchRule(prefix + " Divider", card, new Vector2(344f, 2f), new Vector2(0f, -59f), ShipyardWorkbenchBorder);
             CreateTavernReadingText(prefix + " Stats", card, new Vector2(22f, 408f),
                 new Vector2(302f, 204f), 24, 1.3f, ink, stats);

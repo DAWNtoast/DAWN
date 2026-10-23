@@ -1,0 +1,13 @@
+base: records=32
+fixed: records=48
+random: records=66
+routeBoss: records=6
+legendary: records=6
+treasureBoss: records=1
+treasure: records=39
+tutorial: records=8
+common: records=4
+CURRENT: records=210, ids=195, resourcePaths=142
+CURRENT_AND_COMPATIBILITY: resourcePaths=142
+REVIEWED: resourcePaths=38
+The CSV records runtime bindings, not visual approval or installed-resource validation.

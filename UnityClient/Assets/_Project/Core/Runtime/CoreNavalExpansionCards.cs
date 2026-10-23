@@ -13,6 +13,7 @@ namespace ShatteredSail.Core.Gameplay
             CoreBattleCard card = GetBattleCard(cardIndex);
             CoreNavalExpansionCardSpec spec = CoreNavalSchoolExpansionCatalog.FindSpec(card.Id);
             options = options ?? new CoreNavalCardPlayOptions { ResourceAmount = spec.ResourceMinimum };
+            int resourceAmount = NavalExpansionResourceAmount(spec, options);
             CoreNavalExpansionMechanic kind = spec.Mechanic;
             bool cannon = card.Action == NavalBattleCardAction.Cannon;
             bool fireRound = cannon && Battle.PlayerFireRounds > 0;
@@ -21,7 +22,7 @@ namespace ShatteredSail.Core.Gameplay
             bool enemyOnThunder = NavalExpansionShipOnField(false, CoreNavalFieldKind.Thunder);
             int chain = Battle.Schools.ThunderChain;
             int damage = card.Damage > 0 ? GetBattleCardDamage(card, NavalBattleStage.Naval) : 0;
-            int piercing = NavalExpansionFirstPiercing(card, kind == CoreNavalExpansionMechanic.StarBeam ? 10 : 0, true);
+            int piercing = NavalExpansionFirstPiercing(card, 0, true);
             NavalExpansionFirstDamageBonus(card, true); // Already included by the public damage quote.
             var shape = kind == CoreNavalExpansionMechanic.HarborExplosion || kind == CoreNavalExpansionMechanic.GreatWave
                 ? NavalExpansionShape(kind, options) : new List<VoyagePoint>();
@@ -35,9 +36,9 @@ namespace ShatteredSail.Core.Gameplay
             Cargo.Cannonballs -= card.CannonballCost;
             PayMana(spec.ManaCost);
             Hull -= CoreSpecialCardRules.HealthCost(card, Battle);
-            if (spec.ResourceLabel == "潮势") Battle.Schools.TidePower -= options.ResourceAmount;
-            if (spec.ResourceLabel == "咒印") NavalExpansionConsumeCurse(options.ResourceAmount);
-            if (spec.ResourceLabel == "连锁") Battle.Schools.ThunderChain -= options.ResourceAmount;
+            if (spec.ResourceLabel == "潮势") Battle.Schools.TidePower -= resourceAmount;
+            if (spec.ResourceLabel == "咒印") NavalExpansionConsumeCurse(resourceAmount);
+            if (spec.ResourceLabel == "连锁") Battle.Schools.ThunderChain -= resourceAmount;
             if (kind == CoreNavalExpansionMechanic.ThunderCollapse) Battle.Schools.ThunderChain = 0;
             Battle.RecordSuccessfulCardUse(BattleCardUseIdentity(card));
             if (Battle.CardsPlayedThisTurn < int.MaxValue) Battle.CardsPlayedThisTurn++;
@@ -74,13 +75,19 @@ namespace ShatteredSail.Core.Gameplay
                     damage = SchoolSum(damage, 4 * RemoveNavalFieldCells(fires));
                     actual = NavalExpansionAreaDamage(shape, damage, piercing);
                     break;
-                case CoreNavalExpansionMechanic.RuneClamp: Battle.NavalExpansion.RuneClamp = true; break;
-                case CoreNavalExpansionMechanic.StarBeam: actual = NavalExpansionDirectDamage(false, damage, piercing); break;
-                case CoreNavalExpansionMechanic.LoadSeal: Battle.NavalExpansion.LoadSeal = true; break;
+                case CoreNavalExpansionMechanic.RuneClamp:
+                    Battle.NavalExpansion.RuneClamp = true;
+                    Battle.NavalExpansion.RuneClampReduction = SchoolSum(Battle.NavalExpansion.RuneClampReduction, 6); break;
+                case CoreNavalExpansionMechanic.StarBeam:
+                    actual = NavalExpansionDirectDamage(false, damage, piercing);
+                    secondaryActual = NavalExpansionDirectDamage(false, 10, 10); break;
+                case CoreNavalExpansionMechanic.LoadSeal:
+                    Battle.EnemyLoadedShot = Math.Max(0, Battle.EnemyLoadedShot - 6); break;
                 case CoreNavalExpansionMechanic.CursePeel:
-                    actual = NavalExpansionDirectDamage(false, SchoolSum(damage, options.ResourceAmount * 6), piercing); break;
+                    actual = NavalExpansionDirectDamage(false, SchoolSum(damage, resourceAmount * 6), piercing);
+                    NavalExpansionConsumeCurse(Battle.Schools.CurseMarks); break;
                 case CoreNavalExpansionMechanic.TideCannon:
-                    actual = NavalExpansionDirectDamage(false, SchoolSum(damage, options.ResourceAmount * 2), piercing); break;
+                    actual = NavalExpansionDirectDamage(false, SchoolSum(damage, resourceAmount * 2), piercing); break;
                 case CoreNavalExpansionMechanic.TideAnchor:
                     if (Cargo.Wood > 0)
                     {
@@ -98,15 +105,18 @@ namespace ShatteredSail.Core.Gameplay
                     if (!NavalExpansionActive) return true;
                     break;
                 case CoreNavalExpansionMechanic.TideStrip:
-                    Battle.EnemyBlock = Math.Max(0, Battle.EnemyBlock - options.ResourceAmount); break;
+                    Battle.EnemyBlock = Math.Max(0, Battle.EnemyBlock - resourceAmount); break;
                 case CoreNavalExpansionMechanic.GreatWave:
-                    actual = NavalExpansionAreaDamage(shape, SchoolSum(damage, options.ResourceAmount * 2), piercing); break;
+                    actual = NavalExpansionAreaDamage(shape, SchoolSum(damage, resourceAmount * 2), piercing); break;
                 case CoreNavalExpansionMechanic.ArcCannon:
                     actual = NavalExpansionDirectDamage(false, damage, piercing);
                     if (Battle.EnemyHull > 0 && Hull > 0 && enemyOnThunder) secondaryActual = NavalExpansionDirectDamage(false, 6, 0);
                     break;
-                case CoreNavalExpansionMechanic.Precharge: Battle.NavalExpansion.Precharge = true; break;
-                case CoreNavalExpansionMechanic.Pulse: Battle.NavalExpansion.PulseReduction = chain >= 2 ? 8 : 4; break;
+                case CoreNavalExpansionMechanic.Precharge:
+                    Battle.NavalExpansion.Precharge = true;
+                    Battle.NavalExpansion.PrechargeBonus = SchoolSum(Battle.NavalExpansion.PrechargeBonus, 2); break;
+                case CoreNavalExpansionMechanic.Pulse:
+                    Battle.NavalExpansion.PulseReduction = SchoolSum(Battle.NavalExpansion.PulseReduction, chain >= 2 ? 8 : 4); break;
                 case CoreNavalExpansionMechanic.Grounding:
                     if (!Battle.NavalExpansion.GroundingUsed) Battle.NavalExpansion.GroundingReady = true;
                     break;

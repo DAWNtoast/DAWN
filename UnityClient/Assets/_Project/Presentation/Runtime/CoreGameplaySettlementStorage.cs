@@ -31,9 +31,7 @@ namespace ShatteredSail.Presentation
             CreateImage("Settlement Cargo Selected", inset.transform,
                 new Vector2(12f, 12f), Vector2.zero, new Color(.16f, .36f, .32f)).raycastTarget = false;
             checkbox.raycastTarget = inset.raycastTarget = false;
-            Text note = SettlementText("Settlement Note", card, new Vector2(570f, 55f),
-                new Vector2(-495f, -427f), 17, MarketShopSkin.MutedInk, TextAnchor.MiddleLeft);
-            UpdateSettlementStorageLabels(caption, note, result);
+            UpdateSettlementStorageLabels(caption);
             store.interactable = Application.isPlaying && !editorPreviewBuilding && !previewSample && !tutorialActive;
             store.onClick.AddListener(() =>
             {
@@ -42,21 +40,15 @@ namespace ShatteredSail.Presentation
                     !ReferenceEquals(settlementWarehouseQuote, result)) return;
                 storeAllSettlementCargo = !storeAllSettlementCargo;
                 // Updating the checkbox must not restart the reward reveal.
-                UpdateSettlementStorageLabels(caption, note, result);
+                UpdateSettlementStorageLabels(caption);
             });
         }
 
-        private void UpdateSettlementStorageLabels(Text caption, Text note, VoyageSettlement result)
+        private void UpdateSettlementStorageLabels(Text caption)
         {
             caption.text = "是否将所有货物置入仓库";
             Transform selected = caption.transform.parent.Find("Settlement Cargo Checkbox/Settlement Cargo Checkbox Interior/Settlement Cargo Selected");
             if (selected != null) selected.gameObject.SetActive(storeAllSettlementCargo);
-            string port = result.Outcome == VoyageOutcome.ArrivedAtPort ? result.Destination : session.CurrentPort;
-            note.text = tutorialActive
-                ? "教学物资保留随船；完成教学后可选择全货入库。\n确认一次即可完成结算。"
-                : storeAllSettlementCargo
-                    ? "基础与珍稀货物存入" + port + "（含水粮、弹药）。\n金币照常入账；出航前请重新装船补给。"
-                    : "未勾选：结算后货物保留在船舱。\n勾选后，基础与珍稀货物存入" + port + "。";
         }
 
         private string StoreSettledCargoIfRequested(VoyageSettlement result)

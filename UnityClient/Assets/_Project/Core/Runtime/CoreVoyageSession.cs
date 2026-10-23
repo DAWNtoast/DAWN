@@ -298,6 +298,7 @@ namespace ShatteredSail.Core.Gameplay
 
     public sealed class CoreVoyageMap
     {
+        public const int CurrentGeometryVersion = 4;
         public const int GridColumns = 48;
         public const int GridRows = 32;
         public const int ChartColumns = GridColumns * 2;
@@ -339,12 +340,18 @@ namespace ShatteredSail.Core.Gameplay
         public int FineColumns => Columns * 2;
         public int FineRows => Rows * 2;
         public float WorldWidth => Width;
-        public float WorldHeight => GeometryVersion == 0 ? Height : 75f;
+        // SS6 removes two terrain rows at the existing world-cell size. Earlier
+        // versions retain their exact bounds so saved coordinates never move.
+        public float WorldHeight => GeometryVersion == 0 ? Height :
+            GeometryVersion == 4 ? Width * Rows / Columns : 75f;
 
         private static int RowsForGeometry(int geometryVersion)
         {
             if (geometryVersion == 0) return GridRows;
             if (geometryVersion >= 1 && geometryVersion <= 3) return 36;
+            // Keep the 48-column cell spacing and fit the fixed 1920x1080
+            // navigation chart area; rows of saved versions remain frozen.
+            if (geometryVersion == 4) return 34;
             throw new ArgumentOutOfRangeException(nameof(geometryVersion), "Unknown voyage map geometry.");
         }
 
@@ -571,8 +578,11 @@ namespace ShatteredSail.Core.Gameplay
 
     public sealed class VoyageCargo
     {
-        public int Water { get; set; }
-        public int Food { get; set; }
+        private int water;
+        private int food;
+        internal Action RationsChanged { get; set; }
+        public int Water { get => water; set { water = value; RationsChanged?.Invoke(); } }
+        public int Food { get => food; set { food = value; RationsChanged?.Invoke(); } }
         public int Beer { get; set; }
         public int Medicine { get; set; }
         public int Wood { get; set; }
@@ -936,7 +946,17 @@ namespace ShatteredSail.Core.Gameplay
         public float LastVoyageExplorationCoverage => lastVoyageExplorationCoverage;
         public bool HasLastVoyageExplorationCoverage => hasLastVoyageExplorationCoverage;
         public int BoardingCriticalChancePercent => (int)Math.Max(0L, Math.Min(100L, (long)Morale * 3L));
-        public VoyageCargo Cargo { get; private set; }
+        private VoyageCargo cargo;
+        public VoyageCargo Cargo
+        {
+            get => cargo;
+            private set
+            {
+                if (cargo != null) cargo.RationsChanged = null;
+                cargo = value;
+                if (cargo != null) cargo.RationsChanged = ObserveAchievementVoyageSupplies;
+            }
+        }
         public CoreVoyageMap Map { get; private set; }
         public int MapGeometryVersion { get; set; } = 2;
         public VoyagePoint Position { get; private set; }
@@ -1430,34 +1450,76 @@ namespace ShatteredSail.Core.Gameplay
             return TryPurchaseSupplies(CreateRecommendedSupplyOrder());
         }
 
-        public VoyageSupplyOrder CreateRecommendedSupplyOrder()
+        private int RecommendedSupplyTier => SelectedTreasureMap == null ? SelectedRouteIndex :
+            SelectedTreasureMap.RankId == "moonlit" ? 2 : SelectedTreasureMap.RankId == "gilded" ? 1 : 0;
+
+        public int RecommendedSupplyTarget(VoyageSupplyType type) =>
+            RecommendedSupplyTarget(type, EffectiveCrewCount, HasCook);
+
+        public int RecommendedSupplyTarget(VoyageSupplyType type, int crewCount, bool cook)
         {
-            // Aim for route endurance while normally reserving half the hold for equipment and loot.
-            // Existing goods are never discarded: food/water take priority within the actual free hold.
-            int target = Math.Min((int)Math.Ceiling(CrewCountValue * GameplayBalance.SupplyDays(SelectedRouteIndex) / 10d) * 10,
-                (int)(CargoCapacityValue * 0.5f / 0.16f / 10f) * 10);
+            // Every treasure rank contains full-strength legendary guards.
+            int tier = SelectedTreasureMap == null ? SelectedRouteIndex : 2;
+            if (type == VoyageSupplyType.Water || type == VoyageSupplyType.Food)
+            {
+                int days = SelectedTreasureMap?.Rank.RecommendedVoyageDays ?? routes[SelectedRouteIndex].RecommendedVoyageDays;
+                return (int)Math.Min(int.MaxValue, Math.Ceiling(EstimateDailyRationConsumption(crewCount, cook) * (days + 2) - 1e-9d));
+            }
+            // Two ordinary naval engagements, or a legendary fight with a reserve for the return trip.
+            // Medicine and timber also grow with the boarding/repair demands of the destination.
+            if (type == VoyageSupplyType.Powder) return tier == 2 ? 40 : tier == 1 ? 30 : 20;
+            if (type == VoyageSupplyType.Cannonballs) return tier == 2 ? 32 : tier == 1 ? 24 : 16;
+            if (type == VoyageSupplyType.Wood) return tier > 0 ? 12 : 8;
+            if (type == VoyageSupplyType.Medicine) return tier == 2 ? 8 : tier == 1 ? 4 : 2;
+            return 0;
+        }
+
+        public VoyageSupplyOrder CreateRecommendedSupplyOrder() =>
+            CreateRecommendedSupplyOrder(EffectiveCrewCount, HasCook);
+
+        public VoyageSupplyOrder CreateRecommendedSupplyOrder(int crewCount, bool cook)
+        {
             var order = new VoyageSupplyOrder();
-            float space = Math.Max(0f, CargoCapacityValue - Cargo.UsedVolume);
+            double space = Math.Max(0d, CargoCapacityValue - Cargo.UsedVolume);
+            int rationTarget = RecommendedSupplyTarget(VoyageSupplyType.Water, crewCount, cook);
+            int sailingReserve = (int)Math.Min(rationTarget,
+                Math.Ceiling(EstimateDailyRationConsumption(crewCount, cook) * GameplayBalance.SupplyDays(RecommendedSupplyTier) - 1e-9d));
+            AddRecommendedRations(order, sailingReserve, ref space);
+
+            // Fill the least-covered combat resource first. A small hold must not be filled
+            // with powder while leaving no room for its cannonballs (or vice versa).
+            var combat = new[] { VoyageSupplyType.Medicine, VoyageSupplyType.Wood, VoyageSupplyType.Powder, VoyageSupplyType.Cannonballs };
             while (true)
             {
-                bool waterFits = Cargo.Water + order.Water < target && space + 0.0001f >= SupplyVolume(VoyageSupplyType.Water);
-                bool foodFits = Cargo.Food + order.Food < target && space + 0.0001f >= SupplyVolume(VoyageSupplyType.Food);
+                VoyageSupplyType? next = null;
+                double coverage = double.PositiveInfinity;
+                foreach (VoyageSupplyType type in combat)
+                {
+                    int target = RecommendedSupplyTarget(type, crewCount, cook);
+                    long held = (long)GetSupplyAmount(type) + order[type];
+                    if (held >= target || space + 0.0001f < SupplyVolume(type)) continue;
+                    double ratio = held / (double)target;
+                    if (ratio < coverage) { next = type; coverage = ratio; }
+                }
+                if (!next.HasValue) break;
+                order[next.Value]++;
+                space -= SupplyVolume(next.Value);
+            }
+            AddRecommendedRations(order, rationTarget, ref space);
+            return order;
+        }
+
+        private void AddRecommendedRations(VoyageSupplyOrder order, int target, ref double space)
+        {
+            while (true)
+            {
+                bool waterFits = (long)Cargo.Water + order.Water < target && space + 0.0001f >= SupplyVolume(VoyageSupplyType.Water);
+                bool foodFits = (long)Cargo.Food + order.Food < target && space + 0.0001f >= SupplyVolume(VoyageSupplyType.Food);
                 if (!waterFits && !foodFits) break;
                 bool addWater = waterFits && (!foodFits || Cargo.Water + order.Water <= Cargo.Food + order.Food);
                 if (addWater) { order.Water++; space -= SupplyVolume(VoyageSupplyType.Water); }
                 else { order.Food++; space -= SupplyVolume(VoyageSupplyType.Food); }
             }
-            foreach (VoyageSupplyType type in new[] { VoyageSupplyType.Medicine, VoyageSupplyType.Wood, VoyageSupplyType.Powder, VoyageSupplyType.Cannonballs })
-            {
-                // Ten shots plus two optional extra loading charges.
-                int reserve = type == VoyageSupplyType.Medicine ? 2 : type == VoyageSupplyType.Cannonballs ? 10 :
-                    type == VoyageSupplyType.Powder ? 12 : 8;
-                int amount = Math.Min(Math.Max(0, reserve - GetSupplyAmount(type)),
-                    Math.Max(0, (int)Math.Floor((space + 0.0001f) / SupplyVolume(type))));
-                order[type] = amount;
-                space -= amount * SupplyVolume(type);
-            }
-            return order;
         }
 
         public void SelectRoute(int routeIndex)
@@ -1515,7 +1577,8 @@ namespace ShatteredSail.Core.Gameplay
                 (SelectedSeed.StartsWith("SS2.", StringComparison.OrdinalIgnoreCase) ||
                     SelectedSeed.StartsWith("SS3.", StringComparison.OrdinalIgnoreCase) ||
                     SelectedSeed.StartsWith("SS4.", StringComparison.OrdinalIgnoreCase) ||
-                    SelectedSeed.StartsWith("SS5.", StringComparison.OrdinalIgnoreCase)) &&
+                    SelectedSeed.StartsWith("SS5.", StringComparison.OrdinalIgnoreCase) ||
+                    SelectedSeed.StartsWith("SS6.", StringComparison.OrdinalIgnoreCase)) &&
                 !TrySelectChartSeed(SelectedSeed, out string selectionFailure))
                 throw new InvalidOperationException(selectionFailure);
             if (!CanStartOrdinaryVoyage(out string routeFailure)) throw new InvalidOperationException(routeFailure);
@@ -1582,6 +1645,7 @@ namespace ShatteredSail.Core.Gameplay
             Battle = null;
             Settlement = null;
             BeginSeaChartVoyage(treasure);
+            BeginAchievementVoyageProgress();
             if (activeSeaChart != null)
                 Heading = ClosestDirection(Math.Atan2(Map.Destination.Y - Map.Departure.Y, Map.Destination.X - Map.Departure.X));
             if (activeSeaChart != null && treasure == null && GuidedTutorialLeg == 0 && knownLocationIds != null)
@@ -1953,7 +2017,7 @@ namespace ShatteredSail.Core.Gameplay
 
             CoreVoyageTimeBand encounterTime = IsTreasureExpedition ? CurrentTreasureExpeditionTimeBand : CurrentVoyageTimeBand;
             if (choice.RequiredTime != CoreVoyageTimeBand.Any && encounterTime != choice.RequiredTime)
-                return "仅限" + TimeBandLabel(choice.RequiredTime) + "执行（当前为" + TimeBandLabel(encounterTime) + "）。";
+                return "仅限" + TimeBandLabel(choice.RequiredTime) + "时选择（当前为" + TimeBandLabel(encounterTime) + "）。";
             if (choice.RequiredWeather != CoreVoyageWeather.Any && CurrentVoyageWeather != choice.RequiredWeather)
                 return "需要" + WeatherLabel(choice.RequiredWeather) + "（当前为" + WeatherLabel(CurrentVoyageWeather) + "）。";
             if (choice.RequiredTerrain != EventTerrainConstraint.Any && CurrentEncounterTerrain != choice.RequiredTerrain)
@@ -1961,8 +2025,8 @@ namespace ShatteredSail.Core.Gameplay
             if (Cargo.Curse < choice.MinimumCurse)
                 return "至少需要 " + choice.MinimumCurse + " 层诅咒（当前 " + Cargo.Curse + " 层）。";
             if (Cargo.Curse > choice.MaximumCurse)
-                return "诅咒层数不能超过 " + choice.MaximumCurse + "（当前 " + Cargo.Curse + " 层）。";
-            return string.Empty;
+                return "诅咒层数不能超过 " + choice.MaximumCurse + " 层（当前 " + Cargo.Curse + " 层）。";
+            return SeaChartChoiceRewardConditionReason(choice);
         }
 
         public string EncounterChoiceConditionSummary(CoreEncounterChoice choice)
@@ -2106,7 +2170,7 @@ namespace ShatteredSail.Core.Gameplay
             switch (weather)
             {
                 case CoreVoyageWeather.Wind: return "顺风或强风";
-                case CoreVoyageWeather.Rain: return "急流天气";
+                case CoreVoyageWeather.Rain: return "急流海况";
                 case CoreVoyageWeather.Fog: return "雾海";
                 case CoreVoyageWeather.Storm: return "风暴";
                 case CoreVoyageWeather.Calm: return "平静海况";
@@ -2123,7 +2187,7 @@ namespace ShatteredSail.Core.Gameplay
                 case EventTerrainConstraint.Reef: return "礁区";
                 case EventTerrainConstraint.Fog: return "雾区";
                 case EventTerrainConstraint.Storm: return "风暴区";
-                default: return "开放海域";
+                default: return "开阔海域";
             }
         }
 
@@ -2152,10 +2216,11 @@ namespace ShatteredSail.Core.Gameplay
             }
 
             CoreEncounterChoice choice = ActiveEncounter.Choices[choiceIndex];
+            VoyageChoiceLogState beforeChoice = CaptureVoyageChoiceLogState();
             ConsumeHours(choice.Hours);
             ApplyEffect(choice.StartsBattle ? SplitBattleEffect(choice.Effect, false) : EffectiveChoiceEffect(choiceIndex));
             if (!choice.StartsBattle && ShouldRecordSeaChartClaim(choice)) RecordSeaChartEncounterClaim();
-            AddLog("选择「" + choice.Label + "」：" + choice.Detail + "。");
+            RecordVoyageChoiceResult(choice, beforeChoice);
             if (Hull <= 0)
             {
                 FinishVoyage(VoyageOutcome.Failure);
@@ -2198,7 +2263,7 @@ namespace ShatteredSail.Core.Gameplay
                 // The zero-cost fallback is a way out of an unaffordable lesson,
                 // not a successful interpretation. Keep its node unvisited and
                 // use ordinary return/tow rules without advancing the checkpoint.
-                AddLog("潮汐暗标尚未解读，保留笔记返港整备；本次不完成航海士教学。");
+                AddLog("潮汐暗标还未解读，已收好笔记。返港整备后再来请航海士辨认。");
                 ActiveEncounter = null;
                 activeNode = null;
                 Phase = CoreDemoPhase.Sailing;
@@ -2218,7 +2283,7 @@ namespace ShatteredSail.Core.Gameplay
                 return false;
             }
 
-            AddLog("略过「" + ActiveEncounter.Name + "」，未推进事件时间。");
+            AddLog("略过「" + ActiveEncounter.Name + "」，没有耗时。");
             CompleteEncounter(true);
             return true;
         }
@@ -2259,8 +2324,8 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (!CanRequestEmergencyTow()) return false;
             AddLog(Phase == CoreDemoPhase.Battle
-                ? "无法承担脱离海战的补给成本，放弃战斗收益并请求拖带救援，按失败保护率结算。"
-                : "无法承担强制事件的物资成本，放弃事件收益并请求拖带救援。");
+                ? "补给不足，无法脱离海战。已放弃本场战利品，请求拖带救援，按航行失败的保护比例结算。"
+                : "物资不足，无法处理此事件。已放弃事件奖励，请求拖带救援。");
             FinishVoyage(VoyageOutcome.Failure);
             return true;
         }
@@ -2621,7 +2686,7 @@ namespace ShatteredSail.Core.Gameplay
                         // Mandatory encounters keep an unconditional combat
                         // fallback so a low-cash sloop can never be soft-locked.
                         new CoreEncounterChoice("拒绝检查", CoreBattleRewardDescriptions.Victory(false, new VoyageEffect { Gold = 70 }), 1, new VoyageEffect { Gold = 70 }, startsBattle: true)),
-                    new CoreEncounter("gold_wreck", "香料沉船", "打捞", "破裂的商船货舱仍漂着可出售的货箱。", false, true, 2, 0,
+                    new CoreEncounter("gold_wreck", "香料沉船", "打捞", "商船破裂的货舱里还漂着几只货箱，箱中的货物应该还能卖钱。", false, true, 2, 0,
                         new CoreEncounterChoice("快速打捞", "金币 +75、船体 -3", 3, new VoyageEffect { Gold = 75, Hull = -3 },
                             requiredShip: "salvage"),
                         new CoreEncounterChoice("木匠加固后打捞", "木材 +8、金币 +35", 4, new VoyageEffect { Wood = 8, Gold = 35 }, "carpenter")),
@@ -2640,26 +2705,26 @@ namespace ShatteredSail.Core.Gameplay
                         new CoreEncounterChoice("保持航向", "士气 -1", 4, new VoyageEffect { Morale = -1 }),
                         new CoreEncounterChoice("航海士校准", "显示 3 个隐藏点", 2, new VoyageEffect { Reveal = 3 }, "navigator",
                             requiredTime: CoreVoyageTimeBand.Night)),
-                    new CoreEncounter("moon_ghost", "无灯幽舰", "战斗", "一艘没有灯火的古船正横切航迹。", true, false, 3, 155,
+                    new CoreEncounter("moon_ghost", "无灯幽舰", "战斗", "一艘古船没有点灯，正横穿你们的航路。", true, false, 3, 155,
                         new CoreEncounterChoice("进入战斗", CoreBattleRewardDescriptions.Victory(false, new VoyageEffect { Gold = 90 }), 1, new VoyageEffect { Gold = 90 }, startsBattle: true)),
                 });
             }
 
             return AddCommonEncounters(new[]
             {
-                new CoreEncounter("event_reef_sharp_current", "暗流推船", "路线", "暗流从船底托起船身，水面漂着古航图的盐封残片。逆流搜索可找回一片藏宝线索。", false, false, 2, 0,
+                new CoreEncounter("event_reef_sharp_current", "暗流推船", "路线", "暗流涌来，托起了船身。水面上漂着几片裹满盐壳的古航图，断断续续的航线从盐壳下露了出来。", false, false, 2, 0,
                     new CoreEncounterChoice("逆流搜索", "藏宝图碎片 +1", 4, new VoyageEffect { MapFragments = 1 }),
                     new CoreEncounterChoice("沿流测绘", "显示 1 个隐藏点", 1, new VoyageEffect { Reveal = 1 }, "navigator")),
-                new CoreEncounter("event_reef_hidden_cache", "潮痕秘藏", "宝藏", "退潮刻痕指向碎礁石缝；获得情报或贴近航过后，可记录失落宝库的坐标。", false, true, 2, 0,
+                new CoreEncounter("event_reef_hidden_cache", "潮痕秘藏", "宝藏", "潮水退去，露出的刻痕指向礁石间的一道缝隙。一只覆着盐霜的石匣嵌在缝中，匣盖上标示宝库方位的刻痕依稀可辨。", false, true, 2, 0,
                     new CoreEncounterChoice("记录藏宝坐标", "藏宝图碎片 +1、声望 +8", 2, new VoyageEffect { MapFragments = 1, Fame = 8 }),
                     new CoreEncounterChoice("撬开石匣", "木材 -6、金币 +120", 5, new VoyageEffect { Wood = -6, Gold = 120 },
                         requiredShip: "salvage")),
-                new CoreEncounter("event_reef_broken_mast", "断桅求援", "事件", "一艘断桅小船卡在礁石边缘，水手们用破布挥舞求援。", false, false, 1, 0,
+                new CoreEncounter("event_reef_broken_mast", "断桅求援", "事件", "一艘断桅小船卡在礁石边，水手们正挥舞破布求救。", false, false, 1, 0,
                     new CoreEncounterChoice("救援", "木材 -6、声望 +15", 4, new VoyageEffect { Wood = -6, Fame = 15 }),
                     new CoreEncounterChoice("掠夺", "啤酒 -1、金币 +80、士气 -1", 3, new VoyageEffect { Beer = -1, Gold = 80, Morale = -1 }),
                     new CoreEncounterChoice("木匠处理", "布料 +8、船体 +4", 3, new VoyageEffect { Cloth = 8, Hull = 4 }, "carpenter")),
                 new CoreEncounter("event_reef_shortcut", "礁间近路", "强制事件", "两排黑色礁牙之间露出一条窄道，潮水正在迅速回落。", true, true, 2, 75,
-                    new CoreEncounterChoice("绕路", "安全通过，主要成本来自时间", 2, new VoyageEffect()),
+                    new CoreEncounterChoice("绕路", "安全通过，但要多花些时间", 2, new VoyageEffect()),
                     new CoreEncounterChoice("强穿", "船体 -10", 1, new VoyageEffect { Hull = -10 },
                         requiredWeather: CoreVoyageWeather.Rain),
                     new CoreEncounterChoice("航海士领航", "显示 2 个隐藏点", 0.5, new VoyageEffect { Reveal = 2 }, "navigator")),
@@ -2667,7 +2732,7 @@ namespace ShatteredSail.Core.Gameplay
                     new CoreEncounterChoice("浅层打捞", "木材 +12", 3, new VoyageEffect { Wood = 12 }),
                     new CoreEncounterChoice("深入搜索", "铁矿 +6、金币 +25、船体 -4", 5, new VoyageEffect { Iron = 6, Gold = 25, Hull = -4 },
                         requiredShip: "salvage")),
-                new CoreEncounter("event_reef_saltwater_leak", "舱底进水", "强制事件", "船舱底部传来湿木裂响，水线正在慢慢升高。", true, true, 2, 0,
+                new CoreEncounter("event_reef_saltwater_leak", "舱底进水", "强制事件", "舱底潮湿的木板发出开裂声，积水正慢慢上涨。", true, true, 2, 0,
                     new CoreEncounterChoice("立即修补", "木材 -4、船体 +8", 3, new VoyageEffect { Wood = -4, Hull = 8 }, renewable: true),
                     new CoreEncounterChoice("木匠修补", "木材 -2、船体 +10", 2, new VoyageEffect { Wood = -2, Hull = 10 }, "carpenter", renewable: true),
                     new CoreEncounterChoice("弃舱封堵", "船体 -6，不消耗物资", 0, new VoyageEffect { Hull = -6 }))
@@ -2715,7 +2780,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             // Keep the original encounter identity and power during placement so
             // selecting the second guardian never changes the geography of a chart.
-            return new CoreEncounter("boss_" + route.Id, route.BossName, "区域首领", "远海首领舰盘踞在十日航程之外，控制着通往新港的关键海域。", true, false, 4, route.BossPower,
+            return new CoreEncounter("boss_" + route.Id, route.BossName, "区域首领", "远海首领舰盘踞在通往新港的海域，桅顶的战旗在浓雾里若隐若现。", true, false, 4, route.BossPower,
                 new CoreEncounterChoice("挑战首领", "胜利后开放新港航道；" + CoreBattleRewardDescriptions.Victory(true, new VoyageEffect { Gold = 180, Fame = 20 }), 1,
                     new VoyageEffect { Gold = 180, Fame = 20 }, startsBattle: true));
         }
@@ -2906,6 +2971,7 @@ namespace ShatteredSail.Core.Gameplay
         private void WinBattle()
         {
             if (Phase != CoreDemoPhase.Battle || Battle == null) return;
+            RecordAchievementBattleVictory();
             ClearNavalArrivalContactState();
             RestoreGuidedBossSupplies();
             bool guidedBoss = IsGuidedBossVoyage &&
@@ -2991,6 +3057,7 @@ namespace ShatteredSail.Core.Gameplay
 
         private void FinishVoyage(VoyageOutcome outcome)
         {
+            EndAchievementVoyageSupplyObservation();
             ClearNavalArrivalContactState();
             RestoreGuidedBossSupplies();
             HasDirectCourseTarget = false;

@@ -52,8 +52,8 @@ namespace ShatteredSail.Presentation.Tests
                     "; stage=" + session.Battle.Stage + "; buttons=" + string.Join(" | ",
                         Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Where(button => button.name == "Battle Card 0")
                             .Select(button => button.transform.parent.name + ":" + button.interactable)));
-                Assert.That(load.transform.Find("Label").GetComponent<Text>().text,
-                    Does.Contain("下次炮击+" + increment).And.Not.Contain("本次实际增加"));
+                Assert.That(ForgeVisibleText(load.transform.Find("Label").GetComponent<Text>().text),
+                    Does.Contain("额外装药：" + increment).And.Not.Contain("本次实际增加"));
                 load.onClick.Invoke();
                 Assert.That(controller.IsBattleAnimationPlaying, Is.True, "The real loading button must begin feedback before its transient caption is observed.");
                 string seenFloat = null;
@@ -166,12 +166,9 @@ namespace ShatteredSail.Presentation.Tests
             CollectionAssert.AreEqual(hand, session.Battle.Hand);
             ExecuteEvents.Execute(blocked.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
             yield return new WaitForSecondsRealtime(.3f);
-            Transform bubble = blocked.transform.Find("Card Keyword Bubble 0");
-            Assert.That(bubble.gameObject.activeInHierarchy, Is.True);
-            Assert.That(bubble.GetComponent<CanvasGroup>().alpha, Is.GreaterThan(.8f));
-            string explanation = bubble.Find("Keyword Bubble Text").GetComponent<Text>().text;
-            Assert.That(explanation, Does.Contain("生命支付预告").And.Contain("生命不足，不能出牌"));
-            Assert.That(explanation, Does.Contain(session.CardUnavailableReason(0)));
+            string explanation = AssertKeywordOnlyCardHover(blocked, 0, session, blood, "unaffordable blood card");
+            Assert.That(explanation, Does.Not.Contain("生命支付预告").And.Not.Contain("生命不足，不能出牌")
+                .And.Not.Contain("当前不能使用"));
             LogAssert.NoUnexpectedReceived();
         }
     }

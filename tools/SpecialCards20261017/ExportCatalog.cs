@@ -20,26 +20,30 @@ internal static class ExportSpecialCardCatalog
         catalog.AppendLine("编号是玩家可见的卡库顺序，内部 ID 和历史存档索引保持不变。卡库、组卡列表和牌堆浏览按编号排列；实战抽牌仍遵循洗牌规则。强化版沿用基础牌编号，已退役别名共享现役对应牌的编号。\n");
         catalog.AppendLine("| 号段 | 类别 |\n| --- | --- |\n| 1xxx | 普通系别 |\n| 2xxx | 火焰 |\n| 3xxx | 秘术 |\n| 4xxx | 诅咒 |\n| 5xxx | 潮汐 |\n| 6xxx | 雷霆 |\n| 7xxx | 血契 |\n| 8xxx | 特殊船员（跨体系） |\n| 9xxx | 特殊部件（跨体系） |\n");
         catalog.AppendLine("同号段内按体系、阶段、用途、费用排序；特殊牌的体系与来源不因号段变化。以下由当前运行时目录导出，均为 +0。\n");
-        catalog.AppendLine("| 编号 | 卡牌 | 体系 | 阶段 | 能量 | 效果 | 内部 ID | 历史索引 |\n| --- | --- | --- | --- | ---: | --- | --- | ---: |");
+        catalog.AppendLine("费用按基础卡面列出，不计实战临时加价、减免或资源不足时的变化。`—` 表示无其他消耗；`X` 表示消耗全部对应资源。标注“增效消耗”的资源用于额外效果，有耗材时按规则支付、无耗材时使用基础效果；治疗所需实际支付还会受缺失生命影响。不同阶段费用不同时分别列出。\n");
+        catalog.AppendLine("| 编号 | 卡牌 | 体系 | 阶段 | 能量 | 其他资源消耗 | 效果 | 内部 ID | 历史索引 |\n| --- | --- | --- | --- | ---: | --- | --- | --- | ---: |");
         foreach (var row in all)
             catalog.AppendLine("| " + CoreBattleCardNumbering.Label(row.Card) + " | " + Cell(row.Card.Name) + " | " + School(row.Card.SchoolId) +
-                " | " + Stage(row.Card.AllowedStages) + " | " + row.Card.Energy + " | " + Cell(row.Card.Description) + " | `" + row.Card.Id + "` | " + row.Index + " |");
+                " | " + Stage(row.Card.AllowedStages) + " | " + Cell(CatalogResourceCosts.Energy(row.Card)) + " | " + Cell(CatalogResourceCosts.Other(row.Card)) +
+                " | " + Cell(row.Card.Description) + " | `" + row.Card.Id + "` | " + row.Index + " |");
         File.WriteAllText(Path.Combine(root, "docs/CardCatalog20261017.md"), catalog.ToString(), new UTF8Encoding(false));
 
         var special = new StringBuilder("# 特殊卡牌重设计（2026-10-17）\n\n");
         special.AppendLine("共 126 张：36 张船员牌、90 张部件牌。船员使用 8xxx，部件使用 9xxx。90 张部件牌全部在海战阶段使用，装配来源、故事、卡图、内部 ID 和历史索引保持对应。完整编号见 [卡牌编号与顺序](CardCatalog20261017.md)。\n");
-        special.AppendLine("## 体系特权\n");
-        special.AppendLine("六张传奇仪器牌打出后激活持续能力，消耗 2 能量并抽 1 张。能力持续到本场海战结束或进入接舷阶段，同类不叠加；重复激活不重置本回合额度。激活牌本身不占首张额度，激活前本回合已成功打出的同系牌计入首张。未成功出牌、取消选区、资源不足均不消耗额度。每个新的己方回合刷新额度。\n");
-        special.AppendLine("| 体系 | 持续效果 |\n| --- | --- |\n| 火焰 | 每回合首张其他火焰牌结算后点燃敌舰：3 伤害，持续 2 回合；沿用燃烧取高及持续时间规则。 |\n| 秘术 | 每回合首张其他秘术牌结算后恢复 1 法力，不超过上限；不能预支该法力支付本张牌。 |\n| 诅咒 | 每回合首张其他诅咒牌结算后追加 1 咒印，最多增至 6 层，持续至少 2 回合；每层伤害至少 2，不降低已有更强咒印。 |\n| 潮汐 | 每回合首张其他潮汐牌结算后直接获得 3 潮势，不超过上限；沿用回合结束潮势清空规则。 |\n| 雷霆 | 每回合首张其他雷霆攻击结算后额外获得 1 连锁，不超过上限；非攻击牌不占该额度。 |\n| 血契 | 每回合首张其他血契牌免生命成本，覆盖献血攻击、献血护盾、血誓阵与其他海战血契牌；能量与耗材照常支付。若首张本来不耗生命，仍会使用首张额度。 |\n");
-        special.AppendLine("这些是出牌激活的能力；仅装备对应部件、尚未打出该特殊牌时，不会自动激活。状态栏显示待触发／已用；血契免费时，卡面费用和实际支付同步显示为 0。\n");
-        special.AppendLine("下表均为 +0。所有牌的独立成长曲线、强化上限、分阶段逐级完整效果见 [逐卡强化设计](CardUpgradeDesign20261017.md)。六项持续特权的数值与触发次数固定，不随强化增长；这六张牌的抽牌维持 +0 抽 1 张、+1 抽 2 张、+2 抽 3 张，上限为 +2。\n");
+        special.AppendLine("## 史诗与传说部件的场地联动\n");
+        special.AppendLine("六系各有 5 张史诗和 5 张传说部件牌，共 60 张。火焰、秘术、诅咒、潮汐、雷霆、血契分别联动己方火场、折射阵、禁域、定向水流、雷栅、血誓阵。\n");
+        special.AppendLine("| 部位 | 场地联动 |\n| --- | --- |\n| 船首 | 攻击并向相邻空格扩展己方本系场地。 |\n| 船帆 | 获得行动点，并延长己方本系场地的持续时间。 |\n| 火炮 | 攻击位于己方本系场地上的敌舰时提高伤害。 |\n| 船甲 | 位于己方本系场地时额外获得格挡；火焰、诅咒、潮汐、雷霆提供本系场地免疫，秘术恢复法力，血契修复船体。 |\n| 史诗仪器 | 根据己舰或敌舰是否位于己方本系场地，获得本系收益。 |\n| 传说仪器 | 立即扩展并延长己方本系场地，同时抽牌。 |\n");
+        special.AppendLine("扩场作用于己舰 4 格内的己方本系场地，优先向敌舰方向扩展到没有场地和船只的相邻格；新增格同样须在 4 格内，并继承原场地的持续时间和水流方向。延时作用于至少有一格在 4 格内的整处己方本系场地。场地不存在时仍可使用卡牌，但不获得对应场地收益。\n");
+        special.AppendLine("下表均为 +0。所有牌的独立成长曲线、强化上限、分阶段逐级完整效果见 [逐卡强化设计](CardUpgradeDesign20261017.md)。传说仪器的延时固定为 2 回合，扩场格数与抽牌随强化成长。\n");
         special.AppendLine("## 全部特殊卡 +0 效果\n");
-        special.AppendLine("| 编号 | 卡牌 | 来源 | 体系 | 阶段 | 能量 | 效果 |\n| --- | --- | --- | --- | --- | ---: | --- |");
+        special.AppendLine("费用列与全卡目录一致：`X` 表示全部对应资源；“增效消耗”用于额外效果，缺少耗材时使用基础效果。\n");
+        special.AppendLine("| 编号 | 卡牌 | 来源 | 体系 | 阶段 | 能量 | 其他资源消耗 | 效果 |\n| --- | --- | --- | --- | --- | ---: | --- | --- |");
         foreach (var definition in CoreSpecialCardCatalog.All.OrderBy(item => CoreBattleCardNumbering.Number(item.Card)))
         {
             CoreBattleCard card = definition.Card;
             special.AppendLine("| " + CoreBattleCardNumbering.Label(card) + " | " + Cell(card.Name) + " | " + Cell(definition.SourceName) +
-                " | " + School(card.SchoolId) + " | " + Stage(card.AllowedStages) + " | " + card.Energy + " | " + Cell(card.Description) + " |");
+                " | " + School(card.SchoolId) + " | " + Stage(card.AllowedStages) + " | " + Cell(CatalogResourceCosts.Energy(card)) +
+                " | " + Cell(CatalogResourceCosts.Other(card)) + " | " + Cell(card.Description) + " |");
         }
         File.WriteAllText(Path.Combine(root, "docs/SpecialCardRedesign20261017.md"), special.ToString(), new UTF8Encoding(false));
         Console.WriteLine("Exported " + all.Length + " numbered cards and " + CoreSpecialCardCatalog.All.Count + " special cards.");

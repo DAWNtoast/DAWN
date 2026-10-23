@@ -754,7 +754,7 @@ namespace ShatteredSail.Presentation
                 return;
             }
 
-            Texture2D eventSheet = art.EventSheet(session.SelectedRouteIndex);
+            ResolveEncounterIllustration(node.Encounter, out Texture2D eventSheet, out Rect eventUv);
             if (eventSheet == null)
             {
                 return;
@@ -774,7 +774,7 @@ namespace ShatteredSail.Presentation
                 markerSize - new Vector2(7f, 7f),
                 Vector2.zero,
                 eventSheet,
-                art.EncounterUv(node.Encounter));
+                eventUv);
             UiImageAspect.Fit(icon, markerSize - new Vector2(7f, 7f));
             icon.color = node.Visited ? new Color(0.52f, 0.58f, 0.56f, 0.88f) : Color.white;
             icon.raycastTarget = false;

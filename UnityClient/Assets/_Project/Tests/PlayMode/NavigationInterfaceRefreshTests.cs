@@ -53,7 +53,17 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadNavigationInterfaceRefreshFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = controller.Session;
+            session.SetCourseTo(new VoyagePoint(35f, 34f));
+            typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
+            yield return null;
+            Assert.That(session.HasDirectCourseTarget, Is.True);
             AssertNavigationInterfaceRefreshSkin("before compass click");
+
+            GameObject chart = GameObject.Find("Navigation Chart"), controls = GameObject.Find("Navigation Controls"),
+                map = GameObject.Find("Map Layer"), ocean = GameObject.Find("Lookout Ocean");
+            int water = session.Cargo.Water, food = session.Cargo.Food, requested = session.RequestedDistanceNm;
+            double elapsed = session.ElapsedGameHours;
 
             Button south = ActiveButton("Heading South");
             Assert.That(south, Is.Not.Null);
@@ -63,6 +73,21 @@ namespace ShatteredSail.Presentation.Tests
 
             Assert.That(session.Heading, Is.EqualTo(SailingDirection.South));
             Assert.That(session.HasDirectCourseTarget, Is.False);
+            Assert.That(GameObject.Find("Navigation Chart"), Is.SameAs(chart));
+            Assert.That(GameObject.Find("Navigation Controls"), Is.SameAs(controls));
+            Assert.That(GameObject.Find("Map Layer"), Is.SameAs(map));
+            Assert.That(GameObject.Find("Lookout Ocean"), Is.SameAs(ocean));
+            Assert.That(GameObject.Find("Direct Course Target Halo"), Is.Null);
+            Assert.That(GameObject.Find("Distance Label").GetComponent<Text>().text, Does.Not.Contain("锁定"));
+            Assert.That(GameObject.Find("Forecast").GetComponent<Text>().text, Does.Not.Contain("取消锁定"));
+            Assert.That(GameObject.Find("Distance Slider").GetComponent<Slider>().maxValue,
+                Is.EqualTo(Mathf.Max(session.MaximumDistanceNm, requested)));
+            Assert.That(GameObject.Find("Lookout Heading").GetComponent<Text>().text,
+                Does.Contain(session.DirectionLabel(SailingDirection.South)));
+            Assert.That(session.RequestedDistanceNm, Is.EqualTo(requested));
+            Assert.That(session.Cargo.Water, Is.EqualTo(water));
+            Assert.That(session.Cargo.Food, Is.EqualTo(food));
+            Assert.That(session.ElapsedGameHours, Is.EqualTo(elapsed));
             AssertNavigationInterfaceRefreshSkin("same frame after compass click");
             yield return null;
             AssertNavigationInterfaceRefreshSkin("next frame after compass click");

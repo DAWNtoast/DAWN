@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ShatteredSail.Content;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -495,6 +496,16 @@ namespace ShatteredSail.Presentation
             RectTransform panel = CreateFixedPanel("Component Shop Panel", contentRoot, new Vector2(1820f, 930f), new Vector2(0f, -55f), Color.clear);
             if (componentResaleOpen)
             {
+                OwnedShipComponent selectedItem = OwnedComponents.FirstOrDefault(item =>
+                    item.InstanceId == selectedComponentResaleInstanceId && item.ShipIndex == -1);
+                ComponentArtEntry selectedEntry = selectedItem == null ? null : componentArt.GetById(selectedItem.ComponentId);
+                if (selectedEntry != null)
+                {
+                    BuildComponentReadingDossier(panel, selectedEntry, selectedItem.InstanceId);
+                    return;
+                }
+                selectedComponentResaleInstanceId = null;
+                RefreshFacilityReturnCaption();
                 BuildComponentResale(panel);
                 return;
             }
@@ -676,6 +687,7 @@ namespace ShatteredSail.Presentation
             componentShopShowroomOfferId = null;
             componentResaleOpen = false;
             componentResalePage = 0;
+            selectedComponentResaleInstanceId = null;
             pendingComponentSaleId = null;
         }
 
@@ -1032,9 +1044,9 @@ namespace ShatteredSail.Presentation
             foreach (VoyageSupplyType type in CoreVoyageSession.PurchasableSupplies)
                 pendingSupplyOrder[type] = Math.Min(recommended[type], MarketRemaining(session.CurrentPort, MaintenanceMarketItem(type), now, level));
             MaintenanceSupplyQuote quote = QuoteMaintenanceSupplies(pendingSupplyOrder, now);
-            portNotice = quote.HasItems
-                ? "推荐清单已按航线、船员、剩余舱容和本月额度调整，确认后扣费。"
-                : "无需补充，或本月额度、货舱余量不足；可前往市场检查。";
+            portNotice = HasRecommendedSupplyShortfall(pendingSupplyOrder, session.EffectiveCrewCount, session.HasCook)
+                ? "舱容或本月库存不足，未达到完整推荐储备；请检查续航与弹药。"
+                : quote.HasItems ? "推荐清单已按航程与战斗储备调整，确认后扣费。" : "当前物资已达到推荐储备。";
             Render();
         }
 

@@ -645,6 +645,8 @@ namespace ShatteredSail.Presentation.Tests
                     CoreBattleState battle = Session.Battle;
                     string turn = battle.Stage + ":" + battle.Turn;
                     if (turn != lastTurn) { lastTurn = turn; playedInTurn = 0; Shot("Battle_" + turn.Replace(':', '_'), "Phase Content"); }
+                    if (AcceptanceNavalMovementNeeded(Session))
+                    { yield return AdvanceAcceptanceNavalRange(controller, Click); continue; }
                     int selected = -1; double best = 0;
                     if (playedInTurn++ < 24)
                         for (int hand = 0; hand < battle.Hand.Count; hand++)
@@ -679,22 +681,9 @@ namespace ShatteredSail.Presentation.Tests
                 double divisor = Session.GetBattleCardEnergyCost(cardIndex) + .65;
                 int damage = Session.GetBattleCardDamage(card, battle.Stage);
                 if (damage >= enemyHealth + battle.EnemyBlock) return 10000 / divisor;
-                if (!preparing && !boarding && card.Action == NavalBattleCardAction.Cannon)
-                {
-                    // Fire while in range if the displayed hand still affords
-                    // an escape. A free veteran-navigator retreat must not move
-                    // every turn outside cannon range before a free shot.
-                    int escapeCost = battle.Hand.Where(i => Session.GetBattleCard(i).Action == NavalBattleCardAction.Retreat)
-                        .Select(Session.GetBattleCardEnergyCost).DefaultIfEmpty(int.MaxValue).Min();
-                    if (Session.GetBattleCardEnergyCost(cardIndex) <= battle.Energy - escapeCost)
-                        return 1000 / divisor;
-                }
                 if (!preparing) score += damage * 1.7;
                 if (card.Draw > 0 && battle.Hand.Count < 7) score += card.Draw * (battle.Hand.Count < 4 ? 6 : 2);
-                bool evadeRam = !boarding && !preparing && Session.EnemyWillRam;
-                bool maneuver = card.Action == NavalBattleCardAction.Approach || card.Action == NavalBattleCardAction.Circle ||
-                    card.Action == NavalBattleCardAction.Turn || card.Action == NavalBattleCardAction.Navigator || card.Action == NavalBattleCardAction.Parallel;
-                if (evadeRam && maneuver) return 0;
+                score += AcceptanceNavalActionPointScore(Session, card);
                 switch (card.Action)
                 {
                     case NavalBattleCardAction.Polish:
@@ -704,27 +693,12 @@ namespace ShatteredSail.Presentation.Tests
                     case NavalBattleCardAction.PrecisionLoad:
                         if (battle.PlayerLoadedShot < card.StrategyLimit) score += preparing ? 24 : 8;
                         break;
-                    case NavalBattleCardAction.Approach:
-                    case NavalBattleCardAction.Circle:
-                    case NavalBattleCardAction.Turn:
-                        if (battle.DistanceMeters > 350) score += 40;
-                        else if (battle.Alignment == NavalBattleAlignment.HeadOn && battle.DistanceMeters <= 100 && card.Action != NavalBattleCardAction.Approach) score += 14;
-                        break;
-                    case NavalBattleCardAction.Navigator:
-                    case NavalBattleCardAction.Parallel:
-                        if (battle.DistanceMeters > 350) score += 44;
-                        else if (battle.Alignment == NavalBattleAlignment.HeadOn && battle.DistanceMeters <= 100) score += 14;
-                        break;
-                    case NavalBattleCardAction.Retreat:
-                        if (!preparing && !boarding && battle.DistanceMeters <= 350)
-                            return (battle.DistanceMeters + card.MovementMeters > 350 ? 85 : evadeRam ? 110 : 35) / divisor;
-                        return 0;
                     case NavalBattleCardAction.FireRounds:
                         if (battle.PlayerFireRounds == 0) score += 18;
                         break;
                 }
                 if (preparing && score <= card.Draw * 6 && battle.PlayerDeckBuff >= 6 &&
-                    battle.PlayerLoadedShot >= 12 && battle.DistanceMeters <= 350 && battle.PlayerBlock >= 14) return 0;
+                    battle.PlayerLoadedShot >= 12 && battle.PlayerBlock >= 14) return 0;
                 return score / divisor;
             }
             private static float Distance(VoyagePoint a, VoyagePoint b) => Vector2.Distance(new Vector2(a.X, a.Y), new Vector2(b.X, b.Y));

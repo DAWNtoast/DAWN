@@ -32,22 +32,76 @@ namespace ShatteredSail.Presentation.Tests
         public IEnumerator RamComic_BossStarboardSide_ClicksKeepOneOpeningAndEnemyInitiative() =>
             ExerciseRamComic(true, NavalBattleAlignment.EnemyBroadside);
 
-        [Test]
-        public void RamComic_BossParallel_SelectsTheBroadsideResource()
+        [UnityTest]
+        public IEnumerator RamComic_PlayerHeadOn_UsesHeadOnPages() =>
+            ExerciseRamComic(false, NavalBattleAlignment.HeadOn);
+
+        [UnityTest]
+        public IEnumerator RamComic_BossHeadOn_UsesHeadOnPages() =>
+            ExerciseRamComic(true, NavalBattleAlignment.HeadOn);
+
+        [TestCase(false, NavalBoardingConnection.RamBowToBow)]
+        [TestCase(true, NavalBoardingConnection.RamBowToBow)]
+        [TestCase(false, NavalBoardingConnection.RamBowToBroadside)]
+        [TestCase(true, NavalBoardingConnection.RamBowToBroadside)]
+        [TestCase(false, NavalBoardingConnection.RamBowToStern)]
+        [TestCase(true, NavalBoardingConnection.RamBowToStern)]
+        public void RamComic_RealImpactSelectsMatchingResourceOrPhysicalFallback(bool enemy, NavalBoardingConnection connection)
         {
             var host = new GameObject("Ram Comic Classification Fixture");
             host.SetActive(false); // No gameplay Awake, scene load or save is needed for resource classification.
             try
             {
                 var controller = host.AddComponent<CoreGameplayDemoController>();
-                MethodInfo select = typeof(CoreGameplayDemoController).GetMethod("RamComicTexture", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo select = typeof(CoreGameplayDemoController).GetMethod("RamComicTextureForConnection", BindingFlags.Instance | BindingFlags.NonPublic);
                 Assert.That(select, Is.Not.Null);
-                var expected = Resources.Load<Texture2D>(RamComicCatalog.ImageResource(true, NavalBattleAlignment.EnemyBroadside, 0));
-                Assert.That(expected, Is.Not.Null, "The authored enemy broadside page is required.");
-                Assert.That(select.Invoke(controller, new object[] { true, NavalBattleAlignment.Parallel }), Is.SameAs(expected));
-                Assert.That(select.Invoke(controller, new object[] { true, NavalBattleAlignment.EnemyBroadside }), Is.SameAs(expected));
+                if (connection == NavalBoardingConnection.RamBowToStern)
+                    Assert.That(select.Invoke(controller, new object[] { enemy, connection }), Is.Null,
+                        "A stern impact must not borrow misleading head-on or broadside artwork.");
+                else
+                {
+                    var alignment = connection == NavalBoardingConnection.RamBowToBow ? NavalBattleAlignment.HeadOn : NavalBattleAlignment.EnemyBroadside;
+                    var expected = Resources.Load<Texture2D>(RamComicCatalog.ImageResource(enemy, alignment, 0));
+                    Assert.That(expected, Is.Not.Null, "The matching authored collision page is required.");
+                    Assert.That(select.Invoke(controller, new object[] { enemy, connection }), Is.SameAs(expected));
+                }
             }
             finally { Object.DestroyImmediate(host); }
+        }
+
+        [UnityTest]
+        public IEnumerator RamComic_SternImpactsKeepPhysicalMotionAndCorrectBoardingLabels()
+        {
+            using (var storage = new VoyageCargoStorageScope())
+            {
+                foreach (bool enemy in new[] { false, true })
+                {
+                    yield return LoadResponsiveBattleScene();
+                    var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                    CoreVoyageSession session = ArrangeRamComicBattle(controller, enemy, NavalBattleAlignment.Parallel);
+                    RenderResponsiveBattle(controller);
+                    yield return WaitResponsiveBattle(controller);
+                    RectTransform ship = RequiredResponsive<RectTransform>(enemy ? "Enemy Ship Art" : "Player Ship Art");
+                    Vector2 start = ship.anchoredPosition;
+                    ClickAcceptanceButton(enemy ? "End Battle Turn" : "Battle Ram");
+                    bool sawMotion = false;
+                    float deadline = Time.realtimeSinceStartup + 12f;
+                    while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+                    {
+                        Assert.That(GameObject.Find("Battle Ram Comic Overlay"), Is.Null);
+                        if (ship != null) sawMotion |= Vector2.Distance(start, ship.anchoredPosition) > .5f;
+                        yield return null;
+                    }
+                    Assert.That(controller.IsBattleAnimationPlaying, Is.False);
+                    Assert.That(sawMotion, Is.True);
+                    Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+                    Assert.That(session.Battle.BoardingConnection, Is.EqualTo(NavalBoardingConnection.RamBowToStern));
+                    Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.EqualTo(enemy));
+                    Assert.That(RequiredResponsive<Text>("Battle Alignment").text, Does.Contain("船尾").And.Not.Contain("侧舷"));
+                    BoardingCinematicAssertions.AssertScene(session);
+                    LogAssert.NoUnexpectedReceived();
+                }
+            }
         }
 
         [UnityTest]
@@ -339,8 +393,15 @@ namespace ShatteredSail.Presentation.Tests
             var profile = new CoreBattleProfile(enemy ? CoreBossKind.Legendary : CoreBossKind.None, CoreBattleArchetype.Raider,
                 battle.EnemyMaxHull, 1, melee, 0, 0, battle.EnemyOrdinaryCrew, 1f, 1f, enemy ? 1d : 0d, 120f);
             typeof(CoreBattleState).GetProperty("Profile").SetValue(battle, profile);
-            Assert.That(alignment, Is.EqualTo(NavalBattleAlignment.EnemyBroadside), "Live rams require a perpendicular bow-to-side approach.");
             ConfigureCloseNavalTestPose(battle, true, enemy, oppositeSide);
+            if (alignment != NavalBattleAlignment.EnemyBroadside)
+            {
+                MethodInfo pose = typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic);
+                float attackerHeading = enemy ? 180f : 0f;
+                float targetHeading = alignment == NavalBattleAlignment.HeadOn ? (attackerHeading + 180f) % 360f : attackerHeading;
+                pose.Invoke(battle, new object[] { true, new VoyagePoint(-100f, 0f), enemy ? targetHeading : attackerHeading });
+                pose.Invoke(battle, new object[] { false, new VoyagePoint(0f, 0f), enemy ? attackerHeading : targetHeading });
+            }
             battle.EnemyBurnDamage = 0;
             battle.EnemyBurnTurns = 0;
             SetResponsiveHand(session, "card_brace", "card_emergency_repair");
@@ -356,8 +417,8 @@ namespace ShatteredSail.Presentation.Tests
             MethodInfo pose = typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(pose, Is.Not.Null);
             float sideHeading = oppositeSide ? 270f : 90f;
-            pose.Invoke(battle, new object[] { true, new VoyagePoint(-100f, 0f), ram && enemyInitiated ? sideHeading : 0f });
-            pose.Invoke(battle, new object[] { false, new VoyagePoint(0f, 0f), ram ? (enemyInitiated ? 180f : sideHeading) : 0f });
+            pose.Invoke(battle, new object[] { true, new VoyagePoint(-100f, 0f), ram ? (enemyInitiated ? sideHeading : 0f) : 90f });
+            pose.Invoke(battle, new object[] { false, new VoyagePoint(0f, 0f), ram ? (enemyInitiated ? 180f : sideHeading) : 90f });
             typeof(CoreBattleState).GetProperty("NavalActionPoints").SetValue(battle, 1);
             battle.Alignment = ram ? NavalBattleAlignment.EnemyBroadside : NavalBattleAlignment.Parallel;
             battle.PlayerMovingTowardEnemy = ram && !enemyInitiated;

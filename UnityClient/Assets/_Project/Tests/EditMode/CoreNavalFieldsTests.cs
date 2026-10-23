@@ -59,13 +59,13 @@ namespace ShatteredSail.Core.Tests
             session.PushNavalShip(true, 1, 0);
             session.PushNavalShip(true, 1, 0);
             session.GrantNavalFireImmunity(true);
-            Assert.That(session.Battle.NavalFields.Player.FireImmunityCharges, Is.Zero);
+            Assert.That(session.Battle.NavalFields.Player.FireImmunityCharges, Is.EqualTo(2));
             session.Battle.PlayerBlock = 2;
             Set(session.Battle.Schools, "TidePaidBlock", 2);
             session.PushNavalShip(true, 0, 1);
             Assert.That(session.Hull, Is.EqualTo(hull));
-            Assert.That(session.Battle.PlayerBlock, Is.Zero);
-            Assert.That(session.Battle.Schools.TidePaidBlock, Is.Zero);
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(2));
+            Assert.That(session.Battle.Schools.TidePaidBlock, Is.EqualTo(2));
             Assert.That(session.Battle.Schools.TidePower, Is.Zero);
             Assert.That(session.Battle.NavalFields.TriggerLedger.Count, Is.EqualTo(3));
         }
@@ -283,13 +283,13 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CurseDomainBonus_IsCappedAndSharedAcrossInstances()
+        public void CurseDomainBonus_IsAFlatTwoDamageAndSharedAcrossInstances()
         {
             var session = NewBattle();
             SetPose(session, false, 200, 0, 180);
             Place(session, CoreNavalFieldKind.Curse, 2, 0);
             Assert.That(session.NavalFieldCurseBonus(false, 0), Is.Zero);
-            Assert.That(session.NavalFieldCurseBonus(false, 6), Is.EqualTo(8));
+            Assert.That(session.NavalFieldCurseBonus(false, 6), Is.EqualTo(2));
             Place(session, CoreNavalFieldKind.Curse, 2, 0);
             Assert.That(session.NavalFieldCurseBonus(false, 6), Is.Zero);
         }
@@ -380,19 +380,68 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void Snapshot_RejectsExtendedLifetimeAndReplenishedUsedImmunity()
+        public void Snapshot_RejectsInconsistentInstanceLifetimeAndInvalidImmunity()
         {
             var session = NewBattle();
             Place(session, CoreNavalFieldKind.Fire, 1, 0);
             CoreNavalFieldState snapshot = session.CaptureNavalFields();
-            foreach (CoreNavalFieldCell cell in snapshot.Cells) cell.ExpiresAtOwnerTurn = 200;
+            snapshot.Cells[0].ExpiresAtOwnerTurn = 200;
             Assert.That(session.RestoreNavalFields(snapshot), Is.False);
             snapshot = session.CaptureNavalFields();
-            snapshot.Player.FireImmunityCharges = 2;
-            snapshot.Player.FireImmunityUsed = 2;
+            snapshot.Player.FireImmunityCharges = -1;
             Assert.That(session.RestoreNavalFields(snapshot), Is.False);
             session.Battle.Stage = NavalBattleStage.Boarding;
             Assert.That(session.RestoreNavalFields(session.CaptureNavalFields()), Is.False);
+        }
+        [TestCase(true)]
+        [TestCase(false)]
+        public void EnemyStandingFireKeepsTheJustExecutedAttackOrGuardInItsActionLog(bool cannon)
+        {
+            var session = new CoreVoyageSession();
+            session.SetSeed("STANDING-FIRE-LOG");
+            session.StartVoyage();
+            Assert.That(session.StartTrainingBattle(CoreTrainingTargets.All[0]), Is.True);
+            Assert.That(session.EndBattleTurn(), Is.True);
+            SetPose(session, true, 0, 0, 0);
+            int enemyCell = cannon ? 2 : 6;
+            SetPose(session, false, enemyCell * 100, 0, 180);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, false, enemyCell, 0, false, 0, 0), Is.True);
+            session.Battle.PlayerBlock = 100;
+            session.Battle.EnemyHull = session.Battle.EnemyMaxHull;
+            // Exercise both hull damage and a fully absorbed fire settlement.
+            if (cannon)
+            {
+                session.Battle.NavalExpansion.RuneClamp = true;
+                session.Battle.NavalExpansion.RuneClampReduction = 6;
+            }
+            int enemyHull = session.Battle.EnemyHull, playerHull = session.Hull;
+            string intent = session.GetEnemyIntent();
+            Assert.That(intent, Does.Contain(cannon ? "炮击伤害" : "格挡设为"));
+
+            Assert.That(session.EndBattleTurn(), Is.True);
+
+            Assert.That(session.Battle.EnemyPositionMeters, Is.EqualTo(new VoyagePoint(enemyCell * 100, 0)));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHull - (cannon ? 2 : 0)));
+            Assert.That(session.Battle.EnemyBlock, Is.Zero);
+            Assert.That(session.Hull, Is.EqualTo(playerHull));
+            Assert.That(session.Battle.LastEnemyGuardAbsorbed, Is.EqualTo(cannon ? CoreTrainingTargets.All[0].CannonDamage : 0));
+            Assert.That(session.Battle.LastAction, Does.StartWith(session.Battle.EnemyName + "："));
+            Assert.That(session.Battle.LastAction, Does.Contain(intent));
+            Assert.That(session.Battle.LastAction, Does.Contain("敌舰停留火场，格挡吸收 " + (cannon ? 0 : 2) +
+                "，船体损失 " + (cannon ? 2 : 0) + "。"));
+        }
+
+        [Test]
+        public void EnemyMovementFireReplacesOlderActionTextAndRepeatedSettlementDoesNotDuplicateIt()
+        {
+            CoreVoyageSession session = NewBattle();
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, false, 4, 0, false, 0, 0), Is.True);
+            session.Battle.LastAction = "上一轮的动作";
+            Assert.That(session.PushNavalShip(false, -1, 0), Is.True);
+            Assert.That(session.Battle.LastAction, Does.StartWith("敌舰进入火场").And.Not.Contain("上一轮"));
+            string action = session.Battle.LastAction;
+            Assert.That(session.NavalFieldsEndTurn(false), Is.False);
+            Assert.That(session.Battle.LastAction, Is.EqualTo(action), "The entered cell has already used its fire trigger.");
         }
         private static CoreVoyageSession NewBattle()
         {

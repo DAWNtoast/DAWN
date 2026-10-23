@@ -1,0 +1,994 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/staging' branch; Version is '6000.3.23f1 (09d2ecc7fb28) revision 643820'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Channel LicenseClient-Admin doesn't exist
+OS: 'Windows 11  (10.0.26200) CoreCountrySpecific' Language: 'zh' Physical Memory: 31904 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-10-22T15:09:23Z
+[Licensing::Module] Successfully launched the LicensingClient (PId: 35680)
+
+COMMAND LINE ARGUMENTS:
+D:\Unity\Hub\Editor\6000.3.23f1\Editor\Unity.exe
+-batchmode
+-projectPath
+D:\Game\tmp\shipyard-detail-clean-20261011
+-logFile
+D:\Game\outputs\art-renovation-implementation-20261022\preflight\edit.log
+-nographics
+-runTests
+-testPlatform
+EditMode
+-testFilter
+NavalTacticalBoardViewTests;BattleHudLayoutTests
+-testResults
+D:\Game\outputs\art-renovation-implementation-20261022\preflight\edit-results.xml
+Successfully changed project path to: D:\Game\tmp\shipyard-detail-clean-20261011
+D:/Game/tmp/shipyard-detail-clean-20261011
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+Player connection [37464]  Target information:
+
+Player connection [37464]  * "[IP] 198.18.192.98 [Port] 55504 [Flags] 2 [Guid] 1546963003 [EditorId] 1546963003 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-SYVRNQ9) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [37464]  * "[IP] 192.168.1.4 [Port] 55504 [Flags] 2 [Guid] 1546963003 [EditorId] 1546963003 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-SYVRNQ9) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [37464] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [37464] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Admin" at "2026-10-22T15:09:23.5807075Z"
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 35680, path: "D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Package Manager] Connected to IPC stream "Upm-29200" after 0.2 seconds.
+[Licensing::Module] Licensing is not yet initialized.
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.3+d7ffd15
+  Session Id:              b73982120f744020b43dc844b586d824
+  Correlation Id:          8f250543e0c3118e17c8c03e2e1b392d
+  External correlation Id: 115449386325611042
+  Machine Id:              xlWh/iB47xjJmq8XO9S2Vlcb/3s=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-Admin" (connect: 0.25s, validation: 0.11s, handshake: 0.03s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Admin-notifications" at "2026-10-22T15:09:23.7284162Z"
+[Licensing::Module] Connected to LicensingClient (PId: 35680, launch time: 0.00, total connection time: 0.39s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: ewogICJzdWJzR3JvdXAiIDogInVuaXR5IGVkaXRvciIsCiAgIm5hbWVzcGFjZSIgOiAidW5pdHlfZWRpdG9yIiwKICAidHlwZSIgOiAiRURJVE9SIiwKICAidGFnIiA6ICJVbml0eVBlcnNvbmFsXXXX
+  Product: Unity Personal Version
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
+[Licensing::Module] Licensing Background thread has ended after 0.42s
+[Licensing::Module] Licensing is initialized (took 0.08s).
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.30 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.23f1 (09d2ecc7fb28)
+[Subsystems] Discovering subsystems at path D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path D:/Game/tmp/shipyard-detail-clean-20261011/Assets
+Forcing GfxDevice: Null
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+NullGfxDevice:
+    Version:  NULL 1.0 [1.0]
+    Renderer: Null Device
+    Vendor:   Unity Technologies
+Initialize mono
+Mono path[0] = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Managed'
+Mono path[1] = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56200
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/PlaybackEngines/MacStandaloneSupport/UnityEditor.OSXStandalone.Extensions.dll
+Register platform support module: D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.000822 seconds.
+- Loaded All Assemblies, in  0.252 seconds
+Native extension for WindowsStandalone target not found
+Native extension for OSXStandalone target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.246 seconds
+Domain Reload Profiling: 498ms
+	BeginReloadAssembly (98ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (23ms)
+	RebuildCommonClasses (22ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (25ms)
+	LoadAllAssembliesAndSetupDomain (99ms)
+		LoadAssemblies (75ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (97ms)
+			TypeCache.Refresh (96ms)
+				TypeCache.ScanAssembly (88ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (246ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (222ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (30ms)
+			SetLoadedEditorAssemblies (2ms)
+			BeforeProcessingInitializeOnLoad (45ms)
+			ProcessInitializeOnLoadAttributes (87ms)
+			ProcessInitializeOnLoadMethodAttributes (58ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 65 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.2d.animation@13.0.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.animation@cd6c3841e39a)
+    com.unity.2d.aseprite@3.0.2 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.aseprite@20edb5643ab5)
+    com.unity.2d.psdimporter@12.0.2 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.psdimporter@f207d91d598d)
+    com.unity.2d.spriteshape@13.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tilemap.extras@58739e072909)
+    com.unity.2d.tooling@1.0.4 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.collab-proxy@2.13.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.collab-proxy@4628d2ba6ea4)
+    com.unity.ide.rider@3.0.40 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ide.rider@e4950c6d131b)
+    com.unity.ide.visualstudio@2.0.26 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.20.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.inputsystem@7a4e1a2a8194)
+    com.unity.timeline@1.8.13 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.timeline@3a22918286f5)
+    com.unity.visualscripting@1.9.12 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.visualscripting@4edfcc09512f)
+    com.unity.2d.common@12.0.4 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.mathematics@1.3.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.collections@2.6.8 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.collections@84e8eb3fc12e)
+    com.unity.searcher@4.9.5 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.searcher@a463122f2c00)
+    com.unity.burst@1.8.30 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.burst@2f3d916873ea)
+    com.unity.nuget.mono-cecil@1.11.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.test-framework.performance@3.5.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Built-in packages:
+    com.unity.2d.sprite@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.sprite@5b922524bd83)
+    com.unity.2d.tilemap@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tilemap@f666889fd587)
+    com.unity.multiplayer.center@1.0.1 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.universal@7865b6b91f8a)
+    com.unity.test-framework@1.6.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ugui@27635d171b1a)
+    com.unity.modules.accessibility@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.core@0bb36005e9ba)
+    com.unity.shadergraph@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.shadergraph@b4b75cc00891)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.02 seconds
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_curse_surge_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_dead_calm_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_moon_sleepwalker_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_falling_starlight_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_diver_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_whisper_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/common_whale_song_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_silver_fog_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_astronomer_rescue_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_ghost_current_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_borrowed_shadow_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_calendar_mosaic_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_exorcist_kiln_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_false_ancestor_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_funerary_procession_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_living_figurehead_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_hollow_bell_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_misplaced_echo_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_ossuary_buoy_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_pendulum_archive_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_silver_needle_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_reversed_rubbing_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_submerged_scriptorium_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_tide_abacus_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_moon_taxcollector_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_survey_barge_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_crew_fever_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_drifting_crate_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_votive_loom_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_night_fog_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_freshwater_slick_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_star_in_jar_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_unlit_court_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_open_water_ambush_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_sudden_squall_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_anchor_rubbing_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_backspin_winch_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_barnacle_ridge_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_coral_resonator_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_compass_pulse_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_shoal_fish_run_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_rigging_snap_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_diving_bell_station_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_entangled_calf_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_kelp_loom_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_living_net_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_message_gull_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_luminous_wake_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_salvage_argument_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_shell_lime_barge_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_tidewright_register_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_sail_challenge_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_whaler_signal_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_work_song_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_cargo_shift_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_deck_fire_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_empty_watch_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_three_bell_array_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_insurance_wreck_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_tidal_hoist_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_medicine_convoy_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_stowaway_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_channel_moorings_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_quarantine_flag_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_courier_pigeon_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_charter_crowding_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_diving_bell_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_guild_manifest_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_abandoned_countinghouse_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_ledger_forgery_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_notary_barge_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_powder_barge_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_provision_survey_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_retired_pilot_station_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_right_of_way_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_sail_pattern_loft_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_sample_sails_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_transfer_queue_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_weighing_raft_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_rain_collectors_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/legacy_treasure_v3.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_wedding_fleet_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/provisions_spoilage_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_tide_ticket_booth_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/weathered_cartographer_hulk_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+YAML Parsing error 'Parser Failure at line 52: Expect ':' between key and value within mapping'
+The contents of 'Assets/_Project/Resources/EncounterIllustrations/moonlit_shadow_dial_v1.png.meta' could not be parsed. Please ensure that this file is a valid YAML formatted file.
+The GUID inside 'Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextStandardTests.cs.meta' cannot be extracted by the YAML Parser. Attempting to extract it via string matching instead. Please verify the file does not contain unexpected data.
+The GUID inside 'Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextBoardingTests.cs.meta' cannot be extracted by the YAML Parser. Attempting to extract it via string matching instead. Please verify the file does not contain unexpected data.
+The .meta file Assets/_Project/Resources/EncounterIllustrations/common_whale_song_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_curse_surge_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_dead_calm_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_falling_starlight_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_ghost_current_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_moon_sleepwalker_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_diver_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_relic_whisper_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_silver_fog_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_astronomer_rescue_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_borrowed_shadow_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_calendar_mosaic_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_exorcist_kiln_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_false_ancestor_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_funerary_procession_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_hollow_bell_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_living_figurehead_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_misplaced_echo_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_moon_taxcollector_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_ossuary_buoy_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_pendulum_archive_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_reversed_rubbing_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_silver_needle_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_star_in_jar_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_submerged_scriptorium_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_survey_barge_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_tide_abacus_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_unlit_court_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_moon_v2_votive_loom_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_crew_fever_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_drifting_crate_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_freshwater_slick_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_night_fog_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_open_water_ambush_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_rigging_snap_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_shoal_fish_run_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_sudden_squall_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_anchor_rubbing_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_backspin_winch_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_barnacle_ridge_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_compass_pulse_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_coral_resonator_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_diving_bell_station_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_empty_watch_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_entangled_calf_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_kelp_loom_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_living_net_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_luminous_wake_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_message_gull_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_sail_challenge_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_salvage_argument_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_shell_lime_barge_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_three_bell_array_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_tidal_hoist_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_tidewright_register_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_whaler_signal_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_reef_v2_work_song_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_cargo_shift_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_deck_fire_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_insurance_wreck_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_medicine_convoy_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_quarantine_flag_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_stowaway_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_abandoned_countinghouse_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_channel_moorings_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_charter_crowding_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_courier_pigeon_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_diving_bell_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_guild_manifest_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_ledger_forgery_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_notary_barge_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_powder_barge_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_provision_survey_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_rain_collectors_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_retired_pilot_station_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_right_of_way_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_sail_pattern_loft_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_sample_sails_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_tide_ticket_booth_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_transfer_queue_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_v2_weighing_raft_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/event_trade_wedding_fleet_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/legacy_moon_v3.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/legacy_reef_v3.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/legacy_trade_v3.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/legacy_treasure_v3.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/moonlit_shadow_dial_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/provisions_spoilage_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Resources/EncounterIllustrations/weathered_cartographer_hulk_v1.png.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextBoardingTests.cs.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextStandardTests.cs.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+[ScriptCompilation] Requested script compilation because: Assetdatabase observed changes in script compilation related files
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: D:/Game/tmp/shipyard-detail-clean-20261011
+DisplayProgressbar: Compiling Scripts
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\netcorerun\netcorerun.exe "D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\ScriptCompilationBuildProgram.exe" "Library/Bee/1900b0aE.dag.json" "Library/Bee/1900b0aE-inputdata.json" "Library\Bee\buildprogram0.traceevents"
+WorkingDir: D:/Game/tmp/shipyard-detail-clean-20261011
+ExitCode: 4 Duration: 0s239ms
+Rebuilding DAG because FileSignature timestamp changed: Library/Bee/1900b0aE-inputdata.json
+*** Tundra requires additional run (0.21 seconds), 0 items updated, 0 evaluated
+ExitCode: 0 Duration: 0s907ms
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --dagfilejson="Library\Bee\1900b0aE.dag.json" --profile="Library/Bee/backend2.traceevents" ScriptAssemblies
+WorkingDir: D:/Game/tmp/shipyard-detail-clean-20261011
+ExitCode: 0 Duration: 4s239ms
+Finished compiling graph: 1098 nodes, 20358 flattened edges (17024 ToBuild, 180 ToUse), maximum node priority 1209
+[ 481/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.rsp
+[ 521/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.rsp
+[ 522/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.PlayModeTests.rsp
+[ 523/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Editor.rsp
+[ 524/1094  0s] WriteText Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.Tests.rsp
+[ 834/1094  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+[1066/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.dll (+2 others)
+[1067/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Content.dll (+2 others)
+[1068/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Persistence.dll (+2 others)
+[1069/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Persistence.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Persistence.dll, with 139 defines and 138 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1070/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Core.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.dll, with 139 defines and 137 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1071/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.pdb
+[1072/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Persistence.pdb
+[1073/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Content.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Content.dll, with 139 defines and 138 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1074/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Persistence.dll
+[1075/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Content.pdb
+[1076/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Content.dll
+[1077/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.dll
+[1078/1094  1s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.dll (+2 others)
+[1079/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Presentation.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.dll, with 139 defines and 279 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1080/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.pdb
+[1081/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.dll
+[1082/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Editor.dll (+2 others)
+[1083/1094  0s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.Tests.dll (+2 others)
+[1084/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Editor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Editor.dll, with 137 defines and 287 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1085/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Editor.pdb
+[1086/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Core.Tests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Core.Tests.dll, with 137 defines and 274 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1087/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.Tests.pdb
+[1088/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Core.Tests.dll
+[1089/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Editor.dll
+[1090/1094  1s] Csc Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.PlayModeTests.dll (+2 others)
+[1091/1094  0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/ShatteredSail.Presentation.PlayModeTests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/ShatteredSail.Presentation.PlayModeTests.dll, with 139 defines and 266 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1092/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.PlayModeTests.pdb
+[1093/1094  0s] CopyFiles Library/ScriptAssemblies/ShatteredSail.Presentation.PlayModeTests.dll
+*** Tundra build success (4.22 seconds), 34 items updated, 1094 evaluated
+AssetDatabase: script compilation time: 5.693460s
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  4.835 seconds
+Start importing ProjectSettings/ProjectSettings.asset using Guid(00000000000000004000000000000000) (LibraryAssetImporter) -> (artifact id: 'efbe889b4678634436bbc89b149c58b2') in 0.0104546 seconds
+Start importing Assets/_Project/Resources/EncounterIllustrations using Guid(523e1346bd274b18ac9ce9bd737c92c9) (DefaultImporter) -> (artifact id: '6e54e26aaf8feabcaad13c0719fe5434') in 0.0004889 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers using Guid(e53a944b324745dd918841eb8dfa7ab8) (DefaultImporter) -> (artifact id: '49b394b54cbf5cd985c181438cde21a6') in 0.0004438 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships using Guid(b88b1ab6ad55c36d020548821a2b1cc1) (DefaultImporter) -> (artifact id: 'b264cd6e82646ff7f0c750302f379530') in 0.0003856 seconds
+Refreshing native plugins compatible for Editor in 24.88 ms, found 5 plugins.
+Native extension for WindowsStandalone target not found
+Native extension for OSXStandalone target not found
+Refreshing native plugins compatible for Editor in 1.12 ms, found 5 plugins.
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  3.100 seconds
+Domain Reload Profiling: 7934ms
+	BeginReloadAssembly (235ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (14ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (145ms)
+	RebuildCommonClasses (21ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (15ms)
+	LoadAllAssembliesAndSetupDomain (4555ms)
+		LoadAssemblies (4414ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (193ms)
+			TypeCache.Refresh (131ms)
+				TypeCache.ScanAssembly (123ms)
+			BuildScriptInfoCaches (51ms)
+			ResolveRequiredComponents (8ms)
+	FinalizeReload (3100ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (2751ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (11ms)
+			SetLoadedEditorAssemblies (2ms)
+			BeforeProcessingInitializeOnLoad (98ms)
+			ProcessInitializeOnLoadAttributes (2267ms)
+			ProcessInitializeOnLoadMethodAttributes (368ms)
+			AfterProcessingInitializeOnLoad (3ms)
+			EditorAssembliesLoaded (2ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (29ms)
+Start importing Assets/_Project/Resources/NavalTactics/Ships/merchant_v2.png using Guid(00ed7a316647812113a6fa6712ec547d) (TextureImporter) -> (artifact id: '709fccb3676b27a1584d2837aa575d37') in 0.0585262 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_patrol_dossier_v1.png using Guid(10f7ee6fa09241f2b61bb5e6472331f4) (TextureImporter) -> (artifact id: '8a808b6a435dc2d0de980bb3f1303679') in 0.0345052 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_relic_dossier_v1.png using Guid(106c9f140418437695407138ab22bb01) (TextureImporter) -> (artifact id: '0cc764177a66413c0faf35cfae6861ef') in 0.0339932 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_gunner_mira_portrait_v2.png using Guid(30a029c1f6234b2d9d09ce4e5b8b1ac6) (TextureImporter) -> (artifact id: '89858ab1dd13a02476dac47752e04e28') in 0.0333842 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-ap-curse-medicine.png using Guid(60093c3f87a4482dbf8f4bc45a0924bd) (TextureImporter) -> (artifact id: 'bb682d7f769d6de205cc3a00b0d9d713') in 0.0431695 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-ap-tide-supply.png using Guid(b0506e7a5bcf43b79eb1190fa584a6d0) (TextureImporter) -> (artifact id: '61e352f6c8d7323175bd87533f668edf') in 0.0342855 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-ap-supply.png using Guid(c0eec9db110b44f5af7f2c6f57c03b27) (TextureImporter) -> (artifact id: '0dfaebd5d7277c6697251abe0882e624') in 0.0302991 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_gunner_rokan_portrait_v2.png using Guid(f020a43164ee46d59335504a7e0e3caf) (TextureImporter) -> (artifact id: '7cf01bca5f5b866eeb5a0fab91ff3b65') in 0.0328212 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_navigator_vick_portrait_v2.png using Guid(4150e418bec44650ba3e0ced87a34489) (TextureImporter) -> (artifact id: 'cb88220545b021e00d33809b082d32b1') in 0.0396788 seconds
+Start importing Assets/_Project/Resources/PortFacilities/Regional/Voyage/voyage_broken_anchor_crew_integrated_v1.png using Guid(61d9fa40d6c54210b24560c36696315c) (TextureImporter) -> (artifact id: 'a0705ecb582013b504fb1d57c4898630') in 0.0409739 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-fire-powder-supply.png using Guid(716f874b34c24def95108ec23c1c3417) (TextureImporter) -> (artifact id: '21a0880136af3e6eb375fb9d9cb6ce2c') in 0.0358394 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_diver_duke_portrait_v2.png using Guid(81186ae9ebe2480298af388f8884b312) (TextureImporter) -> (artifact id: '3dc1d0313b203ab583516a9e95a48e3e') in 0.0370989 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-ap-tide.png using Guid(c1d1d5ffae364e34ab3143ff7b53cde4) (TextureImporter) -> (artifact id: '1593af85555c61d3474a00960339fbe0') in 0.0364923 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_thunder_v2.png using Guid(d1fd598f4d3470f67cd336258e133cdb) (TextureImporter) -> (artifact id: 'bc498a6c58a7b63507369c0ba820eaf7') in 0.0524905 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_gunner_gallo_portrait_v2.png using Guid(121cce3f5a62437dab2c1c648fad2fb1) (TextureImporter) -> (artifact id: '364b174604fc5e9c4a1eacafefc46a5e') in 0.0408203 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_diver_isha_portrait_v2.png using Guid(324019a96f2c444fa5060d75344c84ce) (TextureImporter) -> (artifact id: 'f784b9c13b3081b25db4c92ce795c50c') in 0.0489807 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/relic_v2.png using Guid(3256100562c2044f28eb380a0258e9c8) (TextureImporter) -> (artifact id: '17a445f942fe8d1aad9cf716872e8bf7') in 0.0540424 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_carpenter_saf_portrait_v2.png using Guid(32bfd7a2c6b344f98c373c175f2f9ea0) (TextureImporter) -> (artifact id: 'e174bd070b70da9fa356acdd76ff8370') in 0.0386412 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_carpenter_osser_portrait_v2.png using Guid(42fcd890f87c4bf4be2dbae05b401387) (TextureImporter) -> (artifact id: '2746953134c6166ba73b1e0dc2e529cf') in 0.0355545 seconds
+Start importing Assets/_Project/Resources/PortFacilities/Regional/Voyage/voyage_salt_crown_crew_integrated_v1.png using Guid(b2a4874c7cb04cb0b2aa8a55e26503c5) (TextureImporter) -> (artifact id: '2c2ff050df826a77c0484c0e45c5bab4') in 0.0363506 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_tide_v2.png using Guid(c2f48b38d9f52d265fd46308eab42c7c) (TextureImporter) -> (artifact id: '606cda409d87e1a060153b9f597499c8') in 0.0383234 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_tactical_draw.png using Guid(e2b50dd9f63dc308c88fea14c2e1b562) (TextureImporter) -> (artifact id: 'a98a9786e04d79b508d461bfa15a834c') in 0.059459 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-fire-powder-medicine.png using Guid(e2dc4010fbae4f698de18a7637335edd) (TextureImporter) -> (artifact id: '85f5c17e1009d9780b16a302512962b6') in 0.0321614 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-ap-supply.png using Guid(13c8ad39d87e437b90608298c549f31e) (TextureImporter) -> (artifact id: 'dee99629537b359c9c9da844ee494c19') in 0.0325306 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_doctor_ada_portrait_v2.png using Guid(439916381dbd4a6fad42ed28e677a5d0) (TextureImporter) -> (artifact id: 'f51aae2fadd57d046b7f295a52fffa01') in 0.0324959 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_salvage_dossier_v1.png using Guid(63bb3660b2944436bbb8af9aaa478faa) (TextureImporter) -> (artifact id: '09239e8c31940b077f11eeaf1d3b234b') in 0.0334524 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_boarding_blood_08.png using Guid(63de5e5c7b5c1f49635fcd5e0da4cc1e) (TextureImporter) -> (artifact id: '79d8f24aff17ab4359dbb9c71b6f3c04') in 0.0569905 seconds
+Start importing Assets/_Project/Resources/PortFacilities/Regional/Voyage/voyage_twilight_tide_crew_integrated_v1.png using Guid(c38b49767c654e24b760c40e5f2b5b8c) (TextureImporter) -> (artifact id: 'ffd0d1724346d9e5f0d9ef9923e15df3') in 0.0340026 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_doctor_naji_portrait_v2.png using Guid(e34f3a986339437fb1b9842017e7e1db) (TextureImporter) -> (artifact id: '08da22f388917fc4538ac40baa90746f') in 0.0336795 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_arcane_v2.png using Guid(242476e6b6d4809e4a9d5d6bfa767777) (TextureImporter) -> (artifact id: 'f4c58f0e004bdd8a4f0210df933d12c4') in 0.0406213 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_thunder_v2.png using Guid(245ec3f53021af6181202d5c9902b752) (TextureImporter) -> (artifact id: '2d8abe6f5feb629937e70280ce5b278c') in 0.0507736 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_diver_kela_portrait_v2.png using Guid(44e3013971f645d294fa83ef388b4f5e) (TextureImporter) -> (artifact id: 'd4cddef8f7a7e0875cadac6c97446691') in 0.0386792 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-ap-supply.png using Guid(7470679fea30494c8c5b8e4a639fbb3c) (TextureImporter) -> (artifact id: 'ea796c28ffbd5310f8a1716cb1cd106b') in 0.0310616 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_fire_n03.png using Guid(7485960b9131e77f3947556fafdce529) (TextureImporter) -> (artifact id: '2ed11d698b3d26e7e98343de7f41a8da') in 0.0622606 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_boarding_arcane_11.png using Guid(941c72615b088421e22a533d096c4a08) (TextureImporter) -> (artifact id: 'a0afb0ee5a42bd94838ffd17c80b78f9') in 0.0624142 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_energy_order.png using Guid(e4dcee4b55f01b3fe5aef984b3fa856a) (TextureImporter) -> (artifact id: '70da3ee354c30c104a71ba573c1e9c7a') in 0.0596479 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_boarding_fire_14.png using Guid(f4b3744d30d9dfa028ee1059023f0399) (TextureImporter) -> (artifact id: '0e82f7816c2dfa13827f9df18fa60f35') in 0.0569601 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_gunner_leisa_portrait_v2.png using Guid(f43dcbacfb4a469e858d47721b06d0cf) (TextureImporter) -> (artifact id: '6273a4c2bf0f8ea35e36075a87e38f13') in 0.0331345 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_sloop_dossier_v1.png using Guid(05215ae9a3e44c4f98e993bc8e949291) (TextureImporter) -> (artifact id: 'd06eb832d6c2d4c58664badb78eb8ac2') in 0.0663278 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_blood_v2.png using Guid(058592018f386d15a2c44b17dcffc04a) (TextureImporter) -> (artifact id: '20469187df68a65ca9da95c9552afe0d') in 0.0418349 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_boarding_fire_09.png using Guid(75c9183bb16d0974ad04d2aaa7a62ef3) (TextureImporter) -> (artifact id: '874a0611a924d44a10eb3274e5d174ba') in 0.0575354 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_courier_dossier_v1.png using Guid(b5b076dea91842df8b364e196ef4f6f2) (TextureImporter) -> (artifact id: 'f77455e5cec0256b5fffa37e3c55f3f4') in 0.0328876 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_special_plating_living_hull.png using Guid(b5dd778d12ead3cf7f8e940c22127a93) (TextureImporter) -> (artifact id: '095e0610d0de51bb9072f118a3655eb7') in 0.0588232 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/sloop_v2.png using Guid(c5f031469fff00bca17280228539be09) (TextureImporter) -> (artifact id: '3f52252a94df8330a0124bfae3ca0331') in 0.0367399 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-ap-wood.png using Guid(f58c6d946c0043d8a496c0758f7b2765) (TextureImporter) -> (artifact id: '35cf0514f2df7291b239f15106088914') in 0.0322388 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_occult_dossier_v1.png using Guid(264b2e7b1342442bbf87368092588f48) (TextureImporter) -> (artifact id: '478ef1efc96d05e25095542757e92a71') in 0.0314357 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_special_instrument_ghostmap_projector.png using Guid(468d5547a2a240c0f4b508d6fb33cd66) (TextureImporter) -> (artifact id: '357bc4331d4b17853dcdfb344f5de2b6') in 0.0581587 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-ap-curse-supply.png using Guid(562de0a3e46045a3aaec9beebb5d981b) (TextureImporter) -> (artifact id: 'acd3ac9f4fb0ccf6029cdfab2bd722b8') in 0.0305514 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_boarding_fire_04.png using Guid(d66426d3ed9976340d2a7da61ea3241d) (TextureImporter) -> (artifact id: 'ccbce861516a6315797ccc115548ade8') in 0.059515 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_diver_naive_portrait_v2.png using Guid(e6499dfbad2a465f9abbe1a87aedb974) (TextureImporter) -> (artifact id: '44f1cfc63807e92acb336953be7b2f4b') in 0.0339137 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/courier_v2.png using Guid(2767366376f380903e89faaff53e797f) (TextureImporter) -> (artifact id: '7d3d9092e9f8a558cb5df8f7bcdae37b') in 0.039842 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-fire-ap-health.png using Guid(37e1351b02af448da995a50357149c9c) (TextureImporter) -> (artifact id: 'ac1e81301f6cc737ddaf6f748ec6c3e1') in 0.0316172 seconds
+Start importing Assets/_Project/Resources/PortFacilities/Regional/Voyage/voyage_bronze_bell_crew_integrated_v1.png using Guid(77a7a67393394fac98f48f9428bbec79) (TextureImporter) -> (artifact id: 'e585d08a0a6993ec3605fd3828e1a30e') in 0.0334814 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/salvage_v2.png using Guid(77ff0f87c97c8b7798fe4d1701e2a945) (TextureImporter) -> (artifact id: '50349915cc296cc02d98abe95b2c16a5') in 0.041963 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_blood_n02.png using Guid(876cb6206cc19072a11e6e579ab1a81b) (TextureImporter) -> (artifact id: 'f0fc6f5332f19e3e737b564d303f70a7') in 0.060434 seconds
+Start importing Assets/_Project/Resources/PortFacilities/royal_shipyard_console_v1.png using Guid(b7472b8f0d514fd68af9932026102201) (TextureImporter) -> (artifact id: 'fa79de3d1aa1fbaafc161171d6f5b6cf') in 0.0315573 seconds
+Start importing Assets/_Project/Resources/PortFacilities/Regional/Voyage/voyage_white_shell_crew_integrated_v1.png using Guid(c797be65f63f4510b4d6af341a41c6ba) (TextureImporter) -> (artifact id: 'd9ed10f6a7ae5d205c2dd2d26b77b191') in 0.0343822 seconds
+Start importing Assets/_Project/Resources/PortFacilities/Regional/Voyage/voyage_gray_gull_crew_integrated_v1.png using Guid(38ac2a8b9c4545feb678a6fe109b38d6) (TextureImporter) -> (artifact id: 'fbb9036283049ae5f8123338bc7597cb') in 0.033926 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/patrol_v2.png using Guid(38cc573cc4f74172c51ef8d4d3fdbf12) (TextureImporter) -> (artifact id: '06a60b43bbe8d8c6cf666128a4d7bdfc') in 0.0388249 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-ap-medicine.png using Guid(485bfab6247343b68caa55f102b7ed54) (TextureImporter) -> (artifact id: '2d3ee7f07999fd3864e35a12afd3d500') in 0.0305963 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_gunner_helen_portrait_v2.png using Guid(b8af2c50373c4ea29603236240e96e9b) (TextureImporter) -> (artifact id: '01ce82f61b419f6d7c78aa63c54edb36') in 0.0318457 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_cook_lume_portrait_v2.png using Guid(093b053c3d6c413b92e2905e5aa93000) (TextureImporter) -> (artifact id: 'c6ed0e13feca86cb5aad551c40cca7ab') in 0.0318168 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_tide_n01.png using Guid(49423fea2da4628bc401eab311d8ff96) (TextureImporter) -> (artifact id: '14362b180d4a1535c7f3a85b6c6864db') in 0.0598099 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_thunder_n01.png using Guid(49d77f270e7abbc62888313f5e190b58) (TextureImporter) -> (artifact id: '4955041fe84fbd3e807e27a392cc7c79') in 0.0587365 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_diver_udo_portrait_v2.png using Guid(795604a74496468ead8b8b4fea80d997) (TextureImporter) -> (artifact id: '839eb5789d88e6a6e375944b16c53b13') in 0.0325522 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_carpenter_kia_portrait_v2.png using Guid(796d9d31f6a64316b0c026b839ad7c4b) (TextureImporter) -> (artifact id: 'd2ef77c773ec4fa3ca23ba366349cf09') in 0.0323144 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_gunner_yilan_portrait_v2.png using Guid(e9fa6084003f450d94009e7ea2c39e07) (TextureImporter) -> (artifact id: 'f471da46f465e3bc68513b6b31229a72') in 0.0319135 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_carpenter_orlan_portrait_v2.png using Guid(f95b297eaa3c422eb5417692b1711712) (TextureImporter) -> (artifact id: 'efd919525b8deab6af4d9c10edb47a21') in 0.0314876 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-ap-tide-medicine.png using Guid(0a344f4eeac941aca73014b7bdd7b549) (TextureImporter) -> (artifact id: 'ba2458f0a882c9282119bde67c2302e7') in 0.0327968 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_cook_pepe_portrait_v2.png using Guid(6a7429ba1e364bea8f496ab3e222997b) (TextureImporter) -> (artifact id: 'a5ed4438af43320dc7f5be6100f0c324') in 0.0328031 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/clipper_v2.png using Guid(eabe17c65f2570f819c9f410ff70ab27) (TextureImporter) -> (artifact id: 'bdab5b68a21bff87ef794d498061fa1c') in 0.0354511 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_navigator_evelyn_portrait_v2.png using Guid(0b2d28dada1148b09805bc9a72c5e361) (TextureImporter) -> (artifact id: 'c9be0690832028bd350cab76f2f04aac') in 0.0332268 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_merchant_dossier_v1.png using Guid(1b4dc6d68a2f4bcd955c28c4f85cdcd8) (TextureImporter) -> (artifact id: 'cdab7b6b14971ac9aff7fe55905a553d') in 0.0720101 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_curse_n01.png using Guid(6b413953d6131504427d55abe4cd3ad6) (TextureImporter) -> (artifact id: '4e2e8b87ed10f73ad0f6ae8ef9599081') in 0.0590268 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_doctor_viya_portrait_v2.png using Guid(7b6ad4e676214080a012e358556cdf47) (TextureImporter) -> (artifact id: 'f33f2b5e6d2545bc750c04fb98ad20aa') in 0.031898 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_doctor_hector_portrait_v2.png using Guid(9b7f97af62f24620a721ad37c468f03b) (TextureImporter) -> (artifact id: '906f338730f10ca9aec6cab7cd27ad8f') in 0.0318126 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_navigator_saina_portrait_v2.png using Guid(db26136ed1bb430abf74a3e2d8cc484e) (TextureImporter) -> (artifact id: '3de88986d9d3b67653012edf23291409') in 0.0338463 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_navigator_lorne_portrait_v2.png using Guid(db3a1e564ae64e8081af1bdd00b5f3c4) (TextureImporter) -> (artifact id: '84484021e1655d857e37fbebc74b999c') in 0.0321797 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_boarding_basic_13.png using Guid(fbe3a5fdbcdde0cc53c07035c8184267) (TextureImporter) -> (artifact id: 'c2a8e2785da264d9734d3ee4451ab1f0') in 0.0589535 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-ap-mana-supply.png using Guid(1c80187c96aa4b1093a0c76ec50e650b) (TextureImporter) -> (artifact id: '4fdd777439a78181b609e1592247a4fe') in 0.0311451 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_blood_n01.png using Guid(2cade8aa3a3cc531a3ec4576280a0940) (TextureImporter) -> (artifact id: '7f0f7d375e1fedb0769b0993a27bccb3') in 0.0598664 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_gunship_dossier_v1.png using Guid(3c9542031e1a440391bfd596787abca5) (TextureImporter) -> (artifact id: '5e9f10950d7d0d283ffccf4ce08ad6ce') in 0.035344 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-ap-mana-wood.png using Guid(4ce10e2ccdd9447ab3c8fb6e7b6ba92c) (TextureImporter) -> (artifact id: '3df0de575b993169787909dd73a8e58f') in 0.0322274 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_fire_n01.png using Guid(6c380ed1dc82475f6361c2c39c7b8278) (TextureImporter) -> (artifact id: '6596838b74c663a84da0aca688c09085') in 0.0625085 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_special_bow_sunlion_figurehead.png using Guid(7c55649561df4705ad08cd4f119eddc9) (TextureImporter) -> (artifact id: '376bc38adeb51bad38b0ffd567bfacc0') in 0.0606782 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_twilight_tide_navigator_selene_portrait_v2.png using Guid(9ce1932257334eda933e8e6ec66a8aa4) (TextureImporter) -> (artifact id: '3c8dcedcf3b63e8b1d6ed7b4f959bbcd') in 0.0329541 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_doctor_moer_portrait_v2.png using Guid(9c735a6abc4846c387787c2164e9faf3) (TextureImporter) -> (artifact id: 'df3f514d7da29f48f46654a912edc782') in 0.0311621 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_arcane_n01.png using Guid(ccd0591a2708f6e97249b3775bd746aa) (TextureImporter) -> (artifact id: 'af514575a814b2a8222723a2e73f68b6') in 0.0584736 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-ap-mana-medicine.png using Guid(ec3c3e5ccdce4b04ac96edc3bd6a4d21) (TextureImporter) -> (artifact id: '4a3a1d9e429108f4db9b0473dae1af06') in 0.0336068 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_cook_flora_portrait_v2.png using Guid(fc85d42d0e874c0cac6355bd3ad45730) (TextureImporter) -> (artifact id: '008c1c248fd80d8e80cf9d5a828605c8') in 0.0338473 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_navigator_ashir_portrait_v2.png using Guid(fc1fbcfa74f14f2a8ef1d7c7f1b9820e) (TextureImporter) -> (artifact id: '33592a67130e5ea556062801d25433fa') in 0.0339462 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/barge_v2.png using Guid(1d9ea61afe781af9f51e4139b6d9ed9e) (TextureImporter) -> (artifact id: 'bea1b3a4ebf8a982193548c086c31e4b') in 0.0432056 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_barge_dossier_v1.png using Guid(2d0fb32a1e9b459ba2c96f6ac2be2b65) (TextureImporter) -> (artifact id: '60edb369592c1ca8a09c9817fe5ade2b') in 0.0328705 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_diver_noya_portrait_v2.png using Guid(3dd0237ad3a7449c8262de11229c97f0) (TextureImporter) -> (artifact id: 'f2859ba996f550534cc24d13daaab1a6') in 0.0314248 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_broken_anchor_cook_tam_portrait_v2.png using Guid(3d1749db7d2a42c7ab0954563625c5ed) (TextureImporter) -> (artifact id: '4f9ae74f96f8185c1748a047f9838f9e') in 0.0321993 seconds
+Start importing Assets/_Project/Resources/PortFacilities/shipyard_water_gallery_v3.png using Guid(9df7335a9cbe46c7a003c38e1672eb81) (TextureImporter) -> (artifact id: 'f5d724f13f8aae9a875ee6a43ccd93ab') in 0.4135705 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_curse_v2.png using Guid(ad599abc2d82d8d67c558f260eef858e) (TextureImporter) -> (artifact id: '1303a9f75be98eec54af91f73cf3f5bf') in 0.0443745 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_gray_gull_carpenter_barlow_portrait_v2.png using Guid(bd42cc4002174418bac29c8a7925664a) (TextureImporter) -> (artifact id: '620ad083440ab1b21cfc6ec77d62d907') in 0.0341283 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_bronze_bell_cook_basin_portrait_v2.png using Guid(dde139388323440e999b675eea192dae) (TextureImporter) -> (artifact id: 'bbff8c687e437cc742908b8788404f57') in 0.0342841 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_carpenter_atang_portrait_v2.png using Guid(1e34c7ded17c4ae58a87d4d36f2c2418) (TextureImporter) -> (artifact id: '022e70919670e7657a6e774cefc195f8') in 0.0322243 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_special_plating_worldtree_bark.png using Guid(1eaebdd46bfbd77decc78dd403e0abad) (TextureImporter) -> (artifact id: '1c4882e873e9dcafd1666fb2c2a978f1') in 0.0593733 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_provision_dossier_v1.png using Guid(3ec860236c4149f387214c51252ee19b) (TextureImporter) -> (artifact id: '4c9c0b12483bee45f234d27990f6f3b8') in 0.0330773 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_arcane_n02.png using Guid(3edec8bca5eaa383086bc6ae5c33c727) (TextureImporter) -> (artifact id: 'ae1595cd500d7a365f42af3928534a30') in 0.0585135 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_tide_v2.png using Guid(4e36dc83b9ff360120b264306e22e571) (TextureImporter) -> (artifact id: '8ab41c8a4ee28aa8ea973aaff8929378') in 0.0483378 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-ap-wood.png using Guid(5eb17186aab8462588800ba635bf3d73) (TextureImporter) -> (artifact id: 'cd3d5662eb867fd630d02abe8c488e06') in 0.0311649 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_clipper_dossier_v1.png using Guid(6e7e876a70ed4c10a5eb2f3be680a055) (TextureImporter) -> (artifact id: '6de242738a827862365a3da775803e4c') in 0.0700776 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_school_curse_n02.png using Guid(7eedd3b8082452388249b956f6c1aa57) (TextureImporter) -> (artifact id: '560e3df30b9630aea453e06d217657c9') in 0.060254 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_fire_v2.png using Guid(aee31d51c93157304e65e6a9459e57d5) (TextureImporter) -> (artifact id: '83e1a8786d2aca62a91263fb77292867') in 0.0488541 seconds
+Start importing Assets/_Project/Resources/CardArt/Western/card_boarding_tide_10.png using Guid(be3a41ccca4d6eab2f7930817a885413) (TextureImporter) -> (artifact id: '14194564deea1de21ccde43b5a37c7d9') in 0.0634234 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-both-tide.png using Guid(decc48d7a38b4b65aec6b57d356bcb39) (TextureImporter) -> (artifact id: 'd72a85b15509d031a1c6d929eb1e3629') in 0.0378056 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_fire_v2.png using Guid(ee77501ffb43eeaea570ee2340a5938c) (TextureImporter) -> (artifact id: '6f2d05fff10360a094938decdd5d805d') in 0.0367595 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_blood_v2.png using Guid(fe999036c0eebadcee721a8c620d2824) (TextureImporter) -> (artifact id: 'da6ee6bb5f6a0cbf2ada53d5c04b0719') in 0.067778 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_salt_crown_cook_maz_portrait_v2.png using Guid(1f1b65b165ae4e66866eae4ed7d24901) (TextureImporter) -> (artifact id: 'cd07df1104421159f5303468c2620866') in 0.0327299 seconds
+Start importing Assets/_Project/Resources/PortArt/CrewDossiers/crew_white_shell_doctor_mirei_portrait_v2.png using Guid(3ff63c742f6d4c16b87592bd2b57b631) (TextureImporter) -> (artifact id: '297a57040d8401ef5aa8d5cbcb795cdd') in 0.0337743 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_arcane_v2.png using Guid(5f247d9de8c5e51e4f12d52c991d9080) (TextureImporter) -> (artifact id: '3948ab4bcdcbc1d2436bcb0f91965fd0') in 0.0475405 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-ap-medicine.png using Guid(8fa5027916f24c09ae8c96f0bfa6f83c) (TextureImporter) -> (artifact id: '658472552193ba8989c13f1dd1cfaa1b') in 0.0327321 seconds
+Start importing Assets/_Project/Resources/PortArt/ShipDossiers/ship_privateer_dossier_v1.png using Guid(afa3cd8bc08d4e598911286be24a6d85) (TextureImporter) -> (artifact id: 'b379c695d8060d918ba1b52c2eaf0813') in 0.03689 seconds
+Start importing Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-layouts.json using Guid(40b144b9a6024440933ed8b5b584e054) (TextScriptImporter) -> (artifact id: '591313333788bf8bbf2fb9e6442d0a7b') in 0.0015789 seconds
+Start importing Packages/com.unity.render-pipelines.core/Tests/Editor/UnifiedRayTracing/TraceRays.urtshader using Guid(1142bbad8b9e8c44c83a9775ff120d37) (ScriptedImporter)Launched and connected shader compiler UnityShaderCompiler.exe after 0.04 seconds
+
+Compiling Ray Tracing Shader "TraceRays.urtshader", keywords = <no keywords>
+    finished in 0.23 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '488f1fa279908b22ccf0712b57e157d7') in 0.3920378 seconds
+Start importing Packages/com.unity.render-pipelines.universal/Runtime/RendererFeatures/SurfaceCacheGI/SurfaceCacheCore/RisEstimation.urtshader using Guid(713f6141bd66a134383b787f2eaa7c11) (ScriptedImporter)
+Compiling Ray Tracing Shader "RisEstimation.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: 'e10db10dd3fff1482e6f6829c30241da') in 0.0820205 seconds
+Start importing Packages/com.unity.render-pipelines.core/Editor/Lighting/ProbeVolume/RenderingLayerMask/TraceRenderingLayerMask.urtshader using Guid(94a070d33e408384bafc1dea4a565df9) (ScriptedImporter)
+Compiling Ray Tracing Shader "TraceRenderingLayerMask.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '429af685779b9b6687d168527af601a1') in 0.0521351 seconds
+Start importing Packages/com.unity.render-pipelines.universal/Runtime/RendererFeatures/SurfaceCacheGI/SurfaceCacheCore/UniformEstimation.urtshader using Guid(94a39d12848d8d64ca962a72b74e7c50) (ScriptedImporter)
+Compiling Ray Tracing Shader "UniformEstimation.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '5ce19e5f1a23e02548f0bf81582d69bb') in 0.020224 seconds
+Start importing Packages/com.unity.render-pipelines.core/Tests/Editor/UnifiedRayTracing/TraceTransparentRays.urtshader using Guid(6513c3b892e933c4f8d00c19d5c47532) (ScriptedImporter)
+Compiling Ray Tracing Shader "TraceTransparentRays.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: 'ca58980c3b604796b728d1cb3c92f61a') in 0.0110665 seconds
+Start importing Packages/com.unity.render-pipelines.core/Editor/Lighting/ProbeVolume/DynamicGI/DynamicGISkyOcclusion.urtshader using Guid(5a2a534753fbdb44e96c3c78b5a6999d) (ScriptedImporter)
+Compiling Ray Tracing Shader "DynamicGISkyOcclusion.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '0dc1f800bcbac359df7a7fc6400f16e4') in 0.0133209 seconds
+Start importing Packages/com.unity.render-pipelines.core/Tests/Editor/UnifiedRayTracing/TraceRaysAndFetchAttributes.urtshader using Guid(fbc59f55df2416344b008dc23753cae2) (ScriptedImporter)
+Compiling Ray Tracing Shader "TraceRaysAndFetchAttributes.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '9216d50ef0b1f8b055fdf5822a1034ab') in 0.0117264 seconds
+Start importing Packages/com.unity.render-pipelines.universal/Runtime/RendererFeatures/SurfaceCacheGI/SurfaceCacheCore/RestirCandidateTemporal.urtshader using Guid(ad3a9f9982f8c4f4a839a78955e78458) (ScriptedImporter)
+Compiling Ray Tracing Shader "RestirCandidateTemporal.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '98b33e5bc6e8cd0cd311ee0a991c0d9e') in 0.0150382 seconds
+Start importing Packages/com.unity.render-pipelines.core/Editor/Lighting/ProbeVolume/VirtualOffset/TraceVirtualOffset.urtshader using Guid(ff2cbab5da58bf04d82c5f34037ed123) (ScriptedImporter)
+Compiling Ray Tracing Shader "TraceVirtualOffset.urtshader", keywords = <no keywords>
+    finished in 0.00 seconds. Local cache hits 1, remote cache hits 0, compiled 0 platform variants
+ -> (artifact id: '8c8f8a0428ea96a9cb740fae125d5e1a') in 0.0273493 seconds
+Refreshing native plugins compatible for Editor in 1.65 ms, found 5 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=602bed5796f7ce0408e523ff858dd75a): Total: 22.765 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=131 (actual=131, local cache=0, cache server=0)
+		Asset DB Process Time: managed=441 ms, native=11385 ms
+		Asset DB Callback time: managed=255 ms, native=118 ms
+		Scripting: domain reloads=1, domain reload time=4835 ms, compile time=5694 ms, other=34 ms
+		Project Asset Count: scripts=1675, non-scripts=4590
+		Asset File Changes: new=114, changed=285, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.002ms
+	InvokePackagesCallback: 27.856ms
+	ApplyChangesToAssetFolders: 0.616ms
+	Scan: 623.866ms
+	OnSourceAssetsModified: 1.115ms
+	CategorizeAssetsWithTransientArtifact: 1185.446ms
+	ProcessAssetsWithTransientArtifactChanges: 55.894ms
+	CategorizeAssets: 178.864ms
+	ImportOutOfDateAssets: 9366.097ms (-2567.760ms without children)
+		ImportManagerImport: 6226.230ms (16.041ms without children)
+			ImportInProcess: 6209.322ms
+			UpdateCategorizedAssets: 0.867ms
+		CompileScripts: 5694.373ms
+		ReloadNativeAssets: 0.025ms
+		UnloadImportedAssets: 0.659ms
+		ReloadImportedAssets: 11.145ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.848ms
+		InitializingProgressBar: 0.006ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
+		OnDemandSchedulerStart: 0.571ms
+	PostProcessAllAssets: 372.704ms
+	Hotreload: 3.289ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.116ms
+	UnloadStreamsBegin: 2.116ms
+	PersistCurrentRevisions: 0.769ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 4.655ms
+	Untracked: 10946.590ms
+
+Application.AssetDatabase Initial Refresh End
+Scanning for USB devices : 13.072ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-ArtRenovationValidation20261022
+Unloading 19 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 8361 unused Assets / (3.1 MB). Loaded Objects now: 9207.
+Memory consumption went from 237.2 MB to 234.1 MB.
+Total: 8.583800 ms (FindLiveObjects: 0.496700 ms CreateObjectMapping: 0.204900 ms MarkObjects: 6.413200 ms  DeleteObjects: 1.468200 ms)
+
+Microsoft Media Foundation video decoding to texture disabled: graphics device is Null, only Direct3D 11 and Direct3D 12 (only on desktop) are supported for hardware-accelerated video decoding.
+[Project] Loading completed in 25.592 seconds
+	Project init time: 				25.293 seconds
+		Template init time: 		0.000 seconds
+		Package Manager init time: 		0.240 seconds
+		Asset Database init time: 		1.022 seconds
+		Global illumination init time: 	0.002 seconds
+		Assemblies load time: 			0.509 seconds
+		Unity extensions init time: 	0.010 seconds
+		Asset Database refresh time: 	22.765 seconds
+	Scene opening time: 			0.129 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1792681788905,"processId":29200,"projectLoad":25.5919512,"projectInit":25.2927106,"templateInit":0.0,"packageManagerInit":0.2396176,"assetDatabaseInit":1.0219102,"globalIlluminationInit":0.0017314,"assembliesLoad":0.5088954,"unityExtensionsInit":0.0095188,"assetDatabaseRefresh":22.7654236,"sceneOpening":0.1293454}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1792681788905,"processId":29200,"editorVersion":"6000.3.23f1 (09d2ecc7fb28)","branch":"6000.3/staging","buildType":"Release","platform":"Windows"}
+[Licensing::Client] Successfully resolved entitlement details
+Running tests for ExecutionSettings with details:
+targetPlatform = 
+playerHeartbeatTimeout = 600
+filters[0] = 
+   Filter with settings:
+   testMode = EditMode
+   targetPlatform = 
+   testNames = null
+   groupNames = NavalTacticalBoardViewTests, BattleHudLayoutTests
+   categoryNames = null
+   assemblyNames = null
+ignoreTests = {}
+featureFlags = null
+
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:InitializeAndExecuteRun (string[]) (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:53)
+UnityEditor.TestTools.TestRunner.CommandLineTest.TestStarter:InitializeAndExecuteRun () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/TestStarter.cs:64)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs Line: 53)
+
+Start Indexing on Editor startup
+[Indexing] Starting Initial Indexing for Assets
+[UnityConnectServicesConfig] config is NOT valid, switching to default
+Created GICache directory at C:/Users/Admin/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.010s, timestamps: [25.594 - 25.603]
+[Licensing::Client] Successfully resolved entitlement details
+Unloading 3 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 1 unused Assets / (44.4 KB). Loaded Objects now: 9230.
+Memory consumption went from 212.3 MB to 212.3 MB.
+Total: 15.254900 ms (FindLiveObjects: 0.257400 ms CreateObjectMapping: 0.096700 ms MarkObjects: 14.877000 ms  DeleteObjects: 0.022900 ms)
+
+Executing IPrebuildSetup for: Unity.PerformanceTesting.Editor.TestRunBuilder.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<ExecuteMethods>d__8<UnityEngine.TestTools.IPrebuildSetup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:48)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<Execute>d__7<UnityEngine.TestTools.IPrebuildSetup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:34)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteStep () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:173)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteCallback () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:108)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs Line: 48)
+
+Saving results to: C:/Users/Admin/AppData/LocalLow/CodexArtRenovation20261022/ArtRenovationValidation20261022\TestResults.xml
+Saving results to: D:\Game\outputs\art-renovation-implementation-20261022\preflight\edit-results.xml
+Executing IPostBuildCleanup for: ShatteredSail.Core.Tests.AudioCaptureManualPlayerBuild.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<ExecuteMethods>d__8<UnityEngine.TestTools.IPostBuildCleanup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:48)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<Execute>d__7<UnityEngine.TestTools.IPostBuildCleanup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:34)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteStep () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:173)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteCallback () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:108)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs Line: 48)
+
+Executing IPostBuildCleanup for: Unity.PerformanceTesting.Editor.TestRunBuilder.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<ExecuteMethods>d__8<UnityEngine.TestTools.IPostBuildCleanup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:48)
+UnityEditor.TestTools.TestRunner.TestRun.Tasks.BuildActionTaskBase`1/<Execute>d__7<UnityEngine.TestTools.IPostBuildCleanup>:MoveNext () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs:34)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteStep () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:173)
+UnityEditor.TestTools.TestRunner.TestRun.TestJobRunner:ExecuteCallback () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/TestJobRunner.cs:108)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/TestRun/Tasks/BuildActionTaskBase.cs Line: 48)
+
+Unloading 43 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 16 unused Assets / (30.5 KB). Loaded Objects now: 9271.
+Memory consumption went from 319.1 MB to 319.1 MB.
+Total: 16.813500 ms (FindLiveObjects: 0.234100 ms CreateObjectMapping: 0.132000 ms MarkObjects: 16.389600 ms  DeleteObjects: 0.057100 ms)
+
+DisplayProgressbar: Undo
+Test run completed. Exiting with code 0 (Ok). Run completed.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:ExitApplication (UnityEditor.TestTools.TestRunner.CommandLineTest.Executer/ReturnCodes,string) (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:81)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:ExitIfRunIsCompleted () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:74)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs Line: 81)
+
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-Admin-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-Admin channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+Checking for leaked weakptr:
+  Found no leaked weakptrs.
+[Package Manager] Server process was shutdown
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792681797437,"processId":29200,"allocatedMemory":22656573,"memoryLabels":[{"Default":14409},{"Permanent":15236},{"NewDelete":67787},{"Thread":4230344},{"Manager":33981},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":81433},{"Material":24},{"GfxDevice":55872},{"Animation":392},{"Audio":3040},{"FreeType":8},{"FontEngine":736},{"Physics":2146},{"Physics2D":16},{"Serialization":592},{"Input":14984},{"JobScheduler":33024},{"TextLib":280},{"Mono":32},{"MonoCode":64},{"ScriptingNativeRuntime":155060},{"BaseObject":1699616},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":1016},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":14235},{"DynamicArray":119148},{"HashMap":3872550},{"Utility":2660822},{"Curl":2478},{"PoolAlloc":2152},{"AI":80},{"TypeTree":13765},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":288},{"WebRequest":552},{"VR":47994},{"SceneManager":504},{"Video":64},{"LazyScriptCache":32},{"Camera":17},{"Secure":2377},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":336},{"Hierarchy":608},{"CoreStats":13112},{"Identifiers":6480},{"Gui":96},{"EditorUtility":122233},{"VersionControl":4},{"Undo":947},{"AssetDatabase":8931975},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":211},{"ProfilerEditor":9746},{"CoreBusinessMetrics":3244},{"Licensing":1264},{"AssetReference":32},{"IPCStream":32}]}

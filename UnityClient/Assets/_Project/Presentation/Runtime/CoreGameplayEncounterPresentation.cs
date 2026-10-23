@@ -79,7 +79,7 @@ namespace ShatteredSail.Presentation
                 new Vector2(780f, 88f), new Vector2(310f, 205f), 22, ink, TextAnchor.UpperLeft, FontStyle.Normal);
             body.text = description;
             Text prompt = EncounterText(prefix + " Decision Heading", content, new Vector2(250f, 28f), new Vector2(45f, 138f), 16, accent, TextAnchor.MiddleLeft);
-            prompt.text = "船长，请下达决定";
+            prompt.text = "船长，请作出决定";
             CreateImage(prefix + " Decision Rule", content, new Vector2(740f, 2f), new Vector2(290f, 118f), new Color(0.47f, 0.32f, 0.15f, 0.4f)).raycastTarget = false;
 
             RectTransform choiceRoot = CreateRect(teaching ? "Tutorial Choices" : "Encounter Choices", content,
@@ -93,7 +93,7 @@ namespace ShatteredSail.Presentation
                 cursor -= height + 11f;
             }
             Text footnote = EncounterText(prefix + " Decision Footer", content, new Vector2(430f, 26f), new Vector2(415f, -299f), 14, muted, TextAnchor.MiddleLeft);
-            footnote.text = mandatory ? "处理此事件后方可继续航行。" : "略过不耗时；选择后结算效果。";
+            footnote.text = mandatory ? "处理此事件后方可继续航行。" : "略过不耗时；选择后结算相应结果。";
         }
 
         private void BuildEncounterDecision(RectTransform parent, EncounterDossierChoice choice, int number, Vector2 position, float height, Color accent)

@@ -32,9 +32,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(card.UpgradeLevel,Is.EqualTo(Math.Min(rank,pepe?1:2)));
             Assert.That(card.Block,Is.EqualTo(block));
             Assert.That(card.BoardingBlock,Is.Null);
-            Assert.That(card.Description,Does.Contain("获得 "+block+" 格挡").And.Not.Contain("{"));
+            Assert.That(card.Description,Does.Contain("获得 "+block+" 点格挡").And.Not.Contain("{"));
             Assert.That(s.GetBattleCardEffects(card,stage).Block,Is.EqualTo(block));
-            string guardText="获得 "+block+" 格挡";
+            string guardText="获得 "+block+" 点格挡";
             Assert.That(s.BattleCardFaceDescription(card,stage),Does.Contain(guardText).And.Not.Contain("{"));
             Assert.That(s.StartTrainingBattle(CoreTrainingTargets.All[0]),Is.True);
             var b=s.Battle;b.Stage=stage;b.PlayerBlock=0;b.Energy=3;b.Hand.Clear();b.Hand.Add(index);
@@ -42,7 +42,7 @@ namespace ShatteredSail.Core.Tests
             int hull=s.Hull,health=b.PlayerBoardingHealth,medicine=s.Cargo.Medicine,wood=s.Cargo.Wood;
             Assert.That(s.GetBattleCardEffects(card,stage).Block,Is.EqualTo(block));
             Assert.That(s.BattleCardFaceDescription(card,stage),Does.Contain(guardText).And.Not.Contain("{"));
-            string effectGuardText=stage==NavalBattleStage.Boarding?"格挡 +"+block:guardText;
+            string effectGuardText=guardText;
             Assert.That(s.BattleCardEffectDescription(card,stage),Does.Contain(effectGuardText).And.Not.Contain("{"));
             Assert.That(s.GetBattleCardEnergyCost(index),Is.EqualTo(energy));
             Assert.That(s.PlayCard(0),Is.True);
@@ -82,7 +82,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.GetBattleCardEffects(card,NavalBattleStage.Boarding).Block,Is.EqualTo(10));
             s.Cargo.Wood=0;
             Assert.That(s.GetBattleCardEffects(card,NavalBattleStage.Boarding).Block,Is.EqualTo(2));
-            Assert.That(s.BattleCardFaceDescription(card,NavalBattleStage.Boarding),Does.Contain("格挡 +2"));
+            Assert.That(s.BattleCardFaceDescription(card,NavalBattleStage.Boarding),Does.Contain("获得 2 点格挡"));
             Assert.That(card.BoardingBlock,Is.EqualTo(10),"The supply quote never mutates the original definition.");
         }
     }

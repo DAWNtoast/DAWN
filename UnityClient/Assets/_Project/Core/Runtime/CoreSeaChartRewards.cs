@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace ShatteredSail.Core.Gameplay
 {
@@ -12,16 +13,53 @@ namespace ShatteredSail.Core.Gameplay
             SeaChartClaimCount(ActiveSeaChartState, ActiveEncounter.Id);
         public double ActiveEncounterRewardMultiplier => SeaChartRewardMultiplier(null);
 
+        private string SeaChartChoiceRewardConditionReason(CoreEncounterChoice choice)
+        {
+            if (choice.StartsBattle || SeaChartRewardMultiplier(choice) >= 1d) return string.Empty;
+            VoyageEffect source = choice.Effect;
+            // Pure costs and exits can be authored ways through mandatory incidents.
+            // Only protect choices whose original reward has been diminished.
+            if (!HasOtherExplorationChoiceBenefit(source) && source.SailingBoostHours <= 0d &&
+                source.SurveyBoostHours <= 0d && string.IsNullOrWhiteSpace(source.GrantDiscovery) &&
+                string.IsNullOrWhiteSpace(source.RevealEncounterId)) return string.Empty;
+            int index = -1;
+            for (int i = 0; i < ActiveEncounter.Choices.Count; i++)
+                if (ReferenceEquals(ActiveEncounter.Choices[i], choice)) { index = i; break; }
+            if (index < 0) return string.Empty;
+
+            // EffectiveChoiceEffect returns a detached quote. Remove capped benefits
+            // from this local check without changing the authored or displayed effect.
+            VoyageEffect effect = EffectiveChoiceEffect(index);
+            if (Hull >= MaxHull) effect.Hull = 0;
+            if (Morale >= MaxMorale) effect.Morale = 0;
+            if (Cargo.Curse <= 0) effect.Curse = Math.Max(0, effect.Curse);
+            if (effect.Reveal > 0 && (Map == null || !Map.Nodes.Any(node => node.Encounter != null &&
+                node.Encounter.CanRevealByIntel && !node.Visited && !node.IntelRevealed))) effect.Reveal = 0;
+            if (HasOtherExplorationChoiceBenefit(effect)) return string.Empty;
+
+            bool discovery = IsKnownExplorationDiscovery(effect.GrantDiscovery) && !HasDiscovery(effect.GrantDiscovery);
+            bool target = Map != null && Map.Nodes.Any(node => node.Encounter != null &&
+                node.Encounter.Id == effect.RevealEncounterId && node.Encounter.HasChartLocation && !node.Visited && !node.IsChartVisible);
+            bool sailing = effect.SailingBoostHours > 0d && Math.Min(ExplorationBoostLimitHours, effect.SailingBoostHours) >
+                Math.Max(0d, sailingBoostHoursRemaining - choice.Hours);
+            bool survey = effect.SurveyBoostHours > 0d && Math.Min(ExplorationBoostLimitHours, effect.SurveyBoostHours) >
+                Math.Max(0d, surveyBoostHoursRemaining - choice.Hours);
+            return discovery || target || sailing || survey ? string.Empty : "此处奖励已耗尽，本次没有可获得的收益。";
+        }
+
         public VoyageEffect EffectiveChoiceEffect(int choiceIndex)
         {
             if (ActiveEncounter == null || choiceIndex < 0 || choiceIndex >= ActiveEncounter.Choices.Count) return null;
             CoreEncounterChoice choice = ActiveEncounter.Choices[choiceIndex];
             VoyageEffect result = CopyVoyageEffect(choice.Effect);
-            // These new expedition choices remove a burden; curse is not a
-            // currency paid for their reward. Cleanse the amount actually held.
-            // Keep old curse-cost events and other voyages on their original rules.
-            if (IsTreasureExpedition && result.Curse < 0 &&
-                (ActiveEncounter.Id == "moonlit_cleanse" || ActiveEncounter.Id == "moonlit_choir"))
+            // Authored cleansing removes up to the amount held. The expanded
+            // moon voyage services require one curse, not enough curse to pay
+            // the entire reduction. Preserve legacy curse-cost event rules.
+            bool expeditionCleanse = IsTreasureExpedition &&
+                (ActiveEncounter.Id == "moonlit_cleanse" || ActiveEncounter.Id == "moonlit_choir");
+            bool voyageCleanse = !IsTreasureVoyage && !choice.StartsBattle &&
+                ActiveEncounter.Id != null && ActiveEncounter.Id.StartsWith("event_moon_v2_", StringComparison.Ordinal);
+            if (result.Curse < 0 && (expeditionCleanse || voyageCleanse))
                 result.Curse = Math.Max(result.Curse, -Cargo.Curse);
             double multiplier = SeaChartRewardMultiplier(choice);
             if (multiplier >= 1d) return result;

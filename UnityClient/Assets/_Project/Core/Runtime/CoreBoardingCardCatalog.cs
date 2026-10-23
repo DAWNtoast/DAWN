@@ -83,6 +83,7 @@ namespace ShatteredSail.Core.Gameplay
                     repair > 0 ? "card_emergency_repair" : block > 0 ? "card_brace" :
                     attack ? "card_cutlass_raid" : "card_full_sail_turn";
             string type = attack ? "登船" : repair > 0 ? "维修" : block > 0 ? "防御" : "策略";
+            description = CoreBoardingManuscriptDescriptions.ForKey(key, null, 0) ?? description;
             return new CoreBattleCard(Prefix + key, name, type, energy, damage, block, repair, draw, powder,
                 description, NavalBattleStages.Boarding, NavalBattleCardAction.Standard, artId: art,
                 schoolId: school, boardingSpec: new CoreBoardingCardSpec(key, attack, delayed));
@@ -99,7 +100,7 @@ namespace ShatteredSail.Core.Gameplay
             C("basic_06", "战地包扎", 1, "使用1药物恢复 {repair} 生命；无药物恢复2。", repair: 6),
             C("basic_07", "持续救护", 2, "施放时使用1药物；本回合和下一己方回合结束各恢复 {repair} 生命。无药物每次恢复2，共2次。", repair: 5),
             C("basic_08", "战术筹划", 2, "抽 {draw} 张牌。", draw: 3),
-            C("basic_09", "整顿号令", 0, "恢复 {energyRecovery} 能量；同名牌本回合每成功使用一次，后续费用+1。", art: "card_brace"),
+            C("basic_09", "整顿号令", 0, "恢复 {energyRecovery} 能量。", art: "card_brace"),
             C("basic_10", "蓄势号令", 2, "先支付2能量，再恢复 {energyRecovery} 能量。"),
             C("basic_11", "试探突击", 1, "造成 {damage} 伤害；抽 {draw} 张。", damage: 4, draw: 1, attack: true),
             C("basic_12", "掩护调度", 1, "获得 {block} 格挡；抽 {draw} 张。", block: 2, draw: 1),
@@ -140,12 +141,12 @@ namespace ShatteredSail.Core.Gameplay
             C("arcane_15", "时序收束", 0, "固定消耗2魔力；自动结算最早设置的一项延迟攻击，删除原定触发，不重复结算或触发出牌收益。", art: "card_school_arcane_l01"),
 
             // Curse: marks never deal intrinsic damage. Cap 6; independent three-enemy-end lifetimes.
-            C("curse_01", "咒刃伤痕", 1, "造成 {damage} 伤害，攻击后附加1层咒痕；被格挡仍附加。咒痕上限6，每批持续3次敌方回合结束，本身不造成伤害。", damage: 6, attack: true),
+            C("curse_01", "咒刃伤痕", 1, "造成 {damage} 点伤害；施加 1 层咒印。", damage: 8, attack: true),
             C("curse_02", "蚀心咒", 1, "附加3层咒痕，上限6；每批持续3次敌方回合结束，不刷新旧层，本身不造成伤害。", art: "card_school_curse_b01"),
             C("curse_03", "替身草偶", 1, "获得 {block} 格挡；附加1层咒痕。咒痕本身不造成伤害。", block: 3, art: "card_school_curse_b09"),
             C("curse_04", "恶兆契约", 1, "持续3个敌方回合；每回合目标攻击首次使己方实际失去生命时，为其附加2层咒痕。自伤、灼烧和完全格挡不触发；不叠加、不刷新。", art: "card_school_curse_c02"),
             C("curse_05", "连环咒印", 0, "本回合接下来主动打出的2张攻击牌，各在结算后附加1层咒痕；多段只算一次。咒术伤害、反伤与持续伤害不触发；不叠加。", art: "card_school_curse_b02"),
-            C("curse_06", "苦痛牵引", 1, "造成8+当前咒痕层数伤害，最多14；不消耗咒痕。", damage: 8, attack: true, art: "card_school_curse_b03"),
+            C("curse_06", "苦痛牵引", 1, "造成 6+当前咒印层数 点伤害。", damage: 6, attack: true, art: "card_school_curse_b03"),
             C("curse_07", "衰败咒", 1, "2个敌方回合内，下一次完整攻击总伤害减少3+触发时咒痕层数，最多9且不超过整次伤害的一半（向下取整）；触发一次消失，同类取最高。", art: "card_school_curse_b06"),
             C("curse_08", "蚀甲咒", 1, "立即移除4+2×当前咒痕层数的格挡；2个敌方回合内，下次获得格挡减少2+触发时咒痕层数，最低0；后续减盾只触发一次，不叠加。", art: "card_school_curse_b04"),
             C("curse_09", "逆刃咒", 1, "持续2个敌方回合；每回合目标第一次主动攻击结束后受到当前咒痕层数×2的咒术伤害，上限10，无视格挡，不暴击。不耗咒痕、不叠加。", art: "card_school_curse_e04"),

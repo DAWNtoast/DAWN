@@ -8,8 +8,8 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class CoreNavalArrivalContactTests
     {
-        [TestCase(true, 0f)] [TestCase(true, 90f)] [TestCase(true, 270f)]
-        [TestCase(false, 90f)] [TestCase(false, 270f)]
+        [TestCase(true, 90f)] [TestCase(true, 270f)]
+        [TestCase(false, 0f)] [TestCase(false, 90f)] [TestCase(false, 180f)] [TestCase(false, 270f)]
         public void ArrivalContactUsesOneRemainingPointAndItsLegalFinalHeading(bool boarding, float enemyHeading)
         {
             CoreVoyageSession session = Arrival(2, enemyHeading);
@@ -28,7 +28,9 @@ namespace ShatteredSail.Core.Tests
             int revision = battle.TacticalRevision;
             Assert.That(session.TryNavalArrivalContact(boarding, out reason), Is.True, reason);
             Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
-            Assert.That(battle.BoardingConnection, Is.EqualTo(boarding ? NavalBoardingConnection.Planned : NavalBoardingConnection.RamBowToBroadside));
+            Assert.That(battle.BoardingConnection, Is.EqualTo(boarding ? NavalBoardingConnection.Planned :
+                enemyHeading == 0f ? NavalBoardingConnection.RamBowToStern :
+                enemyHeading == 180f ? NavalBoardingConnection.RamBowToBow : NavalBoardingConnection.RamBowToBroadside));
             Assert.That(battle.NavalActionPoints, Is.Zero);
             Assert.That(battle.NavalArrivalActionPoints, Is.Zero);
             Assert.That(battle.NavalAwaitingHeadingSelection, Is.False);
@@ -45,17 +47,34 @@ namespace ShatteredSail.Core.Tests
         [TestCase(true)] [TestCase(false)]
         public void ArrivalContactCannotSpendAnExhaustedMovementBudget(bool boarding)
         {
-            CoreVoyageSession session = Arrival(1, boarding ? 0f : 90f);
+            CoreVoyageSession session = Arrival(1, 90f);
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero);
             AssertArrivalRejectedWithoutMutation(session, boarding, "剩余 1 行动点");
         }
 
         [Test]
-        public void ArrivalBoardingCannotReverseTheLastMovementHeading()
+        public void ArrivalBoardingChoosesTheOppositeParallelHeadingInsteadOfReversing(
+            [Values(0f, 90f, 180f, 270f)] float movementHeading,
+            [Values(-1f, 1f)] float side)
         {
-            CoreVoyageSession session = Arrival(2, 180f);
+            CoreVoyageSession session = NewBattle();
+            VoyagePoint arrival = Direction(movementHeading, 100f);
+            VoyagePoint lateral = Direction(movementHeading + 90f, side * 100f);
+            Pose(session, 0f, 0f, movementHeading, arrival.X + lateral.X, arrival.Y + lateral.Y,
+                (movementHeading + 180f) % 360f);
+            SetPoints(session, 2);
+            Assert.That(session.TryAppendNavalMovementStep(arrival, out string reason), Is.True, reason);
+            Assert.That(session.CommitNavalMovement(out reason), Is.True, reason);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
-            AssertArrivalRejectedWithoutMutation(session, true, "不能反向");
+            string before = ArrivalState(session);
+            Assert.That(session.CanNavalArrivalContact(true, out float heading, out reason), Is.True, reason);
+            Assert.That(heading, Is.EqualTo(movementHeading));
+            Assert.That(ArrivalState(session), Is.EqualTo(before));
+            Assert.That(session.TryNavalArrivalContact(true, out reason), Is.True, reason);
+            Assert.That(session.Battle.PlayerHeadingDegrees, Is.EqualTo(movementHeading));
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(session.Battle.BoardingConnection, Is.EqualTo(NavalBoardingConnection.Planned));
+            Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero);
         }
 
         [Test]
@@ -66,17 +85,21 @@ namespace ShatteredSail.Core.Tests
             AssertArrivalRejectedWithoutMutation(session, false, "不能反向");
         }
 
-        [TestCase(true, 0f, 100f, 0f)]
-        [TestCase(false, 0f, 100f, 90f)]
-        [TestCase(true, -50f, 0f, 0f)]
-        [TestCase(false, -50f, 0f, 90f)]
-        [TestCase(false, 0f, 0f, 0f)]
-        public void ArrivalContactRechecksActualGeometryInsteadOfAlignment(bool boarding, float enemyX, float enemyY, float enemyHeading)
+        [TestCase(true, 0f, 100f, 0f, "相邻")]
+        [TestCase(false, 0f, 100f, 90f, "相邻")]
+        [TestCase(true, -50f, 0f, 0f, "相邻")]
+        [TestCase(false, -50f, 0f, 90f, "相邻")]
+        [TestCase(true, 100f, 0f, 90f, "相邻")]
+        [TestCase(false, 100f, 0f, 90f, "相邻")]
+        [TestCase(true, 0f, 0f, 0f, "舷侧相邻")]
+        [TestCase(true, 0f, 0f, 180f, "舷侧相邻")]
+        public void ArrivalContactRechecksActualGeometryInsteadOfAlignment(
+            bool boarding, float enemyX, float enemyY, float enemyHeading, string expectedReason)
         {
             CoreVoyageSession session = Arrival(2, enemyHeading);
             Pose(session, -100f, 0f, 0f, enemyX, enemyY, enemyHeading);
             session.Battle.Alignment = boarding ? NavalBattleAlignment.Parallel : NavalBattleAlignment.EnemyBroadside;
-            AssertArrivalRejectedWithoutMutation(session, boarding, boarding || enemyX != 0f || enemyY != 0f ? "相邻" : "垂直");
+            AssertArrivalRejectedWithoutMutation(session, boarding, expectedReason);
         }
 
         [Test]
@@ -100,19 +123,20 @@ namespace ShatteredSail.Core.Tests
         [TestCase(true)] [TestCase(false)]
         public void SuccessfulArrivalContactDiscardsAnyBudgetBeyondItsOnePointCost(bool boarding)
         {
-            CoreVoyageSession session = Arrival(4, boarding ? 0f : 90f);
+            CoreVoyageSession session = Arrival(4, 90f);
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.EqualTo(3));
             Assert.That(session.TryNavalArrivalContact(boarding, out string reason), Is.True, reason);
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero);
             Assert.That(session.Battle.NavalActionPoints, Is.Zero);
         }
 
-        [TestCase(true)] [TestCase(false)]
-        public void ArrivalContactMatchesTheExistingDirectContactSettlement(bool boarding)
+        [TestCase(true, 90f)] [TestCase(true, 270f)]
+        [TestCase(false, 0f)] [TestCase(false, 90f)] [TestCase(false, 180f)] [TestCase(false, 270f)]
+        public void ArrivalContactMatchesTheExistingDirectContactSettlement(bool boarding, float enemyHeading)
         {
-            CoreVoyageSession arrival = Arrival(2, 90f);
+            CoreVoyageSession arrival = Arrival(2, enemyHeading);
             CoreVoyageSession direct = NewBattle();
-            Pose(direct, -100f, 0f, boarding ? 90f : 0f, 0f, 0f, 90f);
+            Pose(direct, -100f, 0f, boarding ? enemyHeading : 0f, 0f, 0f, enemyHeading);
             direct.Battle.Energy = 0;
             Assert.That(arrival.TryNavalArrivalContact(boarding, out string reason), Is.True, reason);
             Assert.That(boarding ? direct.TryBoard() : direct.TryRam(), Is.True);
@@ -123,6 +147,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(arrival.Battle.EnemyBoardingHealth, Is.EqualTo(direct.Battle.EnemyBoardingHealth));
             Assert.That(arrival.Battle.Energy, Is.EqualTo(direct.Battle.Energy));
             Assert.That(arrival.Battle.BoardingConnection, Is.EqualTo(direct.Battle.BoardingConnection));
+            Assert.That(arrival.Battle.BoardingApproach, Is.EqualTo(direct.Battle.BoardingApproach));
             Assert.That(arrival.Battle.Hand, Is.EqualTo(direct.Battle.Hand));
         }
 
@@ -167,6 +192,12 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero);
         }
 
+        private static VoyagePoint Direction(float heading, float distance)
+        {
+            double radians = heading * Math.PI / 180d;
+            return new VoyagePoint((float)Math.Round(Math.Cos(radians)) * distance,
+                (float)Math.Round(Math.Sin(radians)) * distance);
+        }
         private static CoreVoyageSession Arrival(int points, float enemyHeading)
         {
             CoreVoyageSession session = NewBattle();

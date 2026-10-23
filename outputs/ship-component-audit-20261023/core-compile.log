@@ -1,0 +1,6 @@
+outputs\ship-component-audit-20261023\CoreSnapshot\CoreNavalBattleCombat.cs(509,24): warning CS0649: 从未对字段“CoreVoyageSession.EnemyBattlePlan.BoardingSelfDamage”赋值，字段将一直保持其默认值 0
+outputs\ship-component-audit-20261023\CoreSnapshot\CoreBoardingCurseTideBlood.cs(9,23): warning CS0649: 从未对字段“CoreBoardingCurseLayer.Extended”赋值，字段将一直保持其默认值 false
+outputs\ship-component-audit-20261023\CoreSnapshot\CoreNavalBattleCombat.cs(508,24): warning CS0649: 从未对字段“CoreVoyageSession.EnemyBattlePlan.BoardingDrain”赋值，字段将一直保持其默认值 0
+outputs\ship-component-audit-20261023\CoreSnapshot\CoreNavalBattleCombat.cs(507,24): warning CS0649: 从未对字段“CoreVoyageSession.EnemyBattlePlan.BoardingBurn”赋值，字段将一直保持其默认值 0
+outputs\ship-component-audit-20261023\CoreSnapshot\CoreBoardingCurseTideBlood.cs(15,23): warning CS0649: 从未对字段“CoreBoardingTidePoint.Extended”赋值，字段将一直保持其默认值 false
+outputs\ship-component-audit-20261023\CoreSnapshot\CoreNavalBattleCombat.cs(510,24): warning CS0649: 从未对字段“CoreVoyageSession.EnemyBattlePlan.BoardingPiercing”赋值，字段将一直保持其默认值 0

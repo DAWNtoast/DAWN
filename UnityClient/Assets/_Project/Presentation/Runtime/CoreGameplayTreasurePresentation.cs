@@ -363,9 +363,6 @@ namespace ShatteredSail.Presentation
                 new Vector2(1160f, 44f), new Vector2(0f, 231f), 28, MarketShopSkin.Ink,
                 empty ? "尚未获得藏宝种子" : "未使用的藏宝图 · " + session.TreasureMaps.Count + " 张",
                 TextAnchor.MiddleCenter, true);
-            TreasureFolioText("Treasure Folio Overview Note", folio, new Vector2(1160f, 30f),
-                new Vector2(0f, 187f), 19, MarketShopSkin.MutedInk,
-                "三种远征，各有独立事件、探索方法与秘藏奖励", TextAnchor.MiddleCenter);
             for (int index = 0; index < CoreTreasureHuntCatalog.Ranks.Count; index++)
             {
                 CoreTreasureMapRank rank = CoreTreasureHuntCatalog.Ranks[index];
@@ -379,9 +376,6 @@ namespace ShatteredSail.Presentation
                 TreasureFolioText("Treasure Folio Rank Theme " + index, folio, new Vector2(410f, 30f),
                     new Vector2(x, 22f), 19, MarketShopSkin.Ink,
                     CoreTreasureExpeditionCatalog.ThemeName(rank.Id), TextAnchor.MiddleCenter, true);
-                TreasureFolioText("Treasure Folio Rank Mechanic " + index, folio, new Vector2(410f, 90f),
-                    new Vector2(x, -35f), 17, MarketShopSkin.MutedInk,
-                    CoreTreasureExpeditionCatalog.Overview(rank.Id), TextAnchor.MiddleCenter);
                 TreasureFolioText("Treasure Folio Rank Held " + index, folio, new Vector2(400f, 32f),
                     new Vector2(x, -101f), 20, MarketShopSkin.Ink, "持有 " + held + " 张", TextAnchor.MiddleCenter);
                 TreasureFolioText("Treasure Folio Rank Fragments " + index, folio, new Vector2(400f, 30f),
@@ -405,9 +399,6 @@ namespace ShatteredSail.Presentation
             }
             TreasureFolioRule("Treasure Folio Overview Left Rule", folio, new Vector2(1f, 358f), new Vector2(-230f, -23f));
             TreasureFolioRule("Treasure Folio Overview Right Rule", folio, new Vector2(1f, 358f), new Vector2(230f, -23f));
-            TreasureFolioText("Treasure Folio Overview Guide", folio, new Vector2(1300f, 36f),
-                new Vector2(0f, -238f), 20, MarketShopSkin.MutedInk,
-                "鉴定碎片后拼入海图；合成的藏宝图与使用记录均收录于此。", TextAnchor.MiddleCenter);
         }
 
         private void BuildTreasureFolioEmpty(RectTransform folio, bool used)
@@ -418,10 +409,6 @@ namespace ShatteredSail.Presentation
             TreasureFolioText("Treasure Empty Inventory", folio, new Vector2(1160f, 48f),
                 new Vector2(0f, -35f), 28, MarketShopSkin.Ink,
                 used ? "尚未使用藏宝图" : "尚未获得藏宝种子", TextAnchor.MiddleCenter, true);
-            TreasureFolioText("Treasure Empty Inventory Guide", folio, new Vector2(1160f, 72f),
-                new Vector2(0f, -100f), 20, MarketShopSkin.MutedInk,
-                used ? "使用过的藏宝图会留存在此，可回看海图、种子与探索度。" :
-                "鉴定碎片并集齐四片后，点击工作台上的完整海图进行合成。", TextAnchor.MiddleCenter);
         }
 
         private void TreasureFolioRule(string name, Transform parent, Vector2 size, Vector2 position) =>

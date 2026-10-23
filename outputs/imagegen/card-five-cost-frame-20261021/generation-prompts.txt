@@ -1,0 +1,27 @@
+Mode: built-in image_gen
+Final assets: 10 full integrated PNG frames in UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated.
+Superseded square-slot drafts are kept under drafts/ and are not referenced by the game.
+
+SUPPLY VARIANTS
+Use case: precise-object-edit. Input 1 is the existing complete naval card frame and is the EDIT TARGET.
+Create an integrated supply-cost variant of THIS EXACT FRAME. Keep the whole original canvas, silhouette alignment, transparent alpha, illustration opening, opaque title and description parchment, energy socket, any other existing resource symbols, colours, material style and decorations unchanged outside a small section of the upper right vertical rail.
+The only change: sculpt the upper RIGHT SIDE RAIL itself into ONE organically integrated supply-icon recess at normalized image centre x=0.877, y=0.249 (about one quarter of the way down). It belongs BELOW the upper right corner. Size of the integrated area about 19% canvas width by 13% canvas height. Keep outer right edge nearly unchanged, widen the rail inward gently with curved tapering transitions into the original rail above and below. This must look forged/carved as part of a single continuous frame, NOT a square plate attached on top.
+Design: an elegant VERTICAL OVAL / rounded shield-shaped recess, made from the frame's OWN material and trim; sculpt its upper and lower shoulders smoothly into the rail. Existing winding rope/vines/ornament must flow naturally around its contours and continue along the rail. No isolated square outer border, no four-corner rivets, no separate floating medallion, no block stuck over the rail. Thin edge, spacious quiet dark recessed centre at least 65% of the socket width, suitable for a replaceable wood-planks or medicine icon in upper area and a white numeric cost below. Keep the centre empty: NO icon, no text, no number. The central usable recess must surround exactly the stated location.
+Professional detailed hand-painted fantasy game UI. Preserve ALL existing resource symbols: do not add purple crystals, do not add cannonball/powder emblems if absent. Genuine alpha-transparent exterior and illustration window. No checkerboard. No presentation board, no labels, no red annotation, no extra props. Output just the full edited original frame at the same portrait proportions and same framing.
+
+FIRE HEALTH
+Use case: precise-object-edit. Image 1 is the EDIT TARGET, the fiery naval card frame. Image 2 is a symbol reference only: the red drop-shaped health gemstone mounted at its upper-right corner.
+Edit ONLY the upper-right corner of image 1 to embed the same readable red droplet health emblem, dark round recess and a fiery gold rim matching the existing FIRE frame. Centre and size must mirror the existing blue energy gemstone at upper-left, at approximately normalized x=.877,y=.10. This new health resource socket must connect naturally to the continuous molten metal border. Keep the entire rest of image 1 completely unchanged, including blue energy top left, all flame trim, blank title parchment, blank lower parchment and no powder or cannonball icons in bottom corners. No supply socket on the side in this version.
+Same portrait canvas and proportions. Actual alpha transparent exterior and illustration window. No text or numbers, no added icons, no checkerboard, no watermark.
+
+TIDE RESOURCE
+Use case: precise-object-edit. Edit the provided COMPLETE TIDAL NAVAL CARD FRAME. Only change the UPPER-RIGHT CORNER: integrate a circular tidal-power resource emblem into the corner, matching the blue energy socket's scale and placement at upper-left. The top-right emblem must contain a beautiful luminous turquoise curling wave symbol over deep teal water with a dark central reading area for a future white number; thin golden/pearly rim, tiny pearls and flowing water that merge naturally into the original adjacent upper and right rails. Make it part of the original whole frame, not an attached square.
+Keep absolutely ALL other features unchanged: full original portrait proportions, transparent exterior and illustration opening, opaque blank title and description parchment, upper-left energy gem, all shells and waves. Keep any original bottom resource symbols and any original empty oval supply recess on the right side EXACTLY as they are, preserving their locations and emptiness. Add no other sockets. No text, no numbers, no checkerboard, no annotations, no watermark. Output complete frame with alpha.
+
+Supply style additions used for each generation:
+neutral-ap: A smoothly widened single wooden rail with continuous wood grain, thin worn iron edging and rope curving around the outside. No box or bolt-on plate.
+fire-powder: Continuous dark forged metal and molten-gold flame edges flow above/below the recess; preserve gunpowder bottom right.
+arcane-ap-mana: Continuous purple celestial enamel, gold crescent trim and winding gold band flow around the recess; preserve purple mana top right.
+curse-ap-curse: Continuous weathered dark bone/wood and winding rope widen naturally; preserve mint curse seal.
+tide-ap: Continuous ivory shell/gold trim and turquoise water flow around the recess and up/down the rail.
+blood-ap: Continuous blackened silver gothic trim and red braided vines curve around the recess.

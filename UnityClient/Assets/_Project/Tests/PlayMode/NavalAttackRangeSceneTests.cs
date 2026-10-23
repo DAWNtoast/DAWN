@@ -19,6 +19,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
             SetResponsiveHand(session, "card_chain_shot", "card_brace");
+            SetRangePreviewActionPoints(session, 0);
             RenderResponsiveBattle(controller);
             yield return WaitResponsiveBattle(controller);
             NavalAttackRangePreview preview = Object.FindFirstObjectByType<NavalAttackRangePreview>();
@@ -36,9 +37,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.Energy, Is.EqualTo(energy));
             Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(points));
             Assert.That(session.NavalMovementPlannedSteps, Is.Zero);
-            RectTransform caption = RequiredResponsive<RectTransform>("Naval attack range caption");
-            Rect viewport = FanWorldRect(FixedGameViewport.Bounds(caption.GetComponentInParent<Canvas>().rootCanvas));
-            Assert.That(FanWorldRect(caption).xMin, Is.GreaterThanOrEqualTo(viewport.xMin + 10f));
+            Assert.That(GameObject.Find("Naval attack range caption"), Is.Null);
             NavalBattleVisualCapture.Capture(controller, "AttackRange_01_Ship.png", "点击我舰：红格显示四格炮击范围，右三上二不在范围内");
             ClickAttackRangeShip();
             Assert.That(preview.ShipRangePinned, Is.False);
@@ -53,6 +52,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
             SetResponsiveHand(session, "card_chain_shot", "card_diver_sabotage", "card_load_shot", "card_brace");
+            SetRangePreviewActionPoints(session, 0);
             session.Battle.Energy = 0;
             session.Cargo.Powder = session.Cargo.Cannonballs = 0;
             RenderResponsiveBattle(controller);
@@ -72,14 +72,16 @@ namespace ShatteredSail.Presentation.Tests
             ClickAttackRangeShip();
             HoverAttackCard(sabotage, true);
             Assert.That(preview.ShowingCardId, Is.EqualTo("card_diver_sabotage"));
-            Assert.That(graphic.Cells.Count, Is.EqualTo(8));
+            Assert.That(graphic.Cells.Count, Is.EqualTo(12));
             AssertAttackCell(graphic, session, 1, 1, true);
-            AssertAttackCell(graphic, session, 2, 0, false);
+            AssertAttackCell(graphic, session, 2, 0, true);
+            AssertAttackCell(graphic, session, 2, 1, false);
+            AssertAttackCell(graphic, session, 0, 0, false);
             yield return new WaitForSecondsRealtime(.35f);
-            NavalBattleVisualCapture.Capture(controller, "AttackRange_02_Sabotage.png", "悬停水下破坏：仅显示150米内的8个相邻格，牌因资源不足不可用但仍可预览");
+            NavalBattleVisualCapture.Capture(controller, "AttackRange_02_Sabotage.png", "悬停水下破坏：显示曼哈顿距离1–2格的12个目标格，牌因资源不足不可用但仍可预览");
             // A delayed exit from another card cannot clear the current card's preview.
             HoverAttackCard(cannon, false);
-            Assert.That(graphic.Cells.Count, Is.EqualTo(8));
+            Assert.That(graphic.Cells.Count, Is.EqualTo(12));
             HoverAttackCard(sabotage, false);
             Assert.That(graphic.Cells.Count, Is.EqualTo(40));
             HoverAttackCard(loading, true);
@@ -148,7 +150,7 @@ namespace ShatteredSail.Presentation.Tests
             HoverAttackCard(RequiredResponsive<Button>("Battle Card 1"), false);
             Assert.That(graphic.Cells.Count, Is.GreaterThan(40));
             HoverAttackCard(RequiredResponsive<Button>("Battle Card 0"), true);
-            Assert.That(RequiredResponsive<Text>("Naval attack range caption").text, Does.Contain("无距离限制"));
+            Assert.That(GameObject.Find("Naval attack range caption"), Is.Null);
             session.Battle.DistanceMeters = 10000f;
             bool refreshed = (bool)typeof(CoreGameplayDemoController).GetMethod("TryRefreshRetainedBattleView",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(controller, null);

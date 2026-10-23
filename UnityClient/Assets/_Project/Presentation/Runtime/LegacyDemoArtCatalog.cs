@@ -59,9 +59,8 @@ namespace ShatteredSail.Presentation
 
         private static readonly string[] RouteMapNames =
             { "shattered_sail_route_map_v2", "golden_tide_route_map_v2", "moon_tide_route_map_v2" };
-        private static readonly string[] EventSheetNames =
-            { "shattered_sail_event_sheet_v2", "golden_tide_event_sheet_v2", "moon_tide_event_sheet_v2" };
         private readonly Func<string, Texture2D> resourceLoader;
+        private readonly EncounterIllustrationCatalog encounterIllustrations;
         private readonly Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>(StringComparer.Ordinal);
 
         public LegacyDemoArtCatalog() : this(Resources.Load<Texture2D>) { }
@@ -69,6 +68,7 @@ namespace ShatteredSail.Presentation
         internal LegacyDemoArtCatalog(Func<string, Texture2D> resourceLoader)
         {
             this.resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
+            encounterIllustrations = new EncounterIllustrationCatalog(resourceLoader);
         }
 
         public Texture2D ShipSheet => Load("ship_sprite_sheet");
@@ -76,7 +76,11 @@ namespace ShatteredSail.Presentation
         public Texture2D CardSheet => Load("card_icon_sheet");
         public Texture2D CrewSheet => Load("crew_portrait_sheet");
         /// <summary>Releases cached references; live UI and Resources still own the borrowed textures.</summary>
-        public void ReleaseLoadedTextures() => textures.Clear();
+        public void ReleaseLoadedTextures()
+        {
+            textures.Clear();
+            encounterIllustrations.ReleaseLoadedTextures();
+        }
 
         // Availability is an explicit full validation; normal lookups load only their own art.
         public bool IsAvailable
@@ -104,7 +108,21 @@ namespace ShatteredSail.Presentation
 
         public Texture2D EventSheet(int routeIndex)
         {
-            return Load(EventSheetNames[Mathf.Clamp(routeIndex, 0, EventSheetNames.Length - 1)]);
+            return encounterIllustrations.RouteSheet(routeIndex);
+        }
+
+        public void EncounterArt(int routeIndex, string encounterId, out Texture2D texture, out Rect uv, bool legacyTutorial = false)
+        {
+            if (encounterIllustrations.TryLoad(encounterId, out texture, out uv, legacyTutorial)) return;
+            texture = EventSheet(routeIndex);
+            uv = EncounterUv(encounterId);
+        }
+
+        public void EncounterArt(int routeIndex, CoreEncounter encounter, out Texture2D texture, out Rect uv, bool legacyTutorial = false)
+        {
+            if (encounterIllustrations.TryLoad(encounter, out texture, out uv, legacyTutorial)) return;
+            texture = EventSheet(routeIndex);
+            uv = EncounterUv(encounter?.Id);
         }
 
         public Rect EncounterUv(CoreEncounter encounter)
@@ -119,8 +137,8 @@ namespace ShatteredSail.Presentation
             if (string.IsNullOrEmpty(encounterId)) return CellUv(0, 0, 5, 4);
             if (!encounterCells.TryGetValue(encounterId, out Vector2Int cell))
             {
-                uint hash = ShatteredSail.Core.Random.SeedHash.Compute(encounterId);
-                cell = new Vector2Int((int)(hash % 5), (int)((hash / 5) % 4));
+                // Unknown content has a stable neutral fallback; existing events use EncounterArt's authored bindings.
+                cell = new Vector2Int(1, 0);
             }
             return CellUv(cell.x, cell.y, 5, 4);
         }

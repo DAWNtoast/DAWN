@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="4" result="Passed" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-22 16:05:18Z" end-time="2026-10-22 16:06:15Z" duration="57.5209775">
+  <test-suite type="TestSuite" id="1656" name="ArtRenovationValidation20261022" fullname="ArtRenovationValidation20261022" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 16:05:18Z" end-time="2026-10-22 16:06:15Z" duration="57.520978" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1649" name="ShatteredSail.Presentation.PlayModeTests.dll" fullname="D:/Game/tmp/shipyard-detail-clean-20261011/Library/ScriptAssemblies/ShatteredSail.Presentation.PlayModeTests.dll" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 16:05:18Z" end-time="2026-10-22 16:06:15Z" duration="57.515463" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="29272" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1650" name="ShatteredSail" fullname="ShatteredSail" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 16:05:18Z" end-time="2026-10-22 16:06:15Z" duration="57.513246" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1651" name="Presentation" fullname="ShatteredSail.Presentation" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 16:05:18Z" end-time="2026-10-22 16:06:15Z" duration="57.511061" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1652" name="Tests" fullname="ShatteredSail.Presentation.Tests" runstate="Runnable" testcasecount="602" result="Passed" start-time="2026-10-22 16:05:18Z" end-time="2026-10-22 16:06:15Z" duration="57.508944" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1447" name="BattlePresentationTests" fullname="ShatteredSail.Presentation.Tests.BattlePresentationTests" classname="ShatteredSail.Presentation.Tests.BattlePresentationTests" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-10-22 16:05:18Z" end-time="2026-10-22 16:06:13Z" duration="55.631578" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1452" name="AllRouteBosses_UseTacticalShipMarkersAndKeepBossState" fullname="ShatteredSail.Presentation.Tests.BattlePresentationTests.AllRouteBosses_UseTacticalShipMarkersAndKeepBossState" methodname="AllRouteBosses_UseTacticalShipMarkersAndKeepBossState" classname="ShatteredSail.Presentation.Tests.BattlePresentationTests" runstate="Runnable" seed="1661980509" result="Passed" start-time="2026-10-22 16:05:18Z" end-time="2026-10-22 16:05:36Z" duration="18.355176" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1450" name="BattleOverlay_UsesTacticalSeaAndKeepsTerrainAndCardComposition" fullname="ShatteredSail.Presentation.Tests.BattlePresentationTests.BattleOverlay_UsesTacticalSeaAndKeepsTerrainAndCardComposition" methodname="BattleOverlay_UsesTacticalSeaAndKeepsTerrainAndCardComposition" classname="ShatteredSail.Presentation.Tests.BattlePresentationTests" runstate="Runnable" seed="571124035" result="Passed" start-time="2026-10-22 16:05:36Z" end-time="2026-10-22 16:05:49Z" duration="13.017492" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1453" name="BattleSurfaces_PersistAfterHoverCardPlayAndEndTurnAnimations" fullname="ShatteredSail.Presentation.Tests.BattlePresentationTests.BattleSurfaces_PersistAfterHoverCardPlayAndEndTurnAnimations" methodname="BattleSurfaces_PersistAfterHoverCardPlayAndEndTurnAnimations" classname="ShatteredSail.Presentation.Tests.BattlePresentationTests" runstate="Runnable" seed="2098448873" result="Passed" start-time="2026-10-22 16:05:49Z" end-time="2026-10-22 16:06:13Z" duration="24.250621" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1561" name="NavalBattleVisualFeedbackTests" fullname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests" classname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-10-22 16:06:13Z" end-time="2026-10-22 16:06:15Z" duration="1.865837" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1566" name="AllTwelveFlagships_RenderTacticalMarkersAndRetainInstalledComponentsAtContactRange" fullname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests.AllTwelveFlagships_RenderTacticalMarkersAndRetainInstalledComponentsAtContactRange" methodname="AllTwelveFlagships_RenderTacticalMarkersAndRetainInstalledComponentsAtContactRange" classname="ShatteredSail.Presentation.Tests.NavalBattleVisualFeedbackTests" runstate="Runnable" seed="1210679238" result="Passed" start-time="2026-10-22 16:06:13Z" end-time="2026-10-22 16:06:15Z" duration="1.850263" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/Admin/AppData/LocalLow/CodexArtRenovation20261022/ArtRenovationValidation20261022\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

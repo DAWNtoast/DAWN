@@ -86,7 +86,7 @@ namespace ShatteredSail.Presentation
             CargoLabel("Voyage Cargo Details Heading", sheet, new Vector2(310,40), new Vector2(415,266),20,"物品详情",muted);
             RectTransform details = CreateRect("Voyage Cargo Details", sheet, new Vector2(350,584), new Vector2(415,-62));
             voyageCargoSelectionHint = CargoLabel("Voyage Cargo Selection Hint", details, new Vector2(306,160), new Vector2(0,24),23,
-                "<b>选择物品</b>\n<size=18>查看随船数量、舱容占用\n与物品详情</size>",muted);
+                "<b>选择物品</b>",muted);
             voyageCargoSelectionHint.lineSpacing = 1.35f;
             voyageCargoSelectionRoot = CreateRect("Voyage Cargo Selection", details, details.sizeDelta, Vector2.zero);
             BuildVoyageCargoSelection(voyageCargoSelectionRoot, current);

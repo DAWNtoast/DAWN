@@ -310,8 +310,8 @@ namespace ShatteredSail.Presentation
                     " / " + WarehouseVolume(quote.Capacity) +
                     (change < 0 ? "　释放 " : "　增加 ") + WarehouseVolume(Math.Abs(change)) + " 舱位";
                 string failure = WarehouseAdjustmentFailure(quote, delta);
-                status.text = failure.Length > 0 ? failure : "确认后立即转移；取消不会改变库存。";
-                if (confirm != null) confirm.interactable = !quote.Preview && Application.isPlaying && failure.Length == 0;
+                status.text = failure;
+                if (confirm != null) confirm.interactable = !quote.Preview && Application.isPlaying && delta != 0 && failure.Length == 0;
             };
             confirm = WarehouseDialogButton("Confirm Warehouse Cargo Adjustment", dialog,
                 new Vector2(332f, 60f), new Vector2(185f, -242f), "确认调整", () =>
@@ -323,7 +323,7 @@ namespace ShatteredSail.Presentation
                         FinishWarehouseCargoDialog(quote, "库存或货舱状态已变化，请重新调整。", false);
                         return;
                     }
-                    if (WarehouseAdjustmentFailure(quote, delta).Length > 0) return;
+                    if (delta == 0 || WarehouseAdjustmentFailure(quote, delta).Length > 0) return;
                     quote.Consumed = true;
                     bool success = session.TryAdjustPortWarehouseCargo(quote.Key, delta);
                     FinishWarehouseCargoDialog(quote, success ? "已调整" + quote.Definition.Name +
@@ -338,7 +338,7 @@ namespace ShatteredSail.Presentation
         private static string WarehouseAdjustmentFailure(WarehouseCargoQuote quote, int delta)
         {
             if (delta == 0) return quote.Carried == 0 && quote.MaxWithdrawal == 0
-                ? "没有可转移的物资，或船舱已满。" : "拖动滑条选择转移数量。";
+                ? "没有可转移的物资，或船舱已满。" : string.Empty;
             if (delta < -quote.Carried || delta > quote.MaxWithdrawal) return "转移数量超过库存或可用舱位。";
             if ((long)quote.Stored - delta > int.MaxValue) return "本港库存已达数量上限，请减少存入数量。";
             if ((long)quote.Carried + delta > int.MaxValue) return "随船数量已达上限，请减少装船数量。";
@@ -386,10 +386,8 @@ namespace ShatteredSail.Presentation
                     " / " + WarehouseVolume(quote.Capacity) + "　释放 " + WarehouseVolume(freed) + " 舱位" +
                     "\n金币 " + PortMarketCatalog.FormatPrice(quote.Gold) + " → " + PortMarketCatalog.FormatPrice(quote.Gold + revenue);
                 string failure = WarehouseSaleFailure(quote, stored, carried, revenue);
-                status.text = failure.Length > 0 ? failure : quote.Definition.IsRare
-                    ? "珍稀物品可用于高阶捐献与海上事件。"
-                    : "出售不占采购额度。";
-                if (confirm != null) confirm.interactable = !quote.Preview && Application.isPlaying && failure.Length == 0;
+                status.text = failure;
+                if (confirm != null) confirm.interactable = !quote.Preview && Application.isPlaying && total > 0 && failure.Length == 0;
             };
             confirm = WarehouseDialogButton("Confirm Warehouse Cargo Sale", dialog, new Vector2(346f, 60f),
                 new Vector2(192f, -315f), "确认出售", () =>
@@ -405,7 +403,7 @@ namespace ShatteredSail.Presentation
                     int stored = WarehouseSliderQuantity(storedSlider, 0, quote.Stored);
                     int carried = WarehouseSliderQuantity(shipSlider, 0, quote.Carried);
                     decimal revenue = quote.SellUnitPrice * ((long)stored + carried);
-                    if (WarehouseSaleFailure(quote, stored, carried, revenue).Length > 0) return;
+                    if ((long)stored + carried == 0 || WarehouseSaleFailure(quote, stored, carried, revenue).Length > 0) return;
                     quote.Consumed = true;
                     bool success = session.TrySellPortWarehouseCargo(quote.Key, stored, carried, revenue);
                     FinishWarehouseCargoDialog(quote, success ? "已出售" + quote.Definition.Name +
@@ -427,7 +425,7 @@ namespace ShatteredSail.Presentation
         {
             if (stored < 0 || carried < 0 || stored > quote.Stored || carried > quote.Carried)
                 return "出售数量超过库存，请重新选择。";
-            if ((long)stored + carried == 0) return "拖动两条滑条，选择本港与随船出售数量。";
+            if ((long)stored + carried == 0) return string.Empty;
             if (revenue <= 0) return "请选择可出售的物品数量。";
             if (revenue > CoreEconomyBalance.MaximumProfileGold - quote.Gold)
                 return "出售后超过金币账户上限，请减少数量；不会扣除未结算的货物。";

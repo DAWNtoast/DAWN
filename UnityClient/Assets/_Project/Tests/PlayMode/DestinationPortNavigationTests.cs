@@ -140,7 +140,11 @@ namespace ShatteredSail.Presentation.Tests
             node.Discovered = true;
             node.Visited = false;
             SetDestinationTestPosition(voyage, new VoyagePoint(voyage.Map.Destination.X - 4f, voyage.Map.Destination.Y - 3f));
-            ActiveButton("Heading East").onClick.Invoke();
+            voyage.SetHeading(SailingDirection.East);
+            // Heading input retains the chart. Rebuild after these test-only map
+            // edits so the real pointer clicks below target the arranged markers.
+            typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
             yield return null;
 
             yield return ClickDestinationTestGraphic(GameObject.Find("Event Node " + node.Id), Vector2.zero);
@@ -159,7 +163,9 @@ namespace ShatteredSail.Presentation.Tests
             boss.Position = node.Position;
             boss.Discovered = true;
             boss.Visited = false;
-            ActiveButton("Heading East").onClick.Invoke();
+            voyage.SetHeading(SailingDirection.East);
+            typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
             yield return null;
             Button bossMarker = ActiveButton("Event Node " + boss.Id);
             Assert.That(bossMarker.IsInteractable(), Is.True);

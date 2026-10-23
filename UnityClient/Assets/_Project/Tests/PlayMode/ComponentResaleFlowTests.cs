@@ -1,9 +1,11 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -12,6 +14,84 @@ namespace ShatteredSail.Presentation.Tests
 {
     public sealed partial class CoreGameplayDemoSceneTests
     {
+        [UnityTest, Timeout(120000)]
+        public IEnumerator ComponentResale_InspectIdleItemWithoutShopActionsAndReturnToSamePage()
+        {
+            yield return LoadComponentResaleFixture();
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            ComponentArtEntry entry = ComponentResaleFixtureEntry();
+            for (int index = 0; index < 6; index++) controller.GrantOwnedComponent(entry);
+            decimal gold = controller.Session.ProfileGold;
+            string[] inventory = controller.OwnedComponents.Select(item => item.InstanceId + ":" + item.ShipIndex).ToArray();
+            ClickAcceptanceButton("Port Hotspot ComponentShop"); yield return null;
+            ClickAcceptanceButton("Open Component Resale"); yield return null;
+            ClickAcceptanceButton("Component Resale Next"); yield return null;
+            Button sale = VisibleComponentSaleButtons().Single();
+            string instanceId = sale.name.Substring("Select Component Sale ".Length);
+            string page = GameObject.Find("Component Resale Page").GetComponent<Text>().text;
+            Button row = ActiveButton("Component Resale Row " + instanceId);
+            AssertResalePointerTarget("Component Resale Icon " + instanceId, row);
+            AssertResalePointerTarget("Component Resale Name " + instanceId, row);
+            AssertResalePointerTarget(sale.name, sale);
+            ExecuteEvents.Execute(row.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerClickHandler);
+            yield return null;
+            Assert.That(GameObject.Find("Component Resale Panel"), Is.Null);
+            Assert.That(GameObject.Find("Component Detail Name").GetComponent<Text>().text, Is.EqualTo(entry.Name));
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出售列表"));
+            GameObject detail = GameObject.Find("Component Shop Detail");
+            Assert.That(detail.GetComponentsInChildren<Button>(true).Any(button => button.name.StartsWith("Purchase ")), Is.False);
+            NavalBattleVisualCapture.Capture(controller, "07_Component_Resale_ReadOnly_Detail.png",
+                "出售列表打开对应部件详情，不显示购买或装配按钮", "Component Shop Detail");
+            foreach (string tab in new[] { "Effects", "Story", "SpecialCards", "Overview" })
+            {
+                ClickAcceptanceButton("ComponentDossierPage" + tab); yield return null;
+                Assert.That(GameObject.Find("Component Dossier " + tab + " Page"), Is.Not.Null);
+                Assert.That(detail.GetComponentsInChildren<Button>(true).Any(button => button.name.StartsWith("Purchase ")), Is.False);
+            }
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+            CollectionAssert.AreEqual(inventory, controller.OwnedComponents.Select(item => item.InstanceId + ":" + item.ShipIndex).ToArray());
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            Assert.That(GameObject.Find("Component Resale Page").GetComponent<Text>().text, Is.EqualTo(page));
+            sale = VisibleComponentSaleButtons().Single();
+            Assert.That(sale.name, Is.EqualTo("Select Component Sale " + instanceId));
+            AssertResalePointerTarget(sale.name, sale);
+            ExecuteEvents.Execute(sale.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerClickHandler);
+            yield return null;
+            Assert.That(GameObject.Find("Component Sale Confirmation"), Is.Not.Null);
+            Assert.That(GameObject.Find("Component Shop Detail"), Is.Null);
+            ClickAcceptanceButton("Cancel Component Sale"); yield return null;
+            ClickAcceptanceButton("Component Resale Row " + instanceId); yield return null;
+            ClickAcceptanceButton("Next Port Facility"); yield return null;
+            ClickAcceptanceButton("Previous Port Facility"); yield return null;
+            Assert.That(GameObject.Find("Component Resale Panel"), Is.Null);
+            Assert.That(GameObject.Find("Component Shop Detail"), Is.Null);
+            Button hero = Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
+                .Single(button => button.gameObject.activeInHierarchy && button.name.StartsWith("Component Shop Hero "));
+            hero.onClick.Invoke(); yield return null;
+            Button[] actions = GameObject.Find("Component Shop Detail").GetComponentsInChildren<Button>();
+            Assert.That(actions.Count(button => button.name.StartsWith("Purchase Component ")), Is.EqualTo(1));
+            Assert.That(actions.Count(button => button.name.StartsWith("Purchase And Equip Component ")), Is.EqualTo(1));
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回部件陈列"));
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+            CollectionAssert.AreEqual(inventory, controller.OwnedComponents.Select(item => item.InstanceId + ":" + item.ShipIndex).ToArray());
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void AssertResalePointerTarget(string targetName, Button expected)
+        {
+            Canvas.ForceUpdateCanvases();
+            RectTransform target = GameObject.Find(targetName).GetComponent<RectTransform>();
+            Canvas canvas = target.GetComponentInParent<Canvas>().rootCanvas;
+            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            Vector2 position = RectTransformUtility.WorldToScreenPoint(camera, target.TransformPoint(target.rect.center));
+            var pointer = new PointerEventData(EventSystem.current) { position = position };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits, Is.Not.Empty, targetName);
+            Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(hits[0].gameObject),
+                Is.SameAs(expected.gameObject), targetName + " must route to its intended action.");
+        }
+
         [UnityTest, Timeout(120000)]
         public IEnumerator ComponentResale_RealButtonsCancelThenSellOneCopyAndPersistWithoutRepeatedPayment()
         {

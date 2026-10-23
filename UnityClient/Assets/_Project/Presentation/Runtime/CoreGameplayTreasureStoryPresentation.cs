@@ -95,24 +95,12 @@ namespace ShatteredSail.Presentation
         private void BuildLegendaryShipPrelude(RectTransform overlay, ComicPageGraphic background,
             TreasureBattleStory story, int pageIndex)
         {
-            if (battleEnvironmentArt == null) battleEnvironmentArt = new BattleEnvironmentArtCatalog();
-            Texture2D sea = battleEnvironmentArt.ForTerrain(session.BattleTerrain) ??
-                Resources.Load<Texture2D>("BattleEnvironments/battle_open_ocean_v1");
-            // Never retain a chapter comic with empty dialogue balloons behind
-            // the standalone ship, including a temporarily unavailable import.
-            background.texture = sea;
-            background.SetPanel(new Rect(0f, 0f, 1f, 1f), true);
-            background.color = new Color(.48f, .56f, .64f, 1f);
-            if (SpecialWarshipArtCatalog.TryLoad(story.EncounterId, out Texture2D ship, out Rect uv))
-            {
-                RectTransform viewport = CreateRect("Treasure Legendary Ship Viewport", overlay, Vector2.zero, Vector2.zero);
-                viewport.anchorMin = new Vector2(.10f, .29f); viewport.anchorMax = new Vector2(.90f, .94f);
-                RawImage image = CreateRawImage("Treasure Legendary Ship Art", viewport, Vector2.one, Vector2.zero, ship, uv);
-                image.raycastTarget = false;
-                AspectRatioFitter fit = image.gameObject.AddComponent<AspectRatioFitter>();
-                fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-                fit.aspectRatio = ship.width / (float)ship.height;
-            }
+            // The same authored sea scene drives the event, chart preview and battle prelude.
+            // It already contains the ship and ocean; do not add a second ship or water layer.
+            ResolveEncounterIllustration(story.EncounterId, out Texture2D scene, out Rect uv);
+            background.texture = scene;
+            background.SetPanel(uv, true);
+            background.color = Color.white;
             RectTransform plaque = CreateFixedPanel("Treasure Legendary Story Plaque", overlay,
                 Vector2.zero, Vector2.zero, new Color(.025f, .055f, .075f, .94f));
             plaque.anchorMin = new Vector2(.10f, .075f); plaque.anchorMax = new Vector2(.90f, .27f);

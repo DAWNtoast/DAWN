@@ -52,6 +52,7 @@ namespace ShatteredSail.Core.Gameplay
             });
             CoreNavalFieldShipState ship = FieldShip(player);
             if (ship.FireImmunityExpires <= FieldOwnerTurn(player)) ship.FireImmunityCharges = 0;
+            if (ship.FieldImmunityExpires <= FieldOwnerTurn(player)) ship.FieldImmunityMask = ship.FieldImmunityExpires = 0;
             if (ship.AnchorExpires <= FieldOwnerTurn(player)) ship.AnchorCharges = 0;
             TriggerNavalBeneficialField(player, NavalFieldAt(player ? Battle.PlayerPositionMeters : Battle.EnemyPositionMeters));
         }
@@ -72,7 +73,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!NavalFieldsActive || marks <= 0) return 0;
             CoreNavalFieldCell cell = NavalFieldAt(player ? Battle.PlayerPositionMeters : Battle.EnemyPositionMeters);
             if (cell == null || cell.Kind != CoreNavalFieldKind.Curse || cell.PlayerOwned == player || !RecordNavalFieldTrigger(player, cell)) return 0;
-            return (int)Math.Min(8L, 2L * marks);
+            return NavalFieldImmune(FieldShip(player), CoreNavalFieldKind.Curse, FieldOwnerTurn(player)) ? 0 : 2;
         }
 
         private bool RecordNavalFieldTrigger(bool player, CoreNavalFieldCell cell, bool movementTrigger = false)
@@ -97,7 +98,7 @@ namespace ShatteredSail.Core.Gameplay
             }
             else
             {
-                if (player) Battle.PlayerBlock = SchoolSum(Battle.PlayerBlock, 6);
+                if (player) AddSchoolGuard(6);
                 else Battle.EnemyBlock = SchoolSum(Battle.EnemyBlock, NavalExpansionEnemyBlockGain(6, true));
                 ship.BloodAttackBonus = 4;
             }
@@ -109,6 +110,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (!RecordNavalFieldTrigger(player, cell, movementTrigger)) return false;
             CoreNavalFieldShipState ship = FieldShip(player);
+            if (NavalFieldImmune(ship, cell.Kind, FieldOwnerTurn(player))) return false;
             if (cell.Kind == CoreNavalFieldKind.Fire && ship.FireImmunityCharges > 0)
             {
                 ship.FireImmunityCharges--;
@@ -131,8 +133,13 @@ namespace ShatteredSail.Core.Gameplay
                 Battle.EnemyBlock -= absorbed;
                 Battle.EnemyHull = Math.Max(0, Battle.EnemyHull - (damage - absorbed));
             }
-            Battle.LastAction = (player ? "己舰" : "敌舰") + "进入" + (cell.Kind == CoreNavalFieldKind.Fire ? "火场" : "雷栅") +
+            string fieldAction = (player ? "己舰" : "敌舰") + (movementTrigger ? "进入" : "停留") +
+                (cell.Kind == CoreNavalFieldKind.Fire ? "火场" : "雷栅") +
                 "，格挡吸收 " + absorbed + "，船体损失 " + (damage - absorbed) + "。";
+            // Standing fire settles after the enemy acts. Preserve that current
+            // action; movement entries still replace an unrelated earlier action.
+            Battle.LastAction = !player && !movementTrigger && !string.IsNullOrEmpty(Battle.LastAction)
+                ? Battle.LastAction + " " + fieldAction : fieldAction;
             return ResolveBattleOutcome();
         }
 
@@ -146,7 +153,8 @@ namespace ShatteredSail.Core.Gameplay
             {
                 bool unused = !Battle.NavalFields.TriggerLedger.Contains(FieldTriggerKey(player, cell));
                 if (TriggerNavalFieldDamage(player, cell, true)) return true;
-                return unused && activeMovement && cell.Kind == CoreNavalFieldKind.Thunder;
+                return unused && activeMovement && cell.Kind == CoreNavalFieldKind.Thunder &&
+                    !NavalFieldImmune(FieldShip(player), cell.Kind, FieldOwnerTurn(player));
             }
             TriggerNavalBeneficialField(player, cell, true);
             return false;
@@ -166,7 +174,9 @@ namespace ShatteredSail.Core.Gameplay
             if (player) return false;
             CoreNavalFieldCell cell = NavalFieldAt(target);
             bool danger = cell != null && (cell.Kind == CoreNavalFieldKind.Fire || cell.Kind == CoreNavalFieldKind.Thunder) &&
-                !Battle.NavalFields.TriggerLedger.Contains(FieldTriggerKey(false, cell));
+                !Battle.NavalFields.TriggerLedger.Contains(FieldTriggerKey(false, cell)) &&
+                !NavalFieldImmune(FieldShip(player), cell.Kind, FieldOwnerTurn(player)) &&
+                (cell.Kind != CoreNavalFieldKind.Fire || FieldShip(player).FireImmunityCharges <= 0);
             return danger || NavalGridDistance(target, Battle.PlayerPositionMeters) > NavalDistanceCells;
         }
 
@@ -209,6 +219,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!NavalFieldsActive) return;
             CoreNavalFieldCell cell = NavalFieldAt(player ? Battle.PlayerPositionMeters : Battle.EnemyPositionMeters);
             if (cell == null || cell.Kind != CoreNavalFieldKind.Tide || !RecordNavalFieldTrigger(player, cell, true)) return;
+            if (NavalFieldImmune(FieldShip(player), cell.Kind, FieldOwnerTurn(player))) return;
             PushNavalShipCore(player, cell.DirectionX, cell.DirectionY, false, frames);
         }
     }

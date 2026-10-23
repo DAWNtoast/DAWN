@@ -53,7 +53,7 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(2, 5, 1)]
         [TestCase(0, 2, 0)]
-        public void BasicSustainedHeal_PaysOnceAndTicksOnExactlyTwoPlayerEnds(int medicine, int tick, int medicineSpent)
+        public void BasicSustainedHeal_PaysOnceAndDecaysByOneAtEachPlayerEnd(int medicine, int layers, int medicineSpent)
         {
             CoreVoyageSession s = Battle();
             s.Cargo.Medicine = medicine;
@@ -62,12 +62,16 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.Energy, Is.EqualTo(1));
             Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(500));
             Assert.That(s.Cargo.Medicine, Is.EqualTo(medicine - medicineSpent));
+            int totalHealing = 0;
+            for (int remaining = layers; remaining > 0; remaining--)
+            {
+                Assert.That(s.Battle.Boarding.ContinuousRecovery, Is.EqualTo(remaining));
+                End(s);
+                totalHealing += remaining;
+                Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(500 + totalHealing));
+            }
             End(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(500 + tick));
-            End(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(500 + 2 * tick));
-            End(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(500 + 2 * tick));
+            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(500 + layers * (layers + 1) / 2));
             Assert.That(s.Cargo.Medicine, Is.EqualTo(medicine - medicineSpent), "Later ticks never charge a second medicine.");
             Assert.That(s.Battle.Boarding.HealingTicks, Is.Empty);
         }
@@ -159,6 +163,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.EndBattleTurn(), Is.True);
             s.Battle.EnemyHull = s.Battle.EnemyMaxHull = 1000;
             s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);

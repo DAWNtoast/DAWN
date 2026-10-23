@@ -2,7 +2,7 @@ using ShatteredSail.Core.Gameplay;
 
 namespace ShatteredSail.Presentation
 {
-    /// <summary>Displays only resources actually paid by PaySchoolCardCost.</summary>
+    /// <summary>Displays fixed resource costs and X for cards that spend their available resource.</summary>
     public static class CardSpecialCostPresentation
     {
         public static string ResourceType(CoreBattleCard card)
@@ -12,7 +12,6 @@ namespace ShatteredSail.Presentation
             {
                 if (naval.ManaCost > 0) return "mana";
                 if (naval.HullCost > 0) return "health";
-                if (naval.WoodCost > 0) return "wood";
                 if (naval.ResourceLabel == "咒印") return "curse";
                 if (naval.ResourceLabel == "潮势") return "tide";
                 if (naval.ResourceLabel == "连锁" || naval.Key == "L06") return "chain";
@@ -22,6 +21,7 @@ namespace ShatteredSail.Presentation
             {
                 string key = card.BoardingSpec.Key;
                 if (BoardingCostText(key).Length == 0) return string.Empty;
+                if (key == "fire_14") return "health";
                 if (key.StartsWith("arcane_")) return "mana";
                 if (key.StartsWith("curse_")) return "curse";
                 if (key.StartsWith("tide_")) return "tide";
@@ -35,6 +35,8 @@ namespace ShatteredSail.Presentation
             {
                 case CoreSchoolMechanic.ArcaneRelease:
                 case CoreSchoolMechanic.ArcaneWard:
+                case CoreSchoolMechanic.ArcaneAttackReserve:
+                case CoreSchoolMechanic.ArcaneGuardReserve:
                 case CoreSchoolMechanic.ArcaneMend:
                 case CoreSchoolMechanic.ArcaneEcho:
                     return effect.Threshold > 0 ? "mana" : string.Empty;
@@ -44,7 +46,6 @@ namespace ShatteredSail.Presentation
                 case CoreSchoolMechanic.CurseDrain:
                 case CoreSchoolMechanic.CurseWard:
                     return effect.Threshold > 0 ? "curse" : string.Empty;
-                case CoreSchoolMechanic.TideWard: return effect.WoodCost > 0 ? "wood" : string.Empty;
                 case CoreSchoolMechanic.TideRiposte:
                 case CoreSchoolMechanic.TideCleanse:
                 case CoreSchoolMechanic.TideRenew: return "tide";
@@ -53,7 +54,8 @@ namespace ShatteredSail.Presentation
             }
         }
 
-        public static string CostText(CoreBattleCard card, CoreBattleState battle = null, int? availableWood = null)
+        public static string CostText(CoreBattleCard card, CoreBattleState battle = null, int? availableWood = null,
+            int? availableMedicine = null)
         {
             if (ResourceType(card) == "health" && CoreSpecialCardRules.WaivesBloodCost(card, battle)) return "0";
             CoreNavalExpansionCardSpec naval = CoreNavalSchoolExpansionCatalog.FindSpec(card?.Id);
@@ -61,23 +63,23 @@ namespace ShatteredSail.Presentation
             {
                 if (naval.ManaCost > 0) return naval.ManaCost.ToString();
                 if (naval.HullCost > 0) return naval.HullCost.ToString();
-                if (naval.WoodCost > 0) return availableWood.HasValue && availableWood.Value < naval.WoodCost ? "0" : naval.WoodCost.ToString();
-                if (naval.Key == "L06") return battle == null ? "全" : battle.Schools.ThunderChain.ToString();
+                if (naval.Key == "L06" || naval.ConsumesAllResource) return "X";
                 if (naval.ResourceMaximum > 0) return naval.ResourceMinimum == naval.ResourceMaximum
                     ? naval.ResourceMinimum.ToString() : naval.ResourceMinimum + "–" + naval.ResourceMaximum;
                 return string.Empty;
             }
-            if (card?.BoardingSpec != null) return BoardingCostText(card.BoardingSpec.Key);
+            if (card?.BoardingSpec != null)
+            {
+                string key = card.BoardingSpec.Key;
+                if (availableMedicine == 0 && (key == "arcane_05" || key == "curse_12" ||
+                    key == "tide_11" || key == "tide_12")) return "0";
+                return BoardingCostText(key);
+            }
             if (ResourceType(card).Length == 0) return string.Empty;
             switch (card.SchoolEffect.Mechanic)
             {
-                case CoreSchoolMechanic.TideWard:
-                    return battle != null && availableWood.HasValue && availableWood.Value < card.SchoolEffect.WoodCost
-                        ? "0" : card.SchoolEffect.WoodCost.ToString();
                 case CoreSchoolMechanic.TideRiposte:
-                    return battle == null ? "全" : battle.Schools.TidePower.ToString();
-                case CoreSchoolMechanic.ThunderFinish:
-                    return battle == null ? "全" : battle.Schools.ThunderChain.ToString();
+                case CoreSchoolMechanic.ThunderFinish: return "X";
                 default: return card.SchoolEffect.Threshold.ToString();
             }
         }
@@ -86,13 +88,14 @@ namespace ShatteredSail.Presentation
         {
             switch (key)
             {
-                case "arcane_04": case "arcane_06": case "arcane_11": return "全";
+                case "fire_14": return "2";
+                case "arcane_04": case "arcane_06": case "arcane_11": return "X";
                 case "arcane_07": case "arcane_08": case "arcane_09": case "arcane_12":
                 case "arcane_13": case "arcane_14": case "curse_13": return "1";
                 case "arcane_05": case "arcane_10": case "arcane_15": case "curse_12": case "curse_14":
                 case "curse_15": case "tide_10": case "thunder_09": return "2";
                 case "curse_11": case "tide_06": case "tide_07": case "tide_08":
-                case "thunder_13": case "thunder_14": case "thunder_15": return "全";
+                case "thunder_13": case "thunder_14": case "thunder_15": return "X";
                 case "tide_09": return "4";
                 case "tide_12": case "tide_13": case "tide_14": return "8";
                 case "tide_11": case "tide_15": return "6";

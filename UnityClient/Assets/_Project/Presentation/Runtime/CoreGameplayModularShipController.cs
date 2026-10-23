@@ -223,21 +223,7 @@ namespace ShatteredSail.Presentation
 
         private ComponentVoyageContext CurrentComponentVoyageContext()
         {
-            CoreVoyageTimeBand coreTime = session == null ? CoreVoyageTimeBand.Day : session.CurrentVoyageTimeBand;
-            ComponentTimeBand time = coreTime == CoreVoyageTimeBand.Dawn ? ComponentTimeBand.Dawn :
-                coreTime == CoreVoyageTimeBand.Day ? ComponentTimeBand.Day :
-                coreTime == CoreVoyageTimeBand.Dusk ? ComponentTimeBand.Dusk : ComponentTimeBand.Night;
-            ComponentRouteType route = ComponentRouteType.OpenSea;
-            if (session.SelectedRouteIndex == 0) route = ComponentRouteType.Reef;
-            else if (session.SelectedRouteIndex == 1) route = ComponentRouteType.Trade;
-            else if (session.SelectedRouteIndex >= 2) route = ComponentRouteType.DeepSea;
-
-            CoreVoyageWeather coreWeather = session == null ? CoreVoyageWeather.Calm : session.CurrentVoyageWeather;
-            ComponentWeatherType weather = coreWeather == CoreVoyageWeather.Storm ? ComponentWeatherType.Storm :
-                coreWeather == CoreVoyageWeather.Fog ? ComponentWeatherType.Fog :
-                coreWeather == CoreVoyageWeather.Wind ? ComponentWeatherType.Wind :
-                coreWeather == CoreVoyageWeather.Rain ? ComponentWeatherType.Rain : ComponentWeatherType.Calm;
-            return new ComponentVoyageContext(time, route, weather);
+            return ComponentVoyageContextResolver.FromSession(session);
         }
 
         private RectTransform BuildModularShipPreview(

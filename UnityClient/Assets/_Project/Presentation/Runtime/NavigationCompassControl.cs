@@ -50,6 +50,11 @@ namespace ShatteredSail.Presentation
 
         private void LateUpdate()
         {
+            RefreshSelection();
+        }
+
+        public void RefreshSelection()
+        {
             if (IsHeadingTarget) return;
             // Selection belongs to WoodButtonRoleState; disabled state belongs
             // to Button. Observe both without replacing any gameplay callback.

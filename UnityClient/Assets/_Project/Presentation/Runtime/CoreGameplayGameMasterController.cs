@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -25,6 +27,13 @@ namespace ShatteredSail.Presentation
         private Button gameMasterSetTreasureFragmentsButton;
         private Button gameMasterRefreshShopButton;
         private Button gameMasterRefreshMarketButton;
+        private Button gameMasterUnlockComponentsButton;
+        private Button gameMasterLevelTenButton;
+        private Button gameMasterPortPreviousButton;
+        private Button gameMasterPortNextButton;
+        private Button gameMasterMovePortButton;
+        private Text gameMasterTargetPortLabel;
+        private int gameMasterTargetPortIndex;
         private Text gameMasterStatus;
         private string gameMasterPortAtOpen;
         private float gameMasterNextActionTime;
@@ -48,7 +57,7 @@ namespace ShatteredSail.Presentation
             return PlayerPrefs.GetString(GameMasterShopScopeKey, string.Empty);
         }
 
-        private bool CanOpenGameMaster => Application.isPlaying && !tutorialActive && pendingMarketPurchase == null &&
+        private bool CanOpenGameMaster => Application.isPlaying && !editorPreviewBuilding && !profileSaveBlocked && !tutorialActive && pendingMarketPurchase == null &&
             schoolUnlockNotice == null && session != null && session.Phase == CoreDemoPhase.Port && !DeckBuilderNeedsMoreCards;
 
         private bool CanUseGameMaster => CanOpenGameMaster && gameMasterOverlay != null &&
@@ -62,7 +71,7 @@ namespace ShatteredSail.Presentation
             if (gameMasterOverlay == null && gameMasterPageChanged && CanOpenGameMaster)
             {
                 gameMasterPageChanged = false;
-                if (activePortFacility >= 0) Render();
+                Render();
             }
             if (gameMasterOverlay != null && (!CanOpenGameMaster ||
                 !string.Equals(gameMasterPortAtOpen, session.CurrentPort, StringComparison.Ordinal)))
@@ -97,13 +106,13 @@ namespace ShatteredSail.Presentation
             gameMasterOverlay = CreateStretchPanel("Game Master Overlay", contentRoot.parent, new Color(0.015f, 0.025f, 0.04f, 0.9f));
             gameMasterOverlay.SetAsLastSibling();
             gameMasterOverlay.gameObject.AddComponent<PortSettingsBackgroundFocusHandler>().OnBackgroundPressed = FocusGameMaster;
-            RectTransform sheet = CreateFixedPanel("Game Master Sheet", gameMasterOverlay, new Vector2(1040f, 840f), Vector2.zero, Panel);
-            Text title = CreateText("Game Master Title", sheet, new Vector2(920f, 52f), new Vector2(0f, 345f), 32, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
+            RectTransform sheet = CreateFixedPanel("Game Master Sheet", gameMasterOverlay, new Vector2(1040f, 980f), Vector2.zero, Panel);
+            Text title = CreateText("Game Master Title", sheet, new Vector2(920f, 52f), new Vector2(0f, 425f), 32, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
             title.text = "GAME MASTER · 测试工具";
-            Text explanation = CreateText("Game Master Scope", sheet, new Vector2(900f, 68f), new Vector2(0f, 279f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
+            Text explanation = CreateText("Game Master Scope", sheet, new Vector2(900f, 56f), new Vector2(0f, 367f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
             explanation.text = "仅港口可用 · 修改立即保存至当前存档\nF10 / Esc 关闭 · 每次打开须重新启用";
 
-            RectTransform unlock = CreateRect("Game Master Unlock", sheet, new Vector2(900f, 48f), new Vector2(0f, 215f));
+            RectTransform unlock = CreateRect("Game Master Unlock", sheet, new Vector2(900f, 48f), new Vector2(0f, 309f));
             Image hit = unlock.gameObject.AddComponent<Image>();
             hit.color = Color.clear;
             gameMasterUnlockToggle = unlock.gameObject.AddComponent<Toggle>();
@@ -118,46 +127,48 @@ namespace ShatteredSail.Presentation
             unlockLabel.raycastTarget = false;
             gameMasterUnlockToggle.onValueChanged.AddListener(_ => RefreshGameMasterControls());
 
-            Text goldLabel = CreateText("Game Master Gold Label", sheet, new Vector2(890f, 32f), new Vector2(0f, 151f), 19, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
+            Text goldLabel = CreateText("Game Master Gold Label", sheet, new Vector2(890f, 32f), new Vector2(0f, 253f), 19, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
             goldLabel.text = "设置船长金币精确值 · 范围 0–1,000,000,000";
-            gameMasterGoldInput = CreateInputField("Game Master Gold Input", sheet, new Vector2(570f, 58f), new Vector2(-160f, 94f), session.ProfileGold.ToString(CultureInfo.InvariantCulture));
+            gameMasterGoldInput = CreateInputField("Game Master Gold Input", sheet, new Vector2(570f, 58f), new Vector2(-160f, 202f), session.ProfileGold.ToString(CultureInfo.InvariantCulture));
             // Leave content validation off: filtering a pasted '-1' to '1' would
             // silently change the requested value. Reject the entire invalid input.
             gameMasterGoldInput.contentType = InputField.ContentType.Standard;
             gameMasterGoldInput.characterLimit = 0;
             ((Text)gameMasterGoldInput.placeholder).text = "输入非负金额，最多四位小数";
             gameMasterGoldInput.onValueChanged.AddListener(_ => RefreshGameMasterControls());
-            gameMasterSetGoldButton = CreateButton("Game Master Set Gold", sheet, new Vector2(280f, 58f), new Vector2(305f, 94f), Teal, Ink, 21);
+            gameMasterSetGoldButton = CreateButton("Game Master Set Gold", sheet, new Vector2(280f, 58f), new Vector2(305f, 202f), Teal, Ink, 21);
             gameMasterSetGoldButton.GetComponentInChildren<Text>().text = "设置金币并保存";
             gameMasterSetGoldButton.onClick.AddListener(ApplyGameMasterGold);
 
-            Text fragmentsLabel = CreateText("Game Master Treasure Fragments Label", sheet, new Vector2(890f, 32f), new Vector2(0f, 31f), 19, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
+            Text fragmentsLabel = CreateText("Game Master Treasure Fragments Label", sheet, new Vector2(890f, 32f), new Vector2(0f, 145f), 19, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
             fragmentsLabel.text = "设置未鉴定藏宝图碎片数量 · 范围 0–2,147,483,647";
-            gameMasterTreasureFragmentsInput = CreateInputField("Game Master Treasure Fragments Input", sheet, new Vector2(570f, 58f), new Vector2(-160f, -25f), session.TreasureFragments.ToString(CultureInfo.InvariantCulture));
+            gameMasterTreasureFragmentsInput = CreateInputField("Game Master Treasure Fragments Input", sheet, new Vector2(570f, 58f), new Vector2(-160f, 94f), session.TreasureFragments.ToString(CultureInfo.InvariantCulture));
             gameMasterTreasureFragmentsInput.contentType = InputField.ContentType.Standard;
             gameMasterTreasureFragmentsInput.characterLimit = 0;
             ((Text)gameMasterTreasureFragmentsInput.placeholder).text = "输入半角非负整数，0 可清空未鉴定碎片";
             gameMasterTreasureFragmentsInput.onValueChanged.AddListener(_ => RefreshGameMasterControls());
-            gameMasterSetTreasureFragmentsButton = CreateButton("Game Master Set Treasure Fragments", sheet, new Vector2(280f, 58f), new Vector2(305f, -25f), Teal, Ink, 21);
+            gameMasterSetTreasureFragmentsButton = CreateButton("Game Master Set Treasure Fragments", sheet, new Vector2(280f, 58f), new Vector2(305f, 94f), Teal, Ink, 21);
             gameMasterSetTreasureFragmentsButton.GetComponentInChildren<Text>().text = "设置碎片并保存";
             gameMasterSetTreasureFragmentsButton.onClick.AddListener(ApplyGameMasterTreasureFragments);
 
-            gameMasterRefreshShopButton = CreateButton("Game Master Refresh Shop", sheet, new Vector2(435f, 58f), new Vector2(-228f, -111f), PanelRaised, Gold, 19);
+            gameMasterRefreshShopButton = CreateButton("Game Master Refresh Shop", sheet, new Vector2(435f, 58f), new Vector2(-228f, 16f), PanelRaised, Gold, 19);
             gameMasterRefreshShopButton.GetComponentInChildren<Text>().text = "刷新本港部件商店";
             gameMasterRefreshShopButton.onClick.AddListener(ApplyGameMasterShopRefresh);
-            gameMasterRefreshMarketButton = CreateButton("Game Master Refresh Market", sheet, new Vector2(435f, 58f), new Vector2(228f, -111f), PanelRaised, Gold, 19);
+            gameMasterRefreshMarketButton = CreateButton("Game Master Refresh Market", sheet, new Vector2(435f, 58f), new Vector2(228f, 16f), PanelRaised, Gold, 19);
             gameMasterRefreshMarketButton.GetComponentInChildren<Text>().text = "补满本港市场 · 重置本月额度";
             gameMasterRefreshMarketButton.onClick.AddListener(ApplyGameMasterMarketRefresh);
-            Text stockNote = CreateText("Game Master Stock Note", sheet, new Vector2(900f, 82f), new Vector2(0f, -185f), 17, FontStyle.Normal, TextAnchor.MiddleCenter, MutedInk);
-            stockNote.text = "碎片用于藏宝桌鉴定，海盗等级达到 2 后解锁；每张图集齐 4 片可合成。\n市场刷新恢复本月可购库存与额度，沿用本月价格；仅影响当前港口。\n不增加金币、随船货物或仓储物品，不推进游戏日期。";
-            gameMasterStatus = CreateText("Game Master Status", sheet, new Vector2(920f, 62f), new Vector2(0f, -276f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
+            BuildGameMasterProgressionControls(sheet);
+            Text stockNote = CreateText("Game Master Stock Note", sheet, new Vector2(900f, 76f), new Vector2(0f, -253f), 17, FontStyle.Normal, TextAnchor.MiddleCenter, MutedInk);
+            stockNote.text = "全部部件：每种补齐一件，存入部件库；已装备部件保持原位。\n转港：当前船只一同移动，返回港口总览并清空采购草稿，不推进日期。\n市场刷新仅恢复本港本月库存与额度，沿用本月价格。";
+            gameMasterStatus = CreateText("Game Master Status", sheet, new Vector2(920f, 76f), new Vector2(0f, -347f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
             gameMasterStatus.text = GameMasterCurrentState();
-            Button close = CreateButton("Close Game Master", sheet, new Vector2(420f, 48f), new Vector2(0f, -350f), PanelRaised, Ink, 20);
+            Button close = CreateButton("Close Game Master", sheet, new Vector2(420f, 48f), new Vector2(0f, -427f), PanelRaised, Ink, 20);
             close.GetComponentInChildren<Text>().text = "关闭测试工具 · F10 / Esc";
             close.onClick.AddListener(CloseGameMaster);
             Selectable[] controls = { gameMasterUnlockToggle, gameMasterGoldInput, gameMasterSetGoldButton,
                 gameMasterTreasureFragmentsInput, gameMasterSetTreasureFragmentsButton,
-                gameMasterRefreshShopButton, gameMasterRefreshMarketButton, close };
+                gameMasterRefreshShopButton, gameMasterRefreshMarketButton, gameMasterUnlockComponentsButton,
+                gameMasterLevelTenButton, gameMasterPortPreviousButton, gameMasterPortNextButton, gameMasterMovePortButton, close };
             for (int index = 0; index < controls.Length; index++)
             {
                 Navigation navigation = controls[index].navigation;
@@ -201,6 +212,14 @@ namespace ShatteredSail.Presentation
             if (gameMasterRefreshShopButton != null) gameMasterRefreshShopButton.interactable = ready &&
                 ComponentShopRefreshRevision(session.CurrentPort) < int.MaxValue;
             if (gameMasterRefreshMarketButton != null) gameMasterRefreshMarketButton.interactable = ready;
+            if (gameMasterUnlockComponentsButton != null) gameMasterUnlockComponentsButton.interactable = ready &&
+                !componentInventoryReadFailed && componentInventory != null && componentArt != null;
+            if (gameMasterLevelTenButton != null) gameMasterLevelTenButton.interactable = ready && !treasureProgressReadFailed;
+            if (gameMasterPortPreviousButton != null) gameMasterPortPreviousButton.interactable = CanUseGameMaster;
+            if (gameMasterPortNextButton != null) gameMasterPortNextButton.interactable = CanUseGameMaster;
+            if (gameMasterMovePortButton != null) gameMasterMovePortButton.interactable = ready &&
+                GameMasterTargetPort != null && GameMasterTargetPort != session.CurrentPort;
+            if (gameMasterTargetPortLabel != null) gameMasterTargetPortLabel.text = GameMasterTargetPort ?? "请选择港口";
         }
 
         private bool BeginGameMasterAction()
@@ -210,6 +229,146 @@ namespace ShatteredSail.Presentation
             gameMasterLastActionFrame = Time.frameCount;
             gameMasterNextActionTime = Time.unscaledTime + GameMasterActionDelay;
             return true;
+        }
+
+        private string GameMasterTargetPort => gameMasterTargetPortIndex >= 0 &&
+            gameMasterTargetPortIndex < CoreVoyageSession.DestinationPorts.Count
+                ? CoreVoyageSession.DestinationPorts[gameMasterTargetPortIndex] : null;
+
+        private void BuildGameMasterProgressionControls(RectTransform sheet)
+        {
+            gameMasterUnlockComponentsButton = CreateButton("Game Master Unlock Components", sheet,
+                new Vector2(435f, 58f), new Vector2(-228f, -62f), Teal, Ink, 21);
+            gameMasterUnlockComponentsButton.GetComponentInChildren<Text>().text = "解锁全部部件";
+            gameMasterUnlockComponentsButton.onClick.AddListener(ApplyGameMasterUnlockComponents);
+            gameMasterLevelTenButton = CreateButton("Game Master Level Ten", sheet,
+                new Vector2(435f, 58f), new Vector2(228f, -62f), Teal, Ink, 21);
+            gameMasterLevelTenButton.GetComponentInChildren<Text>().text = "海盗等级升到 10 级";
+            gameMasterLevelTenButton.onClick.AddListener(ApplyGameMasterLevelTen);
+
+            CreateText("Game Master Port Label", sheet, new Vector2(890f, 32f), new Vector2(0f, -123f),
+                19, FontStyle.Bold, TextAnchor.MiddleLeft, Ink).text = "移动到指定港口 · 点击左右箭头选择";
+            gameMasterTargetPortIndex = 0;
+            for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
+                if (CoreVoyageSession.DestinationPorts[index] == session.CurrentPort) gameMasterTargetPortIndex = index;
+            gameMasterPortPreviousButton = CreateButton("Game Master Previous Port", sheet,
+                new Vector2(78f, 58f), new Vector2(-406f, -174f), PanelRaised, Gold, 24);
+            gameMasterPortPreviousButton.GetComponentInChildren<Text>().text = "‹";
+            gameMasterPortPreviousButton.onClick.AddListener(() => SelectGameMasterPort(-1));
+            gameMasterTargetPortLabel = CreateText("Game Master Target Port", sheet, new Vector2(390f, 58f),
+                new Vector2(-160f, -174f), 23, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
+            gameMasterPortNextButton = CreateButton("Game Master Next Port", sheet,
+                new Vector2(78f, 58f), new Vector2(86f, -174f), PanelRaised, Gold, 24);
+            gameMasterPortNextButton.GetComponentInChildren<Text>().text = "›";
+            gameMasterPortNextButton.onClick.AddListener(() => SelectGameMasterPort(1));
+            gameMasterMovePortButton = CreateButton("Game Master Move Port", sheet,
+                new Vector2(280f, 58f), new Vector2(305f, -174f), Teal, Ink, 21);
+            gameMasterMovePortButton.GetComponentInChildren<Text>().text = "移动到所选港口";
+            gameMasterMovePortButton.onClick.AddListener(ApplyGameMasterMovePort);
+        }
+
+        private void SelectGameMasterPort(int direction)
+        {
+            if (!CanUseGameMaster) return;
+            int count = CoreVoyageSession.DestinationPorts.Count;
+            gameMasterTargetPortIndex = (gameMasterTargetPortIndex + direction + count) % count;
+            RefreshGameMasterControls();
+        }
+
+        private void ApplyGameMasterUnlockComponents()
+        {
+            if (!CanUseGameMaster || componentInventoryReadFailed || componentInventory == null || componentArt == null ||
+                !BeginGameMasterAction()) return;
+            var owned = new HashSet<string>(OwnedComponents.Select(item => item.ComponentId), StringComparer.Ordinal);
+            var cards = new HashSet<string>(StringComparer.Ordinal);
+            int added = 0;
+            foreach (ComponentArtEntry entry in componentArt.ExpandedEntries)
+            {
+                if (owned.Add(entry.Id) && componentInventory.Grant(entry) != null) added++;
+                CoreSpecialCardDefinition card = CoreSpecialCardCatalog.ForComponent(entry.Id);
+                if (card != null) cards.Add(card.Card.Id);
+            }
+            session.AcquireSpecialCards(cards.ToArray());
+            // Record the newly owned sources without saving unrelated card XP or crew drafts.
+            cards.UnionWith(PlayerPrefs.GetString(AcquiredSpecialCardsKey, string.Empty)
+                .Split(';').Where(id => !string.IsNullOrEmpty(id)));
+            PlayerPrefs.SetString(AcquiredSpecialCardsKey, string.Join(";", cards.OrderBy(id => id, StringComparer.Ordinal)));
+            SaveComponentInventory();
+            PlayerPrefs.Save();
+            gameMasterPageChanged = true;
+            gameMasterStatus.text = "已解锁全部 " + owned.Count + " 种部件，本次补入 " + added + " 件并保存。\n关闭工具后可在皇家船坞装备。";
+            RefreshGameMasterControls();
+        }
+
+        private void ApplyGameMasterLevelTen()
+        {
+            if (!CanUseGameMaster) return;
+            if (!TryReadGameMasterTreasureProgress(out CoreTreasureProgress progress))
+            {
+                gameMasterStatus.text = "藏宝档案无法读取，原始档案已保留；请修复后重新载入。";
+                RefreshGameMasterControls();
+                return;
+            }
+            if (!BeginGameMasterAction() || !session.TryGameMasterRaisePirateLevelToTen()) return;
+            progress.pirateExperience = Math.Max(progress.pirateExperience, session.PirateExperience);
+            PlayerPrefs.SetString(TreasureProgressKey, JsonUtility.ToJson(progress));
+            PlayerPrefs.Save();
+            gameMasterPageChanged = true;
+            gameMasterStatus.text = "海盗等级已升到 10 级并保存。" + GameMasterCurrentState();
+            UpdatePortHeaderReadouts(true);
+            RefreshGameMasterControls();
+        }
+
+        private void ApplyGameMasterMovePort()
+        {
+            if (!CanUseGameMaster || GameMasterTargetPort == null || GameMasterTargetPort == session.CurrentPort) return;
+            if (!TryReadGameMasterShipPorts(out CoreShipPortProgress progress))
+            {
+                gameMasterStatus.text = ShipPortReadFailureNotice;
+                return;
+            }
+            string target = GameMasterTargetPort;
+            if (!BeginGameMasterAction() || !session.TryGameMasterMoveToPort(target)) return;
+            var locations = new List<CoreShipPortLocation>(progress.ships);
+            CoreShipPortLocation flagship = locations.Find(item => item.shipIndex == session.SelectedShipIndex);
+            if (flagship == null)
+            {
+                flagship = new CoreShipPortLocation { shipIndex = session.SelectedShipIndex };
+                locations.Add(flagship);
+            }
+            flagship.port = target;
+            progress.ships = locations.ToArray();
+            PlayerPrefs.SetString(ShipPortProgressKey, JsonUtility.ToJson(progress));
+            PlayerPrefs.SetString(CurrentPortKey, target);
+            PlayerPrefs.Save();
+            pendingSupplyOrder.Clear();
+            ResetCachedFacilityNavigation();
+            BeginMarketPurchaseView();
+            activePortFacility = -1;
+            portNotice = "GM：已携当前船只移动到" + target + "，位置已保存。";
+            gameMasterPageChanged = true;
+            CloseGameMaster();
+        }
+
+        private bool TryReadGameMasterShipPorts(out CoreShipPortProgress progress)
+        {
+            progress = null;
+            if (!PlayerPrefs.HasKey(ShipPortProgressKey))
+            {
+                progress = session.CaptureShipPortProgress();
+                return true;
+            }
+            try
+            {
+                progress = JsonUtility.FromJson<CoreShipPortProgress>(PlayerPrefs.GetString(ShipPortProgressKey));
+            }
+            catch (ArgumentException) { }
+            if (progress == null || progress.version != 1 || progress.ships == null ||
+                progress.ships.Length > CoreVoyageSession.Ships.Count) return false;
+            var seen = new HashSet<int>();
+            return progress.ships.All(item => item != null && item.shipIndex >= 0 &&
+                item.shipIndex < CoreVoyageSession.Ships.Count && seen.Add(item.shipIndex) &&
+                CoreVoyageSession.DestinationPorts.Contains(item.port));
         }
 
         private void ApplyGameMasterGold()
@@ -314,7 +473,7 @@ namespace ShatteredSail.Presentation
         private void CloseGameMaster()
         {
             if (gameMasterOverlay == null) return;
-            bool changedPage = gameMasterPageChanged && CanOpenGameMaster && activePortFacility >= 0;
+            bool changedPage = gameMasterPageChanged && CanOpenGameMaster;
             bool refreshPage = changedPage && isActiveAndEnabled;
             // OnDisable also closes the modal during scene teardown. Defer any
             // redraw until a later enabled frame; never build UI while unloading.
@@ -339,6 +498,12 @@ namespace ShatteredSail.Presentation
             gameMasterSetTreasureFragmentsButton = null;
             gameMasterRefreshShopButton = null;
             gameMasterRefreshMarketButton = null;
+            gameMasterUnlockComponentsButton = null;
+            gameMasterLevelTenButton = null;
+            gameMasterPortPreviousButton = null;
+            gameMasterPortNextButton = null;
+            gameMasterMovePortButton = null;
+            gameMasterTargetPortLabel = null;
             gameMasterStatus = null;
             gameMasterPortAtOpen = null;
             if (EventSystem.current != null)

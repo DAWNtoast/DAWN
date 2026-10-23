@@ -186,24 +186,132 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void EventIllustration_UsesLargePaintingWithoutStretchingSubjects()
+        public void EventIllustration_SharesTheHeaderWithReadableProseWithoutStretchingSubjects()
         {
             CreatePreview(0);
             ShowCoreEncounter(ThreeChoiceEncounter(false));
             RawImage art = Find<RawImage>(host.transform, "Demo Event Art");
-            Assert.That(art.rectTransform.rect.width, Is.GreaterThanOrEqualTo(310f),
-                "The expanded illustration must remain visibly larger than the previous thumbnail.");
-            Assert.That(art.rectTransform.rect.height, Is.GreaterThanOrEqualTo(230f));
+            RectTransform narrative = Find<RectTransform>(host.transform, "Encounter Description Viewport");
+            Assert.That(art.rectTransform.rect.width, Is.GreaterThanOrEqualTo(240f),
+                "Keep the painting readable while making room for the prose and decisions.");
+            Assert.That(narrative.rect.width, Is.GreaterThanOrEqualTo(art.rectTransform.rect.width),
+                "The event description must no longer be squeezed beside an oversized illustration.");
             float sourceAspect = art.texture.width * art.uvRect.width / (art.texture.height * art.uvRect.height);
             float displayAspect = art.rectTransform.rect.width / art.rectTransform.rect.height;
             Assert.That(displayAspect, Is.EqualTo(4f / 3f).Within(.0001f),
-                "Enlarging the painting must preserve the existing 4:3 composition.");
+                "Reflowing the painting must preserve the existing 4:3 composition.");
             Assert.That(sourceAspect, Is.EqualTo(displayAspect).Within(0.0001f),
                 "The event crop must preserve painted faces, vessels and objects in the current illustration box.");
             Assert.That(((Texture2D)art.texture).mipmapCount, Is.GreaterThan(1),
                 "High-resolution event paintings must minify cleanly in the expanded event panel.");
-            Assert.That(art.uvRect.width, Is.EqualTo(0.2f - 16f / art.texture.width).Within(0.0001f),
-                "Retain the painting apart from the eight-pixel guard against neighboring atlas cells at small mip levels.");
+            Assert.That(art.texture, Is.SameAs(Resources.Load<Texture2D>(
+                EncounterIllustrationCatalog.ReviewedResourceRoot + "reef_broken_mast")));
+            Assert.That(EncounterIllustrationCatalog.TryGetLocation("event_reef_broken_mast", out var location), Is.True);
+            Assert.That(location.Uv, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)),
+                "The reviewed scene starts from the standalone painting, not a legacy atlas cell.");
+            // The landscape painting fills the 4:3 window after an eight-pixel mip guard.
+            // Preserve all safe vertical pixels and crop equal amounts from the left/right.
+            const float guardPixels = 8f;
+            float cropHeight = art.texture.height - 2f * guardPixels;
+            float cropWidth = cropHeight * 4f / 3f;
+            Assert.That(cropWidth, Is.LessThan(art.texture.width - 2f * guardPixels));
+            Assert.That(art.uvRect.xMin * art.texture.width,
+                Is.EqualTo((art.texture.width - cropWidth) * .5f).Within(.001f));
+            Assert.That(art.uvRect.xMax * art.texture.width,
+                Is.EqualTo((art.texture.width + cropWidth) * .5f).Within(.001f));
+            Assert.That(art.uvRect.yMin * art.texture.height, Is.EqualTo(guardPixels).Within(.001f));
+            Assert.That(art.uvRect.yMax * art.texture.height,
+                Is.EqualTo(art.texture.height - guardPixels).Within(.001f));
+        }
+
+        [Test]
+        public void LegacyAtlasIllustration_KeepsItsMipSamplingInsideTheAuthoredCell()
+        {
+            CreatePreview(0);
+            const string encounterId = "event_reef_shortcut";
+            ShowCoreEncounter(new CoreEncounter(encounterId, "捷径", "航海事件", "海流引向一条捷径。", false, false, 0, 0));
+            Assert.That(EncounterIllustrationCatalog.TryGetLocation(encounterId, out var location), Is.True);
+            RawImage art = Find<RawImage>(host.transform, "Demo Event Art");
+            Assert.That(art.texture, Is.SameAs(Resources.Load<Texture2D>(location.ResourcePath)));
+            Assert.That(((Texture2D)art.texture).mipmapCount, Is.GreaterThan(1));
+            float guardX = 8f / art.texture.width, guardY = 8f / art.texture.height;
+            Assert.That(art.uvRect.xMin, Is.GreaterThanOrEqualTo(location.Uv.xMin + guardX - .00001f));
+            Assert.That(art.uvRect.yMin, Is.GreaterThanOrEqualTo(location.Uv.yMin + guardY - .00001f));
+            Assert.That(art.uvRect.xMax, Is.LessThanOrEqualTo(location.Uv.xMax - guardX + .00001f));
+            Assert.That(art.uvRect.yMax, Is.LessThanOrEqualTo(location.Uv.yMax - guardY + .00001f));
+        }
+
+        [Test]
+        public void SpecialShipIllustration_RetainsTheCompletePaintingInTheCompactHeader()
+        {
+            CreatePreview(0);
+            ShowCoreEncounter(ThreeChoiceEncounter(false));
+            Assert.That(SpecialWarshipArtCatalog.TryLoad(CoreRouteBossCatalog.All.First().Id,
+                out Texture2D texture, out Rect uv), Is.True);
+            RawImage art = Find<RawImage>(host.transform, "Demo Event Art");
+            art.texture = texture;
+            art.uvRect = uv;
+            EncounterJournalLayout.Apply(Find<RectTransform>(host.transform, "Encounter Card"));
+            Canvas.ForceUpdateCanvases();
+
+            Assert.That(art.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+            Assert.That(art.rectTransform.rect.width / art.rectTransform.rect.height,
+                Is.EqualTo(texture.width / (float)texture.height).Within(.0001f));
+            RectTransform mount = Find<RectTransform>(host.transform, "Encounter Illustration Mount");
+            AssertContained(mount.rect, BoundsIn(mount, art.rectTransform), "Complete special ship painting");
+        }
+
+        [Test]
+        public void Choices_ReflowScrollbarGutterAndKeepCompactFooterFixedAsTextChanges()
+        {
+            CreatePreview(0);
+            ShowCoreEncounter(ThreeChoiceEncounter(false));
+            RectTransform card = Find<RectTransform>(host.transform, "Encounter Card");
+            RectTransform paper = Find<RectTransform>(card, "Encounter Paper Content");
+            RectTransform secondary = Find<RectTransform>(card, "Encounter Secondary Actions");
+            ScrollRect decisions = Find<ScrollRect>(card, "Encounter Decision Viewport");
+            Scrollbar bar = Find<Scrollbar>(card, "Encounter Decision Scrollbar");
+            Rect footer = BoundsIn(paper, secondary);
+            Text detail = Find<Text>(Find<Button>(card, "Encounter Choice 0").transform, "Detail");
+            string original = detail.text;
+
+            Assert.That(decisions.vertical, Is.False, "Three ordinary choices should fit without scrolling.");
+            Assert.That(decisions.viewport.rect.width, Is.EqualTo(paper.rect.width).Within(.01f));
+            Assert.That(BoundsIn(paper, decisions.viewport).xMin, Is.EqualTo(footer.xMin).Within(.01f));
+
+            detail.text = string.Concat(Enumerable.Repeat("整理完整的航海记录与物资清单。\n", 18));
+            EncounterJournalLayout.Apply(card);
+            Canvas.ForceUpdateCanvases();
+            Assert.That(decisions.vertical, Is.True);
+            Assert.That(bar.gameObject.activeSelf, Is.True);
+            Assert.That(decisions.viewport.rect.width, Is.LessThan(paper.rect.width));
+            Assert.That(BoundsIn(paper, decisions.viewport).xMax,
+                Is.LessThan(BoundsIn(paper, bar.GetComponent<RectTransform>()).xMin));
+            decisions.verticalNormalizedPosition = 0f;
+            Canvas.ForceUpdateCanvases();
+            RectTransform last = Find<Button>(card, "Encounter Choice 2").GetComponent<RectTransform>();
+            Assert.That(BoundsIn(decisions.viewport, last).yMin,
+                Is.EqualTo(decisions.viewport.rect.yMin).Within(.5f), "The final choice remains reachable.");
+            Assert.That(BoundsIn(paper, secondary), Is.EqualTo(footer));
+
+            detail.text = original;
+            EncounterJournalLayout.Apply(card);
+            Canvas.ForceUpdateCanvases();
+            Assert.That(decisions.vertical, Is.False);
+            Assert.That(bar.gameObject.activeSelf, Is.False);
+            Assert.That(decisions.viewport.rect.width, Is.EqualTo(paper.rect.width).Within(.01f));
+            Assert.That(decisions.content.anchoredPosition.y, Is.EqualTo(0f).Within(.5f));
+            Assert.That(BoundsIn(paper, secondary), Is.EqualTo(footer));
+            AssertJournalLayout(3, true);
+
+            // Also exercise actions with no description: an absent field must
+            // not leave the old blank second line in a single-line button.
+            Find<Text>(Find<Button>(card, "Skip Encounter").transform, "Detail").text = string.Empty;
+            EncounterJournalLayout.Apply(card);
+            Canvas.ForceUpdateCanvases();
+            Assert.That(secondary.rect.height, Is.LessThan(footer.height - 10f),
+                "Removing the description reclaims its line without shrinking the action label.");
+            AssertJournalLayout(3, true);
         }
 
         [Test]
@@ -488,8 +596,11 @@ namespace ShatteredSail.Core.Tests
             RectTransform choices = Find<RectTransform>(card, "Encounter Choices");
             RectTransform secondary = Find<RectTransform>(card, "Encounter Secondary Actions");
             Canvas.ForceUpdateCanvases();
-            string[] regions = { "Encounter Illustration Mount", "Encounter Location", "Encounter Title",
-                "Encounter Description Viewport", "Encounter Badge", "Encounter Decision Footer", "Encounter Decision Viewport" };
+            foreach (string name in new[] { "Encounter Journal Heading", "Encounter Badge", "Encounter Location",
+                "Encounter Decision Heading", "Encounter Decision Footer", "Encounter Footer Note" })
+                Assert.That(FindOptional<Transform>(card, name), Is.Null, "Removed explanation " + name);
+            string[] regions = { "Encounter Illustration Mount", "Encounter Title",
+                "Encounter Description Viewport", "Encounter Decision Viewport" };
             Rect[] bounds = regions.Select(name => BoundsIn(paper, Find<RectTransform>(card, name))).ToArray();
             for (int index = 0; index < regions.Length; index++)
             {
@@ -497,8 +608,7 @@ namespace ShatteredSail.Core.Tests
                 for (int other = index + 1; other < regions.Length; other++)
                     AssertClearGap(bounds[index], bounds[other], regions[index] + " / " + regions[other]);
             }
-            foreach (string name in new[] { "Encounter Title", "Encounter Badge", "Encounter Location", "Encounter Decision Footer" })
-                AssertTextFits(Find<Text>(card, name));
+            AssertTextFits(Find<Text>(card, "Encounter Title"));
             RectTransform art = Find<RectTransform>(card, "Encounter Illustration Mount");
             AssertContained(art.rect, BoundsIn(art, Find<RawImage>(art, "Demo Event Art").rectTransform), "Encounter illustration");
 

@@ -58,8 +58,88 @@ namespace ShatteredSail.Core.Gameplay
                     if (cells.Add(((long)x << 32) | (uint)y)) result.Add(point);
                     CoreNavalFieldCell field = NavalFieldAt(point);
                     if (field == null || field.Kind != CoreNavalFieldKind.Thunder ||
-                        Battle.NavalFields.TriggerLedger.Contains(FieldTriggerKey(true, field))) pending.Enqueue(next);
+                        Battle.NavalFields.TriggerLedger.Contains(FieldTriggerKey(true, field)) ||
+                        NavalFieldImmune(FieldShip(true), field.Kind, FieldOwnerTurn(true))) pending.Enqueue(next);
                 }
+            }
+            return result.AsReadOnly();
+        }
+
+        private sealed class NavalAttackReachPath
+        {
+            internal List<CoreNavalMovementNode> Nodes;
+            internal CoreNavalMovementFieldPreview Travel;
+        }
+
+        /// <summary>
+        /// Living ordinary arrival positions from which a later attack can be made.
+        /// Unlike the blue route cells, these include end-of-movement water pushes.
+        /// This query does not select a route or commit any terrain trigger.
+        /// </summary>
+        public IReadOnlyList<VoyagePoint> GetNavalReachableAttackOrigins()
+        {
+            var result = new List<VoyagePoint>();
+            if (!NavalActionMovementActive || Battle.NavalAwaitingHeadingSelection || Battle.NavalActionPoints <= 0 ||
+                Hull <= 0 || Battle.EnemyHull <= 0 || GuidedBossMovementRestriction(Battle.PlayerPositionMeters, 0).Length > 0)
+                return result.AsReadOnly();
+            if (!NavalFieldsActive || Battle.NavalFields.Cells.Count == 0)
+            {
+                foreach (VoyagePoint point in GetNavalReachableCells())
+                    if (!NavalMovementTargetsEnemy(point)) result.Add(point);
+                return result.AsReadOnly();
+            }
+
+            VoyagePoint origin = Battle.PlayerPositionMeters;
+            NavalFieldPreviewContext context = CreateNavalFieldPreviewContext(true);
+            var cells = new HashSet<VoyagePoint>();
+            var frontier = new Dictionary<NavalReachState, NavalAttackReachPath>();
+            frontier.Add(new NavalReachState(0, 0, 0, 0), new NavalAttackReachPath
+            {
+                Nodes = new List<CoreNavalMovementNode> { new CoreNavalMovementNode(origin, Battle.PlayerHeadingDegrees) }
+            });
+            int limit = NavalActiveMovementLimit(true, Battle.NavalActionPoints);
+            for (int cost = 1; cost <= limit && frontier.Count > 0; cost++)
+            {
+                // Separate cost layers retain longer, safer detours. One best living
+                // prefix per pose/cost bounds the search instead of enumerating paths.
+                // Terrain-trigger histories are not an exponential search dimension.
+                var next = new Dictionary<NavalReachState, NavalAttackReachPath>();
+                foreach (NavalAttackReachPath candidate in frontier.Values)
+                {
+                    CoreNavalMovementNode previous = candidate.Nodes[candidate.Nodes.Count - 1];
+                    foreach (float turn in new[] { 0f, 90f, -90f })
+                    {
+                        float heading = NormalizeNavalHeading(previous.HeadingDegrees + turn);
+                        float radians = heading * NavalDegreesToRadians;
+                        var point = new VoyagePoint(previous.PositionMeters.X + (float)Math.Round(Math.Cos(radians)) * NavalGridCellMeters,
+                            previous.PositionMeters.Y + (float)Math.Round(Math.Sin(radians)) * NavalGridCellMeters);
+                        if (NavalMovementEdgeUnavailableReason(previous, point, cost - 1).Length > 0 || NavalMovementTargetsEnemy(point)) continue;
+                        var path = new List<CoreNavalMovementNode>(candidate.Nodes) { new CoreNavalMovementNode(point, heading) };
+                        CoreNavalMovementFieldPreview arrival = PreviewNavalFields(path, true, context);
+                        if (!arrival.Sinks && !NavalMovementTargetsEnemy(arrival.FinalPositionMeters) && cells.Add(arrival.FinalPositionMeters))
+                            result.Add(arrival.FinalPositionMeters);
+
+                        // A tide is applied only when stopping. A route may safely
+                        // continue through a cell whose final push would be lethal.
+                        CoreNavalMovementFieldPreview travel = arrival;
+                        CoreNavalFieldCell tide = PreviewFieldAt(context.State, point);
+                        if (tide != null && tide.Kind == CoreNavalFieldKind.Tide)
+                        {
+                            int index = context.State.Cells.IndexOf(tide);
+                            context.State.Cells.RemoveAt(index);
+                            try { travel = PreviewNavalFields(path, true, context); }
+                            finally { context.State.Cells.Insert(index, tide); }
+                        }
+                        if (travel.Sinks || travel.StopsAtThunder) continue;
+                        var state = new NavalReachState((int)Math.Round((point.X - origin.X) / NavalGridCellMeters),
+                            (int)Math.Round((point.Y - origin.Y) / NavalGridCellMeters), (int)Math.Round(heading / 90f) % 4, cost);
+                        if (next.TryGetValue(state, out NavalAttackReachPath existing) &&
+                            (existing.Travel.HullDamage < travel.HullDamage ||
+                             existing.Travel.HullDamage == travel.HullDamage && existing.Travel.FinalBlock >= travel.FinalBlock)) continue;
+                        next[state] = new NavalAttackReachPath { Nodes = path, Travel = travel };
+                    }
+                }
+                frontier = next;
             }
             return result.AsReadOnly();
         }

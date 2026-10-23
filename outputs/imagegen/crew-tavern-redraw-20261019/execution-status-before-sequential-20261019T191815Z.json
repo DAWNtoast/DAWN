@@ -1,0 +1,23 @@
+{
+  "updatedUtc": "2026-10-19T18:54:23.5815659Z",
+  "scope": 36,
+  "identitySource": "Current production tavern reference crops; override conflicting old appearance text.",
+  "narrativeSource": "UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs: current Biography and linked Story",
+  "composition": "4:5 vertical, clear complete upper body from head through waist, face and hands readable, narrative action and a restrained scene from the character background.",
+  "constraints": [
+    "Preserve tavern face, age, hairstyle, skin tone, build, clothing and identifying props.",
+    "Story adds action and context, never redesigns the identity.",
+    "One primary character; no text, UI, frames, collage or watermark.",
+    "Use built-in image_gen only; do not call external image APIs.",
+    "Preserve existing Unity .meta files.",
+    "Do not create or update retired UIPreviewsForMe."
+  ],
+  "generationStatus": "blocked_by_builtin_network_error",
+  "lastError": "image generation failed: network error: error sending request",
+  "attemptsThisTurn": 2,
+  "newImagesThisTurn": 0,
+  "existingCompletedImages": 1,
+  "pendingImages": 35,
+  "existingCompletedCharacter": "crew_broken_anchor_navigator_lorne",
+  "note": "This attempt retried Saina twice through the built-in image_gen, both failed before producing an image. Lorne is an existing result, not generated this turn. All other 35 images remain pending. Prepared prompts are not generated deliverables."
+}

@@ -12,7 +12,7 @@ namespace ShatteredSail.Core.Gameplay
             (map.Route.Id == "route_shattered_sail_reef" || map.Route.Id == "route_golden_tide_trade" ||
              map.Route.Id == "route_moon_tide_ruins");
 
-        private static Dictionary<int, int> BuildPacedRouteBands(CoreVoyageMap map, List<int> placementOrder)
+        private static Dictionary<int, int> BuildPacedRouteBands(CoreVoyageMap map, List<int> placementOrder, int firstBandCandidate = 0)
         {
             var candidates = new List<int>();
             for (int index = 0; index < map.Nodes.Count; index++)
@@ -32,7 +32,14 @@ namespace ShatteredSail.Core.Gameplay
                 return a != b ? a.CompareTo(b) : left.CompareTo(right);
             });
             var bands = new Dictionary<int, int>();
-            for (int band = 0; band < Math.Min(3, candidates.Count); band++) bands.Add(map.Nodes[candidates[band]].Id, band);
+            if (firstBandCandidate > 0 && firstBandCandidate < candidates.Count)
+            {
+                int first = candidates[0];
+                candidates[0] = candidates[firstBandCandidate];
+                candidates[firstBandCandidate] = first;
+            }
+            for (int band = 0; band < Math.Min(3, candidates.Count); band++)
+                bands.Add(map.Nodes[candidates[band]].Id, band);
             // Reserve the boss first, then the three course opportunities before
             // ordinary footprints can use their narrow early/middle/late bands.
             placementOrder.Sort((left, right) =>

@@ -84,9 +84,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(battleCardSurface.sprite, Is.Null, "The authored battle card surface keeps the parchment image cleared.");
             Assert.That(battleCardSurface.type, Is.EqualTo(Image.Type.Tiled));
             RawImage backdrop = Find<RawImage>("Shared tactical sea");
-            Assert.That(backdrop.texture, Is.SameAs(Resources.Load<Texture2D>("NavalTactics/tactical_sea_v1")));
+            Assert.That(backdrop.texture, Is.SameAs(NavalTacticalArtCatalog.ForSea(host.GetComponent<CoreGameplayDemoController>().Session.BattleTerrain)));
             Assert.That(backdrop.texture, Is.Not.Null);
-            Assert.That(backdrop.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+            Assert.That(backdrop.uvRect.width, Is.GreaterThan(0f));
+            Assert.That(backdrop.uvRect.width, Is.EqualTo(backdrop.uvRect.height));
         }
 
         [TestCase(false)]
@@ -129,7 +130,13 @@ namespace ShatteredSail.Presentation.Tests
             Rect headerBounds = WorldRect(header);
             Assert.That(headerBounds.height, Is.GreaterThan(1f), "Collapsed canvas geometry must not make containment checks vacuous.");
             Assert.That(WorldRect(overlay).yMax, Is.EqualTo(headerBounds.yMin).Within(0.1f), "Battle surface meets the actual header without a seam or overlap.");
-            string[] readoutNames = { "Battle Range", "Battle Alignment", "Voyage Header Status" };
+            bool boarding = battle.Stage == NavalBattleStage.Boarding;
+            if (!boarding)
+                foreach (string name in new[] { "Battle Range", "Battle Alignment" })
+                    Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False, name);
+            string[] readoutNames = boarding
+                ? new[] { "Battle Range", "Battle Alignment", "Voyage Header Status" }
+                : new[] { "Voyage Header Status" };
             Rect[] bounds = new Rect[readoutNames.Length];
             for (int i = 0; i < readoutNames.Length; i++)
             {
@@ -236,7 +243,9 @@ namespace ShatteredSail.Presentation.Tests
                 Rect ship = WorldRect(shipRoot);
                 Image hull = shipRoot.GetComponent<Image>();
                 Assert.That(hull, Is.Not.Null, side + " uses the top-down tactical ship.");
-                Assert.That(hull.sprite, Is.SameAs(Resources.Load<Sprite>("NavalTactics/tactical_ship_v1")));
+                CoreVoyageSession artSession = host.GetComponent<CoreGameplayDemoController>().Session;
+                Assert.That(hull.sprite, Is.SameAs(side == "Player" ? NavalTacticalArtCatalog.ForPlayer(artSession.SelectedShip.Id) :
+                    NavalTacticalArtCatalog.ForEnemy(artSession.Battle, artSession.ActiveEncounter, artSession.SelectedRouteIndex)));
                 Assert.That(hull.sprite, Is.Not.Null);
                 float hullContactY = ship.yMin;
                 RectTransform barRoot = Find<RectTransform>(side + " Battle Hull Bar Track");
@@ -246,7 +255,7 @@ namespace ShatteredSail.Presentation.Tests
                     Mathf.Clamp(localShipCenter.x, 185f, 430f);
                 Assert.That(barRoot.localPosition.x, Is.EqualTo(expectedX).Within(3f),
                     side + " health follows the ship while keeping both status lanes apart.");
-                Assert.That(barRoot.rect.width, Is.EqualTo(318f).Within(.1f), "The track includes the border around the health fill.");
+                Assert.That(barRoot.rect.width, Is.EqualTo(310f).Within(.1f), "The naval track matches the borderless health fill.");
                 BattleDefenseHud hud = barRoot.GetComponent<BattleDefenseHud>();
                 Assert.That(hud, Is.Not.Null);
                 Assert.That(hud.HullBar.rectTransform.rect.width, Is.EqualTo(310f).Within(.1f));

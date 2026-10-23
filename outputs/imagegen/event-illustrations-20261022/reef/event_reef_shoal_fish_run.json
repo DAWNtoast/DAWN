@@ -1,0 +1,7 @@
+{
+  "eventId": "event_reef_shoal_fish_run",
+  "source": "C:/Users/Admin/.codex/generated_images/01a1630b-0426-7de1-9802-03c061f4820c/exec-082f1b44-505a-446f-9d85-3cf0c160f8fd.png",
+  "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_shoal_fish_run_v1.png",
+  "tool": "built-in image_gen",
+  "prompt": "Use case: illustration-story. Asset type: final in-game nautical encounter illustration, one single full-bleed landscape scene, 4:3 composition, preferably 1536x1152. Style: richly detailed hand-painted maritime adventure storybook painting, matching classic pirate adventure game illustrations, believable weathered timber, saltwater, rope and brass, crisp central silhouette readable at 256px. Keep crucial forms within central 80%, generous environment context, no borders, panels, text, lettering, captions, logos, watermark, modern objects or photorealistic finish. Scene: A large dense school of silver-backed fish streams beneath a small wooden sailing ship through crystal-clear turquoise reef water. Slight elevated near-water view makes the silver fish visible just below the surface and a few seabirds skim low along the outer edge of the shoal. Sailors lower a simple hand-cast fishing net from the rail without blocking the fish shapes. Bright tropical daylight, sparkling scales and natural flowing school pattern, warm timber boat and distant coral islets, abundance and moving wildlife, no huge predatory fish."
+}

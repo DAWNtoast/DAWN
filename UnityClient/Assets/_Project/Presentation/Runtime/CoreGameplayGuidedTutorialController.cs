@@ -464,20 +464,30 @@ namespace ShatteredSail.Presentation
                 tutorialActive && success && leg == 1 && session.GuidedTutorialCompletedEncounters >= 3;
             if (bossLessonComplete && pendingDrawnChart == null) return;
             VoyageSettlement settledResult = session.Settlement;
+            bool isTutorialVoyage = tutorialActive || leg > 0 ||
+                (CoreVoyageSession.TryParseChartSeed(session.CurrentChartSeed, out CoreSeaChartDefinition achievementChart) && achievementChart.TutorialWaters);
             bool voyageThreeEventsComplete = CoreAchievementCatalog.MeetsVoyageThreeEventsRequirement(
-                settledResult, tutorialActive || leg > 0, session.IsTreasureVoyage);
+                settledResult, isTutorialVoyage, session.IsTreasureVoyage);
             bool voyageHalfChartComplete = CoreAchievementCatalog.MeetsVoyageHalfChartRequirement(
-                settledResult, tutorialActive || leg > 0, session.IsTreasureVoyage);
+                settledResult, isTutorialVoyage, session.IsTreasureVoyage);
             bool voyageEventArrivalComplete = CoreAchievementCatalog.MeetsVoyageEventArrivalRequirement(
-                settledResult, tutorialActive || leg > 0, session.IsTreasureVoyage);
-            bool returnedWithDamage = session.Hull < session.MaxHull;
+                settledResult, isTutorialVoyage, session.IsTreasureVoyage);
+            bool returnedWithDamage = CoreAchievementCatalog.MeetsDamagedReturnRequirement(settledResult,
+                isTutorialVoyage, session.IsTreasureVoyage, session.AchievementVoyageBattleWins, session.Hull, session.MaxHull);
+            bool suppliedVoyage = CoreAchievementCatalog.MeetsSupplyVoyageRequirement(settledResult,
+                isTutorialVoyage, session.IsTreasureVoyage, session.AchievementVoyageSupplyEvidenceAvailable,
+                session.AchievementVoyageRanOutOfSupplies);
+            int wonDeckStages = !isTutorialVoyage && !session.IsTreasureVoyage ? session.AchievementWonEditedDeckStages : 0;
+            // This flag also proves that tracking began at departure. Legacy suspended
+            // voyages may claim old collection rewards at return; do not call those new loot.
+            HashSet<string> collectionBefore = !isTutorialVoyage && success && session.AchievementVoyageSupplyEvidenceAvailable
+                ? GlobalWarehouseTreasureIds() : null;
             bool navigatorVoyageComplete = success && session.HasNavigator;
             int previousPirateLevel = session.PirateLevel;
             session.ReturnToPortAfterSettlement();
             if (session.Phase != CoreDemoPhase.Port) return;
             if (Application.isPlaying && !editorPreviewBuilding)
             {
-                if (returnedWithDamage) AchievementCatalog.RecordDamagedReturn();
                 if (navigatorVoyageComplete) AchievementCatalog.RecordNavigatorVoyage();
             }
             if (lessonComplete) PlaySfx("milestone_unlock", 0.58f);
@@ -554,6 +564,13 @@ namespace ShatteredSail.Presentation
             pendingVoyageThreeEventsAchievement = Application.isPlaying && !editorPreviewBuilding && voyageThreeEventsComplete;
             pendingVoyageHalfChartAchievement = Application.isPlaying && !editorPreviewBuilding && voyageHalfChartComplete;
             pendingVoyageEventArrivalAchievement = Application.isPlaying && !editorPreviewBuilding && voyageEventArrivalComplete;
+            if (Application.isPlaying && !editorPreviewBuilding)
+            {
+                pendingDamagedReturnAchievement = returnedWithDamage;
+                pendingSuppliedVoyageAchievement = suppliedVoyage;
+                pendingAchievementWonDeckStages = wonDeckStages;
+                pendingVoyageCollectionBefore = collectionBefore;
+            }
             SaveProgress();
             if (tutorialActive) ResetGuidedTutorialPortStep();
             Render();

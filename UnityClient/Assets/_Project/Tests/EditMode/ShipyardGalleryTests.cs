@@ -62,6 +62,54 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Find<Button>("Shipyard Ship " + index), Is.Not.Null, "Refresh retains the chosen ship index.");
         }
 
+        [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)]
+        [TestCase(4)] [TestCase(5)] [TestCase(6)] [TestCase(7)]
+        [TestCase(8)] [TestCase(9)] [TestCase(10)] [TestCase(11)]
+        public void OpeningEitherDossierPageKeepsTheHarbourVesselInItsOriginalCentralBerth(int index)
+        {
+            Preview(index, false);
+            Canvas.ForceUpdateCanvases();
+            RectTransform originalPanel = Find<RectTransform>("Shipyard Panel");
+            Button inspect = Find<Button>("Shipyard Ship " + index);
+            Rect originalVessel = BoundsIn(originalPanel, inspect.GetComponent<RectTransform>());
+            RawImage[] originalLayers = inspect.GetComponentsInChildren<RawImage>(true);
+            var layerBounds = originalLayers.ToDictionary(layer => layer.name, layer => BoundsIn(originalPanel, layer.rectTransform));
+            var layerTextures = originalLayers.ToDictionary(layer => layer.name, layer => layer.texture);
+            var layerUvs = originalLayers.ToDictionary(layer => layer.name, layer => layer.uvRect);
+            string[] waterNames = { "Shipyard Water Shadow", "Shipyard Water Contact" };
+            var waterBounds = waterNames.ToDictionary(name => name, name => BoundsIn(originalPanel, Find<RectTransform>(name)));
+            Assert.That(inspect.GetComponent<RectTransform>().anchoredPosition, Is.EqualTo(Vector2.zero));
+            inspect.onClick.Invoke();
+
+            foreach (string tab in new[] { "Performance", "Background" })
+            {
+                Find<Button>("Shipyard Dossier Tab " + tab).onClick.Invoke();
+                Canvas.ForceUpdateCanvases();
+                RectTransform panel = Find<RectTransform>("Shipyard Panel");
+                RectTransform vessel = Find<RectTransform>("Shipyard Ship " + index);
+                RectTransform detail = Find<RectTransform>("Shipyard Detail");
+                AssertRect(BoundsIn(panel, vessel), originalVessel, tab + " harbour vessel placement");
+                Assert.That(vessel.parent, Is.SameAs(panel));
+                Assert.That(vessel.GetSiblingIndex(), Is.LessThan(detail.GetSiblingIndex()), "The central vessel remains behind the sheet.");
+                Assert.That(vessel.GetComponent<Button>(), Is.Null, "The background vessel must not consume dossier clicks.");
+                RawImage[] layers = vessel.GetComponentsInChildren<RawImage>(true);
+                CollectionAssert.AreEquivalent(layerBounds.Keys, layers.Select(layer => layer.name));
+                foreach (RawImage layer in layers)
+                {
+                    AssertRect(BoundsIn(panel, layer.rectTransform), layerBounds[layer.name], tab + " " + layer.name);
+                    Assert.That(layer.texture, Is.SameAs(layerTextures[layer.name]));
+                    Assert.That(layer.uvRect, Is.EqualTo(layerUvs[layer.name]));
+                    Assert.That(layer.raycastTarget, Is.False);
+                }
+                foreach (string waterName in waterNames)
+                    AssertRect(BoundsIn(panel, Find<RectTransform>(waterName)), waterBounds[waterName], tab + " " + waterName);
+                RawImage portrait = Find<RawImage>("Shipyard Dossier Portrait");
+                Assert.That(portrait.transform.IsChildOf(detail), Is.True);
+                Assert.That(layers.Any(layer => layer.texture == portrait.texture), Is.False,
+                    "The framed portrait is a separate painting from the harbour ship atlas.");
+            }
+        }
+
         [TestCase(0, 0)] [TestCase(1, 0)] [TestCase(2, 0)] [TestCase(3, 0)]
         [TestCase(0, 1)] [TestCase(1, 1)] [TestCase(2, 1)] [TestCase(3, 1)]
         [TestCase(0, 2)] [TestCase(1, 2)] [TestCase(2, 2)] [TestCase(3, 2)]
@@ -99,21 +147,31 @@ namespace ShatteredSail.Presentation.Tests
             AssertContained(header.rect, BoundsIn(header, back.GetComponent<RectTransform>()), "Return control stays inside the shared header.");
             RectTransform window = Find<RectTransform>("Shipyard Dossier Ship Window");
             Rect windowBounds = BoundsIn(detail, window);
-            Image frame = Find<Image>("Shipyard Dossier Frame");
-            Assert.That(frame.sprite, Is.SameAs(MarketShopSkin.Paper),
-                "All dossier pages share the current light paper surface.");
-            Assert.That(frame.type, Is.EqualTo(Image.Type.Sliced));
+            RawImage frame = Find<RawImage>("Shipyard Dossier Frame");
+            Assert.That(frame.texture, Is.SameAs(new PortArtCatalog().DossierFrame),
+                "Performance and background share the crew dossier's illustrated parchment.");
+            CrewArtChromaKey chroma = frame.GetComponent<CrewArtChromaKey>();
+            Assert.That(chroma, Is.Not.Null, "The blue outside and portrait window must remain transparent.");
+            Assert.That(chroma.OwnedMaterial, Is.Not.Null);
+            Assert.That(chroma.KeyTolerance, Is.EqualTo(.12f));
+            Assert.That(frame.transform.GetSiblingIndex(), Is.GreaterThan(window.GetSiblingIndex()),
+                "The ornamental portrait rim must render over the vessel window.");
             Assert.That(frame.raycastTarget, Is.False, "The ornamental frame must never block controls.");
             Assert.That(detail.GetComponentsInChildren<Transform>(true).Any(item => item.name.StartsWith("Shipyard Workbench")), Is.False,
                 "The restored parchment dossier must not retain the dark workbench surface, grid or labels.");
             AssertContained(frame.rectTransform.rect, BoundsIn(frame.rectTransform, window),
                 "The original ship window stays inside the parchment frame.");
             RawImage[] paintings = window.GetComponentsInChildren<RawImage>(true);
-            Assert.That(paintings, Is.Not.Empty, "Every page retains the inspected vessel in the left frame.");
+            Assert.That(paintings.Length, Is.EqualTo(1), "Every dossier uses one independent painting, not the harbour vessel layers.");
+            Assert.That(paintings[0].name, Is.EqualTo("Shipyard Dossier Portrait"));
+            Assert.That(paintings[0].texture, Is.SameAs(new PortArtCatalog().ShipDossierPortrait(CoreVoyageSession.Ships[index].Id)),
+                "Every ship must use its own dedicated portrait.");
+            Assert.That(window.GetComponent<RectMask2D>(), Is.Not.Null);
             foreach (RawImage painting in paintings)
             {
-                AssertContained(window.rect, BoundsIn(window, painting.rectTransform), painting.name + " must fit completely inside the portrait window.");
+                AssertContained(BoundsIn(window, painting.rectTransform), window.rect, painting.name + " must cover the portrait window without exposed harbour scenery.");
                 Assert.That(painting.raycastTarget, Is.False, "The dossier ship is an illustration, not a button.");
+                Assert.That(painting.GetComponent<BattleShipCutout>(), Is.Null, "The portrait retains its painted background.");
                 float sourceAspect = painting.texture.width * Mathf.Abs(painting.uvRect.width) /
                     (painting.texture.height * Mathf.Abs(painting.uvRect.height));
                 Assert.That(painting.rectTransform.rect.width / painting.rectTransform.rect.height,
@@ -195,7 +253,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [TestCase(0)] [TestCase(4)] [TestCase(10)]
-        public void DossierTabChangesKeepTheOriginalShipWindowAndPaintedVesselPositionAndScale(int index)
+        public void DossierTabChangesKeepThePortraitWindowAndPaintingPositionAndScale(int index)
         {
             Preview(index, true);
             Canvas.ForceUpdateCanvases();
@@ -277,7 +335,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(paper.raycastTarget, Is.False, "The paper decoration must not block the equipment controls.");
             RectTransform header = Find<RectTransform>("Port Facility Header");
             Assert.That(header.gameObject.activeInHierarchy, Is.True, "The existing facility header remains visible.");
-            Assert.That(host.GetComponentsInChildren<Image>(true).Any(item => item.name == "Shipyard Dossier Frame"), Is.False,
+            Assert.That(host.GetComponentsInChildren<Graphic>(true).Any(item => item.name == "Shipyard Dossier Frame"), Is.False,
                 "The equipment window must not reuse the parchment dossier.");
             Assert.That(detail.GetComponentsInChildren<Button>(true).Any(button => button.name.StartsWith("Shipyard Dossier Tab ")), Is.False);
             Assert.That(Find<Text>("Shipyard Dossier Name").text, Is.EqualTo(CoreVoyageSession.Ships[index].Name));
@@ -323,7 +381,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.ShipComponent(0, slot), Is.Not.Null, "An editor inspection must not alter the sample loadout.");
             }
             controller.ConfigureEditorShipyard(3, true, 2);
-            Assert.That(Find<Text>("Shipyard Equipment Installed Heading").text, Does.Contain("购买后"),
+            Assert.That(Find<Text>("Shipyard Equipment Help").text, Does.Contain("购买此船后"),
                 "Preview ownership must be deterministic and must not borrow the player's persisted vessel flags.");
             Assert.That(Find<Button>("Shipyard Equip Component").interactable, Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ComponentInventoryKey), Is.EqualTo(hadInventory));

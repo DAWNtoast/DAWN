@@ -61,6 +61,7 @@ namespace ShatteredSail.Core.Gameplay
             context.State.Cells.RemoveAll(cell => !cell.PlayerOwned && cell.ExpiresAtOwnerTurn <= context.State.EnemyTurn);
             CoreNavalFieldShipState ship = context.State.Enemy;
             if (ship.FireImmunityExpires <= context.State.EnemyTurn) ship.FireImmunityCharges = 0;
+            if (ship.FieldImmunityExpires <= context.State.EnemyTurn) ship.FieldImmunityMask = ship.FieldImmunityExpires = 0;
             if (ship.AnchorExpires <= context.State.EnemyTurn) ship.AnchorCharges = 0;
             context.Block = 0;
             CoreNavalFieldCell field = PreviewFieldAt(context.State, Battle.EnemyPositionMeters);
@@ -77,7 +78,6 @@ namespace ShatteredSail.Core.Gameplay
                 }
                 else { ship.TemporaryMana++; ship.ArcanePiercing = 4; }
             }
-            if (Battle.EnemyBurnTurns > 0) context.Hull = Math.Max(0, context.Hull - Battle.EnemyBurnDamage);
             return context;
         }
 
@@ -96,6 +96,7 @@ namespace ShatteredSail.Core.Gameplay
             int hp = context.Hull;
             int initialHp = hp;
             bool runeAvailable = context.RuneClampAvailable, runeConsumed = context.RuneClampConsumed;
+            int nextBlockBonus = player ? Battle.Schools.ArcaneNextBlockBonus : 0;
             result.FinalBlock = block;
             result.AttackBonus = ship.BloodAttackBonus;
             result.RuneClampConsumed = runeConsumed;
@@ -103,12 +104,14 @@ namespace ShatteredSail.Core.Gameplay
             if (path == null || path.Count < 2) return result;
             for (int index = 1; index < path.Count; index++)
             {
+                // The occupied endpoint is a ram, not ordinary field entry.
+                if (player && NavalMovementTargetsEnemy(path[index].PositionMeters)) break;
                 result.FinalPositionMeters = path[index].PositionMeters;
                 result.ActiveSteps++;
-                if (PreviewNavalFieldEntry(player, result, state, ship, ledger, ref block, ref hp, ref runeAvailable, ref runeConsumed, true)) break;
+                if (PreviewNavalFieldEntry(player, result, state, ship, ledger, ref block, ref hp, ref runeAvailable, ref runeConsumed, ref nextBlockBonus, true)) break;
             }
             result.StopPositionMeters = result.FinalPositionMeters;
-            if (hp > 0)
+            if (hp > 0 && result.ActiveSteps > 0)
             {
                 CoreNavalFieldCell field = PreviewFieldAt(state, result.FinalPositionMeters);
                 if (field != null && field.Kind == CoreNavalFieldKind.Tide && ledger.Add(FieldTriggerKey(player, field)))
@@ -116,15 +119,16 @@ namespace ShatteredSail.Core.Gameplay
                     var target = new VoyagePoint(result.FinalPositionMeters.X + field.DirectionX * NavalGridCellMeters,
                         result.FinalPositionMeters.Y + field.DirectionY * NavalGridCellMeters);
                     bool blocked = !NavalForcedTargetValid(player, target);
+                    bool immune = NavalFieldImmune(ship, field.Kind, player ? state.PlayerTurn : state.EnemyTurn);
                     bool refuse = ship.AnchorCharges > 0 && (player ? state.PlayerRefuseForcedMovement :
                         (NavalGridDistance(target, Battle.PlayerPositionMeters) > NavalGridDistance(result.FinalPositionMeters, Battle.PlayerPositionMeters) ||
-                         PreviewFieldHarmful(false, target, state, ledger)));
+                         PreviewFieldHarmful(false, target, state, ship, ledger)));
                     result.Events.Add(new CoreNavalFieldPreviewEvent { PositionMeters = result.FinalPositionMeters,
-                        Description = blocked ? "水流推动受阻" : refuse ? "定锚拒绝水流推动" : "水流推动至（" + FieldGrid(target.X) + "，" + FieldGrid(target.Y) + "）" });
-                    if (!blocked && !refuse)
+                        Description = immune ? "水流推动免疫" : blocked ? "水流推动受阻" : refuse ? "定锚拒绝水流推动" : "水流推动至（" + FieldGrid(target.X) + "，" + FieldGrid(target.Y) + "）" });
+                    if (!immune && !blocked && !refuse)
                     {
                         result.FinalPositionMeters = target;
-                        PreviewNavalFieldEntry(player, result, state, ship, ledger, ref block, ref hp, ref runeAvailable, ref runeConsumed, false);
+                        PreviewNavalFieldEntry(player, result, state, ship, ledger, ref block, ref hp, ref runeAvailable, ref runeConsumed, ref nextBlockBonus, false);
                     }
                 }
             }
@@ -143,16 +147,19 @@ namespace ShatteredSail.Core.Gameplay
             return result;
         }
 
-        private bool PreviewFieldHarmful(bool player, VoyagePoint point, CoreNavalFieldState state, HashSet<string> ledger)
+        private bool PreviewFieldHarmful(bool player, VoyagePoint point, CoreNavalFieldState state,
+            CoreNavalFieldShipState ship, HashSet<string> ledger)
         {
             CoreNavalFieldCell cell = PreviewFieldAt(state, point);
             return cell != null && (cell.Kind == CoreNavalFieldKind.Fire || cell.Kind == CoreNavalFieldKind.Thunder) &&
-                !ledger.Contains(FieldTriggerKey(player, cell));
+                !ledger.Contains(FieldTriggerKey(player, cell)) &&
+                !NavalFieldImmune(ship, cell.Kind, player ? state.PlayerTurn : state.EnemyTurn) &&
+                (cell.Kind != CoreNavalFieldKind.Fire || ship.FireImmunityCharges <= 0);
         }
 
         private bool PreviewNavalFieldEntry(bool player, CoreNavalMovementFieldPreview result, CoreNavalFieldState state,
             CoreNavalFieldShipState ship, HashSet<string> ledger, ref int block, ref int hp,
-            ref bool runeAvailable, ref bool runeConsumed, bool active)
+            ref bool runeAvailable, ref bool runeConsumed, ref int nextBlockBonus, bool active)
         {
             CoreNavalFieldCell cell = PreviewFieldAt(state, result.FinalPositionMeters);
             if (cell == null) return false;
@@ -160,14 +167,15 @@ namespace ShatteredSail.Core.Gameplay
             {
                 if (!ledger.Add(FieldTriggerKey(player, cell))) return false;
                 int raw = cell.Kind == CoreNavalFieldKind.Fire ? 2 : 3;
-                bool immune = cell.Kind == CoreNavalFieldKind.Fire && ship.FireImmunityCharges > 0;
-                if (immune) ship.FireImmunityCharges--;
+                bool protectedField = NavalFieldImmune(ship, cell.Kind, player ? state.PlayerTurn : state.EnemyTurn);
+                bool immune = protectedField || (cell.Kind == CoreNavalFieldKind.Fire && ship.FireImmunityCharges > 0);
+                if (immune && !protectedField) ship.FireImmunityCharges--;
                 int absorbed = immune ? 0 : Math.Min(block, raw);
                 int damage = immune ? 0 : raw - absorbed;
                 block -= absorbed;
                 hp = Math.Max(0, hp - damage);
                 result.Damage += immune ? 0 : raw;
-                bool stop = active && cell.Kind == CoreNavalFieldKind.Thunder;
+                bool stop = active && cell.Kind == CoreNavalFieldKind.Thunder && !immune;
                 result.StopsAtThunder |= stop;
                 result.Events.Add(new CoreNavalFieldPreviewEvent { PositionMeters = cell.PositionMeters, Damage = immune ? 0 : raw,
                     Description = (cell.Kind == CoreNavalFieldKind.Fire ? "火场" : "雷栅") + "（" + cell.X + "，" + cell.Y + "）" +
@@ -180,6 +188,8 @@ namespace ShatteredSail.Core.Gameplay
                 int guard = player || !runeAvailable ? 6 : 0;
                 if (cell.Kind == CoreNavalFieldKind.Blood)
                 {
+                    guard = SchoolSum(guard, nextBlockBonus);
+                    nextBlockBonus = 0;
                     block = SchoolSum(block, guard);
                     ship.BloodAttackBonus = 4;
                     if (!player && runeAvailable) { runeConsumed = true; runeAvailable = false; }
@@ -215,8 +225,9 @@ namespace ShatteredSail.Core.Gameplay
         private int EnemyEndFieldRisk(CoreNavalFieldCell cell, bool unmoved, NavalFieldPreviewContext context)
         {
             if (cell == null || context.State.TriggerLedger.Contains(FieldTriggerKey(false, cell))) return 0;
+            if (NavalFieldImmune(context.State.Enemy, cell.Kind, context.State.EnemyTurn)) return 0;
             if (cell.Kind == CoreNavalFieldKind.Curse && cell.PlayerOwned && Battle.Schools.CurseTurns > 0)
-                return (int)Math.Min(8L, 2L * Battle.Schools.CurseMarks);
+                return 2;
             if (unmoved && cell.Kind == CoreNavalFieldKind.Fire && context.State.Enemy.FireImmunityCharges <= 0)
                 return Math.Max(0, 2 - context.Block);
             return 0;

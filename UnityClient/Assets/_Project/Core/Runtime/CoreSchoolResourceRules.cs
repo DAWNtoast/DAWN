@@ -93,15 +93,20 @@ namespace ShatteredSail.Core.Gameplay
             Battle.Schools.TemporaryMana = 0;
         }
 
-        private bool ApplySchoolCurseTick()
+        private bool ApplySchoolCurseTick() => SettleNavalCurse(true);
+
+        public bool SettleNavalCurse(bool decayLayers)
         {
+            if (!NavalExpansionActive) return false;
             CoreSchoolBattleState s = Battle.Schools;
-            if (Battle.Stage == NavalBattleStage.Preparation || s.CurseMarks <= 0 || s.CurseTurns <= 0) return false;
-            int quoted = SchoolProduct(s.CurseMarks, SchoolSum(s.CurseDamagePerMark, s.CurseNextTickBonus));
-            quoted = SchoolSum(quoted, NavalFieldCurseBonus(false, s.CurseMarks));
+            if (s.CurseMarks <= 0) return false;
+            int quoted = SchoolSum(s.CurseMarks, SchoolSum(s.CurseTickBonus, s.CurseNextTickBonus));
+            if (decayLayers) quoted = SchoolSum(quoted, NavalFieldCurseBonus(false, s.CurseMarks));
             s.CurseNextTickBonus = 0;
             int damage = DamageSchoolEnemy(quoted);
-            Battle.LastAction += " 附咒回合末结算：" + s.CurseMarks + " 层，伤害 " + damage + "。";
+            Battle.LastAction += " 咒印" + (decayLayers ? "回合末" : "额外") + "结算：" + s.CurseMarks + " 层，伤害 " + damage + "。";
+            if (decayLayers) NavalExpansionConsumeCurse(1);
+            s.CurseDamagePerMark = 0;
             return ResolveBattleOutcome();
         }
 

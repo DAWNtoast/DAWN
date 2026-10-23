@@ -8,7 +8,7 @@ namespace ShatteredSail.Core.Gameplay
     public enum NavalBattleStage { Preparation, Naval, Boarding }
     public enum NavalBattleAlignment { HeadOn, EnemyBroadside, Parallel, Maneuvering }
     public enum NavalBoardingApproach { Alongside, Quarter }
-    public enum NavalBoardingConnection { Planned, RamBowToBow, RamBowToBroadside }
+    public enum NavalBoardingConnection { Planned, RamBowToBow, RamBowToBroadside, RamBowToStern }
 
     [Flags]
     public enum NavalBattleStages
@@ -34,11 +34,11 @@ namespace ShatteredSail.Core.Gameplay
         // Named effect values leave fixed rules (four-cell cannon range, boarding conditions,
         // duration, resource costs) independent of similarly-valued upgrades.
         // Every rank renders the same authored wording and semantic line breaks.
-        internal static string RenderTemplate(string template, CoreBattleCard card)
+        internal static string RenderTemplate(string template, CoreBattleCard card, NavalBattleStage? stage = null, int? fullRepair = null)
         {
             if (string.IsNullOrEmpty(template)) return string.Empty;
-            if (template.IndexOf('{') < 0) return FormatEffects(template);
-            return FormatEffects(template
+            if (template.IndexOf('{') < 0) return FormatCardEffects(template, card, stage, fullRepair);
+            return FormatCardEffects(template
                 .Replace("{damage}", Number(card.Damage))
                 .Replace("{block}", Number(card.Block))
                 .Replace("{boardingBlock}", Number(card.BoardingBlock ?? card.Block))
@@ -58,14 +58,23 @@ namespace ShatteredSail.Core.Gameplay
                 .Replace("{schoolSecondary}", Number(card.SchoolEffect?.Secondary ?? 0))
                 .Replace("{schoolThreshold}", Number(card.SchoolEffect?.Threshold ?? 0))
                 .Replace("{schoolDuration}", Number(card.SchoolEffect?.Duration ?? 0))
-                .Replace("{schoolLimit}", Number(card.SchoolEffect?.Limit ?? 0)));
+                .Replace("{schoolLimit}", Number(card.SchoolEffect?.Limit ?? 0)), card, stage, fullRepair);
+        }
+
+        internal static string FormatCardEffects(string value, CoreBattleCard card, NavalBattleStage? stage = null, int? fullRepair = null)
+        {
+            string text = FormatEffects(CoreBattleCardRuleText.RemoveCommonRules(value, card));
+            text = CoreBattleCardSupplyText.Rewrite(text, card, stage, fullRepair);
+            text = CoreBattleCardFormulaText.RemoveCalculatedExamples(text, card);
+            text = CoreBattleCardCostText.RemoveIconCosts(text, card);
+            return FormatEffects(CoreBattleCardAuthorStyleText.Rewrite(CoreBattleCardChineseText.Rewrite(text, card), card));
         }
 
         private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 
         private static readonly string[] EffectClauseStarts =
         {
-            "格挡", "船员格挡", "抽 ", "恢复 ", "修复 ", "炮战修复 ", "白刃战恢复 ",
+            "格挡", "船员格挡", "获得 ", "抽 ", "恢复 ", "修复 ", "海战修复 ", "接舷战恢复 ",
             "船体伤害 ", "船员伤害 ", "敌方船员 ", "消耗 ",
         };
 
@@ -77,7 +86,7 @@ namespace ShatteredSail.Core.Gameplay
         public static string FormatEffects(string value)
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;
-            string normalized = value.Replace("\r\n", "\n").Replace('\r', '\n');
+            string normalized = CoreBattleCardWording.Normalize(value.Replace("\r\n", "\n").Replace('\r', '\n'));
             StringBuilder text = new StringBuilder(normalized.Length + 16);
             for (int index = 0; index < normalized.Length; index++)
             {
@@ -269,6 +278,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (string.IsNullOrEmpty(id)) return;
             successfulCardUses[id] = (int)Math.Min(int.MaxValue, (long)SuccessfulCardUses(id) + 1);
+            RecordAchievementCardUse();
         }
         internal void BeginNewCardTurn()
         {
@@ -306,8 +316,8 @@ namespace ShatteredSail.Core.Gameplay
             new CoreBattleCard("card_crew_bandage", "战地包扎", "维修", 1, 0, 0, 6, 0, 0, "恢复 {repair} 点己方船员生命。", NavalBattleStages.Boarding, artId: "card_emergency_repair"),
             new CoreBattleCard("card_crew_pistol", "燧发手枪", "登船", 2, 12, 2, 0, 0, 0, "敌方船员 -{damage}，船员格挡 +{block}。", NavalBattleStages.Boarding, artId: "card_chain_shot"),
             new CoreBattleCard("card_navigator_course", "领航员 · 抢占航线", "机动", 1, 0, 1, 0, 1, 0, "沿船头前进 {movement} 米，再调整至平行；格挡 +{block}，抽 {draw} 张。", NavalBattleStages.Ship, NavalBattleCardAction.Navigator, "navigator", "card_full_sail_turn"),
-            new CoreBattleCard("card_carpenter_shoring", "木匠 · 加固舱壁", "维修", 1, 0, 4, 6, 0, 0, "修复 {repair} 点船体，格挡 +{block}。", NavalBattleStages.Ship, requiredCrew: "carpenter", artId: "card_emergency_repair"),
-            new CoreBattleCard("card_doctor_sutures", "医生 · 紧急缝合", "维修", 1, 0, 1, 7, 0, 0, "恢复 {repair} 点船员生命，船员格挡 +{block}。", NavalBattleStages.Boarding, requiredCrew: "doctor", artId: "card_emergency_repair"),
+            new CoreBattleCard("card_carpenter_shoring", "木匠 · 加固舱壁", "维修", 1, 0, 4, 6, 0, 0, "格挡 +{block}；修复 {repair} 点船体。", NavalBattleStages.Ship, requiredCrew: "carpenter", artId: "card_emergency_repair"),
+            new CoreBattleCard("card_doctor_sutures", "医生 · 紧急缝合", "维修", 1, 0, 1, 7, 0, 0, "船员格挡 +{block}；恢复 {repair} 点船员生命。", NavalBattleStages.Boarding, requiredCrew: "doctor", artId: "card_emergency_repair"),
             new CoreBattleCard("card_gunner_precision", "炮手 · 精密装填", "策略", 1, 0, 1, 0, 0, 1, "额外装药：下次炮击 +{strategyAmount}，最多 +{strategyLimit}；格挡 +{block}；消耗 {powder} 火药；开炮另付弹药并清空增益。", NavalBattleStages.Ship, NavalBattleCardAction.PrecisionLoad, "gunner", "card_cannon_barrage"),
             new CoreBattleCard("card_cook_rations", "厨师 · 鼓舞口粮", "防御", 0, 0, 4, 2, 0, 0, "格挡 +{block}；炮战修复 {repair} 船体，白刃战恢复 {repair} 船员生命。", NavalBattleStages.All, requiredCrew: "cook", artId: "card_brace"),
             new CoreBattleCard("card_diver_sabotage", "潜水员 · 水下破坏", "登船", 1, 12, 0, 0, 0, 0, "150 米内：敌舰船体 -{damage}，无需弹药。", NavalBattleStages.Naval, NavalBattleCardAction.Sabotage, "diver", "card_boarding_hook"),
@@ -331,7 +341,7 @@ namespace ShatteredSail.Core.Gameplay
                 if (card.RequiredCrew.Length == 0 && card.RequiredComponent.Length == 0 &&
                     CoreNavalSchoolExpansionCatalog.FindSpec(card.Id) == null) result.Add(card);
             result.Add(new CoreBattleCard("card_energy_order", "整顿号令", "策略", 0, 0, 0, 0, 0, 0,
-                "恢复 {energyRecovery} 点能量。同名牌本回合每成功使用一次，后续费用 +1。",
+                "恢复 {energyRecovery} 点能量。",
                 NavalBattleStages.All, NavalBattleCardAction.Energize, artId: "card_brace"));
             result.Add(new CoreBattleCard("card_tactical_draw", "战术筹划", "策略", 1, 0, 0, 0, 2, 0,
                 "抽 {draw} 张。", NavalBattleStages.All, artId: "card_full_sail_turn"));

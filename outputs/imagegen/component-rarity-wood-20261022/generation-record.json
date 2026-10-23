@@ -1,0 +1,46 @@
+{
+  "tool": "built-in image_gen",
+  "calls": 5,
+  "iterations": 0,
+  "referenced_image_paths": [
+    "D:/Game/UnityClient/Assets/_Project/Resources/UIWood/wood_button_face_v1.png"
+  ],
+  "transparent_background": true,
+  "assets": [
+    {
+      "id": "common",
+      "rarity": "普通",
+      "source": "C:/Users/Admin/.codex/generated_images/01a1640c-180b-7ed1-9330-c8b93eb9d346/exec-38aa1bc9-65d1-43e7-946b-b180ae57ff64.png",
+      "target": "D:/Game/UnityClient/Assets/_Project/Resources/UIWood/ComponentRarity/wood_common.png",
+      "prompt": "Use case: precise-object-edit. Asset type: production raster UI item-card wooden board background for a realistic antique shipyard game. Input image 1 is the EDIT TARGET. Make one independent rarity version of this exact board. Preserve the existing full rectangular 2:1 silhouette, perfectly straight horizontal/vertical edges, front-on orthographic camera, frame and four-corner-stud proportions, realistic fine horizontal woodgrain, and large clean empty dark center. Change ONLY the wood stain and metal material coloration for the rarity given below. Preserve enough contrast for ivory-white UI text placed later. Keep the border thin and subtle but clearly color-coded; the main wood face also carries this rarity color. Entire board opaque, only outside the board transparent. Board fills the image as tightly as the reference, no large padding. No objects, text, letters, numerals, symbols, icons, labels, illustrated components, scenery, glow, particles, neon, gradients, color swatches or comparison grid. Output a single board, landscape 2:1.\nRarity version: 普通 (common). Color/material direction: desaturated cool gray-brown aged wood, clearly neutral graphite-gray/silver thin metal border and four silver-gray corner studs; no golden or colorful tint."
+    },
+    {
+      "id": "uncommon",
+      "rarity": "精良",
+      "source": "C:/Users/Admin/.codex/generated_images/01a1640c-180b-7ed1-9330-c8b93eb9d346/exec-e025c4c7-e90c-41c8-8446-2b57c4451604.png",
+      "target": "D:/Game/UnityClient/Assets/_Project/Resources/UIWood/ComponentRarity/wood_uncommon.png",
+      "prompt": "Use case: precise-object-edit. Asset type: production raster UI item-card wooden board background for a realistic antique shipyard game. Input image 1 is the EDIT TARGET. Make one independent rarity version of this exact board. Preserve the existing full rectangular 2:1 silhouette, perfectly straight horizontal/vertical edges, front-on orthographic camera, frame and four-corner-stud proportions, realistic fine horizontal woodgrain, and large clean empty dark center. Change ONLY the wood stain and metal material coloration for the rarity given below. Preserve enough contrast for ivory-white UI text placed later. Keep the border thin and subtle but clearly color-coded; the main wood face also carries this rarity color. Entire board opaque, only outside the board transparent. Board fills the image as tightly as the reference, no large padding. No objects, text, letters, numerals, symbols, icons, labels, illustrated components, scenery, glow, particles, neon, gradients, color swatches or comparison grid. Output a single board, landscape 2:1.\nRarity version: 精良 (uncommon). Color/material direction: recognizably deep forest GREEN stained wood, with a visible natural green hue across the wood face and emerald/verdigris GREEN bronze thin metal border and four green bronze corner studs."
+    },
+    {
+      "id": "rare",
+      "rarity": "稀有",
+      "source": "C:/Users/Admin/.codex/generated_images/01a1640c-180b-7ed1-9330-c8b93eb9d346/exec-1cf65929-a9cc-4092-8d49-53b64e8ec9d3.png",
+      "target": "D:/Game/UnityClient/Assets/_Project/Resources/UIWood/ComponentRarity/wood_rare.png",
+      "prompt": "Use case: precise-object-edit. Asset type: production raster UI item-card wooden board background for a realistic antique shipyard game. Input image 1 is the EDIT TARGET. Make one independent rarity version of this exact board. Preserve the existing full rectangular 2:1 silhouette, perfectly straight horizontal/vertical edges, front-on orthographic camera, frame and four-corner-stud proportions, realistic fine horizontal woodgrain, and large clean empty dark center. Change ONLY the wood stain and metal material coloration for the rarity given below. Preserve enough contrast for ivory-white UI text placed later. Keep the border thin and subtle but clearly color-coded; the main wood face also carries this rarity color. Entire board opaque, only outside the board transparent. Board fills the image as tightly as the reference, no large padding. No objects, text, letters, numerals, symbols, icons, labels, illustrated components, scenery, glow, particles, neon, gradients, color swatches or comparison grid. Output a single board, landscape 2:1.\nRarity version: 稀有 (rare). Color/material direction: recognizably deep sapphire BLUE stained wood, with a visible blue hue across the wood face and blue-silver thin metal border and four blue-silver corner studs."
+    },
+    {
+      "id": "epic",
+      "rarity": "史诗",
+      "source": "C:/Users/Admin/.codex/generated_images/01a1640c-180b-7ed1-9330-c8b93eb9d346/exec-78b7fdce-d154-478f-bdd7-4ceefcfcf45d.png",
+      "target": "D:/Game/UnityClient/Assets/_Project/Resources/UIWood/ComponentRarity/wood_epic.png",
+      "prompt": "Use case: precise-object-edit. Asset type: production raster UI item-card wooden board background for a realistic antique shipyard game. Input image 1 is the EDIT TARGET. Make one independent rarity version of this exact board. Preserve the existing full rectangular 2:1 silhouette, perfectly straight horizontal/vertical edges, front-on orthographic camera, frame and four-corner-stud proportions, realistic fine horizontal woodgrain, and large clean empty dark center. Change ONLY the wood stain and metal material coloration for the rarity given below. Preserve enough contrast for ivory-white UI text placed later. Keep the border thin and subtle but clearly color-coded; the main wood face also carries this rarity color. Entire board opaque, only outside the board transparent. Board fills the image as tightly as the reference, no large padding. No objects, text, letters, numerals, symbols, icons, labels, illustrated components, scenery, glow, particles, neon, gradients, color swatches or comparison grid. Output a single board, landscape 2:1.\nRarity version: 史诗 (epic). Color/material direction: recognizably deep amethyst PURPLE stained wood, with a visible purple hue across the wood face and purple-silver thin metal border and four purple-silver corner studs."
+    },
+    {
+      "id": "legendary",
+      "rarity": "传说",
+      "source": "C:/Users/Admin/.codex/generated_images/01a1640c-180b-7ed1-9330-c8b93eb9d346/exec-0294f611-5641-4e8b-8975-75c89d3e7c3d.png",
+      "target": "D:/Game/UnityClient/Assets/_Project/Resources/UIWood/ComponentRarity/wood_legendary.png",
+      "prompt": "Use case: precise-object-edit. Asset type: production raster UI item-card wooden board background for a realistic antique shipyard game. Input image 1 is the EDIT TARGET. Make one independent rarity version of this exact board. Preserve the existing full rectangular 2:1 silhouette, perfectly straight horizontal/vertical edges, front-on orthographic camera, frame and four-corner-stud proportions, realistic fine horizontal woodgrain, and large clean empty dark center. Change ONLY the wood stain and metal material coloration for the rarity given below. Preserve enough contrast for ivory-white UI text placed later. Keep the border thin and subtle but clearly color-coded; the main wood face also carries this rarity color. Entire board opaque, only outside the board transparent. Board fills the image as tightly as the reference, no large padding. No objects, text, letters, numerals, symbols, icons, labels, illustrated components, scenery, glow, particles, neon, gradients, color swatches or comparison grid. Output a single board, landscape 2:1.\nRarity version: 传说 (legendary). Color/material direction: recognizably rich amber ORANGE-GOLD stained wood, with visible warm amber-orange hue across the wood face and refined golden thin metal border and four gold corner studs."
+    }
+  ]
+}

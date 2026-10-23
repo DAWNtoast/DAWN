@@ -1,0 +1,22 @@
+战术舰船独立只读 QA
+检查日期：2026-10-23（Asia/Shanghai）
+检查范围：NavalTactics/Ships 正式落地的 24 张 PNG 与对应 meta；accepted.json、verification.json、ships-contact.png。
+
+结论：24/24 通过本轮美术接入检查，未发现需要阻断交付的视角、方向、伪透明、裁切或重复身份问题。
+
+视觉检查：
+- 全 24 张联系表均为俯视图，舰首朝 12 点、舰尾朝 6 点；未出现横向侧视船体或方向颠倒。
+- 重点放大抽查 boss_tide、legendary_tide、barge、clipper、gunship、occult、legendary_curse。经 180 度规范化的潮系舰船均是撞角在上、尾部仪器在下。
+- clipper 有四个独立主桅站，barge 为红色货棚与平底货驳构型，salvage 有中央吊机，provision 有桶状货舱；普通舰型具有可见身份差异。
+- 六类路线 Boss 与对应传奇舰船的帆纹、配色、撞角和尾仪器可区分，未出现简单重复同一资源。
+- 最后安装的 legendary_curse 保留三桅旧白帆黑王冠、锈铁加固骨架、船首石像与船尾绿色眼仪器。方向正确，真实 Alpha 合成的联系表没有背景矩形、海浪残留或光晕底板。
+
+对正式输出 PNG 独立读取像素与 meta（不是仅采信生成 manifest）：
+- 24 张均为 1024×1536；24 个唯一 GUID。
+- 四条外边界的非零 Alpha 像素数全部为 0。
+- 所有舰船任一侧的有效主体留边至少 125 px。
+- 完全透明像素占比 68.81%–83.01%，没有黑底伪透明。
+- SpriteMode=1、alphaIsTransparency=1 均正确；另用 rg 确认 24 张 enableMipMap=1。
+- 自动检查 failures=[]。逐文件尺寸、透明比例、留边、GUID 和 SHA-256 见 independent-qa.json。
+
+范围说明：此报告检查源美术与导入配置；战斗行为和实际 Unity 场景回归由战斗代码代理单独运行。本检查未修改 PNG、meta 或业务代码，只保存 QA 脚本与报告。

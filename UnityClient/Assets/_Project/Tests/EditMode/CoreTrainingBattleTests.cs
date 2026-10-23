@@ -94,14 +94,15 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession s = Start(4);
             s.EndBattleTurn();
             s.Battle.DistanceMeters = 400f; // Exercise armour with the target at the four-cell boundary.
-            SetSchool(s, "CurseMarks", 3); SetSchool(s, "CurseWeaknessPercent", 4); SetSchool(s, "CurseTurns", 2);
+            SetSchool(s, "CurseMarks", 3); SetSchool(s, "CurseWeaknessPercent", 4); SetSchool(s, "CurseTurns", 3);
             SetSchool(s, "TideStance", 2); SetSchool(s, "TideStancePower", 6); SetSchool(s, "TideStanceTurns", 2);
             s.Battle.PlayerBlock = 999;
             int expected = Math.Max(1, 50 - Math.Max(0, (s.EffectiveArmor - 4) / 2));
             Assert.That(s.GetEnemyIntent(), Does.Contain("炮击伤害 " + expected));
             s.EndBattleTurn();
             Assert.That(s.Battle.LastEnemyGuardAbsorbed, Is.EqualTo(expected));
-            Assert.That(s.Battle.Schools.CurseTurns, Is.EqualTo(1));
+            Assert.That(s.Battle.Schools.CurseMarks, Is.EqualTo(2));
+            Assert.That(s.Battle.Schools.CurseTurns, Is.EqualTo(2));
             Assert.That(s.Battle.Schools.TideStanceTurns, Is.EqualTo(1));
         }
 
@@ -183,12 +184,22 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void BurningTargetDiesBeforeRepairAndMutualDeathRemainsDefeat()
+        public void BurningTargetRepairsBeforeEndOfTurnBurnAndMutualDeathRemainsDefeat()
         {
             CoreVoyageSession s = Start(4);
             s.EndBattleTurn();
-            s.Battle.EnemyHull = 1; s.Battle.EnemyBurnDamage = 2; s.Battle.EnemyBurnTurns = 1;
+            s.Battle.DistanceMeters = 400f;
+            s.Battle.PlayerBlock = 999;
+            s.Battle.EnemyHull = 1; s.Battle.EnemyBurnDamage = s.Battle.EnemyBurnTurns = 2;
             int hull = s.Hull;
+            Assert.That(s.EndBattleTurn(), Is.True);
+            Assert.That(s.TrainingOutcome, Is.EqualTo(CoreTrainingBattleOutcome.InProgress));
+            Assert.That(s.Battle.EnemyHull, Is.EqualTo(1 + CoreTrainingTargets.All[4].Repair - 2));
+            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(1));
+            Assert.That(s.Battle.LastEnemyGuardAbsorbed, Is.GreaterThan(0), "The target attacks before its burn settles.");
+            s.Battle.PlayerBlock = 999;
+            s.Battle.EnemyHull = 1;
+            s.Battle.EnemyBurnDamage = s.Battle.EnemyBurnTurns = CoreTrainingTargets.All[4].Repair + 1;
             Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(s.TrainingOutcome, Is.EqualTo(CoreTrainingBattleOutcome.Victory));
             Assert.That(s.Battle.EnemyHull, Is.Zero);
@@ -255,6 +266,7 @@ namespace ShatteredSail.Core.Tests
         private static void Board(CoreVoyageSession s)
         {
             s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);

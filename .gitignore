@@ -48,3 +48,8 @@ Thumbs.db
 .vs/
 .idea/
 .vscode/
+
+# Local validation binaries; retain their source scripts and reports.
+/outputs/**/*.exe
+/outputs/**/*.dll
+/tools/**/Build/

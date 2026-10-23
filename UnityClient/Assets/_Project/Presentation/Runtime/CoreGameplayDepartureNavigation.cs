@@ -18,7 +18,7 @@ namespace ShatteredSail.Presentation
             HasWorkshopSpecialCardReturn ? "返回特殊卡牌" :
             IsShipyardDossierOpen ? (shipyardReturnToDeparture ? "返回出航码头" : "返回船坞") :
             IsTavernDossierOpen ? "返回酒馆" :
-            IsComponentDossierOpen ? "返回部件陈列" :
+            IsComponentDossierOpen ? (componentResaleOpen ? "返回出售列表" : "返回部件陈列") :
             HasDepartureReturn ? "返回出航界面" : "返回港口";
 
         private void OpenFacilityFromDeparture(int facility, RectTransform setupPanel)

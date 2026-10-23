@@ -141,6 +141,32 @@ namespace ShatteredSail.Core.Tests
             Assert.That(actual.Y, Is.EqualTo(expected.Y).Within(.01f));
         }
 
+        [Test]
+        public void SeaLandmarks_StayAtTheSameWorldCoordinatesThroughOrbitMovementResizeAndZoom()
+        {
+            var landmark = new VoyagePoint(140f, -90f);
+            Vector2 before = SeaUvAt(landmark);
+            board.ApplyFrame(new CoreNavalTacticalFrame(new VoyagePoint(200f, 500f),
+                new VoyagePoint(200f, -100f), 90f, 180f));
+            Assert.That(Vector2.Distance(SeaUvAt(landmark), before), Is.LessThan(.00001f));
+            ((RectTransform)board.transform).sizeDelta = new Vector2(1280f, 720f);
+            board.SetVerticalFraming(210f);
+            Assert.That(Vector2.Distance(SeaUvAt(landmark), before), Is.LessThan(.00001f));
+            board.ApplyFrame(new CoreNavalTacticalFrame(new VoyagePoint(-2200f, -100f),
+                new VoyagePoint(200f, -100f), 180f, 180f));
+            Assert.That(board.CellSizePixels, Is.LessThan(75f), "The last frame must exercise distance zoom.");
+            Assert.That(Vector2.Distance(SeaUvAt(landmark), before), Is.LessThan(.00001f));
+        }
+
+        private Vector2 SeaUvAt(VoyagePoint point)
+        {
+            RawImage sea = board.transform.Find("Tactical world/Shared tactical sea").GetComponent<RawImage>();
+            Vector2 local = sea.rectTransform.InverseTransformPoint(board.transform.TransformPoint(board.WorldToBoard(point)));
+            Rect rect = sea.rectTransform.rect;
+            return new Vector2(sea.uvRect.x + (local.x - rect.xMin) / rect.width * sea.uvRect.width,
+                sea.uvRect.y + (local.y - rect.yMin) / rect.height * sea.uvRect.height);
+        }
+
         private void AssertEnemyRemainsWorldPivot()
         {
             Vector2 actualPivot = root.InverseTransformPoint(board.transform.Find("Tactical world").position);

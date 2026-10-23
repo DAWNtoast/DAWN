@@ -148,11 +148,11 @@ namespace ShatteredSail.Core.Gameplay
         {
             // Canonical player IDs and text are the shipped main-menu catalog.
             A("tutorial_departure", "初次扬帆", "完成新手引导并获得航海许可", CoreAchievementCategory.Voyage, F, "tutorial_completed", 1, "first_sail", "航程进度"),
-            A("tutorial_reward", "第一枚罗盘", "完成引导并领取第一件纪念藏品", CoreAchievementCategory.Voyage, P, "tutorial_reward_claimed", 1, "", "航程进度"),
+            A("tutorial_reward", "第一枚罗盘", "完成新手引导并领取教学纪念藏品", CoreAchievementCategory.Voyage, P, "tutorial_reward_claimed", 1, "", "航程进度"),
             A("tutorial_checkpoint", "航海学徒", "完成第一次新手航程并结算返港", CoreAchievementCategory.Voyage, P, "tutorial_checkpoint", 1, "", "航程进度"),
             A("tutorial_deck", "整备完毕", "在卡牌工坊编辑并保存一次战斗卡组", CoreAchievementCategory.Voyage, F, "tutorial_deck_edited", 1, "", "航程进度"),
-            A("tutorial_component", "亲手改装", "领取教学奖励部件或获得一件备用部件", CoreAchievementCategory.Voyage, P, "tutorial_component_reward", 1, "", "航程进度"),
-            A("tutorial_recovery", "逆风归港", "在船体受损后结束航程并返港", CoreAchievementCategory.Voyage, F, "damaged_return", 1, "", "航程进度"),
+            A("tutorial_component", "亲手改装", "亲手为船只安装一件非初始部件", CoreAchievementCategory.Voyage, P, "component_manually_equipped", 1, "", "航程进度"),
+            A("tutorial_recovery", "逆风归港", "在非教学普通航程中战胜敌舰，并以不高于 25% 的剩余船体安全返港", CoreAchievementCategory.Voyage, F, "damaged_return", 1, "", "航程进度"),
             A("tutorial_navigator", "听见潮声", "完成一次有航海士随行的航程", CoreAchievementCategory.Voyage, F, "navigator_voyage", 1, "", "航程进度"),
             A("tutorial_warehouse", "留住纪念", "把第一件藏品收入仓库", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 1, "", "收藏"),
             A("component_loadout", "船匠入门", "保存一套有效的部件装配", CoreAchievementCategory.Components, C, "components_equipped", 1, "", "整备"),
@@ -179,7 +179,7 @@ namespace ShatteredSail.Core.Gameplay
             A("all_ships", "四海船旗", "收集全部港口的十二种船只", CoreAchievementCategory.Fleet, C, "ships_owned", CoreVoyageSession.Ships.Count, "", "船队"),
             A("component_inventory", "零件入库", "将部件加入库存", CoreAchievementCategory.Components, F, "component_owned", 1, "", "整备"),
             A("component_cannon", "火炮上膛", "装备一门火炮", CoreAchievementCategory.Components, F, "cannon_equipped", 1, "", "整备"),
-            A("component_full", "全船改装", "同时装备四个部件槽位", CoreAchievementCategory.Components, C, "components_equipped", 4, "", "整备"),
+            A("component_full", "全船改装", "亲手为同一艘船安装全部五槽非初始部件，且当前至少三件为稀有或更高品质", CoreAchievementCategory.Components, P, "full_refit", 5, "", "整备"),
             A("component_shop", "港口采购员", "从部件商店购入一件部件", CoreAchievementCategory.Components, P, "component_purchased", 1, "", "整备"),
             A("crew_one", "招募同伴", "招募第一名船员", CoreAchievementCategory.Crew, C, "crew_recruited", 1, "", "船员"),
             A("crew_three", "小小船团", "招募三名船员", CoreAchievementCategory.Crew, C, "crew_recruited", 3, "", "船员"),
@@ -188,19 +188,19 @@ namespace ShatteredSail.Core.Gameplay
             A(VoyageThreeEventsId, "亲历远航", "在一次非教学普通航程中完成至少 3 个海图事件，并安全返港或抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageThreeEventsId, 1, "", "航程进度"),
             A(VoyageHalfChartId, "循图探海", "在一次非教学普通航程中探索至少 50% 的海图，并安全返港或抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageHalfChartId, 1, "", "航程进度"),
             A(VoyageEventArrivalId, "跨海领航", "在一次非教学普通航程中完成至少 6 个海图事件，并抵达目标港口", CoreAchievementCategory.Voyage, F, VoyageEventArrivalId, 1, "", "航程进度"),
-            A("warehouse_one", "第一件珍藏", "收藏一件可展览物品", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 1, "", "收藏"),
+            A("warehouse_one", "第一件珍藏", "在非教学航程中获得一件新藏品，并成功带回港口", CoreAchievementCategory.Collection, P, "voyage_treasure_brought_home", 1, "", "收藏"),
             A("warehouse_three", "柜中三宝", "收藏三件可展览物品", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 3, "", "收藏"),
             A("warehouse_ten", "船长展室", "收藏十件可展览物品", CoreAchievementCategory.Collection, C, "warehouse_treasures_owned", 10, "", "收藏"),
             A("warehouse_display_six", "满柜荣光", "同时陈列六件收藏品", CoreAchievementCategory.Collection, C, "warehouse_treasures_displayed", CoreWarehouseCollection.DisplaySlotCount, "", "收藏"),
             A("chart_drawn", "亲绘航图", "绘制一张海图", CoreAchievementCategory.Exploration, F, "chart_drawn", 1, "", "探索"),
-            A("battle_deck", "甲板策略", "保存一套战斗卡组", CoreAchievementCategory.Battle, C, "configured_cards", 1, "", "战斗"),
-            A("battle_stages", "三种战法", "为三种战斗阶段分别配置卡组", CoreAchievementCategory.Battle, C, "configured_deck_stages", Enum.GetValues(typeof(NavalBattleStage)).Length, "", "战斗"),
+            A("battle_deck", "甲板策略", "在非教学普通航程战斗中，实际使用自编卡组并取得胜利", CoreAchievementCategory.Battle, P, "authored_deck_victory", 1, "", "战斗"),
+            A("battle_stages", "三种战法", "在获胜的非教学普通航程战斗中，分别实际使用三阶段的自编卡组", CoreAchievementCategory.Battle, C, "authored_deck_victory_stages", Enum.GetValues(typeof(NavalBattleStage)).Length, "", "战斗"),
             A("card_upgrade", "磨亮牌面", "强化一张战斗卡牌", CoreAchievementCategory.Battle, P, "card_upgrade_record", 1, "", "战斗"),
             A("special_card", "专属传承", "获得一张船员或部件专属卡", CoreAchievementCategory.Battle, C, "special_cards_owned", 1, "", "战斗"),
             A("cargo_ready", "补给充足", "同时储备 500 单位水与食物", CoreAchievementCategory.Supplies, P, "prepared_water_and_food", 500, "", "补给"),
-            A("cargo_all", "满舱远征", "让所有基础补给都不再为空", CoreAchievementCategory.Supplies, P, "all_base_cargo_present", 1, "", "补给"),
+            A("cargo_all", "满舱远征", "在非教学普通航程中航行至少 10 天，全程不断水断粮，并抵达目标港口", CoreAchievementCategory.Supplies, F, "supplied_long_voyage", 1, "", "补给"),
             A("fame", "自由之名", "声望达到 100", CoreAchievementCategory.Story, C, "profile_fame", 100, "", "传承"),
-            A("seventh_harbor", "第七港口", "完成引导、抵达六港并拥有一艘额外船只", CoreAchievementCategory.Story, P, "seventh_harbor_prerequisites", 2, "", "传承"),
+            A("seventh_harbor", "第七港口", "获得最终藏品「第七港口引航灯」", CoreAchievementCategory.Story, P, "final_collection_owned", 1, "", "传承"),
         });
 
         private static readonly Dictionary<string, CoreAchievementDefinition> byId = BuildIndex();
@@ -245,6 +245,22 @@ namespace ShatteredSail.Core.Gameplay
             return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
                 settlement.Outcome == VoyageOutcome.ArrivedAtPort &&
                 settlement.CompletedEvents >= VoyageEventArrivalTarget;
+        }
+
+        public static bool MeetsDamagedReturnRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage, int wonBattles, int hull, int maxHull)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                wonBattles > 0 && maxHull > 0 && hull > 0 && (long)hull * 4L <= maxHull;
+        }
+
+        public static bool MeetsSupplyVoyageRequirement(VoyageSettlement settlement,
+            bool isTutorialVoyage, bool isTreasureVoyage, bool hasSupplyEvidence, bool ranOutOfWaterOrFood)
+        {
+            return IsSuccessfulOrdinaryVoyage(settlement, isTutorialVoyage, isTreasureVoyage) &&
+                settlement.Outcome == VoyageOutcome.ArrivedAtPort &&
+                !double.IsNaN(settlement.Hours) && !double.IsInfinity(settlement.Hours) &&
+                settlement.Hours >= 240d && hasSupplyEvidence && !ranOutOfWaterOrFood;
         }
 
         private static bool IsSuccessfulOrdinaryVoyage(VoyageSettlement settlement,

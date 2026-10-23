@@ -24,10 +24,8 @@ namespace ShatteredSail.Core.Gameplay
                 case "fire_05":
                     if (SchoolPlayerHealth >= SchoolPlayerMaximum) return "当前生命已满";
                     break;
-                case "fire_12": if (BState.FirePactTurns > 0) return "共燃契约仍在生效"; break;
                 case "fire_14":
                     if (SchoolPlayerHealth <= 2) return "支付2生命后须至少剩1生命";
-                    if (BOnceUsed(key)) return "引火入体每回合只能使用一次";
                     break;
                 case "fire_15": if (BStackTotal(BState.SelfBurn) == 0) return "没有可以转移的自燃"; break;
                 case "arcane_05":
@@ -43,11 +41,9 @@ namespace ShatteredSail.Core.Gameplay
                     break;
                 case "arcane_10":
                     if (mana < 2) return "需要2魔力";
-                    if (BOnceUsed(key)) return "以太换能每回合只能使用一次";
                     break;
                 case "arcane_13":
                     if (mana < 1) return "需要1魔力";
-                    if (BState.ArcaneEchoReady) return "回响刻印仍在等待攻击";
                     break;
                 case "arcane_15":
                     if (mana < 2) return "需要2魔力";
@@ -87,7 +83,7 @@ namespace ShatteredSail.Core.Gameplay
                 case "fire_03": BAddEnemyBurn(BValue(card, 8)); break;
                 case "fire_04":
                     BAddEnemyBurn(BValue(card, 6));
-                    BState.FirePots.Add(new CoreBoardingTimedStacks(BValue(card, 6), 2));
+                    BState.FirePots.Add(new CoreBoardingTimedStacks(BValue(card, 6), int.MaxValue));
                     break;
                 case "fire_05":
                     // The shared play pipeline pays the powder (or consumes a free-powder charge).
@@ -104,9 +100,11 @@ namespace ShatteredSail.Core.Gameplay
                 case "fire_11":
                     total = BStackTotal(BState.SelfBurn);
                     BAddSelfBurn(3);
-                    BDeal(BValue(card, 30 + Math.Min(6, total * 2)));
+                    BDeal(BValue(card, 30 + total * 2));
                     break;
-                case "fire_12": BState.FirePactTurns = 3; BState.FirePactUsed = false; break;
+                case "fire_12":
+                    BState.FirePacts.Add(new CoreBoardingEffectWindow(card, 2));
+                    BState.FirePactTurns = 2; BState.FirePactUsed = false; break;
                 case "fire_13": BAddSelfBurn(2); BGuard(BValue(card, 8)); BState.FireRetaliations++; break;
                 case "fire_14":
                     BAddSelfBurn(2); Battle.Energy = SchoolSum(Battle.Energy, CoreBattleUpgradeBalance.EnergyRecovery(card)); BMarkOnce(key);
@@ -117,7 +115,7 @@ namespace ShatteredSail.Core.Gameplay
                 case "arcane_02": BGuard(BValue(card, 3)); FATGainMana(1); break;
                 case "arcane_03": FATGainMana(3); break;
                 case "arcane_04":
-                    mana = Math.Min(3, Battle.Schools.AvailableMana); BSpendMana(mana);
+                    mana = Battle.Schools.AvailableMana; BSpendMana(mana);
                     BDeal(BValue(card, 24 + 6 * mana));
                     break;
                 case "arcane_05":
@@ -125,7 +123,7 @@ namespace ShatteredSail.Core.Gameplay
                     else BHeal(2);
                     break;
                 case "arcane_06":
-                    mana = Math.Min(3, Battle.Schools.AvailableMana); BSpendMana(mana);
+                    mana = Battle.Schools.AvailableMana; BSpendMana(mana);
                     for (int hit = 0; hit < 2 + mana && SchoolEnemyHealth > 0; hit++) BDeal(BValue(card, 5));
                     break;
                 case "arcane_07":
@@ -134,20 +132,23 @@ namespace ShatteredSail.Core.Gameplay
                     break;
                 case "arcane_08":
                     BSpendMana(1); guard = BValue(card, 5); BGuard(guard);
-                    BAddRetainedGuard(Math.Min(guard, BValue(card, 4)));
+                    BAddRetainedGuard(guard);
                     break;
                 case "arcane_09": BSpendMana(1); BReadSelected(options); break;
                 case "arcane_10":
                     BSpendMana(2); Battle.Energy = SchoolSum(Battle.Energy, CoreBattleUpgradeBalance.EnergyRecovery(card)); BMarkOnce(key);
                     break;
                 case "arcane_11":
-                    mana = Math.Min(3, Battle.Schools.AvailableMana); BSpendMana(mana);
+                    mana = Battle.Schools.AvailableMana; BSpendMana(mana);
                     BQueueDamage(BValue(card, 36 + 8 * mana));
                     break;
                 case "arcane_12": BSpendMana(1); BSealSelected(options, true); break;
-                case "arcane_13": BSpendMana(1); BState.ArcaneEchoReady = true; BState.ArcaneEchoCard = card; break;
+                case "arcane_13":
+                    BSpendMana(1); BState.ArcaneEchoReady = true; BState.ArcaneEchoCard = card;
+                    BState.ArcaneEchoCards.Add(card);
+                    BState.ArcaneEchoCharges = SchoolSum(BState.ArcaneEchoCharges, 1); break;
                 case "arcane_14": BSpendMana(1); BRecoverSelected(options); break;
-                case "arcane_15": BSpendMana(2); BResolveOldestDelayed(); break;
+                case "arcane_15": BSpendMana(2); BResolveSelectedDelayed(options.SelectionIndexes[0]); break;
 
                 case "thunder_01": BDeal(BValue(card, 3)); BMarkOnce(key); break;
                 case "thunder_02": BDeal(BValue(card, 8 + chain)); break;

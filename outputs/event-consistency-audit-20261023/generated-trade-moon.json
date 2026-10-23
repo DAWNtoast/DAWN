@@ -1,0 +1,110 @@
+[
+  {
+    "key": "event_trade_debt_collector",
+    "prompt": "Use case: illustration-story. Create a 1536x1024 opaque landscape event illustration, refined hand-painted maritime fantasy adventure with crisp tangible wood, ropes and cloth, readable at small card size. Golden Tide trade route, warm gold sunlight over bright turquoise open water. A debt collector in his narrow launch has blocked a small working fishing boat across the sea lane. Foreground fisherman urgently holds up an already-paid paper receipt with a prominent paid seal, showing it to the arriving viewer's ship; collector leans over from the blocking boat. Fishing nets and modest catch identify the fisher. Clear spatial storytelling: two distinct boats afloat, crossed path and held-out receipt are the focal points. No dock, no land-based argument, no battle. No legible text, no border, UI, logo or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-89b15fd3-cf1b-4d30-9049-49faa453d773.png",
+    "tool": "builtin_image_gen",
+    "inspection": "渔户持盖章收据、追债小艇堵住渔艇、开放海面，核心场景已核对。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_trade_debt_collector.png",
+    "sha256": "d467b5e6170b6661425ff16ccae9cd09e13795d56610e6807099d6a0d2cddc58",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "key": "event_trade_merchant_distress",
+    "prompt": "Use case: illustration-story. 1536x1024 opaque landscape, finely hand-painted maritime fantasy event art, tactile wood and torn canvas, strong readable focal scene. Golden Tide open sea, turquoise waves and golden daylight. A badly damaged merchant sailing ship is limping toward the viewer, broken railing and cracked hull above water, torn reddish sails, crew urgently waving for help. Bright red distress flare with a distinct smoke trail rises from its deck. Far behind, two hostile small fast ships with unmistakable triangular sails are closing in. Compose the desperate merchant ship prominently and pursuing triangle sails visible in distance; smoke is a signal flare, not a burning powder ship. No text, border, UI, logo or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-28401482-9c2e-4707-814e-c4421fd93f01.png",
+    "tool": "builtin_image_gen",
+    "inspection": "破损商船、挥手求救船员、烟火信号和后方三角帆追兵均清晰，核心场景匹配。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_trade_merchant_distress.png",
+    "sha256": "4c18aeae92b36632ca2b78e7399b999a1c3062a8874af60c433ce5c7f35f6b9d",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "key": "event_moon_mirror_pool",
+    "prompt": "Use case: illustration-story. Create a 1536x1024 opaque landscape, refined hand-painted nautical fantasy event scene. Under thin silver mist, a broad still tidal pool among dark coastal rocks fills the foreground. Its mirror surface clearly reflects an upside-down elaborate harbor with quays, moored ships and tall distinctive channel marker beacons, crisp and luminous enough to navigate by. Yet the real view immediately above the pool is EMPTY open moonlit sea with no harbor or buildings: the impossible harbor exists ONLY as a reflection inside the pool. Show this uncanny contradiction clearly in one coherent perspective. Deep indigo, silver moonlight, subtle cyan, richly textured wet stone, painterly realism. No text, UI, border or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-8de1142b-ea98-404d-9743-7135f2cef9ad.png",
+    "tool": "builtin_image_gen",
+    "inspection": "现实远景为空旷海面，潮池内部映出不存在的港城、船只与清晰灯标，核心幻象关系匹配。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_mirror_pool.png",
+    "sha256": "f7881f73cf0af1d6ef4f0f7df28511d92a9b0c25ec26ef694f8f09e05c3ff019",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "key": "event_moon_lunar_observatory",
+    "prompt": "Use case: illustration-story. 1536x1024 opaque landscape event illustration, refined hand-painted nautical fantasy. On the OPEN SEA beneath a silver full moon, a weathered floating wooden platform is tethered by heavy chains and ancient anchors visible just beneath the clear water. A large patinated BRONZE OBSERVATION DISC with concentric rings sits on its central pedestal, tilted toward the moon on a slowly turning geared mount. The deck is clearly above the waterline, with waves gently lapping its floats; expansive sea and dark indigo sky behind. Silver-cyan moonlight on bronze, subtle instrument engravings without legible lettering. Show a practical ancient marine observatory, no dome, no underwater ruins, no city. Full environmental scene, no text, UI, border or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-a5c89469-3d09-4476-a5d4-9e9309de4360.png",
+    "tool": "builtin_image_gen",
+    "inspection": "铜制观测盘位于开阔海面浮台上，系锚与链条清楚，海面/浮台空间关系符合描述。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_lunar_observatory.png",
+    "sha256": "4cb7e85e7e329b5c85d2151773f6c6b05e08c6670187daec5877885dd5566fdc",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "key": "moon_ghost",
+    "prompt": "Use case: illustration-story. 1536x1024 opaque landscape game event artwork in refined hand-painted maritime fantasy style. View from a sailing ship approaching a moonlit sea lane: a silent ANCIENT wooden sailing vessel slowly crosses directly across the viewer's route, seen three-quarter broadside among silver sea mist. Weathered black hull, faded ragged gray sails, salt-worn ropes and old carved stern. Every window, port, lantern and deck is completely DARK: no lights aboard, no glow in windows, no fire, no luminous crew. Only exterior silver moonlight rims the hull and sails against a deep indigo sky and softly rippling open sea. A small part of the viewer's bow establishes the blocked crossing. Mysterious and clear, full sea background, no text, frame, UI, logo or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-5878b272-f6fc-4d92-8307-39593130a741.png",
+    "tool": "builtin_image_gen",
+    "inspection": "古船横穿前方航路，船窗及全部灯具保持熄灭，仅有外部月光，消除了原图亮灯矛盾。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\moon_ghost.png",
+    "sha256": "10bdbd625a1a7c11ca15af75d5cb722ee68f413b2ac7a64d46aedff76efd5f9e",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "key": "event_moon_v2_borrowed_shadow",
+    "prompt": "Use case: illustration-story. Create a 1536x1024 opaque landscape, finely hand-painted nautical fantasy event illustration. Seen downward from a larger sailing ship's railing, a small ferry runs alongside on very calm silver-blue moonlit water. A hooded ferryman reaches toward the sailor's long shadow on the large ship's deck, proposing to borrow it, while the sailor offers a small self-revealing lantern. ESSENTIAL VISUAL PARADOX: the ferry and ferryman cast absolutely NO reflection or dark silhouette into the water. Directly underneath and all around the ferry is continuous pale moonlit rippled water, clean and clearly visible; no inverted boat, face, figure or black patch. The larger ship does reflect normally elsewhere for contrast. Indigo mist, delicate warm lantern, realistic wet wood and ropes, quiet magical negotiation. No text, frame, UI or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-3a033a6d-28bc-4012-8175-2e806171c80d.png",
+    "tool": "builtin_image_gen",
+    "inspection": "渡舟与大船并行并交易灯具；舟体和摆渡人下方为连续明亮波纹，无倒置船影或人影，核心无倒影特征明确。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_v2_borrowed_shadow.png",
+    "sha256": "434ab973815ec757092e70ce812c664e94bd5824fa89ee900fd910c747a0aa36",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "key": "event_moon_drowned_library",
+    "prompt": "Use case: illustration-story. 1536x1024 opaque landscape maritime fantasy event art, refined hand-painted textures and blue-silver moonlight. Broken stone steps descend from the foreground into an ancient library only HALF FLOODED by the sea. The room's upper walls, roof gaps and upper bookshelves are clearly in air; a visible horizontal waterline crosses the lower part of the room. In the center, several sturdy sealed wooden BOOK CHESTS with waxed joints and metal clasps are wedged beneath a collapsed timber beam and fractured stone pillar, partly in shallow water and reachable from the stairs. Moonlight through the broken roof reveals the chests as the main salvage target. Quiet ruined architecture, wet paper remnants on dry ledges, realistic water. Not a fully submerged seabed library, no divers or underwater fish. No text, frame, UI or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-b1eabc5b-2932-4033-a8d7-99f1ff12b9a4.png",
+    "tool": "builtin_image_gen",
+    "inspection": "坍塌石阶进入半淹藏书室，明确水线与空气中的上层书架，密封书匣压在断梁柱下，核心交互物完整。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_drowned_library.png",
+    "sha256": "304f538ec62247df1c090268120521b75ef520053b5237f90677d2f985154174",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "key": "event_moon_healing_spring",
+    "prompt": "Use case: illustration-story. Create a 1536x1024 opaque landscape, refined hand-painted nautical fantasy event scene. On a shallow rocky SHORE beside the moonlit ocean, a small freshwater spring wells up from a natural stone basin with a faint pale-blue glow. Clear clean water runs visibly downhill along an ancient carved stone trough into the nearby sea. Camera above the shoreline shows the spring, shallow basin, connected trough and sea together; the spring and stonework are exposed to AIR, with sky and horizon behind. Silver moonlight, indigo sea, gentle cyan in fresh water, detailed wet stones and a few shore plants, calm restorative mood. No underwater setting, no seabed, no swimming fish around the spring, no giant monument. No text, UI, border or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-172d130f-b352-4788-b5e5-29786c7a8ac8.png",
+    "tool": "builtin_image_gen",
+    "inspection": "岸边淡蓝清泉经可见石槽流向海面，全部石景位于空气中，浅滩淡水泉的空间关系清晰。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_healing_spring.png",
+    "sha256": "03acb7a3b955034e3281b06269d283d3047c6f587c527d0ac1274e77e22aec7f",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "key": "event_moon_spectral_debris",
+    "prompt": "Use case: illustration-story. Opaque 1536x1024 landscape, finely hand-painted maritime fantasy, indigo and silver moonlight, readable event-card composition. A single broken section of an ancient wooden ship cabin floats AT THE SURFACE of the sea within slow thick mist. The recognizable shattered cabin has a slanted fragment of roof, exposed ribs, cracked doorway and one broken window; it is only a short severed cabin section, not a complete ship. Heavy old anchor-chain links hang over the broken timbers and knock together just above the rippling water. Moonlit waves visibly support and rock the floating debris; open hazy horizon behind. Quiet uncanny atmosphere, rich wet wood and corroded iron textures. No seabed, no whole submerged wreck, no people, no text, UI, frame or watermark.",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-d40ae662-cf69-4e64-a5a2-e4f79b05ed21.png",
+    "tool": "builtin_image_gen",
+    "inspection": "单段破损古船残舱在雾中海面漂浮，裂窗/舱口/残肋及锚链明确，未画成整船或海底沉船。",
+    "status": "visual_pass",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\Reviewed20261023\\event_moon_spectral_debris.png",
+    "sha256": "698c81c05694db5a02fd62f13ab677b820a99555e668f0ce3c0430c8db844e3a",
+    "width": 1536,
+    "height": 1024
+  }
+]

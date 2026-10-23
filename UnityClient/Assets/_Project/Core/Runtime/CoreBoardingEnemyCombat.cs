@@ -61,6 +61,7 @@ namespace ShatteredSail.Core.Gameplay
             string resources = GetBoardingEnemyResourceSummary();
             if (resources.Length > 0) text.Append('\n').Append(resources);
             if (preview.PlayerBurnDamage > 0) text.Append("\n己方回合末敌施灼烧 ").Append(preview.PlayerBurnDamage);
+            if (preview.PlayerCurseDamage > 0) text.Append("\n己方回合末敌施咒印 ").Append(preview.PlayerCurseDamage);
             for (int index = 0; index < preview.Actions.Count; index++)
             {
                 CoreBoardingEnemyActionResult action = preview.Actions[index];
@@ -92,10 +93,10 @@ namespace ShatteredSail.Core.Gameplay
             CoreBoardingEnemyState s = Battle.BoardingEnemy;
             switch (s.Deck?.SchoolId)
             {
-                case "fire": return "自燃 " + s.SelfBurnDamage + "/" + CoreBoardingEnemyState.BurnLimit + "（" + s.SelfBurnTurns + "次）\n敌施灼烧 " + s.PlayerBurnDamage + "/" + CoreBoardingEnemyState.BurnLimit + "（" + s.PlayerBurnTurns + "次）";
+                case "fire": return "自燃 " + s.SelfBurnDamage + " 层\n敌施灼烧 " + s.PlayerBurnDamage + " 层";
                 case "arcane": return "魔力 " + s.Mana + "/" + CoreBoardingEnemyState.ManaLimit;
                 case "thunder": return "连锁 " + s.ThunderChain + "/" + CoreBoardingEnemyState.ThunderChainLimit + "（敌回合末清空）";
-                case "curse": return "对玩家咒痕 " + s.CurseMarks + "/" + CoreBoardingEnemyState.CurseMarkLimit + "（不自动伤害）";
+                case "curse": return "对玩家咒印 " + s.CurseMarks + " 层";
                 case "tide": return "潮势 " + s.TidePower + "/" + CoreBoardingEnemyState.TidePowerLimit + "\n保留盾 " + s.RetainedGuard;
                 case "blood": return "失血 " + s.BloodLoss + "/" + CoreBoardingEnemyState.BloodLossLimit + "\n" + ((long)Battle.EnemyBoardingHealth * 100 <= (long)Battle.EnemyMaxBoardingHealth * 40 ? "绝境：攻击强化" : "生命≤40%进入绝境");
                 default: return string.Empty;
@@ -118,7 +119,7 @@ namespace ShatteredSail.Core.Gameplay
             if (card.DrainPercent > 0) parts.Add("吸血上限 " + BoardingEnemyScale(attack, card.DrainPercent));
             if (card.SelfDamagePercent > 0) parts.Add("自损 " + BoardingEnemyScale(attack, card.SelfDamagePercent) + "（至少留1生命）");
             if (card.BurnPercent > 0) parts.Add("伤及生命后施灼烧 " +
-                Math.Min(CoreBoardingEnemyState.BurnLimit, BoardingEnemyScale(attack, card.BurnPercent)) + "，持续2次己方回合末");
+                BoardingEnemyScale(attack, card.BurnPercent) + " 层");
             string resource = null;
             switch (card.Mechanic)
             {
@@ -153,10 +154,10 @@ namespace ShatteredSail.Core.Gameplay
             if (!HasBoardingEnemyScript) return string.Empty;
             switch (Battle.BoardingEnemy.Deck?.SchoolId)
             {
-                case "fire": return "自燃与敌施灼烧各上限6，分别在敌/己方回合末结算，最多持续2次。自燃可转移到玩家，保留剩余时长；焚尽消耗玩家身上的敌施灼烧，按各张敌牌的数值增伤。点燃攻击须造成实际生命损失。";
+                case "fire": return "灼烧与自燃在目标回合末造成当前层数的伤害，然后减少1层。新施加的层数直接相加；转移按实际层数处理。";
                 case "arcane": return "魔力上限3，可跨回合保留。蓄能、消费数量与每点增伤以各张敌牌为准；资源不足仅按实际消费强化。普通攻击、格挡与治疗不额外消耗魔力。";
                 case "thunder": return "雷击按出牌顺序积累连锁，终结消耗本轮连锁提高伤害；上限6，敌回合末清空。普通攻击不积累连锁。每一击分别承受格挡、一次性弱化和反击，任一方死亡立即停止。";
-                case "curse": return "对玩家叠加最多6层咒痕，每批持续3次敌方回合末，新增不刷新旧批。咒痕不自动造成伤害；引爆消费最早到期咒痕，按各张敌牌的倍率增伤并穿透格挡。无咒痕时执行普通攻击。";
+                case "curse": return "咒印在目标回合末造成当前层数的伤害，然后减少1层。新施加的层数直接相加；引爆按实际消耗层数提高伤害。";
                 case "tide": return "只有实际格挡吸收的伤害才转为潮势，上限12，紧接的敌方行动可消费，敌回合末清空。留潮盾最多保留基础盾值到下一次敌行动一次。反击消耗潮势增伤；治疗按实际付出的潮势比例恢复，零潮势不恢复。";
                 case "blood": return "实际受伤及自损积累失血，上限12；血刃攻击消费失血，按各张敌牌的倍率增伤。自损最多支付至剩1生命，支付后生命≤40%额外增加25%基础攻击；吸血不超过该击实际生命伤害、牌面吸血上限和缺失生命。普通治疗只受缺失生命限制。";
                 default: return "固定三轮：攻击、格挡、攻击。";
@@ -166,14 +167,21 @@ namespace ShatteredSail.Core.Gameplay
         private void TickBoardingEnemyFire()
         {
             CoreBoardingEnemyState state = Battle.BoardingEnemy;
-            if (state.PlayerBurnTurns <= 0) return;
             int lost = Math.Min(Battle.PlayerBoardingHealth, state.PlayerBurnDamage);
             state.LastBurnPlayerHealth = Battle.PlayerBoardingHealth;
             state.LastBurnHealthLost = lost;
             Battle.PlayerBoardingHealth -= lost;
-            state.PlayerBurnTurns--;
-            if (state.PlayerBurnTurns == 0) state.PlayerBurnDamage = 0;
-            AddLog("敌方点燃的灼烧结算：船员生命 -" + lost + "；剩余 " + state.PlayerBurnTurns + " 次。");
+            if (lost > 0 && Battle.PlayerBoardingHealth > 0) CTBAddMarks(BCurseContractAmount);
+            state.PlayerBurnDamage = Math.Max(0, state.PlayerBurnDamage - 1);
+            state.PlayerBurnTurns = state.PlayerBurnDamage;
+            if (lost > 0) AddLog("敌方点燃的灼烧结算：船员生命 -" + lost + "；剩余 " + state.PlayerBurnDamage + " 层。");
+            int curseLost = Math.Min(Battle.PlayerBoardingHealth, state.CurseMarks);
+            state.LastCursePlayerHealth = Battle.PlayerBoardingHealth;
+            state.LastCurseHealthLost = curseLost;
+            Battle.PlayerBoardingHealth -= curseLost;
+            if (curseLost > 0 && Battle.PlayerBoardingHealth > 0) CTBAddMarks(BCurseContractAmount);
+            if (state.CurseMarks > 0) state.CurseDurations.RemoveAt(0);
+            if (curseLost > 0) AddLog("敌方咒印结算：船员生命 -" + curseLost + "；剩余 " + state.CurseMarks + " 层。");
         }
     }
 }

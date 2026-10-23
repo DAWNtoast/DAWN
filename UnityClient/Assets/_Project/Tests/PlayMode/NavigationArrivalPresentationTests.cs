@@ -25,6 +25,12 @@ namespace ShatteredSail.Presentation.Tests
             AssertNavigationGuidedSelectionTint("Execute Sail");
             yield return null;
             AssertNavigationGuidedSelectionTint("Execute Sail");
+            Button selected = RequireGuidedButton("Execute Sail");
+            Assert.That(selected.transition, Is.EqualTo(Selectable.Transition.ColorTint));
+            Assert.That(selected.colors.fadeDuration, Is.GreaterThan(0f),
+                "Settling tutorial focus must retain ordinary pointer color transitions.");
+            yield return new WaitForSecondsRealtime(selected.colors.fadeDuration + .05f);
+            AssertNavigationGuidedSelectionTint("Execute Sail");
             LogAssert.NoUnexpectedReceived();
         }
 

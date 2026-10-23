@@ -38,7 +38,6 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Unlocked(id), Is.True);
         }
 
-        [TestCase("warehouse_one", 1)]
         [TestCase("warehouse_three", 3)]
         [TestCase("warehouse_ten", 10)]
         public void CanonicalCollectionThresholdRetainsTheExistingOwnedItemCount(string id, int expectedTarget)
@@ -48,6 +47,36 @@ namespace ShatteredSail.Presentation.Tests
             PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, string.Join(",", ids.Take(expectedTarget - 1)));
             Assert.That(Unlocked(id), Is.False);
             PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, string.Join(",", ids));
+            Assert.That(Unlocked(id), Is.True);
+        }
+
+        [Test]
+        public void TutorialCompassDoesNotAlsoGrantTheVoyageTreasureChallenge()
+        {
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, CoreWarehouseCollection.TutorialTreasureId);
+            Assert.That(Unlocked("tutorial_reward"), Is.False, "The compass still requires graduation.");
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            AchievementCatalog.CaptureProgress();
+            AssertUnlocked("tutorial_reward", "tutorial_warehouse");
+            Assert.That(Unlocked("warehouse_one"), Is.False);
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, CoreWarehouseCollection.BoatswainBellTreasureId);
+            AchievementCatalog.CaptureProgress();
+            Assert.That(Unlocked("warehouse_one"), Is.False, "Unrelated pre-existing stock is not a newly completed voyage.");
+        }
+
+        [TestCase("battle_deck")]
+        [TestCase("battle_stages")]
+        [TestCase("tutorial_recovery")]
+        [TestCase("tutorial_component")]
+        [TestCase("warehouse_one")]
+        [TestCase("component_full")]
+        [TestCase("cargo_all")]
+        [TestCase("seventh_harbor")]
+        public void TightenedRequirementsPreservePreviouslyEarnedUnlocks(string id)
+        {
+            PlayerPrefs.SetInt("ShatteredSail.Achievements.Unlocked.v1." + id, 1);
+            Assert.That(Unlocked(id), Is.True);
+            AchievementCatalog.CaptureProgress();
             Assert.That(Unlocked(id), Is.True);
         }
 
@@ -62,34 +91,54 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void CanonicalFullLoadoutStillRequiresFourSlotsEvenThoughFiveSlotTypesExist()
+        public void CanonicalFullLoadoutRequiresFivePlayerInstalledSlotsAndThreeRareParts()
         {
-            Assert.That(CoreAchievementCatalog.Find("component_full").Target, Is.EqualTo(4));
+            Assert.That(CoreAchievementCatalog.Find("component_full").Target, Is.EqualTo(5));
             var art = new ComponentArtCatalog();
+            var inventory = new OwnedShipComponentInventory(art);
+            inventory.EnsureLoadout(0);
+            SaveInventory(inventory);
+            Assert.That(Unlocked("component_full"), Is.False, "The purchased ship's five default parts are not a player refit.");
+            Assert.That(Unlocked("tutorial_component"), Is.False);
             ComponentSlot[] slots = Enum.GetValues(typeof(ComponentSlot)).Cast<ComponentSlot>().ToArray();
-            Assert.That(slots.Length, Is.GreaterThanOrEqualTo(4));
-            for (int index = 0; index < 3; index++)
-                PlayerPrefs.SetString(CoreGameplayDemoController.ComponentLoadoutKey(slots[index]), art.ExpandedEntries.First(item => item.Slot == slots[index]).Id);
-            Assert.That(Unlocked("component_full"), Is.False);
-            PlayerPrefs.SetString(CoreGameplayDemoController.ComponentLoadoutKey(slots[3]), art.ExpandedEntries.First(item => item.Slot == slots[3]).Id);
+            Assert.That(slots.Length, Is.EqualTo(5));
+            for (int index = 0; index < slots.Length; index++)
+            {
+                ComponentRarity rarity = index < 2 ? ComponentRarity.Rare : ComponentRarity.Uncommon;
+                var part = inventory.Grant(art.ExpandedEntries.First(item => item.Slot == slots[index] && item.Rarity == rarity));
+                Assert.That(inventory.TryEquip(0, part.InstanceId), Is.True);
+                SaveInventory(inventory);
+                Assert.That(Unlocked("component_full"), Is.False, "All five slots and at least three rare parts must be present together.");
+            }
+            Assert.That(Unlocked("tutorial_component"), Is.True);
+            var thirdRare = inventory.Grant(art.ExpandedEntries.First(item => item.Slot == slots[2] && item.Rarity == ComponentRarity.Rare));
+            Assert.That(inventory.TryEquip(0, thirdRare.InstanceId), Is.True);
+            SaveInventory(inventory);
             Assert.That(Unlocked("component_full"), Is.True);
+            inventory.TryUnequip(0, slots[4]);
+            SaveInventory(inventory);
+            Assert.That(Unlocked("component_full"), Is.False);
         }
 
         [Test]
-        public void CanonicalStageThresholdRequiresEachOfTheThreeDeckStages()
+        public void CanonicalStageThresholdRequiresVictoriesUsingEachEditedStage()
         {
             NavalBattleStage[] stages = Enum.GetValues(typeof(NavalBattleStage)).Cast<NavalBattleStage>().ToArray();
             Assert.That(CoreAchievementCatalog.Find("battle_stages").Target, Is.EqualTo(stages.Length));
-            PlayerPrefs.SetInt(CoreGameplayDemoController.BattleDeckEditedKey, 1);
             foreach (NavalBattleStage stage in stages.Take(stages.Length - 1))
-                PlayerPrefs.SetString(CoreGameplayDemoController.StageBattleDeckKey(stage), "0,1");
+            {
+                AchievementCatalog.RecordDeckEdited(stage);
+                AchievementCatalog.RecordAuthoredDeckVictories(1 << (int)stage);
+            }
             Assert.That(Unlocked("battle_stages"), Is.False);
-            PlayerPrefs.SetString(CoreGameplayDemoController.StageBattleDeckKey(stages.Last()), "0");
+            AchievementCatalog.RecordDeckEdited(stages.Last());
+            Assert.That(Unlocked("battle_stages"), Is.False, "Editing the third stage alone is insufficient.");
+            AchievementCatalog.RecordAuthoredDeckVictories(1 << (int)stages.Last());
             Assert.That(Unlocked("battle_stages"), Is.True);
         }
 
         [Test]
-        public void CanonicalDefaultDecksDoNotCountUntilTheWorkshopRecordsAnEdit()
+        public void CanonicalDefaultDecksAndOneWorkshopEditCannotUnlockCombatAchievements()
         {
             var session = new CoreVoyageSession();
             PlayerPrefs.SetString(CoreGameplayDemoController.BattleDeckKey, string.Join(",", session.BattleDeck));
@@ -99,9 +148,16 @@ namespace ShatteredSail.Presentation.Tests
 
             Assert.That(Unlocked("battle_deck"), Is.False);
             Assert.That(Unlocked("battle_stages"), Is.False);
-            AchievementCatalog.RecordDeckEdited();
+            AchievementCatalog.RecordAuthoredDeckVictories(7);
+            Assert.That(Unlocked("battle_deck"), Is.False, "Default-deck victories do not count.");
+            AchievementCatalog.RecordDeckEdited(NavalBattleStage.Preparation);
+            Assert.That(Unlocked("tutorial_deck"), Is.True);
+            Assert.That(Unlocked("battle_deck"), Is.False);
+            Assert.That(Unlocked("battle_stages"), Is.False);
+            AchievementCatalog.RecordAuthoredDeckVictories(7);
             Assert.That(Unlocked("battle_deck"), Is.True);
-            Assert.That(Unlocked("battle_stages"), Is.True);
+            Assert.That(Unlocked("battle_stages"), Is.False, "Only the edited preparation stage may be credited.");
+            Assert.That(PlayerPrefs.GetInt(AchievementCatalog.WonDeckStagesKey), Is.EqualTo(1 << (int)NavalBattleStage.Preparation));
         }
 
         [Test]

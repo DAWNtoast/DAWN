@@ -1,0 +1,631 @@
+{
+  "builtInImageGeneration": true,
+  "preparation": "Lossless direction normalization, transparent crop and proportional resize/padding only; no procedural repaint.",
+  "count": 24,
+  "ships": [
+    {
+      "id": "sloop",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-65b31927-7bf7-415f-b5fe-91ff65f9e122.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 236,
+        "top": 24,
+        "width": 553,
+        "height": 1474
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        484,
+        1290
+      ],
+      "transparentSourceFraction": 0.7237154642740885,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/sloop_v2.png",
+      "sha256": "3a8c02bf144c7a7ec08993e7a597dad0efc8e75ea827d4b0b3c79d225f7e3d48"
+    },
+    {
+      "id": "merchant",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-df72729f-ef8a-4ee0-a8e5-09f648669e14.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 262,
+        "top": 25,
+        "width": 502,
+        "height": 1475
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        439,
+        1290
+      ],
+      "transparentSourceFraction": 0.6736774444580078,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/merchant_v2.png",
+      "sha256": "ac992e4c7a6d3ff1fc8283139c2f79b5635cd472bd050de4fa15c50ee3404866"
+    },
+    {
+      "id": "patrol",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-62118464-9d9d-4a3b-b2eb-eb1140be8e2a.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 282,
+        "top": 13,
+        "width": 461,
+        "height": 1509
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        394,
+        1290
+      ],
+      "transparentSourceFraction": 0.7145582834879557,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/patrol_v2.png",
+      "sha256": "89cf3f36cab94db1187753f1c8c979ef8d4cafc60dc1aaf5fc8083cdbebe3982"
+    },
+    {
+      "id": "relic",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-94eafdcb-d6e3-4b4f-887a-bb53e073c4f2.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 269,
+        "top": 11,
+        "width": 502,
+        "height": 1503
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        431,
+        1290
+      ],
+      "transparentSourceFraction": 0.7010835011800131,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/relic_v2.png",
+      "sha256": "6a4b183b28a77be9622e4215a1e3d20ec6c556896e9910b3a700ee3ba0760417"
+    },
+    {
+      "id": "salvage",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-7d16779f-cd25-49a0-a02d-2289b97e400f.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 173,
+        "top": 28,
+        "width": 681,
+        "height": 1474
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        596,
+        1290
+      ],
+      "transparentSourceFraction": 0.591766357421875,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/salvage_v2.png",
+      "sha256": "b80f0c02f6442d01bbc86f34ab29e90cf8cecb9ed47a9d4e4c7fc982a8a9f2d7"
+    },
+    {
+      "id": "courier",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-bb952945-ac73-4a26-a411-52b043563f7e.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 349,
+        "top": 13,
+        "width": 509,
+        "height": 1454
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        452,
+        1290
+      ],
+      "transparentSourceFraction": 0.7691548665364584,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/courier_v2.png",
+      "sha256": "fa5ce6b3dc5c73e05c04a059c427680670c95341061e4848ab6b5c7cddf942fa"
+    },
+    {
+      "id": "provision",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-c9abc50a-8f0d-461e-b9a5-025981f2cdd2.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 205,
+        "top": 16,
+        "width": 615,
+        "height": 1494
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        531,
+        1290
+      ],
+      "transparentSourceFraction": 0.6070365905761719,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/provision_v2.png",
+      "sha256": "48ae1bc76ef0b6ba71370a32bd3957b58a071a2e8c0f5ddb9e9f35c4dee9de13"
+    },
+    {
+      "id": "gunship",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-6b4a469c-dd50-4d00-ab9e-64782e718230.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 269,
+        "top": 15,
+        "width": 487,
+        "height": 1507
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        417,
+        1290
+      ],
+      "transparentSourceFraction": 0.6868038177490234,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/gunship_v2.png",
+      "sha256": "2fa7df4cfa191521db8157618c803dba4c783829578e85ce8a7f7350e3b3d145"
+    },
+    {
+      "id": "barge",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-6c830ea6-70f5-4d40-9aa8-44727232ca12.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 259,
+        "top": 11,
+        "width": 504,
+        "height": 1501
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        433,
+        1290
+      ],
+      "transparentSourceFraction": 0.6533419291178385,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/barge_v2.png",
+      "sha256": "2390d7b988e0a60de5709a836cb93570657589036798a4ae4a42961f5447025c"
+    },
+    {
+      "id": "privateer",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-f84840f4-5427-48d9-be44-88d0e26d7516.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 298,
+        "top": 13,
+        "width": 507,
+        "height": 1478
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        443,
+        1290
+      ],
+      "transparentSourceFraction": 0.7237491607666016,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/privateer_v2.png",
+      "sha256": "4966343cdb7d08b0442c0518715faebdbaf188de71c1cab200a204374c0dee54"
+    },
+    {
+      "id": "occult",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-7eb2491f-e9e9-4fbf-a07b-d395431d7a67.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 290,
+        "top": 14,
+        "width": 447,
+        "height": 1476
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        391,
+        1290
+      ],
+      "transparentSourceFraction": 0.7275314331054688,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/occult_v2.png",
+      "sha256": "7ff3bd1bba4cea3462bf6c549fb4fa0673526149de02fa1e7ac709b5419ffe80"
+    },
+    {
+      "id": "clipper",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-7893d9ae-328c-4f8a-8ac0-3a703fc7f4e0.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 343,
+        "top": 13,
+        "width": 341,
+        "height": 1493
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        295,
+        1290
+      ],
+      "transparentSourceFraction": 0.7713165283203125,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/clipper_v2.png",
+      "sha256": "831d99965ccb0b87ae552469cdbf0d44cfe2020128af027ffc14a781f55b9ba0"
+    },
+    {
+      "id": "boss_fire",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-00e9072a-e235-4020-94ff-61bef7f50c4e.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 245,
+        "top": 11,
+        "width": 456,
+        "height": 1613
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        365,
+        1290
+      ],
+      "transparentSourceFraction": 0.6674970687949378,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/boss_fire_v2.png",
+      "sha256": "f2b221214523847cb948c1a54369fcd0247df1ded85296ad5af6387a7f04d5bc"
+    },
+    {
+      "id": "boss_tide",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-0ff3a319-3278-46a4-98ab-c521d2a0083c.png",
+      "rotationDegrees": 180,
+      "crop": {
+        "left": 217,
+        "top": 27,
+        "width": 516,
+        "height": 1617
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        412,
+        1290
+      ],
+      "transparentSourceFraction": 0.7201818237309344,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/boss_tide_v2.png",
+      "sha256": "f903dbd9f7775a3750af0c70f734aef4bc7cd716932566995ed774bd103edc67"
+    },
+    {
+      "id": "boss_blood",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-f045cf8f-c2c7-447b-8f8f-59911e9ebe59.png",
+      "rotationDegrees": 180,
+      "crop": {
+        "left": 50,
+        "top": 71,
+        "width": 819,
+        "height": 1559
+      },
+      "sourceDimensions": [
+        948,
+        1660
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        678,
+        1290
+      ],
+      "transparentSourceFraction": 0.6602352447765747,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/boss_blood_v2.png",
+      "sha256": "c30d15bf79b45907af6dc3299b834a932b7e7f3bcb3576b31964283d1b214bb1"
+    },
+    {
+      "id": "boss_thunder",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-5ea0771a-0325-40eb-92a9-6d18e6f11cab.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 33,
+        "top": 10,
+        "width": 883,
+        "height": 1614
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        706,
+        1290
+      ],
+      "transparentSourceFraction": 0.6076973063433566,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/boss_thunder_v2.png",
+      "sha256": "e679c47b77414aa6fedcc83567e62cdb8ec02d1ec2b575233219e85d29acff13"
+    },
+    {
+      "id": "boss_curse",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-c2ad426f-f36e-41ea-b038-c17758167e16.png",
+      "rotationDegrees": 180,
+      "crop": {
+        "left": 165,
+        "top": 15,
+        "width": 576,
+        "height": 1624
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        458,
+        1290
+      ],
+      "transparentSourceFraction": 0.6450984655999878,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/boss_curse_v2.png",
+      "sha256": "24ae377378f9761d6f5fed2773fca8c79bf999c7e38802023d1dc81c8f11075d"
+    },
+    {
+      "id": "boss_arcane",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-0bc2cfc3-9390-4151-b099-032b90df26c1.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 194,
+        "top": 8,
+        "width": 561,
+        "height": 1613
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        449,
+        1290
+      ],
+      "transparentSourceFraction": 0.6596209653011448,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/boss_arcane_v2.png",
+      "sha256": "6a7fe08cac11e143f686abddd6aad25ed2ed44c3bc66a2e70ffda479d8cf3523"
+    },
+    {
+      "id": "legendary_fire",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-23b407f2-9c08-4648-ba8f-9e3361cf33e1.png",
+      "rotationDegrees": 180,
+      "crop": {
+        "left": 176,
+        "top": 33,
+        "width": 596,
+        "height": 1622
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        474,
+        1290
+      ],
+      "transparentSourceFraction": 0.6251382943820053,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/legendary_fire_v2.png",
+      "sha256": "a026e50912cd3695da634ecf42969671d66cb2f8e839ceddfec9f3d1ce71a1ff"
+    },
+    {
+      "id": "legendary_tide",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-f1aa4770-bbc3-4279-a63f-f29641732866.png",
+      "rotationDegrees": 180,
+      "crop": {
+        "left": 167,
+        "top": 78,
+        "width": 613,
+        "height": 1575
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        502,
+        1290
+      ],
+      "transparentSourceFraction": 0.6201164597655545,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/legendary_tide_v2.png",
+      "sha256": "33ae70af641368bd507be81a1dacaab53603c8ee0cbe0804461cae35ac1494cb"
+    },
+    {
+      "id": "legendary_blood",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-483ed016-3923-4f19-a2a1-c5792b36ad5c.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 240,
+        "top": 4,
+        "width": 468,
+        "height": 1614
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        374,
+        1290
+      ],
+      "transparentSourceFraction": 0.6812082414549968,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/legendary_blood_v2.png",
+      "sha256": "258b0d5593672b636b5bdd05d56b86cc6791881a40e32d3ef5f15d3c785d5b2f"
+    },
+    {
+      "id": "legendary_thunder",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-240938f7-add0-4278-b642-e950686c1437.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 206,
+        "top": 13,
+        "width": 537,
+        "height": 1624
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        427,
+        1290
+      ],
+      "transparentSourceFraction": 0.637053229666593,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/legendary_thunder_v2.png",
+      "sha256": "7a733a8ea72abbb436960830f16da98e6d4d79c2fc5954c3ad6c65a0998254af"
+    },
+    {
+      "id": "legendary_curse",
+      "source": "C:/Users/Admin/.codex/generated_images/01a1646c-bbf2-7321-b5fc-6c0f16a56668/exec-57af4172-3c7d-4005-b399-057b15514e26.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 231,
+        "top": 19,
+        "width": 565,
+        "height": 1500
+      },
+      "sourceDimensions": [
+        1024,
+        1536
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        486,
+        1290
+      ],
+      "transparentSourceFraction": 0.6515324910481771,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/legendary_curse_v2.png",
+      "sha256": "7b25531a13b0b413c50513f5f4d2a15c1a87a5d39b17b1823fc4e7347f4398f0"
+    },
+    {
+      "id": "legendary_arcane",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-809c6b4e-b166-45b3-a23a-08c7bc14e852.png",
+      "rotationDegrees": 0,
+      "crop": {
+        "left": 164,
+        "top": 5,
+        "width": 624,
+        "height": 1642
+      },
+      "sourceDimensions": [
+        948,
+        1659
+      ],
+      "outputDimensions": [
+        1024,
+        1536
+      ],
+      "visibleSize": [
+        490,
+        1290
+      ],
+      "transparentSourceFraction": 0.6145077483004098,
+      "asset": "UnityClient/Assets/_Project/Resources/NavalTactics/Ships/legendary_arcane_v2.png",
+      "sha256": "29f1eeb89242eb73aa594ae254e12f7d6b0dbeb65d7630a106df7e15c094a957"
+    }
+  ]
+}

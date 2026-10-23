@@ -1,0 +1,37 @@
+[
+  {
+    "Rarity": "普通",
+    "Target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\UIWood\\ComponentRarity\\wood_common.png",
+    "Width": 1774,
+    "Height": 887,
+    "SHA256": "70E15F64F5B39DB5780CC9426CA336BE2A28DF14AB3D5025AC3B8115CD62AC1E"
+  },
+  {
+    "Rarity": "精良",
+    "Target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\UIWood\\ComponentRarity\\wood_uncommon.png",
+    "Width": 1774,
+    "Height": 887,
+    "SHA256": "5721D8B6386362722EFE147178D1A99549FE0397A7E76A906C8F3F4EF0C20AB4"
+  },
+  {
+    "Rarity": "稀有",
+    "Target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\UIWood\\ComponentRarity\\wood_rare.png",
+    "Width": 1774,
+    "Height": 887,
+    "SHA256": "CC325AD9319248BC42FC7DC8A79CDA0DE890E414C35A5662EAA3C3EC65436BAC"
+  },
+  {
+    "Rarity": "史诗",
+    "Target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\UIWood\\ComponentRarity\\wood_epic.png",
+    "Width": 1774,
+    "Height": 887,
+    "SHA256": "C7FA4CECECEB1A01D711739B6307BCE0420C25E6D1DED7A42F0111B927B19857"
+  },
+  {
+    "Rarity": "传说",
+    "Target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\UIWood\\ComponentRarity\\wood_legendary.png",
+    "Width": 1774,
+    "Height": 887,
+    "SHA256": "0DEF75BE3F10A86728B24A74D608E48BF691D05F997FE7D7CD58A179949AD27E"
+  }
+]

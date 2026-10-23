@@ -6,13 +6,13 @@ namespace ShatteredSail.Core.Gameplay
     internal sealed class CoreBoardingCurseLayer
     {
         internal int EnemyEnds = 3;
-        internal bool Extended;
+        internal bool Extended = false;
     }
 
     internal sealed class CoreBoardingTidePoint
     {
         internal int PlayerEnds = 1;
-        internal bool Extended;
+        internal bool Extended = false;
     }
 
     public sealed partial class CoreBoardingBattleState
@@ -43,11 +43,8 @@ namespace ShatteredSail.Core.Gameplay
             string key = card?.BoardingSpec?.Key;
             switch (key)
             {
-                case "curse_04": if (BState.CurseContractTurns > 0) return "恶兆契约仍在生效"; break;
-                case "curse_05": if (BState.CurseLinkCharges > 0) return "连环咒印仍有未用次数"; break;
-                case "curse_09": if (BState.CurseCounterTurns > 0) return "逆刃咒仍在生效"; break;
                 case "curse_10":
-                    if (!BState.CurseLayers.Exists(layer => !layer.Extended)) return "没有可以延长的咒痕";
+                    if (BState.CurseMarks <= 0) return "没有可以结算的咒印";
                     break;
                 case "curse_11": if (BState.CurseMarks < 1) return "至少需要1层咒痕"; break;
                 case "curse_12":
@@ -57,17 +54,12 @@ namespace ShatteredSail.Core.Gameplay
                 case "curse_13": if (BState.CurseMarks < 1) return "需要1层咒痕"; break;
                 case "curse_14":
                     if (BState.CurseMarks < 2) return "需要2层咒痕";
-                    if (BOnceUsed(key)) return "摄魂汲能每回合只能使用一次";
                     break;
                 case "curse_15":
                     if (BState.CurseMarks < 2) return "需要2层咒痕";
                     break;
-                case "tide_05":
-                    if (BState.ExtendableTidePower < 1) return "没有尚未延长的潮势";
-                    break;
                 case "tide_09":
                     if (BState.TidePower < 4) return "需要4点潮势";
-                    if (BState.TideAmbushTurns > 0) return "潜流伏击仍在生效";
                     break;
                 case "tide_10": if (BState.TidePower < 2) return "需要2点潮势"; break;
                 case "tide_11":
@@ -76,12 +68,10 @@ namespace ShatteredSail.Core.Gameplay
                     break;
                 case "tide_12":
                     if (Cargo.Medicine > 0 && BState.TidePower < 8) return "有药药浴需要8点潮势";
-                    if (BState.TideBathPlayerEnds > 0) return "海息药浴仍在生效";
                     break;
                 case "tide_13": if (BState.TidePower < 8) return "需要8点潮势"; break;
                 case "tide_14":
                     if (BState.TidePower < 8) return "需要8点潮势";
-                    if (BOnceUsed(key)) return "借潮行舟每回合只能使用一次";
                     break;
                 case "tide_15": if (BState.TidePower < 6) return "需要6点潮势"; break;
                 case "blood_01":
@@ -121,23 +111,28 @@ namespace ShatteredSail.Core.Gameplay
             int paid, actual;
             switch (key)
             {
-                case "curse_01": BDeal(BValue(card, 6)); CTBAddMarks(1); break;
+                case "curse_01": BDeal(BValue(card, 8)); CTBAddMarks(1); break;
                 case "curse_02": CTBAddMarks(3); break;
                 case "curse_03": BGuard(BValue(card, 3)); CTBAddMarks(1); break;
-                case "curse_04": BState.CurseContractTurns = 3; BState.CurseContractTriggered = false; break;
-                case "curse_05": BState.CurseLinkCharges = 2; break;
-                case "curse_06": BDeal(BValue(card, 8 + BState.CurseMarks)); break;
-                case "curse_07": BState.CurseWeakTurns = 2; BState.CurseWeakCard = card; break;
+                case "curse_04":
+                    BState.CurseContracts.Add(new CoreBoardingEffectWindow(card, 2));
+                    BState.CurseContractTurns = 2; BState.CurseContractTriggered = false; break;
+                case "curse_05": BState.CurseLinkCharges = SchoolSum(BState.CurseLinkCharges, 2); break;
+                case "curse_06": BDeal(BValue(card, 6 + BState.CurseMarks)); break;
+                case "curse_07":
+                    BState.CurseWeaknesses.Add(new CoreBoardingEffectWindow(card, 2));
+                    BState.CurseWeakTurns = 2; BState.CurseWeakCard = card; break;
                 case "curse_08":
                     Battle.EnemyBlock = Math.Max(0, Battle.EnemyBlock - BValue(card, 4 + 2 * BState.CurseMarks));
                     BState.CurseArmorTurns = 2; BState.CurseArmorCard = card;
+                    BState.CurseArmors.Add(new CoreBoardingEffectWindow(card, 2));
                     break;
                 case "curse_09":
                     BState.CurseCounterTurns = 2; BState.CurseCounterCard = card; BState.CurseCounterTriggered = false;
+                    BState.CurseCounters.Add(new CoreBoardingEffectWindow(card, 2));
                     break;
                 case "curse_10":
-                    foreach (CoreBoardingCurseLayer layer in BState.CurseLayers)
-                        if (!layer.Extended) { layer.Extended = true; layer.EnemyEnds++; }
+                    CTBTickMarks(false);
                     break;
                 case "curse_11":
                     paid = BState.CurseMarks; CTBConsumeMarks(paid);
@@ -158,9 +153,8 @@ namespace ShatteredSail.Core.Gameplay
                     Battle.EnemyBlock = Math.Max(0, Battle.EnemyBlock - BValue(card, 4)); BDeal(BValue(card, 6));
                     break;
                 case "tide_05":
-                    amount = Math.Min(6, BState.ExtendableTidePower);
-                    foreach (CoreBoardingTidePoint point in BState.TidePoints)
-                        if (amount > 0 && !point.Extended) { point.Extended = true; point.PlayerEnds++; amount--; }
+                    for (int index = 0; index < BValue(card, 6) && BState.TidePower < 12; index++)
+                        BState.TidePoints.Add(new CoreBoardingTidePoint());
                     break;
                 case "tide_06":
                     paid = BState.TidePower; CTBConsumeTide(paid); BDeal(BValue(card, 6 + paid)); break;
@@ -169,9 +163,12 @@ namespace ShatteredSail.Core.Gameplay
                 case "tide_08":
                     paid = BState.TidePower; CTBConsumeTide(paid); BDeal(BValue(card, 30 + paid * 3 / 2));
                     break;
-                case "tide_09": CTBConsumeTide(4); BState.TideAmbushTurns = 2; BState.TideAmbushCard = card; break;
+                case "tide_09":
+                    CTBConsumeTide(4); BState.TideAmbushTurns = 2; BState.TideAmbushCard = card;
+                    BState.TideAmbushes.Add(new CoreBoardingEffectWindow(card, 2)); break;
                 case "tide_10":
                     CTBConsumeTide(2); BDeal(BValue(card, 6)); BState.TideWeakTurns = 2; BState.TideWeakCard = card;
+                    BState.TideWeaknesses.Add(new CoreBoardingEffectWindow(card, 2));
                     break;
                 case "tide_11":
                     if (Cargo.Medicine > 0)
@@ -227,7 +224,7 @@ namespace ShatteredSail.Core.Gameplay
         private void CTBAddMarks(int amount)
         {
             if (SchoolEnemyHealth <= 0) return;
-            for (int index = 0; index < amount && BState.CurseLayers.Count < 6; index++)
+            for (int index = 0; index < amount; index++)
                 BState.CurseLayers.Add(new CoreBoardingCurseLayer());
             CTBSyncResources();
         }
@@ -269,9 +266,8 @@ namespace ShatteredSail.Core.Gameplay
         {
             CoreSchoolBattleState legacy = Battle.Schools;
             legacy.CurseMarks = BState.CurseMarks;
-            legacy.CurseTurns = 0;
-            foreach (CoreBoardingCurseLayer layer in BState.CurseLayers) legacy.CurseTurns = Math.Max(legacy.CurseTurns, layer.EnemyEnds);
-            legacy.CurseDamagePerMark = 0; legacy.CurseNextTickBonus = 0;
+            legacy.CurseTurns = BState.CurseMarks;
+            legacy.CurseDamagePerMark = 1;
             legacy.TidePower = BState.TidePower;
             legacy.TideLimit = 12;
             legacy.TidePaidBlock = BState.TideGuard;
@@ -280,19 +276,30 @@ namespace ShatteredSail.Core.Gameplay
         // Return the resulting total attack, not the reduction. Preview calls cannot consume effects.
         private int CTBEnemyAttackReduction(int damage, bool consume)
         {
-            int reduction = 0;
-            if (BState.CurseWeakTurns > 0) reduction = BValue(BState.CurseWeakCard, 3 + BState.CurseMarks);
-            if (BState.TideWeakTurns > 0) reduction = Math.Max(reduction, BValue(BState.TideWeakCard, 3));
-            if (consume) { BState.CurseWeakTurns = 0; BState.TideWeakTurns = 0; }
-            return Math.Max(0, damage - Math.Min(Math.Max(0, damage) / 2, reduction));
+            int reduction = BContinuousAttackReduction(BState.CurseMarks);
+            return Math.Max(0, damage - reduction);
         }
 
         private int CTBEnemyBlockGain(int guard, bool consume)
         {
             if (guard <= 0 || BState.CurseArmorTurns <= 0) return Math.Max(0, guard);
-            int adjusted = Math.Max(0, guard - BValue(BState.CurseArmorCard, 2 + BState.CurseMarks));
-            if (consume) BState.CurseArmorTurns = 0;
+            int adjusted = Math.Max(0, guard - BCurseArmorAmount(BState.CurseMarks));
             return adjusted;
+        }
+
+        private void CTBBeforeEnemyAttack()
+        {
+            if (BState.CurseCounterTurns > 0)
+                BDeal(BCurseCounterAmount(BState.CurseMarks), ignoreBlock: true, critical: false);
+        }
+
+        private void CTBTickMarks(bool decay = true)
+        {
+            int layers = BState.CurseMarks;
+            if (layers <= 0) return;
+            BDeal(SchoolSum(layers, Battle.Schools.CurseNextTickBonus), ignoreBlock: true, critical: false);
+            Battle.Schools.CurseNextTickBonus = 0;
+            if (decay) CTBConsumeMarks(1);
         }
 
         private void CTBAfterEnemyAttack(int absorbed, int actualLoss)
@@ -305,16 +312,10 @@ namespace ShatteredSail.Core.Gameplay
             BState.TideGuard = Math.Max(0, BState.TideGuard - tidalAbsorbed);
             for (int index = 0; index < tidalAbsorbed && BState.TidePower < 12; index++)
                 BState.TidePoints.Add(new CoreBoardingTidePoint());
-            if (actualLoss > 0 && BState.CurseContractTurns > 0 && !BState.CurseContractTriggered)
-            { BState.CurseContractTriggered = true; CTBAddMarks(2); }
-            if (BState.CurseCounterTurns > 0 && !BState.CurseCounterTriggered)
-            {
-                BState.CurseCounterTriggered = true;
-                BDeal(BValue(BState.CurseCounterCard, Math.Min(2 * BState.CurseMarks, 10)), ignoreBlock: true, critical: false);
-            }
+            if (actualLoss > 0 && BState.CurseContractTurns > 0) CTBAddMarks(BCurseContractAmount);
             if (SchoolEnemyHealth <= 0) { CTBSyncResources(); return; }
             if (BState.TideAmbushTurns > 0)
-            { BState.TideAmbushTurns = 0; BDeal(BValue(BState.TideAmbushCard, 16), critical: false); }
+            { int ambush = BTideAmbushAmount; BState.TideAmbushes.Clear(); BState.TideAmbushTurns = 0; BDeal(ambush, critical: false); }
             if (SchoolEnemyHealth <= 0) { CTBSyncResources(); return; }
             if (actualLoss > 0 && BState.BloodDebtTurns > 0 && !BState.BloodDebtTriggered)
             { BState.BloodDebtTriggered = true; BDeal(BValue(BState.BloodDebtCard, 8), critical: false); }
@@ -333,14 +334,8 @@ namespace ShatteredSail.Core.Gameplay
 
         private void CTBEnemyEnd()
         {
-            foreach (CoreBoardingCurseLayer layer in BState.CurseLayers) layer.EnemyEnds--;
-            BState.CurseLayers.RemoveAll(layer => layer.EnemyEnds <= 0);
-            if (BState.CurseContractTurns > 0) BState.CurseContractTurns--;
-            if (BState.CurseWeakTurns > 0) BState.CurseWeakTurns--;
-            if (BState.CurseArmorTurns > 0) BState.CurseArmorTurns--;
-            if (BState.CurseCounterTurns > 0) BState.CurseCounterTurns--;
-            if (BState.TideAmbushTurns > 0) BState.TideAmbushTurns--;
-            if (BState.TideWeakTurns > 0) BState.TideWeakTurns--;
+            CTBTickMarks();
+            BAdvanceManuscriptEnemyWindows();
             if (BState.BloodDebtTurns > 0) BState.BloodDebtTurns--;
             CTBSyncResources();
         }

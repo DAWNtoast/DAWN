@@ -13,7 +13,7 @@ namespace ShatteredSail.Presentation
     public static class ProfileSaveJournal
     {
         private const string Format = "ShatteredSail.ProfileSaveJournal";
-        private const int CurrentVersion = 5;
+        private const int CurrentVersion = 6;
         private const string VoyageThreeEventsKey = "ShatteredSail.Achievements.Unlocked.v1.voyage_three_events";
         private static readonly string[] VersionThreeAchievementKeys =
         {
@@ -31,7 +31,8 @@ namespace ShatteredSail.Presentation
             "ShatteredSail.Achievements.Unlocked.v1.dispatch_resolved",
         };
         private static readonly KeySpec[] Specs = BuildSpecs();
-        private static readonly KeySpec[] VersionFourSpecs = Specs.Where(spec => spec.Key != CoreGameplayDemoController.WarehouseIncomeKey).ToArray();
+        private static readonly KeySpec[] VersionFiveSpecs = Specs.Where(spec => !AchievementCatalog.ChallengeEvidenceKeys.Contains(spec.Key)).ToArray();
+        private static readonly KeySpec[] VersionFourSpecs = VersionFiveSpecs.Where(spec => spec.Key != CoreGameplayDemoController.WarehouseIncomeKey).ToArray();
         private static readonly KeySpec[] VersionThreeSpecs = VersionFourSpecs.Where(spec => spec.Key != CoreGameplayDemoController.ShipPortProgressKey).ToArray();
         private static readonly KeySpec[] VersionTwoSpecs = VersionThreeSpecs.Where(spec => !VersionThreeAchievementKeys.Contains(spec.Key)).ToArray();
         private static readonly KeySpec[] VersionOneSpecs = VersionTwoSpecs.Where(spec => spec.Key != VoyageThreeEventsKey).ToArray();
@@ -150,6 +151,8 @@ namespace ShatteredSail.Presentation
                 // An older journal cannot commit part of a newly introduced
                 // collection-income claim independently of the account balance.
                 if (record.version < 5) PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
+                if (record.version < 6)
+                    foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
                 PlayerPrefs.Save();
                 if (!store.TryClear(out notice)) return false;
                 ForgetActive();
@@ -189,7 +192,8 @@ namespace ShatteredSail.Presentation
                 return false;
             }
             KeySpec[] expected = candidate.version == 1 ? VersionOneSpecs : candidate.version == 2 ? VersionTwoSpecs :
-                candidate.version == 3 ? VersionThreeSpecs : candidate.version == 4 ? VersionFourSpecs : Specs;
+                candidate.version == 3 ? VersionThreeSpecs : candidate.version == 4 ? VersionFourSpecs :
+                candidate.version == 5 ? VersionFiveSpecs : Specs;
             bool includesRetired = candidate.version == 1 &&
                 candidate.entries.Length == VersionOneSpecs.Length + RetiredAchievementKeys.Length;
             // Each version requires its exact manifest. Missing newer keys

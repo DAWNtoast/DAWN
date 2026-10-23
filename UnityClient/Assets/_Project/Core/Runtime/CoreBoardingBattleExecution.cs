@@ -23,10 +23,11 @@ namespace ShatteredSail.Core.Gameplay
             Battle.Schools.ManaLimit = 3;
             Battle.Schools.Mana = Math.Min(3, Battle.Schools.Mana);
             Battle.Schools.TemporaryMana = Math.Min(Math.Max(0, 3 - Battle.Schools.Mana), Battle.Schools.TemporaryMana);
-            Battle.Schools.CurseDamagePerMark = 0;
+            Battle.Schools.CurseDamagePerMark = 1;
+            Battle.Schools.CurseTickBonus = 0;
             Battle.Schools.CurseNextTickBonus = 0;
             if (Battle.EnemyBurnDamage > 0 && Battle.EnemyBurnTurns > 0)
-                BState.EnemyBurn.Add(new CoreBoardingTimedStacks(Battle.EnemyBurnDamage, Battle.EnemyBurnTurns));
+                BState.EnemyBurn.Add(new CoreBoardingTimedStacks(Battle.EnemyBurnDamage, Battle.EnemyBurnDamage));
             BSyncBurn();
             BSyncHeldCards();
         }
@@ -78,9 +79,14 @@ namespace ShatteredSail.Core.Gameplay
             int previousEnemy = Battle.EnemyBoardingHealth, previousHealth = Battle.PlayerBoardingHealth;
             int previousGuard = Battle.PlayerBlock, previousEnergy = Battle.Energy;
             int previousMedicine = Cargo.Medicine, previousPowder = Cargo.Powder;
-            bool echo = card.SchoolId == "arcane" && card.BoardingSpec.IsAttack && !card.BoardingSpec.IsDelayed && BState.ArcaneEchoReady;
-            CoreBattleCard echoCard = BState.ArcaneEchoCard;
-            if (echo) BState.ArcaneEchoReady = false;
+            int echoes = card.SchoolId == "arcane" && card.BoardingSpec.IsAttack && BState.ArcaneEchoReady
+                ? Math.Max(1, BState.ArcaneEchoCharges) : 0;
+            var echoCards = echoes > 0 ? new List<CoreBattleCard>(BState.ArcaneEchoCards) : null;
+            if (echoes > 0)
+            {
+                if (echoCards.Count == 0) echoCards.Add(BState.ArcaneEchoCard);
+                BState.ArcaneEchoReady = false; BState.ArcaneEchoCharges = 0; BState.ArcaneEchoCards.Clear();
+            }
             int residual = card.SchoolId == "thunder" && card.BoardingSpec.IsAttack && BState.ThunderResidualCharges > 0
                 ? BState.ThunderResidualDamage : 0;
             if (residual > 0) BState.ThunderResidualCharges--;
@@ -118,6 +124,7 @@ namespace ShatteredSail.Core.Gameplay
             BState.ActiveAttack = card.BoardingSpec.IsAttack;
             BState.ActiveCritical = card.BoardingSpec.IsAttack && !card.BoardingSpec.IsDelayed && RollBoardingCritical();
             BState.ActiveAuthoredDamage = 0;
+            BState.ActiveDelayedEchoCards = card.BoardingSpec.IsDelayed ? echoCards : null;
             BState.ActiveAttackBonus = card.BoardingSpec.IsAttack && !card.BoardingSpec.IsDelayed ? CTBBeforeDirectAttack() : 0;
             if (card.SchoolId == "thunder" && card.BoardingSpec.IsAttack)
             { BState.ActiveAttackBonus = SchoolSum(BState.ActiveAttackBonus, BState.ThunderReady); BState.ThunderReady = 0; }
@@ -130,13 +137,15 @@ namespace ShatteredSail.Core.Gameplay
                     Battle.Schools.ThunderChain = Math.Min(6, Battle.Schools.ThunderChain + 1);
                 if (residual > 0 && Battle.EnemyBoardingHealth > 0)
                 {
-                    if (card.BoardingSpec.IsDelayed) BQueueDamage(residual);
+                    if (card.BoardingSpec.IsDelayed) BQueueDamage(residual, authored: false);
                     else BDeal(residual, critical: false);
                 }
-                if (echo && Battle.EnemyBoardingHealth > 0)
-                    BQueueDamage(Math.Min(BValue(echoCard, 18), BState.ActiveAuthoredDamage / 2));
+                if (echoes > 0 && !card.BoardingSpec.IsDelayed && Battle.EnemyBoardingHealth > 0)
+                    foreach (CoreBattleCard echoCard in echoCards)
+                        BQueueDamage(BValue(echoCard, BState.ActiveAuthoredDamage / 2), authored: false);
             }
             BState.ActiveAttack = false; BState.ActiveCritical = false; BState.ActiveAttackBonus = 0; BState.ActiveCard = null;
+            BState.ActiveDelayedEchoCards = null;
             BState.Revision++;
             BSyncBurn();
             BSyncHeldCards();
@@ -203,58 +212,70 @@ namespace ShatteredSail.Core.Gameplay
         { int actual = Math.Min(Math.Max(0, Battle.PlayerMaxBoardingHealth - Battle.PlayerBoardingHealth), Math.Max(0, amount)); Battle.PlayerBoardingHealth += actual; return actual; }
         private void BGuard(int amount) => Battle.PlayerBlock = SchoolSum(Battle.PlayerBlock, amount);
         private void BDraw(int amount) { DrawCards(amount); BSyncHeldCards(); }
-        private void BQueueDamage(int amount, bool ignoreBlock = false)
+        private void BQueueDamage(int amount, bool ignoreBlock = false, bool authored = true)
         {
-            if (BState.ActiveAttack && BState.ActiveCard?.BoardingSpec?.IsDelayed == true)
-            { amount = SchoolSum(amount, BState.ActiveAttackBonus); BState.ActiveAttackBonus = 0; }
-            BState.DelayedDamage.Add(new CoreBoardingDelayedDamage
+            if (authored && BState.ActiveAttack && BState.ActiveCard?.BoardingSpec?.IsDelayed == true)
+            {
+                amount = SchoolSum(amount, BState.ActiveAttackBonus); BState.ActiveAttackBonus = 0;
+                BState.ActiveAuthoredDamage = SchoolSum(BState.ActiveAuthoredDamage, amount);
+            }
+            var delayed = new CoreBoardingDelayedDamage
             {
                 Amount = amount, IgnoreBlock = ignoreBlock, Label = BState.ActiveCard?.Name ?? "延迟攻击",
                 SourceSchoolId = BState.ActiveCard?.SchoolId ?? string.Empty,
                 SourceCardId = BState.ActiveCard?.Id ?? string.Empty,
-            });
+            };
+            if (authored && BState.ActiveDelayedEchoCards != null)
+                delayed.EchoCards.AddRange(BState.ActiveDelayedEchoCards);
+            BState.DelayedDamage.Add(delayed);
         }
-        private void BQueueHeal(int amount, int ticks) => BState.HealingTicks.Add(new CoreBoardingHealingTick { Amount = amount, Remaining = ticks });
+        private void BQueueHeal(int amount, int ticks)
+        {
+            int total = SchoolSum(BState.ContinuousRecovery, Math.Max(0, amount));
+            BState.HealingTicks.Clear();
+            if (total > 0) BState.HealingTicks.Add(new CoreBoardingHealingTick { Amount = total, Remaining = total });
+        }
         private void BSpendMana(int amount) { PayMana(amount); }
         private void BAddEnemyBurn(int amount, int remaining = 2)
-        { if (amount > 0 && Battle.EnemyBoardingHealth > 0) BState.EnemyBurn.Add(new CoreBoardingTimedStacks(amount, remaining)); BSyncBurn(); }
+        { if (amount > 0 && Battle.EnemyBoardingHealth > 0) BSetStacks(BState.EnemyBurn, SchoolSum(BStackTotal(BState.EnemyBurn), amount)); BSyncBurn(); }
         private void BAddSelfBurn(int amount)
         {
             if (amount <= 0) return;
-            BState.SelfBurn.Add(new CoreBoardingTimedStacks(amount, 2));
-            if (BState.FirePactTurns > 0 && !BState.FirePactUsed)
-            { BState.FirePactUsed = true; BAddEnemyBurn(Math.Min(3, amount)); }
+            BSetStacks(BState.SelfBurn, SchoolSum(BStackTotal(BState.SelfBurn), amount));
+            if (BState.FirePactTurns > 0) BAddEnemyBurn(SchoolProduct(amount, Math.Max(1, BState.FirePacts.Count)));
         }
         private void BTransferSelfBurn(int maximum)
         {
-            BState.SelfBurn.Sort((left, right) => right.Remaining.CompareTo(left.Remaining));
-            foreach (var batch in BState.SelfBurn)
-            { int moved = Math.Min(maximum, batch.Amount); if (moved > 0) { BAddEnemyBurn(moved, batch.Remaining); batch.Amount -= moved; maximum -= moved; } }
-            BState.SelfBurn.RemoveAll(batch => batch.Amount <= 0);
+            int total = BStackTotal(BState.SelfBurn), moved = Math.Min(maximum, total);
+            BSetStacks(BState.SelfBurn, total - moved); BAddEnemyBurn(moved);
+        }
+        private static void BSetStacks(List<CoreBoardingTimedStacks> stacks, int amount)
+        {
+            stacks.Clear();
+            if (amount > 0) stacks.Add(new CoreBoardingTimedStacks(amount, amount));
         }
         private void BSyncBurn()
         {
-            Battle.EnemyBurnDamage = BStackTotal(BState.EnemyBurn); Battle.EnemyBurnTurns = 0;
-            foreach (var batch in BState.EnemyBurn) Battle.EnemyBurnTurns = Math.Max(Battle.EnemyBurnTurns, batch.Remaining);
+            Battle.EnemyBurnDamage = BStackTotal(BState.EnemyBurn);
+            Battle.EnemyBurnTurns = Battle.EnemyBurnDamage;
         }
 
         private bool BPlayerEnd()
         {
             BInitialize();
-            foreach (var heal in BState.HealingTicks) { BHeal(heal.Amount); heal.Remaining--; }
-            BState.HealingTicks.RemoveAll(tick => tick.Remaining <= 0);
+            int recovery = BState.ContinuousRecovery;
+            BHeal(recovery); BState.HealingTicks.Clear();
+            if (recovery > 1) BState.HealingTicks.Add(new CoreBoardingHealingTick { Amount = recovery - 1, Remaining = recovery - 1 });
             int burning = BStackTotal(BState.SelfBurn);
             if (burning > 0) Battle.PlayerBoardingHealth = Math.Max(0, Battle.PlayerBoardingHealth - burning);
-            foreach (var batch in BState.SelfBurn) batch.Remaining--;
-            BState.SelfBurn.RemoveAll(batch => batch.Remaining <= 0);
+            BSetStacks(BState.SelfBurn, burning - 1);
             TickBoardingEnemyFire();
             CTBPlayerEnd();
             Battle.Schools.TemporaryMana = 0;
             BState.FreePowderUses = 0;
-            BState.ArcaneEchoReady = false;
             BState.ThunderReady = 0; BState.ThunderResidualCharges = 0;
             Battle.Schools.ThunderChain = 0;
-            if (BState.FirePactTurns > 0) BState.FirePactTurns--;
+            BAdvanceWindows(BState.FirePacts); BState.FirePactTurns = BWindowTurns(BState.FirePacts);
             BState.Revision++;
             return ResolveBattleOutcome();
         }
@@ -263,12 +284,10 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (BEnemySchoolEnd()) return true;
             BDeal(BStackTotal(BState.EnemyBurn), ignoreBlock: true, critical: false);
-            foreach (var batch in BState.EnemyBurn) batch.Remaining--;
-            BState.EnemyBurn.RemoveAll(batch => batch.Remaining <= 0);
+            BSetStacks(BState.EnemyBurn, BStackTotal(BState.EnemyBurn) - 1);
             CTBEnemyEnd();
             if (BState.ThunderWeaknessTurns > 0) BState.ThunderWeaknessTurns--;
             if (BState.ThunderWeaknessTurns <= 0) BState.ThunderWeakness = 0;
-            BState.FireRetaliations = 0;
             BSyncBurn();
             BState.Revision++;
             return ResolveBattleOutcome();
@@ -290,13 +309,15 @@ namespace ShatteredSail.Core.Gameplay
         {
             BInitialize(); BState.TurnUses.Clear(); BState.FirePactUsed = false;
             CTBPlayerStart();
-            foreach (var pot in BState.FirePots) { BAddEnemyBurn(pot.Amount); pot.Remaining--; }
+            foreach (var pot in BState.FirePots) { BAddEnemyBurn(pot.Amount); if (pot.Remaining != int.MaxValue) pot.Remaining--; }
             BState.FirePots.RemoveAll(pot => pot.Remaining <= 0);
-            for (int i = 0; i < BState.DelayedDamage.Count;)
+            // An echo created by a settlement starts its own delay. Only effects that
+            // were queued before this turn began can become due in this pass.
+            foreach (var delayed in new List<CoreBoardingDelayedDamage>(BState.DelayedDamage))
             {
-                var delayed = BState.DelayedDamage[i]; delayed.Remaining--;
-                if (delayed.Remaining > 0) { i++; continue; }
-                BState.DelayedDamage.RemoveAt(i);
+                delayed.Remaining--;
+                if (delayed.Remaining > 0) continue;
+                BState.DelayedDamage.Remove(delayed);
                 BResolveDelayedDamage(delayed);
                 if (ResolveBattleOutcome()) return true;
             }
@@ -306,6 +327,8 @@ namespace ShatteredSail.Core.Gameplay
 
         private int BEnemyAttack(int damage, bool consume)
         {
+            if (consume && damage > 0) CTBBeforeEnemyAttack();
+            if (Battle.EnemyBoardingHealth <= 0) return 0;
             int afterCtb = CTBEnemyAttackReduction(damage, consume);
             int reduction = damage - afterCtb;
             if (BState.ThunderWeaknessTurns > 0) reduction = Math.Max(reduction, Math.Min(damage / 2, BState.ThunderWeakness));
@@ -327,13 +350,17 @@ namespace ShatteredSail.Core.Gameplay
             BState.RetainedGuardBatches.RemoveAll(batch => batch.Amount <= 0);
             CTBAfterEnemyAttack(absorbed, lost);
             if (absorbed > 0 && BState.FireRetaliations > 0 && Battle.PlayerBoardingHealth > 0)
-            { BState.FireRetaliations--; BDeal(Math.Min(8, BStackTotal(BState.SelfBurn) * 2), critical: false); }
+            { BDeal(SchoolProduct(BState.FireRetaliations, BStackTotal(BState.SelfBurn) * 2), critical: false); }
         }
 
         private void BResolveOldestDelayed()
         {
-            if (BState.DelayedDamage.Count == 0) return;
-            var delayed = BState.DelayedDamage[0]; BState.DelayedDamage.RemoveAt(0);
+            BResolveSelectedDelayed(0);
+        }
+        private void BResolveSelectedDelayed(int index)
+        {
+            if (index < 0 || index >= BState.DelayedDamage.Count) return;
+            var delayed = BState.DelayedDamage[index]; BState.DelayedDamage.RemoveAt(index);
             BResolveDelayedDamage(delayed);
         }
 
@@ -344,20 +371,29 @@ namespace ShatteredSail.Core.Gameplay
             BDeal(delayed.Amount, delayed.IgnoreBlock, critical: false);
             // Observe the existing settlement once; this record never changes its rules.
             if (attempted) BState.RecordResolvedAttack(delayed, health, Battle.EnemyBoardingHealth, guard, Battle.EnemyBlock);
+            if (attempted && Battle.EnemyBoardingHealth > 0)
+                foreach (CoreBattleCard echoCard in delayed.EchoCards)
+                    BState.DelayedDamage.Add(new CoreBoardingDelayedDamage
+                    {
+                        Amount = BValue(echoCard, delayed.Amount / 2),
+                        Label = delayed.Label, SourceSchoolId = delayed.SourceSchoolId, SourceCardId = delayed.SourceCardId,
+                    });
         }
 
         public string GetBoardingStateSummary()
         {
             if (!BActive) return string.Empty;
             return "魔力 " + Battle.Schools.AvailableMana + "/" + Battle.Schools.ManaLimit +
-                "\n咒痕 " + BState.CurseMarks + "/6（不自动伤害）" +
+                "\n敌方咒印 " + BState.CurseMarks + " 层" +
                 "\n潮势 " + BState.TidePower + "/12（本轮可用）" +
                 "\n连锁 " + Battle.Schools.ThunderChain + "/6（回合末清空）" +
                 "\n敌方灼烧 " + BStackTotal(BState.EnemyBurn) + " 层" +
-                "\n自身燃烧 " + BStackTotal(BState.SelfBurn) + " 层" +
-                (Battle.BoardingEnemy.PlayerBurnTurns > 0 ? "\n敌方点燃 " + Battle.BoardingEnemy.PlayerBurnDamage + "（剩余 " + Battle.BoardingEnemy.PlayerBurnTurns + " 次己方回合末）" : string.Empty) +
+                "\n自燃 " + BStackTotal(BState.SelfBurn) + " 层" +
+                "\n持续恢复 " + BState.ContinuousRecovery + " 层" +
+                (Battle.BoardingEnemy.PlayerBurnDamage > 0 ? "\n敌方灼烧 " + Battle.BoardingEnemy.PlayerBurnDamage + " 层" : string.Empty) +
+                (Battle.BoardingEnemy.CurseMarks > 0 ? "\n自身咒印 " + Battle.BoardingEnemy.CurseMarks + " 层" : string.Empty) +
                 "\n待结算攻击 " + BState.DelayedDamage.Count +
-                "\n燃烧移除 " + BState.ExhaustedCards.Count + " 张" +
+                "\n焚烧移除 " + BState.ExhaustedCards.Count + " 张" +
                 (BState.FreePowderUses > 0 ? "\n免火药 " + BState.FreePowderUses + " 次" : string.Empty);
         }
     }

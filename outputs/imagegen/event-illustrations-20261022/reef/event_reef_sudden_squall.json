@@ -1,0 +1,7 @@
+{
+  "eventId": "event_reef_sudden_squall",
+  "source": "C:/Users/Admin/.codex/generated_images/01a1630b-0426-7de1-9802-03c061f4820c/exec-3d92f1d4-e79b-4241-98e3-eabdcd3dcaf8.png",
+  "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_sudden_squall_v1.png",
+  "tool": "built-in image_gen",
+  "prompt": "Use case: illustration-story. Asset type: final in-game nautical encounter illustration, one single full-bleed landscape scene, 4:3 composition, preferably 1536x1152. Style: richly detailed hand-painted maritime adventure storybook painting, matching classic pirate adventure game illustrations, believable weathered timber, saltwater, rope and brass, crisp central silhouette readable at 256px. Keep crucial forms within central 80%, generous environment context, no borders, panels, text, lettering, captions, logos, watermark, modern objects or photorealistic finish. Scene: An age-of-sail ship caught at the sudden boundary of a tropical reef rain squall. From the wet deck, taut cream sail rigging and rain-slick ropes strain in the foreground while sailors brace and reef the sail; a dense slanting curtain of rain hides jagged reef tops immediately beyond the rail. Strong gust bends the canvas, turquoise waves and a bright break in storm clouds maintain readable adventure color. Focus on violent rain arriving at the reefs and shivering taut lines, not a ship sinking, no lightning strike or fire."
+}

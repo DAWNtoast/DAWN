@@ -47,11 +47,7 @@ namespace ShatteredSail.Presentation.Tests
             Button unaffordable = RequiredResponsive<Button>("Battle Card 0");
             ExecuteEvents.Execute(unaffordable.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
             yield return new WaitForSecondsRealtime(.3f);
-            Transform unavailableBubble = unaffordable.transform.Find("Card Keyword Bubble 0");
-            Assert.That(unavailableBubble, Is.Not.Null);
-            Assert.That(unavailableBubble.gameObject.activeInHierarchy, Is.True);
-            Assert.That(unavailableBubble.Find("Keyword Bubble Text").GetComponent<Text>().text,
-                Does.Contain("当前不能使用").And.Contain(session.CardUnavailableReason(0)));
+            AssertKeywordOnlyCardHover(unaffordable, 0, session, session.GetBattleCard(brace), "unaffordable basic card");
             ExecuteEvents.Execute(unaffordable.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerExitHandler);
             yield return new WaitForSecondsRealtime(.3f);
             NavalBattleVisualCapture.Capture(controller, "BattleRules_01_Shared_Cost.png",
@@ -121,7 +117,7 @@ namespace ShatteredSail.Presentation.Tests
             AssertBattleRuleLayout(true);
             NavalBattleVisualCapture.Capture(controller, "BattleRules_04_Enemy_Ram_Intent.png",
                 "近距离敌舰明确预告冲撞、接舷与先手伤害，双方显示普通水手及接舷生命上限", "Battle Card");
-            battle.EnemyBurnTurns = 2;
+            battle.EnemyBurnTurns = 10;
             battle.EnemyBurnDamage = 10;
             RenderResponsiveBattle(controller);
             yield return WaitResponsiveBattle(controller);
@@ -133,7 +129,7 @@ namespace ShatteredSail.Presentation.Tests
                     Is.EqualTo(status.Value), "The active burning state remains visible beneath enemy health.");
             AssertBattleRuleLayout(true);
             NavalBattleVisualCapture.Capture(controller, "BattleRules_04a_Burning_Ram_Intent.png",
-                "灼烧结算前缀与撞击、先手及避让距离同时显示且保持可读字号", "Battle Card");
+                "回合末灼烧与撞击、先手及避让距离同时显示且保持可读字号", "Battle Card");
             battle.EnemyBurnTurns = 0;
             battle.EnemyBurnDamage = 0;
             RenderResponsiveBattle(controller);
@@ -203,21 +199,17 @@ namespace ShatteredSail.Presentation.Tests
                 "敌方撞击进入接舷并先手一次，船员生命与HUD同步扣除", "Battle Card");
 
             // This presentation fixture preserves the actual ram transition and
-            // crew snapshot above, then covers damage and healing calculations
+            // crew snapshot above, then covers keyword and basic-card inspection
             // independently of the shuffled boarding draw. Pointer entry, rather
             // than SetActive, must reveal each tooltip through the normal UI.
-            SetResponsiveHand(session, "card_boarding_hook", "card_crew_guard", "card_crew_bandage", "card_crew_rally");
+            SetResponsiveHand(session, "card_boarding_hook", "card_crew_bandage", "card_boarding_fire_06", "card_boarding_basic_07");
             RenderResponsiveBattle(controller);
             yield return WaitResponsiveBattle(controller);
             for (int handIndex = 0; handIndex < battle.Hand.Count; handIndex++)
             {
                 CoreBattleCard card = session.GetBattleCard(battle.Hand[handIndex]);
-                CoreBattleCardEffects effects = session.GetBattleCardEffects(card, NavalBattleStage.Boarding);
                 Button button = RequiredResponsive<Button>("Battle Card " + handIndex);
                 Transform bubbleTransform = button.transform.Find("Card Keyword Bubble " + handIndex);
-                bool hasCalculation = card.BoardingSpec != null || card.SchoolEffect != null || card.Damage > 0 || card.Repair > 0;
-                Assert.That(bubbleTransform != null, Is.EqualTo(hasCalculation),
-                    "Current boarding designs expose their rules, including defense and strategy cards: " + card.Id);
                 RectTransform cardRect = (RectTransform)button.transform;
                 RectTransform frameRect = button.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform;
                 Vector2 restingPosition = cardRect.anchoredPosition;
@@ -225,7 +217,7 @@ namespace ShatteredSail.Presentation.Tests
                 Quaternion restingRotation = cardRect.localRotation;
                 Vector2 restingFaceSize = BattleRuleFrameEdgeLengths(frameRect);
                 Rect restingFrame = BattleRuleWorldRect(frameRect);
-                if (hasCalculation) Assert.That(bubbleTransform.gameObject.activeSelf, Is.False, "The boarding tooltip starts hidden.");
+                if (bubbleTransform != null) Assert.That(bubbleTransform.gameObject.activeSelf, Is.False, "The keyword tooltip starts hidden.");
                 var pointer = new PointerEventData(EventSystem.current)
                 {
                     position = RectTransformUtility.WorldToScreenPoint(null, button.transform.position),
@@ -246,70 +238,21 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(inspectedFrame.yMax, Is.GreaterThan(restingFrame.yMax + 1f),
                     "The inspected upper edge rises without requiring the taller card's center to rise by a fixed amount.");
                 Assert.That(button.GetComponent<Canvas>().overrideSorting, Is.True);
-                if (!hasCalculation)
-                {
-                    Assert.That(button.transform.Find("Card Keyword Bubble " + handIndex), Is.Null);
-                    AssertBattleRuleHoveredCardClear(button.GetComponent<RectTransform>());
-                    ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerExitHandler);
-                    yield return new WaitForSecondsRealtime(.4f);
-                    AssertBattleRuleRestoredCard(cardRect, restingPosition, restingScale, restingRotation);
-                    continue;
-                }
-                RectTransform bubble = bubbleTransform.GetComponent<RectTransform>();
-                Assert.That(bubble.gameObject.activeInHierarchy, Is.True);
-                Assert.That(bubble.GetComponent<CanvasGroup>().alpha, Is.GreaterThan(.5f));
-                Text explanation = bubble.Find("Keyword Bubble Text").GetComponent<Text>();
-                Text title = bubble.Find("Keyword Bubble Title").GetComponent<Text>();
-                // Capture before content and layout assertions so any regression
-                // leaves the real hovered state, including a clipped explanation.
                 NavalBattleVisualCapture.Capture(controller,
                     "BattleRules_06_Boarding_Hover_" + handIndex + ".png",
-                    "接舷悬停：" + card.Name + "，卡牌数值不再按人数缩放，实际效果完整显示", "Battle Card");
-                string text = explanation.text.Replace("\n", string.Empty).Replace('\u00a0', ' ');
-                if (card.BoardingSpec != null) AssertCurrentBoardingRules(text, card, card.Id);
-                else
-                {
-                    Assert.That(text, Does.Contain("卡牌效果不受人数影响")
-                        .And.Not.Contain("接舷倍率").And.Not.Contain("人为基准"));
-                    AssertCalculationTooltipOmitsGeneralKeywords(text);
-                    if (card.Damage > 0) Assert.That(text, Does.Contain("船员伤害 " + session.GetBattleCardDamage(card, NavalBattleStage.Boarding)));
-                    if (card.Repair > 0) Assert.That(text, Does.Contain("本次实际恢复 " + effects.ActualRepair)
-                        .And.Contain("无药保底 " + effects.FallbackRepair));
-                }
-                Assert.That(title.text, Does.StartWith(card.Name));
-                Assert.That(title.text, Does.Contain("分类 · " + card.Type));
-                Assert.That(title.fontSize, Is.GreaterThanOrEqualTo(24), "The card name must remain larger than its category.");
-                Assert.That(!title.resizeTextForBestFit || title.resizeTextMinSize >= 22, Is.True);
-                Assert.That(explanation.fontSize, Is.GreaterThanOrEqualTo(20));
-                Assert.That(!explanation.resizeTextForBestFit || explanation.resizeTextMinSize >= 18, Is.True,
-                    "Calculation explanations preserve the existing readable font size.");
-                AssertBattleRuleTooltipFits(explanation, 11);
-                AssertBattleRuleTooltipFits(title, 12);
-                AssertBattleRuleDisjoint(title.rectTransform, explanation.rectTransform,
-                    "Card identity and the complete effect explanation retain separate rows.");
-                Rect bubbleBounds = BattleRuleTooltipWorldRect(bubble);
-                CardSchoolFrameGraphic completeFrame = button.GetComponentInChildren<CardSchoolFrameGraphic>();
-                AssertBattleRuleDisjoint(bubble, completeFrame.rectTransform,
-                    "Calculation tooltips leave the complete frame and its corner payment crystals uncovered.");
-                foreach (Text label in new[] { title, explanation })
-                {
-                    Rect bounds = BattleRuleTooltipWorldRect(label.rectTransform);
-                    Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(bubbleBounds.xMin - .5f));
-                    Assert.That(bounds.xMax, Is.LessThanOrEqualTo(bubbleBounds.xMax + .5f));
-                    Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(bubbleBounds.yMin - .5f));
-                    Assert.That(bounds.yMax, Is.LessThanOrEqualTo(bubbleBounds.yMax + .5f));
-                }
+                    "接舷悬停：" + card.Name + "，只显示卡面关键词及其含义", "Battle Card");
+                AssertKeywordOnlyCardHover(button, handIndex, session, card, card.Id);
                 AssertBattleRuleHoveredCardClear(button.GetComponent<RectTransform>());
                 ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerExitHandler);
                 yield return new WaitForSecondsRealtime(.4f);
-                Assert.That(bubble.gameObject.activeSelf, Is.False);
+                if (bubbleTransform != null) Assert.That(bubbleTransform.gameObject.activeSelf, Is.False);
                 AssertBattleRuleRestoredCard(cardRect, restingPosition, restingScale, restingRotation);
             }
             LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]
-        public IEnumerator BattleRules_AllCardRanksExposeTheirCurrentRulesAndLegacyCalculations()
+        public IEnumerator BattleRules_AllCardRanksExplainVisibleKeywordsWithoutCalculations()
         {
             yield return LoadResponsiveBattleScene();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -318,7 +261,10 @@ namespace ShatteredSail.Presentation.Tests
             session.Cargo.Medicine = 2;
             MethodInfo tooltip = typeof(CoreGameplayDemoController).GetMethod("BattleCardTooltipText",
                 BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo faceText = typeof(CoreGameplayDemoController).GetMethod("BattleCardEffectTextForCurrentStage",
+                BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(tooltip, Is.Not.Null);
+            Assert.That(faceText, Is.Not.Null);
             int checkedVariants = 0;
             foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
             {
@@ -331,61 +277,12 @@ namespace ShatteredSail.Presentation.Tests
                     for (int rank = 0; rank <= CoreBattleUpgradeBalance.MaximumLevel; rank++)
                     {
                         CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
-                        string text = ((string)tooltip.Invoke(controller, new object[] { card, 0 }))
-                            .Replace("\n", string.Empty).Replace('\u00a0', ' ');
+                        string text = (string)tooltip.Invoke(controller, new object[] { card, 0 });
+                        string description = (string)faceText.Invoke(controller, new object[] { card });
                         string context = card.Id + " rank " + rank + " stage " + stage;
-                        bool hasBoardingRules = card.BoardingSpec != null;
-                        bool hasSchoolMechanism = !hasBoardingRules && card.SchoolEffect != null;
-                        bool needsCalculation = !hasBoardingRules && !hasSchoolMechanism && stage == NavalBattleStage.Boarding &&
-                            card.IsAllowedInStage(stage) && (card.Damage > 0 || card.Repair > 0);
-                        string unavailableReason = session.CardUnavailableReason(0);
-                        Assert.That(string.IsNullOrEmpty(text), Is.EqualTo(!hasBoardingRules && !hasSchoolMechanism && !needsCalculation && unavailableReason.Length == 0), context);
-                        if (unavailableReason.Length > 0)
-                            Assert.That(text, Does.Contain("当前不能使用").And.Contain(unavailableReason), context);
-                        else Assert.That(text, Does.Not.Contain("当前不能使用"), context);
-                        if (hasBoardingRules)
-                        {
-                            AssertCurrentBoardingRules(text, card, context);
-                            string reason = session.CardUnavailableReason(0);
-                            if (reason.Length > 0)
-                                Assert.That(text, Does.Contain("当前不能使用").And.Contain(reason), context);
-                            else Assert.That(text, Does.Not.Contain("当前不能使用"), context);
-                        }
-                        if (hasSchoolMechanism)
-                        {
-                            CoreBattleCardEffects effects = session.GetBattleCardEffects(card, stage);
-                            Assert.That(text, Does.Contain("当前结算").And.Contain("伤害 " + session.GetBattleCardDamage(card, stage))
-                                .And.Contain("格挡 " + effects.Block).And.Contain("实际治疗 " + effects.ActualRepair), context);
-                            Assert.That(text.Contains("卡牌效果不受人数影响"),
-                                Is.EqualTo(stage == NavalBattleStage.Boarding), context);
-                            Assert.That(text, Does.Not.Contain("计算使用未取整倍率").And.Not.Contain("名普通水手折算"),
-                                context + " school effects no longer inherit a crew multiplier");
-                            string reason = session.CardUnavailableReason(0);
-                            if (reason.Length > 0)
-                                Assert.That(text, Does.Contain("当前不能使用").And.Contain(reason), context);
-                            else Assert.That(text, Does.Not.Contain("当前不能使用"), context);
-                        }
-                        if (needsCalculation)
-                        {
-                            CoreBattleCardEffects effects = session.GetBattleCardEffects(card, stage);
-                            Assert.That(text, Does.Contain("卡牌效果不受人数影响")
-                                .And.Not.Contain("接舷倍率").And.Not.Contain("人为基准")
-                                .And.Not.Contain("30%～160%").And.Not.Contain("计算使用未取整倍率"), context);
-                            AssertCalculationTooltipOmitsGeneralKeywords(text);
-                            if (card.Damage > 0)
-                            {
-                                Assert.That(effects.Damage, Is.EqualTo(card.Damage), context + " preserves the authored upgraded damage");
-                                Assert.That(text, Does.Contain("白刃")
-                                    .And.Contain("船员伤害 " + session.GetBattleCardDamage(card, stage)), context);
-                            }
-                            if (card.Repair > 0)
-                            {
-                                Assert.That(effects.FullRepair, Is.EqualTo(card.Repair), context + " preserves the authored upgraded treatment");
-                                Assert.That(text, Does.Contain("治疗").And.Contain("有药完整 " + card.Repair)
-                                    .And.Contain("无药保底 " + effects.FallbackRepair)
-                                    .And.Contain("本次实际恢复 " + effects.ActualRepair), context);
-                            }
-                        }
+                        var keywords = CoreBattleCardKeywordText.Build(card, description);
+                        Assert.That(text, Is.EqualTo(string.Join("\n\n", keywords.Select(entry => entry.Text))), context);
+                        AssertKeywordTooltipOmitsCalculations(text, context);
                         checkedVariants++;
                     }
                 }
@@ -396,18 +293,54 @@ namespace ShatteredSail.Presentation.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
-        private static void AssertCurrentBoardingRules(string text, CoreBattleCard card, string context)
+        internal static string AssertKeywordOnlyCardHover(Button button, int handIndex, CoreVoyageSession session,
+            CoreBattleCard card, string context)
         {
-            Assert.That(card.BoardingSpec, Is.Not.Null, context);
-            string visible = ForgeVisibleText(text);
-            Assert.That(visible, Does.StartWith(ForgeVisibleText(CoreBattleCardText.FormatEffects(card.Description))),
-                context + " preserves the complete current-rank description, including every authored value and condition.");
-            Assert.That(visible, Does.Contain("接舷规则").And.Contain("卡牌数值不受人数影响")
-                .And.Contain("后续费用增加1").And.Contain("资源按卡面固定数量或全部消耗")
-                .And.Contain("取消不扣费用").And.Not.Contain("接舷倍率").And.Not.Contain("人为基准")
-                .And.Not.Contain("30%～160%").And.Not.Contain("计算使用未取整倍率"), context);
-            if (card.Repair > 0)
-                Assert.That(visible, Does.Contain("完整治疗使用药物").And.Contain("无药按卡面保底值恢复"), context);
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            Assert.That(controller.Session, Is.SameAs(session), context);
+            MethodInfo faceText = typeof(CoreGameplayDemoController).GetMethod("BattleCardEffectTextForCurrentStage",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            string face = (string)faceText.Invoke(controller, new object[] { card });
+            var keywords = CoreBattleCardKeywordText.Build(card, face);
+            Transform bubble = button.transform.Find("Card Keyword Bubble " + handIndex);
+            if (keywords.Count == 0)
+            {
+                Assert.That(bubble == null || !bubble.gameObject.activeInHierarchy, Is.True,
+                    context + " has no keyword popup for ordinary effects or current unavailability.");
+                return string.Empty;
+            }
+            Assert.That(bubble, Is.Not.Null, context);
+            Assert.That(bubble.gameObject.activeInHierarchy, Is.True, context);
+            Assert.That(bubble.GetComponent<CanvasGroup>().alpha, Is.GreaterThan(.5f), context);
+            Text[] visibleLabels = bubble.GetComponentsInChildren<Text>(true).Where(label => label.gameObject.activeInHierarchy).ToArray();
+            Text[] titles = visibleLabels.Where(label => label.name == "Keyword Bubble Title").ToArray();
+            Text[] meanings = visibleLabels.Where(label => label.name == "Keyword Bubble Text").ToArray();
+            CollectionAssert.AreEqual(keywords.Select(entry => entry.Keyword), titles.Select(label => label.text), context);
+            CollectionAssert.AreEqual(keywords.Select(entry => entry.Meaning), meanings.Select(label => label.text), context);
+            Assert.That(visibleLabels.Length, Is.EqualTo(keywords.Count * 2),
+                context + " contains only a heading and meaning for each keyword.");
+            Rect bubbleBounds = BattleRuleTooltipWorldRect((RectTransform)bubble);
+            Rect frameBounds = BattleRuleTooltipWorldRect(button.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
+            Assert.That(bubbleBounds.xMax, Is.LessThanOrEqualTo(frameBounds.xMin + .5f), context + " opens to the left of the card.");
+            for (int index = 0; index < titles.Length; index++)
+            {
+                AssertBattleRuleTooltipFits(titles[index], 18);
+                AssertBattleRuleTooltipFits(meanings[index], 18);
+                AssertBattleRuleDisjoint(titles[index].rectTransform, meanings[index].rectTransform,
+                    context + " separates each keyword from its explanation.");
+            }
+            foreach (Text label in titles.Concat(meanings))
+            {
+                Assert.That(label.raycastTarget, Is.False, context + " does not intercept card input.");
+                Rect bounds = BattleRuleTooltipWorldRect(label.rectTransform);
+                Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(bubbleBounds.xMin - .5f), context);
+                Assert.That(bounds.xMax, Is.LessThanOrEqualTo(bubbleBounds.xMax + .5f), context);
+                Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(bubbleBounds.yMin - .5f), context);
+                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(bubbleBounds.yMax + .5f), context);
+            }
+            string text = string.Join("\n", titles.Select((title, index) => title.text + "：" + meanings[index].text));
+            AssertKeywordTooltipOmitsCalculations(text, context);
+            return text;
         }
 
         private static void AssertBattleRuleHoveredCardClear(RectTransform card)
@@ -472,10 +405,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Quaternion.Angle(card.localRotation, rotation), Is.LessThan(.1f));
         }
 
-        private static void AssertCalculationTooltipOmitsGeneralKeywords(string text)
+        private static void AssertKeywordTooltipOmitsCalculations(string text, string context)
         {
-            foreach (string removed in new[] { "能量", "格挡", "抽牌", "火药", "炮弹", "船体", "基础费用", "本回合已用" })
-                Assert.That(text, Does.Not.Contain(removed), "Calculation tooltip must omit general keyword and cost explanations.");
+            foreach (string removed in new[] { "当前结算", "当前不能使用", "生命支付预告", "支付后", "本次实际",
+                "实际治疗", "合计可用", "接舷倍率", "计算使用未取整倍率", "分类 ·", "接舷规则" })
+                Assert.That(text, Does.Not.Contain(removed), context + " contains keyword meanings without calculations or unavailable reasons.");
         }
 
         private static Rect BattleRuleTooltipWorldRect(RectTransform rect)
@@ -494,8 +428,8 @@ namespace ShatteredSail.Presentation.Tests
         private static void AssertBattleRuleTooltipFits(Text label, int existingMinimumFontSize)
         {
             Canvas.ForceUpdateCanvases();
-            Assert.That(label.resizeTextMinSize, Is.GreaterThanOrEqualTo(existingMinimumFontSize),
-                "Do not hide additional crew/effect text by lowering the existing readable minimum font.");
+            Assert.That(!label.resizeTextForBestFit || label.resizeTextMinSize >= existingMinimumFontSize, Is.True,
+                "Keyword explanations keep a readable minimum font.");
             TextGenerationSettings settings = label.GetGenerationSettings(label.rectTransform.rect.size);
             settings.resizeTextForBestFit = false;
             settings.fontSize = label.resizeTextForBestFit ? label.resizeTextMinSize : label.fontSize;
@@ -568,7 +502,9 @@ namespace ShatteredSail.Presentation.Tests
                 }
             }
             string explanation = AssertBattleRuleIntents(session);
-            if (ram) Assert.That(explanation, Does.Contain("船员伤害").And.Contain("离开相邻格").And.Contain("到达朝向"));
+            if (ram) Assert.That(explanation, Does.Contain("船员伤害").And.Contain("均穿透格挡")
+                .And.Contain("双方存活则进入接舷，敌方先手攻击")
+                .And.Contain("航行离开敌舰船头正前方的相邻格可避让"));
         }
 
         private static string AssertBattleRuleIntents(CoreVoyageSession session)

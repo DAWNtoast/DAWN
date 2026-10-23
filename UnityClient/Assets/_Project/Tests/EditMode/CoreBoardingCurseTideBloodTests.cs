@@ -9,42 +9,41 @@ namespace ShatteredSail.Core.Tests
     public sealed class CoreBoardingCurseTideBloodTests
     {
         [Test]
-        public void CurseMarks_AreCappedAndExpireInIndependentBatchesWithoutDamage()
+        public void CurseMarks_AddWithoutTheOldCapAndDecayAfterDamage()
         {
             CoreVoyageSession s = Battle();
             Play(s, "curse_02");
             End(s);
             Play(s, "curse_02");
-            Play(s, "curse_02"); // Overflow cannot refresh either batch.
-            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(6));
+            Play(s, "curse_02");
+            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(8));
             int hp = s.Battle.EnemyBoardingHealth;
-            End(s);
-            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(6));
-            End(s);
-            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(3));
-            End(s);
+            for (int layers = 8; layers > 0; layers--)
+            {
+                End(s); hp -= layers;
+                Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(layers - 1));
+                Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp));
+            }
             Assert.That(s.Battle.Boarding.CurseMarks, Is.Zero);
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp), "Marks must never tick damage.");
-            Assert.That(s.Battle.Schools.CurseDamagePerMark, Is.Zero);
+            Assert.That(s.Battle.Schools.CurseDamagePerMark, Is.EqualTo(1));
         }
 
         [Test]
-        public void CurseConsumption_UsesTheOldestLayersAndExtensionIsOncePerLayer()
+        public void CurseConsumption_RemovesLayersAndExtraSettlementCanRepeat()
         {
             CoreVoyageSession s = Battle();
             Play(s, "curse_02"); End(s); Play(s, "curse_02");
             Play(s, "curse_13");
-            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(5));
-            End(s); End(s);
-            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(3), "The consumed layer belongs to the earlier batch.");
+            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(4));
+            int enemy = s.Battle.EnemyBoardingHealth;
             Play(s, "curse_10");
             Put(s, "curse_10");
-            int energy = s.Battle.Energy;
-            Assert.That(s.PlayCard(0), Is.False);
-            Assert.That(s.Battle.Energy, Is.EqualTo(energy));
+            Assert.That(s.PlayCard(0), Is.True);
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 8));
+            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(4));
             End(s);
             Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(3));
-            End(s);
+            End(s); End(s); End(s);
             Assert.That(s.Battle.Boarding.CurseMarks, Is.Zero);
         }
 
@@ -65,22 +64,22 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CurseContract_SeedsBeforeCounterAndIgnoresFullyBlockedAttack()
+        public void CurseContract_SeedsAfterDamageWhileCounterPrecedesAttack()
         {
             CoreVoyageSession s = Battle();
             Play(s, "curse_04"); Play(s, "curse_09");
             int hp = s.Battle.EnemyBoardingHealth;
             End(s);
-            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(2));
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp - 4));
+            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(1));
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp - 2));
             s.Battle.PlayerBlock = 100;
             End(s);
-            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(2));
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp - 8), "Counter triggers on blocked attacks, contract does not.");
+            Assert.That(s.Battle.Boarding.CurseMarks, Is.Zero);
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp - 5), "The pre-attack counter and natural curse tick resolve separately.");
         }
 
         [Test]
-        public void CurseWeakness_UsesCurrentMarksAndCannotReduceMoreThanHalf()
+        public void CurseWeakness_UsesCurrentMarksOnEveryAttackInItsWindow()
         {
             CoreVoyageSession s = Battle();
             Play(s, "curse_02"); Play(s, "curse_02"); Play(s, "curse_07");
@@ -88,13 +87,13 @@ namespace ShatteredSail.Core.Tests
             string firstIntent = s.GetEnemyIntent();
             Assert.That(s.GetEnemyIntent(), Is.EqualTo(firstIntent), "Preview must not consume the debuff.");
             End(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(hp - 5));
+            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(hp - 1));
             End(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(hp - 15), "The next full attack consumes it once.");
+            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(hp - 3), "The second turn reads the remaining five curse layers.");
         }
 
         [Test]
-        public void CurseArmor_RemovesCurrentGuardAndReducesNextPositiveGrantOnly()
+        public void CurseArmor_RemovesCurrentGuardAndReducesEveryGrantInItsWindow()
         {
             CoreVoyageSession s = Battle();
             Play(s, "curse_02"); s.Battle.EnemyBlock = 20;
@@ -108,7 +107,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.EnemyBlock, Is.EqualTo(5));
             s.Battle.PhaseTurn = 2;
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.EnemyBlock, Is.EqualTo(10));
+            Assert.That(s.Battle.EnemyBlock, Is.EqualTo(6));
         }
 
         [Test]
@@ -125,7 +124,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CurseSupports_PayFixedMarksAndRespectSharedEnergyLimit()
+        public void CurseSupports_PayFixedMarksAndAllowRepeatedEnergyConversion()
         {
             CoreVoyageSession s = Battle();
             Play(s, "curse_02"); Play(s, "curse_02");
@@ -139,7 +138,8 @@ namespace ShatteredSail.Core.Tests
             Play(s, "curse_14");
             Assert.That(s.Battle.Energy, Is.EqualTo(102));
             Play(s, "curse_02"); Put(s, "curse_14");
-            Assert.That(s.PlayCard(0), Is.False);
+            Assert.That(s.PlayCard(0), Is.True);
+            Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(1));
         }
 
         [Test]
@@ -174,7 +174,7 @@ namespace ShatteredSail.Core.Tests
             Play(s, "curse_02");
             int hp = s.Battle.EnemyBoardingHealth;
             Play(s, "curse_06");
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp - 11));
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(hp - 9));
             Assert.That(s.Battle.Boarding.CurseMarks, Is.EqualTo(3));
             s.Battle.EnemyBlock = 6; Play(s, "blood_10");
             Assert.That(s.Battle.Hand.Count, Is.Zero);
@@ -224,30 +224,32 @@ namespace ShatteredSail.Core.Tests
             typeof(CoreSchoolBattleState).GetProperty("CurseMarks").SetValue(s.Battle.Schools, 5);
             typeof(CoreSchoolBattleState).GetProperty("CurseDamagePerMark").SetValue(s.Battle.Schools, 4);
             s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);
             Assert.That(s.Battle.Schools.ManaLimit, Is.EqualTo(3));
             Assert.That(s.Battle.Schools.Mana, Is.EqualTo(3));
             Assert.That(s.Battle.Schools.CurseMarks, Is.Zero);
-            Assert.That(s.Battle.Schools.CurseDamagePerMark, Is.Zero);
+            Assert.That(s.Battle.Schools.CurseDamagePerMark, Is.EqualTo(1));
             Assert.That(s.Battle.Boarding.CurseMarks, Is.Zero);
             Assert.That(s.Battle.Boarding.TidePower, Is.Zero);
         }
 
         [Test]
-        public void TideRetention_ExtendsEachPointOnceAndSpendingUsesEarliestExpiration()
+        public void TideGain_AddsNewPowerAndRespectsTheSharedResourceLifetime()
         {
             CoreVoyageSession s = Battle(20);
             Play(s, "tide_02"); Play(s, "tide_01"); End(s);
             Assert.That(s.Battle.Boarding.TidePower, Is.EqualTo(12));
             Play(s, "tide_05", 6);
             Play(s, "tide_15");
-            Assert.That(s.Battle.Boarding.ExtendableTidePower, Is.Zero, "Spending removes the unextended points first.");
-            End(s);
             Assert.That(s.Battle.Boarding.TidePower, Is.EqualTo(6));
+            End(s);
+            Assert.That(s.Battle.Boarding.TidePower, Is.Zero);
             Put(s, "tide_05");
-            Assert.That(s.PlayCard(0, new CoreBoardingPlayOptions { ResourceAmount = 1 }), Is.False);
+            Assert.That(s.PlayCard(0, new CoreBoardingPlayOptions { ResourceAmount = 1 }), Is.True);
+            Assert.That(s.Battle.Boarding.TidePower, Is.EqualTo(6));
             End(s);
             Assert.That(s.Battle.Boarding.TidePower, Is.Zero);
         }
@@ -312,7 +314,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void TideMedicineBath_PaysOnceAndHealsOnTwoPlayerEnds()
+        public void TideMedicineBath_PaysPerPlayAndAddsToDecayingRecovery()
         {
             CoreVoyageSession s = Battle();
             Play(s, "tide_02"); End(s);
@@ -320,13 +322,13 @@ namespace ShatteredSail.Core.Tests
             Play(s, "tide_12", 8);
             Assert.That(s.Cargo.Medicine, Is.Zero);
             Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(500));
-            Put(s, "tide_12"); Assert.That(s.PlayCard(0), Is.False);
+            Put(s, "tide_12"); Assert.That(s.PlayCard(0), Is.True);
             s.Battle.PlayerBlock = 20; End(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(508));
+            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(510));
             s.Battle.PlayerBlock = 20; End(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(516));
+            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(519));
             s.Battle.PlayerBlock = 20; End(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(516));
+            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(527));
         }
 
         [Test]
@@ -462,6 +464,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.EndBattleTurn(), Is.True);
             s.Battle.EnemyHull = s.Battle.EnemyMaxHull = 1000;
             s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);

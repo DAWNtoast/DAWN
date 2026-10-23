@@ -1,0 +1,121 @@
+{
+  "builtInImageGeneration": true,
+  "preparation": "Original generated pixels copied byte-for-byte. Unity MipMap on, Bilinear, Clamp, no texture compression.",
+  "previous": {
+    "size": [
+      1254,
+      1254
+    ],
+    "central70Percent": {
+      "lumaMean": 73.63862999566378,
+      "lumaStdDev": 21.804933447741256,
+      "p05": 50,
+      "p95": 112,
+      "brightFraction": 0.005389915992548814
+    }
+  },
+  "seas": [
+    {
+      "id": "open",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-fd76-7700-b93b-116150c38e40\\exec-bacff471-fbef-4a8a-b990-2b4d2829f39a.png",
+      "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\NavalTactics\\Seas\\open_v2.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "central70Percent": {
+        "lumaMean": 59.74205231202117,
+        "lumaStdDev": 11.868201526158314,
+        "p05": 47,
+        "p95": 82,
+        "brightFraction": 0.0000778327219140623
+      },
+      "sha256": "756ca99aa483eb4eba0d39bb1dd027ea82dc88763e65ff2a5e335729787f452d"
+    },
+    {
+      "id": "coast",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-fd76-7700-b93b-116150c38e40\\exec-95d2debd-c60f-4ef1-9bf3-2d2ff6cf271b.png",
+      "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\NavalTactics\\Seas\\coast_v2.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "central70Percent": {
+        "lumaMean": 71.91944387855179,
+        "lumaStdDev": 11.993014297048196,
+        "p05": 59,
+        "p95": 94,
+        "brightFraction": 0.00008561599410546853
+      },
+      "sha256": "e07beb22f2acafdb5f53e57369048f7cde608deae2ca3e5c0d4d138252fc7be7"
+    },
+    {
+      "id": "reef",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-fd76-7700-b93b-116150c38e40\\exec-34be7b3f-0bd6-477a-9e1b-6365b87675bf.png",
+      "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\NavalTactics\\Seas\\reef_v2.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "central70Percent": {
+        "lumaMean": 76.22395711677304,
+        "lumaStdDev": 12.74753528175497,
+        "p05": 60,
+        "p95": 100,
+        "brightFraction": 0.00003113308876562492
+      },
+      "sha256": "4e5cb5e7c72186dfda4159e44561869db3f3056dcc1c6aa4845446e9dbeb362c"
+    },
+    {
+      "id": "strait",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-fd76-7700-b93b-116150c38e40\\exec-fdfd7265-83e4-424c-abf0-25d5d27ad0bc.png",
+      "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\NavalTactics\\Seas\\strait_v2.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "central70Percent": {
+        "lumaMean": 65.55609213338865,
+        "lumaStdDev": 18.119667271909154,
+        "p05": 47,
+        "p95": 99,
+        "brightFraction": 0.0017875581799596308
+      },
+      "sha256": "81b936d706691b1c7324561acdeaf64d5304b923bcd07e07aca27b7cc89444d0"
+    },
+    {
+      "id": "fog",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-fd76-7700-b93b-116150c38e40\\exec-d410a086-9a9f-44e1-9229-5a97fcec7616.png",
+      "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\NavalTactics\\Seas\\fog_v2.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "central70Percent": {
+        "lumaMean": 73.5556592101655,
+        "lumaStdDev": 13.345292415002397,
+        "p05": 58,
+        "p95": 100,
+        "brightFraction": 0
+      },
+      "sha256": "bce618072d2e0b5c4122bdea22f2144aaeb1ada620b21acd778b848a1047653e"
+    },
+    {
+      "id": "storm",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-fd76-7700-b93b-116150c38e40\\exec-8247708e-ce5f-442b-bff9-66a13c978d96.png",
+      "asset": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\NavalTactics\\Seas\\storm_v2.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "central70Percent": {
+        "lumaMean": 55.15116004680305,
+        "lumaStdDev": 16.885196599697895,
+        "p05": 38,
+        "p95": 88,
+        "brightFraction": 0.0000778327219140623
+      },
+      "sha256": "83c88735e4cba4044b17da4c7eb5a351f9a8e2e05e98083a106b575f675b59c9"
+    }
+  ]
+}

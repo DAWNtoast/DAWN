@@ -82,6 +82,7 @@ namespace ShatteredSail.Presentation
                 RefreshBattleCardTextLayout(label);
             }
             AddCardSchoolFrame(play.transform, data, available);
+            RefreshCardSupplyCost(play.transform, data, session?.Battle);
             // Resource symbols sit over the illustration and outer rim.
             play.transform.Find("Card Energy Cost " + index)?.SetAsLastSibling();
             play.transform.Find("Card Powder Plate " + index)?.SetAsLastSibling();
@@ -110,13 +111,15 @@ namespace ShatteredSail.Presentation
             if (data == null || session == null || session.Battle == null)
                 return data;
             // Keep one authored face in every context. Its numeric slots receive
-            // the current quote; calculation details belong in the side tooltip.
+            // the current quote; the side tooltip only explains visible keywords.
             NavalBattleStage stage = session.Battle.Stage;
             string summary = session.BattleCardFaceDescription(data, stage);
+            NavalBattleStages displayStage = stage == NavalBattleStage.Boarding ? NavalBattleStages.Boarding :
+                stage == NavalBattleStage.Naval ? NavalBattleStages.Naval : NavalBattleStages.Preparation;
             var display = new CoreBattleCard(data.Id, data.Name, data.Type, data.Energy,
                 data.Damage, data.Block, data.Repair, data.Draw, data.PowderCost,
                 summary,
-                data.AllowedStages, data.Action, data.RequiredCrew, data.ArtId, data.CannonballCost,
+                displayStage, data.Action, data.RequiredCrew, data.ArtId, data.CannonballCost,
                 data.RequiredComponent, data.UpgradeLevel, data.SchoolId, data.SchoolEffect);
             return display;
         }

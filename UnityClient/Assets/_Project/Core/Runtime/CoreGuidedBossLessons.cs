@@ -47,8 +47,8 @@ namespace ShatteredSail.Core.Gameplay
                     case GuidedBossLesson.NavalBasics: return "1 / 7 · 行动点与能量";
                     case GuidedBossLesson.Maneuver: return "2 / 7 · 拖动航线与到达朝向";
                     case GuidedBossLesson.Gunnery: return "3 / 7 · 准备、炮击与牌堆";
-                    case GuidedBossLesson.BoardingContact: return "4 / 7 · 同向接舷演习";
-                    case GuidedBossLesson.RamContact: return "5 / 7 · 垂直侧撞演习";
+                    case GuidedBossLesson.BoardingContact: return "4 / 7 · 平行接舷演习";
+                    case GuidedBossLesson.RamContact: return "5 / 7 · 船头冲撞演习";
                     case GuidedBossLesson.BoardingCards: return "6 / 7 · 正式接舷基础牌";
                     case GuidedBossLesson.FinalBattle: return "7 / 7 · 自由实战验收";
                     default: return string.Empty;
@@ -121,14 +121,14 @@ namespace ShatteredSail.Core.Gameplay
             Add(GuidedBossBattleStep.CourseDraw, gun, GuidedBossActionKind.Card, "使用战术筹划触发真实洗牌", "当前抽牌堆已空。战术筹划进入弃牌堆后抽2张，系统会洗回弃牌堆；同名费用记录不会因洗牌消失。", "card_tactical_draw");
             Done(GuidedBossBattleStep.CourseGunneryDone, gun);
             var board = GuidedBossLesson.BoardingContact;
-            Add(GuidedBossBattleStep.CourseBoardMove, board, GuidedBossActionKind.Movement, "航行到敌舰左侧相邻格", "本段两舰朝东，相隔200米。点击己方船只，向前拖出1格航线并确认，到达后保留朝东可与敌舰同向；普通停船后清空剩余行动点。");
+            Add(GuidedBossBattleStep.CourseBoardMove, board, GuidedBossActionKind.Movement, "航行到敌舰左侧相邻格", "敌舰朝北时，航行到它左侧的相邻格，到达后朝北或朝南可让两舰平行、舷侧相邻。请按当前船头规划合法航线；普通停船后清空剩余行动点。");
             Add(GuidedBossBattleStep.CourseBoardAction, board, GuidedBossActionKind.Card, "重新获得接舷所需行动点", "接舷需要1行动点，不耗能量。先出迎敌推进重新获得行动点。", "card_approach");
-            Add(GuidedBossBattleStep.CourseBoardContact, board, GuidedBossActionKind.FreePlay, "已有1行动点，直接同向接舷", "本段从100米同向邻格开始，已有1行动点，可以直接接舷；不需要先移动或打机动牌。若自行驶离，可按实际位置与朝向重新调整。");
+            Add(GuidedBossBattleStep.CourseBoardContact, board, GuidedBossActionKind.FreePlay, "已有1行动点，直接平行接舷", "本段两舰朝北，位于左右相邻的两列，相距100米，已有1行动点可直接接舷。接舷要求两舰平行且舷侧相邻，同向或反向均可；横向船身需位于相邻两行，纵向船身需位于相邻两列，首尾相邻不可接舷。若自行驶离，请重新调整位置与朝向。");
             Done(GuidedBossBattleStep.CourseBoardDone, board);
             var ram = GuidedBossLesson.RamContact;
             Add(GuidedBossBattleStep.CourseRamMove, ram, GuidedBossActionKind.Movement, "航行到敌舰左侧相邻格", "本段敌舰朝北，我舰朝东。点击己方船只，向前拖出1格航线并确认；到达后朝东可指向敌舰侧舷，两船船头互相垂直。");
             Add(GuidedBossBattleStep.CourseRamAction, ram, GuidedBossActionKind.Card, "重新获得冲撞所需行动点", "本段已用1行动点航行1格并普通停船，没有接触余量。先出迎敌推进，冲撞本身只扣1行动点。", "card_approach");
-            Add(GuidedBossBattleStep.CourseRamContact, ram, GuidedBossActionKind.FreePlay, "船头朝敌、垂直相邻，发动冲撞", "冲撞造成双方船体伤害并进入接舷。相邻时仍需双方朝向垂直，且我舰船头指向敌舰；逆向对撞不允许。");
+            Add(GuidedBossBattleStep.CourseRamContact, ram, GuidedBossActionKind.FreePlay, "船头指向相邻敌舰，发动冲撞", "冲撞需要我舰船头指向上下左右相邻的敌舰，可撞击敌舰舰艏、舰尾或左右侧舷。本段练习从左侧撞击敌舰侧舷；冲撞造成双方船体伤害，非致命撞击会连接船只并进入接舷。");
             Done(GuidedBossBattleStep.CourseRamDone, ram);
             var crew = GuidedBossLesson.BoardingCards;
             Add(GuidedBossBattleStep.CourseBoardingAttack, crew, GuidedBossActionKind.Card, "用水手刺击进攻", "船员预置15点伤势供治疗练习。水手刺击消耗1能量，基础伤害8；士气每点提供3%暴击率，暴击造成双倍伤害。", "card_crew_thrust");
@@ -137,11 +137,11 @@ namespace ShatteredSail.Core.Gameplay
             Add(GuidedBossBattleStep.CourseBandage, crew, GuidedBossActionKind.Card, "使用战地包扎", "正式战地包扎消耗1能量与1药品，恢复6生命；无药品时恢复2。", "card_crew_bandage");
             Add(GuidedBossBattleStep.CourseBoardingDraw, crew, GuidedBossActionKind.Card, "使用接舷战术筹划", "接舷版本消耗2能量、抽3张；它与海战版本的1能量抽2张不同。", "card_tactical_draw");
             Add(GuidedBossBattleStep.CourseBoardingEnd2, crew, GuidedBossActionKind.EndTurn, "换到持续效果手牌", "本回合能量已用完。正常结束回合并抽下一手，不会重置牌堆。");
-            Add(GuidedBossBattleStep.CourseAid, crew, GuidedBossActionKind.Card, "布置持续救护", "消耗2能量，施放时用1药品；本回合与下一己方回合结束各恢复5，共两次。", "card_boarding_basic_07");
+            Add(GuidedBossBattleStep.CourseAid, crew, GuidedBossActionKind.Card, "布置持续救护", "消耗2能量，施放时用1药品，获得5层持续恢复；每次己方回合结束恢复当前层数的生命，然后减少1层。无药品时获得2层。", "card_boarding_basic_07");
             Add(GuidedBossBattleStep.CourseAmbush, crew, GuidedBossActionKind.Card, "布置伏击预令", "消耗1能量，本次不直接伤害；下一己方回合开始造成12伤害，受格挡、不暴击。", "card_boarding_basic_13");
             Add(GuidedBossBattleStep.CourseBoardingEnd3, crew, GuidedBossActionKind.EndTurn, "结算第一次救护与延迟伏击", "结束时先结算本回合救护；敌方行动后，下一己方回合开始触发伏击。");
-            Add(GuidedBossBattleStep.CourseEffectsInspect, crew, GuidedBossActionKind.Inspect, "查看生命、敌方受伤与持续效果", "伏击已经结算，持续救护还剩一次己方回合结束治疗。查看资源与战斗记录后继续。", topic: "resources");
-            Add(GuidedBossBattleStep.CourseBoardingEnd4, crew, GuidedBossActionKind.EndTurn, "结算第二次持续救护", "再结束一回合，救护完成第二次恢复后结束；药品不会再次扣除。");
+            Add(GuidedBossBattleStep.CourseEffectsInspect, crew, GuidedBossActionKind.Inspect, "查看生命、敌方受伤与持续效果", "伏击已经结算，持续恢复由5层降为4层；下次己方回合结束会恢复4生命。查看资源与战斗记录后继续。", topic: "resources");
+            Add(GuidedBossBattleStep.CourseBoardingEnd4, crew, GuidedBossActionKind.EndTurn, "观察持续恢复逐回合递减", "再结束一回合，恢复4生命后剩3层；之后仍会逐回合恢复并减层，药品不会再次扣除。");
             Done(GuidedBossBattleStep.CourseBoardingDone, crew);
             Add(GuidedBossBattleStep.CourseFinal, GuidedBossLesson.FinalBattle, GuidedBossActionKind.FreePlay,
                 "自由实战：击败首领船体或完成接舷胜利", "本段解除教学操作锁，按正式伤害、装甲、牌组循环与接舷规则战斗。到达时若本次移动还剩至少1行动点，可在合法终向下直接接舷或冲撞；普通停船后余量清空。只有这段真正胜利才发放首领奖励；失败按正常流程返港整备，不可中途重置。最终胜负均恢复入场个人补给。");

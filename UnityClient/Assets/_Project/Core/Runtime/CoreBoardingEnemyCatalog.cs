@@ -14,7 +14,8 @@ namespace ShatteredSail.Core.Gameplay
     /// authored enemy script; they do not impersonate cards in the player's library.
     /// Attack, burn, healing, drain and self-damage use the encounter's boarding
     /// attack baseline; guard uses its boarding guard baseline. Pierce describes
-    /// the share of an attack that bypasses guard. Burn ticks at the next two player turn ends.
+    /// the share of an attack that bypasses guard. Burn deals its current layers at
+    /// each target turn end and then loses one layer.
     /// </summary>
     public sealed class CoreBoardingEnemyCard
     {

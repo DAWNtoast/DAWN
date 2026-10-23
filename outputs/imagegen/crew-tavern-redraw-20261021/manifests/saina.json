@@ -1,0 +1,31 @@
+[
+  {
+    "id": "crew_white_shell_navigator_saina",
+    "name": "珊潮领航员 赛娜",
+    "port": "白贝港",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a15efb-4b6f-7940-b288-7151ce1cbf8f\\exec-75fdc92b-245c-4b87-a74e-9cc3827c6448.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_white_shell_navigator_saina_tavern.png",
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_navigator_saina_portrait_v2.png",
+    "final": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\final\\crew_white_shell_navigator_saina.png",
+    "prompt": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\prompts\\crew_white_shell_navigator_saina.txt",
+    "prompt_text": "Use case: identity-preserve. Create ONE finished 4:5 vertical story portrait of Saina for a nautical fantasy game. Input image 1 is the authoritative visual identity reference from the tavern: redraw exactly this same adult woman, preserving her warm brown skin, heart-shaped face, brown eyes, long voluminous black curls with white shell ornaments, shell pearl earrings, tiny white facial marks, blue-green shoulder tattoos, teal draped garment with fine gold ornaments and pale sheer sleeves, turquoise and gold bangles. Match the reference's polished richly detailed hand-painted fantasy illustration style. Story: Saina transcribed a distress message from a silver shell, recognized the wave rhythms hidden between the words, and discovered a secret route toward Bronze Bell harbor. Depict her beside a coastal chart table listening to a silver shell held near one ear, her other hand tracing an unlettered route across a nautical chart. Curious concentrated expression, face turned visibly toward the viewer; sunlit tropical harbor and coral shallows softly suggested behind her. Complete head, both shoulders, upper body THROUGH WAIST, both arms and hands visible; keep head, waist, hands and important objects inside top 90 percent with 8 percent headroom and generous bottom margin for game crop. One main character, detailed expressive face, natural hands, harmonious light. Story props secondary, no change to face, hair, age, clothing or body type. Opaque background. No text, lettering, captions, UI, frame, watermark, collage or extra characters.",
+    "story_source": "D:/Game/UnityClient/Assets/_Project/Content/Runtime/CrewNarrativeCatalog.cs",
+    "story_basis": "赛娜听人讲鬼故事，常要对方再学一遍浪声。她从银壳中逐字抄下求救信，认出了话语间的浪拍节奏，并据此标出通往铜钟港的隐秘坐标。问她是否相信幽灵，她只把耳朵贴回壳口：先别出声。",
+    "scene": "赛娜将银壳贴近耳边，另一只手顺着海图标出隐藏航路，神情专注地捕捉壳中的浪拍节奏。",
+    "scene_reasoning": "以传记的银壳求救信与浪拍辨位为叙事动作；以道具与视线表达听潮解码，保留酒馆女性的卷发、贝饰、纹身和青绿服饰。",
+    "identity_basis": "The same adult woman: warm brown skin, heart-shaped face and brown eyes, long voluminous black curls with white seashell ornaments, pearl-shell drop earrings, tiny white face marks, blue-green shoulder tattoos, teal off-shoulder draped garment with fine dangling gold ornaments and sheer pale sleeves, turquoise and gold bangles.",
+    "status": "generated_visually_checked",
+    "tool": "builtin image_gen",
+    "tool_error": null,
+    "attempts": 1,
+    "generated_count": 1,
+    "sha256": "95729fa53aecc8a85ef5f71fe60c547d61241954fc1f523fe283370008225dc6",
+    "size": [
+      1122,
+      1402
+    ],
+    "source_sha256": "78b86b408919c9674d58dcfdba7a0ee81db63fcdd9096c619243025992ae814e",
+    "meta_sha256": "3f360d8f855883a1547680b40056ed4e0aa699de99056f4632915b07ecfd575c",
+    "meta_unchanged": true
+  }
+]

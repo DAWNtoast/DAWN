@@ -1,0 +1,5 @@
+
+Algorithm : SHA256
+Hash      : 59446E24F0C33E4FAC7C7EFFE27B67FF57D8561BE9541CE64AA814517BE77A25
+Path      : D:\Game\UnityClient\Assets\_Project\Resources\Data\component_catalog_v2.csv
+

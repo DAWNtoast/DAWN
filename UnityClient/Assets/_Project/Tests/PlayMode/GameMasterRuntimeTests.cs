@@ -36,7 +36,7 @@ namespace ShatteredSail.Presentation.Tests
         private string scopeBefore;
         private bool decimalGoldExisted;
         private string decimalGoldBefore;
-        private StringPreference treasurePreference;
+        private StringPreference[] changedStrings;
         private ComponentArtCatalog componentArt;
         private PortComponentShopStockItem oldOffer;
 
@@ -52,8 +52,21 @@ namespace ShatteredSail.Presentation.Tests
             decimalGoldExisted = PlayerPrefs.HasKey(ProfileGoldPersistence.DecimalKey);
             decimalGoldBefore = PlayerPrefs.GetString(ProfileGoldPersistence.DecimalKey, string.Empty);
             PlayerPrefs.DeleteKey(ProfileGoldPersistence.DecimalKey);
-            treasurePreference = StringPreference.Read(CoreGameplayDemoController.TreasureProgressKey);
+            changedStrings = new[]
+            {
+                StringPreference.Read(CoreGameplayDemoController.TreasureProgressKey),
+                StringPreference.Read(CoreGameplayDemoController.ComponentInventoryKey),
+                StringPreference.Read(CoreGameplayDemoController.AcquiredSpecialCardsKey),
+                StringPreference.Read(CoreGameplayDemoController.SpecialCardExperienceKey),
+                StringPreference.Read(CoreGameplayDemoController.CurrentPortKey),
+                StringPreference.Read(CoreGameplayDemoController.ShipPortProgressKey),
+            };
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.TreasureProgressKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.ComponentInventoryKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.AcquiredSpecialCardsKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.SpecialCardExperienceKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.CurrentPortKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.ShipPortProgressKey);
             componentArt = new ComponentArtCatalog();
             oldOffer = PortComponentShopCatalog.BuildStock(componentArt, "灰鸥港", CoreVoyageSession.GameClockOrigin)[0];
             changedInts = new[]
@@ -82,6 +95,8 @@ namespace ShatteredSail.Presentation.Tests
             session = new CoreVoyageSession();
             session.RestoreProfile(1234, "灰鸥港");
             Write("session", session);
+            Write("componentArt", componentArt);
+            Write("componentInventory", new OwnedShipComponentInventory(componentArt));
             Write("interfaceFont", Invoke("CreateInterfaceFont"));
             Invoke("BuildCanvas", "Isolated Game Master Canvas");
             page = Read<RectTransform>("contentRoot");
@@ -124,7 +139,7 @@ namespace ShatteredSail.Presentation.Tests
             else PlayerPrefs.DeleteKey(ProfileGoldPersistence.DecimalKey);
             if (scopeExisted) PlayerPrefs.SetString(CoreGameplayDemoController.GameMasterShopScopeKey, scopeBefore);
             else PlayerPrefs.DeleteKey(CoreGameplayDemoController.GameMasterShopScopeKey);
-            treasurePreference.Restore();
+            foreach (StringPreference preference in changedStrings) preference.Restore();
             PlayerPrefs.Save();
             yield return null;
             foreach (IntPreference preference in protectedInts) preference.AssertUnchanged();
@@ -145,16 +160,21 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Read<Button>("gameMasterSetTreasureFragmentsButton").interactable, Is.False);
             Assert.That(Read<Button>("gameMasterRefreshShopButton").interactable, Is.False);
             Assert.That(Read<Button>("gameMasterRefreshMarketButton").interactable, Is.False);
+            Assert.That(Read<Button>("gameMasterUnlockComponentsButton").interactable, Is.False);
+            Assert.That(Read<Button>("gameMasterLevelTenButton").interactable, Is.False);
+            Assert.That(Read<Button>("gameMasterMovePortButton").interactable, Is.False);
             Read<Button>("gameMasterSetGoldButton").onClick.Invoke();
             Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
             Read<Button>("gameMasterSetTreasureFragmentsButton").onClick.Invoke();
             Read<Button>("gameMasterRefreshShopButton").onClick.Invoke();
             Read<Button>("gameMasterRefreshMarketButton").onClick.Invoke();
+            InvokeNewGameMasterCallbacks();
             Assert.That(session.ProfileGold, Is.EqualTo(1234));
             Assert.That(session.TreasureFragments, Is.Zero);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TreasureProgressKey), Is.False);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GameMasterShopRefreshKey("灰鸥港")), Is.Zero);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.GameMasterShopScopeKey), Is.False);
+            AssertNewGameMasterProgressUnchanged();
             goldBefore.AssertUnchanged();
             CanvasGroup group = page.GetComponent<CanvasGroup>();
             Assert.That(underlay.IsInteractable(), Is.False);
@@ -181,6 +201,7 @@ namespace ShatteredSail.Presentation.Tests
         public IEnumerator SettingGold_SavesExactZeroAndMaximumAndRejectsDuplicateCallbacks()
         {
             OpenUnlocked();
+            Read<Button>("gameMasterPortNextButton").onClick.Invoke();
             InputField input = Read<InputField>("gameMasterGoldInput");
             Button set = Read<Button>("gameMasterSetGoldButton");
             int cargoGold = session.Cargo.Gold;
@@ -192,9 +213,11 @@ namespace ShatteredSail.Presentation.Tests
             set.onClick.Invoke();
             Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
             Read<Button>("gameMasterSetTreasureFragmentsButton").onClick.Invoke();
+            InvokeNewGameMasterCallbacks();
             Assert.That(session.ProfileGold, Is.Zero, "A duplicate callback in the same frame must not perform another command.");
             Assert.That(session.TreasureFragments, Is.Zero, "Gold and fragment commands must share the same cooldown.");
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TreasureProgressKey), Is.False);
+            AssertNewGameMasterProgressUnchanged();
             Assert.That(set.interactable, Is.False);
             yield return new WaitForSecondsRealtime(0.45f);
             set.onClick.Invoke();
@@ -370,6 +393,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Is.EqualTo(saved));
             Assert.That(Read<bool>("treasureProgressReadFailed"), Is.True);
             Assert.That(Read<Button>("gameMasterSetTreasureFragmentsButton").interactable, Is.False);
+            Assert.That(Read<Button>("gameMasterLevelTenButton").interactable, Is.False);
+            Read<Button>("gameMasterLevelTenButton").onClick.Invoke();
+            Assert.That(JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
             Invoke("SaveTreasureProgress");
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Is.EqualTo(saved),
                 "The failed-read guard must continue protecting the original record after the GM action.");
@@ -389,6 +415,257 @@ namespace ShatteredSail.Presentation.Tests
             set.onClick.Invoke();
             Assert.That(JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(before));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Is.EqualTo(before));
+        }
+
+        [UnityTest]
+        public IEnumerator UnlockComponents_AddsOnlyMissingCatalogIdsAndPreservesExistingInstancesAndEquipment()
+        {
+            OwnedShipComponentInventory inventory = Read<OwnedShipComponentInventory>("componentInventory");
+            inventory.InitializeEmptyLoadout(0);
+            ComponentArtEntry entry = componentArt.ExpandedEntries.First(item => item.Rarity == ComponentRarity.Rare);
+            OwnedShipComponent installed = inventory.Grant(entry);
+            OwnedShipComponent duplicate = inventory.Grant(entry);
+            Assert.That(inventory.TryEquip(0, installed.InstanceId), Is.True);
+            Assert.That(installed.InstalledByPlayer, Is.True);
+            PlayerPrefs.SetString(CoreGameplayDemoController.ComponentInventoryKey, inventory.Export());
+            string installedCard = CoreSpecialCardCatalog.ForComponent(entry.Id).Card.Id;
+            string savedCrewCard = CoreSpecialCardCatalog.All.First(item => item.SourceKind == CoreSpecialCardSourceKind.Crew).Card.Id;
+            session.RestoreSpecialCardExperience(new Dictionary<string, int> { [installedCard] = 119 });
+            KeyValuePair<string, int>[] experienceBefore = session.SpecialCardExperience.ToArray();
+            string savedExperience = installedCard + "=360;" + savedCrewCard + "=840";
+            PlayerPrefs.SetString(CoreGameplayDemoController.SpecialCardExperienceKey, savedExperience);
+            PlayerPrefs.SetString(CoreGameplayDemoController.AcquiredSpecialCardsKey, savedCrewCard);
+            string treasure = JsonUtility.ToJson(session.CaptureTreasureProgress());
+            OpenUnlocked();
+            yield return null;
+            ClickGameMasterGraphic(Read<Button>("gameMasterPortNextButton"));
+            Button unlock = Read<Button>("gameMasterUnlockComponentsButton");
+            Button.ButtonClickedEvent callback = unlock.onClick;
+            ClickGameMasterGraphic(unlock);
+
+            Assert.That(inventory.Items.Count, Is.EqualTo(componentArt.ExpandedEntries.Count + 1));
+            foreach (ComponentArtEntry definition in componentArt.ExpandedEntries)
+                Assert.That(inventory.Items.Count(item => item.ComponentId == definition.Id),
+                    Is.EqualTo(definition.Id == entry.Id ? 2 : 1), definition.Id);
+            Assert.That(inventory.Installed(0, entry.Slot), Is.SameAs(installed));
+            Assert.That(installed.InstalledByPlayer, Is.True);
+            Assert.That(inventory.Items.Single(item => item.InstanceId == duplicate.InstanceId), Is.SameAs(duplicate));
+            Assert.That(duplicate.ShipIndex, Is.EqualTo(-1));
+            Assert.That(inventory.Items.Where(item => item != installed).All(item => item.ShipIndex == -1), Is.True);
+            string saved = inventory.Export();
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Is.EqualTo(saved));
+            var restored = new OwnedShipComponentInventory(componentArt);
+            Assert.That(restored.Import(saved, ship => ship == 0), Is.True);
+            Assert.That(restored.Export(), Is.EqualTo(saved));
+            string[] componentCards = componentArt.ExpandedEntries.Select(item => CoreSpecialCardCatalog.ForComponent(item.Id))
+                .Where(item => item != null).Select(item => item.Card.Id).Distinct().ToArray();
+            CollectionAssert.AreEquivalent(componentCards, session.AcquiredSpecialCardIds);
+            CollectionAssert.AreEquivalent(componentCards.Concat(new[] { savedCrewCard }),
+                PlayerPrefs.GetString(CoreGameplayDemoController.AcquiredSpecialCardsKey).Split(';'));
+            CollectionAssert.AreEquivalent(experienceBefore, session.SpecialCardExperience.ToArray());
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.SpecialCardExperienceKey), Is.EqualTo(savedExperience),
+                "Collecting fitting cards must not overwrite their saved experience with a runtime draft.");
+
+            // All commands share one cooldown, including callbacks held by the UI.
+            callback.Invoke();
+            Read<Button>("gameMasterLevelTenButton").onClick.Invoke();
+            Read<Button>("gameMasterMovePortButton").onClick.Invoke();
+            Read<InputField>("gameMasterGoldInput").text = "99";
+            Read<Button>("gameMasterSetGoldButton").onClick.Invoke();
+            Assert.That(session.ProfileGold, Is.EqualTo(1234));
+            Assert.That(session.CurrentPort, Is.EqualTo("灰鸥港"));
+            Assert.That(JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(treasure));
+            yield return new WaitForSecondsRealtime(.45f);
+            callback.Invoke();
+            Assert.That(inventory.Export(), Is.EqualTo(saved), "Unlocking a complete catalog must not add duplicate instances.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Is.EqualTo(saved));
+            CollectionAssert.AreEquivalent(experienceBefore, session.SpecialCardExperience.ToArray());
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.SpecialCardExperienceKey), Is.EqualTo(savedExperience));
+        }
+
+        [Test]
+        public void UnlockComponents_WithUnreadableInventoryRejectsActionAndPreservesOriginalRecord()
+        {
+            const string original = "{unreadable-component-inventory";
+            PlayerPrefs.SetString(CoreGameplayDemoController.ComponentInventoryKey, original);
+            Write("componentInventoryReadFailed", true);
+            OpenUnlocked();
+            Button unlock = Read<Button>("gameMasterUnlockComponentsButton");
+            Assert.That(unlock.interactable, Is.False);
+            unlock.onClick.Invoke();
+            Assert.That(Read<OwnedShipComponentInventory>("componentInventory").Items, Is.Empty);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ComponentInventoryKey), Is.EqualTo(original));
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.AcquiredSpecialCardsKey), Is.False);
+        }
+
+        [TestCase(900, 100)]
+        [TestCase(900, 6400)]
+        [TestCase(6500, 100)]
+        public void LevelTen_PreservesOtherRuntimeAndSavedFieldsAndNeverLowersExperience(int runtimeExperience, int savedExperience)
+        {
+            CoreTreasureProgress runtime = TreasureProgressFixture();
+            runtime.pirateExperience = runtimeExperience;
+            session.RestoreTreasureProgress(runtime);
+            string runtimeBefore = TreasureProgressWithoutExperience(session.CaptureTreasureProgress());
+            CoreTreasureProgress saved = TreasureProgressFixture();
+            saved.pirateExperience = savedExperience;
+            saved.fragments = 37;
+            saved.identifiedWeatheredFragments = 11;
+            saved.identificationSeed = "SAVED-LEVEL-IDENTIFICATION";
+            saved.identificationSequence = 123;
+            saved.selectedMapId = "saved:level";
+            saved.maps = new[] { new CoreTreasureMapSave { id = "saved:level", seed = "SAVED-LEVEL", rankId = "gilded" } };
+            saved.gems = 63;
+            string savedBefore = TreasureProgressWithoutExperience(saved);
+            PlayerPrefs.SetString(CoreGameplayDemoController.TreasureProgressKey, JsonUtility.ToJson(saved));
+            OpenUnlocked();
+            Read<Button>("gameMasterLevelTenButton").onClick.Invoke();
+
+            Assert.That(session.PirateLevel, Is.EqualTo(10));
+            Assert.That(session.PirateExperience, Is.EqualTo(Math.Max(runtimeExperience, CoreVoyageSession.PirateExperienceForLevel(10))));
+            Assert.That(TreasureProgressWithoutExperience(session.CaptureTreasureProgress()), Is.EqualTo(runtimeBefore));
+            CoreTreasureProgress loaded = JsonUtility.FromJson<CoreTreasureProgress>(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey));
+            Assert.That(loaded.pirateExperience,
+                Is.EqualTo(Math.Max(savedExperience, Math.Max(runtimeExperience, CoreVoyageSession.PirateExperienceForLevel(10)))));
+            Assert.That(TreasureProgressWithoutExperience(loaded), Is.EqualTo(savedBefore));
+            Assert.That(session.ProfileGold, Is.EqualTo(1234));
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ComponentInventoryKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.AcquiredSpecialCardsKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.SpecialCardExperienceKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CurrentPortKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ShipPortProgressKey), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator LevelTen_RealButtonSavesUnsavedProgressAndBlocksOtherCommandsDuringCooldown()
+        {
+            session.RestoreTreasureProgress(TreasureProgressFixture());
+            string before = TreasureProgressWithoutExperience(session.CaptureTreasureProgress());
+            OpenUnlocked();
+            yield return null;
+            ClickGameMasterGraphic(Read<Button>("gameMasterPortNextButton"));
+            ClickGameMasterGraphic(Read<Button>("gameMasterLevelTenButton"));
+            Assert.That(session.PirateLevel, Is.EqualTo(10));
+            Assert.That(TreasureProgressWithoutExperience(session.CaptureTreasureProgress()), Is.EqualTo(before));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey),
+                Is.EqualTo(JsonUtility.ToJson(session.CaptureTreasureProgress())));
+            Assert.That(Read<Button>("gameMasterLevelTenButton").interactable, Is.False);
+            Read<Button>("gameMasterUnlockComponentsButton").onClick.Invoke();
+            Read<Button>("gameMasterMovePortButton").onClick.Invoke();
+            Assert.That(Read<OwnedShipComponentInventory>("componentInventory").Items, Is.Empty);
+            Assert.That(session.CurrentPort, Is.EqualTo("灰鸥港"));
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ComponentInventoryKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CurrentPortKey), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator MovePort_CyclesDestinationsMovesOnlyFlagshipAndClearsSupplyDraftWithoutRenderingInactiveController()
+        {
+            Assert.That(session.RestoreShipPortProgress(new CoreShipPortProgress { ships = new[] {
+                new CoreShipPortLocation { shipIndex = 0, port = "灰鸥港" },
+                new CoreShipPortLocation { shipIndex = 1, port = "白贝港" },
+            } }, new[] { 0, 1 }, 0), Is.True);
+            string savedOtherPort = CoreVoyageSession.DestinationPorts.First(port => port != "灰鸥港" && port != "白贝港");
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "灰鸥港");
+            PlayerPrefs.SetString(CoreGameplayDemoController.ShipPortProgressKey, JsonUtility.ToJson(new CoreShipPortProgress { ships = new[] {
+                new CoreShipPortLocation { shipIndex = 0, port = "灰鸥港" },
+                new CoreShipPortLocation { shipIndex = 1, port = savedOtherPort },
+            } }));
+            VoyageSupplyOrder order = Read<VoyageSupplyOrder>("pendingSupplyOrder");
+            order.Water = 70;
+            order.Food = 20;
+            Write("activePortFacility", 3);
+            int children = page.childCount;
+            string treasureBefore = JsonUtility.ToJson(session.CaptureTreasureProgress());
+            OpenUnlocked();
+            yield return null;
+            Button move = Read<Button>("gameMasterMovePortButton");
+            Assert.That(CoreVoyageSession.DestinationPorts[Read<int>("gameMasterTargetPortIndex")], Is.EqualTo("灰鸥港"));
+            Assert.That(move.interactable, Is.False, "Moving to the current port is disabled.");
+            int initial = Read<int>("gameMasterTargetPortIndex");
+            ClickGameMasterGraphic(Read<Button>("gameMasterPortPreviousButton"));
+            Assert.That(Read<int>("gameMasterTargetPortIndex"),
+                Is.EqualTo((initial + CoreVoyageSession.DestinationPorts.Count - 1) % CoreVoyageSession.DestinationPorts.Count));
+            ClickGameMasterGraphic(Read<Button>("gameMasterPortNextButton"));
+            Assert.That(Read<int>("gameMasterTargetPortIndex"), Is.EqualTo(initial));
+            for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
+                Read<Button>("gameMasterPortNextButton").onClick.Invoke();
+            Assert.That(Read<int>("gameMasterTargetPortIndex"), Is.EqualTo(initial));
+            Assert.That(move.interactable, Is.False);
+            ClickGameMasterGraphic(Read<Button>("gameMasterPortNextButton"));
+            string destination = CoreVoyageSession.DestinationPorts[Read<int>("gameMasterTargetPortIndex")];
+            Assert.That(Read<Text>("gameMasterTargetPortLabel").text, Does.Contain(destination));
+            Assert.That(session.CurrentPort, Is.EqualTo("灰鸥港"), "Browsing must not relocate the player.");
+            Assert.That(move.interactable, Is.True);
+            Button.ButtonClickedEvent callback = move.onClick;
+            ClickGameMasterGraphic(move);
+
+            Assert.That(controller.IsGameMasterOpen, Is.False);
+            Assert.That(session.CurrentPort, Is.EqualTo(destination));
+            Assert.That(session.ShipPort(0), Is.EqualTo(destination));
+            Assert.That(session.ShipPort(1), Is.EqualTo("白贝港"));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey), Is.EqualTo(destination));
+            string persisted = PlayerPrefs.GetString(CoreGameplayDemoController.ShipPortProgressKey);
+            CoreShipPortProgress loaded = JsonUtility.FromJson<CoreShipPortProgress>(persisted);
+            Assert.That(loaded.ships.Length, Is.EqualTo(2));
+            Assert.That(loaded.ships.Single(item => item.shipIndex == 0).port, Is.EqualTo(destination));
+            Assert.That(loaded.ships.Single(item => item.shipIndex == 1).port, Is.EqualTo(savedOtherPort),
+                "The command must not overwrite another ship's saved berth with a runtime draft.");
+            Assert.That(Read<int>("activePortFacility"), Is.EqualTo(-1));
+            Assert.That(order.TotalUnits, Is.Zero);
+            Assert.That(page.childCount, Is.EqualTo(children), "An inactive controller defers the overview render.");
+            Assert.That(session.ProfileGold, Is.EqualTo(1234));
+            Assert.That(JsonUtility.ToJson(session.CaptureTreasureProgress()), Is.EqualTo(treasureBefore));
+            yield return new WaitForSecondsRealtime(.45f);
+            callback.Invoke();
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ShipPortProgressKey), Is.EqualTo(persisted));
+            Assert.That(session.CurrentPort, Is.EqualTo(destination));
+        }
+
+        [TestCase("not JSON")]
+        [TestCase("null")]
+        [TestCase("{\"version\":1,\"ships\":[{\"shipIndex\":0,\"port\":\"灰鸥港\"},{\"shipIndex\":0,\"port\":\"白贝港\"}]}")]
+        [TestCase("{\"version\":1,\"ships\":[{\"shipIndex\":0,\"port\":\"不存在的港口\"}]}")]
+        [TestCase("{\"version\":2,\"ships\":[{\"shipIndex\":0,\"port\":\"灰鸥港\"}]}")]
+        public void MovePort_WithUnreadableShipPortsPreservesRuntimeAndSavedRecordsAndKeepsPanelOpen(string saved)
+        {
+            PlayerPrefs.SetString(CoreGameplayDemoController.ShipPortProgressKey, saved);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "灰鸥港");
+            string before = JsonUtility.ToJson(session.CaptureShipPortProgress());
+            VoyageSupplyOrder order = Read<VoyageSupplyOrder>("pendingSupplyOrder");
+            order.Water = 70;
+            Write("activePortFacility", 3);
+            OpenUnlocked();
+            RectTransform overlay = Read<RectTransform>("gameMasterOverlay");
+            Read<Button>("gameMasterPortNextButton").onClick.Invoke();
+            Assert.That(Read<Button>("gameMasterMovePortButton").interactable, Is.True);
+            Read<Button>("gameMasterMovePortButton").onClick.Invoke();
+
+            Assert.That(session.CurrentPort, Is.EqualTo("灰鸥港"));
+            Assert.That(JsonUtility.ToJson(session.CaptureShipPortProgress()), Is.EqualTo(before));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey), Is.EqualTo("灰鸥港"));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ShipPortProgressKey), Is.EqualTo(saved));
+            Assert.That(controller.IsGameMasterOpen, Is.True);
+            Assert.That(Read<RectTransform>("gameMasterOverlay"), Is.SameAs(overlay));
+            Assert.That(Read<int>("activePortFacility"), Is.EqualTo(3));
+            Assert.That(order.Water, Is.EqualTo(70));
+        }
+
+        [UnityTest]
+        public IEnumerator ClosedPanel_RejectsStoredNewActionCallbacksAfterCooldown()
+        {
+            OpenUnlocked();
+            Read<Button>("gameMasterPortNextButton").onClick.Invoke();
+            Button.ButtonClickedEvent unlock = Read<Button>("gameMasterUnlockComponentsButton").onClick;
+            Button.ButtonClickedEvent level = Read<Button>("gameMasterLevelTenButton").onClick;
+            Button.ButtonClickedEvent move = Read<Button>("gameMasterMovePortButton").onClick;
+            Invoke("CloseGameMaster");
+            yield return new WaitForSecondsRealtime(.45f);
+            unlock.Invoke();
+            level.Invoke();
+            move.Invoke();
+            AssertNewGameMasterProgressUnchanged();
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TreasureProgressKey), Is.False);
         }
 
         [UnityTest]
@@ -547,10 +824,11 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase(CoreDemoPhase.Encounter)]
         [TestCase(CoreDemoPhase.Battle)]
         [TestCase(CoreDemoPhase.Settlement)]
-        public void PhaseChange_RejectsStaleGoldAndRefreshCallbacks(CoreDemoPhase phase)
+        public void PhaseChange_RejectsStaleGameMasterCallbacks(CoreDemoPhase phase)
         {
             IntPreference before = IntPreference.Read(CoreGameplayDemoController.ProfileGoldKey);
             OpenUnlocked();
+            Read<Button>("gameMasterPortNextButton").onClick.Invoke();
             Read<InputField>("gameMasterGoldInput").text = "100";
             Read<InputField>("gameMasterTreasureFragmentsInput").text = "4";
             typeof(CoreVoyageSession).GetProperty("Phase").SetValue(session, phase);
@@ -558,10 +836,12 @@ namespace ShatteredSail.Presentation.Tests
             Read<Button>("gameMasterSetTreasureFragmentsButton").onClick.Invoke();
             Read<Button>("gameMasterRefreshShopButton").onClick.Invoke();
             Read<Button>("gameMasterRefreshMarketButton").onClick.Invoke();
+            InvokeNewGameMasterCallbacks();
             Assert.That(session.ProfileGold, Is.EqualTo(1234));
             Assert.That(session.TreasureFragments, Is.Zero);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.TreasureProgressKey), Is.False);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GameMasterShopRefreshKey("灰鸥港")), Is.Zero);
+            AssertNewGameMasterProgressUnchanged();
             before.AssertUnchanged();
             Invoke("CloseGameMaster");
             Invoke("OpenGameMaster");
@@ -621,6 +901,27 @@ namespace ShatteredSail.Presentation.Tests
             Read<Toggle>("gameMasterUnlockToggle").isOn = true;
         }
 
+        private void InvokeNewGameMasterCallbacks()
+        {
+            Read<Button>("gameMasterUnlockComponentsButton").onClick.Invoke();
+            Read<Button>("gameMasterLevelTenButton").onClick.Invoke();
+            Read<Button>("gameMasterMovePortButton").onClick.Invoke();
+        }
+
+        private void AssertNewGameMasterProgressUnchanged()
+        {
+            Assert.That(Read<OwnedShipComponentInventory>("componentInventory").Items, Is.Empty);
+            Assert.That(session.AcquiredSpecialCardIds, Is.Empty);
+            Assert.That(session.SpecialCardExperience, Is.Empty);
+            Assert.That(session.PirateExperience, Is.Zero);
+            Assert.That(session.CurrentPort, Is.EqualTo("灰鸥港"));
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ComponentInventoryKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.AcquiredSpecialCardsKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.SpecialCardExperienceKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CurrentPortKey), Is.False);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.ShipPortProgressKey), Is.False);
+        }
+
         private static CoreTreasureProgress TreasureProgressFixture()
         {
             return new CoreTreasureProgress {
@@ -647,6 +948,20 @@ namespace ShatteredSail.Presentation.Tests
             finally
             {
                 progress.fragments = fragments;
+            }
+        }
+
+        private static string TreasureProgressWithoutExperience(CoreTreasureProgress progress)
+        {
+            int experience = progress.pirateExperience;
+            try
+            {
+                progress.pirateExperience = 0;
+                return JsonUtility.ToJson(progress);
+            }
+            finally
+            {
+                progress.pirateExperience = experience;
             }
         }
 

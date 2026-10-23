@@ -186,7 +186,7 @@ namespace ShatteredSail.Core.Tests
                 if (card.Action == NavalBattleCardAction.Cannon)
                 {
                     Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.Naval), card.Id);
-                    int expectedPowder = card.SchoolId == "fire" ? card.ArtId == "card_school_fire_l03" ? 3 : 2 : 1;
+                    int expectedPowder = CoreComponentFieldCards.IsFieldCard(card) ? 1 : card.SchoolId == "fire" ? card.ArtId == "card_school_fire_l03" ? 3 : 2 : 1;
                     Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
                     Assert.That(card.CannonballCost, Is.EqualTo(1), card.Id);
                     StringAssert.Contains("4 格", card.Description);
@@ -200,7 +200,7 @@ namespace ShatteredSail.Core.Tests
                         mechanic == CoreSchoolMechanic.FireExtend || mechanic == CoreSchoolMechanic.FireBoardingCover ||
                         mechanic == CoreSchoolMechanic.FireNaturalGuard || mechanic == CoreSchoolMechanic.FireScorch ||
                         mechanic == CoreSchoolMechanic.FireOverflow;
-                    int expectedPowder = card.ArtId == "card_school_fire_l01" ? 2 :
+                    int expectedPowder = CoreComponentFieldCards.IsFieldCard(card) ? 0 : card.ArtId == "card_school_fire_l01" ? 2 :
                         loading || powderFireEffect || mechanic == CoreSchoolMechanic.FireIgniteOrExtend ||
                         card.BoardingSpec?.Key == "fire_05" ? 1 : 0;
                     Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
@@ -208,7 +208,8 @@ namespace ShatteredSail.Core.Tests
                 if (card.Action == NavalBattleCardAction.Sabotage)
                 {
                     Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.Naval), card.Id);
-                    StringAssert.Contains("150 米", card.Description);
+                    StringAssert.Contains("范围 1-2 格", card.Description);
+                    Assert.That(CoreNavalCardRangeRules.MaximumCells(card), Is.EqualTo(2));
                 }
                 if (card.AllowedStages == NavalBattleStages.Boarding)
                     Assert.That(card.Action, Is.EqualTo(NavalBattleCardAction.Standard), card.Id);
@@ -259,7 +260,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.Boarding));
                 Assert.That(card.Damage, Is.Zero);
                 Assert.That(card.Repair, Is.GreaterThan(0));
-                StringAssert.Contains("船员生命", card.Description);
+                StringAssert.Contains("生命值", card.Description);
                 StringAssert.DoesNotContain("船体", card.Description);
             }
             else
@@ -299,7 +300,18 @@ namespace ShatteredSail.Core.Tests
             Assert.That(ranked.SchoolId, Is.EqualTo(current.SchoolId));
             Assert.That(ranked.BoardingSpec?.Key, Is.EqualTo(current.BoardingSpec?.Key));
             Assert.That(ranked.SchoolEffect, Is.Null, "Current boarding effects are defined by BoardingSpec.");
-            StringAssert.Contains("恢复" + ranked.Repair, ranked.Description.Replace(" ", string.Empty));
+            string compact = ranked.Description.Replace(" ", string.Empty);
+            if (boardingKey == "tide_12")
+            {
+                StringAssert.Contains("获得持续恢复：2", compact);
+                StringAssert.Contains("额外获得持续恢复：" + (ranked.Repair - 2), compact);
+            }
+            else if (boardingKey == "blood_09") StringAssert.Contains("恢复" + ranked.Repair, compact);
+            else
+            {
+                StringAssert.Contains("恢复2点生命值", compact);
+                StringAssert.Contains("额外恢复" + (ranked.Repair - 2) + "点生命值", compact);
+            }
             StringAssert.DoesNotContain("船体", ranked.Description);
 
             session.ConfigureSpecialCardSources(Array.Empty<string>(), null);
@@ -351,7 +363,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(ranked.Draw, Is.EqualTo(1));
                 Assert.That(ranked.Damage, Is.Zero);
                 Assert.That(ranked.Repair, Is.EqualTo(rank == 0 ? 3 : 4));
-                StringAssert.Contains("获得 " + ranked.Block + " 格挡", ranked.Description);
+                StringAssert.Contains("获得 " + ranked.Block + " 点格挡", ranked.Description);
                 StringAssert.Contains("抽 " + ranked.Draw + " 张", ranked.Description);
             }
         }

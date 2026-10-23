@@ -94,7 +94,7 @@ namespace ShatteredSail.Tests.EditMode
             Assert.That(alias.RequiredComponent, Is.EqualTo(original.RequiredComponent));
             Assert.That(alias.UpgradeLevel, Is.EqualTo(2));
             Assert.That(alias.AllowedStages, Is.EqualTo(NavalBattleStages.Naval));
-            Assert.That(alias.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.FireNaturalGuard));
+            Assert.That(alias.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ComponentFieldShelter));
             Assert.That(alias.BoardingSpec, Is.Null);
         }
 
@@ -118,9 +118,10 @@ namespace ShatteredSail.Tests.EditMode
             Assert.That(CoreBoardingCardCatalog.FindByKey("tide_12").Repair, Is.EqualTo(8));
             Assert.That(CoreBoardingCardCatalog.FindByKey("blood_02").Damage, Is.EqualTo(34));
             foreach (string key in new[] { "arcane_04", "arcane_06", "arcane_11", "tide_06", "tide_07" })
-                Assert.That(CoreBoardingCardCatalog.FindByKey(key).Description, Does.Contain("全部"), key);
-            foreach (string key in new[] { "fire_15", "arcane_15", "tide_05" })
-                Assert.That(CoreBoardingCardCatalog.FindByKey(key).Description, Does.Contain("自动"), key);
+                Assert.That(CoreBoardingCardCatalog.FindByKey(key).Description, Does.Contain("X").And.Not.Contain("X为").And.Not.Contain("消耗全部"), key);
+            Assert.That(CoreBoardingCardCatalog.FindByKey("fire_15").Description, Does.Contain("转移至多 4 层自燃"));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("arcane_15").Description, Is.EqualTo("立即结算一个延迟效果。"));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("tide_05").Description, Does.Contain("获得 6 点潮势"));
         }
     }
 }

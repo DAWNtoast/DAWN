@@ -1,0 +1,20 @@
+{
+  "checkedUtc": "2026-10-19T18:58:59.5348640Z",
+  "scope": "Current turn actual tool results and project saved execution summaries; not all account requests",
+  "currentTurn": {
+    "submitted": 2,
+    "succeeded": 0,
+    "networkErrors": 2,
+    "explicitRefusals": 0,
+    "error": "image generation failed: network error: error sending request"
+  },
+  "previousSavedSummary": {
+    "attempts": 4,
+    "newImages": 0,
+    "reportedError": "image generation failed: network error: error sending request",
+    "evidence": "execution-status-before-20261019T185423Z.json"
+  },
+  "existingSuccessfulFiles": 1,
+  "notAll36Submitted": true,
+  "conclusion": "Observed requests failed with a network-send error. No visible moderation, policy, or permission refusal. Cannot establish the server-side root cause from this error alone."
+}

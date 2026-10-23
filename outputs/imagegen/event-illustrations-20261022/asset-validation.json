@@ -1,0 +1,839 @@
+[
+  {
+    "eventId": "legacy_trade_v3",
+    "title": "金潮商路旧事件重绘图集",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\legacy_trade_v3.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 3942682,
+    "sha256": "40140423A617054C0730E540BD74E09F8B6AE0A4F6F9F42FAA7EF30C9E6200EC"
+  },
+  {
+    "eventId": "legacy_moon_v3",
+    "title": "月潮遗迹旧事件重绘图集",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\legacy_moon_v3.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 4169398,
+    "sha256": "D6F8C9EA61FBC525521F1C7E85D30FDD91BCF39DD2E8B98A6D685999977C13B8"
+  },
+  {
+    "eventId": "legacy_treasure_v3",
+    "title": "藏宝旧事件重绘图集",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\legacy_treasure_v3.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 4083486,
+    "sha256": "CDF76B9E1850F9C61F1525384C9A8A432DBA55C4B8E3C62FEC6B429EF10979F3"
+  },
+  {
+    "eventId": "event_reef_v2_tidewright_register",
+    "title": "潮工记潮台",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_tidewright_register_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3501851,
+    "sha256": "151A43E60E9690C6015C820563F783CF9502047E3741509C73425264C5480604"
+  },
+  {
+    "eventId": "event_reef_v2_three_bell_array",
+    "title": "三铃测深阵",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_three_bell_array_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3381296,
+    "sha256": "6FD5F1A5BA39A045C6CFF61460719E6632F73C56D48B24E152EBF1B80312ED1C"
+  },
+  {
+    "eventId": "event_reef_v2_shell_lime_barge",
+    "title": "贝灰养护船",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_shell_lime_barge_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3370162,
+    "sha256": "1DF09AD8CA6874FF96A33CE8E1452F872D073AF343D11AF95A44593D88B76CC9"
+  },
+  {
+    "eventId": "event_reef_v2_kelp_loom",
+    "title": "海草织场",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_kelp_loom_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3465791,
+    "sha256": "66E92869CD749947D7B71A1F7F9C85654604860A5C1ED96E72B46B8273570D7D"
+  },
+  {
+    "eventId": "event_reef_v2_anchor_rubbing",
+    "title": "旧锚拓印台",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_anchor_rubbing_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3391542,
+    "sha256": "BD5A0C1AF45EFFB68F4DC6DADFE3A20C931B7F4F02EBD46E4CC93C4611FDD65C"
+  },
+  {
+    "eventId": "event_reef_v2_coral_resonator",
+    "title": "共鸣珊瑚架",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_coral_resonator_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3592344,
+    "sha256": "63297FA07AD951EC5DFA3A597B693FB2D671919451E42293D9CE3981EB004EEB"
+  },
+  {
+    "eventId": "event_reef_v2_tidal_hoist",
+    "title": "潮差吊台",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_tidal_hoist_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3675707,
+    "sha256": "32C3D57DF126479CC0F10968A826FD9511D783168E83A81DB9B612158FDB3331"
+  },
+  {
+    "eventId": "event_reef_v2_diving_bell_station",
+    "title": "潜钟试验站",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_diving_bell_station_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3408995,
+    "sha256": "BA6E37501A277DBB2C9EF00600B1E7A36F8A149C1AE5AA7B6257A6B6EBAE4B6D"
+  },
+  {
+    "eventId": "event_reef_open_water_ambush",
+    "title": "航路伏击",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_open_water_ambush_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3393899,
+    "sha256": "CB2C44A468A4F8707CDC2FEB605BEA48940CE86D4D78523B7BB51A31CDCAE435"
+  },
+  {
+    "eventId": "event_reef_sudden_squall",
+    "title": "突发礁雨",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_sudden_squall_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3398452,
+    "sha256": "409AE1374C94EAA9AA05DBCB985CB15FF8666102FBE934529F3DBCEF1193334D"
+  },
+  {
+    "eventId": "event_reef_rigging_snap",
+    "title": "索具断裂",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_rigging_snap_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3141608,
+    "sha256": "D310FB126DF9FD1F9E0E916AFA6E1C1BD51856E17042B8004B4494DCF5FC416C"
+  },
+  {
+    "eventId": "event_reef_freshwater_slick",
+    "title": "漂桶淡水",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_freshwater_slick_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3020035,
+    "sha256": "8A577078778DAE34762AA24EC6765825979F22ABDFAB31669C14548B457D835C"
+  },
+  {
+    "eventId": "event_reef_shoal_fish_run",
+    "title": "鱼群迁徙",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_shoal_fish_run_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3613807,
+    "sha256": "590DC1923F22D91C815DB3DF3AE232CC34C9C22A9E1D52AD3E9B85AA2AA6C9BD"
+  },
+  {
+    "eventId": "event_reef_crew_fever",
+    "title": "船员发热",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_crew_fever_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2447688,
+    "sha256": "D074398572787DCACD1F9083C49BA89260F9371D70E4C18D2DDDA2C8D0926638"
+  },
+  {
+    "eventId": "event_reef_drifting_crate",
+    "title": "漂流货箱",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_drifting_crate_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3162272,
+    "sha256": "ED0A284872B9A9FA375BEFF65DCA17985908C5E6CAF0655285367593BB5D6E7B"
+  },
+  {
+    "eventId": "event_reef_night_fog",
+    "title": "礁雾迷航",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_night_fog_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2382089,
+    "sha256": "845F775AAE99B2446ED7475D16D07FC5E28EBC1FCC06197088DE31F7709A2706"
+  },
+  {
+    "eventId": "common_whale_song",
+    "title": "鲸群回响",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\common_whale_song_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2955249,
+    "sha256": "0866E9D00BA69ED36E6CCFA894933EADAD880B935D0625EA5796C8CCEE9F49EC"
+  },
+  {
+    "eventId": "event_reef_v2_message_gull",
+    "title": "信鸥寻主",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_message_gull_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2719482,
+    "sha256": "D47D212F9AE11C1EADBF7B10FDC23183B76BDF3E13D723C0C5B08B6FC942520F"
+  },
+  {
+    "eventId": "event_reef_v2_entangled_calf",
+    "title": "幼鲸缠索",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_entangled_calf_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3378132,
+    "sha256": "20E48A2BB179617CE07B6617618FEABC33F8790D7F10A76934BB176E42B3992D"
+  },
+  {
+    "eventId": "event_reef_v2_backspin_winch",
+    "title": "绞盘反扯",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_backspin_winch_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3307087,
+    "sha256": "742F19E24865706F70CBF0A4471B49281CC08ECDAEE24BAADDB3B277E3C10215"
+  },
+  {
+    "eventId": "event_reef_v2_luminous_wake",
+    "title": "荧浪绘岸",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_luminous_wake_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2632979,
+    "sha256": "B77BDA45841FDBD1748FCADC07C039564777FDF73FF2817134BB4D13A4CB16A0"
+  },
+  {
+    "eventId": "event_reef_v2_work_song",
+    "title": "旧船号子",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_work_song_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2831817,
+    "sha256": "FCE3F6A4CC474FBA44DA284D0DBC4F8BAFCACD89A07322747E63918904820B21"
+  },
+  {
+    "eventId": "event_reef_v2_barnacle_ridge",
+    "title": "船底附壳",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_barnacle_ridge_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3369552,
+    "sha256": "5BDEBA6DD84EC4CA5116B98896EA1920E2CD32EFFC082FC704AB1B0819F53963"
+  },
+  {
+    "eventId": "event_reef_v2_living_net",
+    "title": "活网拦流",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_living_net_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3584091,
+    "sha256": "A94DDF501FCAAFDDDEAD7CE3FBD73E72E1B37F766E53E75AFF8F1E1D013B748A"
+  },
+  {
+    "eventId": "event_reef_v2_salvage_argument",
+    "title": "双艇争锚",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_salvage_argument_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3627849,
+    "sha256": "E14393171BBA700D1A37AA0AC22E4C8B4B72DBBE86068E14E660E5E428CA5BF2"
+  },
+  {
+    "eventId": "event_reef_v2_sail_challenge",
+    "title": "帆影邀赛",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_sail_challenge_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2949390,
+    "sha256": "303BC71F3A045750C87FD684A19704CE99768E63BC7D63B3C78E093771A0294F"
+  },
+  {
+    "eventId": "event_reef_v2_compass_pulse",
+    "title": "罗盘跳针",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_compass_pulse_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3223021,
+    "sha256": "2900D6F15D4CA27C41E740D17F47CBD5EE7612364BC6F030ED1D07A2967D5BE3"
+  },
+  {
+    "eventId": "event_reef_v2_empty_watch",
+    "title": "空岗夜哨",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_empty_watch_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2670696,
+    "sha256": "B5080A4D3A7F4FEAA2FEF8EB9838CE48F3D0468B949C76E3AEE25849C1CFC409"
+  },
+  {
+    "eventId": "event_reef_v2_whaler_signal",
+    "title": "捕鲸船的求救旗",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_whaler_signal_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3414883,
+    "sha256": "73B4773CD9645B1AC07E6308C8D3C229A99848CB0773ACA37B68B862FD34EE35"
+  },
+  {
+    "eventId": "event_moon_v2_reversed_rubbing",
+    "title": "逆写拓片",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_reversed_rubbing_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2666944,
+    "sha256": "A96E24AA518F856211C8CE529BD1E68C1FA327B3F47365ED43CC858C8C7E3932"
+  },
+  {
+    "eventId": "event_moon_v2_hollow_bell",
+    "title": "无声铜铃",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_hollow_bell_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2822773,
+    "sha256": "68D80BD43A8E0C731969586BA4C9194B4CAEEC486B036AF931A0858186C11D04"
+  },
+  {
+    "eventId": "event_moon_v2_borrowed_shadow",
+    "title": "借影摆渡人",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_borrowed_shadow_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2542080,
+    "sha256": "75ABD8540866F5FC1EBE02DFC64CBB89E2AE7BD7AA417178C1B900788BD4D605"
+  },
+  {
+    "eventId": "event_moon_v2_star_in_jar",
+    "title": "瓶中星虫",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_star_in_jar_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2807485,
+    "sha256": "ED400592BD5CC0406EEF9EFE4957D003936ECB289880DBA20BB2CC3BDDD18271"
+  },
+  {
+    "eventId": "event_moon_v2_living_figurehead",
+    "title": "活木船首",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_living_figurehead_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3014744,
+    "sha256": "25FFB1D4B7DAEB2DF27C778F7AD43C2ADBF98C83E03E113EE532798D3C7E48E5"
+  },
+  {
+    "eventId": "event_moon_v2_funerary_procession",
+    "title": "送葬灯列",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_funerary_procession_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2668522,
+    "sha256": "A27AC87B0ED2D9AB8766AF6C21F065AEE9A8F371EF9DE8A908306C58249B900A"
+  },
+  {
+    "eventId": "event_moon_v2_misplaced_echo",
+    "title": "错位炮声",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_misplaced_echo_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2774607,
+    "sha256": "9C08B8E55A92794A04BBCA4F433B45A3CCCBADAD4A12725A497E758C64BB2E0B"
+  },
+  {
+    "eventId": "event_moon_v2_false_ancestor",
+    "title": "假名祖灵",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_false_ancestor_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2857598,
+    "sha256": "04578F82C80ED8B3182F1E2BA4C48E8B3788B758AB997082BF858736339CD73A"
+  },
+  {
+    "eventId": "event_moon_v2_tide_abacus",
+    "title": "潮汐算筹",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_tide_abacus_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3046384,
+    "sha256": "55F9B3623C81203431ABF2434BDE09D12F53C24F076247FFF82D55512246F711"
+  },
+  {
+    "eventId": "event_moon_v2_moon_taxcollector",
+    "title": "月影收租人",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_moon_taxcollector_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2739024,
+    "sha256": "77E89C2CD38094138C3D1E85B9563B395EB98399BAACAE0AEEA97BCC07E12802"
+  },
+  {
+    "eventId": "event_moon_v2_astronomer_rescue",
+    "title": "星象师的空艇",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_astronomer_rescue_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2862683,
+    "sha256": "AF4110FD47EE80E462544AD3E7B48DD238631572DA948CD765D7305E365A174E"
+  },
+  {
+    "eventId": "event_moon_v2_silver_needle",
+    "title": "银针雨",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_silver_needle_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2600088,
+    "sha256": "8937EA73A88677FF5359069386EA037B22CD63C308A372EEFB285739CD97C53D"
+  },
+  {
+    "eventId": "event_moon_v2_calendar_mosaic",
+    "title": "碎历拼台",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_calendar_mosaic_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3086576,
+    "sha256": "81C289E0DB7457A8FB4D5CE9D9E7461CA4A76C647664E321FE2467EB0A8B45D6"
+  },
+  {
+    "eventId": "event_moon_v2_ossuary_buoy",
+    "title": "白骨浮标",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_ossuary_buoy_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2883662,
+    "sha256": "E87562F9BA4EE31FD9F39F87A5CB5B9051FB3E8CA407D8D336793DDA40E0B1BD"
+  },
+  {
+    "eventId": "event_moon_v2_submerged_scriptorium",
+    "title": "潮下誊写席",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_submerged_scriptorium_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3218784,
+    "sha256": "347441529721D4D5596CAF293504BE8165AA646C3AE64A0FFB9CB1BA338CAEB3"
+  },
+  {
+    "eventId": "event_moon_v2_pendulum_archive",
+    "title": "摆锤档案船",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_pendulum_archive_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2838363,
+    "sha256": "08A6180DA22EC6F97F706AE8BFC30692A9A15833B6EDCB977555356B88380C5F"
+  },
+  {
+    "eventId": "event_moon_v2_exorcist_kiln",
+    "title": "驱咒小窑",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_exorcist_kiln_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2784880,
+    "sha256": "7E69DF5DD2ABCA78E6502736AF44CFFAD2FA129E9C53AB65BEC4C607E9642ADF"
+  },
+  {
+    "eventId": "event_moon_v2_survey_barge",
+    "title": "测深石舟",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_survey_barge_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3126644,
+    "sha256": "22B20BCF8248085C9A922CF79BF2480F96177CCF7A15634A62B8534CA60D15A3"
+  },
+  {
+    "eventId": "event_moon_v2_votive_loom",
+    "title": "还愿织机",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_votive_loom_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3399884,
+    "sha256": "4F29F95CD303B855E3B5287E6A4195F3EF8734D963EBF06D1C2B2DF1FD546066"
+  },
+  {
+    "eventId": "event_moon_v2_unlit_court",
+    "title": "熄灯审议台",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_v2_unlit_court_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3263511,
+    "sha256": "2637A6E7F4AED267214BA84DB5888CA7623F2A61FEBAD68BE6A3AA2ADA9705E5"
+  },
+  {
+    "eventId": "event_moon_moon_sleepwalker",
+    "title": "月潮梦游",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_moon_sleepwalker_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2722346,
+    "sha256": "C40272F8B7732D258BB92E1B784098854AF9502B8C2044FC9709E34B2191D832"
+  },
+  {
+    "eventId": "event_moon_ghost_current",
+    "title": "幽灵洋流",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_ghost_current_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2802245,
+    "sha256": "C771AE021779DA9E9768958AFEB5526AE54321ABF2F7E748F1D51C91A5DF34D8"
+  },
+  {
+    "eventId": "event_moon_falling_starlight",
+    "title": "坠落星辉",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_falling_starlight_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2774870,
+    "sha256": "0B25A2790E65A33C09DC74BCE7CFE4F63AA83530D8AA17087A1C343E454084B2"
+  },
+  {
+    "eventId": "event_moon_relic_whisper",
+    "title": "遗物低语",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_relic_whisper_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2535776,
+    "sha256": "1BDD967E59801ECDDF63DE46B73AD871AB9DDC9C5A82C9E071B5DBEF437E1AB5"
+  },
+  {
+    "eventId": "event_moon_silver_fog",
+    "title": "银雾迷航",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_silver_fog_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2131436,
+    "sha256": "F68E600F76B6F9A8F3B72FA7A23E3DAEE1B721BD9434FAA48A954FFA620E2107"
+  },
+  {
+    "eventId": "event_moon_dead_calm",
+    "title": "月下无风",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_dead_calm_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2556749,
+    "sha256": "0EF4917EBCAAB28CEF3EA55AC467592AFF1DEA570BDA67B6EA38E0CBBCDC3812"
+  },
+  {
+    "eventId": "event_moon_curse_surge",
+    "title": "诅咒涌动",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_curse_surge_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2707452,
+    "sha256": "6EAA6CAC4A6AB255E6020DE583A89E3BB2272E5867CCB897E7E2E38706703346"
+  },
+  {
+    "eventId": "event_moon_relic_diver",
+    "title": "遗物潜客",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_moon_relic_diver_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2822850,
+    "sha256": "7FBE44A876378D619B4E94E622B0E3B1314619A96C4B6F157AD0E15C32EAD828"
+  },
+  {
+    "eventId": "legacy_reef_v3",
+    "title": "碎帆礁海旧事件重绘图集",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\legacy_reef_v3.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 4162431,
+    "sha256": "D98D7B0AEA76DE5ADB8396099A25FAC7CF8CCC9765657AE9233023638D2EE601"
+  },
+  {
+    "eventId": "provisions_spoilage",
+    "title": "粮仓霉变（共用）",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\provisions_spoilage_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3158260,
+    "sha256": "5C033F4C0E0D20446838FD90F5C137E41969D3931E4F23947BEDC01CD44EE015"
+  },
+  {
+    "eventId": "event_reef_drifting_sail",
+    "title": "漂流船帆",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_drifting_sail_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3300432,
+    "sha256": "BC96CF59DED78831CD1AFD9725C71B0E634EC3B3DDEFFA12F37F7B8D42520580"
+  },
+  {
+    "eventId": "event_trade_v2_floating_school",
+    "title": "跨海学堂",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_floating_school_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2835922,
+    "sha256": "8B3F55A2BB75915097A957262256F6A00353C0947E8A384A4C2F1D0B892E7EB1"
+  },
+  {
+    "eventId": "event_trade_cargo_shift",
+    "title": "货舱移位",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_cargo_shift_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2919718,
+    "sha256": "55CBADEB88BC8407F338B81E0CA7901E933DAF8D3809058794B74DFA067028FA"
+  },
+  {
+    "eventId": "event_trade_deck_fire",
+    "title": "甲板失火",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_deck_fire_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2928830,
+    "sha256": "2DC37FBA3C4C51F760A1E85EEE6B4B14BC29E9FECC55E803F173513046CE8AE3"
+  },
+  {
+    "eventId": "event_trade_stowaway",
+    "title": "偷渡客现身",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_stowaway_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2535441,
+    "sha256": "BED22B3B65F64096AB951291F02DC1F4A65184C96B9BB1208D407CC87ED9DB31"
+  },
+  {
+    "eventId": "event_trade_medicine_convoy",
+    "title": "药材船队",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_medicine_convoy_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2853148,
+    "sha256": "C590FB7C29B6C59404DFC81B0DE0C4BFA794320FB5FB7A20CE57AD27363176B7"
+  },
+  {
+    "eventId": "event_trade_wedding_fleet",
+    "title": "商船婚礼",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_wedding_fleet_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3035085,
+    "sha256": "6F3CA33FC39FA3628CF072907C8BDEE2D1430B100209A1A092035C39D6BCC939"
+  },
+  {
+    "eventId": "event_trade_insurance_wreck",
+    "title": "沉箱保险船",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_insurance_wreck_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3414853,
+    "sha256": "A3815394FEFCC482E099A11B53C988A0A3F228074ACC283AC724272A6C72A627"
+  },
+  {
+    "eventId": "event_trade_quarantine_flag",
+    "title": "检疫黄旗",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_quarantine_flag_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3324270,
+    "sha256": "011972FEAD83237D18A18209A5F5504ECDA93EEE091B24A79D47020E89E4A3BB"
+  },
+  {
+    "eventId": "event_trade_v2_courier_pigeon",
+    "title": "信鸽落帆",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_courier_pigeon_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2964531,
+    "sha256": "D4180A39D776D8121692F3D9C3F409C07812AF9F14AA769BEFB45C330971C460"
+  },
+  {
+    "eventId": "event_trade_v2_right_of_way",
+    "title": "双船争道",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_right_of_way_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3162508,
+    "sha256": "14F2B328BD72D21D68CA39D6F38A60CF406A4C8C3F9C70EACCD04E9A0C03F632"
+  },
+  {
+    "eventId": "event_trade_v2_sample_sails",
+    "title": "借帆试航",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_sample_sails_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3015694,
+    "sha256": "88180DD9DF1A77FBBD2469B24AED5C3547367BABF0023B1AB464224375794B9E"
+  },
+  {
+    "eventId": "event_trade_v2_transfer_queue",
+    "title": "转运排队",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_transfer_queue_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2955112,
+    "sha256": "A0E3E42E01F6E1C1CF0D7DD655E283C9E33A586BB6C9F509D840AC7EB9E18E67"
+  },
+  {
+    "eventId": "event_trade_v2_diving_bell",
+    "title": "潜钟回铃",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_diving_bell_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3131674,
+    "sha256": "8DB973F643D16EB637A65280C5E522FDF5A4C3E01F42DB95622A4F100703C620"
+  },
+  {
+    "eventId": "event_trade_v2_ledger_forgery",
+    "title": "双份航单",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_ledger_forgery_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2652563,
+    "sha256": "DC820E4BFDB96A390779E993854740D1955129908B04E508AA8D1A210E6A4909"
+  },
+  {
+    "eventId": "event_trade_v2_charter_crowding",
+    "title": "争铺乘客",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_charter_crowding_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3038247,
+    "sha256": "AF44EF83437254250CF8CB1026E20A5984552C5B3DD09AD1C705E9E3F508C769"
+  },
+  {
+    "eventId": "event_trade_v2_guild_manifest",
+    "title": "船旗漏名",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_guild_manifest_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2775528,
+    "sha256": "9FEAA68466B2F0E4EDD71FFECDEC77F8AE7A4E8BEA24DA71C6BD70AB9EEDB931"
+  },
+  {
+    "eventId": "event_trade_v2_channel_moorings",
+    "title": "横漂系泊缆",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_channel_moorings_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3117241,
+    "sha256": "86069AB202B9F322484FA1431A58F4A3054E209A369D6F5605529CB268493F88"
+  },
+  {
+    "eventId": "event_trade_v2_rain_collectors",
+    "title": "雨棚收水",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_rain_collectors_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2929270,
+    "sha256": "995743A5263A88A6F776A0BE7FBDF3256B645B5D2C0ECA542268EDABF6C7EF33"
+  },
+  {
+    "eventId": "event_trade_v2_provision_survey",
+    "title": "船厨盲评",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_provision_survey_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2901690,
+    "sha256": "AC4C1497B2E5BD136919DC3D87AAE4B0A8F1F609207A15A5FFEF8D282AC46F9D"
+  },
+  {
+    "eventId": "event_trade_v2_powder_barge",
+    "title": "静默火药驳",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_powder_barge_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2957035,
+    "sha256": "653EBA38FCADAA01A769695F83E28EE4CDE44F5A3F2E60CB7866669A2EDCCDAE"
+  },
+  {
+    "eventId": "event_trade_v2_notary_barge",
+    "title": "公证驳船",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_notary_barge_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2753891,
+    "sha256": "FFCA915B32CC0A0228CD1F077B7F0B33596D151E61D445624B265840462D2590"
+  },
+  {
+    "eventId": "event_trade_v2_abandoned_countinghouse",
+    "title": "潮退账房",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_abandoned_countinghouse_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3039507,
+    "sha256": "1685391A8D5136EC0501ECD0EE50283C419DE8EFB956970D78FCF720076C0DEB"
+  },
+  {
+    "eventId": "event_trade_v2_sail_pattern_loft",
+    "title": "帆样工坊",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_sail_pattern_loft_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3232259,
+    "sha256": "D3B6E2DE49C295EEC69F432CA5989155E54B04933CAD6AD1C8CF6E7BBBBA04E5"
+  },
+  {
+    "eventId": "event_trade_v2_tide_ticket_booth",
+    "title": "潮汐票亭",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_tide_ticket_booth_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 2883737,
+    "sha256": "23F918C134F244BA4232E6B0C7D625080468FACA6EF88AE47738081E3B212DE3"
+  },
+  {
+    "eventId": "event_trade_v2_retired_pilot_station",
+    "title": "退役引水站",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_retired_pilot_station_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3108369,
+    "sha256": "9BF60CCDDEBF16D061F0CBF70F9A9903DF3BEB3450CE458226CF5492CF844D2F"
+  },
+  {
+    "eventId": "event_trade_v2_weighing_raft",
+    "title": "浮秤仲裁场",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_weighing_raft_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3055864,
+    "sha256": "AC315787AA2C1410B18924A6630AA6503E6414B7D6DC54D9CFB893299C221E47"
+  },
+  {
+    "eventId": "event_trade_v2_dyers_anchorage",
+    "title": "漂染锚地",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_trade_v2_dyers_anchorage_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3247275,
+    "sha256": "959C4A6C74794C177DEDEE96842A6E3450F72D82DAB8CFB704C08DE1B89966CF"
+  },
+  {
+    "eventId": "weathered_tide_turbine",
+    "title": "停转潮轮",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\weathered_tide_turbine_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3370087,
+    "sha256": "6B2CE49B7BEA276124C927E9180EEE4A187A46A18747ABC6D06ED0D753667EAC"
+  },
+  {
+    "eventId": "weathered_cartographer_hulk",
+    "title": "测绘师遗船",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\weathered_cartographer_hulk_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3513930,
+    "sha256": "E83449A37B84710A2DE85626A5642A1FD4CBA9633FBABB0ED8B8CB0D770B7367"
+  },
+  {
+    "eventId": "moonlit_shadow_dial",
+    "title": "逆行影晷",
+    "path": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\moonlit_shadow_dial_v1.png",
+    "width": 1448,
+    "height": 1086,
+    "bytes": 3264926,
+    "sha256": "531A626A51F7AC0351E9E67DD61927FDB6F8F948884579D2B3314173394F5A64"
+  }
+]

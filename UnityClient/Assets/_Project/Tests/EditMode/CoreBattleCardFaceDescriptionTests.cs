@@ -50,7 +50,8 @@ namespace ShatteredSail.Core.Tests
                         int mana = battle.Battle.Schools.Mana, marks = battle.Battle.Schools.CurseMarks;
                         string quote = battle.BattleCardFaceDescription(card, stage);
                         CoreBattleCard adjusted = battle.GetSupplyAdjustedBattleCard(index);
-                        bool fallback = card.SchoolEffect != null && (adjusted.SchoolEffect == null ||
+                        bool fallback = card.SchoolEffect != null && card.SchoolEffect.Mechanic != CoreSchoolMechanic.TideWard &&
+                            (adjusted.SchoolEffect == null ||
                             adjusted.SchoolEffect.Mechanic == CoreSchoolMechanic.None);
                         if (fallback)
                         {
@@ -82,14 +83,17 @@ namespace ShatteredSail.Core.Tests
                 CoreBattleCard card = port.GetBattleCardAtLevel(Index(original.Id), rank);
                 NavalBattleStage stage = card.IsAllowedInStage(NavalBattleStage.Boarding) ? NavalBattleStage.Boarding : NavalBattleStage.Naval;
                 string preview = port.BattleCardFaceDescription(card, stage);
-                Assert.That(preview, Does.Contain("每层获得 " + card.SchoolEffect.Power + " 基础格挡").And.Not.Contain("合计"), card.Id);
+                Assert.That(Regex.Replace(preview, @"\s+", string.Empty),
+                    Does.Match(@"(?:当前咒印每有一层，获得|按消耗前的咒印层数，每层获得)" + card.SchoolEffect.Power + "点基础格挡")
+                        .And.Not.Contain("合计"), card.Id);
                 CoreVoyageSession battle = Battle(stage);
                 Set(battle.Battle, "PlayerOrdinaryCrew", 7);
                 Set(battle.Battle.Schools, "CurseMarks", 3);
                 string quote = battle.BattleCardFaceDescription(card, stage);
                 int total = card.Block + card.SchoolEffect.Power * 3;
-                Assert.That(quote, Does.Contain("合计获得 " + total + " 格挡").And.Not.Contain("每层获得"), card.Id);
-                Assert.That(quote, Does.Not.Contain("格挡 +"), "The live total must not be repeated as a second additive block value: " + card.Id);
+                Assert.That(quote, Does.Contain("合计获得 " + total + " 点格挡").And.Not.Contain("每层获得").And.Not.Contain("每有一层"), card.Id);
+                Assert.That(Regex.Matches(quote, @"获得\s*\d+\s*点格挡").Count, Is.EqualTo(1),
+                    "The live total must not be repeated as a second additive block value: " + card.Id);
             }
         }
 
@@ -123,8 +127,8 @@ namespace ShatteredSail.Core.Tests
             session.Battle.PlayerLoadedShot = loaded;
             string quote = session.BattleCardFaceDescription(card, NavalBattleStage.Naval);
             Assert.That(WithoutNumbers(quote), Is.EqualTo(WithoutNumbers(before)));
-            Assert.That(Regex.IsMatch(quote, @"下次炮击\s*\+\s*" + increase + @"(?!\d)"), Is.True, quote);
-            Assert.That(Regex.IsMatch(quote, @"最多\s*\+\s*12(?!\d)"), Is.True, quote);
+            Assert.That(Regex.IsMatch(quote, @"额外装药：\s*" + increase + @"(?:\s*[；。])"), Is.True, quote);
+            Assert.That(card.StrategyLimit, Is.EqualTo(12), "The shared keyword rule retains its actual loading cap.");
             Assert.That(session.GetBattleLoadedShotIncrease(card), Is.EqualTo(increase));
             Put(session, card.Id);
             int powder = session.Cargo.Powder;
@@ -188,8 +192,9 @@ namespace ShatteredSail.Core.Tests
             session.Battle.PlayerBoardingHealth = session.Battle.PlayerMaxBoardingHealth - wound;
             string quote = session.BattleCardFaceDescription(card, NavalBattleStage.Boarding);
             Assert.That(WithoutNumbers(quote), Is.EqualTo(WithoutNumbers(before)));
-            Assert.That(RepairValue(quote), Is.EqualTo(card.Repair), "The card shows its full value and the explicit fallback; the live quote reports actual healing.");
-            Assert.That(quote, Does.Contain("使用1药物").And.Contain("无药物恢复2"));
+            Assert.That(RepairValue(quote), Is.EqualTo(CoreBattleCardEffects.UnprovisionedRepair));
+            Assert.That(FullRepairValue(quote), Is.EqualTo(card.Repair), "Free recovery plus the medicine bonus equals the authored full treatment.");
+            Assert.That(quote, Does.Contain("消耗 1 药物额外恢复 " + (card.Repair - CoreBattleCardEffects.UnprovisionedRepair) + " 点生命值"));
             Assert.That(quote, Is.EqualTo(card.Description), "Resource alternatives stay explicit on the card.");
             CoreBattleCardEffects effects = session.GetBattleCardEffects(card, NavalBattleStage.Boarding);
             Assert.That(effects.ActualRepair, Is.EqualTo(heal));
@@ -213,20 +218,19 @@ namespace ShatteredSail.Core.Tests
             string potential = port.BattleCardFaceDescription(card, NavalBattleStage.Boarding);
             int baseline = card.Repair;
             int enhanced = baseline;
-            Assert.That(RepairValue(potential), Is.EqualTo(enhanced));
-            Assert.That(potential, Does.Contain("使用1药物"));
+            Assert.That(FullRepairValue(potential), Is.EqualTo(enhanced));
+            Assert.That(potential, Does.Contain("消耗 1 药物"));
             Assert.That(port.Cargo.Medicine, Is.EqualTo(1), "Potential cost is quoted without spending it.");
             CoreVoyageSession battle = Battle(NavalBattleStage.Boarding);
             Set(battle.Battle, "PlayerOrdinaryCrew", 14);
             battle.Cargo.Medicine = 1;
             string full = battle.BattleCardFaceDescription(card, NavalBattleStage.Boarding);
-            Assert.That(RepairValue(full), Is.EqualTo(enhanced));
+            Assert.That(FullRepairValue(full), Is.EqualTo(enhanced));
             Assert.That(battle.GetBattleCardEffects(card, NavalBattleStage.Boarding).ActualRepair, Is.Zero);
             Assert.That(WithoutNumbers(full), Is.EqualTo(WithoutNumbers(potential)));
             Assert.That(port.BattleCardPortDescription(card), Is.EqualTo(card.Description));
         }
 
-        [TestCase(CoreSchoolMechanic.FireExploit)] [TestCase(CoreSchoolMechanic.ArcaneRelease)]
         [TestCase(CoreSchoolMechanic.TideRiposte)] [TestCase(CoreSchoolMechanic.ThunderChain)]
         [TestCase(CoreSchoolMechanic.ThunderFinish)] [TestCase(CoreSchoolMechanic.BloodExecute)]
         public void SchoolConditionalDamage_UpdatesOnePrimarySlotAndMatchesResolvedDamage(CoreSchoolMechanic mechanic)
@@ -254,16 +258,46 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - damage), card.Id);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ManuscriptFireStrike_KeepsItsConditionalSecondHitSeparateFromPrimaryDamage(bool burning)
+        {
+            CoreVoyageSession session = Battle();
+            CoreBattleCard card = Card(session, "card_school_fire_b04");
+            session.Battle.EnemyBurnDamage = session.Battle.EnemyBurnTurns = burning ? 4 : 0;
+            string quote = session.BattleCardFaceDescription(card, NavalBattleStage.Naval);
+            int primary = session.GetBattleCardDamage(card, NavalBattleStage.Naval);
+            Assert.That(DamageValue(quote), Is.EqualTo(primary));
+            Assert.That(quote, Does.Contain("额外造成 " + card.SchoolEffect.Power + " 点伤害"));
+            int before = session.Battle.EnemyHull;
+            Put(session, card.Id);
+            Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
+            Assert.That(before - session.Battle.EnemyHull, Is.EqualTo(primary + (burning ? card.SchoolEffect.Power : 0)));
+        }
+
         [TestCase(CoreSchoolMechanic.ArcaneRelease)]
         [TestCase(CoreSchoolMechanic.ArcaneWard)]
         [TestCase(CoreSchoolMechanic.ArcaneMend)]
         [TestCase(CoreSchoolMechanic.CurseWard)]
         [TestCase(CoreSchoolMechanic.TideCleanse)]
-        public void RedesignedSpecialCardQuotesFoldImmediateBonusesIntoOnePrimaryValue(CoreSchoolMechanic mechanic)
+        public void LegacySchoolCardQuotesFoldImmediateBonusesIntoOnePrimaryValue(CoreSchoolMechanic mechanic)
         {
             CoreVoyageSession session = Battle();
-            CoreBattleCard card = CoreSchoolCardCatalog.All.First(value => value.RequiredComponent.Length > 0 &&
-                value.SchoolEffect?.Mechanic == mechanic && value.IsAllowedInStage(NavalBattleStage.Naval));
+            // Explicit legacy fixtures keep formatter coverage without treating redesigned sources
+            // as their former resource-spending effects.
+            bool attack = mechanic == CoreSchoolMechanic.ArcaneRelease;
+            bool heal = mechanic == CoreSchoolMechanic.ArcaneMend;
+            string school = mechanic == CoreSchoolMechanic.CurseWard ? "curse" :
+                mechanic == CoreSchoolMechanic.TideCleanse ? "tide" : "arcane";
+            string rule = attack ? "造成 {damage} 点船体伤害；消耗 {schoolThreshold} 法力，额外伤害 +{schoolPower}" :
+                heal ? "修复 {repair} 船体；消耗 {schoolThreshold} 法力，额外恢复 {schoolPower} 船体" :
+                mechanic == CoreSchoolMechanic.CurseWard ? "获得 {block} 格挡；消耗 {schoolThreshold} 咒印；按消耗前每层咒印获得 {schoolPower} 额外格挡" :
+                mechanic == CoreSchoolMechanic.TideCleanse ? "消耗 {schoolThreshold} 潮势；清除敌舰装填，获得 {schoolPower} 格挡" :
+                "获得 {block} 格挡；消耗 {schoolThreshold} 法力，额外格挡 +{schoolPower}";
+            var card = new CoreBattleCard("legacy_quote_" + mechanic, "旧机制报价", "策略", 1, attack ? 10 : 0,
+                attack || heal || mechanic == CoreSchoolMechanic.TideCleanse ? 0 : 2, heal ? 3 : 0, 0, 0,
+                rule + "。", NavalBattleStages.Naval, schoolId: school,
+                schoolEffect: new CoreSchoolCardEffect(mechanic, power: 5, threshold: 1));
             Set(session.Battle.Schools, "Mana", 3);
             Set(session.Battle.Schools, "CurseMarks", 4);
             Set(session.Battle.Schools, "TidePower", 10);
@@ -273,20 +307,66 @@ namespace ShatteredSail.Core.Tests
             CoreBattleCardEffects effects = session.GetBattleCardEffects(card, NavalBattleStage.Naval);
             if (card.Damage > 0) Assert.That(DamageValue(quote), Is.EqualTo(session.GetBattleCardDamage(card, NavalBattleStage.Naval)));
             if (effects.Block > 0) Assert.That(BlockValue(quote), Is.EqualTo(effects.Block));
-            if (effects.Repair > 0) Assert.That(RepairValue(quote), Is.EqualTo(effects.ActualRepair));
-            StringAssert.DoesNotContain("额外伤害 +", quote);
-            StringAssert.DoesNotContain("额外格挡 +", quote);
-            StringAssert.DoesNotContain("额外恢复 ", quote);
+            if (effects.Repair > 0)
+            {
+                Assert.That(RepairValue(quote), Is.EqualTo(effects.FallbackRepair));
+                Assert.That(FullRepairValue(quote), Is.EqualTo(effects.FullRepair));
+                Assert.That(quote, Does.Contain("消耗 1 木板额外修复 " + (effects.FullRepair - effects.FallbackRepair) + " 点船体"));
+            }
+            StringAssert.DoesNotContain("额外造成 ", quote);
+            StringAssert.DoesNotContain("额外获得 ", quote);
+            if (effects.Repair == 0)
+            {
+                StringAssert.DoesNotContain("额外恢复 ", quote);
+                StringAssert.DoesNotContain("额外修复 ", quote);
+            }
             if (mechanic == CoreSchoolMechanic.TideCleanse || mechanic == CoreSchoolMechanic.CurseWard)
-                Assert.That(Regex.Matches(quote, @"获得\s*\d+\s*格挡").Count, Is.EqualTo(1), quote);
+                Assert.That(Regex.Matches(quote, @"获得\s*\d+\s*点格挡").Count, Is.EqualTo(1), quote);
+        }
+
+        [Test]
+        public void FieldCardsKeepTheBaseAndConditionalBonusSeparateOnTheirFaceAtEveryRank()
+        {
+            CoreVoyageSession session = Battle();
+            foreach (CoreBattleCard original in CoreVoyageSession.CardLibrary.Where(card =>
+                card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ComponentFieldStrike ||
+                card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ComponentFieldShelter))
+                for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(original.Id); rank++)
+                {
+                    CoreBattleCard card = Card(session, original.Id, rank);
+                    bool strike = card.SchoolEffect.Mechanic == CoreSchoolMechanic.ComponentFieldStrike;
+                    session.Battle.NavalFields.Cells.Clear();
+                    string inactive = session.BattleCardFaceDescription(card, NavalBattleStage.Naval);
+                    CoreBattleCardEffects before = session.GetBattleCardEffects(card, NavalBattleStage.Naval);
+                    VoyagePoint position = strike ? session.Battle.EnemyPositionMeters : session.Battle.PlayerPositionMeters;
+                    session.Battle.NavalFields.Cells.Add(new CoreNavalFieldCell {
+                        X = (int)Math.Round(position.X / CoreVoyageSession.NavalGridCellMeters),
+                        Y = (int)Math.Round(position.Y / CoreVoyageSession.NavalGridCellMeters),
+                        Kind = CoreComponentFieldCards.Kind(card), PlayerOwned = true,
+                        InstanceId = 1, ExpiresAtOwnerTurn = session.Battle.NavalFields.PlayerTurn + 2
+                    });
+                    string active = session.BattleCardFaceDescription(card, NavalBattleStage.Naval);
+                    CoreBattleCardEffects after = session.GetBattleCardEffects(card, NavalBattleStage.Naval);
+                    Assert.That(strike ? after.Damage - before.Damage : after.Block - before.Block,
+                        Is.EqualTo(card.SchoolEffect.Power), card.Id);
+                    Assert.That(active, Is.EqualTo(inactive), "The condition stays explicit instead of adding its bonus twice: " + card.Id);
+                    Assert.That(strike ? DamageValue(active) : BlockValue(active),
+                        Is.EqualTo(strike ? DamageValue(inactive) : card.Block), card.Id);
+                    Assert.That(active, Does.Contain(strike ? "伤害提高 " + card.SchoolEffect.Power : "额外获得 " + card.SchoolEffect.Power), card.Id);
+                }
         }
 
         private static int DamageValue(string quote) => Value(quote,
-            @"(?:船体伤害|船员伤害|敌舰船体\s*-|敌方船员\s*-)\s*(?<value>\d+)|(?<value>\d+)\s*点(?:船体|船员)?伤害");
+            @"(?<value>\d+)\s*点(?:船体|炮击|船员生命|船员)?伤害");
         private static int BlockValue(string quote) => Value(quote,
-            @"格挡\s*\+?\s*(?<value>\d+)|(?<value>\d+)\s*点(?:船员)?格挡|获得\s*(?<value>\d+)\s*格挡");
+            @"获得\s*(?<value>\d+)\s*点(?:普通|基础|蓄潮|船员)?格挡");
         private static int RepairValue(string quote) => Value(quote,
-            @"恢复\s*(?:当前阶段生命|船员)?\s*(?<value>\d+)");
+            @"(?:恢复|修复)\s*(?:当前阶段生命|船员)?\s*(?<value>\d+)");
+        private static int FullRepairValue(string quote)
+        {
+            Match bonus = Regex.Match(quote, @"额外(?:恢复|修复)\s*(?<value>\d+)");
+            return RepairValue(quote) + (bonus.Success ? int.Parse(bonus.Groups["value"].Value) : 0);
+        }
         private static int Value(string quote, string expression)
         {
             Match match = Regex.Match(quote, expression);

@@ -65,28 +65,28 @@ namespace ShatteredSail.Core.Gameplay
             {
                 case "event_reef_broken_mast":
                     category = "救援 · 潮工线索";
-                    description = "断桅船上的潮工守着一卷船坞图。他愿以秘藏位置和开启方法，换取修好小船的材料。";
+                    description = "断桅船上的潮工守着一卷船坞图。只要给他修船的材料，他就愿意告诉你秘藏在哪、该怎么打开。";
                     choices.Add(C("用修船材料换潮工秘藏图", 2,
                         new VoyageEffect { Wood = -3, Cloth = -1, GrantDiscovery = "reef_dock_chart", RevealEncounterId = "event_reef_hidden_cache" }));
                     break;
                 case "event_reef_hidden_cache":
                     category = "秘藏 · 潮工机关";
-                    description = "潮痕指向旧船坞的封闭储藏室。普通石匣之外，还有一处须按潮工船坞图开启的机关隔舱。";
+                    description = "潮痕一路通向旧船坞封闭的储藏室。里面除了普通石匣，还藏着一间机关隔舱，要照潮工船坞图上的方法才能打开。";
                     choices.Add(C("按船坞图开启机关隔舱", 2,
                         new VoyageEffect { Wood = -2, AncientMaterial = 2, Hull = 8, SailingBoostHours = 16 }, discovery: "reef_dock_chart"));
                     break;
                 case "gold_wreck":
                     category = "打捞 · 商队托付";
-                    description = "香料沉船上有普通货箱，也有商队托付的密封药箱。持互助凭证者知道安全货梯的位置，可领取保全酬劳。";
+                    description = "香料沉船的货箱散落在倾斜舱板上，深处的密封药箱还留着商队印记。互助凭证背面的草图标出了舱内货梯。";
                     choices.Add(C("凭互助印章取回密封药箱", 2,
                         new VoyageEffect { Medicine = 2, Gem = 1, Fame = 8 }, discovery: "trade_rescue_seal"));
                     break;
                 case "moon_obelisk":
                     category = "解谜 · 月相星图";
-                    description = "方碑星槽缺少排列顺序。月相星图可以解开内匣；也能直接献出古代罗盘，让机关自行归位。";
+                    description = "方碑上的星槽排列错乱，槽边的刻纹与月相星图相似。内匣紧闭，中央有个圆形凹槽，大小正好能放下一枚古代罗盘。";
                     choices.Add(C("依月相星图解开内匣", 3,
                         new VoyageEffect { AncientMaterial = -1, Relic = 1, SurveyBoostHours = 18 }, discovery: "moon_star_chart"));
-                    choices.Add(C("嵌入古代罗盘强转星槽", 1,
+                    choices.Add(C("嵌入古代罗盘，强行转动星槽", 1,
                         new VoyageEffect { AncientCompass = -1, Relic = 1, Curse = 1 }));
                     break;
                 case "common_beach_castaway":
@@ -99,7 +99,7 @@ namespace ShatteredSail.Core.Gameplay
                     }
                     else if (routeId == Moon)
                     {
-                        description = "沙洲上的落难学者抱着浸湿的观测记录，愿以星图换取返船用的物资。";
+                        description = "沙洲上的落难学者抱着浸湿的观测记录，想拿星图换些物资，好返回船上。";
                         choices.Add(C("救助学者，抢救月相星图", 3,
                             new VoyageEffect { Medicine = -1, Food = -3, GrantDiscovery = "moon_star_chart", RevealEncounterId = "moon_obelisk" }));
                     }
@@ -108,8 +108,8 @@ namespace ShatteredSail.Core.Gameplay
                     if (routeId == Moon)
                     {
                         category = "观测 · 月相星图";
-                        description = "旧灯按月相闪出三组灯语。花时间抄下完整周期，可以复原解读月痕方碑所需的星图。";
-                        choices.Add(C("守候完整灯语，复原星图", 4,
+                        description = "旧灯按月相闪出三组灯语，明灭间重现着月痕方碑上的星纹。灯语一轮轮重复，总有几段缺失。";
+                        choices.Add(C("等灯语完整闪过，复原星图", 4,
                             new VoyageEffect { GrantDiscovery = "moon_star_chart", RevealEncounterId = "moon_obelisk" }));
                         choices.Add(C("以航海灯接续缺失的灯语", 1,
                             new VoyageEffect { Lantern = -1, GrantDiscovery = "moon_star_chart", RevealEncounterId = "moon_obelisk", SurveyBoostHours = 8 }));
@@ -122,9 +122,9 @@ namespace ShatteredSail.Core.Gameplay
                     break;
                 case "common_whale_song":
                     category = "追踪 · 洋流";
-                    description = "鲸群沿着稳定暖流迁徙。追随它们可以赶路；留在外围观测，则能扩大接下来一段时间的瞭望范围。";
-                    choices[0] = C("追随鲸群借用暖流", .5, new VoyageEffect { SailingBoostHours = 12 });
-                    choices[1] = C("循鲸声建立远望标记", 2, new VoyageEffect { SurveyBoostHours = 18 });
+                    description = "鲸群沿着稳定暖流迁徙，宽阔的尾迹一直延伸到天边。悠长的鲸歌从不同方向传来，勾勒出远处洋流的走向。";
+                    choices[0] = C("跟随鲸群，借暖流赶路", .5, new VoyageEffect { SailingBoostHours = 12 });
+                    choices[1] = C("循着鲸声设置远望标记", 2, new VoyageEffect { SurveyBoostHours = 18 });
                     break;
             }
             return new CoreEncounter(encounter.Id, encounter.Name, category, description, encounter.Mandatory,

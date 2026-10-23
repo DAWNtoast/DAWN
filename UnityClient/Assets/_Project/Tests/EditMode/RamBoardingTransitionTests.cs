@@ -7,6 +7,8 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class RamBoardingTransitionTests
     {
+        [TestCase(0f, NavalBoardingConnection.RamBowToStern, NavalBoardingApproach.Alongside)]
+        [TestCase(180f, NavalBoardingConnection.RamBowToBow, NavalBoardingApproach.Alongside)]
         [TestCase(90f, NavalBoardingConnection.RamBowToBroadside, NavalBoardingApproach.Quarter)]
         [TestCase(270f, NavalBoardingConnection.RamBowToBroadside, NavalBoardingApproach.Quarter)]
         public void NonLethalRam_ConnectsShipsAndStartsMelee(

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using ShatteredSail.Core.Gameplay;
-using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
@@ -56,28 +55,8 @@ namespace ShatteredSail.Presentation
             Add("诅咒", effect.Curse);
             AppendExplorationChoiceDetails(values, effect);
             if (effect.ForceReturn) values.Add("返航");
-            return values.Count == 0 ? "本地点收益已耗尽，耗时照常" : string.Join(" · ", values);
+            return values.Count == 0 ? "此处已无收益，仍需照常耗时" : string.Join(" · ", values);
         }
 
-        private void UpdateEncounterChartRewardPresentation()
-        {
-            if (!ShowingReusableChartEncounter || contentRoot == null) return;
-            string caption;
-            switch (session.ActiveEncounter.RepeatPolicy)
-            {
-                case CoreEncounterRepeatPolicy.RandomVoyage: caption = "本航次随机事件"; break;
-                case CoreEncounterRepeatPolicy.Renewable: caption = "可重复使用的服务"; break;
-                default:
-                    caption = (session.ActiveEncounterClaimCount == 0 ? "首次收益" : "第 " + ((long)session.ActiveEncounterClaimCount + 1) + " 次收益") +
-                        " · " + session.ActiveEncounterRewardMultiplier.ToString("0%");
-                    break;
-            }
-            foreach (Text label in contentRoot.GetComponentsInChildren<Text>())
-                if (label.name == "Encounter Journal Heading" && label.gameObject.activeInHierarchy)
-                {
-                    label.text = caption;
-                    break;
-                }
-        }
     }
 }

@@ -86,7 +86,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void SelfBurnTransfer_MovesAtMostFourLongestLivedLayersWithoutRefreshingDuration()
+        public void SelfBurnTransfer_MovesAtMostFourIntoOneDecayingStack()
         {
             var s = Battle("fire_15");
             s.Battle.Boarding.SelfBurn.Add(new CoreBoardingTimedStacks(2, 1));
@@ -97,25 +97,30 @@ namespace ShatteredSail.Core.Tests
             Play(s, "fire_15");
             Assert.That(s.Battle.Boarding.SelfBurn.Sum(batch => batch.Amount), Is.EqualTo(1));
             Assert.That(s.Battle.Boarding.SelfBurn.Single().Remaining, Is.EqualTo(1));
-            Assert.That(s.Battle.Boarding.EnemyBurn.Where(batch => batch.Remaining == 2).Sum(batch => batch.Amount), Is.EqualTo(3));
-            Assert.That(s.Battle.Boarding.EnemyBurn.Where(batch => batch.Remaining == 1).Sum(batch => batch.Amount), Is.EqualTo(1));
+            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Amount, Is.EqualTo(4));
+            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Remaining, Is.EqualTo(4));
             Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(4));
             Assert.That(s.Battle.Boarding.SelfBurn, Is.Empty);
             Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(7));
+            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Amount, Is.EqualTo(2));
+            Assert.That(s.EndBattleTurn(), Is.True);
+            Assert.That(s.EndBattleTurn(), Is.True);
+            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(10));
             Assert.That(s.Battle.Boarding.EnemyBurn, Is.Empty);
         }
 
         [Test]
-        public void ResolveOldestDelayed_RemovesQueueEntryAndNeverTriggersAgain()
+        public void ResolveSelectedDelayed_RemovesQueueEntryAndNeverTriggersAgain()
         {
             var s = Battle("arcane_11", "arcane_03", "arcane_15");
             int enemy = s.Battle.EnemyBoardingHealth;
             Play(s, "arcane_11"); // no mana: 36 delayed
             Play(s, "arcane_03"); // gains 3 mana
             int collectSlot = s.Battle.Hand.IndexOf(Index("arcane_15"));
-            Assert.That(s.GetBoardingPlayChoice(collectSlot).RequiresChoice, Is.False);
+            Assert.That(s.GetBoardingPlayChoice(collectSlot).Kind, Is.EqualTo(CoreBoardingChoiceKind.DelayedEffect));
+            Assert.That(s.GetBoardingPlayChoice(collectSlot).RequiresChoice, Is.True);
             Play(s, "arcane_15");
             Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(36));
             Assert.That(s.Battle.Boarding.DelayedDamage, Is.Empty);
@@ -228,6 +233,7 @@ namespace ShatteredSail.Core.Tests
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(s, 1000);
             Assert.That(s.EndBattleTurn(), Is.True);
             s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);

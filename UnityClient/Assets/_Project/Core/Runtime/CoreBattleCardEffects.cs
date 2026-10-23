@@ -115,7 +115,7 @@ namespace ShatteredSail.Core.Gameplay
             return new CoreBattleCardEffects(card, stage, ordinaryCrew, Cargo.Medicine, missing,
                 extraDamage, extraBlock, extraRepair,
                 SchoolBloodMendQuote(card, stage), card?.SchoolEffect?.Mechanic != CoreSchoolMechanic.BloodMend &&
-                    card?.SchoolEffect?.Mechanic != CoreSchoolMechanic.BloodDrain,
+                    card?.SchoolEffect?.Mechanic != CoreSchoolMechanic.BloodDrain && !CoreComponentFieldCards.IsFieldCard(card),
                 SchoolAttackStanceQuote(card, stage), Cargo.Wood);
         }
 
@@ -126,6 +126,8 @@ namespace ShatteredSail.Core.Gameplay
             if (stage == NavalBattleStage.Boarding)
                 card = CoreBoardingCardCatalog.ForBoarding(card);
             if (card.BoardingSpec != null) return card.Description;
+            if (card.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideWard ||
+                card.Id == "card_school_tide_n03") return BattleCardFaceDescription(card, stage);
             card = GetSupplyAdjustedBattleCard(card);
             CoreBattleCardEffects effect = GetBattleCardEffects(card, stage);
             if (card.SchoolEffect != null) return SchoolCardEffectDescription(card, stage, effect);
@@ -133,16 +135,17 @@ namespace ShatteredSail.Core.Gameplay
             {
                 // Preserve every authored condition and line break, replacing
                 // only effect placeholders with the same quote combat uses.
-                return new CoreBattleCard(card.Id, card.Name, card.Type, card.Energy,
-                    effect.Damage, effect.Block, effect.Repair, card.Draw, card.PowderCost,
+                var display = new CoreBattleCard(card.Id, card.Name, card.Type, card.Energy,
+                    effect.Damage, effect.Block, effect.FullRepair, card.Draw, card.PowderCost,
                     SchoolBattleActive(stage) ? CoreSpecialCardRules.CostDescription(card.DescriptionTemplate, card, Battle) : card.DescriptionTemplate,
                     card.AllowedStages, card.Action, card.RequiredCrew, card.ArtId,
-                    card.CannonballCost, card.RequiredComponent, card.UpgradeLevel, card.SchoolId, card.SchoolEffect, card.BoardingBlock).Description;
+                    card.CannonballCost, card.RequiredComponent, card.UpgradeLevel, card.SchoolId, card.SchoolEffect, card.BoardingBlock);
+                return CoreBattleCardText.RenderTemplate(display.DescriptionTemplate, display, stage, effect.FullRepair);
             }
             // Use the existing description builder so strategies, draws and resource
             // costs remain in sync. Boarding also gives all-stage healing its proper label.
             var effectiveCard = new CoreBattleCard(card.Id, card.Name, card.Type, card.Energy,
-                effect.Damage, effect.Block, effect.Repair, card.Draw, card.PowderCost, string.Empty,
+                effect.Damage, effect.Block, effect.FullRepair, card.Draw, card.PowderCost, string.Empty,
                 NavalBattleStages.Boarding, card.Action, card.RequiredCrew, card.ArtId,
                 card.CannonballCost, card.RequiredComponent, card.UpgradeLevel, card.SchoolId, card.SchoolEffect);
             return DescribeUpgradedBattleCard(effectiveCard, card.BurnDamage);
@@ -157,9 +160,9 @@ namespace ShatteredSail.Core.Gameplay
                 return BattleCardEffectDescription(card, NavalBattleStage.Naval);
             CoreBattleCardEffects effect = GetBattleCardEffects(card, NavalBattleStage.Boarding);
             StringBuilder current = new StringBuilder();
-            if (card.Damage > 0) current.Append("伤害 ").Append(effect.Damage).Append('\n');
-            if (card.Block > 0) current.Append("格挡 ").Append(effect.Block).Append('\n');
-            if (card.Repair > 0) current.Append("恢复 ").Append(effect.Repair).Append("（上限）\n");
+            if (card.Damage > 0) current.Append("造成 ").Append(effect.Damage).Append(" 点伤害\n");
+            if (card.Block > 0) current.Append("获得 ").Append(effect.Block).Append(" 点格挡\n");
+            if (card.Repair > 0) current.Append("恢复 ").Append(effect.Repair).Append(" 点生命（上限）\n");
             return "卡牌效果：\n" + card.Description +
                 "\n\n当前接舷效果：\n" +
                 current.ToString().TrimEnd('\n') +
@@ -175,11 +178,11 @@ namespace ShatteredSail.Core.Gameplay
                 return string.Empty; // The authored boarding text already states medicine, fallback and timing.
             CoreBattleCardEffects effect = GetBattleCardEffects(card, stage);
             if (effect.FullRepair <= 0 || effect.FullRepair == effect.FallbackRepair) return string.Empty;
-            string supply = effect.HasMedicineBoost ? "有药完整 " + effect.FullRepair : "无随船药品";
+            string supply = "恢复 " + effect.FallbackRepair + " 点生命值，消耗 1 药物额外恢复 " +
+                (effect.FullRepair - effect.FallbackRepair) + " 点生命值。";
             if (portPreview || effect.IsRepairPreview)
-                return CoreBattleCardText.FormatEffects("治疗预览：" + supply + "，无药保底 " + effect.FallbackRepair + "；有效治疗消耗 1 药品，预览不消耗。");
-            return CoreBattleCardText.FormatEffects("本次实际恢复 " + effect.ActualRepair + "，" +
-                (effect.MedicineCost > 0 ? "药品 -1" : "不耗药") + "；" + supply + "，无药保底 " + effect.FallbackRepair + "。");
+                return CoreBattleCardText.FormatEffects("治疗预览：" + supply);
+            return CoreBattleCardText.FormatEffects("本次实际恢复 " + effect.ActualRepair + " 点生命值；" + supply);
         }
 
         public string BattleCardWoodDescription(CoreBattleCard card, NavalBattleStage stage, bool portPreview = false)
@@ -187,11 +190,11 @@ namespace ShatteredSail.Core.Gameplay
             if (card == null || stage == NavalBattleStage.Boarding || !card.IsAllowedInStage(stage)) return string.Empty;
             CoreBattleCardEffects effect = GetBattleCardEffects(card, stage);
             if (effect.FullRepair <= 0 || effect.FullRepair == effect.FallbackRepair) return string.Empty;
-            string supply = effect.HasWoodBoost ? "有木板完整 " + effect.FullRepair : "无随船木板";
+            string supply = "修复 " + effect.FallbackRepair + " 点船体，消耗 1 木板额外修复 " +
+                (effect.FullRepair - effect.FallbackRepair) + " 点船体。";
             if (portPreview || effect.IsRepairPreview)
-                return CoreBattleCardText.FormatEffects("维修预览：" + supply + "，无木板保底 " + effect.FallbackRepair + "；有效维修消耗 1 木板，预览不消耗。");
-            return CoreBattleCardText.FormatEffects("本次实际修复 " + effect.ActualRepair + "，" +
-                (effect.WoodCost > 0 ? "木板 -1" : "不耗木板") + "；" + supply + "，无木板保底 " + effect.FallbackRepair + "。");
+                return CoreBattleCardText.FormatEffects("维修预览：" + supply);
+            return CoreBattleCardText.FormatEffects("本次实际修复 " + effect.ActualRepair + " 点船体；" + supply);
         }
     }
 }

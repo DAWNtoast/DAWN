@@ -14,6 +14,9 @@ namespace ShatteredSail.Core.Gameplay
         ArcaneCapacity, ArcaneTemporary, ThunderReady,
         SpecialFireDoctrine, SpecialArcaneDoctrine, SpecialCurseDoctrine,
         SpecialTideDoctrine, SpecialThunderDoctrine, SpecialBloodDoctrine,
+        ArcaneAttackReserve, ArcaneGuardReserve,
+        ComponentFieldExpand, ComponentFieldExtend, ComponentFieldStrike,
+        ComponentFieldShelter, ComponentFieldPulse, ComponentFieldMastery,
     }
 
     [Flags]
@@ -70,12 +73,15 @@ namespace ShatteredSail.Core.Gameplay
         public int Mana { get; internal set; }
         public int ManaLimit { get; internal set; } = 3;
         public int TemporaryMana { get; internal set; }
+        public int ArcaneNextAttackDamage { get; internal set; }
+        public int ArcaneNextBlockBonus { get; internal set; }
         public int AvailableMana => (int)Math.Min(int.MaxValue, (long)Mana + TemporaryMana);
         public int CurseMarks { get; internal set; }
         public int CurseTurns { get; internal set; }
         public int CurseWeaknessPercent { get; internal set; }
         public int CurseDamagePerMark { get; internal set; }
         public int CurseNextTickBonus { get; internal set; }
+        public int CurseTickBonus { get; internal set; }
         public int CurseGuard { get; internal set; }
         public int ThunderChain { get; internal set; }
         public int ThunderLimit { get; internal set; } = 6;
@@ -112,8 +118,9 @@ namespace ShatteredSail.Core.Gameplay
         internal void ClearTarget()
         {
             CurseMarks = 0; CurseTurns = 0; CurseWeaknessPercent = 0;
-            CurseDamagePerMark = 0; CurseNextTickBonus = 0; CurseGuard = 0;
+            CurseDamagePerMark = 0; CurseNextTickBonus = 0; CurseTickBonus = 0; CurseGuard = 0;
             TemporaryMana = 0; TidePower = 0; TidePaidBlock = 0;
+            ArcaneNextAttackDamage = 0; ArcaneNextBlockBonus = 0;
             TideCounter = 0; TideCounterTurns = 0; TideStance = 0; TideStancePower = 0; TideStanceTurns = 0;
             LastGuardAbsorbed = 0; NaturalFireGuard = 0; NaturalFireGuardTurns = 0;
             ScorchDamage = 0; ScorchCharges = 0;

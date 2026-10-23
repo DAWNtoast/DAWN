@@ -84,41 +84,25 @@ namespace ShatteredSail.Presentation
 
         private CardSchoolFrameGraphic AddCardSchoolFrame(Transform card, CoreBattleCard data, bool available)
         {
-            RefreshCardCatalogNumber(card, data);
-            return AddCardSchoolFrame(card, data.SchoolId, available, data.PowderCost,
-                data.CannonballCost, CardSpecialCostPresentation.ResourceType(data));
-        }
-
-        private void RefreshCardCatalogNumber(Transform card, CoreBattleCard data)
-        {
-            const string objectName = "Card Catalog Number";
-            Text number = card.Find(objectName)?.GetComponent<Text>();
-            if (number == null)
-            {
-                // The body font's 15 px line is about 24 px tall. Keep a full
-                // line below the effect while staying between the cost emblems.
-                number = CreateText(objectName, card, new Vector2(86f, 26f), new Vector2(0f, -186f),
-                    15, FontStyle.Normal, TextAnchor.MiddleCenter, Color.white);
-                number.raycastTarget = false;
-                Outline shadow = number.gameObject.AddComponent<Outline>();
-                shadow.effectColor = new Color(.08f, .06f, .04f, .95f);
-                shadow.effectDistance = new Vector2(1f, -1f);
-            }
-            number.text = CoreBattleCardNumbering.Label(data);
-            number.color = Color.white;
+            CardSchoolFrameGraphic frame = AddCardSchoolFrame(card, data.SchoolId, available, data.PowderCost,
+                data.CannonballCost, CardSpecialCostPresentation.ResourceType(data),
+                supplyType: CardSupplyCostPresentation.ResourceType(data));
+            RefreshCardSupplyCost(card, data);
+            return frame;
         }
 
         private CardSchoolFrameGraphic AddCardSchoolFrame(Transform card, string schoolId, bool available,
-            int powderCost = 0, int cannonballCost = 0, string specialType = "")
+            int powderCost = 0, int cannonballCost = 0, string specialType = "", bool supplyCost = false, string supplyType = "")
         {
-            Rect bounds = CardSchoolArtCatalog.FrameBounds(schoolId, powderCost, cannonballCost, specialType);
+            Rect bounds = CardSchoolArtCatalog.FrameBounds(schoolId, powderCost, cannonballCost, specialType, supplyCost, supplyType);
             RectTransform frame = CreateRect("Card School Frame", card, bounds.size, bounds.center);
             CardSchoolFrameGraphic graphic = frame.gameObject.AddComponent<CardSchoolFrameGraphic>();
-            graphic.Configure(schoolId, available, powderCost, cannonballCost, specialType);
+            graphic.Configure(schoolId, available, powderCost, cannonballCost, specialType, supplyCost, supplyType);
             // Small optical offsets belong to the complete authored frame.
             // Initial creation and retained refresh share this calibration.
             foreach (RawImage illustration in card.GetComponentsInChildren<RawImage>(true))
-                CardFaceLayout.FitIllustration(illustration);
+                if (illustration.GetComponentInParent<CardSupplyCostView>(true) == null)
+                    CardFaceLayout.FitIllustration(illustration);
             foreach (CardOrnamentGraphic ornament in card.GetComponentsInChildren<CardOrnamentGraphic>(true))
                 if (ornament.Kind == CardOrnamentKind.NameRibbon)
                 {
@@ -176,10 +160,70 @@ namespace ShatteredSail.Presentation
             Text number = CreateCardCostIcon(name, valueName, parent, CardFaceLayout.SpecialCostIconSize,
                 CardSchoolArtCatalog.CostPosition(data, CardSpecialCostPresentation.OrnamentKind(data)),
                 CardSpecialCostPresentation.OrnamentKind(data), data.Type, 0);
-            number.text = CardSpecialCostPresentation.CostText(data, battle, battle == null ? (int?)null : session.Cargo.Wood);
+            number.text = CardSpecialCostPresentation.CostText(data, battle, battle == null ? (int?)null : session.Cargo.Wood,
+                battle == null ? (int?)null : session.Cargo.Medicine);
             if (number.text.Length > 3) number.fontSize = 18;
             else if (number.text.Length > 2) number.fontSize = 21;
             return number;
+        }
+
+        private void RefreshCardSupplyCost(Transform parent, CoreBattleCard data, CoreBattleState battle = null,
+            NavalBattleStage? previewStage = null)
+        {
+            CardSupplyCostView view = parent.GetComponentInChildren<CardSupplyCostView>(true);
+            NavalBattleStage stage = previewStage ?? battle?.Stage ?? CardSupplyCostPresentation.PreviewStage(data);
+            string resource = CardSupplyCostPresentation.ResourceType(data, stage);
+            // A shared repair card can show wood at sea and medicine during
+            // boarding. Its complete frame must follow the displayed stage too.
+            CardSchoolFrameGraphic frame = parent.GetComponentInChildren<CardSchoolFrameGraphic>(true);
+            if (frame != null)
+            {
+                if (frame.mainTexture != CardSchoolArtCatalog.Frame(data, stage))
+                    frame.Configure(data.SchoolId, frame.Available, data.PowderCost, data.CannonballCost,
+                        CardSpecialCostPresentation.ResourceType(data), supplyType: resource);
+                // Retained availability refresh may already have selected the new
+                // texture. Apply its geometry even when that texture is unchanged.
+                Rect bounds = CardSchoolArtCatalog.FrameBounds(data, stage);
+                if (frame.NeedsLayoutCalibration || frame.rectTransform.sizeDelta != bounds.size ||
+                    frame.rectTransform.anchoredPosition != bounds.center)
+                {
+                    frame.rectTransform.sizeDelta = bounds.size;
+                    frame.rectTransform.anchoredPosition = bounds.center;
+                    foreach (RawImage illustration in parent.GetComponentsInChildren<RawImage>(true))
+                        if (illustration.GetComponentInParent<CardSupplyCostView>(true) == null)
+                            CardFaceLayout.FitIllustration(illustration);
+                    foreach (CardOrnamentGraphic ornament in parent.GetComponentsInChildren<CardOrnamentGraphic>(true))
+                    {
+                        if (ornament.Kind == CardOrnamentKind.NameRibbon)
+                        {
+                            ornament.rectTransform.anchoredPosition = CardFaceLayout.NamePlateLayout(ornament.rectTransform);
+                            foreach (Text title in ornament.GetComponentsInChildren<Text>(true)) CardFaceLayout.FitName(title);
+                        }
+                        else if (ornament.IsMarkerOnly)
+                            ornament.rectTransform.anchoredPosition = CardSchoolArtCatalog.CostPosition(data, ornament.Kind, stage);
+                    }
+                    frame.ConfirmLayoutCalibration();
+                }
+            }
+            if (resource.Length == 0)
+            {
+                if (view != null) view.gameObject.SetActive(false);
+                return;
+            }
+            if (view == null)
+            {
+                RectTransform root = CreateRect("Card Supply Cost", parent, CardSupplyCostView.Size, CardSupplyCostView.Position);
+                view = root.gameObject.AddComponent<CardSupplyCostView>();
+                RawImage icon = CreateRawImage("Supply Icon", root, new Vector2(23f, 23f), new Vector2(0f, 8f),
+                    null, new Rect(0f, 0f, 1f, 1f));
+                Text amount = CreateCardCostNumber("Supply Amount", root, new Vector2(26f, 32f), Vector2.zero);
+                icon.raycastTarget = false;
+                view.Initialize(icon, amount);
+            }
+            view.gameObject.SetActive(true);
+            view.Configure(resource, CardSupplyCostPresentation.CostText(data, battle == null ? null : session, stage),
+                CardSchoolArtCatalog.SupplyPosition(data, stage), CardSchoolArtCatalog.HasBakedSupplyIcon(data, stage));
+            view.transform.SetAsLastSibling();
         }
 
         private RectTransform CreateCardOrnament(string name, Transform parent, Vector2 size,
@@ -197,13 +241,19 @@ namespace ShatteredSail.Presentation
         {
             RectTransform icon = CreateRect(name, parent, size, position);
             icon.gameObject.AddComponent<CardOrnamentGraphic>().ConfigureCostLabel(kind, cardType);
-            Text number = CreateText(valueName, icon, size - new Vector2(10f, 8f), Vector2.zero,
+            Text number = CreateCardCostNumber(valueName, icon, size - new Vector2(10f, 8f), Vector2.zero, fontSize);
+            number.text = value.ToString();
+            return number;
+        }
+
+        private Text CreateCardCostNumber(string name, Transform parent, Vector2 size, Vector2 position, int fontSize = 24)
+        {
+            Text number = CreateText(name, parent, size, position,
                 fontSize, FontStyle.Bold, TextAnchor.MiddleCenter, Color.white);
             // The ornament is the reading surface; do not inherit parchment ink
             // from the enclosing card through ReadableTextColor.
             number.color = Color.white;
             number.raycastTarget = false;
-            number.text = value.ToString();
             number.horizontalOverflow = HorizontalWrapMode.Overflow;
             number.verticalOverflow = VerticalWrapMode.Overflow;
             number.resizeTextForBestFit = false;

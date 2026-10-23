@@ -1,0 +1,34 @@
+{
+  "mode": "strictly_sequential",
+  "tool": "builtin image_gen",
+  "submitted": 3,
+  "succeeded": 0,
+  "failed": 3,
+  "noOverlappingRequests": true,
+  "attempts": [
+    {
+      "id": "crew_white_shell_navigator_saina",
+      "started": "2026-10-19 19:08:36 UTC",
+      "finished": "2026-10-19 19:11:24 UTC",
+      "status": "failed",
+      "error": "image generation failed: network error: error sending request",
+      "prompt": "Use case: identity-preserve. Create one finished vertical 4:5 waist-up narrative character portrait for a fantasy sailing RPG. The supplied tavern crop is the absolute visual identity authority. Redraw this SAME adult woman: warm brown skin, heart-shaped face and brown eyes, long voluminous black curls with white seashell ornaments, pearl-shell drop earrings, tiny white face marks, blue-green shoulder tattoos, teal off-shoulder draped garment with dangling gold ornaments and sheer pale sleeves, turquoise and gold bangles. Keep face, apparent age, hairstyle, build, markings and outfit immediately recognizable. Canonical biography: Saina deciphers a distress message in a silver shell by recognizing the rhythm of waves, finding hidden coordinates toward Bronze Bell harbor. Depict her at a coastal chart table, raising a small silver shell to one ear, her other hand tracing an unlettered nautical chart. Quiet concentration and faint curious smile. Soft sunlit tropical harbor and coral shallows behind her. Complete head with breathing room, both shoulders, entire upper body through waist, both hands readable and anatomical. Single character, polished detailed semi-realistic hand-painted game illustration, nuanced fabric and hair, restrained background. No other people, no readable writing, no text, frames, UI, collage or watermark. Opaque background."
+    },
+    {
+      "id": "crew_white_shell_carpenter_atang",
+      "started": "2026-10-19 19:11:47 UTC",
+      "finished": "2026-10-19 19:14:31 UTC",
+      "status": "failed",
+      "error": "image generation failed: network error: error sending request",
+      "prompt": "Use case: identity-preserve. Create a single vertical 4:5 story portrait for a nautical fantasy game. The attached tavern character is the sole identity reference. Preserve the exact same adult woman: warm tan skin, oval face, long black high ponytail, dark eyes, pale coral tear-shaped cheek marks, green-gold forehead ornament, shell earrings and neck jewelry, dark sleeveless strappy work top, circular tribal tattoos on shoulder and forearm, metal bangles and strong slender arms. Keep her original face, apparent age, body build, hair and clothing. Atang's story: coral glue clings to her palms; her six-color wood-shaving charm never leaves her. She helped build an unsinkable keel and leaves a berth for a slow ship. Show her in a bright tropical boat shed pressing a shell-bone repair patch onto a curved wooden keel with one hand while holding her familiar hammer in the other. Include a small coral-glue pot and small six-color wood-shaving charm. Focused, capable expression. Full upper body from complete head through waist, both shoulders and both hands comfortably inside the frame, face unobstructed. Character large; contextual workshop softly subdued. High-detail semi-realistic hand-painted fantasy game illustration, natural anatomy, detailed face and materials. One person, no readable writing, no text, no UI, border, collage or watermark. Opaque background."
+    },
+    {
+      "id": "crew_white_shell_doctor_mirei",
+      "started": "2026-10-19 19:15:08 UTC",
+      "finished": "2026-10-19 19:17:54 UTC",
+      "status": "failed",
+      "error": "image generation failed: network error: error sending request",
+      "prompt": "Use case: identity-preserve. Create one finished vertical 4:5 narrative upper-body portrait for a nautical fantasy RPG. The supplied tavern crop is the sole character identity reference. Redraw the exact same older adult woman: deep brown skin, soft round face, gentle smile, full sturdy build, voluminous silver-gray curly hair, gold drop earrings, layers of pearls and green/gold necklaces, cream blouse with green botanical sleeve embroidery, green bodice, gold bracelets and blue bangle. Preserve her face, hair, age, clothing, jewelry and physique. Mirei's canonical story: she uses the silver shell's melody as a rhythm while stirring herbs and changing bath water to help an unnamed sailor breathe. Depict her in a sunlit tropical infirmary gently stirring steaming herbal water at the lower edge, humming softly with a compassionate focused expression. A silver shell, fresh herbs and a warm-water cup rest on a small side table. No patient or other person. Show the complete head with room above the hair, both shoulders, full torso through waist, both hands unobscured. Steam is subtle and never hides her face or body. Detailed semi-realistic hand-painted game art matching the reference, natural anatomy, rich fabric and jewelry. Restrained contextual background. No text, readable writing, caption, UI, frame, panels, collage or watermark. Opaque background."
+    }
+  ]
+}

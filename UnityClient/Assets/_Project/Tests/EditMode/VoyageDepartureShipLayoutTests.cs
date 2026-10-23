@@ -66,8 +66,8 @@ namespace ShatteredSail.Presentation.Tests
                 RectTransform target = inspect.GetComponent<RectTransform>();
                 Assert.That(target.sizeDelta, Is.EqualTo(DepartureDockSceneLayout.ShipHitSize));
                 Assert.That(target.anchoredPosition, Is.EqualTo(DepartureDockSceneLayout.ShipHitPosition));
-                AssertPaintedArtRect(setup, Find<RectTransform>("Departure Previous Vessel"), new Rect(962, 621, 50, 50));
-                AssertPaintedArtRect(setup, Find<RectTransform>("Departure Next Vessel"), new Rect(1508, 621, 50, 50));
+                AssertPaintedArtRect(setup, Find<RectTransform>("Departure Previous Vessel"), new Rect(640, 344, 72, 72));
+                AssertPaintedArtRect(setup, Find<RectTransform>("Departure Next Vessel"), new Rect(1624, 344, 72, 72));
                 foreach (string arrowName in new[] { "Departure Previous Vessel", "Departure Next Vessel" })
                 {
                     Button arrow = Find<Button>(arrowName);
@@ -429,8 +429,21 @@ namespace ShatteredSail.Presentation.Tests
                 RectTransform button = row.GetComponent<RectTransform>();
                 AssertInside(roster.content, BoundsIn(roster.content, button), row.name);
                 Assert.That(button.rect.height, Is.EqualTo(142));
-                Assert.That(Find<RectTransform>("Departure Special Crew Portrait " + index).sizeDelta, Is.EqualTo(new Vector2(82, 108)),
-                    "Portraits should retain the detailed, generous size used in the secondary window.");
+                RawImage portrait = Find<RawImage>("Departure Special Crew Portrait " + index);
+                Assert.That(portrait.texture, Is.Not.Null, portrait.name);
+                Vector2 portraitSize = portrait.rectTransform.sizeDelta;
+                float sourceAspect = portrait.texture.width * portrait.uvRect.width /
+                    (portrait.texture.height * portrait.uvRect.height);
+                Assert.That(portraitSize.x, Is.InRange(.01f, 82f + .01f), portrait.name);
+                Assert.That(portraitSize.y, Is.InRange(.01f, 108f + .01f), portrait.name);
+                Assert.That(portraitSize.x / portraitSize.y, Is.EqualTo(sourceAspect).Within(.0001f),
+                    "The complete portrait crop must retain its source aspect ratio without stretching.");
+                Assert.That(Mathf.Max(portraitSize.x / 82f, portraitSize.y / 108f), Is.EqualTo(1f).Within(.0001f),
+                    "Portraits must fill the largest available size inside the 82 by 108 reading window.");
+                RectTransform portraitFrame = Find<RectTransform>("Departure Special Crew Portrait Frame " + index);
+                Assert.That(portraitFrame.sizeDelta, Is.EqualTo(portraitSize + new Vector2(8f, 8f)),
+                    "The frame must keep four pixels of padding around the fitted portrait.");
+                Assert.That(portraitFrame.anchoredPosition, Is.EqualTo(portrait.rectTransform.anchoredPosition));
                 string[] childNames = { "Departure Special Crew Portrait " + index,
                     "Departure Special Crew Name " + index, "Departure Special Crew State " + index };
                 Rect[] children = childNames.Select(name => BoundsIn(button, Find<RectTransform>(name))).ToArray();
@@ -673,7 +686,7 @@ namespace ShatteredSail.Presentation.Tests
             string[] actions = { "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton",
                 "Departure Buy Provisions", "Adjust Voyage Supplies", "Configure Voyage Battle Decks",
                 "Configure Voyage Crew", "Start Voyage" };
-            Rect[] artwork = { new Rect(1896, 598, 44, 40), new Rect(1948, 598, 44, 40),
+            Rect[] artwork = { new Rect(1375, 997, 40, 34), new Rect(1423, 997, 40, 34),
                 new Rect(1008, 737, 220, 51), new Rect(1854, 535, 178, 48), new Rect(1326, 740, 239, 52),
                 new Rect(1753, 742, 181, 50), new Rect(1573, 998, 473, 110) };
             Rect[] actionBounds = actions.Select(name => BoundsIn(setup, Find<RectTransform>(name))).ToArray();
@@ -688,7 +701,8 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(actionBounds[index].Overlaps(actionBounds[other]), Is.False,
                         actions[index] + " / " + actions[other]);
             }
-            foreach (string label in new[] { "Setup Title", "Departure Dock Ordinary Readout", "Departure Dock Special Readout", "Departure Dock Speed Readout" })
+            Assert.That(Find<Text>("Setup Title").enabled, Is.False, "The ship name is hidden beside the independent arrows.");
+            foreach (string label in new[] { "Departure Dock Ordinary Readout", "Departure Dock Special Readout", "Departure Dock Speed Readout" })
             {
                 AssertInside(setup, BoundsIn(setup, Find<Text>(label).rectTransform), label);
                 Assert.That(Find<Text>(label).raycastTarget, Is.False);

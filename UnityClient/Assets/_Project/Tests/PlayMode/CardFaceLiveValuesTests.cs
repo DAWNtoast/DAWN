@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
@@ -30,7 +31,8 @@ namespace ShatteredSail.Presentation.Tests
             CoreBattleCard definition = session.GetBattleCard(ResponsiveCardIndex("card_chain_shot"));
             int beforeDamage = session.GetBattleCardDamage(definition, NavalBattleStage.Naval);
             string before = ForgeVisibleText(face.text);
-            Assert.That(before, Is.EqualTo("4格内：船体伤害" + beforeDamage + "消耗1火药、1炮弹"));
+            Assert.That(before, Is.EqualTo("范围1-4格：造成" + beforeDamage + "点船体伤害"));
+            AssertCannonFaceCostIcons(card);
             NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_01_Cannon_Before.png",
                 "无装填增益时炮击卡面只有一个船体伤害值", "Battle Card");
 
@@ -46,7 +48,8 @@ namespace ShatteredSail.Presentation.Tests
             int afterDamage = session.GetBattleCardDamage(definition, NavalBattleStage.Naval);
             Assert.That(afterDamage, Is.EqualTo(beforeDamage + 4));
             string after = ForgeVisibleText(face.text);
-            Assert.That(after, Is.EqualTo("4格内：船体伤害" + afterDamage + "消耗1火药、1炮弹"));
+            Assert.That(after, Is.EqualTo("范围1-4格：造成" + afterDamage + "点船体伤害"));
+            AssertCannonFaceCostIcons(card);
             Assert.That(Regex.Replace(after, @"\d+", "#"), Is.EqualTo(Regex.Replace(before, @"\d+", "#")));
             Assert.That(after, Does.Not.Contain("实际").And.Not.Contain("当前炮击").And.Not.Contain("命中点燃"));
             Assert.That(face.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));
@@ -57,6 +60,20 @@ namespace ShatteredSail.Presentation.Tests
             NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_02_Cannon_Loaded.png",
                 "装填增益后同一炮击卡面仅增加主伤害数字，不追加当前炮击或点燃说明", "Battle Card");
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void AssertCannonFaceCostIcons(Button card)
+        {
+            CardOrnamentGraphic[] ornaments = card.GetComponentsInChildren<CardOrnamentGraphic>();
+            foreach (CardOrnamentKind kind in new[]
+                { CardOrnamentKind.Energy, CardOrnamentKind.Gunpowder, CardOrnamentKind.Cannonball })
+            {
+                CardOrnamentGraphic[] costs = ornaments.Where(ornament => ornament.Kind == kind).ToArray();
+                Assert.That(costs.Length, Is.EqualTo(1), "The chain shot keeps one visible " + kind + " cost icon.");
+                Text amount = costs[0].GetComponentInChildren<Text>();
+                Assert.That(amount, Is.Not.Null, kind + " has a visible cost amount.");
+                Assert.That(amount.text, Is.EqualTo("1"), "Loading changes damage, not the chain shot's " + kind + " cost.");
+            }
         }
     }
 }

@@ -373,7 +373,7 @@ namespace ShatteredSail.Presentation
                     portraitFrame.pixelsPerUnitMultiplier = 28f;
                     portraitFrame.raycastTarget = false;
                     RawImage portrait = CreateRawImage("Departure Special Crew Portrait " + index, row,
-                        new Vector2(82f, 108f), new Vector2(-65f, 0f), portArt.CrewPortrait(crew), portArt.CrewPortraitUv(crew, true));
+                    new Vector2(82f, 108f), new Vector2(-65f, 0f), portArt.DepartureCrewPortrait(crew), portArt.DepartureCrewPortraitUv(crew));
                     portrait.raycastTarget = false;
                     FitCrewPortrait(portrait, new Vector2(82f, 108f));
                     portraitFrame.rectTransform.sizeDelta = portrait.rectTransform.sizeDelta + new Vector2(8f, 8f);

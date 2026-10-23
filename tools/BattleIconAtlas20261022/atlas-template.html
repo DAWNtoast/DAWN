@@ -1,0 +1,126 @@
+<div id="battle-icon-atlas">
+  <div class="atlas-heading">
+    <h2>战斗图标图鉴</h2>
+    <div class="text-small text-muted" id="atlas-count"></div>
+  </div>
+  <div class="nav nav-pills viz-row" role="tablist" aria-label="图标类别" id="atlas-tabs"></div>
+  <div id="atlas-panel" role="tabpanel" aria-labelledby="atlas-tab-resource">
+    <div class="atlas-caption text-small text-muted" id="atlas-caption"></div>
+    <div id="atlas-items" class="atlas-items"></div>
+  </div>
+  <div class="sr-only" id="atlas-live" aria-live="polite"></div>
+</div>
+<style>
+#battle-icon-atlas { color:var(--foreground); }
+#battle-icon-atlas .atlas-heading { margin-bottom:16px; padding-right:90px; }
+#battle-icon-atlas .atlas-heading h2 { margin:0 0 6px; }
+#battle-icon-atlas .atlas-caption { margin:16px 0 4px; }
+#battle-icon-atlas .atlas-items { display:grid; grid-template-columns:minmax(0,1fr); gap:0 24px; }
+#battle-icon-atlas .atlas-item { padding:18px 0; min-width:0; border-bottom:1px solid var(--border); }
+#battle-icon-atlas .atlas-item-main { display:grid; grid-template-columns:84px minmax(0,1fr); gap:14px; align-items:start; }
+#battle-icon-atlas .atlas-item h3 { margin:0 0 4px; }
+#battle-icon-atlas .atlas-item p { margin:8px 0 0; }
+#battle-icon-atlas .atlas-meta { color:var(--muted-foreground); }
+#battle-icon-atlas .atlas-icon { display:block; width:64px; height:64px; object-fit:contain; }
+#battle-icon-atlas .atlas-zoom { display:grid; grid-template-columns:160px minmax(0,1fr); gap:18px; align-items:center; margin-top:16px; }
+#battle-icon-atlas .atlas-zoom[hidden] { display:none; }
+#battle-icon-atlas .atlas-large { display:block; width:160px; height:160px; object-fit:contain; }
+#battle-icon-atlas .atlas-source { overflow-wrap:anywhere; margin-top:10px; }
+@media (min-width:680px) { #battle-icon-atlas .atlas-items { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:420px) { #battle-icon-atlas .atlas-zoom { grid-template-columns:minmax(0,1fr); } }
+</style>
+<script type="application/json" id="atlas-data">__ATLAS_DATA__</script>
+<script>
+(() => {
+  const root=document.getElementById('battle-icon-atlas');
+  const dataset=JSON.parse(document.getElementById('atlas-data').textContent);
+  const tabs=root.querySelector('#atlas-tabs'), panel=root.querySelector('#atlas-panel');
+  const list=root.querySelector('#atlas-items'), caption=root.querySelector('#atlas-caption');
+  const groups=[
+    ['resource','资源栏','当前数量／上限；临时法力单独显示。'],
+    ['status_naval','炮战状态','血条下方 · 数值与期限随实时状态变化。'],
+    ['status_boarding','接舷状态','血条下方 · 同名效果按接舷规则单独展示。'],
+    ['status_doctrine','持续效果','特殊牌激活后显示 · 本场炮战有效。'],
+    ['intent','敌方意图','敌方头顶 · 表示下一次行动的预览。'],
+    ['field','海面场地','场地图形为静态帧 · 方向箭头示例朝右。'],
+    ['cost','卡面费用','实际卡框／物品图集裁片 · 动态费用数字不包含在图案中。'],
+    ['interface','界面功能','顶栏与牌堆 · 点击操作图标。']
+  ];
+  let category='resource', expanded=null;
+  const byKey=new Map(dataset.items.map(item=>[item.key,item]));
+  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const sprite=new Image();
+  sprite.src=dataset.sprite;
+  function icon(canvas,index){
+    const ctx=canvas.getContext('2d');
+    const cell=dataset.cell, columns=dataset.columns;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(sprite,(index%columns)*cell,Math.floor(index/columns)*cell,cell,cell,0,0,canvas.width,canvas.height);
+  }
+  function draw(){
+    if(!sprite.complete||!sprite.naturalWidth) return;
+    root.querySelectorAll('canvas[data-icon]').forEach(c=>icon(c,Number(c.dataset.icon)));
+  }
+  function save(){
+    const item=expanded?byKey.get(expanded):null;
+    window.openai?.setWidgetState?.({modelContent:{category:groups.find(g=>g[0]===category)[1],selectedIcon:item?.name??null},privateContent:{category,expanded}})?.catch(()=>{});
+  }
+  function render(){
+    const group=groups.find(g=>g[0]===category)||groups[0];
+    category=group[0];
+    const items=dataset.items.filter(item=>item.category===category);
+    tabs.innerHTML=groups.map(g=>`<button class="nav-link ${g[0]===category?'active':''}" id="atlas-tab-${g[0]}" type="button" role="tab" aria-controls="atlas-panel" aria-selected="${g[0]===category}" data-category="${g[0]}">${g[1]} <span class="tabular-nums">${dataset.items.filter(i=>i.category===g[0]).length}</span></button>`).join('');
+    panel.setAttribute('aria-labelledby','atlas-tab-'+category);
+    caption.textContent=group[2];
+    root.querySelector('#atlas-count').textContent=`${dataset.items.length} 个条目 · 原始图形与素材 · 2026-10-22`;
+    list.innerHTML=items.map(item=>{
+      const meta=[item.stage,item.side].filter(Boolean).join(' · ');
+      const source=String(item.source??'').replaceAll('D:/Game/UnityClient/Assets/_Project/','');
+      const open=expanded===item.key;
+      return `<article class="atlas-item" data-key="${esc(item.key)}">
+        <div class="atlas-item-main">
+          <button type="button" class="btn btn-ghost" data-inspect="${esc(item.key)}" aria-expanded="${open}" aria-controls="atlas-zoom-${esc(item.key)}" aria-label="${open?'收起':'放大'}${esc(item.name)}图标" data-tooltip="放大图标与查看细节"><canvas class="atlas-icon" data-icon="${item.spriteIndex}" width="128" height="128" role="img" aria-label="${esc(item.name)}实际图标"></canvas></button>
+          <div><h3>${esc(item.name)}</h3><div class="atlas-meta text-small">${esc(meta)}</div><p>${esc(item.effect)}</p></div>
+        </div>
+        <div id="atlas-zoom-${esc(item.key)}" class="atlas-zoom" ${open?'':'hidden'}>
+          <canvas class="atlas-large" data-icon="${item.spriteIndex}" width="320" height="320" role="img" aria-label="${esc(item.name)}放大图标"></canvas>
+          <div><div>${esc(item.duration||item.detail||'图标中的动态数值以战斗时显示为准。')}</div><div class="atlas-source text-small text-muted">来源：${esc(source)}${item.sourceAsset?'<br>素材：'+esc(String(item.sourceAsset).split('/').pop()):''}</div></div>
+        </div>
+      </article>`;
+    }).join('');
+    draw();
+  }
+  function applyState(raw){
+    const state=raw?.privateContent??raw;
+    if(state&&groups.some(g=>g[0]===state.category)) category=state.category;
+    expanded=state?.expanded&&byKey.has(state.expanded)?state.expanded:null;
+    render();
+  }
+  tabs.addEventListener('click',event=>{
+    const button=event.target.closest('button[data-category]');
+    if(!button) return;
+    category=button.dataset.category; expanded=null; render(); save();
+    root.querySelector('#atlas-live').textContent=`已切换到${groups.find(g=>g[0]===category)[1]}`;
+  });
+  list.addEventListener('click',event=>{
+    const button=event.target.closest('button[data-inspect]');
+    if(!button) return;
+    const key=button.dataset.inspect;
+    expanded=expanded===key?null:key;
+    list.querySelectorAll('[data-inspect]').forEach(b=>{
+      const open=b.dataset.inspect===expanded;
+      b.setAttribute('aria-expanded',String(open));
+      b.setAttribute('aria-label',(open?'收起':'放大')+byKey.get(b.dataset.inspect).name+'图标');
+      document.getElementById('atlas-zoom-'+b.dataset.inspect).hidden=!open;
+    });
+    save();
+  });
+  window.addEventListener('openai:set_globals',event=>{
+    const state=event.detail?.globals?.widgetState;
+    if(state) applyState(state);
+  });
+  sprite.addEventListener('load',draw);
+  sprite.addEventListener('error',()=>{caption.textContent='图标载入失败，请重新打开图鉴。';caption.setAttribute('role','alert');});
+  applyState(window.openai?.widgetState);
+})();
+</script>

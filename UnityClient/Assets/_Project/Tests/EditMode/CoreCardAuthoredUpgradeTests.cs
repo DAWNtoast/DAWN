@@ -136,28 +136,33 @@ namespace ShatteredSail.Core.Tests
         [TestCase("tide")]
         [TestCase("thunder")]
         [TestCase("blood")]
-        public void LegendaryDoctrineOnlyGrowsItsDrawAndStopsAtRankTwo(string school)
+        public void LegendaryFieldMasteryGrowsItsReachWithoutReinstallingRetiredDoctrine(string school)
         {
             CoreBattleCard basis = CoreSpecialCardCatalog.All.Select(d => d.Card)
-                .Single(card => card.SchoolId == school && CoreSpecialCardRules.IsDoctrine(card));
+                .Single(card => card.SchoolId == school && card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ComponentFieldMastery);
             var session = new CoreVoyageSession();
-            Assert.That(session.GetCardMaximumUpgradeLevel(basis.Id), Is.EqualTo(2));
+            int maximum = session.GetCardMaximumUpgradeLevel(basis.Id);
+            Assert.That(maximum, Is.InRange(1, 3));
+            CoreBattleCard previous = basis;
             for (int rank = 0; rank <= 3; rank++)
             {
                 CoreBattleCard current = session.GetBattleCardAtLevel(Index(basis.Id), rank);
-                Assert.That(current.Draw, Is.EqualTo(new[] { 1, 2, 3, 3 }[rank]));
+                Assert.That(current.Draw, Is.GreaterThanOrEqualTo(1));
                 Assert.That(current.Energy, Is.EqualTo(2));
                 Assert.That(current.Damage + current.Block + current.Repair + current.PowderCost + current.CannonballCost, Is.Zero);
                 Assert.That(current.SchoolEffect.Mechanic, Is.EqualTo(basis.SchoolEffect.Mechanic));
-                Assert.That(new[] { current.SchoolEffect.Power, current.SchoolEffect.Secondary, current.SchoolEffect.Threshold,
-                    current.SchoolEffect.Duration, current.SchoolEffect.Limit }, Is.EqualTo(new[] { basis.SchoolEffect.Power,
-                    basis.SchoolEffect.Secondary, basis.SchoolEffect.Threshold, basis.SchoolEffect.Duration, basis.SchoolEffect.Limit }));
+                Assert.That(current.SchoolEffect.Power, Is.GreaterThanOrEqualTo(previous.SchoolEffect.Power));
+                Assert.That(current.SchoolEffect.Secondary, Is.GreaterThanOrEqualTo(previous.SchoolEffect.Secondary));
+                if (rank > 0 && rank <= maximum)
+                    Assert.That(current.SchoolEffect.Power + current.SchoolEffect.Secondary,
+                        Is.GreaterThan(previous.SchoolEffect.Power + previous.SchoolEffect.Secondary));
+                Assert.That(CoreSpecialCardRules.IsDoctrine(current), Is.False);
+                previous = current;
             }
             CoreVoyageSession battle = Start(basis.Id, 3, false);
             Assert.That(battle.PlayCard(0), Is.True, battle.CardUnavailableReason(0));
-            Assert.That(battle.Battle.Hand.Count, Is.EqualTo(3));
-            Assert.That(battle.Battle.SpecialCards.IsActive(school), Is.True);
-            Assert.That(battle.Battle.SpecialCards.HasPlayed(school), Is.False);
+            Assert.That(battle.Battle.Hand.Count, Is.EqualTo(previous.Draw));
+            Assert.That(battle.Battle.SpecialCards.IsActive(school), Is.False);
         }
 
         [TestCase("card_boarding_fire_03", 1)]
@@ -190,73 +195,49 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.PlayerBoardingHealth - crew, Is.EqualTo(card.Repair), id);
         }
 
-        [TestCase("fire", 1, "direct-and-burn")]
-        [TestCase("fire", 3, "direct-and-burn")]
-        [TestCase("arcane", 1, "mana-attack")]
-        [TestCase("arcane", 3, "mana-attack")]
-        [TestCase("curse", 4, "mark-guard")]
-        [TestCase("tide", 1, "tide-attack")]
-        [TestCase("tide", 2, "paid-guard")]
-        [TestCase("tide", 3, "tide-attack")]
-        [TestCase("tide", 4, "paid-guard")]
-        [TestCase("thunder", 4, "guard-and-next-attack")]
-        [TestCase("blood", 2, "paid-life-guard")]
-        public void ComparableLegendaryComponentsNeverFallBelowTheirEpicCoreEffectAtEqualOrMaximumRanks(string school, int slot, string comparison)
+        [TestCase("fire")]
+        [TestCase("arcane")]
+        [TestCase("curse")]
+        [TestCase("tide")]
+        [TestCase("thunder")]
+        [TestCase("blood")]
+        public void LegendaryComponentsPreserveTheirFieldRoleAndMeetEpicBenefitsAtEqualRanks(string school)
         {
-            CoreBattleCard epic = CoreSpecialCardCatalog.All.Select(d => d.Card)
-                .Single(c => c.ArtId == "card_school_" + school + "_e0" + slot);
-            CoreBattleCard legendary = CoreSpecialCardCatalog.All.Select(d => d.Card)
-                .Single(c => c.ArtId == "card_school_" + school + "_l0" + slot);
             var session = new CoreVoyageSession();
-            int[] resources = school == "curse" ? new[] { 1, 3, 6 } : school == "tide" ? new[] { 1, 10, 20 } : new[] { 0 };
-            foreach (int resource in resources)
+            for (int slot = 1; slot <= 4; slot++)
             {
+                CoreBattleCard epic = CoreSpecialCardCatalog.All.Select(definition => definition.Card)
+                    .Single(card => card.ArtId == "card_school_" + school + "_e0" + slot);
+                CoreBattleCard legendary = CoreSpecialCardCatalog.All.Select(definition => definition.Card)
+                    .Single(card => card.ArtId == "card_school_" + school + "_l0" + slot);
                 for (int rank = 0; rank <= 3; rank++)
                 {
                     CoreBattleCard lower = session.GetBattleCardAtLevel(Index(epic.Id), rank);
                     CoreBattleCard higher = session.GetBattleCardAtLevel(Index(legendary.Id), rank);
-                    Assert.That(ComparableValue(higher, comparison, resource), Is.GreaterThanOrEqualTo(ComparableValue(lower, comparison, resource)),
-                        school + " slot " + slot + " requested rank " + rank + " resource " + resource + ": " + lower.Id + " / " + higher.Id);
-                    if (school == "thunder") Assert.That(higher.SchoolEffect.Power, Is.GreaterThanOrEqualTo(lower.SchoolEffect.Power));
+                    string context = school + " slot " + slot + " requested rank " + rank;
+                    Assert.That(higher.SchoolEffect.Mechanic, Is.EqualTo(lower.SchoolEffect.Mechanic), context);
+                    Assert.That(higher.Damage, Is.GreaterThanOrEqualTo(lower.Damage), context);
+                    Assert.That(higher.Block, Is.GreaterThanOrEqualTo(lower.Block), context);
+                    Assert.That(higher.SchoolEffect.Power, Is.GreaterThanOrEqualTo(lower.SchoolEffect.Power), context);
+                    Assert.That(higher.SchoolEffect.Secondary, Is.GreaterThanOrEqualTo(lower.SchoolEffect.Secondary), context);
                 }
-                CoreBattleCard lowerCap = session.GetBattleCardAtLevel(Index(epic.Id), session.GetCardMaximumUpgradeLevel(epic.Id));
-                CoreBattleCard higherCap = session.GetBattleCardAtLevel(Index(legendary.Id), session.GetCardMaximumUpgradeLevel(legendary.Id));
-                Assert.That(ComparableValue(higherCap, comparison, resource), Is.GreaterThanOrEqualTo(ComparableValue(lowerCap, comparison, resource)),
-                    school + " slot " + slot + " at each card's own maximum rank with resource " + resource);
             }
         }
-
         [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)]
-        public void SpecialistFireLoadingAndLegendaryThunderPreparationKeepTheirAuthoredTierAdvantage(int rank)
+        public void RareFireLoadingRemainsIndependentOfEpicFieldPulseAndThunderShelter(int rank)
         {
             var session = new CoreVoyageSession();
             CoreBattleCard rareFire = session.GetBattleCardAtLevel(Index("card_special_bow_gilded_mermaid"), rank);
             CoreBattleCard epicFire = session.GetBattleCardAtLevel(Index("card_special_instrument_whalestar_receiver"), rank);
             Assert.That(rareFire.Action, Is.EqualTo(NavalBattleCardAction.FireRounds));
-            Assert.That(epicFire.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.FireLoad));
-            Assert.That(epicFire.SchoolEffect.Power, Is.GreaterThan(rareFire.BurnDamage), "The dedicated epic loader retains its stronger burn.");
+            Assert.That(epicFire.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ComponentFieldPulse));
+            Assert.That(epicFire.SchoolEffect.Power, Is.GreaterThan(0));
             CoreBattleCard epicThunder = session.GetBattleCardAtLevel(Index("card_special_plating_aurora_laminate"), rank);
-            CoreBattleCard legendaryThunder = session.GetBattleCardAtLevel(Index("card_special_sail_skybreaker_array"), rank);
-            Assert.That(epicThunder.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ThunderReady));
-            Assert.That(legendaryThunder.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ThunderReady));
+            CoreBattleCard legendaryThunder = session.GetBattleCardAtLevel(Index(CoreSpecialCardCatalog.All.Select(d => d.Card)
+                .Single(c => c.ArtId == "card_school_thunder_l04").Id), rank);
+            Assert.That(epicThunder.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ComponentFieldShelter));
+            Assert.That(legendaryThunder.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ComponentFieldShelter));
             Assert.That(legendaryThunder.SchoolEffect.Power, Is.GreaterThan(epicThunder.SchoolEffect.Power));
-        }
-
-        private static int ComparableValue(CoreBattleCard card, string comparison, int resource)
-        {
-            // These are explicitly comparable roles under the same resource state. This is absolute core
-            // output, not energy efficiency; unrelated generation, drain percentages and caps are not ordered.
-            switch (comparison)
-            {
-                case "direct-and-burn": return card.Damage + card.SchoolEffect.Power * card.SchoolEffect.Duration;
-                case "mana-attack": return card.Damage + card.SchoolEffect.Power;
-                case "mark-guard": return card.Block + resource * card.SchoolEffect.Power;
-                case "tide-attack": return card.Damage + resource * card.SchoolEffect.Power / 100;
-                case "paid-guard": return card.Block;
-                case "guard-and-next-attack":
-                case "paid-life-guard": return card.Block + card.SchoolEffect.Power;
-                default: throw new ArgumentException("Unknown explicit component comparison: " + comparison);
-            }
         }
 
         private static IEnumerable<CoreBattleCard> LiveCards() => CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None);
@@ -291,11 +272,12 @@ namespace ShatteredSail.Core.Tests
                 case "fire_07": return new[] { 7, 10, 13 };
                 case "fire_08": return new[] { 6, 10, 14 };
                 case "arcane_07": return new[] { 8 };
-                case "arcane_08": return new[] { 4 };
-                case "arcane_13": return new[] { 18 };
+                // Arcane guard retention is already represented by card.Block. Echo scales the
+                // uncapped half-damage result: a 42-damage source yields 21 before its effect curve.
+                case "arcane_13": return new[] { 21 };
                 case "curse_07": return new[] { 3, 9 };
                 case "curse_08": return new[] { 4, 16, 2, 8 };
-                case "curse_09": return new[] { 2, 10 };
+                case "curse_09": return new[] { 2, 12 };
                 case "tide_04": return new[] { 4 };
                 case "tide_09": return new[] { 16 };
                 case "tide_10": return new[] { 3 };

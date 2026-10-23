@@ -1,0 +1,146 @@
+[
+  {
+    "id": "sloop",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-65b31927-7bf7-415f-b5fe-91ff65f9e122.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Player starter sloop: compact narrow wooden hull, teal gunwales and small gull pennant, ONE mast with cream fore-and-aft canvas. Light, modest, agile silhouette, a pair of small deck guns."
+  },
+  {
+    "id": "merchant",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-df72729f-ef8a-4ee0-a8e5-09f648669e14.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Merchant ship: broad round cargo hull, oxblood-red gunwale trim with brass edging, TWO masts with warm cream square canvas, cargo hatches and crates visible. Rounded spacious merchant silhouette."
+  },
+  {
+    "id": "patrol",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-62118464-9d9d-4a3b-b2eb-eb1140be8e2a.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Patrol frigate: elongated sturdy naval hull, navy-blue sails and blue-gold naval trim, THREE masts, small gold compass/star motifs and orderly broadside guns. Recognizable disciplined patrol warship."
+  },
+  {
+    "id": "relic",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-94eafdcb-d6e3-4b4f-887a-bb53e073c4f2.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Relic vessel: gothic dark timber hull, THREE purple crescent-emblem sails, turquoise lantern points, silver-brass scrollwork, elevated stern observatory. Preserve moon relic identity."
+  },
+  {
+    "id": "salvage",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-7d16779f-cd25-49a0-a02d-2289b97e400f.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Salvage workboat: very broad round heavy timber hull with blue metal reinforcement bands, TWO short cream-sailed masts, a prominent central A-frame crane/winch and hatch, rope coils. Crane silhouette must distinguish it."
+  },
+  {
+    "id": "courier",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-bb952945-ac73-4a26-a411-52b043563f7e.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Courier cutter: very slender low open wooden hull, blue rails, ONE mast with cream triangular fore-and-aft canvas and a small red pennant, no heavy broadside battery, clean fast mailboat silhouette."
+  },
+  {
+    "id": "barge",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-6c830ea6-70f5-4d40-9aa8-44727232ca12.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Cargo barge: long rectangular blunt flat-deck hull, NO tall sailing masts, rust-red canvas cargo awning over the center, stacks of crates, rope fenders, small stern cabin. Must visibly be a barge seen straight down."
+  },
+  {
+    "id": "clipper",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-7893d9ae-328c-4f8a-8ac0-3a703fc7f4e0.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Four-masted clipper: very long slender flush-deck brown wooden hull with dark emerald and gold trim, exactly FOUR distinct mast stations along the keel, cream canvas and narrow bowsprit, restrained small green pennants. Match the four-mast ship reference rather than a three-mast frigate."
+  },
+  {
+    "id": "boss_fire",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-00e9072a-e235-4020-94ff-61bef7f50c4e.png",
+    "rotate": 0,
+    "prompt": "Identity: Route boss FIRE 'Broken Mast': broad blackened two-mast timber ship, charcoal sails with copper eight-point stars, asymmetric repaired split mast detail, enormous ivory tooth ram, small organ-gun banks and amber stern telescope. Restrained copper/ember glints; black-and-copper silhouette.\nThis is the exact same vessel as identity reference viewed from directly above; preserve its distinctive sail colors, main silhouette, figurehead, armaments and stern instrument, not the reference's side camera."
+  },
+  {
+    "id": "boss_tide",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-0ff3a319-3278-46a4-98ab-c521d2a0083c.png",
+    "rotate": 180,
+    "prompt": "Identity: Route boss TIDE 'Hidden Reef Hunter': slim dark teal two-mast hull, two luminous pale aqua wave-pattern sails, long ivory narwhal tusk bow, pearly reef-shell forearmour, long thin deck guns and brass tide instrument. Aqua-silver identity, restrained glow.\nThis is the exact same vessel as identity reference viewed from directly above; preserve its distinctive sail colors, main silhouette, figurehead, armaments and stern instrument, not the reference's side camera."
+  },
+  {
+    "id": "boss_blood",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-f045cf8f-c2c7-447b-8f8f-59911e9ebe59.png",
+    "rotate": 180,
+    "prompt": "Identity: Route boss BLOOD 'Tax Queen': heavy two-mast dark wood vessel, diagonally striped crimson and ivory sails, red banners, black spiked dragon-head ram, paired deck mortars, small ruby on high stern. Distinct crimson-white sail bands and black iron armour.\nThis is the exact same vessel as identity reference viewed from directly above; preserve its distinctive sail colors, main silhouette, figurehead, armaments and stern instrument, not the reference's side camera."
+  },
+  {
+    "id": "boss_thunder",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-5ea0771a-0325-40eb-92a9-6d18e6f11cab.png",
+    "rotate": 0,
+    "prompt": "Identity: Route boss THUNDER 'Aurora Edict': imposing two-mast black and gold imperial hull, wide pale pearl-blue fan sails, layered cyan-violet aurora armour, conical iron drill/ram at bow, ordered heavy broadside cannons, three blue glass stern lenses.\nThis is the exact same vessel as identity reference viewed from directly above; preserve its distinctive sail colors, main silhouette, figurehead, armaments and stern instrument, not the reference's side camera."
+  },
+  {
+    "id": "boss_curse",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-c2ad426f-f36e-41ea-b038-c17758167e16.png",
+    "rotate": 180,
+    "prompt": "Identity: Route boss CURSE 'Eclipse Relic': two-mast charcoal funerary ship, black sails with large silver eclipse-ring sigils, white bony spear bow, black iron chainmail along gunwales, two squat deck mortars and antique green-black armillary on stern. Dark bone and iron identity.\nThis is the exact same vessel as identity reference viewed from directly above; preserve its distinctive sail colors, main silhouette, figurehead, armaments and stern instrument, not the reference's side camera."
+  },
+  {
+    "id": "boss_arcane",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-0bc2cfc3-9390-4151-b099-032b90df26c1.png",
+    "rotate": 0,
+    "prompt": "Identity: Route boss ARCANE 'Moonweave Starcraft': elegant two-mast ship, indigo-purple sails with silver crescent and star-map linework, scalloped silver hull armour, manta-wing crescent ram at bow, small violet starfire deck cannons, golden lunar armillary at stern.\nThis is the exact same vessel as identity reference viewed from directly above; preserve its distinctive sail colors, main silhouette, figurehead, armaments and stern instrument, not the reference's side camera."
+  },
+  {
+    "id": "legendary_fire",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-23b407f2-9c08-4648-ba8f-9e3361cf33e1.png",
+    "rotate": 180,
+    "prompt": "Identity: Legendary FIRE 'Ember Ark': massive THREE-mast battle galleon, ivory sails with huge scarlet phoenix emblems, red-and-gold dragon-scale armour, sculpted scarlet dragon ram at bow, gold lion-headed broadside cannon, glowing amber furnace instrument aft. Much grander and different than black-sailed fire route boss.\nKeep the identity reference's full distinctive design translated to true directly-overhead camera. Do not retain a side view."
+  },
+  {
+    "id": "legendary_tide",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-f1aa4770-bbc3-4279-a63f-f29641732866.png",
+    "rotate": 180,
+    "prompt": "Identity: Legendary TIDE 'Tide Requiem': massive THREE-mast galleon, ivory sails with blue hippocampus/sea-horse and wave emblems, turquoise scalloped scale armour, prominent THREE-pronged ivory tusk ram, gold anchor motifs. Rich teal-gold but clear readable deck.\nKeep the identity reference's full distinctive design translated to true directly-overhead camera. Do not retain a side view."
+  },
+  {
+    "id": "legendary_blood",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-483ed016-3923-4f19-a2a1-c5792b36ad5c.png",
+    "rotate": 0,
+    "prompt": "Identity: Legendary BLOOD 'Crimson Widow': fast THREE-mast elegant warship, cream sails with broad crimson feather-blade emblems, red silk and gold trim, long narrow steel spear bow, braided living wood ribs along hull, boarding hooks and broadside guns, ruby navigation device at stern. Separate from striped tax-queen boss.\nKeep the identity reference's full distinctive design translated to true directly-overhead camera. Do not retain a side view."
+  },
+  {
+    "id": "legendary_thunder",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-240938f7-add0-4278-b642-e950686c1437.png",
+    "rotate": 0,
+    "prompt": "Identity: Legendary THUNDER 'Thunder Crown': very broad THREE-mast heavy ship of the line, cream sails with clear blue sun-wheel sigils, dark blue and iron gunwales, gold fleur-de-lis banners, a cluster of long parallel lance barrels at bow, densely ordered cannons, glass-and-brass orb aft.\nKeep the identity reference's full distinctive design translated to true directly-overhead camera. Do not retain a side view."
+  },
+  {
+    "id": "legendary_arcane",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-809c6b4e-b166-45b3-a23a-08c7bc14e852.png",
+    "rotate": 0,
+    "prompt": "Identity: Legendary ARCANE 'Last Horizon': THREE-mast exploration galleon, cream sails quartered navy and muted burgundy with gold compass emblems, golden lion prow with purple star finial, hull clad in living bark and green vines, long stern brass telescope with violet glass, many refined gold details. Preserve natural wood and heraldic identity.\nKeep the identity reference's full distinctive design translated to true directly-overhead camera. Do not retain a side view."
+  },
+  {
+    "id": "provision",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-c9abc50a-8f0d-461e-b9a5-025981f2cdd2.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Provision carrier: short broad rounded wooden hull, blue reinforcing bands, TWO cream square-sail masts, huge central barrel-roof cargo hatch, sacks and barrels and side cargo net fenders. No imposing gun batteries."
+  },
+  {
+    "id": "privateer",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-f84840f4-5427-48d9-be44-88d0e26d7516.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Privateer raider: slender long hull, oxblood red and brass rails, THREE cream lateen/fore-and-aft masts, red pennants and side banners, visible boarding hooks and a modest broadside battery. Fast aggressive silhouette."
+  },
+  {
+    "id": "gunship",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-6b4a469c-dd50-4d00-ab9e-64782e718230.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Heavy gunship: widest powerful naval hull, blue and gold ornament, THREE cream square-sail masts, densely lined symmetrical broadside cannons and broad rear quarterdeck. Visibly heavier than a slim patrol frigate."
+  },
+  {
+    "id": "occult",
+    "path": "C:\\Users\\Admin\\.codex\\generated_images\\01a163c4-2f6d-7493-8743-3ebbdf5791db\\exec-7eb2491f-e9e9-4fbf-a07b-d395431d7a67.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Asset type: final transparent top-down ship sprite for a nautical tactical game, one ship only. Input image 1 is the existing ship's identity/material reference; input image 2 is ONLY the required exact overhead camera and vertical facing reference. Repaint the identity ship as a strict 90-degree directly overhead orthographic view: bow points straight to 12 o'clock, stern to 6 o'clock, bilateral left/right hull edges equally visible, camera directly above keel, no perspective tilt or side elevation. Entire ship and bowsprit inside a portrait 1024x1536 canvas with 8 percent transparent padding at top and bottom. Occupy about 82 percent canvas height; center keel and hull at canvas center; hull width determined by ship type, not stretched. Fine painterly realistic wood, canvas folds, bronze, ropes; crisp readable silhouette at 160px height, restrained highlights; preserve distinctive colors and construction. Actual alpha transparency around ship and between ropes. No water, waves, wake, ground, cast shadow outside hull, horizon, background, border, UI, grid, text or extra objects. Do not copy the second reference's generic two-mast ship; only its overhead orientation.\nIdentity: Occult ghost schooner: dark weathered green-turquoise skeletal open hull, TWO masts with torn pale sea-green triangular canvas, visible deck gaps and green lanterns. Ghostly faded hull but clear silhouette, no external fog."
+  },
+  {
+    "id": "legendary_curse",
+    "path": "C:/Users/Admin/.codex/generated_images/01a1646c-bbf2-7321-b5fc-6c0f16a56668/exec-57af4172-3c7d-4005-b399-057b15514e26.png",
+    "rotate": 0,
+    "prompt": "Use case: stylized-concept. Create one production game ship sprite, portrait 1024 × 1536 pixels, genuinely transparent background. Input image 1 is the identity reference for the legendary Iron Oath ship: use its heavy dark wooden hull reinforced with rusty iron ribs and iron armor, three masts, aged ivory canvas sails carrying black crown emblems and dark repair patches, stone female figurehead at the bow, and a round green eye instrument at the stern. Input image 2 is ONLY the camera and orientation reference: strict direct 90 degree overhead top-down view, with bow pointing exactly at 12 o'clock and stern exactly at 6 o'clock. Rebuild the first ship in this exact overhead view, never retain its side view. Show the complete ship, centered vertically with 8% clear transparent margin around every outermost part, including bowsprit and rigging. Wide powerful hull, clear wooden deck details, cannons projecting symmetrically from both sides, exactly three masts along the centerline, ivory sails rendered naturally from overhead while black crowns remain readable as symbols. The stone figurehead belongs at the TOP front bow; the circular green eye instrument belongs at the BOTTOM stern and is visible as a green circular inset. Fine realistic painted game art, crisp and clean isolated silhouette, detailed wood grain, worn iron and aged canvas. No water, no waves, no sea, no background scenery, no background plane, no ground shadow, no fog, no outside glow, no text, no letters, no watermark, no frame. Preserve alpha transparency."
+  }
+]

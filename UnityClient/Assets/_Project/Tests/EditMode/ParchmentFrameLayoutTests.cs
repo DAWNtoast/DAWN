@@ -89,6 +89,29 @@ namespace ShatteredSail.Presentation.Tests
             CreatePreview(CoreGameplayPreviewScreen.DeckBuilder);
             AssertWorkshopPaperControls("Deck Builder Parchment", "Previous Battle Card Collection Page",
                 "Next Battle Card Collection Page", "Battle Card Collection Page");
+            AssertWorkshopPaperControls("Deck Builder Deck Rail", "Back To Card Workshop Chests");
+            Assert.That(Find<Text>("Deck Builder Status").text, Is.Empty,
+                "A valid deck needs no explanatory status caption.");
+
+            // Model an unfinished edit without changing the saved, valid deck.
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var controllerType = typeof(CoreGameplayDemoController);
+            var stage = (NavalBattleStage)controllerType.GetField("selectedBattleDeckStage", flags).GetValue(controller);
+            int[] validDeck = controller.Session.GetBattleDeck(stage).ToArray();
+            int draftCount = CoreVoyageSession.MinimumBaseBattleDeckSize - 1;
+            Assert.That(validDeck.Length, Is.GreaterThanOrEqualTo(CoreVoyageSession.MinimumBaseBattleDeckSize));
+            controllerType.GetField("deckBuilderDraft", flags).SetValue(controller, validDeck.Take(draftCount).ToList());
+            controllerType.GetField("deckBuilderDraftSession", flags).SetValue(controller, controller.Session);
+            controllerType.GetField("deckBuilderDraftStage", flags).SetValue(controller, stage);
+            controllerType.GetField("deckBuilderDraftPort", flags).SetValue(controller, controller.Session.CurrentPort);
+            Click("Back To Card Workshop Chests");
+            Assert.That(Find<Text>("Deck Builder Status").text,
+                Is.EqualTo("基础牌组至少需要 " + CoreVoyageSession.MinimumBaseBattleDeckSize +
+                    " 张卡牌（当前 " + draftCount + " 张，请补足后离开）"));
+            Assert.That(Find<RectTransform>("Deck Builder Panel").gameObject.activeInHierarchy, Is.True,
+                "The real return action must keep an incomplete deck open.");
+            CollectionAssert.AreEqual(validDeck, controller.Session.GetBattleDeck(stage),
+                "An incomplete draft must not replace the last valid gameplay deck.");
             AssertWorkshopPaperControls("Deck Builder Deck Rail", "Deck Builder Status", "Back To Card Workshop Chests");
             AssertProfileUnchanged();
         }

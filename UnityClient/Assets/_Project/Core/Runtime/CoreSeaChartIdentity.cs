@@ -34,8 +34,8 @@ namespace ShatteredSail.Core.Gameplay
             if (!TryChartPorts(routeIndex, departurePort, destinationPort, out int a, out int b, out int forward))
                 throw new ArgumentException("A chart requires a known route and two distinct known ports.");
             uint salt = unchecked((uint)Guid.NewGuid().GetHashCode());
-            uint hash = NewChartHash(routeIndex, a, b, forward, salt, 3);
-            return EncodeChartSeed(routeIndex, a, b, forward, 0, hash, salt, 3);
+            uint hash = NewChartHash(routeIndex, a, b, forward, salt, CoreVoyageMap.CurrentGeometryVersion);
+            return EncodeChartSeed(routeIndex, a, b, forward, 0, hash, salt, CoreVoyageMap.CurrentGeometryVersion);
         }
 
         public static bool TryParseChartSeed(string seed, out CoreSeaChartDefinition definition)
@@ -44,7 +44,7 @@ namespace ShatteredSail.Core.Gameplay
             string value = (seed ?? string.Empty).Trim().ToUpperInvariant();
             if (value.Length > 100) return false;
             string[] pieces = value.Split('.');
-            if (pieces.Length != 9 || (pieces[0] != "SS2" && pieces[0] != "SS3" && pieces[0] != "SS4" && pieces[0] != "SS5") ||
+            if (pieces.Length != 9 || (pieces[0] != "SS2" && pieces[0] != "SS3" && pieces[0] != "SS4" && pieces[0] != "SS5" && pieces[0] != "SS6") ||
                 !TryChartDigit(pieces[1], out int route) || !TryChartDigit(pieces[2], out int a) ||
                 !TryChartDigit(pieces[3], out int b) || !TryChartDigit(pieces[4], out int forward) ||
                 !TryChartDigit(pieces[5], out int kind) || route >= Routes.Count || a >= b ||
@@ -52,7 +52,7 @@ namespace ShatteredSail.Core.Gameplay
                 !TryChartHex(pieces[6], out uint hash) || !TryChartHex(pieces[7], out uint salt) ||
                 !TryChartHex(pieces[8], out uint checksum)) return false;
             string payload = string.Join(".", pieces, 0, 8);
-            int geometryVersion = pieces[0] == "SS5" ? 3 : pieces[0] == "SS4" ? 2 : pieces[0] == "SS3" ? 1 : 0;
+            int geometryVersion = pieces[0] == "SS6" ? 4 : pieces[0] == "SS5" ? 3 : pieces[0] == "SS4" ? 2 : pieces[0] == "SS3" ? 1 : 0;
             if (checksum != SeedHash.Compute(payload)) return false;
             if (kind == 0 && hash != NewChartHash(route, a, b, forward, salt, geometryVersion)) return false;
             if (kind != 0 && salt != 0) return false;
@@ -80,11 +80,11 @@ namespace ShatteredSail.Core.Gameplay
         }
 
         private static uint NewChartHash(int route, int a, int b, int forward, uint salt, int geometryVersion) =>
-            SeedHash.Compute((geometryVersion == 0 ? "SEA-CHART-V2::" : geometryVersion == 1 ? "SEA-CHART-V3::" : geometryVersion == 2 ? "SEA-CHART-V4::" : "SEA-CHART-V5::") + route + "::" + a + "::" + b + "::" + forward + "::" + salt.ToString("X8", CultureInfo.InvariantCulture));
+            SeedHash.Compute((geometryVersion == 0 ? "SEA-CHART-V2::" : geometryVersion == 1 ? "SEA-CHART-V3::" : geometryVersion == 2 ? "SEA-CHART-V4::" : geometryVersion == 3 ? "SEA-CHART-V5::" : "SEA-CHART-V6::") + route + "::" + a + "::" + b + "::" + forward + "::" + salt.ToString("X8", CultureInfo.InvariantCulture));
 
         private static string EncodeChartSeed(int route, int a, int b, int forward, int kind, uint hash, uint salt, int geometryVersion = 0)
         {
-            string payload = (geometryVersion == 0 ? "SS2." : geometryVersion == 1 ? "SS3." : geometryVersion == 2 ? "SS4." : "SS5.") + route + "." + a + "." + b + "." + forward + "." + kind + "." +
+            string payload = (geometryVersion == 0 ? "SS2." : geometryVersion == 1 ? "SS3." : geometryVersion == 2 ? "SS4." : geometryVersion == 3 ? "SS5." : "SS6.") + route + "." + a + "." + b + "." + forward + "." + kind + "." +
                 hash.ToString("X8", CultureInfo.InvariantCulture) + "." + salt.ToString("X8", CultureInfo.InvariantCulture);
             return payload + "." + SeedHash.Compute(payload).ToString("X8", CultureInfo.InvariantCulture);
         }

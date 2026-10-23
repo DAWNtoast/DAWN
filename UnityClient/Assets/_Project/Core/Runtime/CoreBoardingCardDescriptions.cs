@@ -11,6 +11,8 @@ namespace ShatteredSail.Core.Gameplay
             if (design == null) return string.Empty;
             string text = design.DescriptionTemplate;
             if (design.BoardingSpec == null || level <= 0) return text;
+            string authored = CoreBoardingManuscriptDescriptions.ForKey(design.BoardingSpec.Key, design, level);
+            if (authored != null) return authored;
             int S(int value) => CoreCardUpgradeDesign.ScaleEffect(design, value, level);
             string Values(params int[] values) => string.Join("/", Array.ConvertAll(values, value => S(value).ToString()));
             string Formula(string expression) => "(" + expression + ")×" +

@@ -219,12 +219,21 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.Hand.Count, Is.LessThanOrEqualTo(8));
         }
 
-        [Test]
-        public void DirectBoardingNeedsNoPriorMovementWhileRamLessonReacquiresSpentActionPoint()
+        [TestCase(90f)] [TestCase(270f)]
+        public void DirectBoardingNeedsNoPriorMovementWhileRamLessonReacquiresSpentActionPoint(float playerHeading)
         {
             var s = StartBoss(); Reach(s, GuidedBossBattleStep.CourseBoardContact);
             Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(1)); Assert.That(s.Battle.Energy, Is.EqualTo(3));
             Assert.That(s.Battle.PlayerMovingTowardEnemy, Is.False);
+            Assert.That(s.Battle.PlayerPositionMeters.X, Is.EqualTo(-100f));
+            Assert.That(s.Battle.PlayerPositionMeters.Y, Is.EqualTo(0f));
+            Assert.That(s.Battle.EnemyPositionMeters.X, Is.EqualTo(0f));
+            Assert.That(s.Battle.EnemyPositionMeters.Y, Is.EqualTo(0f));
+            Assert.That(s.Battle.PlayerHeadingDegrees, Is.EqualTo(90f));
+            Assert.That(s.Battle.EnemyHeadingDegrees, Is.EqualTo(90f));
+            Assert.That(s.GuidedBossInstruction, Does.Contain("两舰朝北").And.Contain("同向或反向均可"));
+            typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(s.Battle, new object[] { true, s.Battle.PlayerPositionMeters, playerHeading });
             Assert.That(s.CanBoard(out string reason), Is.True, reason);
             Advance(s);
             Assert.That(s.Battle.Boarding.Initialized, Is.True);
@@ -257,6 +266,7 @@ namespace ShatteredSail.Core.Tests
             Advance(s);
             Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(health));
             Assert.That(s.Battle.Boarding.HealingTicks.Count, Is.EqualTo(1));
+            Assert.That(s.Battle.Boarding.ContinuousRecovery, Is.EqualTo(5));
             Assert.That(s.Cargo.Medicine, Is.EqualTo(medicine - 1));
             int enemy = s.Battle.EnemyBoardingHealth;
             Advance(s);
@@ -265,8 +275,10 @@ namespace ShatteredSail.Core.Tests
             Advance(s);
             Assert.That(s.Battle.Boarding.DelayedDamage, Is.Empty);
             Assert.That(s.Battle.Boarding.HealingTicks.Count, Is.EqualTo(1));
+            Assert.That(s.Battle.Boarding.ContinuousRecovery, Is.EqualTo(4));
             Advance(s); Advance(s);
-            Assert.That(s.Battle.Boarding.HealingTicks, Is.Empty);
+            Assert.That(s.Battle.Boarding.HealingTicks.Count, Is.EqualTo(1));
+            Assert.That(s.Battle.Boarding.ContinuousRecovery, Is.EqualTo(3));
             Assert.That(s.Cargo.Medicine, Is.EqualTo(medicine - 1));
             Assert.That(s.GuidedBossCanContinue, Is.True);
         }

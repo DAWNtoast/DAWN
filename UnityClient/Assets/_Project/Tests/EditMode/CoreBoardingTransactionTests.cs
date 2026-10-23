@@ -127,11 +127,11 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void All103CanonicalDesigns_AreAvailableAndOnlySevenRequireOtherCardSelection()
+        public void All103CanonicalDesigns_AreAvailableAndEightRequireCardOrDelayedEffectSelection()
         {
             CoreVoyageSession s = Battle();
             var available = new HashSet<int>(s.GetAvailableBattleCards(NavalBattleStage.Boarding));
-            var selectedKeys = new HashSet<string> { "fire_06", "fire_07", "fire_08", "fire_09", "arcane_09", "arcane_12", "arcane_14" };
+            var selectedKeys = new HashSet<string> { "fire_06", "fire_07", "fire_08", "fire_09", "arcane_09", "arcane_12", "arcane_14", "arcane_15" };
             Assert.That(CoreBoardingCardCatalog.All.Count, Is.EqualTo(103));
             Assert.That(CoreBoardingCardCatalog.All.Select(card => card.Id).Distinct().Count(), Is.EqualTo(103));
             foreach (CoreBattleCard card in CoreBoardingCardCatalog.All)
@@ -155,11 +155,11 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession s = Battle();
             Mana(s, 3); Hand(s, "arcane_08"); Assert.That(s.PlayCard(0), Is.True);
             s.Battle.PhaseTurn = 1; Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(4));
+            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(5));
             Hand(s, "arcane_08"); Assert.That(s.PlayCard(0), Is.True);
-            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(9));
+            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(10));
             s.Battle.PhaseTurn = 1; Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(4), "Only the second cast survives this reset.");
+            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(5), "Only the second cast survives this reset.");
             Assert.That(s.Battle.Boarding.RetainedGuardBatches.Count, Is.EqualTo(1));
             s.Battle.PhaseTurn = 1; Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(s.Battle.PlayerBlock, Is.Zero);
@@ -186,6 +186,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.EndBattleTurn(), Is.True);
             s.Battle.EnemyHull = s.Battle.EnemyMaxHull = 1000;
             s.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(s.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(s.Battle, s.Battle.EnemyHeadingDegrees);
             s.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(s.TryBoard(), Is.True);

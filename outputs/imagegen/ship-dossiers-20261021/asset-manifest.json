@@ -1,0 +1,62 @@
+[
+  {
+    "id": "sloop",
+    "resource": "PortArt/ShipDossiers/ship_sloop_dossier_v1",
+    "sha256": "37EE4E081F69CDCF1F7DD6240ADEDE179123D17CBC82710B09FA1863B2F74499"
+  },
+  {
+    "id": "merchant",
+    "resource": "PortArt/ShipDossiers/ship_merchant_dossier_v1",
+    "sha256": "6DAEDA957D3C6406C0A3E6CFAB9F223EEBB77F93CC43653FC8DF991C428949FE"
+  },
+  {
+    "id": "patrol",
+    "resource": "PortArt/ShipDossiers/ship_patrol_dossier_v1",
+    "sha256": "BC0C467DDC09CA6CC7BE6931A7A2390C848C49759B736FE769FDE88AFC98C54F"
+  },
+  {
+    "id": "relic",
+    "resource": "PortArt/ShipDossiers/ship_relic_dossier_v1",
+    "sha256": "F290F7EA80F28037D836D54AF3689A0A457EB082DAE5B89CF75C9CBD8C7325A4"
+  },
+  {
+    "id": "salvage",
+    "resource": "PortArt/ShipDossiers/ship_salvage_dossier_v1",
+    "sha256": "1543D11FD7034E598326359369A909FAF3DEAE6084A9079E9110CF2398CA9CFD"
+  },
+  {
+    "id": "courier",
+    "resource": "PortArt/ShipDossiers/ship_courier_dossier_v1",
+    "sha256": "4D267C99BBEAFFF3EF5A65D772601BE1C009FB75C55D5A1F2B3516F4CE805AFE"
+  },
+  {
+    "id": "provision",
+    "resource": "PortArt/ShipDossiers/ship_provision_dossier_v1",
+    "sha256": "5E3F6E2FB69F4CEBCF1673EB776704DEE1AED556887629B32846DE9416455080"
+  },
+  {
+    "id": "gunship",
+    "resource": "PortArt/ShipDossiers/ship_gunship_dossier_v1",
+    "sha256": "5077B9DD457AE30A99EC58E9D8E515281ABB37E7465F0E61B6EADB639692C2B1"
+  },
+  {
+    "id": "barge",
+    "resource": "PortArt/ShipDossiers/ship_barge_dossier_v1",
+    "sha256": "3CCFDC3F529CB6B53887A435143FF534EED996C1D1CED0249CFADD151020FDA2"
+  },
+  {
+    "id": "privateer",
+    "resource": "PortArt/ShipDossiers/ship_privateer_dossier_v1",
+    "sha256": "4DE392DD889FDF5CAF6315751F80C760990E78FF0133E5F4CDB6C43185E025A9"
+  },
+  {
+    "id": "occult",
+    "resource": "PortArt/ShipDossiers/ship_occult_dossier_v1",
+    "sha256": "8E82822A6324317E3B5CB16A31A04650B790E9E6D28EFD4E18DFD1ED34966A71"
+  },
+  {
+    "id": "clipper",
+    "resource": "PortArt/ShipDossiers/ship_clipper_dossier_v1",
+    "sha256": "E50248C3928587C1BA4155982B84A3EB387C3F0E68220F075F957064ED87C940"
+  }
+]

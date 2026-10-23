@@ -1,0 +1,4 @@
+UnityClient\Assets\_Project\Core\Runtime\CoreNavalBattleCombat.cs(507,24): warning CS0649: 从未对字段“CoreVoyageSession.EnemyBattlePlan.BoardingBurn”赋值，字段将一直保持其默认值 0
+UnityClient\Assets\_Project\Core\Runtime\CoreNavalBattleCombat.cs(508,24): warning CS0649: 从未对字段“CoreVoyageSession.EnemyBattlePlan.BoardingDrain”赋值，字段将一直保持其默认值 0
+UnityClient\Assets\_Project\Core\Runtime\CoreNavalBattleCombat.cs(510,24): warning CS0649: 从未对字段“CoreVoyageSession.EnemyBattlePlan.BoardingPiercing”赋值，字段将一直保持其默认值 0
+UnityClient\Assets\_Project\Core\Runtime\CoreNavalBattleCombat.cs(509,24): warning CS0649: 从未对字段“CoreVoyageSession.EnemyBattlePlan.BoardingSelfDamage”赋值，字段将一直保持其默认值 0

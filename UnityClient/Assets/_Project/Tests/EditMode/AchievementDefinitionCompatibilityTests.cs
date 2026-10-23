@@ -8,17 +8,18 @@ namespace ShatteredSail.Presentation.Tests
 {
     public sealed class AchievementDefinitionCompatibilityTests
     {
-        // Frozen from the shipping UI catalog and journal writer schema before the
-        // Core metadata migration. These literals deliberately do not read Artifacts
-        // or derive expectations from either production catalog at test runtime.
+        // Authored UI and journal-v6 snapshots. Challenge wording is updated
+        // explicitly while stable IDs and their order remain compatible. These
+        // literals do not derive expectations from production catalogs at runtime.
+        // MetadataBefore keeps its historical name for the icon compatibility test.
         internal static readonly string[][] MetadataBefore =
         {
             new[] { "tutorial_departure", "初次扬帆", "完成新手引导并获得航海许可", "航程进度" },
-            new[] { "tutorial_reward", "第一枚罗盘", "完成引导并领取第一件纪念藏品", "航程进度" },
+            new[] { "tutorial_reward", "第一枚罗盘", "完成新手引导并领取教学纪念藏品", "航程进度" },
             new[] { "tutorial_checkpoint", "航海学徒", "完成第一次新手航程并结算返港", "航程进度" },
             new[] { "tutorial_deck", "整备完毕", "在卡牌工坊编辑并保存一次战斗卡组", "航程进度" },
-            new[] { "tutorial_component", "亲手改装", "领取教学奖励部件或获得一件备用部件", "航程进度" },
-            new[] { "tutorial_recovery", "逆风归港", "在船体受损后结束航程并返港", "航程进度" },
+            new[] { "tutorial_component", "亲手改装", "亲手为船只安装一件非初始部件", "航程进度" },
+            new[] { "tutorial_recovery", "逆风归港", "在非教学普通航程中战胜敌舰，并以不高于 25% 的剩余船体安全返港", "航程进度" },
             new[] { "tutorial_navigator", "听见潮声", "完成一次有航海士随行的航程", "航程进度" },
             new[] { "tutorial_warehouse", "留住纪念", "把第一件藏品收入仓库", "收藏" },
             new[] { "component_loadout", "船匠入门", "保存一套有效的部件装配", "整备" },
@@ -41,7 +42,7 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "all_ships", "四海船旗", "收集全部港口的十二种船只", "船队" },
             new[] { "component_inventory", "零件入库", "将部件加入库存", "整备" },
             new[] { "component_cannon", "火炮上膛", "装备一门火炮", "整备" },
-            new[] { "component_full", "全船改装", "同时装备四个部件槽位", "整备" },
+            new[] { "component_full", "全船改装", "亲手为同一艘船安装全部五槽非初始部件，且当前至少三件为稀有或更高品质", "整备" },
             new[] { "component_shop", "港口采购员", "从部件商店购入一件部件", "整备" },
             new[] { "crew_one", "招募同伴", "招募第一名船员", "船员" },
             new[] { "crew_three", "小小船团", "招募三名船员", "船员" },
@@ -50,19 +51,19 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "voyage_three_events", "亲历远航", "在一次非教学普通航程中完成至少 3 个海图事件，并安全返港或抵达目标港口", "航程进度" },
             new[] { "voyage_half_chart", "循图探海", "在一次非教学普通航程中探索至少 50% 的海图，并安全返港或抵达目标港口", "航程进度" },
             new[] { "voyage_event_arrival", "跨海领航", "在一次非教学普通航程中完成至少 6 个海图事件，并抵达目标港口", "航程进度" },
-            new[] { "warehouse_one", "第一件珍藏", "收藏一件可展览物品", "收藏" },
+            new[] { "warehouse_one", "第一件珍藏", "在非教学航程中获得一件新藏品，并成功带回港口", "收藏" },
             new[] { "warehouse_three", "柜中三宝", "收藏三件可展览物品", "收藏" },
             new[] { "warehouse_ten", "船长展室", "收藏十件可展览物品", "收藏" },
             new[] { "warehouse_display_six", "满柜荣光", "同时陈列六件收藏品", "收藏" },
             new[] { "chart_drawn", "亲绘航图", "绘制一张海图", "探索" },
-            new[] { "battle_deck", "甲板策略", "保存一套战斗卡组", "战斗" },
-            new[] { "battle_stages", "三种战法", "为三种战斗阶段分别配置卡组", "战斗" },
+            new[] { "battle_deck", "甲板策略", "在非教学普通航程战斗中，实际使用自编卡组并取得胜利", "战斗" },
+            new[] { "battle_stages", "三种战法", "在获胜的非教学普通航程战斗中，分别实际使用三阶段的自编卡组", "战斗" },
             new[] { "card_upgrade", "磨亮牌面", "强化一张战斗卡牌", "战斗" },
             new[] { "special_card", "专属传承", "获得一张船员或部件专属卡", "战斗" },
             new[] { "cargo_ready", "补给充足", "同时储备 500 单位水与食物", "补给" },
-            new[] { "cargo_all", "满舱远征", "让所有基础补给都不再为空", "补给" },
+            new[] { "cargo_all", "满舱远征", "在非教学普通航程中航行至少 10 天，全程不断水断粮，并抵达目标港口", "补给" },
             new[] { "fame", "自由之名", "声望达到 100", "传承" },
-            new[] { "seventh_harbor", "第七港口", "完成引导、抵达六港并拥有一艘额外船只", "传承" },
+            new[] { "seventh_harbor", "第七港口", "获得最终藏品「第七港口引航灯」", "传承" },
         };
 
         internal static readonly string[] RetiredPrototypeIds =
@@ -175,10 +176,13 @@ namespace ShatteredSail.Presentation.Tests
             "ShatteredSail.Achievements.Visited.v1.盐冠港",
             "ShatteredSail.Achievements.Visited.v1.暮潮港",
             "ShatteredSail.Achievements.Visited.v1.灰鸥港",
+            "ShatteredSail.Achievements.EditedDeckStages.v2",
+            "ShatteredSail.Achievements.WonDeckStages.v2",
         };
 
         private static readonly string[][] JournalKeysBefore =
         {
+            new[] { "ShatteredSail.Achievements.EditedDeckStages.v2", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.all_ports", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.all_ships", "int" },
             new[] { "ShatteredSail.Achievements.Unlocked.v1.battle_deck", "int" },
@@ -235,6 +239,7 @@ namespace ShatteredSail.Presentation.Tests
             new[] { "ShatteredSail.Achievements.Visited.v1.白贝港", "int" },
             new[] { "ShatteredSail.Achievements.Visited.v1.盐冠港", "int" },
             new[] { "ShatteredSail.Achievements.Visited.v1.铜钟港", "int" },
+            new[] { "ShatteredSail.Achievements.WonDeckStages.v2", "int" },
             new[] { "ShatteredSail.BattleCardUpgrades.v1", "string" },
             new[] { "ShatteredSail.BattleDeck.Edited.v1", "int" },
             new[] { "ShatteredSail.BattleDeck.v1", "string" },
@@ -340,30 +345,34 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void Persistence_UsesExactFiftyUnlockAndSixVisitKeysWithoutAliases()
+        public void Persistence_UsesFiftyUnlockSixVisitAndTwoChallengeEvidenceKeysWithoutAliases()
         {
-            Assert.That(AchievementKeysBefore.Length, Is.EqualTo(56));
-            Assert.That(AchievementKeysBefore.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(56));
+            Assert.That(AchievementKeysBefore.Length, Is.EqualTo(58));
+            Assert.That(AchievementKeysBefore.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(58));
             Assert.That(AchievementKeysBefore.Count(key => key.StartsWith("ShatteredSail.Achievements.Unlocked.v1.", StringComparison.Ordinal)), Is.EqualTo(50));
             Assert.That(AchievementKeysBefore.Count(key => key.StartsWith("ShatteredSail.Achievements.Visited.v1.", StringComparison.Ordinal)), Is.EqualTo(6));
+            Assert.That(AchievementCatalog.ChallengeEvidenceKeys, Is.EqualTo(new[] {
+                "ShatteredSail.Achievements.EditedDeckStages.v2",
+                "ShatteredSail.Achievements.WonDeckStages.v2",
+            }));
             Assert.That(AchievementCatalog.PersistenceKeys, Is.EqualTo(AchievementKeysBefore));
         }
 
         [Test]
         public void PendingJournalCompatibility_PreservesAllCurrentSortedKeysAndNativeTypes()
         {
-            Assert.That(JournalKeysBefore.Length, Is.EqualTo(104));
+            Assert.That(JournalKeysBefore.Length, Is.EqualTo(106));
             string[] expectedKeys = JournalKeysBefore.Select(row => row[0]).ToArray();
-            Assert.That(expectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(104));
+            Assert.That(expectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(106));
             Assert.That(expectedKeys, Is.EqualTo(expectedKeys.OrderBy(key => key, StringComparer.Ordinal)));
             Assert.That(JournalKeysBefore.Count(row => row[1] == "string"), Is.EqualTo(32));
-            Assert.That(JournalKeysBefore.Count(row => row[1] == "int"), Is.EqualTo(72));
+            Assert.That(JournalKeysBefore.Count(row => row[1] == "int"), Is.EqualTo(74));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Is.EqualTo(expectedKeys));
 
             FieldInfo specsField = typeof(ProfileSaveJournal).GetField("Specs", BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(specsField, Is.Not.Null, "The actual journal schema must be compared, not just its exported key names.");
             Array specs = (Array)specsField.GetValue(null);
-            Assert.That(specs.Length, Is.EqualTo(104));
+            Assert.That(specs.Length, Is.EqualTo(106));
             for (int index = 0; index < specs.Length; index++)
             {
                 object spec = specs.GetValue(index);

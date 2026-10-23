@@ -139,13 +139,15 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(session.ActiveEncounterRewardMultiplier, Is.EqualTo(factors[visit]));
                 int wood = session.Cargo.Wood;
                 double hours = session.TotalHours;
-                Assert.That(session.ResolveChoice(0), Is.True);
+                Assert.That(session.ResolveChoice(0), Is.EqualTo(expected[visit] > 0));
                 Assert.That(session.Cargo.Wood - wood, Is.EqualTo(expected[visit]));
-                Assert.That(session.TotalHours - hours, Is.EqualTo(3d), "Repetition must not reduce time costs.");
+                Assert.That(session.TotalHours - hours, Is.EqualTo(expected[visit] > 0 ? 3d : 0d),
+                    "A diminished reward pays full time; an exhausted reward cannot charge time.");
                 Assert.That(session.ResolveChoice(0), Is.False, "A stale confirmation cannot claim again.");
+                if (expected[visit] == 0) Assert.That(session.SkipEncounter(), Is.True);
                 Return(session);
             }
-            Assert.That(session.CaptureSeaChartProgress().charts.Single().events.Single(item => item.eventId == "event_reef_sunken_boat").count, Is.EqualTo(4));
+            Assert.That(session.CaptureSeaChartProgress().charts.Single().events.Single(item => item.eventId == "event_reef_sunken_boat").count, Is.EqualTo(3));
         }
 
         [Test]

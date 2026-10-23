@@ -134,7 +134,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "DeckBuilderMinimum_03_TenUnlocked.png",
-                "补足10张后自动保存，恢复全部按钮，仅保留基础卡至少10张提示", "Deck Builder Panel");
+                "补足10张后自动保存，恢复全部按钮并清空提示", "Deck Builder Panel");
 
             ClickDeckBuilderHeader("Port Facility Settings");
             yield return null;
@@ -233,10 +233,10 @@ namespace ShatteredSail.Presentation.Tests
         private static void AssertDeckBuilderMinimumHint(int count)
         {
             string hint = GameObject.Find("Deck Builder Status").GetComponent<Text>().text;
-            Assert.That(hint, Does.Contain("至少").And.Contain("10"));
             Assert.That(hint, Does.Not.Contain("已自动保存"));
-            if (count < 10) Assert.That(hint, Does.Contain("当前 " + count + " 张").And.Contain("补足"));
-            else Assert.That(hint, Does.Not.Contain("补足"));
+            if (count < 10)
+                Assert.That(hint, Does.Contain("至少").And.Contain("10").And.Contain("当前 " + count + " 张").And.Contain("补足"));
+            else Assert.That(hint, Is.Empty);
         }
 
         private static void AssertDeckBuilderMinimumLock(bool locked)

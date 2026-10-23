@@ -1,0 +1,12 @@
+[
+  {
+    "id": "crew_twilight_tide_carpenter_orlan",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a15f0f-4812-7f63-8aae-2e7b7afaa698\\exec-2bc4248a-806e-4001-b9e1-350d2f7d3b80.png",
+    "status": "generated_visual_qa_pass"
+  },
+  {
+    "id": "crew_twilight_tide_doctor_viya",
+    "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a15f0f-4812-7f63-8aae-2e7b7afaa698\\exec-f3b115d1-e5bc-4d8c-9733-bd1bb2c7a622.png",
+    "status": "generated_visual_qa_pass"
+  }
+]

@@ -44,7 +44,7 @@ namespace ShatteredSail.Presentation
             if (selected != null) UiImageAspect.Fit(preview, new Vector2(306, 166));
             Text empty = DepartureTreasureSeedText("Departure Dock Treasure Empty", panel, new Vector2(294, 140),
                 new Vector2(-226, 0), 19, FontStyle.Normal, TextAnchor.MiddleCenter, DepartureSkin.Ink,
-                session.TreasureMaps.Count == 0 ? "暂无藏宝海图\n前往藏宝图桌鉴定碎片并合成" : "选择右侧藏宝图种子\n查看海图缩略图");
+                string.Empty);
             empty.gameObject.SetActive(selected == null);
 
             const float width = 400;
@@ -81,14 +81,14 @@ namespace ShatteredSail.Presentation
             dropdown.interactable = maps.Count > 0;
             Text detail = DepartureTreasureSeedText("Departure Dock Treasure Detail", panel, new Vector2(width, 47),
                 new Vector2(176, 2), 16, FontStyle.Normal, TextAnchor.UpperLeft, DepartureSkin.Ink,
-                selected == null ? "任意港口均可出发，无需航海士\n选择种子后，可准备补给并出航。" :
+                selected == null ? string.Empty :
                 TreasureMapTheme(selected) + " · " + session.CurrentPort + "\n" + TreasureDepartureObjective(selected));
             detail.resizeTextForBestFit = true;
             detail.resizeTextMinSize = 14;
             detail.resizeTextMaxSize = 16;
             DepartureTreasureSeedText("Departure Dock Treasure Consumption", panel, new Vector2(width, 27),
                 new Vector2(176, -39), 14, FontStyle.Normal, TextAnchor.MiddleLeft, DepartureSkin.Ink,
-                "出航消耗所选种子 · 撤离或失败不返还");
+                string.Empty);
             Text status = DepartureTreasureSeedText("Departure Dock Treasure Status", panel, new Vector2(240, 29),
                 new Vector2(96, -69), 12, FontStyle.Normal, TextAnchor.MiddleLeft, DepartureSkin.Ink, string.Empty);
             status.resizeTextForBestFit = true;
@@ -201,7 +201,7 @@ namespace ShatteredSail.Presentation
                 .Find("Departure Dock Treasure Selection/Departure Dock Treasure Status")?.GetComponent<Text>();
             if (status == null) return;
             bool ready = session.CanStartTreasureVoyage(out string reason);
-            status.text = session.SelectedTreasureMap == null ? "浏览与切换不会消耗种子" : ready ? "整备完成 · 无需航海士" : reason;
+            status.text = session.SelectedTreasureMap == null ? string.Empty : ready ? "整备完成 · 无需航海士" : reason;
         }
     }
 }

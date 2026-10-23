@@ -1,0 +1,530 @@
+{
+  "created": "2026-10-22",
+  "entries": 106,
+  "uniqueImages": 97,
+  "statusNames": 61,
+  "spriteCell": 128,
+  "fragmentBytes": 883019,
+  "fragment": "C:\\Users\\Admin\\.codex\\visualizations\\2026\\10\\22\\01a16380-9892-7e32-83e4-7f4f1f33b83f\\battle-icon-atlas.html",
+  "meshMetadata": {
+    "coordinateSystem": "top-left image coordinates; colors rgba 0..255",
+    "method": "Unmodified production C# OnPopulateMesh invoked using export-only Unity math and VertexHelper compatibility types",
+    "fieldSampling": "0.7 seconds, centered 75 pixel cell, zero camera rotation, tide points right, fill alpha 0.23",
+    "headerTheme": "gray_gull #EBD0A0",
+    "statusPairs": 60,
+    "iconCount": 157
+  },
+  "sourceHashes": [
+    {
+      "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\BattleStatusIconGraphic.cs",
+      "SHA256": "A3139C7273BD143616AA3C4EF48CE2A2AA0BE2A1594F676B0758F735D83293C0"
+    },
+    {
+      "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\BattleCommandIconGraphic.cs",
+      "SHA256": "77EDB7CF0A951F13D879676CA5AEF63D82AD7EDB3455863E48EC657456ACC2AF"
+    },
+    {
+      "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\BattleHeaderIconGraphic.cs",
+      "SHA256": "35D34BE966BEBB087435D3D3EB0562B21AD31BE95C3AFB2D03CB854FE5A377F4"
+    },
+    {
+      "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\BattleCardFlightBackGraphic.cs",
+      "SHA256": "0E84E79DBCFF6293DA93091E3877FA211E221B8A119DB411F76D433D96D8C57C"
+    },
+    {
+      "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\NavalFieldGraphic.cs",
+      "SHA256": "615F4C7430AC18368BB6DF4AEF16290800F0F7E45804CE4E14F0EEDC6C4051DA"
+    },
+    {
+      "Source": "D:\\Game\\UnityClient\\Assets\\_Project\\Presentation\\Runtime\\NavalTacticalTrackGraphic.cs",
+      "SHA256": "410258E25F75BEEFE50F0DCFB672530F3DB31D39B207A888E136B6D5DA52B80D"
+    }
+  ],
+  "images": [
+    {
+      "key": "status:guard:Guard:buff",
+      "file": "icons/status_guard_Guard_buff.png",
+      "sha256": "10a32d5b5d32d45bad7b3bdb17d2adf4259902b8ce87574fbf039a0b7d1ad2f9"
+    },
+    {
+      "key": "status:voyage_curse:Curse:debuff",
+      "file": "icons/status_voyage_curse_Curse_debuff.png",
+      "sha256": "06a832c1d7a99969fbb82516cac7265c417242bf8cd6f1ff09741e458626ffbf"
+    },
+    {
+      "key": "status:armor:Armor:buff",
+      "file": "icons/status_armor_Armor_buff.png",
+      "sha256": "49ed7854d4b7828bc03a9d09629607e34115413e1e71cb1ab9c346117251bc07"
+    },
+    {
+      "key": "status:crew_shortage:Weakness:debuff",
+      "file": "icons/status_crew_shortage_Weakness_debuff.png",
+      "sha256": "552b4282f31362819a6f8ffa1eb629689c7028dda5ec54e59db6c9e40fc0c9e6"
+    },
+    {
+      "key": "status:loaded_shot:Attack:buff",
+      "file": "icons/status_loaded_shot_Attack_buff.png",
+      "sha256": "a97c359b2dff3a190c8b8eb6ff18c280c1cbe939ee33bd82007973f53324ce6b"
+    },
+    {
+      "key": "status:deck_buff:Guard:buff",
+      "file": "icons/status_deck_buff_Guard_buff.png",
+      "sha256": "a91d728e6d13b509a3f0e9e0d4ce2fc702bf4bf01da4befea2b87a6beabfab42"
+    },
+    {
+      "key": "status:fire_rounds:Fire:buff",
+      "file": "icons/status_fire_rounds_Fire_buff.png",
+      "sha256": "d524417ccac81501ba3e6bd53e973866843d0c6617341ac7214ce0092335b00d"
+    },
+    {
+      "key": "status:prepare_fire_guard:Guard:buff",
+      "file": "icons/status_prepare_fire_guard_Guard_buff.png",
+      "sha256": "735eb5f6a93c0775a4f4c8e4148a3ae1ee2a57cde431c5097e300eeb526c7347"
+    },
+    {
+      "key": "status:natural_fire_guard:Guard:buff",
+      "file": "icons/status_natural_fire_guard_Guard_buff.png",
+      "sha256": "cba21f6be9dcf4b1926bda8e5987e3bb16ab5fa610c948097ff68b5ca89c626f"
+    },
+    {
+      "key": "status:boarding_burn:Fire:buff",
+      "file": "icons/status_boarding_burn_Fire_buff.png",
+      "sha256": "826292a7de54eded279ee6fefe0117f92154d4d157a8ffa7973bcae98b9a7818"
+    },
+    {
+      "key": "status:boarding_cover:Guard:buff",
+      "file": "icons/status_boarding_cover_Guard_buff.png",
+      "sha256": "a70e6ec815644fccaac2f11dd654ca9dfefa2df931f600b41913d17db550b16e"
+    },
+    {
+      "key": "status:scorch:Fire:buff",
+      "file": "icons/status_scorch_Fire_buff.png",
+      "sha256": "44e52a4047771ff6e03ef7803d63616c5eab809305df4a3bd798d1a21ded6cc2"
+    },
+    {
+      "key": "status:overflow:Fire:buff",
+      "file": "icons/status_overflow_Fire_buff.png",
+      "sha256": "89009e6815db9ab60505783fd885802b80220633c75a8a1dc373ca14f4071c9f"
+    },
+    {
+      "key": "status:thunder_ready:Thunder:buff",
+      "file": "icons/status_thunder_ready_Thunder_buff.png",
+      "sha256": "1c13d4e254e6a090d5bc33eb2d0ed1dd3223a4f383725ec9d2394b23cb0d39a9"
+    },
+    {
+      "key": "status:tide_guard:Tide:buff",
+      "file": "icons/status_tide_guard_Tide_buff.png",
+      "sha256": "0cc79653f40494c12fea3b0d3e9db7aeb4bc62d57cce12d066a16c3007faff79"
+    },
+    {
+      "key": "status:curse_guard:Curse:buff",
+      "file": "icons/status_curse_guard_Curse_buff.png",
+      "sha256": "ba63f16f716ac2766bc42974602bf16b8b11b6f637553c8f497a85149d00fc5a"
+    },
+    {
+      "key": "status:burn:Fire:debuff",
+      "file": "icons/status_burn_Fire_debuff.png",
+      "sha256": "0f8da8e0e46670f26a6f3503dfc58b693e537d6ac17e6755d53c20704396203c"
+    },
+    {
+      "key": "status:curse_tick_bonus:Curse:debuff",
+      "file": "icons/status_curse_tick_bonus_Curse_debuff.png",
+      "sha256": "af91c04cdda4816913b7ea65f22a4b8e8cc6af7a449289e272ab407e389be0ee"
+    },
+    {
+      "key": "status:arcane_piercing:Arcane:buff",
+      "file": "icons/status_arcane_piercing_Arcane_buff.png",
+      "sha256": "ec81671a19df45fa37cd86f678ebb084f3cd089b67027ef74b031fcf0c6e3d17"
+    },
+    {
+      "key": "status:blood_attack:Blood:buff",
+      "file": "icons/status_blood_attack_Blood_buff.png",
+      "sha256": "d7bf041d136f035caef08f5d6e93132ba847d12ce516aa4e072f3b6c36098ee3"
+    },
+    {
+      "key": "status:fire_immunity:Immunity:buff",
+      "file": "icons/status_fire_immunity_Immunity_buff.png",
+      "sha256": "aa82b3ac1805199fa7696a01e13353f3aafc20f61bd1ab1c7a5605fdefa4435b"
+    },
+    {
+      "key": "status:anchor:Anchor:buff",
+      "file": "icons/status_anchor_Anchor_buff.png",
+      "sha256": "32897869f67a551bd7381cd1564716e3653f4e682f2f761b436b61f7a8d11bbc"
+    },
+    {
+      "key": "status:movement_slow:Slow:debuff",
+      "file": "icons/status_movement_slow_Slow_debuff.png",
+      "sha256": "473d310ebb521307429108e0fafa88e2e79ec429c59eda8ef32661134f94c3ad"
+    },
+    {
+      "key": "status:precharge:Thunder:buff",
+      "file": "icons/status_precharge_Thunder_buff.png",
+      "sha256": "0a4a9dad8f1912a96af79c119a3d56544c4b7b8c32b6a496fc5f72f0def52a3c"
+    },
+    {
+      "key": "status:grounding:Thunder:buff",
+      "file": "icons/status_grounding_Thunder_buff.png",
+      "sha256": "e95f615ed6059fd2f7439de042d6a8d4f3f6e70a9525eed3cfffe58015b4bb5c"
+    },
+    {
+      "key": "status:oil:Fire:debuff",
+      "file": "icons/status_oil_Fire_debuff.png",
+      "sha256": "8ad3dc35a6ba0162a3ddac9732ab84ee024a204084215f88f51db86b053f00f0"
+    },
+    {
+      "key": "status:rune_clamp:Seal:debuff",
+      "file": "icons/status_rune_clamp_Seal_debuff.png",
+      "sha256": "206608cb0b5dc589be83cae809d2e0d30a0c02815989332381f389eefa822cdd"
+    },
+    {
+      "key": "status:load_seal:Seal:debuff",
+      "file": "icons/status_load_seal_Seal_debuff.png",
+      "sha256": "51ab95d836e7c80a21ff6bf9b10030c0d0f3070e52bd8ae5c8f9d38ac6c325f4"
+    },
+    {
+      "key": "status:pulse_reduction:Weakness:debuff",
+      "file": "icons/status_pulse_reduction_Weakness_debuff.png",
+      "sha256": "621bf1cf36fad33f5a73d5f1870beffea29f3b5075d878b64978910ffed20b3e"
+    },
+    {
+      "key": "status:healing_halved:Healing:debuff",
+      "file": "icons/status_healing_halved_Healing_debuff.png",
+      "sha256": "91f2a76dcc9025ca6a6551186e332b322259e423e07f77e618ff1880331a43a9"
+    },
+    {
+      "key": "status:special_doctrine_fire:Fire:buff",
+      "file": "icons/status_special_doctrine_fire_Fire_buff.png",
+      "sha256": "2cd3937bec8f6ee07e924e45f2264b73b88fa61b00acb58bb377d94b6f518e31"
+    },
+    {
+      "key": "status:special_doctrine_arcane:Arcane:buff",
+      "file": "icons/status_special_doctrine_arcane_Arcane_buff.png",
+      "sha256": "3db1ace956b19e09e5897da96f4997f41bb50ee59081d47b2448298546b26e47"
+    },
+    {
+      "key": "status:special_doctrine_curse:Curse:buff",
+      "file": "icons/status_special_doctrine_curse_Curse_buff.png",
+      "sha256": "7da52dce273604f23dae8de9c1b901464292e92d6ec7b08267e2fe64551e4b5e"
+    },
+    {
+      "key": "status:special_doctrine_tide:Tide:buff",
+      "file": "icons/status_special_doctrine_tide_Tide_buff.png",
+      "sha256": "14a9ab252442d3e457919b5df9ef39840694d944c3fe995dd292cec5df06ed2e"
+    },
+    {
+      "key": "status:special_doctrine_thunder:Thunder:buff",
+      "file": "icons/status_special_doctrine_thunder_Thunder_buff.png",
+      "sha256": "21bc8dcb1913d74385a3b4a01b8fc4f7b76cc7d600814acfd96e8dd07a181deb"
+    },
+    {
+      "key": "status:special_doctrine_blood:Blood:buff",
+      "file": "icons/status_special_doctrine_blood_Blood_buff.png",
+      "sha256": "0f2e77be631dd8afc398f4faf04f27dc678f9207b4372475b15ac01bbb5fdb69"
+    },
+    {
+      "key": "status:self_burn:Fire:debuff",
+      "file": "icons/status_self_burn_Fire_debuff.png",
+      "sha256": "470eb545d087e3241574581e0dba94d71bd19f60a04afd564cab8dcb48d1103a"
+    },
+    {
+      "key": "status:enemy_burn:Fire:debuff",
+      "file": "icons/status_enemy_burn_Fire_debuff.png",
+      "sha256": "12498ea89547713c296332e3b3ae0a48a75f7eeae706cc01336fbd032b34d6ac"
+    },
+    {
+      "key": "status:fire_pact:Fire:buff",
+      "file": "icons/status_fire_pact_Fire_buff.png",
+      "sha256": "f6939f2fcbcde5ec041c5d45b1ac2e08f9b3d254a2255c1df072824b5fdd7704"
+    },
+    {
+      "key": "status:fire_retaliation:Retaliation:buff",
+      "file": "icons/status_fire_retaliation_Retaliation_buff.png",
+      "sha256": "5b8ade5f0bab67722f37bc1955c2b4af35d05d665a6cb0cdb1fd5e98d88a1b61"
+    },
+    {
+      "key": "status:fire_pots:Fire:buff",
+      "file": "icons/status_fire_pots_Fire_buff.png",
+      "sha256": "cf4ecb602ec45d17b60113a195e8c0fbb27863b7cfc13bd031b2184664600924"
+    },
+    {
+      "key": "status:free_powder:Fire:buff",
+      "file": "icons/status_free_powder_Fire_buff.png",
+      "sha256": "9ea23165bbc55c8477fe569656ce33efbd7e415621a37a9f31f993380dac080d"
+    },
+    {
+      "key": "status:retained_guard:Arcane:buff",
+      "file": "icons/status_retained_guard_Arcane_buff.png",
+      "sha256": "8774880a1b514516928f64b6aa6a9322a180e58f9b9e6e02771d56ab4e7dfb12"
+    },
+    {
+      "key": "status:arcane_echo:Arcane:buff",
+      "file": "icons/status_arcane_echo_Arcane_buff.png",
+      "sha256": "23e9f1c888077c9d97a9e3b28f590d8bbfec66ba013512136309c1d9b334432b"
+    },
+    {
+      "key": "status:thunder_residual:Thunder:buff",
+      "file": "icons/status_thunder_residual_Thunder_buff.png",
+      "sha256": "dc84bc4d608f79de4449d0f8470b2ba8808f7ee105623d66cd26a353a33f1fc4"
+    },
+    {
+      "key": "status:curse_contract:Curse:buff",
+      "file": "icons/status_curse_contract_Curse_buff.png",
+      "sha256": "8e49d8bf5fcba6822091d79b19ffd9614dfabb1e008467aede90ca7b8851ef86"
+    },
+    {
+      "key": "status:curse_link:Curse:buff",
+      "file": "icons/status_curse_link_Curse_buff.png",
+      "sha256": "e6dfe0436047384948e4d5d8ef32205469b523c0fbc5e8c3a94615e383e293af"
+    },
+    {
+      "key": "status:curse_counter:Retaliation:buff",
+      "file": "icons/status_curse_counter_Retaliation_buff.png",
+      "sha256": "d99a3b8a47822e4961326669ebe4282d9aa8e0d45f32cdeeca4ec7f7126ecc11"
+    },
+    {
+      "key": "status:tide_ambush:Retaliation:buff",
+      "file": "icons/status_tide_ambush_Retaliation_buff.png",
+      "sha256": "56007a2178c2663a930d3d7952d5990021a4741e121f3aba52b1b8fe0f4155a3"
+    },
+    {
+      "key": "status:blood_debt:Blood:buff",
+      "file": "icons/status_blood_debt_Blood_buff.png",
+      "sha256": "fcfb67914f25d9bc19bf3ebaed6812561b01f1ae03f656d62bb7fa9278b70766"
+    },
+    {
+      "key": "status:blood_oath:Blood:buff",
+      "file": "icons/status_blood_oath_Blood_buff.png",
+      "sha256": "0d75a8e15328671e6cb2c0c02140853315acf243bdda9a95fd818b2fe3a48534"
+    },
+    {
+      "key": "status:healing:Healing:buff",
+      "file": "icons/status_healing_Healing_buff.png",
+      "sha256": "32255084d3edde97ecb9cf64f4f86815ae2b6b1bf02124cba94afa412e6cd7a1"
+    },
+    {
+      "key": "status:retained_cards:Draw:buff",
+      "file": "icons/status_retained_cards_Draw_buff.png",
+      "sha256": "77f23104f6d08015d7dc2d0c5ac5c33ed3795dbc2510bdf6f39563517296c246"
+    },
+    {
+      "key": "status:retained_guard:Tide:buff",
+      "file": "icons/status_retained_guard_Tide_buff.png",
+      "sha256": "3490babdfce639d66cffb6d5f13af48b7affff50635052c185dafcb2d27719a4"
+    },
+    {
+      "key": "status:thunder_weakness:Weakness:debuff",
+      "file": "icons/status_thunder_weakness_Weakness_debuff.png",
+      "sha256": "ef6bd32c8aaa652af9f8c48625e36b708ab2ee4bba0f39592917cba357f2cc70"
+    },
+    {
+      "key": "status:curse_weakness:Weakness:debuff",
+      "file": "icons/status_curse_weakness_Weakness_debuff.png",
+      "sha256": "015d49d5608befc90894f7ecdee5b39b3b2f703c43497d9cc8a510c4732b1d54"
+    },
+    {
+      "key": "status:tide_weakness:Weakness:debuff",
+      "file": "icons/status_tide_weakness_Weakness_debuff.png",
+      "sha256": "feea4118ce20a7fa7119a488f3693567c3b7c75ed2a900a9154f902d78cb6948"
+    },
+    {
+      "key": "status:curse_armor:Seal:debuff",
+      "file": "icons/status_curse_armor_Seal_debuff.png",
+      "sha256": "cac78729db47ffda92c6b2754d9485a7c7e09aa435aa8ff6610ff4b727b062e7"
+    },
+    {
+      "key": "status:delayed_damage:Delayed:debuff",
+      "file": "icons/status_delayed_damage_Delayed_debuff.png",
+      "sha256": "591a4efb4d29f76995eeac16381b2e5a6615b23e0e276cec30a3a6ad6dcc77e4"
+    },
+    {
+      "key": "status:desperate:Blood:buff",
+      "file": "icons/status_desperate_Blood_buff.png",
+      "sha256": "5f23ef5beb7825fa3ab2e436cd13a819bb8e7114408b288f07ac9646bfc6fb3d"
+    },
+    {
+      "key": "command:Energy",
+      "file": "icons/command_Energy.png",
+      "sha256": "45e1cb2d6ffc6c6975d7164c8c4d9491f6a04c663e9f3b52fcb4aa93885359a7"
+    },
+    {
+      "key": "command:ActionPoint",
+      "file": "icons/command_ActionPoint.png",
+      "sha256": "006ebd8f8f8341961bfabc4763fbec07747726d3557b3274b1e9a2402f59471f"
+    },
+    {
+      "key": "command:Mana",
+      "file": "icons/command_Mana.png",
+      "sha256": "680eaaea4b1c328548f6af42af12ee9b1c4503bf3c7c7b908f288094f661efcd"
+    },
+    {
+      "key": "command:ThunderChain",
+      "file": "icons/command_ThunderChain.png",
+      "sha256": "ceb5328cb4f93f0e05247d87017e0c889d277327becf92c022dc7a5d1c95c448"
+    },
+    {
+      "key": "command:TidePower",
+      "file": "icons/command_TidePower.png",
+      "sha256": "528da2f506bceaf24991c47f29121a9508d5902c8587d6efa75aa182913069a0"
+    },
+    {
+      "key": "command:CurseMark",
+      "file": "icons/command_CurseMark.png",
+      "sha256": "0dc8e4b2f8a4c7670025ffda260e8abfbe2e6628641427fedbf9ab12c971439f"
+    },
+    {
+      "key": "command:Powder",
+      "file": "icons/command_Powder.png",
+      "sha256": "799b689c6f651f484266849ac795bc5b9b3a4d548ff18e5df4444a98f53ab262"
+    },
+    {
+      "key": "command:Cannonball",
+      "file": "icons/command_Cannonball.png",
+      "sha256": "5fd345f62385ea9cf12458ec6f509d778931a9f005124adaa7ee91442d175cab"
+    },
+    {
+      "key": "command:Planks",
+      "file": "icons/command_Planks.png",
+      "sha256": "59377e65a0ae8ac730a2caec44e76f8acfcaa6d0a1b565f96b0a325dca604209"
+    },
+    {
+      "key": "command:Medicine",
+      "file": "icons/command_Medicine.png",
+      "sha256": "7718ff488ca4b351d1dc5c9d2a137eadcc4a488c912eacfe18326e1d55630f68"
+    },
+    {
+      "key": "command:Melee",
+      "file": "icons/command_Melee.png",
+      "sha256": "57387b821168a3de99bad857cf9c6e5ad2885fe47f1ae1b13cb0de024d129144"
+    },
+    {
+      "key": "command:Ram",
+      "file": "icons/command_Ram.png",
+      "sha256": "470469830543a42b7e421842872aa963d63610e04085f4f6201ed5c09d08856d"
+    },
+    {
+      "key": "command:Guard",
+      "file": "icons/command_Guard.png",
+      "sha256": "153f60858aae26bd7eff11cc4d0c3db4c91d223ae156e19f023af75dbc390c51"
+    },
+    {
+      "key": "command:Repair",
+      "file": "icons/command_Repair.png",
+      "sha256": "ce6ffb46d465005709b4a8899961238c8d9f0397ab5806ae9f7a0522d54dde3b"
+    },
+    {
+      "key": "command:Load",
+      "file": "icons/command_Load.png",
+      "sha256": "c1dfc9fda748dbd0add6de1ed5e496b027a15083baf504e30f9505f4d1dea8da"
+    },
+    {
+      "key": "command:Move",
+      "file": "icons/command_Move.png",
+      "sha256": "cda4e5e699422b4333ee9c766a9fbbbc0a24feb151cba53746677e5b795f4953"
+    },
+    {
+      "key": "command:Fire",
+      "file": "icons/command_Fire.png",
+      "sha256": "eead2e48dea9442d9066b85b0e1cf9867ca59e11320150cc87c09a22c16edcd2"
+    },
+    {
+      "key": "command:Wait",
+      "file": "icons/command_Wait.png",
+      "sha256": "d370714f545d05cd1f51d156c9a1db6a42c3915624ed32354e39896d552a31c8"
+    },
+    {
+      "key": "field:Fire",
+      "file": "icons/field_Fire.png",
+      "sha256": "2d074d1ba366c9997b8fcdd924cb58f221fcb23e932a0338b4502b7b607a357f"
+    },
+    {
+      "key": "field:Arcane",
+      "file": "icons/field_Arcane.png",
+      "sha256": "824705b8e7037299d824eb166b834f82c831faee0eb8c64eac46f24ce184724a"
+    },
+    {
+      "key": "field:Curse",
+      "file": "icons/field_Curse.png",
+      "sha256": "a8d46dfd728055d6513dd09da8d0f74777d22da590b6dab7280167d061a3e059"
+    },
+    {
+      "key": "field:Tide",
+      "file": "icons/field_Tide.png",
+      "sha256": "2c0f575d749446a0fc81fec37dc8fc55cf8f23a0c5d955aa785047b9a98ac1db"
+    },
+    {
+      "key": "field:Thunder",
+      "file": "icons/field_Thunder.png",
+      "sha256": "c6d6a53c714488423ddfb8a04034c040601bc6a0224fd990920a3c99ff906684"
+    },
+    {
+      "key": "field:Blood",
+      "file": "icons/field_Blood.png",
+      "sha256": "111ef81f5bb2910cb0f9174ea4577e27419acc897790f94cd96753881dc50ff2"
+    },
+    {
+      "key": "header:Deck",
+      "file": "icons/header_Deck.png",
+      "sha256": "1d22b93e88972b48965aa4931137815a791c99c3e813b42132e557af31fc8389"
+    },
+    {
+      "key": "header:Settings",
+      "file": "icons/header_Settings.png",
+      "sha256": "f2f2995cf0778d1da650fd8a887fa36f53a0beb8f12b3988772aa25e600ec886"
+    },
+    {
+      "key": "cardback:Stack",
+      "file": "icons/cardback_Stack.png",
+      "sha256": "e1158c2530f11693d3b5119dc4deeb97202508282e32a8b98d4873d805d32ad6"
+    },
+    {
+      "key": "cost:cost_energy",
+      "file": "icons/cost_cost_energy.png",
+      "sha256": "8a87e01ea6e83ce5f7ba01c49cbb18e3f42131fba6aaa7e215f94e28976f16c9"
+    },
+    {
+      "key": "cost:cost_powder",
+      "file": "icons/cost_cost_powder.png",
+      "sha256": "af6e4d68049a55b2f83a1db121338ea9b41d8670d4421f784d83de5393da764e"
+    },
+    {
+      "key": "cost:cost_cannonball",
+      "file": "icons/cost_cost_cannonball.png",
+      "sha256": "d03936cbef47a921f81b416c6236e1a1ecf9c8f6a4e4c10024fdc08a25fd7be7"
+    },
+    {
+      "key": "cost:cost_mana",
+      "file": "icons/cost_cost_mana.png",
+      "sha256": "c4174b8fce3ff3cb365c8cb059ab288bfeffcc0ef8038f0d83a1ec5d489e7eb0"
+    },
+    {
+      "key": "cost:cost_health",
+      "file": "icons/cost_cost_health.png",
+      "sha256": "77eba0d51019616baed79539b91bc14dcecfe38085781b36d2d21fc18a045729"
+    },
+    {
+      "key": "cost:cost_curse",
+      "file": "icons/cost_cost_curse.png",
+      "sha256": "0a1f34f270c54d367c85742f4439d5f83101fdb59c20f545577459bbf648d178"
+    },
+    {
+      "key": "cost:cost_tide",
+      "file": "icons/cost_cost_tide.png",
+      "sha256": "af142a0e01a4acbbef0a2f805f8d7edbead49ffb76bc96863ffb55989f0fccd1"
+    },
+    {
+      "key": "cost:cost_chain",
+      "file": "icons/cost_cost_chain.png",
+      "sha256": "93b9c2eb5a4d54c4f9e56c4bd5b4b806f88d035aa767df1a29d4abcd952798f0"
+    },
+    {
+      "key": "cost:cost_wood",
+      "file": "icons/cost_cost_wood.png",
+      "sha256": "970dc1c6907b664cec69ed39d2f3ca8a20bcc45800fac4d636b94d64fa673a46"
+    },
+    {
+      "key": "cost:cost_medicine",
+      "file": "icons/cost_cost_medicine.png",
+      "sha256": "72a13145739abffa915ca74e113cb19d6a7b45981078b9c2319cc95273885384"
+    }
+  ]
+}

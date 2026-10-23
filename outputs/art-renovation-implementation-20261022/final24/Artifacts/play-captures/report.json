@@ -1,0 +1,735 @@
+{
+    "scope": "Actual Unity PlayMode battle UI captured during the visual-feedback regression tests. Only isolated in-memory fixtures are arranged; each action uses the real UI callback and combat rules.",
+    "width": 1920,
+    "height": 1080,
+    "frames": [
+        {
+            "file": "TacticalArt_IronOath.png",
+            "caption": "重炮舰 · 雷铸 / 铁誓不沉号 / named curse identity retained for Ironclad profile",
+            "capturedAtUtc": "2026-10-22T16:50:04.4307590Z",
+            "animationPlaying": false,
+            "stage": "Naval",
+            "distanceMeters": 600.0,
+            "alignment": "Parallel",
+            "playerHull": 240,
+            "enemyHull": 366,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "规避机动",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 1",
+                    "text": "整顿号令",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 2",
+                    "text": "链弹",
+                    "fontSize": 17,
+                    "glyphs": 2,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -19.233562469482423,
+                        "y": -12.668612480163575,
+                        "width": 38.54881286621094,
+                        "height": 21.6304988861084
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 3",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 4",
+                    "text": "装填弹药",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "TacticalArt_0_OpenWater.png",
+            "caption": "轻帆船 · 灰鸥 / 裂桅号 / OpenWater",
+            "capturedAtUtc": "2026-10-22T16:50:05.6971283Z",
+            "animationPlaying": false,
+            "stage": "Naval",
+            "distanceMeters": 600.0,
+            "alignment": "Parallel",
+            "playerHull": 55,
+            "enemyHull": 90,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "规避机动",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 1",
+                    "text": "整顿号令",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 2",
+                    "text": "链弹",
+                    "fontSize": 17,
+                    "glyphs": 2,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -19.233562469482423,
+                        "y": -12.668612480163575,
+                        "width": 38.54881286621094,
+                        "height": 21.6304988861084
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 3",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 4",
+                    "text": "装填弹药",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "TacticalArt_1_Beach.png",
+            "caption": "双桅商船 · 金潮 / 雷冠审判号 / Beach",
+            "capturedAtUtc": "2026-10-22T16:50:06.4443553Z",
+            "animationPlaying": false,
+            "stage": "Naval",
+            "distanceMeters": 600.0,
+            "alignment": "Parallel",
+            "playerHull": 95,
+            "enemyHull": 342,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "规避机动",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 1",
+                    "text": "整顿号令",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 2",
+                    "text": "链弹",
+                    "fontSize": 17,
+                    "glyphs": 2,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -19.233562469482423,
+                        "y": -12.668612480163575,
+                        "width": 38.54881286621094,
+                        "height": 21.6304988861084
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 3",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 4",
+                    "text": "装填弹药",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "TacticalArt_2_Reef.png",
+            "caption": "巡防舰 · 铜钟 / 税金女王号 / Reef",
+            "capturedAtUtc": "2026-10-22T16:50:07.1866461Z",
+            "animationPlaying": false,
+            "stage": "Naval",
+            "distanceMeters": 600.0,
+            "alignment": "Parallel",
+            "playerHull": 155,
+            "enemyHull": 168,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "规避机动",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 1",
+                    "text": "整顿号令",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 2",
+                    "text": "链弹",
+                    "fontSize": 17,
+                    "glyphs": 2,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -19.233562469482423,
+                        "y": -12.668612480163575,
+                        "width": 38.54881286621094,
+                        "height": 21.6304988861084
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 3",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 4",
+                    "text": "装填弹药",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "TacticalArt_3_Strait.png",
+            "caption": "远洋货驳 · 盐山 / 余烬方舟号 / Strait",
+            "capturedAtUtc": "2026-10-22T16:50:07.9192926Z",
+            "animationPlaying": false,
+            "stage": "Naval",
+            "distanceMeters": 600.0,
+            "alignment": "Parallel",
+            "playerHull": 170,
+            "enemyHull": 354,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "规避机动",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 1",
+                    "text": "整顿号令",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 2",
+                    "text": "链弹",
+                    "fontSize": 17,
+                    "glyphs": 2,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -19.233562469482423,
+                        "y": -12.668612480163575,
+                        "width": 38.54881286621094,
+                        "height": 21.6304988861084
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 3",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 4",
+                    "text": "装填弹药",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "TacticalArt_4_FogBank.png",
+            "caption": "遗迹猎船 · 月蚀 / 月蚀圣骸 / FogBank",
+            "capturedAtUtc": "2026-10-22T16:50:08.6725435Z",
+            "animationPlaying": false,
+            "stage": "Naval",
+            "distanceMeters": 600.0,
+            "alignment": "Parallel",
+            "playerHull": 110,
+            "enemyHull": 252,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "规避机动",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 1",
+                    "text": "整顿号令",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 2",
+                    "text": "链弹",
+                    "fontSize": 17,
+                    "glyphs": 2,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -19.233562469482423,
+                        "y": -12.668612480163575,
+                        "width": 38.54881286621094,
+                        "height": 21.6304988861084
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 3",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 4",
+                    "text": "装填弹药",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        },
+        {
+            "file": "TacticalArt_5_StormFront.png",
+            "caption": "飞剪商船 · 逐风 / 终界观星号 / StormFront",
+            "capturedAtUtc": "2026-10-22T16:50:09.4195709Z",
+            "animationPlaying": false,
+            "stage": "Naval",
+            "distanceMeters": 600.0,
+            "alignment": "Parallel",
+            "playerHull": 145,
+            "enemyHull": 348,
+            "playerBlock": 0,
+            "enemyBlock": 4,
+            "displayedEnemyHealth": 1.0,
+            "backdropUv": {
+                "serializedVersion": "2",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 0.0,
+                "height": 0.0
+            },
+            "visibleEffects": [],
+            "cardTitles": [
+                {
+                    "name": "Card Name 0",
+                    "text": "规避机动",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 1",
+                    "text": "整顿号令",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 2",
+                    "text": "链弹",
+                    "fontSize": 17,
+                    "glyphs": 2,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -19.233562469482423,
+                        "y": -12.668612480163575,
+                        "width": 38.54881286621094,
+                        "height": 21.6304988861084
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 3",
+                    "text": "迎敌推进",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                },
+                {
+                    "name": "Card Name 4",
+                    "text": "装填弹药",
+                    "fontSize": 17,
+                    "glyphs": 4,
+                    "canvasScale": 1.0,
+                    "pixelsPerUnit": 1.0,
+                    "renderedBounds": {
+                        "serializedVersion": "2",
+                        "x": -36.76078414916992,
+                        "y": -12.668612480163575,
+                        "width": 73.59815979003906,
+                        "height": 23.121723175048829
+                    },
+                    "fits": true
+                }
+            ]
+        }
+    ]
+}

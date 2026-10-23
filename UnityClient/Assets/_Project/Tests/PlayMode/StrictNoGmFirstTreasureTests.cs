@@ -287,6 +287,8 @@ namespace ShatteredSail.Presentation.Tests
                         Record("NO-GM ranged battle intent: " + Session.GetEnemyIntent() + "; distance=" + battle.DistanceMeters +
                             "; cannonballs=" + Session.Cargo.Cannonballs + "; powder=" + Session.Cargo.Powder);
                     }
+                    if (AcceptanceNavalMovementNeeded(Session))
+                    { yield return AdvanceAcceptanceNavalRange(controller, Click); continue; }
                     int selected = -1;
                     double best = 0;
                     if (playedInTurn++ < 24)

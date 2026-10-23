@@ -13,7 +13,7 @@ namespace ShatteredSail.Core.Gameplay
         private int SchoolPlayerMaximum => Battle.Stage == NavalBattleStage.Boarding ? Battle.PlayerMaxBoardingHealth : MaxHull;
         private int SchoolEnemyHealth => Battle.Stage == NavalBattleStage.Boarding ? Battle.EnemyBoardingHealth : Battle.EnemyHull;
         private int SchoolEnemyMaximum => Battle.Stage == NavalBattleStage.Boarding ? Battle.EnemyMaxBoardingHealth : Battle.EnemyMaxHull;
-        private bool HasSchoolFire => Battle != null && Battle.EnemyBurnTurns > 0 && Battle.EnemyBurnDamage > 0;
+        private bool HasSchoolFire => Battle != null && Battle.EnemyBurnTurns > 0;
 
         private string SchoolCardUnavailableReason(CoreBattleCard card)
         {
@@ -23,6 +23,8 @@ namespace ShatteredSail.Core.Gameplay
             {
                 case CoreSchoolMechanic.ArcaneRelease:
                 case CoreSchoolMechanic.ArcaneWard:
+                case CoreSchoolMechanic.ArcaneAttackReserve:
+                case CoreSchoolMechanic.ArcaneGuardReserve:
                 case CoreSchoolMechanic.ArcaneMend:
                 case CoreSchoolMechanic.ArcaneEcho:
                     if (Battle.Schools.AvailableMana < e.Threshold) return "法力不足（可先获取临时法力）";
@@ -32,9 +34,12 @@ namespace ShatteredSail.Core.Gameplay
                     if (Battle.Schools.CurseMarks < e.Threshold) return "附咒层数不足";
                     break;
                 case CoreSchoolMechanic.CurseDetonate:
-                    if (Battle.Schools.CurseMarks == 0) return "先施加咒印才能强化结算";
+                    if (card.Id != "card_school_curse_b05" && Battle.Schools.CurseMarks == 0) return "先施加咒印才能强化结算";
                     break;
                 case CoreSchoolMechanic.TideRiposte:
+                    if (card.Id == "card_school_tide_b03" || card.Id == "card_school_tide_b06") break;
+                    if (Battle.Schools.TidePower < Math.Max(1, e.Threshold)) return "潮势不足；先用木板布防并实际挡伤";
+                    break;
                 case CoreSchoolMechanic.TideRenew:
                 case CoreSchoolMechanic.TideCleanse:
                     if (Battle.Schools.TidePower < Math.Max(1, e.Threshold)) return "潮势不足；先用木板布防并实际挡伤";
@@ -56,7 +61,11 @@ namespace ShatteredSail.Core.Gameplay
             int threshold = SchoolDefault(e.Threshold, 1);
             switch (e.Mechanic)
             {
-                case CoreSchoolMechanic.FireExploit: if (HasSchoolFire) damage = e.Power; break;
+                case CoreSchoolMechanic.ComponentFieldStrike: damage = ComponentFieldDamageBonus(card); break;
+                case CoreSchoolMechanic.ComponentFieldShelter:
+                    block = ComponentFieldBlockBonus(card); repair = ComponentFieldRepairBonus(card); break;
+                case CoreSchoolMechanic.ComponentFieldPulse: repair = ComponentFieldRepairBonus(card); break;
+                case CoreSchoolMechanic.FireExploit: if (card.Id != "card_school_fire_b04" && HasSchoolFire) damage = e.Power; break;
                 case CoreSchoolMechanic.FireGuard: if (HasSchoolFire) block = e.Power; break;
                 case CoreSchoolMechanic.FireHeal: if (HasSchoolFire) repair = e.Power; break;
                 case CoreSchoolMechanic.ArcaneRelease: if (s.AvailableMana >= e.Threshold) damage = e.Power; break;
@@ -93,10 +102,12 @@ namespace ShatteredSail.Core.Gameplay
             {
                 case CoreSchoolMechanic.ArcaneRelease:
                 case CoreSchoolMechanic.ArcaneWard:
+                case CoreSchoolMechanic.ArcaneAttackReserve:
+                case CoreSchoolMechanic.ArcaneGuardReserve:
                 case CoreSchoolMechanic.ArcaneMend:
                 case CoreSchoolMechanic.ArcaneEcho: PayMana(e.Threshold); break;
-                case CoreSchoolMechanic.CurseDrain: Battle.Schools.CurseMarks -= e.Threshold; break;
-                case CoreSchoolMechanic.CurseWard: Battle.Schools.CurseMarks -= e.Threshold; break;
+                case CoreSchoolMechanic.CurseDrain:
+                case CoreSchoolMechanic.CurseWard: NavalExpansionConsumeCurse(e.Threshold); break;
                 case CoreSchoolMechanic.ThunderFinish: Battle.Schools.ThunderChain = 0; break;
                 case CoreSchoolMechanic.TideRiposte: Battle.Schools.TidePower = 0; break;
                 case CoreSchoolMechanic.TideRenew:
@@ -110,7 +121,15 @@ namespace ShatteredSail.Core.Gameplay
             }
         }
 
-        private void AddSchoolGuard(int amount) => Battle.PlayerBlock = SchoolSum(Battle.PlayerBlock, amount);
+        private void AddSchoolGuard(int amount) => Battle.PlayerBlock = SchoolSum(Battle.PlayerBlock, NavalArcaneBlockGain(amount, true));
+
+        public int NavalArcaneBlockGain(int amount, bool consume = false)
+        {
+            if (amount <= 0 || Battle == null || Battle.Stage == NavalBattleStage.Boarding) return Math.Max(0, amount);
+            int bonus = Battle.Schools.ArcaneNextBlockBonus;
+            if (consume) Battle.Schools.ArcaneNextBlockBonus = 0;
+            return SchoolSum(amount, bonus);
+        }
         private void HealSchoolPlayer(int amount)
         {
             if (Battle.Stage == NavalBattleStage.Boarding)
@@ -125,11 +144,11 @@ namespace ShatteredSail.Core.Gameplay
             return damage;
         }
 
-        private void ApplySchoolBurn(int damage, int duration)
+        private void ApplySchoolBurn(int layers, int legacyDuration)
         {
-            if (damage <= 0 || duration <= 0 || SchoolEnemyHealth <= 0) return;
-            Battle.EnemyBurnDamage = HasSchoolFire ? Math.Max(Battle.EnemyBurnDamage, damage) : damage;
-            Battle.EnemyBurnTurns = Math.Min(3, Math.Max(Battle.EnemyBurnTurns, duration));
+            if (layers <= 0 || SchoolEnemyHealth <= 0) return;
+            Battle.EnemyBurnTurns = SchoolSum(Battle.EnemyBurnTurns, layers);
+            Battle.EnemyBurnDamage = Battle.EnemyBurnTurns;
             if (Battle.Schools.PrepareFireGuard > 0)
             {
                 AddSchoolGuard(Battle.Schools.PrepareFireGuard);
@@ -139,16 +158,8 @@ namespace ShatteredSail.Core.Gameplay
         private void ExtendSchoolBurn(int amount)
         {
             if (!HasSchoolFire || amount <= 0) return;
-            if (Battle.EnemyBurnTurns >= 3)
-            {
-                CoreSchoolBattleState s = Battle.Schools;
-                if (s.OverflowAmount <= 0 || s.OverflowUsed) return;
-                s.OverflowUsed = true;
-                int addition = Math.Min(s.OverflowAmount, Math.Min(Math.Max(0, s.OverflowOwnLimit - s.OverflowContribution),
-                    Math.Max(0, s.OverflowTotalLimit - SchoolFinalLoadedBonus())));
-                s.OverflowContribution = SchoolSum(s.OverflowContribution, addition);
-            }
-            else Battle.EnemyBurnTurns = Math.Min(3, SchoolSum(Battle.EnemyBurnTurns, amount));
+            Battle.EnemyBurnTurns = SchoolSum(Battle.EnemyBurnTurns, amount);
+            Battle.EnemyBurnDamage = Battle.EnemyBurnTurns;
         }
 
         private int SchoolFinalLoadedBonus()
@@ -181,6 +192,7 @@ namespace ShatteredSail.Core.Gameplay
 
         private void ApplySchoolCardEffect(CoreBattleCard card, bool preBurn, int effectiveDirectDamage, bool fireFallback = false)
         {
+            if (ApplyComponentFieldCardEffect(card)) return;
             CoreSchoolCardEffect e = card.SchoolEffect;
             if (fireFallback || e == null || SchoolEnemyHealth <= 0 && e.Mechanic != CoreSchoolMechanic.BloodDrain) return;
             CoreSchoolBattleState s = Battle.Schools;
@@ -193,9 +205,23 @@ namespace ShatteredSail.Core.Gameplay
                     Battle.PlayerFireRounds = Math.Max(Battle.PlayerFireRounds,
                         Math.Min(SchoolDefault(e.Limit, 4), SchoolSum(Battle.PlayerFireRounds, e.Secondary)));
                     break;
-                case CoreSchoolMechanic.FireIgnite: if (effectiveDirectDamage > 0) ApplySchoolBurn(power, duration); break;
+                case CoreSchoolMechanic.FireIgnite:
+                    if (card.Id == "card_school_fire_b03" || effectiveDirectDamage > 0) ApplySchoolBurn(power, duration);
+                    break;
                 case CoreSchoolMechanic.FireIgniteOrExtend:
-                    if (effectiveDirectDamage > 0) { if (preBurn) ExtendSchoolBurn(SchoolDefault(e.Secondary, 1)); else ApplySchoolBurn(power, duration); }
+                    if (card.Id == "card_school_fire_b05")
+                    {
+                        ApplySchoolBurn(power, duration);
+                        ExtendSchoolBurn(SchoolDefault(e.Secondary, 1));
+                    }
+                    else if (effectiveDirectDamage > 0)
+                    {
+                        if (preBurn) ExtendSchoolBurn(SchoolDefault(e.Secondary, 1));
+                        else ApplySchoolBurn(power, duration);
+                    }
+                    break;
+                case CoreSchoolMechanic.FireExploit:
+                    if (card.Id == "card_school_fire_b04" && preBurn) NavalExpansionDirectDamage(false, power, 0);
                     break;
                 case CoreSchoolMechanic.FireExtend: if (card.Damage == 0 || effectiveDirectDamage > 0) ExtendSchoolBurn(e.Power); break;
                 case CoreSchoolMechanic.FirePrepareGuard: s.PrepareFireGuard = Math.Max(s.PrepareFireGuard, power); break;
@@ -225,17 +251,27 @@ namespace ShatteredSail.Core.Gameplay
                     s.OverflowTotalLimit = Math.Max(s.OverflowTotalLimit, e.Threshold); break;
                 case CoreSchoolMechanic.ArcaneCharge:
                     s.Mana = Math.Min(s.ManaLimit, SchoolSum(s.Mana, e.Power)); break;
+                case CoreSchoolMechanic.ArcaneAttackReserve:
+                    s.ArcaneNextAttackDamage = SchoolSum(s.ArcaneNextAttackDamage, power); break;
+                case CoreSchoolMechanic.ArcaneGuardReserve:
+                    s.ArcaneNextBlockBonus = SchoolSum(s.ArcaneNextBlockBonus, power); break;
                 case CoreSchoolMechanic.ArcaneCapacity: s.ManaLimit = SchoolSum(s.ManaLimit, e.Power); break;
                 case CoreSchoolMechanic.ArcaneTemporary: s.TemporaryMana = SchoolSum(s.TemporaryMana, e.Power); break;
                 case CoreSchoolMechanic.ArcaneEcho: DrawCards(e.Power); break;
                 case CoreSchoolMechanic.CurseMark:
                     s.CurseMarks = SchoolSum(s.CurseMarks, e.Power);
-                    s.CurseDamagePerMark = Math.Max(s.CurseDamagePerMark, e.Secondary);
+                    s.CurseDamagePerMark = 0;
                     s.CurseWeaknessPercent = 0;
-                    s.CurseTurns = Math.Max(s.CurseTurns, duration); break;
-                case CoreSchoolMechanic.CurseDetonate: s.CurseNextTickBonus = SchoolSum(s.CurseNextTickBonus, power); break;
+                    s.CurseTurns = s.CurseMarks; break;
+                case CoreSchoolMechanic.CurseDetonate:
+                    if (card.Id == "card_school_curse_b05") s.CurseTickBonus = SchoolSum(s.CurseTickBonus, power);
+                    else s.CurseNextTickBonus = SchoolSum(s.CurseNextTickBonus, power);
+                    break;
                 case CoreSchoolMechanic.TideCleanse: Battle.EnemyLoadedShot = 0; break;
-                case CoreSchoolMechanic.ThunderReady: s.ThunderReadyDamage = Math.Max(s.ThunderReadyDamage, e.Power); break;
+                case CoreSchoolMechanic.ThunderReady:
+                    s.ThunderReadyDamage = card.Id == "card_school_thunder_b01" || card.Id == "card_school_thunder_b02"
+                        ? SchoolSum(s.ThunderReadyDamage, e.Power) : Math.Max(s.ThunderReadyDamage, e.Power);
+                    break;
                 case CoreSchoolMechanic.ThunderEcho:
                     if (s.ThunderChain >= SchoolDefault(e.Threshold, 1) && !s.ThunderEchoUsed) { s.ThunderEchoUsed = true; DrawCards(e.Power); }
                     break;
@@ -274,10 +310,10 @@ namespace ShatteredSail.Core.Gameplay
         private bool ApplySchoolNaturalBurn()
         {
             if (Battle.Stage == NavalBattleStage.Preparation || !HasSchoolFire) return false;
-            int damage = DamageSchoolEnemy(Battle.EnemyBurnDamage);
+            int damage = DamageSchoolEnemy(Battle.EnemyBurnTurns);
             Battle.EnemyBurnTurns -= 1;
-            if (Battle.EnemyBurnTurns == 0) Battle.EnemyBurnDamage = 0;
-            Battle.LastAction = "燃烧：敌方" + (Battle.Stage == NavalBattleStage.Boarding ? "船员" : "船体") + " -" + damage + "。";
+            Battle.EnemyBurnDamage = Battle.EnemyBurnTurns;
+            Battle.LastAction += " 燃烧：敌方" + (Battle.Stage == NavalBattleStage.Boarding ? "船员" : "船体") + " -" + damage + "。";
             if (ResolveBattleOutcome()) return true;
             if (damage > 0 && Battle.Schools.NaturalFireGuardTurns > 0) AddSchoolGuard(Battle.Schools.NaturalFireGuard);
             return false;
@@ -300,8 +336,6 @@ namespace ShatteredSail.Core.Gameplay
         private void CompleteSchoolEnemyTurn()
         {
             CoreSchoolBattleState s = Battle.Schools;
-            if (s.CurseTurns > 0 && --s.CurseTurns == 0)
-            { s.CurseMarks = 0; s.CurseWeaknessPercent = 0; s.CurseDamagePerMark = 0; s.CurseNextTickBonus = 0; }
             if (s.NaturalFireGuardTurns > 0) s.NaturalFireGuardTurns -= 1;
             if (s.TideCounterTurns > 0) s.TideCounterTurns -= 1;
             if (s.TideStanceTurns > 0) s.TideStanceTurns -= 1;
@@ -343,9 +377,9 @@ namespace ShatteredSail.Core.Gameplay
                 .Replace("{schoolSecondary}", e.Secondary.ToString(CultureInfo.InvariantCulture));
             CoreBattleCardEffects basic = new CoreBattleCardEffects(card, stage, current.OrdinaryCrew, 0, null);
             CoreBattleCard display = new CoreBattleCard(card.Id, card.Name, card.Type, card.Energy, basic.Damage, basic.Block,
-                basic.Repair, card.Draw, card.PowderCost, template, card.AllowedStages, card.Action, card.RequiredCrew,
+                card.Repair, card.Draw, card.PowderCost, template, card.AllowedStages, card.Action, card.RequiredCrew,
                 card.ArtId, card.CannonballCost, card.RequiredComponent, card.UpgradeLevel, card.SchoolId, e);
-            string text = display.Description;
+            string text = CoreBattleCardText.RenderTemplate(display.DescriptionTemplate, display, stage);
             if (SchoolBattleActive(stage))
             {
                 // Conditions keep their authored base numbers; a separate total avoids double-counting their bonus.

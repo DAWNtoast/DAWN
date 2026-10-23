@@ -1,0 +1,14 @@
+﻿Discovered 537 NUnit cases.
+Full current inventory: 210 records / 195 IDs / 604 choices.
+Route 0: 158 choices executed, 74 insufficient-material cases rejected atomically.
+Route 1: 147 choices executed, 90 insufficient-material cases rejected atomically.
+Route 2: 158 choices executed, 73 insufficient-material cases rejected atomically.
+All guided trips without water/food refills: gold=645; water=100; food=102; powder=20; cannonballs=16.
+Two real voyages / optional salvage=False: boss actions=69; hull=45; gold=625; water=103; food=105; powder=20; cannonballs=16.
+Two real voyages / optional salvage=True: boss actions=69; hull=45; gold=635; water=103; food=105; powder=20; cannonballs=16.
+Navigator low-supply boundary: hours=6.719730; charged=3; water=1; event extra=1.
+Fixed teaching hand with preserved custom decks / source XP 0: 69 actions; hull 45.
+Fixed teaching hand with preserved custom decks / source XP 360: 69 actions; hull 45.
+Authored encounter audit: 214 variants / 177 unique IDs / 654 choices / 35 battle entries.
+NUnit: passed=537 failed=0 skipped=0 inconclusive=0
+﻿

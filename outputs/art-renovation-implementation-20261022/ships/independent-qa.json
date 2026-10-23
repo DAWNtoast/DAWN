@@ -1,0 +1,463 @@
+{
+  "count": 24,
+  "uniqueGuids": 24,
+  "failures": [],
+  "ships": [
+    {
+      "name": "barge_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7447376251220703,
+      "edgeNonzero": 0,
+      "margins": [
+        299,
+        125,
+        298,
+        126
+      ],
+      "guid": "1d9ea61afe781af9f51e4139b6d9ed9e",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "2390d7b988e0a60de5709a836cb93570657589036798a4ae4a42961f5447025c"
+    },
+    {
+      "name": "boss_arcane_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7828941345214844,
+      "edgeNonzero": 0,
+      "margins": [
+        291,
+        126,
+        290,
+        126
+      ],
+      "guid": "242476e6b6d4809e4a9d5d6bfa767777",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "6a7fe08cac11e143f686abddd6aad25ed2ed44c3bc66a2e70ffda479d8cf3523"
+    },
+    {
+      "name": "boss_blood_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7677135467529297,
+      "edgeNonzero": 0,
+      "margins": [
+        177,
+        126,
+        176,
+        126
+      ],
+      "guid": "fe999036c0eebadcee721a8c620d2824",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "c30d15bf79b45907af6dc3299b834a932b7e7f3bcb3576b31964283d1b214bb1"
+    },
+    {
+      "name": "boss_curse_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7766596476236979,
+      "edgeNonzero": 0,
+      "margins": [
+        286,
+        126,
+        286,
+        126
+      ],
+      "guid": "ad599abc2d82d8d67c558f260eef858e",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "24ae377378f9761d6f5fed2773fca8c79bf999c7e38802023d1dc81c8f11075d"
+    },
+    {
+      "name": "boss_fire_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.788171132405599,
+      "edgeNonzero": 0,
+      "margins": [
+        334,
+        127,
+        332,
+        126
+      ],
+      "guid": "ee77501ffb43eeaea570ee2340a5938c",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "f2b221214523847cb948c1a54369fcd0247df1ded85296ad5af6387a7f04d5bc"
+    },
+    {
+      "name": "boss_thunder_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7493966420491537,
+      "edgeNonzero": 0,
+      "margins": [
+        162,
+        126,
+        162,
+        126
+      ],
+      "guid": "245ec3f53021af6181202d5c9902b752",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "e679c47b77414aa6fedcc83567e62cdb8ec02d1ec2b575233219e85d29acff13"
+    },
+    {
+      "name": "boss_tide_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.8224341074625651,
+      "edgeNonzero": 0,
+      "margins": [
+        307,
+        126,
+        310,
+        126
+      ],
+      "guid": "c2f48b38d9f52d265fd46308eab42c7c",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "f903dbd9f7775a3750af0c70f734aef4bc7cd716932566995ed774bd103edc67"
+    },
+    {
+      "name": "clipper_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.8300952911376953,
+      "edgeNonzero": 0,
+      "margins": [
+        367,
+        126,
+        367,
+        126
+      ],
+      "guid": "eabe17c65f2570f819c9f410ff70ab27",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "831d99965ccb0b87ae552469cdbf0d44cfe2020128af027ffc14a781f55b9ba0"
+    },
+    {
+      "name": "courier_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.8194783528645834,
+      "edgeNonzero": 0,
+      "margins": [
+        290,
+        125,
+        289,
+        126
+      ],
+      "guid": "2767366376f380903e89faaff53e797f",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "fa5ce6b3dc5c73e05c04a059c427680670c95341061e4848ab6b5c7cddf942fa"
+    },
+    {
+      "name": "gunship_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7714138031005859,
+      "edgeNonzero": 0,
+      "margins": [
+        307,
+        126,
+        306,
+        126
+      ],
+      "guid": "d8a0d7da4924d363a340375daca7132e",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "2fa7df4cfa191521db8157618c803dba4c783829578e85ce8a7f7350e3b3d145"
+    },
+    {
+      "name": "legendary_arcane_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7626323699951172,
+      "edgeNonzero": 0,
+      "margins": [
+        269,
+        126,
+        270,
+        126
+      ],
+      "guid": "5f247d9de8c5e51e4f12d52c991d9080",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "29f1eeb89242eb73aa594ae254e12f7d6b0dbeb65d7630a106df7e15c094a957"
+    },
+    {
+      "name": "legendary_blood_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7968756357828776,
+      "edgeNonzero": 0,
+      "margins": [
+        328,
+        126,
+        328,
+        126
+      ],
+      "guid": "058592018f386d15a2c44b17dcffc04a",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "258b0d5593672b636b5bdd05d56b86cc6791881a40e32d3ef5f15d3c785d5b2f"
+    },
+    {
+      "name": "legendary_curse_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7432079315185547,
+      "edgeNonzero": 0,
+      "margins": [
+        272,
+        125,
+        272,
+        126
+      ],
+      "guid": "0819bb3ddd98259986c5ba4e7c416741",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "7b25531a13b0b413c50513f5f4d2a15c1a87a5d39b17b1823fc4e7347f4398f0"
+    },
+    {
+      "name": "legendary_fire_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7634735107421875,
+      "edgeNonzero": 0,
+      "margins": [
+        278,
+        126,
+        278,
+        127
+      ],
+      "guid": "aee31d51c93157304e65e6a9459e57d5",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "a026e50912cd3695da634ecf42969671d66cb2f8e839ceddfec9f3d1ce71a1ff"
+    },
+    {
+      "name": "legendary_thunder_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7715403238932291,
+      "edgeNonzero": 0,
+      "margins": [
+        303,
+        126,
+        302,
+        126
+      ],
+      "guid": "d1fd598f4d3470f67cd336258e133cdb",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "7a733a8ea72abbb436960830f16da98e6d4d79c2fc5954c3ad6c65a0998254af"
+    },
+    {
+      "name": "legendary_tide_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7456633249918619,
+      "edgeNonzero": 0,
+      "margins": [
+        264,
+        126,
+        264,
+        127
+      ],
+      "guid": "4e36dc83b9ff360120b264306e22e571",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "33ae70af641368bd507be81a1dacaab53603c8ee0cbe0804461cae35ac1494cb"
+    },
+    {
+      "name": "merchant_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.751397450764974,
+      "edgeNonzero": 0,
+      "margins": [
+        296,
+        125,
+        295,
+        125
+      ],
+      "guid": "00ed7a316647812113a6fa6712ec547d",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "ac992e4c7a6d3ff1fc8283139c2f79b5635cd472bd050de4fa15c50ee3404866"
+    },
+    {
+      "name": "occult_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7926928202311198,
+      "edgeNonzero": 0,
+      "margins": [
+        320,
+        125,
+        319,
+        125
+      ],
+      "guid": "a70e822de3fb4fcc506f216b047b9608",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "7ff3bd1bba4cea3462bf6c549fb4fa0673526149de02fa1e7ac709b5419ffe80"
+    },
+    {
+      "name": "patrol_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7928435007731119,
+      "edgeNonzero": 0,
+      "margins": [
+        319,
+        125,
+        318,
+        126
+      ],
+      "guid": "38cc573cc4f74172c51ef8d4d3fdbf12",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "89cf3f36cab94db1187753f1c8c979ef8d4cafc60dc1aaf5fc8083cdbebe3982"
+    },
+    {
+      "name": "privateer_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7909997304280599,
+      "edgeNonzero": 0,
+      "margins": [
+        294,
+        125,
+        293,
+        125
+      ],
+      "guid": "9513480098ca75411f81b0989fe33cad",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "4966343cdb7d08b0442c0518715faebdbaf188de71c1cab200a204374c0dee54"
+    },
+    {
+      "name": "provision_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7079194386800131,
+      "edgeNonzero": 0,
+      "margins": [
+        249,
+        126,
+        249,
+        126
+      ],
+      "guid": "f6043d88c71381ef6697454973f619e1",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "48ae1bc76ef0b6ba71370a32bd3957b58a071a2e8c0f5ddb9e9f35c4dee9de13"
+    },
+    {
+      "name": "relic_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7808653513590494,
+      "edgeNonzero": 0,
+      "margins": [
+        300,
+        126,
+        298,
+        125
+      ],
+      "guid": "3256100562c2044f28eb380a0258e9c8",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "6a4b183b28a77be9622e4215a1e3d20ec6c556896e9910b3a700ee3ba0760417"
+    },
+    {
+      "name": "salvage_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.6880804697672526,
+      "edgeNonzero": 0,
+      "margins": [
+        217,
+        125,
+        217,
+        126
+      ],
+      "guid": "77ff0f87c97c8b7798fe4d1701e2a945",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "b80f0c02f6442d01bbc86f34ab29e90cf8cecb9ed47a9d4e4c7fc982a8a9f2d7"
+    },
+    {
+      "name": "sloop_v2.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "zeroAlphaFraction": 0.7890141805013021,
+      "edgeNonzero": 0,
+      "margins": [
+        272,
+        126,
+        272,
+        126
+      ],
+      "guid": "c5f031469fff00bca17280228539be09",
+      "spriteMode1": true,
+      "alphaIsTransparency": true,
+      "sha256": "3a8c02bf144c7a7ec08993e7a597dad0efc8e75ea827d4b0b3c79d225f7e3d48"
+    }
+  ]
+}

@@ -102,6 +102,9 @@ namespace ShatteredSail.Core.Gameplay
         public double specialCardDistanceRemainder;
         public CoreVoyageValueCheckpoint[] specialCardExperience, cardUpgradeLevels;
         public CoreVoyageDeckCheckpoint[] battleDecks;
+        // Older checkpoints cannot prove uninterrupted supplies or victories with authored decks.
+        public int achievementProgressVersion, achievementEditedDeckStages, achievementVoyageBattleWins, achievementWonEditedDeckStages;
+        public bool achievementVoyageRanOutOfSupplies, achievementVoyageSupplyEvidenceAvailable;
         public string[] logs;
     }
 
@@ -184,6 +187,11 @@ namespace ShatteredSail.Core.Gameplay
                 specialCardDistanceRemainder = specialCardDistanceRemainder,
                 specialCardExperience = CaptureCheckpointValues(specialCardExperience), cardUpgradeLevels = CaptureCheckpointValues(cardUpgradeLevels),
                 battleDecks = battleDecks.Select(deck => new CoreVoyageDeckCheckpoint { cards = deck.ToArray() }).ToArray(), logs = logEntries.ToArray(),
+                achievementProgressVersion = 1, achievementEditedDeckStages = achievementEditedDeckStages,
+                achievementVoyageBattleWins = AchievementVoyageBattleWins,
+                achievementWonEditedDeckStages = AchievementWonEditedDeckStages,
+                achievementVoyageRanOutOfSupplies = AchievementVoyageRanOutOfSupplies,
+                achievementVoyageSupplyEvidenceAvailable = AchievementVoyageSupplyEvidenceAvailable,
             };
         }
 
@@ -244,7 +252,7 @@ namespace ShatteredSail.Core.Gameplay
                 c.currentRouteBossDefeated && !c.bossDefeated ||
                 c.pendingBoardingComponentDrop && (c.pendingBoardingComponentSlot < 0 || c.pendingBoardingComponentSlot >= ComponentSlotCountForLoot()) ||
                 !c.pendingBoardingComponentDrop && c.pendingBoardingComponentSlot != -1 ||
-                !Enum.IsDefined(typeof(SeaTerrainType), c.battleTerrain) || !CheckpointBonuses(c) ||
+                !Enum.IsDefined(typeof(SeaTerrainType), c.battleTerrain) || !CheckpointBonuses(c) || !ValidAchievementVoyageCheckpoint(c) ||
                 !IsValidGameDuration(c.specialCardDistanceRemainder) || c.specialCardDistanceRemainder >= 1d ||
                 !TryCheckpointCargo(c.cargo, out VoyageCargo cargo) || !TryCheckpointCargo(c.departureCargo, out VoyageCargo departure)) return false;
 
@@ -321,6 +329,7 @@ namespace ShatteredSail.Core.Gameplay
             // so these records can be recovered without inventing historical information.
             candidate.UpdateActiveUsedTreasureMapCoverage();
             candidate.Cargo = cargo; candidate.departureCargo = departure;
+            candidate.RestoreAchievementVoyageProgress(c);
             candidate.Position = new VoyagePoint(c.x, c.y); candidate.Heading = (SailingDirection)c.heading;
             candidate.requestedDistanceNm = c.plannedDistance;
             candidate.usesDefaultDistance = c.distancePlanVersion > 0 && c.useDefaultDistance;
@@ -422,6 +431,7 @@ namespace ShatteredSail.Core.Gameplay
             CurrentPort = s.CurrentPort; SelectedDestinationPort = s.SelectedDestinationPort; ProfileGold = s.ProfileGold;
             shipPorts.Clear(); foreach (var pair in s.shipPorts) shipPorts.Add(pair.Key, pair.Value);
             Map = s.Map; Cargo = s.Cargo; departureCargo = s.departureCargo;
+            CopyAchievementVoyageProgress(s);
             shipRosterVersion = s.shipRosterVersion; voyageRouteBossId = s.voyageRouteBossId;
             currentRouteBossDefeated = s.currentRouteBossDefeated;
             Position = s.Position; Heading = s.Heading;
@@ -555,7 +565,7 @@ namespace ShatteredSail.Core.Gameplay
         private static bool ValidCheckpointMap(CoreTreasureMapSave m) => m != null && ValidCheckpointSeed(m.id) && ValidCheckpointSeed(m.seed) &&
             ValidMapGeometryVersion(m.mapGeometryVersion) && ValidTreasureContentVersion(m.contentVersion) &&
             CoreTreasureHuntCatalog.FindRank(m.rankId) != null;
-        private static bool ValidMapGeometryVersion(int version) => version >= 0 && version <= 3;
+        private static bool ValidMapGeometryVersion(int version) => version >= 0 && version <= CoreVoyageMap.CurrentGeometryVersion;
         private static bool ValidTreasureContentVersion(int version) => version >= 0 && version <= 1;
         private static bool ValidCheckpointSeed(string value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 512;
         private static bool CheckpointFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

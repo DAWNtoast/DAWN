@@ -1,0 +1,7 @@
+{
+  "eventId": "event_reef_v2_diving_bell_station",
+  "source": "C:/Users/Admin/.codex/generated_images/01a1630b-0426-7de1-9802-03c061f4820c/exec-ec8d6561-1166-4541-8973-0730b6380daa.png",
+  "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_v2_diving_bell_station_v1.png",
+  "tool": "built-in image_gen",
+  "prompt": "Use case: illustration-story. Asset type: final in-game nautical encounter illustration, one single full-bleed landscape scene, 4:3 composition, preferably 1536x1152. Style: richly detailed hand-painted maritime adventure storybook painting, matching classic pirate adventure game illustrations, believable weathered timber, saltwater, rope and brass, crisp central silhouette readable at 256px. Keep crucial forms within central 80%, generous environment context, no borders, panels, text, lettering, captions, logos, watermark, modern objects or photorealistic finish. Scene: A historical experimental diving-bell station on a broad wooden workboat anchored over clear turquoise reefs. Several bell makers carefully suspend a new domed brass diving bell from a stout wooden crane over the boat's side, one inspecting a seam with an iron band while another marks bubble positions on a blank diagram board. The bell is partly submerged, a visible trail of bubbles rises around it and coral seabed shows through the water. Central gleaming bell with round windows and believable suspension, bright calm daylight, age-of-sail workshop."
+}

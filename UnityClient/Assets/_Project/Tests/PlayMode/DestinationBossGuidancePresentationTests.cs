@@ -60,25 +60,28 @@ namespace ShatteredSail.Presentation.Tests
             VoyagePoint previousTarget = session.DirectCourseTarget;
             SailingDirection previousHeading = session.Heading;
             NavigationMapViewport viewport = GameObject.Find("Map Layer").GetComponent<NavigationMapViewport>();
-            // Deliberately leave the southern boss beyond the real chart crop.
-            // The explicit locate action must reveal it without selecting a course.
+            // The full map stays visible. Even an explicit pan request must not
+            // hide the southern boss or select a sailing course.
+            Vector2 originalCenter = viewport.ViewCenter;
             viewport.PanBy(new Vector2(100000f, -100000f));
             Canvas.ForceUpdateCanvases();
-            Assert.That(DestinationBossMarkerInsideFrame(boss), Is.False, "Exercise a boss outside the current viewport.");
+            Assert.That(DestinationBossMarkerInsideFrame(boss), Is.True, "The whole world remains inside the fixed chart.");
+            Assert.That(Vector2.Distance(viewport.ViewCenter, originalCenter), Is.LessThan(.001f));
             yield return ClickDestinationTestGraphic(ActiveButton("Locate Blocking Boss").gameObject, Vector2.zero);
             costs.AssertUnchanged(session);
             Assert.That(session.Heading, Is.EqualTo(previousHeading));
             Assert.That(session.HasDirectCourseTarget, Is.EqualTo(hadTarget));
             AssertDestinationTestPoint(session.DirectCourseTarget, previousTarget);
-            Assert.That(DestinationBossMarkerInsideFrame(boss), Is.True, "Locate must pan the highlighted boss into the chart's clipped region.");
+            Assert.That(DestinationBossMarkerInsideFrame(boss), Is.True, "Locate keeps the highlighted boss visible without moving the chart.");
+            Assert.That(Vector2.Distance(viewport.ViewCenter, originalCenter), Is.LessThan(.001f));
             Vector2 locatedCenter = viewport.ViewCenter;
             RenderDestinationBossFixture(controller);
             yield return null;
             viewport = GameObject.Find("Map Layer").GetComponent<NavigationMapViewport>();
-            Assert.That(Vector2.Distance(viewport.ViewCenter, locatedCenter), Is.LessThan(.001f), "A dashboard refresh preserves the explicit map pan.");
+            Assert.That(Vector2.Distance(viewport.ViewCenter, locatedCenter), Is.LessThan(.001f), "A dashboard refresh keeps the chart centered.");
             Assert.That(DestinationBossMarkerInsideFrame(boss), Is.True);
             NavalBattleVisualCapture.Capture(controller, "Port_Boss_Located_In_Fog.png",
-                "定位首领仅平移海图，未探索迷雾中的首领带金色高亮与点击提示", "Navigation Chart");
+                "定位首领保持全图固定，未探索迷雾中的首领带金色高亮与点击提示", "Navigation Chart");
 
             // A queued footer callback must respect the same modal protection
             // as chart clicks, even if it bypasses the normal raycast layer.

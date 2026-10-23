@@ -1,0 +1,101 @@
+{
+  "key": "boss_curse",
+  "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-326acbc7-7e34-436b-b8e3-8e28233374c4.png",
+  "candidateCopy": "D:\\Game\\outputs\\imagegen\\special-warships-20261023\\candidate-review\\boss_curse-8c8b6759509b\\boss_curse.png",
+  "sha256": "8C8B6759509BEA9062232262EEA90E292CB194D7C74BA20148F0881FDE819007",
+  "profile": {
+    "width": 1536,
+    "height": 1024,
+    "left": 56,
+    "top": 17,
+    "right": 1514,
+    "bottom": 980,
+    "edgePixels": 7,
+    "waterRow": 921,
+    "keelY": 962,
+    "transparentFraction": 0.4968007405598958,
+    "center": 0.519206,
+    "contact": 0.099609,
+    "hullWidth": 0.358073
+  },
+  "minimumVisibleMargin": 17,
+  "alpha": {
+    "width": 1536,
+    "height": 1024,
+    "totalPixels": 1572864,
+    "alpha0": 781400,
+    "alpha1To15": 62719,
+    "alpha16To63": 9182,
+    "alpha64To127": 6838,
+    "alpha128To254": 712725,
+    "alpha255": 0,
+    "outerSevenPercentPixels": 411264,
+    "outerSevenPercentNonzero": 24713,
+    "outerSevenPercentAverageAlpha": 11.619650638032992,
+    "outerSevenPercentMaxAlpha": 254,
+    "maxEdgeAlpha": 1,
+    "foregroundAverageAlpha": 250.44749377389596,
+    "edgeSamples": [
+      "486,1023: alpha=1",
+      "487,1023: alpha=1",
+      "488,1023: alpha=1",
+      "489,1023: alpha=1",
+      "490,1023: alpha=1",
+      "491,1023: alpha=1",
+      "1207,1023: alpha=1"
+    ],
+    "bounds": [
+      {
+        "threshold": 1,
+        "left": 51,
+        "top": 15,
+        "right": 1518,
+        "bottom": 1023,
+        "minMargin": 0,
+        "pixels": 791464
+      },
+      {
+        "threshold": 16,
+        "left": 56,
+        "top": 17,
+        "right": 1514,
+        "bottom": 980,
+        "minMargin": 17,
+        "pixels": 728745
+      },
+      {
+        "threshold": 128,
+        "left": 57,
+        "top": 18,
+        "right": 1513,
+        "bottom": 979,
+        "minMargin": 18,
+        "pixels": 712725
+      },
+      {
+        "threshold": 254,
+        "left": 139,
+        "top": 94,
+        "right": 1071,
+        "bottom": 976,
+        "minMargin": 47,
+        "pixels": 1203
+      }
+    ],
+    "alphaSamples": {
+      "topLeft": 0,
+      "topCenter": 0,
+      "topRight": 0,
+      "leftCenter": 0,
+      "rightCenter": 0,
+      "bottomLeft": 0,
+      "bottomCenter": 0,
+      "bottomRight": 0
+    }
+  },
+  "previews": {
+    "deep-blue": "D:\\Game\\outputs\\imagegen\\special-warships-20261023\\candidate-review\\boss_curse-8c8b6759509b\\boss_curse-deep-blue.png",
+    "light": "D:\\Game\\outputs\\imagegen\\special-warships-20261023\\candidate-review\\boss_curse-8c8b6759509b\\boss_curse-light.png"
+  },
+  "productionModified": false
+}

@@ -1,33 +1,10 @@
 using System.Collections.Generic;
 using ShatteredSail.Core.Gameplay;
-using UnityEngine;
-using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
-        private void BuildNavigationExplorationStatus(RectTransform chart)
-        {
-            if (tutorialActive) return;
-            RectTransform panel = CreateFixedPanel("Voyage Exploration Status", chart,
-                new Vector2(810f, 54f), new Vector2(0f, 204f), Html("#E1CCA1"));
-            Image backing = panel.GetComponent<Image>();
-            backing.sprite = backing.overrideSprite = null;
-            backing.color = Html("#E1CCA1");
-            backing.raycastTarget = false;
-            Text status = NavigationText("Voyage Exploration Status Text", panel,
-                new Vector2(782f, 42f), Vector2.zero, 18, Ink);
-            string summary = session.ExplorationStatusSummary;
-            string expedition = session.TreasureExpeditionStatusSummary;
-            status.text = !string.IsNullOrEmpty(expedition)
-                ? expedition + (string.IsNullOrEmpty(summary) ? string.Empty : "\n航海增益 · " + summary)
-                : string.IsNullOrEmpty(summary)
-                    ? "探索收获 · 调查海上事件，收集线索并获得临时航海增益。"
-                    : "探索收获 · " + summary;
-            status.resizeTextForBestFit = false;
-        }
-
         private void AppendExplorationChoiceDetails(List<string> values, VoyageEffect effect)
         {
             if (effect == null) return;

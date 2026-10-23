@@ -1,0 +1,7 @@
+{
+  "eventId": "event_reef_night_fog",
+  "source": "C:/Users/Admin/.codex/generated_images/01a1630b-0426-7de1-9802-03c061f4820c/exec-81f21180-977e-4281-a097-7eeffeae848f.png",
+  "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\event_reef_night_fog_v1.png",
+  "tool": "built-in image_gen",
+  "prompt": "Use case: illustration-story. Asset type: final in-game nautical encounter illustration, one single full-bleed landscape scene, 4:3 composition, preferably 1536x1152. Style: richly detailed hand-painted maritime adventure storybook painting, matching classic pirate adventure game illustrations, believable weathered timber, saltwater, rope and brass, crisp central silhouette readable at 256px. Keep crucial forms within central 80%, generous environment context, no borders, panels, text, lettering, captions, logos, watermark, modern objects or photorealistic finish. Scene: On the deck of a wooden sailing ship near jagged tropical reefs at blue twilight, a thick incoming bank of tide fog erases the safe channel. A navigator holds a warm lantern by the ship's hanging brass bell and listens uncertainly toward two barely visible rock shapes in different directions; another sailor lowers a cream sail. Make fog layers and the bell the clear story, cool teal and indigo with warm amber focal light, readable silhouettes rather than black darkness. No ghosts, no magic writing or sound-effect text."
+}

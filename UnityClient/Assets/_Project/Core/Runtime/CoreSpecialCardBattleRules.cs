@@ -58,7 +58,8 @@ namespace ShatteredSail.Core.Gameplay
             if (!WaivesBloodCost(card, battle)) return text;
             CoreNavalExpansionCardSpec spec = CoreNavalSchoolExpansionCatalog.FindSpec(card.Id);
             return spec != null && spec.HullCost > 0
-                ? text.Replace("支付 " + spec.HullCost + " 船体", "支付 0 船体（血契特权）") : text;
+                ? text.Replace("支付 " + spec.HullCost + " 点船体", "支付 0 点船体（血契特权）")
+                    .Replace("支付 " + spec.HullCost + " 船体", "支付 0 船体（血契特权）") : text;
         }
     }
 
@@ -85,8 +86,8 @@ namespace ShatteredSail.Core.Gameplay
                 case "curse":
                     if (SchoolEnemyHealth <= 0) break;
                     state.CurseMarks = Math.Max(state.CurseMarks, Math.Min(6, SchoolSum(state.CurseMarks, 1)));
-                    state.CurseDamagePerMark = Math.Max(state.CurseDamagePerMark, 2);
-                    state.CurseTurns = Math.Max(state.CurseTurns, 2);
+                    state.CurseDamagePerMark = 0;
+                    state.CurseTurns = state.CurseMarks;
                     break;
                 case "tide": state.TidePower = Math.Min(state.TideLimit, SchoolSum(state.TidePower, 3)); break;
                 case "thunder": state.ThunderChain = Math.Min(state.ThunderLimit, SchoolSum(state.ThunderChain, 1)); break;

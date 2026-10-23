@@ -44,6 +44,17 @@ namespace ShatteredSail.Core.Gameplay
         private CoreBattleCard NavalExpansionHandCard(int handIndex) => Battle != null && handIndex >= 0 && handIndex < Battle.Hand.Count
             ? GetBattleCard(Battle.Hand[handIndex]) : null;
 
+        public int NavalExpansionResourceAmount(CoreNavalExpansionCardSpec spec, CoreNavalCardPlayOptions options = null)
+        {
+            if (spec == null) return 0;
+            if (!spec.ConsumesAllResource) return options?.ResourceAmount ?? spec.ResourceMinimum;
+            if (Battle == null) return 0;
+            if (spec.ResourceLabel == "潮势") return Math.Max(0, Battle.Schools.TidePower);
+            if (spec.ResourceLabel == "咒印") return Math.Max(0, Battle.Schools.CurseMarks);
+            if (spec.ResourceLabel == "连锁") return Math.Max(0, Battle.Schools.ThunderChain);
+            return 0;
+        }
+
         private int NavalExpansionResourceMaximum(CoreNavalExpansionCardSpec spec)
         {
             if (Battle == null) return spec.ResourceMaximum;
@@ -51,7 +62,6 @@ namespace ShatteredSail.Core.Gameplay
             if (spec.ResourceLabel == "潮势") maximum = Math.Min(maximum, Battle.Schools.TidePower);
             if (spec.ResourceLabel == "咒印") maximum = Math.Min(maximum, Battle.Schools.CurseMarks);
             if (spec.ResourceLabel == "连锁") maximum = Math.Min(maximum, Battle.Schools.ThunderChain);
-            if (spec.Mechanic == CoreNavalExpansionMechanic.TideStrip) maximum = Math.Min(maximum, Battle.EnemyBlock);
             return Math.Max(0, maximum);
         }
 
@@ -76,7 +86,6 @@ namespace ShatteredSail.Core.Gameplay
             if (spec.OncePerTurn && Battle.SuccessfulCardUses(BattleCardUseIdentity(card)) > 0) return "同名牌本回合已使用";
             if (spec.NeedsEnemyTarget && NavalGridDistance(Battle.PlayerPositionMeters, Battle.EnemyPositionMeters) > 4)
                 return "目标须在 4 格曼哈顿范围内";
-            if (spec.Mechanic == CoreNavalExpansionMechanic.TideStrip && Battle.EnemyBlock <= 0) return "目标没有格挡";
             if (spec.Mechanic == CoreNavalExpansionMechanic.MoveFire && !NavalExpansionHasMovableFire()) return "没有可移至相邻空格的己方火场";
             if (spec.Mechanic == CoreNavalExpansionMechanic.HarborExplosion && !NavalExpansionHasExplodableFire()) return "没有完整落在 4 格内的己方火场引爆区域";
             if (spec.Mechanic == CoreNavalExpansionMechanic.ThunderCollapse && !NavalExpansionHasCollapsibleThunder()) return "没有含敌舰且剩余格全在 4 格内的己方雷栅";

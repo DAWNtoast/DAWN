@@ -87,6 +87,92 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void AttackOriginsUseTideArrivalWithoutChangingBlueCellsOrLiveState()
+        {
+            var s = NewFieldBattle(1, 20);
+            Field(s, CoreNavalFieldKind.Tide, 1, 0, 1, 0);
+            Append(s, 100, 0);
+            CoreNavalMovementNode[] path = s.NavalMovementPath.ToArray();
+            string[] ledger = s.Battle.NavalFields.TriggerLedger.ToArray();
+            int revision = s.Battle.TacticalRevision, block = s.Battle.PlayerBlock, energy = s.Battle.Energy;
+            long sequence = s.Battle.NavalFields.PresentationSequence;
+
+            CollectionAssert.AreEqual(new[] { new VoyagePoint(200, 0) }, s.GetNavalReachableAttackOrigins());
+            CollectionAssert.AreEqual(new[] { new VoyagePoint(200, 0) }, s.GetNavalReachableAttackOrigins());
+            CollectionAssert.AreEqual(new[] { new VoyagePoint(100, 0) }, s.GetNavalReachableCells());
+            CollectionAssert.AreEqual(path, s.NavalMovementPath);
+            CollectionAssert.AreEqual(ledger, s.Battle.NavalFields.TriggerLedger);
+            Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(1));
+            Assert.That(s.Hull, Is.EqualTo(20));
+            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(block));
+            Assert.That(s.Battle.Energy, Is.EqualTo(energy));
+            Assert.That(s.Battle.TacticalRevision, Is.EqualTo(revision));
+            Assert.That(s.Battle.PlayerPositionMeters, Is.EqualTo(new VoyagePoint(0, 0)));
+            Assert.That(s.Battle.PlayerHeadingDegrees, Is.Zero);
+            Assert.That(s.Battle.NavalFields.Cells.Count, Is.EqualTo(1));
+            Assert.That(s.Battle.NavalFields.Cells[0].Kind, Is.EqualTo(CoreNavalFieldKind.Tide));
+            Assert.That(s.Battle.NavalFields.PresentationSequence, Is.EqualTo(sequence));
+        }
+
+        [Test]
+        public void AttackOriginsExcludeEnemyCollisionEndpoint()
+        {
+            var s = NewFieldBattle(2, 20);
+            Pose(s, false, new VoyagePoint(100, 0), 180f);
+            CollectionAssert.Contains(s.GetNavalReachableCells(), new VoyagePoint(100, 0));
+            Assert.That(s.GetNavalReachableAttackOrigins(), Is.Empty);
+            Field(s, CoreNavalFieldKind.Blood, 0, 1);
+            Assert.That(s.GetNavalReachableAttackOrigins(), Is.Empty, "The terrain-aware search also excludes ram endpoints.");
+        }
+
+        [Test]
+        public void AttackOriginsExcludeSinkingAndStopAtUntriggeredThunder()
+        {
+            var s = NewFieldBattle(3, 2);
+            Field(s, CoreNavalFieldKind.Fire, 1, 0);
+            Assert.That(s.GetNavalReachableAttackOrigins(), Is.Empty);
+            Assert.That(s.Hull, Is.EqualTo(2));
+            Assert.That(s.Battle.NavalFields.TriggerLedger, Is.Empty);
+
+            s.Battle.NavalFields.Cells.Clear();
+            typeof(CoreVoyageSession).GetProperty("Hull").SetValue(s, 20);
+            Field(s, CoreNavalFieldKind.Thunder, 1, 0);
+            CollectionAssert.AreEqual(new[] { new VoyagePoint(100, 0) }, s.GetNavalReachableAttackOrigins());
+            Assert.That(s.Hull, Is.EqualTo(20));
+            Assert.That(s.Battle.NavalFields.TriggerLedger, Is.Empty);
+        }
+
+        [Test]
+        public void AttackOriginsCanSailThroughTideWhoseStoppingPushWouldSinkTheShip()
+        {
+            var s = NewFieldBattle(1, 2);
+            Field(s, CoreNavalFieldKind.Tide, 1, 0, 0, 1);
+            Field(s, CoreNavalFieldKind.Fire, 1, 1);
+            Assert.That(s.GetNavalReachableAttackOrigins(), Is.Empty);
+            Points(s, 2);
+            var origins = s.GetNavalReachableAttackOrigins();
+            CollectionAssert.Contains(origins, new VoyagePoint(200, 0));
+            CollectionAssert.DoesNotContain(origins, new VoyagePoint(100, 100));
+            Assert.That(s.Hull, Is.EqualTo(2));
+            Assert.That(s.Battle.NavalFields.TriggerLedger, Is.Empty);
+        }
+
+        [Test]
+        public void AttackOriginsRetainLongerSurvivingDetoursAroundFire()
+        {
+            var s = NewFieldBattle(5, 3);
+            Field(s, CoreNavalFieldKind.Fire, 2, 0);
+            Field(s, CoreNavalFieldKind.Fire, 5, 0);
+            CollectionAssert.DoesNotContain(s.GetNavalReachableAttackOrigins(), new VoyagePoint(500, 0));
+            // Seven steps can bypass the first fire along the next row, leaving
+            // enough hull to stop in the second fire. The five-step route sinks.
+            Points(s, 7);
+            CollectionAssert.Contains(s.GetNavalReachableAttackOrigins(), new VoyagePoint(500, 0));
+            Assert.That(s.Hull, Is.EqualTo(3));
+            Assert.That(s.Battle.NavalFields.TriggerLedger, Is.Empty);
+        }
+
+        [Test]
         public void RangeAndDragAreLockedByTutorialAndArrivalSelection()
         {
             var tutorial = CoreGuidedBossScriptTests.StartBoss();
@@ -192,6 +278,17 @@ namespace ShatteredSail.Core.Tests
 
         private static void Points(CoreVoyageSession s, int value) =>
             typeof(CoreBattleState).GetProperty("NavalActionPoints").SetValue(s.Battle, value);
+        private static CoreVoyageSession NewFieldBattle(int points, int hull)
+        {
+            var s = NewBattle(points);
+            s.Battle.Stage = NavalBattleStage.Naval;
+            typeof(CoreVoyageSession).GetProperty("Hull").SetValue(s, hull);
+            typeof(CoreBattleState).GetProperty("PlayerBlock").SetValue(s.Battle, 0);
+            return s;
+        }
+        private static void Field(CoreVoyageSession s, CoreNavalFieldKind kind, int x, int y, int dx = 0, int dy = 0) =>
+            s.Battle.NavalFields.Cells.Add(new CoreNavalFieldCell { X = x, Y = y, Kind = kind, PlayerOwned = true,
+                InstanceId = s.Battle.NavalFields.Cells.Count + 1, ExpiresAtOwnerTurn = 100, DirectionX = dx, DirectionY = dy });
         private static void Pose(CoreVoyageSession s, bool player, VoyagePoint point, float heading) =>
             typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(s.Battle, new object[] { player, point, heading });

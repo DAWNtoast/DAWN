@@ -31,7 +31,7 @@ namespace ShatteredSail.Editor
             "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton", "Departure Buy Provisions",
             "Adjust Voyage Supplies", "Configure Voyage Battle Decks", "Configure Voyage Crew", "Start Voyage"
         };
-        private static readonly string[] PaintedRouteButtons = { "Departure Dock Ordinary Voyage", "Departure Dock Chart Shortcut" };
+        private static readonly string[] PaintedRouteButtons = { "Departure Dock Ordinary Voyage" };
         private static readonly Dictionary<string, Dictionary<Rect, Rect>> SourceAlphaBounds =
             new Dictionary<string, Dictionary<Rect, Rect>>(StringComparer.OrdinalIgnoreCase);
         private enum State { Ordinary, Chart, InvalidChart, Treasure, Crew, BasicSupplies }
@@ -458,7 +458,7 @@ namespace ShatteredSail.Editor
                 page.errors.Add("Selected sea description is not visible/live.");
             if (hint == null || !hint.isActiveAndEnabled) page.errors.Add("Independent ship inspect hint is hidden.");
             foreach (string name in new[] { "Departure Buy Provisions", "Adjust Voyage Supplies", "Configure Voyage Battle Decks",
-                "Configure Voyage Crew", "Start Voyage", "Departure Dock Ordinary Voyage", "Departure Dock Chart Shortcut", "Departure Treasure Seed Picker" }
+                "Configure Voyage Crew", "Start Voyage", "Departure Dock Ordinary Voyage", "Departure Treasure Seed Picker" }
                 .Concat(Enumerable.Range(0, 6).Select(index => "Departure Destination " + index))
                 .Concat(Enumerable.Range(0, 3).Select(index => "Route " + index)))
             {

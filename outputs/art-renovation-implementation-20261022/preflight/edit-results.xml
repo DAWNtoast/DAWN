@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="30" result="Passed" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:55Z" duration="3.5139073">
+  <test-suite type="TestSuite" id="1000" name="ArtRenovationValidation20261022" fullname="ArtRenovationValidation20261022" runstate="Runnable" testcasecount="6509" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:55Z" duration="3.513907" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="8619" name="ShatteredSail.Core.Tests.dll" fullname="D:/Game/tmp/shipyard-detail-clean-20261011/Library/ScriptAssemblies/ShatteredSail.Core.Tests.dll" runstate="Runnable" testcasecount="6509" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:55Z" duration="3.470784" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="29200" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="8620" name="ShatteredSail" fullname="ShatteredSail" runstate="Runnable" testcasecount="6509" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:55Z" duration="3.452367" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="8623" name="Core" fullname="ShatteredSail.Core" runstate="Runnable" testcasecount="5411" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.177586" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="8624" name="Tests" fullname="ShatteredSail.Core.Tests" runstate="Runnable" testcasecount="5411" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.159503" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="6403" name="NavalTacticalBoardViewTests" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" testcasecount="17" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.108760" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="6416" name="BoardingRange_SeparatesHealthReadoutsWithoutChangingShipDistance" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.BoardingRange_SeparatesHealthReadoutsWithoutChangingShipDistance" methodname="BoardingRange_SeparatesHealthReadoutsWithoutChangingShipDistance" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1885148592" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.080494" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="6421" name="ClickProjection_AfterOrbitSelectsTheSameWorldCell" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.ClickProjection_AfterOrbitSelectsTheSameWorldCell" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.006284" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="6417" name="ClickProjection_AfterOrbitSelectsTheSameWorldCell(0.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.ClickProjection_AfterOrbitSelectsTheSameWorldCell(0.0f)" methodname="ClickProjection_AfterOrbitSelectsTheSameWorldCell" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1971344956" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.002233" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6418" name="ClickProjection_AfterOrbitSelectsTheSameWorldCell(35.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.ClickProjection_AfterOrbitSelectsTheSameWorldCell(35.0f)" methodname="ClickProjection_AfterOrbitSelectsTheSameWorldCell" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1939464449" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000588" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6419" name="ClickProjection_AfterOrbitSelectsTheSameWorldCell(90.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.ClickProjection_AfterOrbitSelectsTheSameWorldCell(90.0f)" methodname="ClickProjection_AfterOrbitSelectsTheSameWorldCell" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="548171363" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000513" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6420" name="ClickProjection_AfterOrbitSelectsTheSameWorldCell(145.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.ClickProjection_AfterOrbitSelectsTheSameWorldCell(145.0f)" methodname="ClickProjection_AfterOrbitSelectsTheSameWorldCell" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1298302178" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000556" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="6404" name="Configure_ImmediatelyCentresTheSixCellSeparationAcrossTheScreen" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.Configure_ImmediatelyCentresTheSixCellSeparationAcrossTheScreen" methodname="Configure_ImmediatelyCentresTheSixCellSeparationAcrossTheScreen" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="2027318955" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.001038" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="6413" name="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.008724" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="6406" name="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(30.0f,180.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(30.0f,180.0f)" methodname="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="855132032" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.001126" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6407" name="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(60.0f,90.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(60.0f,90.0f)" methodname="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="55629359" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000620" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6408" name="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(100.0f,0.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(100.0f,0.0f)" methodname="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1436106910" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000622" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6409" name="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(200.0f,-90.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(200.0f,-90.0f)" methodname="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1985364566" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000819" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6410" name="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(320.0f,35.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(320.0f,35.0f)" methodname="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1321745577" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000565" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6411" name="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(600.0f,135.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(600.0f,135.0f)" methodname="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1226309648" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.003627" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="6412" name="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(2400.0f,-135.0f)" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale(2400.0f,-135.0f)" methodname="EveryRangeAndWorldBearing_KeepsShipsOnOppositeSidesWithExactScale" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="2138187595" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000614" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="6405" name="InitialShips_OccupyGridCellCentresInsteadOfLineIntersections" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.InitialShips_OccupyGridCellCentresInsteadOfLineIntersections" methodname="InitialShips_OccupyGridCellCentresInsteadOfLineIntersections" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="191810846" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.001092" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="6415" name="MovingEnemyByWholeCells_PreservesCellCentresAfterCameraRotation" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.MovingEnemyByWholeCells_PreservesCellCentresAfterCameraRotation" methodname="MovingEnemyByWholeCells_PreservesCellCentresAfterCameraRotation" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="1310282582" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.000719" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="6414" name="QuarterOrbit_KeepsEnemyAsWorldPivotAndTurnsCompassWithoutRotatingText" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.QuarterOrbit_KeepsEnemyAsWorldPivotAndTurnsCompassWithoutRotatingText" methodname="QuarterOrbit_KeepsEnemyAsWorldPivotAndTurnsCompassWithoutRotatingText" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="550225827" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.001562" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="6422" name="SeaLandmarks_StayAtTheSameWorldCoordinatesThroughOrbitMovementResizeAndZoom" fullname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests.SeaLandmarks_StayAtTheSameWorldCoordinatesThroughOrbitMovementResizeAndZoom" methodname="SeaLandmarks_StayAtTheSameWorldCoordinatesThroughOrbitMovementResizeAndZoom" classname="ShatteredSail.Core.Tests.NavalTacticalBoardViewTests" runstate="Runnable" seed="843929222" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:52Z" duration="0.001237" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+        <test-suite type="TestSuite" id="8625" name="Presentation" fullname="ShatteredSail.Presentation" runstate="Runnable" testcasecount="1079" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:55Z" duration="3.251490" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="8626" name="Tests" fullname="ShatteredSail.Presentation.Tests" runstate="Runnable" testcasecount="1079" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:55Z" duration="3.241636" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="7476" name="BattleHudLayoutTests" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:55Z" duration="3.194763" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="7491" name="BattleCallouts_UseRegionalHeaderAndRemoveStageBanners" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattleCallouts_UseRegionalHeaderAndRemoveStageBanners" methodname="BattleCallouts_UseRegionalHeaderAndRemoveStageBanners" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="1536998362" result="Passed" start-time="2026-10-22 15:09:52Z" end-time="2026-10-22 15:09:53Z" duration="0.746491" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="7487" name="BattleHeader_ReservesItsActualHeightAndSeparatesReadoutsFromStatusAndTeaching" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattleHeader_ReservesItsActualHeightAndSeparatesReadoutsFromStatusAndTeaching" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-22 15:09:53Z" end-time="2026-10-22 15:09:53Z" duration="0.196090" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="7485" name="BattleHeader_ReservesItsActualHeightAndSeparatesReadoutsFromStatusAndTeaching(False)" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattleHeader_ReservesItsActualHeightAndSeparatesReadoutsFromStatusAndTeaching(False)" methodname="BattleHeader_ReservesItsActualHeightAndSeparatesReadoutsFromStatusAndTeaching" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="1034967627" result="Passed" start-time="2026-10-22 15:09:53Z" end-time="2026-10-22 15:09:53Z" duration="0.094500" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="7486" name="BattleHeader_ReservesItsActualHeightAndSeparatesReadoutsFromStatusAndTeaching(True)" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattleHeader_ReservesItsActualHeightAndSeparatesReadoutsFromStatusAndTeaching(True)" methodname="BattleHeader_ReservesItsActualHeightAndSeparatesReadoutsFromStatusAndTeaching" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="803604492" result="Passed" start-time="2026-10-22 15:09:53Z" end-time="2026-10-22 15:09:53Z" duration="0.100219" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="7490" name="BattleHullBars_FollowTheirShipsWithinTheStatusLanesAndCenterTheirHealthValues" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattleHullBars_FollowTheirShipsWithinTheStatusLanesAndCenterTheirHealthValues" methodname="BattleHullBars_FollowTheirShipsWithinTheStatusLanesAndCenterTheirHealthValues" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="1749723849" result="Passed" start-time="2026-10-22 15:09:53Z" end-time="2026-10-22 15:09:53Z" duration="0.060575" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="7483" name="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-10-22 15:09:53Z" end-time="2026-10-22 15:09:55Z" duration="2.040775" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="7477" name="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(BrokenAnchor)" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(BrokenAnchor)" methodname="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="1881176278" result="Passed" start-time="2026-10-22 15:09:53Z" end-time="2026-10-22 15:09:53Z" duration="0.322102" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="7478" name="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(WhiteShell)" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(WhiteShell)" methodname="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="869179586" result="Passed" start-time="2026-10-22 15:09:53Z" end-time="2026-10-22 15:09:54Z" duration="0.288068" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="7479" name="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(BronzeBell)" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(BronzeBell)" methodname="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="585478527" result="Passed" start-time="2026-10-22 15:09:54Z" end-time="2026-10-22 15:09:54Z" duration="0.289194" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="7480" name="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(SaltCrown)" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(SaltCrown)" methodname="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="1216598713" result="Passed" start-time="2026-10-22 15:09:54Z" end-time="2026-10-22 15:09:54Z" duration="0.323456" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="7481" name="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(TwilightTide)" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(TwilightTide)" methodname="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="1637212822" result="Passed" start-time="2026-10-22 15:09:54Z" end-time="2026-10-22 15:09:55Z" duration="0.284619" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="7482" name="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(GrayGull)" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing(GrayGull)" methodname="BattlePreview_EveryRouteBuildsDeterministicallyWithoutSailing" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="1147938705" result="Passed" start-time="2026-10-22 15:09:55Z" end-time="2026-10-22 15:09:55Z" duration="0.531456" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="7488" name="BattleResources_UseThreeIconRowsWithoutTheRetiredTextPanels" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattleResources_UseThreeIconRowsWithoutTheRetiredTextPanels" methodname="BattleResources_UseThreeIconRowsWithoutTheRetiredTextPanels" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="915005777" result="Passed" start-time="2026-10-22 15:09:55Z" end-time="2026-10-22 15:09:55Z" duration="0.050329" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="7484" name="BattleSceneArt_CoversTheBattleSurface" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattleSceneArt_CoversTheBattleSurface" methodname="BattleSceneArt_CoversTheBattleSurface" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="2062403625" result="Passed" start-time="2026-10-22 15:09:55Z" end-time="2026-10-22 15:09:55Z" duration="0.049507" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="7489" name="BattleSidePanels_KeepDecisionColumnSeparateFromTheHand" fullname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests.BattleSidePanels_KeepDecisionColumnSeparateFromTheHand" methodname="BattleSidePanels_KeepDecisionColumnSeparateFromTheHand" classname="ShatteredSail.Presentation.Tests.BattleHudLayoutTests" runstate="Runnable" seed="293512545" result="Passed" start-time="2026-10-22 15:09:55Z" end-time="2026-10-22 15:09:55Z" duration="0.049660" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/Admin/AppData/LocalLow/CodexArtRenovation20261022/ArtRenovationValidation20261022\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

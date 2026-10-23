@@ -31,7 +31,7 @@ namespace ShatteredSail.Editor
             "DepartureOrdinaryCrewDecreaseButton", "DepartureOrdinaryCrewIncreaseButton", "Departure Buy Provisions",
             "Adjust Voyage Supplies", "Configure Voyage Battle Decks", "Configure Voyage Crew", "Start Voyage"
         };
-        private static readonly string[] PaintedRouteButtons = { "Departure Dock Ordinary Voyage", "Departure Dock Chart Shortcut" };
+        private static readonly string[] PaintedRouteButtons = { "Departure Dock Ordinary Voyage" };
         private static readonly Dictionary<string, Dictionary<Rect, Rect>> SourceAlphaBounds =
             new Dictionary<string, Dictionary<Rect, Rect>>(StringComparer.OrdinalIgnoreCase);
         private enum State { Ordinary, Chart, InvalidChart, Treasure, Crew, BasicSupplies }

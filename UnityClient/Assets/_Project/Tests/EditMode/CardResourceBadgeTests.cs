@@ -50,8 +50,14 @@ namespace ShatteredSail.Core.Tests
             for (int index = 0; index < CoreVoyageSession.CardLibrary.Count; index++)
             {
                 if (CoreVoyageSession.CardLibrary[index].AllowedStages == NavalBattleStages.None) continue;
+                // Production hands and workshop tabs only offer cards allowed
+                // in that stage. This all-catalog fixture must do the same.
+                NavalBattleStage stage = CardSupplyCostPresentation.PreviewStage(CoreVoyageSession.CardLibrary[index]);
+                session.Battle.Stage = stage;
+                typeof(CoreGameplayDemoController).GetField("selectedBattleDeckStage", PrivateInstance).SetValue(controller, stage);
                 CoreBattleCard data = session.GetBattleCard(index);
                 Assert.That(data, Is.Not.Null, CoreVoyageSession.CardLibrary[index].Id);
+                Assert.That(data.IsAllowedInStage(stage), Is.True, entry + " / " + data.Id + " is tested in its valid stage");
                 Assert.That(data.UpgradeLevel, Is.EqualTo(Math.Min(level, session.GetCardMaximumUpgradeLevel(index))),
                     entry + " / " + data.Id + " must exercise the requested rank up to its authored cap");
                 RectTransform face = CreateFace(entry, index);
@@ -177,14 +183,47 @@ namespace ShatteredSail.Core.Tests
             Assert.That(displayedCannonballs, Is.GreaterThan(0));
         }
 
-        [TestCase(CoreSchoolMechanic.ArcaneRelease)]
-        [TestCase(CoreSchoolMechanic.ArcaneWard)]
-        [TestCase(CoreSchoolMechanic.ArcaneEcho)]
+        [Test]
+        public void LoadingCard_PaysOnlyItsPowderBadgeAndKeepsTheShotForLater()
+        {
+            CoreVoyageSession session = CreateBattleSession(0);
+            UseSession(session);
+            session.Battle.Stage = NavalBattleStage.Naval;
+            session.Battle.Energy = 10;
+            session.Cargo.Powder = 1;
+            session.Cargo.Cannonballs = 0;
+            RectTransform face = CreateFace("Battle", FindCard("card_load_shot"));
+            Assert.That(BadgeValue(face, CardOrnamentKind.Gunpowder), Is.EqualTo(1));
+            Assert.That(FindBadge(face, CardOrnamentKind.Cannonball), Is.Null);
+            Assert.That(session.Battle.PlayerLoadedShot, Is.Zero);
+            Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
+            Assert.That(session.Cargo.Powder, Is.Zero);
+            Assert.That(session.Cargo.Cannonballs, Is.Zero);
+            Assert.That(session.Battle.PlayerLoadedShot, Is.EqualTo(5));
+        }
+
+        [TestCase(1, false, 1)]
+        [TestCase(2, true, 3)]
+        public void EnergyRecoveryCard_RequiresTheIconCostBeforeGrantingItsEffect(int energy, bool playable, int after)
+        {
+            CoreBattleCard card = CoreBoardingCardCatalog.FindByKey("basic_10");
+            CoreVoyageSession session = CreateBattleSession(0, card);
+            typeof(CoreVoyageSession).GetMethod("EnterBattleStage", PrivateInstance)
+                .Invoke(session, new object[] { NavalBattleStage.Boarding });
+            session.Battle.Energy = energy;
+            UseSession(session);
+            RectTransform face = CreateFace("Battle", FindCard(card.Id));
+            Assert.That(BadgeValue(face, CardOrnamentKind.Energy), Is.EqualTo(2));
+            Assert.That(session.PlayCard(0), Is.EqualTo(playable), session.CardUnavailableReason(0));
+            Assert.That(session.Battle.Energy, Is.EqualTo(after), "The three-energy effect cannot fund its own two-energy cost.");
+        }
+
+        [TestCase(CoreSchoolMechanic.ArcaneAttackReserve)]
+        [TestCase(CoreSchoolMechanic.ArcaneGuardReserve)]
         [TestCase(CoreSchoolMechanic.BloodRisk)]
         [TestCase(CoreSchoolMechanic.BloodWard)]
         [TestCase(CoreSchoolMechanic.TideWard)]
         [TestCase(CoreSchoolMechanic.TideRiposte)]
-        [TestCase(CoreSchoolMechanic.TideCleanse)]
         [TestCase(CoreSchoolMechanic.ThunderFinish)]
         public void SpecialResourceNumber_MatchesTheResourceActuallyPaidBySuccessfulPlay(CoreSchoolMechanic mechanic)
         {
@@ -257,11 +296,25 @@ namespace ShatteredSail.Core.Tests
             }
             UseSession(session);
             RectTransform face = CreateFace("Battle", FindCard(card.Id));
-            CardOrnamentGraphic marker = FindBadge(face, CardSpecialCostPresentation.OrnamentKind(card));
-            Assert.That(marker, Is.Not.Null, card.Id);
-            int shown = int.Parse(marker.GetComponentInChildren<Text>().text);
             string resource = CardSpecialCostPresentation.ResourceType(card);
+            Text amount;
+            if (resource.Length == 0 && CardSupplyCostPresentation.ResourceType(card, stage) == "wood")
+            {
+                CardSupplyCostView supply = face.GetComponentInChildren<CardSupplyCostView>(true);
+                Assert.That(supply, Is.Not.Null, card.Id);
+                resource = "wood";
+                amount = supply.Amount;
+            }
+            else
+            {
+                CardOrnamentGraphic marker = FindBadge(face, CardSpecialCostPresentation.OrnamentKind(card));
+                Assert.That(marker, Is.Not.Null, card.Id);
+                amount = marker.GetComponentInChildren<Text>();
+            }
             int before = PaidResource(session, card, resource);
+            int shown = amount.text == "X"
+                ? (card.BoardingSpec != null && resource == "mana" ? Math.Min(3, before) : before)
+                : int.Parse(amount.text);
             if (card.BoardingSpec?.Key == "arcane_05")
             {
                 Assert.That(session.Battle.Schools.ManaLimit, Is.EqualTo(3));
@@ -280,22 +333,22 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(CoreSchoolMechanic.TideRiposte, "TidePower")]
         [TestCase(CoreSchoolMechanic.ThunderFinish, "ThunderChain")]
-        public void ConsumeAllCost_ShowsCollectionAllAndCurrentBattleQuantityWithoutSpending(CoreSchoolMechanic mechanic, string property)
+        public void ConsumeAllCost_ShowsXInCollectionAndBattleWithoutSpending(CoreSchoolMechanic mechanic, string property)
         {
             CoreVoyageSession session = CreateBattleSession(0);
             CoreBattleCard card = CoreVoyageSession.CardLibrary.First(value => value.SchoolEffect?.Mechanic == mechanic);
-            Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo("全"));
+            Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo("X"));
             SetSchoolResource(session, property, 5);
-            Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle), Is.EqualTo("5"));
+            Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle), Is.EqualTo("X"));
             SetSchoolResource(session, property, 0);
-            Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle), Is.EqualTo("0"));
+            Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle), Is.EqualTo("X"));
             Assert.That((int)typeof(CoreSchoolBattleState).GetProperty(property).GetValue(session.Battle.Schools), Is.Zero,
                 "Reading the cost never pays it or grants the resource.");
         }
 
         [TestCase(CoreSchoolMechanic.TideRiposte, "TidePower")]
         [TestCase(CoreSchoolMechanic.ThunderFinish, "ThunderChain")]
-        public void RetainedConsumeAllNumber_RefreshesInPlaceWhenBattleResourceChanges(CoreSchoolMechanic mechanic, string property)
+        public void RetainedConsumeAllNumber_StaysXWhenBattleResourceChanges(CoreSchoolMechanic mechanic, string property)
         {
             CoreBattleCard card = CoreVoyageSession.CardLibrary.First(value => value.SchoolEffect?.Mechanic == mechanic);
             CoreVoyageSession session = CreateBattleSession(0, card);
@@ -307,7 +360,8 @@ namespace ShatteredSail.Core.Tests
             Button button = (Button)view.GetType().GetField("Button").GetValue(view);
             CardOrnamentGraphic marker = FindBadge(button.transform, CardSpecialCostPresentation.OrnamentKind(card));
             Text number = marker.GetComponentInChildren<Text>();
-            Assert.That(number.text, Is.EqualTo("0"));
+            Assert.That(marker.IsMarkerOnly, Is.True, "The integrated corner owns the symbol while the quantity stays live.");
+            Assert.That(number.text, Is.EqualTo("X"));
 
             foreach (int amount in new[] { 6, 2, 0 })
             {
@@ -315,10 +369,53 @@ namespace ShatteredSail.Core.Tests
                 Invoke("RefreshRetainedHandCard", view, 0, 1);
                 Assert.That(FindBadge(button.transform, marker.Kind), Is.SameAs(marker));
                 Assert.That(marker.GetComponentInChildren<Text>(), Is.SameAs(number));
-                Assert.That(number.text, Is.EqualTo(amount.ToString()), card.Id);
+                Assert.That(number.text, Is.EqualTo("X"), card.Id);
                 Assert.That(number.color, Is.EqualTo(Color.white), "Consuming all current resources is not a surcharge.");
                 Assert.That((int)typeof(CoreSchoolBattleState).GetProperty(property).GetValue(session.Battle.Schools),
                     Is.EqualTo(amount), "A view refresh must not pay or grant resources.");
+            }
+        }
+
+        [TestCase("card_boarding_arcane_04")]
+        [TestCase("card_boarding_curse_11")]
+        [TestCase("card_boarding_tide_06")]
+        [TestCase("card_boarding_thunder_13")]
+        [TestCase("card_school_thunder_n06")]
+        public void ConsumeAllResourceFacesKeepXWithEmptyAndFundedResources(string id)
+        {
+            CoreBattleCard card = CoreVoyageSession.CardLibrary[FindCard(id)];
+            CoreVoyageSession session = CreateBattleSession(0, card);
+            NavalBattleStage stage = card.BoardingSpec == null ? NavalBattleStage.Naval : NavalBattleStage.Boarding;
+            if (stage == NavalBattleStage.Boarding)
+                typeof(CoreVoyageSession).GetMethod("EnterBattleStage", PrivateInstance).Invoke(session, new object[] { stage });
+            else session.Battle.Stage = stage;
+            UseSession(session);
+            typeof(CoreGameplayDemoController).GetField("selectedBattleDeckStage", PrivateInstance).SetValue(controller, stage);
+            string resource = CardSpecialCostPresentation.ResourceType(card);
+            foreach (int quantity in new[] { 0, 3 })
+            {
+                SetSchoolResource(session, "Mana", quantity);
+                SetSchoolResource(session, "TemporaryMana", 0);
+                SetSchoolResource(session, "ThunderChain", quantity);
+                if (card.BoardingSpec != null && quantity > 0)
+                {
+                    typeof(CoreVoyageSession).GetMethod("CTBAddMarks", PrivateInstance).Invoke(session, new object[] { quantity });
+                    typeof(CoreVoyageSession).GetMethod("CTBAddTideGuard", PrivateInstance).Invoke(session, new object[] { quantity });
+                    session.Battle.PlayerBlock = 0;
+                    typeof(CoreVoyageSession).GetMethod("CTBAfterEnemyAttack", PrivateInstance).Invoke(session, new object[] { quantity, 0 });
+                }
+                Assert.That(PaidResource(session, card, resource), Is.EqualTo(quantity), id + " fixture resource");
+                foreach (string entry in new[] { "Battle", "Workshop", "Collection" })
+                {
+                    RectTransform face = CreateFace(entry, FindCard(id));
+                    CardOrnamentGraphic marker = FindBadge(face, CardSpecialCostPresentation.OrnamentKind(card));
+                    Assert.That(marker, Is.Not.Null, id + " / " + entry);
+                    Text number = marker.GetComponentInChildren<Text>();
+                    Assert.That(number.text, Is.EqualTo("X"), id + " / " + entry + " / resource=" + quantity);
+                    Assert.That(number.color, Is.EqualTo(Color.white));
+                    Assert.That(PaidResource(session, card, resource), Is.EqualTo(quantity), "Displaying X never spends resources.");
+                    ClearFixture();
+                }
             }
         }
 
@@ -385,22 +482,71 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(CoreSchoolMechanic.TideWard, CardOrnamentKind.Wood)]
         [TestCase(CoreSchoolMechanic.TideRiposte, CardOrnamentKind.Tide)]
-        public void TidePayments_DrawTheirOwnGlyphOnTheExistingFrame(CoreSchoolMechanic mechanic, CardOrnamentKind kind)
+        public void TidePayments_UseTheIntegratedCornerAndSeparateWoodSupplySlot(CoreSchoolMechanic mechanic, CardOrnamentKind kind)
         {
             CoreBattleCard authored = CoreVoyageSession.CardLibrary.First(card => card.SchoolEffect?.Mechanic == mechanic);
             CoreVoyageSession session = CreateBattleSession(0, authored);
+            session.Battle.Stage = Enum.GetValues(typeof(NavalBattleStage)).Cast<NavalBattleStage>().First(authored.IsAllowedInStage);
             session.Cargo.Wood = 0;
             UseSession(session);
             RectTransform face = CreateFace("Battle", FindCard(authored.Id));
             CardOrnamentGraphic marker = FindBadge(face, kind);
-            Assert.That(marker, Is.Not.Null);
-            Assert.That(marker.IsMarkerOnly, Is.False, "Wood and tide are not baked into the reused frame and need a visible glyph.");
             Assert.That(CardSchoolArtCatalog.Frame(authored), Is.Not.Null);
-            Assert.That(CardSchoolArtCatalog.FrameResourcePath(authored), Is.EqualTo(
-                CardSchoolArtCatalog.FrameResourcePath(authored.SchoolId, authored.PowderCost, authored.CannonballCost)),
-                "Wood and tide reuse the existing ammunition frame, with no missing new resource suffix.");
             if (mechanic == CoreSchoolMechanic.TideWard)
-                Assert.That(marker.GetComponentInChildren<Text>().text, Is.EqualTo("0"), "Unpaid tide guard is only the free fallback.");
+            {
+                Assert.That(marker, Is.Null, "Wood is no longer drawn over the special-resource corner.");
+                CardSupplyCostView supply = face.GetComponentInChildren<CardSupplyCostView>(true);
+                Assert.That(supply, Is.Not.Null);
+                Assert.That(supply.ResourceType, Is.EqualTo("wood"));
+                Assert.That(supply.Amount.text, Is.EqualTo("0"), "Unpaid tide guard is only the free fallback.");
+                Assert.That(CardSchoolArtCatalog.FrameResourcePath(authored), Does.EndWith("frame-tide-ap-wood"));
+                Assert.That(supply.GetComponentInChildren<RawImage>(true).enabled, Is.False);
+                Assert.That(supply.Amount.fontSize, Is.EqualTo(24));
+                Assert.That(supply.Amount.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero));
+            }
+            else
+            {
+                Assert.That(marker, Is.Not.Null);
+                Assert.That(marker.IsMarkerOnly, Is.True, "The tide symbol is painted into the complete card frame.");
+                Assert.That(marker.GetComponentInChildren<Text>().text,
+                    Is.EqualTo(CardSpecialCostPresentation.CostText(authored, session.Battle)));
+                Assert.That(CardSchoolArtCatalog.FrameResourcePath(authored), Does.EndWith("-tide"));
+            }
+        }
+
+        [Test]
+        public void NavalInputLock_KeepsTheIntegratedSupplyFrameAndLiveAmount()
+        {
+            CoreBattleCard repair = CoreVoyageSession.CardLibrary.First(card => card.Id == "card_emergency_repair");
+            CoreVoyageSession session = CreateBattleSession(0, repair);
+            session.Battle.Stage = NavalBattleStage.Naval;
+            session.Battle.Energy = 10;
+            session.Cargo.Wood = 1;
+            typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, session.MaxHull - 10);
+            session.Battle.Hand.Clear();
+            session.Battle.Hand.Add(FindCard(repair.Id));
+            UseSession(session);
+            Invoke("Render");
+            Canvas.ForceUpdateCanvases();
+            RectTransform root = (RectTransform)typeof(CoreGameplayDemoController).GetField("retainedBattleRoot", PrivateInstance).GetValue(controller);
+            RectTransform face = HandFaces().Single();
+            Button button = face.GetComponent<Button>();
+            CardSchoolFrameGraphic frame = face.GetComponentInChildren<CardSchoolFrameGraphic>(true);
+            CardSupplyCostView supply = face.GetComponentInChildren<CardSupplyCostView>(true);
+            Texture texture = frame.mainTexture;
+            Assert.That(texture.name, Is.EqualTo("frame-neutral-ap-wood"));
+            Assert.That(supply.GetComponentInChildren<RawImage>(true).enabled, Is.False,
+                "The plank icon is painted into the complete neutral frame.");
+            Assert.That(button.interactable, Is.True, session.CardUnavailableReason(0));
+            Assert.That(supply.Amount.text, Is.EqualTo("1"));
+            foreach (bool inputLocked in new[] { true, false, true, false })
+            {
+                Invoke("RefreshNavalHandInputAvailability", root, session.Battle, inputLocked);
+                Assert.That(button.interactable, Is.EqualTo(!inputLocked));
+                Assert.That(frame.mainTexture, Is.SameAs(texture), "Input locks must retain the complete supply frame.");
+                Assert.That(face.GetComponentInChildren<CardSupplyCostView>(true), Is.SameAs(supply));
+                Assert.That(supply.Amount.text, Is.EqualTo("1"));
+            }
         }
 
         private static int PaidResource(CoreVoyageSession session, CoreBattleCard card, string resource)
@@ -659,12 +805,28 @@ namespace ShatteredSail.Core.Tests
             CardOrnamentGraphic[] costs = { energy, powder, cannonballs, special };
             CardSchoolFrameGraphic frame = face.GetComponentInChildren<CardSchoolFrameGraphic>();
             Assert.That(frame, Is.Not.Null, context);
-            Assert.That(frame.mainTexture, Is.SameAs(CardSchoolArtCatalog.Frame(data)), context);
+            Assert.That(frame.mainTexture, Is.SameAs(CardSchoolArtCatalog.Frame(data, battle?.Stage)), context);
+            string supplyType = CardSupplyCostPresentation.ResourceType(data, battle?.Stage);
+            CardSupplyCostView supply = face.GetComponentInChildren<CardSupplyCostView>(true);
+            if (supplyType.Length == 0)
+                Assert.That(supply == null || !supply.gameObject.activeSelf, Is.True, context + " has no supply cost");
+            else
+            {
+                Assert.That(supply, Is.Not.Null, context);
+                Assert.That(supply.gameObject.activeSelf, Is.True, context);
+                Assert.That(supply.ResourceType, Is.EqualTo(supplyType), context);
+                Assert.That(supply.GetComponentInChildren<RawImage>(true).enabled, Is.False, context + " supply art is baked into the frame");
+                Assert.That(supply.Amount.text, Is.Not.Empty, context);
+                Assert.That(supply.Amount.fontSize, Is.EqualTo(24), context);
+                Assert.That(supply.Amount.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero), context);
+                Assert.That(((RectTransform)supply.transform).anchoredPosition,
+                    Is.EqualTo(CardSchoolArtCatalog.SupplyPosition(data, battle?.Stage)), context);
+            }
             Text title = face.GetComponentsInChildren<CardOrnamentGraphic>(true)
                 .Single(item => item.Kind == CardOrnamentKind.NameRibbon).GetComponentInChildren<Text>(true);
             Assert.That(title.text, Is.EqualTo(CardFaceLayout.DisplayName(data)), context);
             AssertRibbonTitle(title, context);
-            Rect frameBounds = CardSchoolArtCatalog.FrameBounds(data);
+            Rect frameBounds = CardSchoolArtCatalog.FrameBounds(data, battle?.Stage);
             Assert.That(frame.rectTransform.sizeDelta, Is.EqualTo(frameBounds.size), context);
             Assert.That(frame.rectTransform.anchoredPosition, Is.EqualTo(frameBounds.center), context);
             Image backing = face.GetComponent<Image>();
@@ -683,7 +845,8 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(layer.GetSiblingIndex(), Is.GreaterThan(frame.transform.GetSiblingIndex()),
                     context + " / " + label.name + " live text must render over the authored name and effect paper");
             }
-            foreach (RawImage illustration in face.GetComponentsInChildren<RawImage>(true))
+            foreach (RawImage illustration in face.GetComponentsInChildren<RawImage>(true)
+                .Where(image => image.GetComponentInParent<CardSupplyCostView>(true) == null))
             {
                 Assert.That(illustration.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)), context + " full original UVs");
                 Vector2 actualSize = illustration.rectTransform.sizeDelta;
@@ -706,12 +869,12 @@ namespace ShatteredSail.Core.Tests
             {
                 if (costs[i] == null) continue;
                 CardOrnamentGraphic cost = costs[i];
-                Vector2 position = CardSchoolArtCatalog.CostPosition(data, cost.Kind);
+                Vector2 position = CardSchoolArtCatalog.CostPosition(data, cost.Kind, battle?.Stage);
                 Vector2 size = cost.Kind == CardOrnamentKind.Energy ? CardFaceLayout.EnergyIconSize :
                     cost.Kind == CardOrnamentKind.Cannonball ? CardFaceLayout.CannonballIconSize :
                     cost.Kind == CardOrnamentKind.Gunpowder ? CardFaceLayout.PowderIconSize : CardFaceLayout.SpecialCostIconSize;
-                Assert.That(cost.IsMarkerOnly, Is.EqualTo(cost.Kind != CardOrnamentKind.Wood && cost.Kind != CardOrnamentKind.Tide),
-                    context + " existing resource glyphs are baked into PNGs; wood and tide draw a visible fallback glyph");
+                Assert.That(cost.IsMarkerOnly, Is.EqualTo(cost.Kind != CardOrnamentKind.Wood),
+                    context + " resource glyphs are baked into PNGs; only legacy wood markers draw a fallback glyph");
                 Assert.That(cost.rectTransform.anchoredPosition, Is.EqualTo(position), context);
                 Assert.That(position, Is.Not.EqualTo(Vector2.zero), context + " cost calibration cannot fall into the card center");
                 Assert.That(cost.rectTransform.sizeDelta, Is.EqualTo(size), context);
@@ -726,7 +889,7 @@ namespace ShatteredSail.Core.Tests
                 using (var mesh = new VertexHelper())
                 {
                     populate.Invoke(cost, new object[] { mesh });
-                    if (cost.Kind == CardOrnamentKind.Wood || cost.Kind == CardOrnamentKind.Tide)
+                    if (cost.Kind == CardOrnamentKind.Wood)
                         Assert.That(mesh.currentVertCount, Is.GreaterThan(0), context + " unbaked resource glyph must remain visible");
                     else
                         Assert.That(mesh.currentVertCount, Is.Zero, context + " cost markers must not draw a second crystal/icon");

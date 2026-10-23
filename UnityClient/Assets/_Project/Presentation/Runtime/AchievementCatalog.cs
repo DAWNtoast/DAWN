@@ -35,6 +35,10 @@ namespace ShatteredSail.Presentation
         public const int TotalCount = CoreAchievementCatalog.CatalogCount;
         private const string UnlockPrefix = "ShatteredSail.Achievements.Unlocked.v1.";
         private const string VisitPrefix = "ShatteredSail.Achievements.Visited.v1.";
+        public const string EditedDeckStagesKey = "ShatteredSail.Achievements.EditedDeckStages.v2";
+        public const string WonDeckStagesKey = "ShatteredSail.Achievements.WonDeckStages.v2";
+        public static int EditedDeckStages => Int(EditedDeckStagesKey) & 7;
+        public static IReadOnlyList<string> ChallengeEvidenceKeys { get; } = Array.AsReadOnly(new[] { EditedDeckStagesKey, WonDeckStagesKey });
 
         private static readonly string[] Ports = { "断锚港", "白贝港", "铜钟港", "盐冠港", "暮潮港", "灰鸥港" };
 
@@ -95,10 +99,10 @@ namespace ShatteredSail.Presentation
                 case "crew_ports_recruited": current = snapshot.CrewPortCount; break;
                 case "warehouse_treasures_owned": current = snapshot.WarehouseCount; break;
                 case "warehouse_treasures_displayed": current = DisplayCount(); break;
-                case "configured_cards": current = Int(CoreGameplayDemoController.BattleDeckEditedKey) == 1
-                    ? CsvCount(CoreGameplayDemoController.BattleDeckKey) : 0; break;
-                case "configured_deck_stages": current = Int(CoreGameplayDemoController.BattleDeckEditedKey) == 1
-                    ? StageDeckCount() : 0; break;
+                case "authored_deck_victory_stages":
+                    current = WonDeckStageCount();
+                    detail = current + " / 3 个阶段已用于获胜战斗";
+                    break;
                 case "special_cards_owned": current = CsvCount(CoreGameplayDemoController.AcquiredSpecialCardsKey, ';'); break;
                 case "profile_fame": current = Cargo("Fame"); break;
                 case "prepared_water_and_food":
@@ -106,24 +110,10 @@ namespace ShatteredSail.Presentation
                     current = Math.Min(water, food);
                     detail = "水 " + water + "/" + definition.Target + " · 粮 " + food + "/" + definition.Target;
                     break;
-                case "all_base_cargo_present":
-                    current = 0;
-                    foreach (string resource in BaseCargo) if (Cargo(resource) >= definition.Target) current++;
-                    target = BaseCargo.Length;
-                    detail = current + " / " + target + " 种补给";
-                    break;
-                case "seventh_harbor_prerequisites":
-                    current = (Int(CoreGameplayDemoController.TutorialCompletedKey) == 1 ? 1 : 0) +
-                        (snapshot.AllPortsVisited ? 1 : 0) + (snapshot.OwnedShipCount >= definition.Target ? 1 : 0);
-                    target = 3;
-                    detail = current + " / 3 项条件";
-                    break;
                 default: return new AchievementProgressView(unlocked, unlocked ? 1m : 0m, 1m, false);
             }
             return new AchievementProgressView(unlocked, current, target, true, detail);
         }
-
-        private static readonly string[] BaseCargo = { "Water", "Food", "Beer", "Medicine", "Wood", "Iron", "Cloth", "Powder", "Cannonballs" };
 
         private static int EvaluateUnlockStates(bool[] destination)
         {
@@ -166,6 +156,7 @@ namespace ShatteredSail.Presentation
             {
                 foreach (CoreAchievementDefinition definition in All) yield return UnlockPrefix + definition.Id;
                 foreach (string port in Ports) yield return VisitPrefix + port;
+                foreach (string key in ChallengeEvidenceKeys) yield return key;
             }
         }
 
@@ -184,6 +175,20 @@ namespace ShatteredSail.Presentation
             PlayerPrefs.SetInt(CoreGameplayDemoController.BattleDeckEditedKey, 1);
             Unlock("tutorial_deck");
         }
+        public static void RecordDeckEdited(NavalBattleStage stage)
+        {
+            if (!Enum.IsDefined(typeof(NavalBattleStage), stage)) return;
+            PlayerPrefs.SetInt(EditedDeckStagesKey, EditedDeckStages | (1 << (int)stage));
+            RecordDeckEdited();
+        }
+        public static void RecordAuthoredDeckVictories(int stages)
+        {
+            // Only confirmed gameplay supplies stage-use evidence, never stored default decks.
+            int verified = stages & EditedDeckStages & 7;
+            if (verified != 0) PlayerPrefs.SetInt(WonDeckStagesKey, (Int(WonDeckStagesKey) | verified) & 7);
+        }
+        public static void RecordVoyageTreasure() => Unlock("warehouse_one");
+        public static void RecordSuppliedLongVoyage() => Unlock("cargo_all");
         public static void RecordDamagedReturn() => Unlock("tutorial_recovery");
         public static void RecordNavigatorVoyage() => Unlock("tutorial_navigator");
         public static void RecordVoyageThreeEvents() => Unlock(CoreAchievementCatalog.VoyageThreeEventsId);
@@ -194,12 +199,11 @@ namespace ShatteredSail.Presentation
             switch (definition.Id)
             {
                 case "tutorial_departure": return Int(CoreGameplayDemoController.TutorialCompletedKey) == 1;
-                case "tutorial_reward": return Int(CoreGameplayDemoController.TutorialRewardGrantedKey) == 1 || HasTutorialTreasure() ||
-                    (Int(CoreGameplayDemoController.TutorialCompletedKey) == 1 && snapshot.WarehouseCount >= definition.Target);
+                case "tutorial_reward": return Int(CoreGameplayDemoController.TutorialCompletedKey) == 1 && HasTutorialTreasure();
                 case "tutorial_checkpoint": return Int(CoreGameplayDemoController.GuidedTutorialCheckpointKey) >= definition.Target || Int(CoreGameplayDemoController.TutorialCompletedKey) == 1;
                 case "tutorial_deck": return Int(CoreGameplayDemoController.GuidedTutorialDeckEditedKey) == 1;
-                case "tutorial_component": return Int(CoreGameplayDemoController.GuidedTutorialComponentRewardKey) == 1 || snapshot.HasSpareComponent;
-                case "tutorial_recovery": return Int(CoreGameplayDemoController.GuidedTutorialRecoveryKey) == 1;
+                case "tutorial_component": return snapshot.HasPlayerRefit;
+                case "tutorial_recovery": return false; // Recorded only by a verified successful voyage.
                 case "tutorial_navigator": return Int(CoreGameplayDemoController.GuidedTutorialNavigatorEventKey) == 1;
                 // Only the confirmed settlement transaction supplies this evidence.
                 // Opening a menu or reading unrelated profile counters cannot earn it.
@@ -227,30 +231,25 @@ namespace ShatteredSail.Presentation
                 case "all_ships": return snapshot.OwnedShipCount >= definition.Target;
                 case "component_inventory": return snapshot.HasComponents;
                 case "component_cannon": return snapshot.HasCannon;
-                case "component_full": return snapshot.MaxLoadoutCount >= definition.Target;
+                case "component_full": return snapshot.HasFullPlayerRefit;
                 case "component_shop": return HasPurchasedComponent(snapshot);
                 case "crew_one": return snapshot.CrewCount >= definition.Target;
                 case "crew_three": return snapshot.CrewCount >= definition.Target;
                 case "crew_six": return snapshot.CrewCount >= definition.Target;
                 case "crew_variants": return snapshot.CrewPortCount >= definition.Target;
-                case "warehouse_one": return snapshot.WarehouseCount >= definition.Target;
+                case "warehouse_one": return false; // New collection from a confirmed non-tutorial return.
                 case "warehouse_three": return snapshot.WarehouseCount >= definition.Target;
                 case "warehouse_ten": return snapshot.WarehouseCount >= definition.Target;
                 case "warehouse_display_six": return DisplayCount() >= definition.Target;
                 case "chart_drawn": return !string.IsNullOrEmpty(PlayerPrefs.GetString(CoreGameplayDemoController.DrawnSeaChartKey, string.Empty));
-                // Loading a new profile writes curated defaults for all three
-                // stages. Require an explicit workshop edit so those defaults
-                // do not masquerade as player-authored milestones.
-                case "battle_deck": return Int(CoreGameplayDemoController.BattleDeckEditedKey) == 1 &&
-                    CsvCount(CoreGameplayDemoController.BattleDeckKey) >= definition.Target;
-                case "battle_stages": return Int(CoreGameplayDemoController.BattleDeckEditedKey) == 1 &&
-                    StageDeckCount() >= definition.Target;
+                case "battle_deck": return WonDeckStageCount() > 0;
+                case "battle_stages": return WonDeckStageCount() >= definition.Target;
                 case "card_upgrade": return !string.IsNullOrEmpty(PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey, string.Empty));
                 case "special_card": return CsvCount(CoreGameplayDemoController.AcquiredSpecialCardsKey, ';') >= definition.Target;
                 case "cargo_ready": return Cargo("Water") >= definition.Target && Cargo("Food") >= definition.Target;
-                case "cargo_all": return Cargo("Water") >= definition.Target && Cargo("Food") >= definition.Target && Cargo("Beer") >= definition.Target && Cargo("Medicine") >= definition.Target && Cargo("Wood") >= definition.Target && Cargo("Iron") >= definition.Target && Cargo("Cloth") >= definition.Target && Cargo("Powder") >= definition.Target && Cargo("Cannonballs") >= definition.Target;
+                case "cargo_all": return false; // Full-voyage supply history is required.
                 case "fame": return Cargo("Fame") >= definition.Target;
-                case "seventh_harbor": return Int(CoreGameplayDemoController.TutorialCompletedKey) == 1 && snapshot.AllPortsVisited && snapshot.OwnedShipCount >= definition.Target;
+                case "seventh_harbor": return HasWarehouseTreasure("seventh_harbor_beacon_lantern");
                 default: return false;
             }
         }
@@ -258,10 +257,12 @@ namespace ShatteredSail.Presentation
         private static int Int(string key) => PlayerPrefs.GetInt(key, 0);
         private static decimal Gold() => ProfileGoldPersistence.Load();
 
-        private static bool HasTutorialTreasure()
+        private static bool HasTutorialTreasure() => HasWarehouseTreasure(CoreWarehouseCollection.TutorialTreasureId);
+
+        private static bool HasWarehouseTreasure(string target)
         {
             foreach (string id in PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey, string.Empty).Split(','))
-                if (id == CoreWarehouseCollection.TutorialTreasureId) return true;
+                if (id == target) return true;
             return false;
         }
 
@@ -308,6 +309,8 @@ namespace ShatteredSail.Presentation
             private bool componentsLoaded;
             private int maxLoadoutCount;
             private bool hasCannon;
+            private bool hasPlayerRefit;
+            private bool hasFullPlayerRefit;
             private ComponentArtCatalog art;
             private decimal? gold;
             private int? warehouseCount;
@@ -351,8 +354,6 @@ namespace ShatteredSail.Presentation
                     return count;
                 }
             }
-
-            public bool AllPortsVisited => VisitedPortCount == Ports.Length;
 
             private List<CrewVariantDefinition> RecruitedCrew
             {
@@ -418,28 +419,30 @@ namespace ShatteredSail.Presentation
                 {
                     if (!Owns(ship)) continue;
                     int count = 0;
+                    int refitted = 0, rare = 0;
                     foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
                     {
-                        if (components.Installed(ship, slot) == null) continue;
+                        OwnedShipComponent item = components.Installed(ship, slot);
+                        if (item == null) continue;
                         count++;
                         hasCannon |= slot == ComponentSlot.Cannon;
+                        if (item.InstalledByPlayer)
+                        {
+                            refitted++;
+                            hasPlayerRefit = true;
+                        }
+                        if (Art.GetById(item.ComponentId).Rarity >= ComponentRarity.Rare) rare++;
                     }
                     maxLoadoutCount = Math.Max(maxLoadoutCount, count);
+                    hasFullPlayerRefit |= refitted == ComponentArtCatalog.SlotCount && rare >= 3;
                 }
             }
 
             public bool HasComponents { get { LoadComponents(); return components.Items.Count > 0; } }
             public int MaxLoadoutCount { get { LoadComponents(); return maxLoadoutCount; } }
             public bool HasCannon { get { LoadComponents(); return hasCannon; } }
-            public bool HasSpareComponent
-            {
-                get
-                {
-                    LoadComponents();
-                    foreach (OwnedShipComponent item in components.Items) if (item.ShipIndex < 0) return true;
-                    return false;
-                }
-            }
+            public bool HasPlayerRefit { get { LoadComponents(); return hasPlayerRefit; } }
+            public bool HasFullPlayerRefit { get { LoadComponents(); return hasFullPlayerRefit; } }
         }
 
         private static int WarehouseCount() => CsvCount(CoreGameplayDemoController.WarehouseOwnedKey);
@@ -452,11 +455,11 @@ namespace ShatteredSail.Presentation
             return Math.Max(count, PlayerPrefs.GetInt(CoreGameplayDemoController.WarehouseDisplayRecordKey, 0));
         }
 
-        private static int StageDeckCount()
+        private static int WonDeckStageCount()
         {
             int count = 0;
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
-                if (CsvCount(CoreGameplayDemoController.StageBattleDeckKey(stage)) > 0) count += 1;
+                if ((Int(WonDeckStagesKey) & (1 << (int)stage)) != 0) count += 1;
             return count;
         }
 

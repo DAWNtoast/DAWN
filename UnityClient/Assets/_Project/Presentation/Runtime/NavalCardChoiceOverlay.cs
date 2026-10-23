@@ -46,7 +46,7 @@ namespace ShatteredSail.Presentation
             MakeText("Naval choice title", panel, font, 23, new Vector2(1000f, 32f), new Vector2(0f, 94f)).text = card.Name + " · 选择施放参数";
             instruction = MakeText("Naval choice instruction", panel, font, 18, new Vector2(1000f, 28f), new Vector2(0f, 59f));
             status = MakeText("Naval choice validation", panel, font, 18, new Vector2(1000f, 42f), new Vector2(0f, 17f));
-            if (!string.IsNullOrEmpty(choice.ResourceLabel))
+            if (!string.IsNullOrEmpty(choice.ResourceLabel) && choice.ResourceMaximum > choice.ResourceMinimum)
             {
                 resourceLabel = MakeText("Naval selected resource", panel, font, 18, new Vector2(230f, 34f), new Vector2(-295f, -34f));
                 MakeButton("Naval resource minus", panel, font, "−", new Vector2(42f, 38f), new Vector2(-440f, -34f),

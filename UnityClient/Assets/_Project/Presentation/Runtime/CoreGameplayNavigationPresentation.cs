@@ -80,7 +80,6 @@ namespace ShatteredSail.Presentation
                 NavigationText("Map Course Hint", mapPanel, new Vector2(810f, 22f), new Vector2(0f, -264f), 14, Gold).text =
                     TreasureNavigationReadout();
             BuildDestinationBossGuidance(mapPanel);
-            BuildNavigationExplorationStatus(mapPanel);
 
             RectTransform controls = NavigationPanel("Navigation Controls", new Vector2(860f, 360f), new Vector2(-500f, -285f));
             BuildNavigationControls(controls);
@@ -98,10 +97,13 @@ namespace ShatteredSail.Presentation
                 SailingDirection.West, SailingDirection.East, SailingDirection.SouthWest, SailingDirection.South, SailingDirection.SouthEast };
             Vector2[] points = { new Vector2(-350, 88), new Vector2(-247, 88), new Vector2(-144, 88), new Vector2(-350, 25),
                 new Vector2(-144, 25), new Vector2(-350, -38), new Vector2(-247, -38), new Vector2(-144, -38) };
+            var headingButtons = new Button[directions.Length];
+            Action updateHeading = null;
             for (int i = 0; i < directions.Length; i++)
             {
                 SailingDirection heading = directions[i];
                 Button button = CreateButton("Heading " + heading, panel, new Vector2(96f, 56f), points[i], PanelRaised, Ink, 20);
+                headingButtons[i] = button;
                 button.GetComponentInChildren<Text>().text = session.DirectionLabel(heading);
                 WoodButtonSkin.SetSelected(button, heading == session.Heading);
                 button.interactable = session.Phase == CoreDemoPhase.Sailing && !navigationMotionPlaying;
@@ -111,7 +113,7 @@ namespace ShatteredSail.Presentation
                     if (tutorialActive && heading != SailingDirection.East) return;
                     session.SetHeading(heading);
                     if (tutorialActive) guidedTutorialNavigationInputStep = GuidedTutorialNavigationInputStep.Sail;
-                    Render();
+                    updateHeading();
                 });
             }
             NavigationText("Compass", panel, new Vector2(94f, 48f), new Vector2(-247f, 25f), 19, Gold, TextAnchor.MiddleCenter).text = "航向";
@@ -184,6 +186,20 @@ namespace ShatteredSail.Presentation
                 RefreshDashboardCourse();
             });
             updateForecast();
+            updateHeading = () =>
+            {
+                // Heading changes invalidate a plotted target, but do not move
+                // the vessel or reveal terrain. Keep the expensive chart and its
+                // input/viewport identity; refresh only the dependent readouts.
+                for (int index = 0; index < headingButtons.Length; index++)
+                    WoodButtonSkin.SetSelected(headingButtons[index], directions[index] == session.Heading);
+                updateForecast();
+                RefreshDashboardCourse();
+                RefreshForwardLookoutHeading();
+                SaveSeaChartProgress();
+                if (tutorialActive) BuildGuidedTutorialOverlay();
+                panel.GetComponent<NavigationCompassControl>()?.RefreshSelection();
+            };
             Button sail = CreateButton("Execute Sail", panel, new Vector2(438f, 62f), new Vector2(169f, -129f), Gold, Ink, 24);
             sail.GetComponentInChildren<Text>().text = session.Phase == CoreDemoPhase.Encounter ? "处理右侧事件后继续" : "执行航行";
             sail.interactable = session.Phase == CoreDemoPhase.Sailing && !navigationMotionPlaying;
@@ -278,6 +294,20 @@ namespace ShatteredSail.Presentation
             BuildLookoutCaptions(observations);
         }
 
+        private void RefreshForwardLookoutHeading()
+        {
+            if (lookoutViewport == null || navigationLookoutMotion == null) return;
+            SeaTerrainType terrain = session.Map.TerrainAt(session.Position);
+            NavigationLookoutBlend light = NavigationLookoutArtCatalog.BlendForVoyageHours(session.ElapsedGameHours);
+            var observations = VoyageLookoutProjector.Project(session.Map, session.Position, session.Heading,
+                120f + (session.HasNavigator ? 60f : 0f) + session.VisionBonusNm);
+            navigationLookoutMotion.ReplaceObservations(observations, terrain,
+                NavigationLookoutArtCatalog.EnvironmentTint(terrain, light), CreateLookoutScenery);
+            lookoutViewport.Find("Lookout Heading").GetComponent<Text>().text =
+                "前方视野 · " + session.DirectionLabel(session.Heading) + "向";
+            lookoutViewport.Find("Lookout Report").GetComponent<Text>().text = LookoutReport(observations);
+        }
+
         private NavigationLookoutOceanGraphic CreateLookoutOcean(string name, Vector2 size, Texture texture)
         {
             var image = CreateRect(name, lookoutViewport, size, Vector2.zero).gameObject.AddComponent<NavigationLookoutOceanGraphic>();
@@ -328,6 +358,11 @@ namespace ShatteredSail.Presentation
                 "前方视野 · " + session.DirectionLabel(session.Heading) + "向";
             Image strip = CreateFixedPanel("Lookout Report Plaque", lookoutViewport, new Vector2(956f, 98f), new Vector2(0f, -264f), new Color(0.035f, 0.075f, 0.085f, 0.94f)).GetComponent<Image>();
             strip.raycastTarget = false;
+            NavigationText("Lookout Report", lookoutViewport, new Vector2(894f, 80f), new Vector2(0f, -264f), 22, Ink).text = LookoutReport(observations);
+        }
+
+        private static string LookoutReport(System.Collections.Generic.IReadOnlyList<LookoutObservation> observations)
+        {
             StringBuilder report = new StringBuilder();
             int shown = 0;
             for (int i = observations.Count - 1; i >= 0 && shown < 3; i--, shown++)
@@ -338,7 +373,7 @@ namespace ShatteredSail.Presentation
                 report.Append(" · ").Append(item.Label).Append("　").Append(item.DistanceNm.ToString("0")).Append(" 海里");
             }
             if (shown == 0) report.Append("海面开阔 · 暂无目标");
-            NavigationText("Lookout Report", lookoutViewport, new Vector2(894f, 80f), new Vector2(0f, -264f), 22, Ink).text = report.ToString();
+            return report.ToString();
         }
 
         private void BuildVoyageHeaderTime(RectTransform header)

@@ -68,22 +68,24 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void WaveChoice_ButtonsSelectPartialTideAndPerpendicularShape()
+        public void WaveChoice_SelectsOnlyDirectionAndPerpendicularShapeThenConsumesAllTide()
         {
             typeof(CoreSchoolBattleState).GetProperty("TidePower").SetValue(session.Battle.Schools, 5);
             CoreNavalCardPlayOptions selected = null;
             NavalCardChoiceOverlay overlay = Choice("card_school_tide_n06", options => selected = options);
-            Button(overlay, "Naval resource plus").onClick.Invoke();
-            Button(overlay, "Naval resource plus").onClick.Invoke();
+            Assert.That(overlay.GetComponentsInChildren<Button>(true).Any(b => b.name == "Naval resource plus" || b.name == "Naval resource minus"), Is.False);
             Button(overlay, "Naval field direction 1").onClick.Invoke();
             overlay.SelectCell(0, 0);
-            Assert.That(overlay.Draft.ResourceAmount, Is.EqualTo(2));
+            Assert.That(overlay.Draft.ResourceAmount, Is.Zero, "All-resource cards have no selectable resource amount.");
             Assert.That(overlay.Draft.DirectionX, Is.Zero); Assert.That(overlay.Draft.DirectionY, Is.EqualTo(1));
             var selectedCells = overlay.GetComponentInChildren<NavalFieldGraphic>().Cells.Where(c => c.Fill.a > .3f).ToArray();
             Assert.That(selectedCells.Length, Is.EqualTo(3));
             Assert.That(selectedCells.All(c => c.Position.Y == 0), Is.True, "A northbound wave occupies a horizontal row.");
             overlay.ConfirmSelection();
             Assert.That(selected, Is.Not.Null); Assert.That(session.Battle.Schools.TidePower, Is.EqualTo(5), "The draft callback has not played the card.");
+            Assert.That(session.GetNavalChoiceUnavailableReason(0, selected), Is.Empty);
+            Assert.That(session.PlayNavalCard(0, selected), Is.True);
+            Assert.That(session.Battle.Schools.TidePower, Is.Zero, "Committing the selected area pays the entire current tide total.");
         }
 
         [Test]
@@ -121,15 +123,25 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase("card_school_arcane_n03", "mana", "2")]
         [TestCase("card_school_blood_n01", "health", "4")]
-        [TestCase("card_school_curse_n03", "curse", "1–3")]
-        [TestCase("card_school_tide_n02", "tide", "0–4")]
-        [TestCase("card_school_thunder_n06", "chain", "全")]
-        [TestCase("card_school_tide_n03", "wood", "1")]
+        [TestCase("card_school_curse_n03", "curse", "X")]
+        [TestCase("card_school_tide_n02", "tide", "X")]
+        [TestCase("card_school_thunder_n06", "chain", "X")]
         public void WorkshopAndHand_ShowTheRealNavalResourceCost(string id, string kind, string amount)
         {
             CoreBattleCard card = CoreVoyageSession.CardLibrary.Single(c => c.Id == id);
             Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.EqualTo(kind));
             Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo(amount));
+            Assert.That(CardSchoolArtCatalog.HasSchoolIllustration(card), Is.True);
+        }
+
+        [Test]
+        public void WorkshopAndHand_ShowTideAnchorWoodInTheSeparateSupplySlot()
+        {
+            CoreBattleCard card = CoreVoyageSession.CardLibrary.Single(c => c.Id == "card_school_tide_n03");
+            Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.Empty);
+            Assert.That(CardSpecialCostPresentation.CostText(card), Is.Empty);
+            Assert.That(CardSupplyCostPresentation.ResourceType(card), Is.EqualTo("wood"));
+            Assert.That(CardSupplyCostPresentation.CostText(card), Is.EqualTo("1"));
             Assert.That(CardSchoolArtCatalog.HasSchoolIllustration(card), Is.True);
         }
 

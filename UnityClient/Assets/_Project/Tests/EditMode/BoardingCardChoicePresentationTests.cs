@@ -81,10 +81,51 @@ namespace ShatteredSail.Core.Tests
             Assert.That(controller.IsBoardingCardChoiceOpen, Is.False);
         }
 
-        [TestCase("arcane_04", "mana", "全")]
+        [Test]
+        public void DelayedEffectChoice_ShowsQueuedSourcesAndSelectsTheChosenQueueIndex()
+        {
+            CoreVoyageSession session = controller.Session;
+            session.Battle.Hand.Clear();
+            session.Battle.Hand.Add(Index("arcane_15"));
+            session.Battle.Boarding.DelayedDamage.Clear();
+            var first = new CoreBoardingDelayedDamage { Amount = 12, Remaining = 1,
+                SourceCardId = "card_boarding_basic_13", Label = "备战突刺" };
+            var second = new CoreBoardingDelayedDamage { Amount = 60, Remaining = 1,
+                SourceCardId = "card_boarding_arcane_11", Label = "延迟奥术" };
+            session.Battle.Boarding.DelayedDamage.Add(first);
+            session.Battle.Boarding.DelayedDamage.Add(second);
+            int energy = session.Battle.Energy;
+            bool opened = (bool)typeof(CoreGameplayDemoController).GetMethod("TryBeginBoardingCardChoice", Private)
+                .Invoke(controller, new object[] { null, 0, session.GetBattleCard(session.Battle.Hand[0]) });
+            Assert.That(opened, Is.True);
+            Text title = host.GetComponentsInChildren<Text>(true).Single(text => text.name == "Boarding Choice Title");
+            Assert.That(title.text, Does.Contain("选择要立即结算的延迟效果"));
+            Text label = host.GetComponentsInChildren<Text>(true).Single(text => text.name == "Boarding Candidate Label 1");
+            Assert.That(label.text, Does.Contain("延迟奥术").And.Contain("60"));
+            host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Boarding Candidate 1")
+                .onClick.Invoke();
+            var options = (CoreBoardingPlayOptions)typeof(CoreGameplayDemoController).GetField("boardingChoiceOptions", Private).GetValue(controller);
+            CollectionAssert.AreEqual(new[] { 1 }, options.SelectionIndexes);
+            host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Cancel Boarding Card Choice" && button.gameObject.activeInHierarchy)
+                .onClick.Invoke();
+            CollectionAssert.AreEqual(new[] { first, second }, session.Battle.Boarding.DelayedDamage);
+            Assert.That(session.Battle.Energy, Is.EqualTo(energy));
+            Assert.That(first.Remaining, Is.EqualTo(1));
+            Assert.That(second.Remaining, Is.EqualTo(1));
+        }
+
+        [TestCase("arcane_04", "mana", "X")]
+        [TestCase("arcane_06", "mana", "X")]
+        [TestCase("arcane_11", "mana", "X")]
         [TestCase("arcane_05", "mana", "2")]
+        [TestCase("curse_11", "curse", "X")]
         [TestCase("curse_15", "curse", "2")]
-        [TestCase("tide_06", "tide", "全")]
+        [TestCase("tide_06", "tide", "X")]
+        [TestCase("tide_07", "tide", "X")]
+        [TestCase("tide_08", "tide", "X")]
+        [TestCase("thunder_13", "chain", "X")]
+        [TestCase("thunder_14", "chain", "X")]
+        [TestCase("thunder_15", "chain", "X")]
         [TestCase("blood_02", "health", "4")]
         public void BoardingResourceBadges_ShowFixedPaymentOrAll(string key, string resource, string value)
         {

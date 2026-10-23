@@ -6,11 +6,12 @@ param(
     [Parameter(Mandatory=$true)][string]$ZipFileName,
     [Parameter(Mandatory=$true)][string]$ValidationSummary,
     [string]$ProjectPath = 'D:/Game/tmp/shipyard-detail-clean-20261011',
-    [string]$UnityEditor = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Unity.exe'
+    [string]$UnityEditor = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Unity.exe',
+    [string]$SourceProjectPath = ''
 )
 $ErrorActionPreference = 'Stop'
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..')).TrimEnd('\','/')
-$source = Join-Path $workspace 'UnityClient'
+$source = if ($SourceProjectPath) { [IO.Path]::GetFullPath($SourceProjectPath).TrimEnd('\','/') } else { Join-Path $workspace 'UnityClient' }
 $project = [IO.Path]::GetFullPath($ProjectPath).TrimEnd('\','/')
 $release = [IO.Path]::GetFullPath($ReleaseDirectory).TrimEnd('\','/')
 $evidence = [IO.Path]::GetFullPath($EvidenceDirectory).TrimEnd('\','/')
@@ -18,6 +19,12 @@ function Assert-ChildPath([string]$Path, [string]$Parent) {
     if (-not $Path.StartsWith($Parent.TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)) { throw "Path escaped its workspace directory: $Path" }
 }
 Assert-ChildPath $project (Join-Path $workspace 'tmp')
+Assert-ChildPath $source $workspace
+if ($source -eq $project -or
+    $source.StartsWith($project + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or
+    $project.StartsWith($source + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Source and build project directories must be separate and must not contain each other.'
+}
 Assert-ChildPath $release (Join-Path $workspace 'Builds')
 Assert-ChildPath $evidence (Join-Path $workspace 'Artifacts')
 if ([IO.Path]::GetFileName($ZipFileName) -ne $ZipFileName -or $ZipFileName -notlike '*.zip') { throw 'Use a ZIP file name without directories.' }
@@ -89,6 +96,7 @@ function Quote-Arguments($Values) {
 }
 if ($Stage -eq 'Snapshot') {
     Assert-EditorAvailable
+    & (Join-Path $PSScriptRoot 'AssertMetaGuids.ps1') -AssetsPath (Join-Path $source 'Assets')
     if ((Test-Path -LiteralPath $release) -or (Test-Path -LiteralPath $evidence)) { throw 'Use new release and evidence directories.' }
     [IO.Directory]::CreateDirectory($evidence) | Out-Null
     $files = @(foreach ($part in @('Assets','Packages','ProjectSettings')) { Get-ChildItem -LiteralPath (Join-Path $source $part) -File -Recurse -Force | Where-Object { $_.FullName -notmatch '[\\/]UIPreviewsForMe(?:[\\/.]|$)' } })

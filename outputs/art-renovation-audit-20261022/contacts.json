@@ -1,0 +1,321 @@
+[
+  {
+    "family": "AchievementIcons",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/AchievementIcons_1.jpg",
+    "resources": [
+      "AchievementIcons/achievements_a_v1",
+      "AchievementIcons/achievements_b_v1",
+      "AchievementIcons/achievements_c_v1"
+    ]
+  },
+  {
+    "family": "BattleComics",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/BattleComics_1.jpg",
+    "resources": [
+      "BattleComics/HD/ram_boss_broadside_page01",
+      "BattleComics/HD/ram_boss_broadside_page02",
+      "BattleComics/HD/ram_boss_broadside_page03",
+      "BattleComics/HD/ram_boss_broadside_page04",
+      "BattleComics/HD/ram_boss_head_on_page01",
+      "BattleComics/HD/ram_boss_head_on_page02",
+      "BattleComics/HD/ram_boss_head_on_page03",
+      "BattleComics/HD/ram_boss_head_on_page04",
+      "BattleComics/HD/ram_player_broadside_page01",
+      "BattleComics/HD/ram_player_broadside_page02",
+      "BattleComics/HD/ram_player_broadside_page03",
+      "BattleComics/HD/ram_player_broadside_page04"
+    ]
+  },
+  {
+    "family": "BattleComics",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/BattleComics_2.jpg",
+    "resources": [
+      "BattleComics/HD/ram_player_head_on_page01",
+      "BattleComics/HD/ram_player_head_on_page02",
+      "BattleComics/HD/ram_player_head_on_page03",
+      "BattleComics/HD/ram_player_head_on_page04"
+    ]
+  },
+  {
+    "family": "BoardingBattle",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/BoardingBattle_1.jpg",
+    "resources": [
+      "BoardingBattle/Backgrounds/boarding_coast_day_v1",
+      "BoardingBattle/Backgrounds/boarding_coast_dusk_v1",
+      "BoardingBattle/Backgrounds/boarding_coast_night_v1",
+      "BoardingBattle/Backgrounds/boarding_fog_day_v1",
+      "BoardingBattle/Backgrounds/boarding_fog_dusk_v1",
+      "BoardingBattle/Backgrounds/boarding_fog_night_v1",
+      "BoardingBattle/Backgrounds/boarding_joined_deck_v2",
+      "BoardingBattle/Backgrounds/boarding_open_day_v1",
+      "BoardingBattle/Backgrounds/boarding_open_dusk_v1",
+      "BoardingBattle/Backgrounds/boarding_open_night_v1",
+      "BoardingBattle/Backgrounds/boarding_reef_day_v1",
+      "BoardingBattle/Backgrounds/boarding_reef_dusk_v1"
+    ]
+  },
+  {
+    "family": "BoardingBattle",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/BoardingBattle_2.jpg",
+    "resources": [
+      "BoardingBattle/Backgrounds/boarding_reef_night_v1",
+      "BoardingBattle/Backgrounds/boarding_storm_day_v1",
+      "BoardingBattle/Backgrounds/boarding_storm_dusk_v1",
+      "BoardingBattle/Backgrounds/boarding_storm_night_v1",
+      "BoardingBattle/Backgrounds/boarding_strait_day_v1",
+      "BoardingBattle/Backgrounds/boarding_strait_dusk_v1",
+      "BoardingBattle/Backgrounds/boarding_strait_night_v1",
+      "BoardingBattle/Characters/boarding_crew_broken_anchor_v2",
+      "BoardingBattle/Characters/boarding_crew_bronze_bell_v2",
+      "BoardingBattle/Characters/boarding_crew_gray_gull_v2",
+      "BoardingBattle/Characters/boarding_crew_salt_crown_v2",
+      "BoardingBattle/Characters/boarding_crew_twilight_tide_v2"
+    ]
+  },
+  {
+    "family": "BoardingBattle",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/BoardingBattle_3.jpg",
+    "resources": [
+      "BoardingBattle/Characters/boarding_crew_white_shell_v2",
+      "BoardingBattle/Characters/boarding_enemy_ember_ark_v1",
+      "BoardingBattle/Characters/boarding_enemy_ghost_v1",
+      "BoardingBattle/Characters/boarding_enemy_imperial_v1",
+      "BoardingBattle/Characters/boarding_enemy_iron_oath_v1",
+      "BoardingBattle/Characters/boarding_enemy_party_v1",
+      "BoardingBattle/Characters/boarding_enemy_red_widow_v1",
+      "BoardingBattle/Characters/boarding_enemy_route_gold_v1",
+      "BoardingBattle/Characters/boarding_enemy_route_moon_v1",
+      "BoardingBattle/Characters/boarding_enemy_route_reef_v1",
+      "BoardingBattle/Characters/boarding_enemy_thunder_crown_v1",
+      "BoardingBattle/Characters/boarding_enemy_tide_requiem_v1"
+    ]
+  },
+  {
+    "family": "BoardingBattle",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/BoardingBattle_4.jpg",
+    "resources": [
+      "BoardingBattle/Characters/boarding_enemy_treasure_v1",
+      "BoardingBattle/Characters/boarding_player_party_v1"
+    ]
+  },
+  {
+    "family": "CardWorkshopV2",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/CardWorkshopV2_1.jpg",
+    "resources": [
+      "CardWorkshopV2/DeckList/arcane",
+      "CardWorkshopV2/DeckList/blood",
+      "CardWorkshopV2/DeckList/curse",
+      "CardWorkshopV2/DeckList/fire",
+      "CardWorkshopV2/DeckList/neutral",
+      "CardWorkshopV2/DeckList/outer",
+      "CardWorkshopV2/DeckList/thumb",
+      "CardWorkshopV2/DeckList/thunder",
+      "CardWorkshopV2/DeckList/tide",
+      "CardWorkshopV2/deck_builder_collection_parchment_v3",
+      "CardWorkshopV2/deck_builder_parchment_v2",
+      "CardWorkshopV2/deck_builder_pirate_frame_v1"
+    ]
+  },
+  {
+    "family": "CardWorkshopV2",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/CardWorkshopV2_2.jpg",
+    "resources": [
+      "CardWorkshopV2/deck_chest_artillery_v1",
+      "CardWorkshopV2/deck_chest_captain_v1",
+      "CardWorkshopV2/deck_chest_navigation_v1",
+      "CardWorkshopV2/deck_chest_standard_v1",
+      "CardWorkshopV2/workshop_boarding_cutlasses_v1",
+      "CardWorkshopV2/workshop_naval_cannon_v1",
+      "CardWorkshopV2/workshop_preparation_compass_v1",
+      "CardWorkshopV2/workshop_upgrade_hammer_v1"
+    ]
+  },
+  {
+    "family": "ComponentArt",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/ComponentArt_1.jpg",
+    "resources": [
+      "ComponentArt/bow_abyssal_fang",
+      "ComponentArt/bow_dragonwake_ram",
+      "ComponentArt/bow_last_horizon",
+      "ComponentArt/bow_sawtooth_drift",
+      "ComponentArt/bow_voidray_edge",
+      "ComponentArt/cannon_cometfall_battery",
+      "ComponentArt/cannon_grapeshot_cup",
+      "ComponentArt/cannon_ropeguard_swivel",
+      "ComponentArt/cannon_tradeguard_battery",
+      "ComponentArt/instrument_celestial_engine",
+      "ComponentArt/instrument_fogbell_chart",
+      "ComponentArt/instrument_lunar_astrolabe"
+    ]
+  },
+  {
+    "family": "ComponentArt",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/ComponentArt_2.jpg",
+    "resources": [
+      "ComponentArt/instrument_sunshadow_ring",
+      "ComponentArt/plating_blacksmith_grid",
+      "ComponentArt/plating_freedom_ark",
+      "ComponentArt/plating_merchants_oath",
+      "ComponentArt/plating_saltfoam_skin",
+      "ComponentArt/plating_worldtree_bark",
+      "ComponentArt/sail_dawnstripe_canvas",
+      "ComponentArt/sail_gullwing_cloth",
+      "ComponentArt/sail_skybreaker_array",
+      "ComponentArt/sail_thunderphoenix"
+    ]
+  },
+  {
+    "family": "ComponentShopRegional",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/ComponentShopRegional_1.jpg",
+    "resources": [
+      "ComponentShopRegional/furniture_broken_anchor_v1",
+      "ComponentShopRegional/furniture_broken_anchor_v1_coverage",
+      "ComponentShopRegional/furniture_bronze_bell_v1",
+      "ComponentShopRegional/furniture_bronze_bell_v1_coverage",
+      "ComponentShopRegional/furniture_gray_gull_v1",
+      "ComponentShopRegional/furniture_gray_gull_v1_coverage",
+      "ComponentShopRegional/furniture_salt_crown_v1",
+      "ComponentShopRegional/furniture_salt_crown_v1_coverage",
+      "ComponentShopRegional/furniture_twilight_tide_v1",
+      "ComponentShopRegional/furniture_twilight_tide_v1_coverage",
+      "ComponentShopRegional/furniture_white_shell_v1",
+      "ComponentShopRegional/furniture_white_shell_v1_coverage"
+    ]
+  },
+  {
+    "family": "ComponentShopV2",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/ComponentShopV2_1.jpg",
+    "resources": [
+      "ComponentShopV2/blank_name_plaque_v1",
+      "ComponentShopV2/merchant_shipwright_v1",
+      "ComponentShopV2/mount_bow_v1",
+      "ComponentShopV2/mount_cannon_v1",
+      "ComponentShopV2/mount_instrument_v1",
+      "ComponentShopV2/mount_plating_v1",
+      "ComponentShopV2/mount_sail_v1"
+    ]
+  },
+  {
+    "family": "ComponentShopV3",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/ComponentShopV3_1.jpg",
+    "resources": [
+      "ComponentShopV3/shipyard_hall"
+    ]
+  },
+  {
+    "family": "ItemIcons",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/ItemIcons_1.jpg",
+    "resources": [
+      "ItemIcons/items_small_v1",
+      "ItemIcons/keepsakes_a_small_v1",
+      "ItemIcons/keepsakes_b_small_v1"
+    ]
+  },
+  {
+    "family": "MaintenanceV2",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/MaintenanceV2_1.jpg",
+    "resources": [
+      "MaintenanceV2/maintenance_boathouse_background_v2",
+      "MaintenanceV2/maintenance_inspection_board_v2",
+      "MaintenanceV2/maintenance_supply_board_v2",
+      "MaintenanceV2/maintenance_water_foreground_v2"
+    ]
+  },
+  {
+    "family": "ModularShip",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/ModularShip_1.jpg",
+    "resources": [
+      "ModularShip/Layers/bow_abyssal_fang",
+      "ModularShip/Layers/bow_dragonwake_ram",
+      "ModularShip/Layers/bow_last_horizon",
+      "ModularShip/Layers/bow_sawtooth_drift",
+      "ModularShip/Layers/bow_voidray_edge",
+      "ModularShip/Layers/cannon_cometfall_battery",
+      "ModularShip/Layers/cannon_grapeshot_cup",
+      "ModularShip/Layers/cannon_ropeguard_swivel",
+      "ModularShip/Layers/cannon_tradeguard_battery",
+      "ModularShip/Layers/instrument_celestial_engine",
+      "ModularShip/Layers/instrument_fogbell_chart",
+      "ModularShip/Layers/instrument_lunar_astrolabe"
+    ]
+  },
+  {
+    "family": "ModularShip",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/ModularShip_2.jpg",
+    "resources": [
+      "ModularShip/Layers/instrument_sunshadow_ring",
+      "ModularShip/Layers/plating_blacksmith_grid",
+      "ModularShip/Layers/plating_freedom_ark",
+      "ModularShip/Layers/plating_merchants_oath",
+      "ModularShip/Layers/plating_saltfoam_skin",
+      "ModularShip/Layers/plating_worldtree_bark",
+      "ModularShip/Layers/sail_dawnstripe_canvas",
+      "ModularShip/Layers/sail_gullwing_cloth",
+      "ModularShip/Layers/sail_skybreaker_array",
+      "ModularShip/Layers/sail_thunderphoenix"
+    ]
+  },
+  {
+    "family": "OpeningComics",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/OpeningComics_1.jpg",
+    "resources": [
+      "OpeningComics/opening_page01",
+      "OpeningComics/opening_page02",
+      "OpeningComics/opening_page03",
+      "OpeningComics/opening_page04"
+    ]
+  },
+  {
+    "family": "SettlementReveal",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/SettlementReveal_1.jpg",
+    "resources": [
+      "SettlementReveal/settlement_chest_v1",
+      "SettlementReveal/settlement_hold_v1",
+      "SettlementReveal/settlement_journal_v1"
+    ]
+  },
+  {
+    "family": "TreasureHunt",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/TreasureHunt_1.jpg",
+    "resources": [
+      "TreasureHunt/Comics/gilded_page01",
+      "TreasureHunt/Comics/gilded_page02",
+      "TreasureHunt/Comics/moonlit_page01",
+      "TreasureHunt/Comics/moonlit_page02",
+      "TreasureHunt/Comics/weathered_page01",
+      "TreasureHunt/Comics/weathered_page02",
+      "TreasureHunt/treasure_chart_gilded",
+      "TreasureHunt/treasure_chart_moonlit",
+      "TreasureHunt/treasure_chart_weathered",
+      "TreasureHunt/treasure_hunt_event_sheet"
+    ]
+  },
+  {
+    "family": "UISurfaces",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/UISurfaces_1.jpg",
+    "resources": [
+      "UISurfaces/aged_reading_parchment_v1",
+      "UISurfaces/collection_archive_parchment_v1",
+      "UISurfaces/investment_charter_parchment_v1",
+      "UISurfaces/journal_parchment_v1",
+      "UISurfaces/nautical_canvas_v1"
+    ]
+  },
+  {
+    "family": "UIWood",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/UIWood_1.jpg",
+    "resources": [
+      "UIWood/wood_button_face_v1"
+    ]
+  },
+  {
+    "family": "WarehouseV2",
+    "path": "D:/Game/outputs/art-renovation-audit-20261022/contacts/WarehouseV2_1.jpg",
+    "resources": [
+      "WarehouseV2/first_victory_compass_v1",
+      "WarehouseV2/trophy_cabinet_v1",
+      "WarehouseV2/warehouse_boatswain_bell_v1",
+      "WarehouseV2/warehouse_sealed_chart_v1"
+    ]
+  }
+]

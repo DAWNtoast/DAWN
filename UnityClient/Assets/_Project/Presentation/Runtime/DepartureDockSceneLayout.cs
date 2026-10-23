@@ -21,7 +21,7 @@ namespace ShatteredSail.Presentation
         // Call after the shared layout and skin. The controller owns port selection,
         // interaction state, and the hull's waterline fit; this class only places UI.
         public static void Apply(RectTransform route, RectTransform setup, bool expandedChart,
-            bool treasure, bool crew, int selectedRoute, string shipName)
+            bool treasure, bool crew, int selectedRoute)
         {
             if (route != null)
             {
@@ -64,7 +64,8 @@ namespace ShatteredSail.Presentation
                 }
             }
 
-            SetActive(setup, "Departure Dock Vessel Controls", !crew);
+            SetActive(setup, "Departure Dock Vessel Controls", false);
+            SetActive(setup, "Departure Dock Ship Hint", false);
             SetActive(setup, "Departure Dock Crew Readout Panel", !crew);
             // The crew editor retains the shared paper layout and its controls.
             if (setup == null || crew)
@@ -76,25 +77,22 @@ namespace ShatteredSail.Presentation
             SetRect(setup, new Vector2(1920f, 1080f), Vector2.zero);
             ClearPanel(setup);
 
-            // The vessel only meets water. These controls have their own visible
-            // faces and sit below/right of the berth, never over the sails.
+            // Keep only the two independent arrows beside the vessel. The berth
+            // retains its own inspection target without a caption bar below it.
             ArtPlace(setup, "Inspect Departure Vessel", 704, 70, 928, 478);
-            ControlPanel(setup, "Departure Dock Vessel Controls", 950, 610, 620, 72);
-            StandaloneButton(setup, "Departure Previous Vessel", 962, 621, 50, 50, 28, "←");
-            StandaloneButton(setup, "Departure Next Vessel", 1508, 621, 50, 50, 28, "→");
-            Text title = ArtText(setup, "Setup Title", 1020, 616, 480, 30, 23, 17, TextAnchor.MiddleCenter);
-            if (title != null && !string.IsNullOrEmpty(shipName)) title.text = "旗舰 · " + shipName;
-            SceneLabel(title, SceneGold);
-            SceneLabel(ArtText(setup, "Departure Dock Ship Hint", 1020, 651, 480, 24, 16, 14, TextAnchor.MiddleCenter), SceneInk);
+            StandaloneButton(setup, "Departure Previous Vessel", 640, 344, 72, 72, 36, "←");
+            StandaloneButton(setup, "Departure Next Vessel", 1624, 344, 72, 72, 36, "→");
+            HideText(setup, "Setup Title");
 
-            ControlPanel(setup, "Departure Dock Crew Readout Panel", 1640, 590, 370, 137);
+            CrewReadoutDesk(setup, "Departure Dock Crew Readout Panel", 1040, 912, 512, 240);
             HideText(setup, "DepartureOrdinaryCrewCount");
             HideText(setup, "DepartureCrewSpeedPreview");
-            StandaloneButton(setup, "DepartureOrdinaryCrewDecreaseButton", 1896, 598, 44, 40, 25, "−");
-            StandaloneButton(setup, "DepartureOrdinaryCrewIncreaseButton", 1948, 598, 44, 40, 25, "+");
-            SceneLabel(ArtText(setup, "Departure Dock Ordinary Readout", 1658, 601, 220, 33, 19, 16, TextAnchor.MiddleLeft), SceneInk);
-            SceneLabel(ArtText(setup, "Departure Dock Special Readout", 1658, 646, 334, 28, 18, 16, TextAnchor.MiddleLeft), SceneInk);
-            SceneLabel(ArtText(setup, "Departure Dock Speed Readout", 1658, 684, 334, 30, 21, 17, TextAnchor.MiddleLeft), SceneGold);
+            StandaloneButton(setup, "DepartureOrdinaryCrewDecreaseButton", 1375, 997, 40, 34, 24, "−");
+            StandaloneButton(setup, "DepartureOrdinaryCrewIncreaseButton", 1423, 997, 40, 34, 24, "+");
+            SceneLabel(ArtText(setup, "Departure Dock Crew Heading", 1194, 936, 210, 35, 21, 18, TextAnchor.MiddleCenter), SceneGold);
+            SceneLabel(ArtText(setup, "Departure Dock Ordinary Readout", 1114, 995, 214, 28, 18, 16, TextAnchor.MiddleLeft), SceneInk);
+            SceneLabel(ArtText(setup, "Departure Dock Special Readout", 1114, 1023, 250, 23, 17, 15, TextAnchor.MiddleLeft), SceneInk);
+            SceneLabel(ArtText(setup, "Departure Dock Speed Readout", 1114, 1047, 334, 24, 19, 17, TextAnchor.MiddleLeft), SceneGold);
 
             Hotspot(setup, "Departure Buy Provisions", 1008, 737, 220, 51);
             PaintedCaption(setup, "Departure Buy Provisions", 21, 18, 43, 17);
@@ -129,8 +127,6 @@ namespace ShatteredSail.Presentation
             }
             Hotspot(route, "Departure Dock Ordinary Voyage", 35, 567, 170, 51, !chartMode && !treasure);
             PaintedCaption(route, "Departure Dock Ordinary Voyage", 22, 19, 52, 12, value: "普通航程");
-            Hotspot(route, "Departure Dock Chart Shortcut", 632, 571, 194, 43);
-            PaintedCaption(route, "Departure Dock Chart Shortcut", 16, 14, 2, 2, value: "选择海图 / 输入种子");
             Hotspot(route, "Departure Treasure Seed Picker", 408, 567, 215, 51, treasure);
             PaintedCaption(route, "Departure Treasure Seed Picker", 20, 18, 57, 59, value: "藏宝海图");
             SceneLabel(ArtText(route, "Departure Dock Treasure Count", 565, 576, 44, 32, 18, 15, TextAnchor.MiddleCenter), SceneGold);
@@ -159,19 +155,23 @@ namespace ShatteredSail.Presentation
         {
             RectTransform selection = ArtPlace(route, "Departure Chart Selection", 35, 706, 816, 184);
             if (selection == null) return;
-            Place(selection, "Seed Input", 466, 28, -130, 42);
-            PaperLabel(FitText(selection, "Departure Dock Chart Records Heading", 466, 22, -130, 69, 16, 14, TextAnchor.MiddleLeft));
-            Place(selection, "Departure Dock Chart Records", 466, 82, -130, -18);
-            PaperLabel(FitText(selection, "Departure Dock Chart Records Empty", 456, 74, -130, -18, 17, 15, TextAnchor.MiddleCenter));
-            PaperLabel(FitText(selection, "Chart Seed Validation", 466, 22, -130, -72, 13, 12, TextAnchor.MiddleLeft));
+            // Match the treasure chart table: thumbnail on the left, seed controls on the right.
+            const float previewX = -226;
+            const float controlsX = 176;
+            const float controlsWidth = 400;
+            Place(selection, "Seed Input", controlsWidth, 28, controlsX, 42);
+            PaperLabel(FitText(selection, "Departure Dock Chart Records Heading", controlsWidth, 22, controlsX, 69, 16, 14, TextAnchor.MiddleLeft));
+            Place(selection, "Departure Dock Chart Records", controlsWidth, 82, controlsX, -18);
+            PaperLabel(FitText(selection, "Departure Dock Chart Records Empty", controlsWidth - 10, 74, controlsX, -18, 17, 15, TextAnchor.MiddleCenter));
+            PaperLabel(FitText(selection, "Chart Seed Validation", controlsWidth, 22, controlsX, -72, 13, 12, TextAnchor.MiddleLeft));
             RectTransform input = FindNode(selection, "Seed Input") as RectTransform;
             if (input != null)
             {
-                FitText(input, "Text", 446, 24, 0, 0, 14, 12, TextAnchor.MiddleLeft);
-                FitText(input, "Placeholder", 446, 24, 0, 0, 14, 12, TextAnchor.MiddleLeft);
+                FitText(input, "Text", controlsWidth - 20, 24, 0, 0, 14, 12, TextAnchor.MiddleLeft);
+                FitText(input, "Placeholder", controlsWidth - 20, 24, 0, 0, 14, 12, TextAnchor.MiddleLeft);
             }
             RectTransform preview = FindNode(selection, "Departure Chart Preview") as RectTransform;
-            Vector2 previewSize = new Vector2(232, 130.5f);
+            Vector2 previewSize = new Vector2(246, 138.375f);
             if (preview != null)
             {
                 Vector2 oldSize = preview.sizeDelta;
@@ -186,13 +186,13 @@ namespace ShatteredSail.Presentation
                     Place(marker, "Marker", 10, 10, 0, 0);
                     FitText(marker, "Label", 40, 18, 0, -15, 11, 10, TextAnchor.MiddleCenter);
                 }
-                SetRect(preview, previewSize, new Vector2(254, 0));
+                SetRect(preview, previewSize, new Vector2(previewX, 0));
                 Place(preview, "Departure Chart Preview Water", previewSize.x, previewSize.y, 0, 0);
                 Place(preview, "Departure Chart Preview Surface", previewSize.x, previewSize.y, 0, 0);
             }
-            PaperLabel(FitText(selection, "Departure Chart Route", 244, 20, 254, 76, 16, 14, TextAnchor.MiddleCenter));
-            PaperLabel(FitText(selection, "Departure Chart Ports", 244, 20, 254, -76, 13, 11, TextAnchor.MiddleCenter));
-            PaperLabel(FitText(selection, "Departure Chart Preview Empty", 238, 110, 254, 0, 17, 15, TextAnchor.MiddleCenter));
+            PaperLabel(FitText(selection, "Departure Chart Route", 306, 16, previewX, 78, 16, 14, TextAnchor.MiddleCenter));
+            PaperLabel(FitText(selection, "Departure Chart Ports", 306, 16, previewX, -78, 13, 11, TextAnchor.MiddleCenter));
+            PaperLabel(FitText(selection, "Departure Chart Preview Empty", 294, 140, previewX, 0, 19, 17, TextAnchor.MiddleCenter));
             selection.SetAsLastSibling();
         }
 
@@ -221,7 +221,7 @@ namespace ShatteredSail.Presentation
             if (rect != null) DeparturePaintedHotspot.Apply(rect.GetComponent<Selectable>(), selected, round, showOutline);
         }
 
-        private static void ControlPanel(Transform parent, string name, float x, float y, float width, float height)
+        private static void CrewReadoutDesk(Transform parent, string name, float x, float y, float width, float height)
         {
             RectTransform rect = FindNode(parent, name) as RectTransform;
             if (rect == null)
@@ -232,11 +232,13 @@ namespace ShatteredSail.Presentation
             }
             ArtPlace(parent, name, x, y, width, height);
             Image face = rect.GetComponent<Image>();
-            face.sprite = WoodButtonSkin.Face;
+            // The desk is painted into each regional background. Retain only
+            // its layout bounds so live readouts and retained views keep their identity.
+            face.sprite = null;
             face.overrideSprite = null;
-            face.type = face.sprite == null ? Image.Type.Simple : Image.Type.Sliced;
-            face.pixelsPerUnitMultiplier = 112f / 7f;
-            face.color = face.sprite == null ? new Color(.08f, .13f, .14f, .97f) : new Color(.82f, .87f, .88f, .98f);
+            face.type = Image.Type.Simple;
+            face.preserveAspect = false;
+            face.color = Color.clear;
             face.raycastTarget = false;
             rect.gameObject.SetActive(true);
             rect.SetAsLastSibling();

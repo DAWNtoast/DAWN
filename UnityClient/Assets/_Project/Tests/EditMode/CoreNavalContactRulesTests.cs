@@ -14,22 +14,29 @@ namespace ShatteredSail.Core.Tests
         [TestCase(50f, 0f, false)] [TestCase(60f, 0f, false)]
         [TestCase(99f, 0f, false)] [TestCase(101f, 0f, false)]
         [TestCase(150f, 0f, false)] [TestCase(200f, 0f, false)]
-        public void BoardingRequiresExactlyOneOrthogonalGridCell(float x, float y, bool legal)
+        public void ContactRequiresExactlyOneOrthogonalGridCell(float x, float y, bool legal)
         {
             CoreVoyageSession session = NewBattle();
-            Pose(session, 0f, 0f, 90f, x, y, 90f);
+            float boardingHeading = x == 0f ? 0f : 90f;
+            Pose(session, 0f, 0f, boardingHeading, x, y, boardingHeading);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             session.Battle.Energy = 0;
             Assert.That(session.NavalShipsAreOrthogonallyAdjacent, Is.EqualTo(legal));
             Assert.That(session.CanBoard(out _), Is.EqualTo(legal));
+            Pose(session, 0f, 0f, (float)(Math.Atan2(y, x) * 180d / Math.PI), x, y, boardingHeading);
+            Assert.That(session.CanRam(out _), Is.EqualTo(legal));
             Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(1));
         }
 
-        [TestCase(0f)] [TestCase(90f)] [TestCase(180f)] [TestCase(270f)]
-        public void SameHeadingBoardsWithoutEnergyOrAnAlignmentFlag(float heading)
+        [Test]
+        public void ParallelShipsBoardFromEitherSideWithSameOrOppositeHeadings(
+            [Values(0f, 90f, 180f, 270f)] float heading,
+            [Values(false, true)] bool opposite,
+            [Values(-1f, 1f)] float side)
         {
             CoreVoyageSession session = NewBattle();
-            Pose(session, -100f, 0f, heading, 0f, 0f, heading);
+            VoyagePoint offset = Direction(heading + 90f, side * 100f);
+            Pose(session, offset.X, offset.Y, heading, 0f, 0f, (heading + (opposite ? 180f : 0f)) % 360f);
             session.Battle.Alignment = NavalBattleAlignment.HeadOn;
             session.Battle.Energy = 0;
             Assert.That(session.CanBoard(out string reason), Is.True, reason);
@@ -39,23 +46,101 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.NavalActionPoints, Is.Zero);
         }
 
-        [TestCase(90f)] [TestCase(180f)] [TestCase(270f)]
-        public void AlignmentCannotAllowBoardingWhenTheShipsDoNotShareHeading(float enemyHeading)
+        [TestCase(90f)] [TestCase(270f)]
+        public void AlignmentCannotAllowBoardingWhenTheShipsAreNotParallel(float enemyHeading)
         {
             CoreVoyageSession session = NewBattle();
-            Pose(session, -100f, 0f, 0f, 0f, 0f, enemyHeading);
+            Pose(session, 0f, -100f, 0f, 0f, 0f, enemyHeading);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(session.CanBoard(out string reason), Is.False);
-            Assert.That(reason, Does.Contain("同向"));
+            Assert.That(reason, Does.Contain("平行"));
             Assert.That(session.TryBoard(), Is.False);
             Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(1));
         }
 
-        [TestCase(0f, 90f)] [TestCase(0f, 270f)]
-        [TestCase(90f, 0f)] [TestCase(90f, 180f)]
-        [TestCase(180f, 90f)] [TestCase(180f, 270f)]
-        [TestCase(270f, 0f)] [TestCase(270f, 180f)]
-        public void AimedPerpendicularRamUsesOneActionPointAndNoEnergy(float heading, float enemyHeading)
+        [Test]
+        public void ParallelShipsCannotBoardFromAnAdjacentBowOrSternCell(
+            [Values(0f, 90f, 180f, 270f)] float heading,
+            [Values(false, true)] bool opposite,
+            [Values(-1f, 1f)] float end)
+        {
+            CoreVoyageSession session = NewBattle();
+            VoyagePoint offset = Direction(heading, end * 100f);
+            Pose(session, offset.X, offset.Y, heading, 0f, 0f, (heading + (opposite ? 180f : 0f)) % 360f);
+            session.Battle.Alignment = NavalBattleAlignment.Parallel;
+            Assert.That(session.NavalShipsAreOrthogonallyAdjacent, Is.True);
+            Assert.That(session.CanBoard(out string reason), Is.False);
+            Assert.That(reason, Does.Contain("舷侧相邻"));
+            Assert.That(session.TryBoard(), Is.False);
+            Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RamSettlementUsesTheActualStruckEndAndItsArmorForBothAttackers(
+            [Values(false, true)] bool enemyAttacks,
+            [Values(0f, 90f, 180f, 270f)] float attackHeading,
+            [Values(0f, 90f, 180f, 270f)] float targetHeading)
+        {
+            CoreVoyageSession session = NewBattle();
+            VoyagePoint target = Direction(attackHeading, 100f);
+            NavalBoardingConnection expected = attackHeading == targetHeading
+                ? NavalBoardingConnection.RamBowToStern
+                : (attackHeading + 180f) % 360f == targetHeading
+                ? NavalBoardingConnection.RamBowToBow : NavalBoardingConnection.RamBowToBroadside;
+            bool hitsBow = expected == NavalBoardingConnection.RamBowToBow;
+            if (enemyAttacks)
+            {
+                session.Battle.Profile = new CoreBattleProfile(CoreBossKind.Legendary, CoreBattleArchetype.Raider,
+                    500, 1, 7, 0, 0, 30, 1f, 1f, 1d, 120f);
+                Pose(session, target.X, target.Y, targetHeading, 0f, 0f, attackHeading);
+                session.Battle.EnemyBowQuality = 2f;
+                session.Battle.PlayerBowQuality = 5f;
+                session.Battle.PlayerHullQuality = 1f;
+            }
+            else
+            {
+                Pose(session, 0f, 0f, attackHeading, target.X, target.Y, targetHeading);
+                session.Battle.PlayerBowQuality = 2f;
+                session.Battle.EnemyBowQuality = 5f;
+                session.Battle.EnemyHullQuality = 1f;
+            }
+            session.Battle.Alignment = hitsBow ? NavalBattleAlignment.EnemyBroadside : NavalBattleAlignment.HeadOn;
+            session.Battle.PlayerBlock = session.Battle.EnemyBlock = 999;
+            int playerHull = session.Hull, enemyHull = session.Battle.EnemyHull;
+            string forecast = session.GetEnemyIntent();
+            Assert.That(enemyAttacks ? session.EnemyWillRam : session.CanRam(out _), Is.True);
+            Assert.That(enemyAttacks ? session.EnemyRamConnection : session.PlayerRamConnection, Is.EqualTo(expected));
+            Assert.That(enemyAttacks ? session.EndBattleTurn() : session.TryRam(), Is.True);
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(session.Battle.BoardingConnection, Is.EqualTo(expected));
+            Assert.That(session.Battle.BoardingApproach, Is.EqualTo(expected == NavalBoardingConnection.RamBowToBroadside
+                ? NavalBoardingApproach.Quarter : NavalBoardingApproach.Alongside));
+            Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.EqualTo(enemyAttacks));
+            int damage = hitsBow ? 7 : 27, recoil = hitsBow ? 28 : 6;
+            Assert.That(playerHull - session.Hull, Is.EqualTo(enemyAttacks ? damage : recoil));
+            Assert.That(enemyHull - session.Battle.EnemyHull,
+                Is.EqualTo(enemyAttacks ? recoil : damage * CoreBattleBalance.PlayerRamDamageMultiplier));
+            if (enemyAttacks)
+                Assert.That(forecast, Does.Contain("己舰 -" + damage + " / 敌舰 -" + recoil));
+        }
+
+        [TestCase(100f, 100f)] [TestCase(0f, 0f)] [TestCase(50f, 0f)]
+        [TestCase(99f, 0f)] [TestCase(101f, 0f)] [TestCase(200f, 0f)]
+        public void EnemyRamRejectsDiagonalCoincidentAndNonAdjacentPositions(float x, float y)
+        {
+            CoreVoyageSession session = NewBattle();
+            session.Battle.Profile = new CoreBattleProfile(CoreBossKind.Legendary, CoreBattleArchetype.Raider,
+                500, 1, 7, 0, 0, 30, 1f, 1f, 1d, 120f);
+            Pose(session, x, y, 90f, 0f, 0f, (float)(Math.Atan2(y, x) * 180d / Math.PI));
+            session.Battle.Alignment = NavalBattleAlignment.HeadOn;
+            Assert.That(session.EnemyWillRam, Is.False);
+            Assert.That(session.GetEnemyIntent(), Does.Not.Contain("冲撞→接舷"));
+        }
+
+        [Test]
+        public void AimedRamWorksFromAllFourDirectionsAgainstEveryEnemyHeading(
+            [Values(0f, 90f, 180f, 270f)] float heading,
+            [Values(0f, 90f, 180f, 270f)] float enemyHeading)
         {
             CoreVoyageSession session = NewBattle();
             float radians = heading * (float)Math.PI / 180f;
@@ -73,9 +158,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.EnemyHull, Is.Zero);
         }
 
-        [TestCase(0f, 0f)] [TestCase(0f, 180f)]
-        [TestCase(180f, 90f)] [TestCase(90f, 0f)]
-        public void InvalidRamHeadingCannotBeBypassedByAlignmentOrPriorMovement(float playerHeading, float enemyHeading)
+        [Test]
+        public void InvalidRamHeadingCannotBeBypassedByAlignmentOrPriorMovement(
+            [Values(90f, 180f, 270f)] float playerHeading,
+            [Values(0f, 90f, 180f, 270f)] float enemyHeading)
         {
             CoreVoyageSession session = NewBattle();
             Pose(session, -100f, 0f, playerHeading, 0f, 0f, enemyHeading);
@@ -90,12 +176,12 @@ namespace ShatteredSail.Core.Tests
         public void MovingToContactClearsPointsAndRequiresANewPointBeforeConnecting(bool ram)
         {
             CoreVoyageSession session = NewBattle();
-            Pose(session, -200f, 0f, 0f, 0f, 0f, ram ? 90f : 0f);
+            Pose(session, -200f, 0f, 0f, 0f, 0f, 90f);
             Assert.That(session.TryAppendNavalMovementStep(new VoyagePoint(-100f, 0f), out string reason), Is.True, reason);
             Assert.That(session.CommitNavalMovement(out reason), Is.True, reason);
             Assert.That(session.CanBoard(out _), Is.False);
             Assert.That(session.CanRam(out _), Is.False);
-            Assert.That(session.ConfirmNavalArrivalHeading(0f, out reason), Is.True, reason);
+            Assert.That(session.ConfirmNavalArrivalHeading(ram ? 0f : 90f, out reason), Is.True, reason);
             Assert.That(ram ? session.CanRam(out reason) : session.CanBoard(out reason), Is.False);
             Assert.That(reason, Does.Contain("1 行动点"));
             session.Battle.Hand.Clear();
@@ -107,9 +193,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
         }
 
-        [TestCase(0f, 180f, false)] [TestCase(180f, 180f, false)]
+        [TestCase(0f, 180f, true)] [TestCase(180f, 180f, true)]
         [TestCase(90f, 0f, false)] [TestCase(90f, 180f, true)]
-        public void EnemyRamUsesTheSamePerpendicularAimedContactRule(float playerHeading, float enemyHeading, bool legal)
+        [TestCase(90f, 90f, false)] [TestCase(90f, 270f, false)]
+        public void EnemyRamRequiresItsBowToPointAtThePlayer(float playerHeading, float enemyHeading, bool legal)
         {
             CoreVoyageSession session = NewBattle();
             session.Battle.Profile = new CoreBattleProfile(CoreBossKind.Legendary, CoreBattleArchetype.Raider,
@@ -121,7 +208,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
             Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.True);
-            Assert.That(session.Battle.BoardingConnection, Is.EqualTo(NavalBoardingConnection.RamBowToBroadside));
+            Assert.That(session.Battle.BoardingConnection, Is.EqualTo(playerHeading == 0f
+                ? NavalBoardingConnection.RamBowToBow : playerHeading == 180f
+                ? NavalBoardingConnection.RamBowToStern : NavalBoardingConnection.RamBowToBroadside));
         }
 
         [Test]
@@ -159,6 +248,13 @@ namespace ShatteredSail.Core.Tests
             string intent = session.GetEnemyIntent();
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(intent, Does.Contain("己舰 -" + (before - session.Hull) + " /"));
+        }
+
+        private static VoyagePoint Direction(float heading, float distance)
+        {
+            double radians = heading * Math.PI / 180d;
+            return new VoyagePoint((float)Math.Round(Math.Cos(radians)) * distance,
+                (float)Math.Round(Math.Sin(radians)) * distance);
         }
 
         private static CoreVoyageSession NewBattle()

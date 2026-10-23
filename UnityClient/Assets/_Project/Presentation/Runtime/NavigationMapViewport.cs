@@ -4,14 +4,13 @@ using UnityEngine.EventSystems;
 
 namespace ShatteredSail.Presentation
 {
-    /// <summary>A bounded chart viewport. Cell size is uniform; the world never changes on resize.</summary>
+    /// <summary>A fixed, full-chart view. Resizing never hides or changes the generated world.</summary>
     [ExecuteAlways, DisallowMultipleComponent]
     public sealed class NavigationMapViewport : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         [SerializeField] private int columns;
         [SerializeField] private int rows;
         [SerializeField] private Vector2 viewCenter = Vector2.one * .5f;
-        [SerializeField] private bool hasViewCenter;
         private RectTransform map;
         private RectTransform frame;
         private RectTransform sea;
@@ -32,7 +31,8 @@ namespace ShatteredSail.Presentation
             columns = columnCount;
             rows = rowCount;
             changed = onViewChanged;
-            if (center.HasValue) { viewCenter = center.Value; hasViewCenter = true; }
+            // Previously saved pan positions no longer crop the chart.
+            viewCenter = Vector2.one * .5f;
         }
 
         public void ApplyLayout(RectTransform window, RectTransform plottedSea)
@@ -41,52 +41,33 @@ namespace ShatteredSail.Presentation
             frame = window;
             sea = plottedSea;
             if (columns <= 0 || rows <= 0 || sea.rect.width <= 0 || sea.rect.height <= 0) return;
-            float cellSide = Mathf.Max(frame.rect.width / columns, frame.rect.height / rows);
-            // Older saved previews can contain rectangular authored cells. This
-            // also makes those cells square without modifying their saved world.
-            map.localScale = new Vector3(cellSide * columns / sea.rect.width,
-                cellSide * rows / sea.rect.height, 1f);
-            if (!hasViewCenter)
-            {
-                RectTransform ship = map.Find("Player Ship") as RectTransform;
-                viewCenter = ship == null ? Vector2.one * .5f : Normalize(ship.anchoredPosition);
-                hasViewCenter = true;
-            }
-            Vector2 point = new Vector2(Mathf.Lerp(sea.rect.xMin, sea.rect.xMax, viewCenter.x),
-                Mathf.Lerp(sea.rect.yMin, sea.rect.yMax, viewCenter.y));
-            SetPosition(-Vector2.Scale(point, map.localScale));
+            // Fit both axes, including legacy charts with a different row count.
+            // The visible border is always the actual edge of the whole world.
+            map.localScale = new Vector3(frame.rect.width / sea.rect.width,
+                frame.rect.height / sea.rect.height, 1f);
+            CenterMap();
         }
 
         public void PanBy(Vector2 frameLocalDelta)
         {
             if (map == null || frame == null || sea == null) return;
-            SetPosition(map.anchoredPosition + frameLocalDelta);
+            CenterMap();
         }
 
         public void EnsureVisible(Vector2 mapLocalPoint, float margin = 60f)
         {
             if (map == null || frame == null || sea == null) return;
-            Vector2 point = map.anchoredPosition + Vector2.Scale(mapLocalPoint, map.localScale);
-            Vector2 safeHalf = Vector2.Max(Vector2.zero, frame.rect.size * .5f - Vector2.one * margin);
-            Vector2 target = new Vector2(Mathf.Clamp(point.x, -safeHalf.x, safeHalf.x),
-                Mathf.Clamp(point.y, -safeHalf.y, safeHalf.y));
-            PanBy(target - point);
+            // Every point is already visible. Ship motion and locate actions
+            // must not move the map or expose another region beyond its border.
+            CenterMap();
         }
 
-        private void SetPosition(Vector2 position)
+        private void CenterMap()
         {
-            Vector2 extent = Vector2.Max(Vector2.zero,
-                (Vector2.Scale(sea.rect.size, map.localScale) - frame.rect.size) * .5f);
-            map.anchoredPosition = new Vector2(Mathf.Clamp(position.x, -extent.x, extent.x),
-                Mathf.Clamp(position.y, -extent.y, extent.y));
-            viewCenter = Normalize(new Vector2(-map.anchoredPosition.x / map.localScale.x,
-                -map.anchoredPosition.y / map.localScale.y));
+            map.anchoredPosition = frame.rect.center - Vector2.Scale(sea.rect.center, map.localScale);
+            viewCenter = Vector2.one * .5f;
             changed?.Invoke(viewCenter);
         }
-
-        private Vector2 Normalize(Vector2 point) => new Vector2(
-            Mathf.InverseLerp(sea.rect.xMin, sea.rect.xMax, point.x),
-            Mathf.InverseLerp(sea.rect.yMin, sea.rect.yMax, point.y));
 
         public void OnBeginDrag(PointerEventData eventData)
         {

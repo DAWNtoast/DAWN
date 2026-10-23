@@ -38,6 +38,12 @@ namespace ShatteredSail.Presentation.Tests
             voyage.Map.Destination = core.Position;
             SetDestinationTestPosition(voyage, core.Position);
             SetDestinationTestField(voyage, "randomAmbushOccurred", true);
+            // This fixture replaced node indices and positions after the map was built.
+            // Heading changes preserve the chart, so rebuild the fixture explicitly
+            // before exercising the real marker callbacks and pointer navigation.
+            typeof(CoreGameplayDemoController).GetMethod("Render",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(controller, null);
+            yield return null;
             ActiveButton("Heading East").onClick.Invoke();
             yield return null;
             Canvas canvas = GameObject.Find("Navigation Chart").GetComponentInParent<Canvas>().rootCanvas;

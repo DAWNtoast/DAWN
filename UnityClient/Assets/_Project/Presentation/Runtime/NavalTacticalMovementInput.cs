@@ -27,7 +27,7 @@ namespace ShatteredSail.Presentation
         private string message;
         private int lastPoints = -1, lastSteps = -1, lastRevision = -1;
         private bool lastBlocked, lastAwaiting, initialized;
-        private int lastContext, lastPresentation;
+        private int lastContext, lastSelectionContext, lastPresentation;
         private bool reachDirty = true, dragArmed, dragFromShip, suppressClick, dragNeedsAnchor;
         private int dragPointer;
         private VoyagePoint dragWorld;
@@ -80,11 +80,6 @@ namespace ShatteredSail.Presentation
             if (eventData.button != PointerEventData.InputButton.Left || !CanPlan) return;
             if (!board.TryScreenToWorldCell(eventData.position, eventData.pressEventCamera, out VoyagePoint cell)) return;
             if (SameCell(cell, battle.PlayerPositionMeters)) HandleShipClick(eventData);
-            else
-            {
-                message = "从我舰或航线末端拖动规划，松开保留预览";
-                RefreshNow();
-            }
         }
 
         public void HandleShipClick(PointerEventData eventData)
@@ -248,7 +243,7 @@ namespace ShatteredSail.Presentation
             if (session.TryAppendNavalMovementStep(cell, out string reason)) message = null;
             else
             {
-                message = reason + "；拖回已选航线可修正";
+                message = reason;
                 dragNeedsAnchor = true;
             }
         }
@@ -339,6 +334,18 @@ namespace ShatteredSail.Presentation
             }
         }
 
+        private int SelectionContextSignature()
+        {
+            unchecked
+            {
+                int value = battle.Turn;
+                value = value * 31 + battle.PhaseTurn;
+                value = value * 31 + (int)battle.Stage;
+                value = value * 31 + battle.PlayerPositionMeters.X.GetHashCode();
+                value = value * 31 + battle.PlayerPositionMeters.Y.GetHashCode();
+                return value * 31 + battle.PlayerHeadingDegrees.GetHashCode();
+            }
+        }
         private int PresentationSignature()
         {
             unchecked
@@ -355,15 +362,22 @@ namespace ShatteredSail.Presentation
         {
             if (!isActiveAndEnabled || !CurrentBattle || board == null || controls == null) return;
             int context = ContextSignature();
+            int selectionContext = SelectionContextSignature();
             if (initialized && context != lastContext)
             {
                 EndGesture();
-                SetShipSelected(false, false);
+                // Cards and action points invalidate the route, not the selected ship.
+                // A completed voyage may leave only the attack pin; gaining movement
+                // points should restore its blue range without another ship click.
+                if (selectionContext != lastSelectionContext) SetShipSelected(false, false);
+                if (lastPoints != battle.NavalActionPoints && battle.NavalActionPoints > 0 && AttackRange != null && AttackRange.ShipRangePinned)
+                    IsShipSelected = true;
                 if (!battle.NavalAwaitingHeadingSelection) session.ClearNavalMovementPath();
                 reachDirty = true;
                 message = null;
             }
             lastContext = context;
+            lastSelectionContext = selectionContext;
             lastPresentation = PresentationSignature();
             lastPoints = battle.NavalActionPoints;
             lastSteps = session.NavalMovementPlannedSteps;
@@ -374,16 +388,10 @@ namespace ShatteredSail.Presentation
             initialized = true;
             controls.gameObject.SetActive(true);
             bool planning = !lastBlocked && !lastAwaiting;
-            instruction.text = !string.IsNullOrEmpty(message) ? message :
-                lastBlocked ? board.IsAnimating ? "航行与行动结算中…" : "请完成当前操作" : lastAwaiting ?
-                (battle.NavalArrivalActionPoints > 0
-                    ? "到达剩余 " + battle.NavalArrivalActionPoints + " 点 · 选向停船清空余量，或使用可用接触动作"
-                    : "选择船只周围的到达朝向 · 不能直接掉头") :
-                lastPoints == 0 ? "行动点已用尽 · 使用机动卡获得行动点" :
-                !IsShipSelected && lastSteps == 0 ? "点击我舰查看可达海域 · 按住我舰拖动航线" :
-                "拖动规划，松开预览 · 已选 " + lastSteps + " / " + lastPoints + " 格";
-            instruction.gameObject.SetActive(IsShipSelected || lastAwaiting || !string.IsNullOrEmpty(message));
+            instruction.text = message ?? string.Empty;
+            instruction.gameObject.SetActive(!string.IsNullOrEmpty(message));
             sail.interactable = clear.interactable = planning && lastSteps > 0;
+            sail.GetComponentInChildren<Text>().text = session.NavalMovementEndsInRam ? "确定冲撞" : "确定航行";
             route.gameObject.SetActive(planning && (IsShipSelected || lastSteps > 0));
             if (planning)
             {
@@ -394,7 +402,7 @@ namespace ShatteredSail.Presentation
                     reachDirty = false;
                 }
                 route.Configure(board, session.NavalMovementPath,
-                    IsShipSelected ? session.GetNavalLegalNextSteps() : NoCells, reachable);
+                    IsShipSelected ? session.GetNavalLegalNextSteps() : NoCells, reachable, session.NavalMovementEndsInRam);
             }
             // Selection updates the attack pin before the reachable cells are rebuilt.
             // Reapply its visual exclusion after the movement layer is final for this frame.

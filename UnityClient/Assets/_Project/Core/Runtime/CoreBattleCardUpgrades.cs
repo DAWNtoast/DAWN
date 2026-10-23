@@ -221,7 +221,7 @@ namespace ShatteredSail.Core.Gameplay
                 if (card.CannonballCost > 0) text.Append(card.CannonballCost).Append(" 炮弹");
                 text.Append("；");
             }
-            string description = CoreBattleCardText.FormatEffects(text.ToString().TrimEnd('；') + "。");
+            string description = CoreBattleCardText.FormatCardEffects(text.ToString().TrimEnd('；') + "。", card);
             return description;
         }
     }

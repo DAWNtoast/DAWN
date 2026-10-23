@@ -77,7 +77,7 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     Assert.That(session.Cargo.Cloth, Is.EqualTo(before.cargo.cloth - 3));
                     Assert.That(session.SailingBoostHoursRemaining, Is.EqualTo(18d));
-                    Assert.That(ExplorationStatusText(), Does.Contain("航速 +25%"));
+                    Assert.That(session.ExplorationStatusSummary, Does.Contain("航速 +25%"));
                 }
                 else
                 {
@@ -106,13 +106,13 @@ namespace ShatteredSail.Presentation.Tests
                 AssertInterruptedDistanceSelection(session, requested);
                 AssertExpandedDossier(session, 0);
                 NavalBattleVisualCapture.Capture(controller, prefix + "_fixed_active.png",
-                    "真实 SS5 海图抽中的新增固定地点，线索选择及材料成本可读且可以执行", "Encounter Card");
+                    "真实 SS6 海图抽中的新增固定地点，线索选择及材料成本可读且可以执行", "Encounter Card");
                 yield return SaveAndResumeExploration(controller, storage, prefix + "_fixed_active");
 
                 controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
                 session = controller.Session;
                 Assert.That(session.ActiveEncounter.Id, Is.EqualTo(ExpandedLibrarySources[route]));
-                Assert.That(session.Map.GeometryVersion, Is.EqualTo(3));
+                Assert.That(session.Map.GeometryVersion, Is.EqualTo(4));
                 AssertInterruptedDistanceSelection(session, requested);
                 yield return WaitForEncounterDossierPresentationCompletion();
                 AssertExpandedDossier(session, 0);
@@ -134,7 +134,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(session.Cargo.Cloth, Is.EqualTo(before.cargo.cloth - 1));
                 }
                 AssertExpandedFixedClaimedOnce(session, ExpandedLibrarySources[route]);
-                AssertExplorationStatus(ExplorationClues[route], ExplorationTargets[route]);
+                AssertExplorationStatus(session, ExplorationClues[route], ExplorationTargets[route]);
                 AssertInterruptedDistanceSelection(session, requested);
                 yield return SaveAndResumeExploration(controller, storage, prefix + "_fixed_resolved");
 
@@ -193,7 +193,7 @@ namespace ShatteredSail.Presentation.Tests
                 AssertExpandedFixedClaimedOnce(session, ExplorationTargets[route]);
                 AssertExpandedRandomHistory(session, route);
                 AssertInterruptedDistanceSelection(session, requested);
-                Assert.That(ExplorationStatusText(), Does.Contain("（已探索）"));
+                Assert.That(session.ExplorationStatusSummary, Does.Contain("（已探索）"));
                 NavalBattleVisualCapture.Capture(controller, prefix + "_restored_complete.png",
                     "新增随机奖励、固定线索与探索链奖励均经真实磁盘恢复，已领取地点禁用，航程设定保留", "Navigation Chart");
             }
@@ -212,7 +212,7 @@ namespace ShatteredSail.Presentation.Tests
             for (int attempt = 0; attempt < 40; attempt++)
             {
                 string seed = CoreVoyageSession.CreateChartSeed(route, session.CurrentPort, session.SelectedDestinationPort);
-                Assert.That(seed, Does.StartWith("SS5."));
+                Assert.That(seed, Does.StartWith("SS6."));
                 Assert.That(session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
                 CoreVoyageMap preview = session.PreviewSelectedSeaChart();
                 CoreMapNode candidate = preview.Nodes.SingleOrDefault(node => node.Encounter.Id == ExpandedLibrarySources[route]);
@@ -230,7 +230,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Cargo.UsedVolume, Is.LessThan(session.CargoCapacityValue - 15f));
             session.StartVoyage();
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
-            Assert.That(session.Map.GeometryVersion, Is.EqualTo(3));
+            Assert.That(session.Map.GeometryVersion, Is.EqualTo(4));
             Assert.That(session.CurrentVoyageRandomEventIds.Count, Is.EqualTo(24));
             Assert.That(session.CurrentVoyageRandomEventIds.Distinct().Count(), Is.EqualTo(24));
             Assert.That(session.CaptureVoyageCheckpoint().chartRandomVersion, Is.EqualTo(2));

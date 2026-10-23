@@ -93,8 +93,7 @@ namespace ShatteredSail.Presentation
             all.interactable = hasCarriedRare && Application.isPlaying && !editorPreviewBuilding && WarehouseCargoActionsAllowed &&
                 session.CanDepositAllRarePortCargo();
             Text hint = WarehouseLabel("Warehouse Rare Hint", ledger, new Vector2(WarehouseLedgerWidth, 38f),
-                new Vector2(0f, -281f), 17, string.IsNullOrEmpty(portWarehouseNotice)
-                    ? "点击物品查看详情、存取或出售" : portWarehouseNotice, WarehouseRoomTheme.Muted);
+                new Vector2(0f, -281f), 17, portWarehouseNotice, WarehouseRoomTheme.Muted);
             hint.resizeTextForBestFit = true;
             hint.resizeTextMinSize = 14;
             hint.resizeTextMaxSize = 17;

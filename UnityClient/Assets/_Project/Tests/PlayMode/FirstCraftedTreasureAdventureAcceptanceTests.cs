@@ -824,6 +824,8 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     CoreBattleState battle = Session.Battle;
                     string turn = battle.Stage + ":" + battle.Turn;
+                    if (AcceptanceNavalMovementNeeded(Session))
+                    { yield return AdvanceAcceptanceNavalRange(controller, Click); continue; }
                     turns.TryGetValue(turn,out int count); turns[turn] = count + 1;
                     int selected = -1; float best = float.NegativeInfinity;
                     if (count < 24) for (int hand = 0; hand < battle.Hand.Count; hand++)
@@ -831,12 +833,11 @@ namespace ShatteredSail.Presentation.Tests
                         if (!Session.CanPlayCard(hand)) continue;
                         CoreBattleCard card = Session.GetBattleCard(battle.Hand[hand]);
                         float value = card.Damage * 4 + card.Draw * 2 + card.Block * .6f + Math.Min(Session.MaxHull-Session.Hull,card.Repair)*2;
-                        if (card.Action == NavalBattleCardAction.Approach || card.Action == NavalBattleCardAction.Navigator) value += battle.DistanceMeters > 350 ? 50 : 2;
+                        value += (float)AcceptanceNavalActionPointScore(Session, card);
                         if (card.Action == NavalBattleCardAction.Load || card.Action == NavalBattleCardAction.PrecisionLoad) value += 8;
-                        if (card.Action == NavalBattleCardAction.Retreat) value -= 100;
                         if (value > best) { best = value; selected = hand; }
                     }
-                    yield return Click(selected >= 0 && best >= 0 ? "Battle Card " + selected : "End Battle Turn");
+                    yield return Click(selected >= 0 && best > 0 ? "Battle Card " + selected : "End Battle Turn");
                 }
                 Assert.That(Session.Phase, Is.Not.EqualTo(CoreDemoPhase.Battle), "Battle exceeded action budget.");
                 Assert.That(Session.Hull, Is.GreaterThan(0), "Never replace a real defeat with injected victory.");

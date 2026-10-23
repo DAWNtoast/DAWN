@@ -302,6 +302,7 @@ namespace ShatteredSail.Presentation
                         GuidedWarehouseDisplaySlotMatches(name);
                 case GuidedTutorialStep.Shipyard:
                     return name == "Port Hotspot Shipyard" || name == "Return To Port Hub" ||
+                        name == "Shipyard Inspect Vessel" ||
                         name == "Shipyard Ship " + session.SelectedShipIndex;
                 case GuidedTutorialStep.ShipEquipment:
                     return name == "Shipyard Dossier Tab Equipment";

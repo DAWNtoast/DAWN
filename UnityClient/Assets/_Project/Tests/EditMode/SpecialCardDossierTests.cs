@@ -197,10 +197,11 @@ namespace ShatteredSail.Presentation.Tests
                     CoreBattleCardEffects actual = controller.Session.GetBattleCardEffects(card, NavalBattleStage.Boarding);
                     Assert.That(calculation.text, Does.Contain("卡牌效果：").And.Contain("当前接舷效果：")
                         .And.Not.Contain("普通水手").And.Not.Contain("人接舷实际"));
-                    string actualText = calculation.text.Substring(calculation.text.IndexOf('\n') + 1);
-                    if (card.Damage > 0) Assert.That(actualText, Does.Contain("伤害 " + actual.Damage));
-                    if (card.Block > 0) Assert.That(actualText, Does.Contain("格挡 " + actual.Block));
-                    if (card.Repair > 0) Assert.That(actualText, Does.Contain("恢复 " + actual.Repair));
+                    const string currentHeading = "当前接舷效果：\n";
+                    string actualText = calculation.text.Substring(calculation.text.IndexOf(currentHeading, System.StringComparison.Ordinal) + currentHeading.Length);
+                    if (card.Damage > 0) Assert.That(actualText, Does.Contain("造成 " + actual.Damage + " 点伤害"));
+                    if (card.Block > 0) Assert.That(actualText, Does.Contain("获得 " + actual.Block + " 点格挡"));
+                    if (card.Repair > 0) Assert.That(actualText, Does.Contain("恢复 " + actual.Repair + " 点生命"));
                 }
                 Assert.That(Find<Text>("Audit Special Card Lore").text, Is.EqualTo(definition.Lore));
                 Assert.That(Find<RawImage>("Audit Special Card Art").texture, Is.Not.Null);

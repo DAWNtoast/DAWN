@@ -116,7 +116,7 @@ namespace ShatteredSail.Core.Tutorial
                 "tutorial_first_event",
                 "漂流补给箱",
                 "不可跳过事件",
-                "一只钉着断锚港印记的补给箱随浪漂来。打捞需要时间，也会消耗全船口粮。",
+                "一只印有断锚港标记的补给箱随浪漂来，绑住箱盖的缆绳还完好无损。",
                 false,
                 false,
                 new TutorialChoice("打捞补给箱", "木材 +6、金币 +20", 3, new TutorialEffect { Wood = 6, Gold = 20 }),
@@ -125,21 +125,21 @@ namespace ShatteredSail.Core.Tutorial
                 "tutorial_optional_event",
                 "搁浅的酒桶",
                 "可跳过事件",
-                "几只酒桶搁在浅滩上。靠近检查可能有收获，也可以保持航速直接离开。",
+                "几只酒桶搁在浅滩上，木塞周围结着盐霜。浪花退去，桶身上的酒坊烙印露了出来。",
                 true,
                 false,
                 new TutorialChoice("靠岸检查", "啤酒 +6、木材 +3", 2, new TutorialEffect { Beer = 6, Wood = 3 }),
-                new TutorialChoice("远处打捞", "啤酒 +2", 1, new TutorialEffect { Beer = 2 })),
+                new TutorialChoice("从远处打捞", "啤酒 +2", 1, new TutorialEffect { Beer = 2 })),
             new TutorialEncounter(
                 "tutorial_crew_requirement_event",
                 "陌生海图暗语",
                 "特殊船员需求",
-                "一张浸水海图写满陌生暗语。航海士能迅速辨认，但首航尚未开放特殊船员编制。",
+                "一张浸过水的海图上写满了陌生暗语，船上还没有能读懂这些暗语的航海士。",
                 false,
                 false,
                 new TutorialChoice(
                     "航海士解读暗语",
-                    "显示邻近情报、声望 +3",
+                    "发现附近的隐藏地点、声望 +3",
                     1,
                     new TutorialEffect { RevealHidden = true, Fame = 3 },
                     "navigator"),
@@ -148,12 +148,12 @@ namespace ShatteredSail.Core.Tutorial
                 "tutorial_ambush_event",
                 "黑帆伏击预警",
                 "伏击预警",
-                "瞭望手发现海盗正借礁影包抄。首次航行不适合接战，只能立刻转向并返回断锚港。",
+                "瞭望手发现海盗正借礁影包抄。黑帆越逼越近，通往断锚港的水道还未被封住。",
                 false,
                 true,
                 new TutorialChoice(
                     "避开伏击，立即返航",
-                    "强制结束首航并返回出发港",
+                    "结束首航，返回出发港",
                     1,
                     new TutorialEffect(),
                     returnsToPort: true)),
@@ -165,12 +165,12 @@ namespace ShatteredSail.Core.Tutorial
                 "tutorial_navigator_event",
                 "偏航的星盘",
                 "特殊船员事件",
-                "海面浮着一座失准星盘。疯帽航海士辨认出它正在指向一处被雾隐藏的灯标。",
+                "海面上浮着一座失准的星盘。疯帽航海士看出，盘上的指针正指向一座藏在雾中的灯标。",
                 false,
                 false,
                 new TutorialChoice(
                     "航海士校准星位",
-                    "显示隐藏地点，后续 2 航段航速 +1",
+                    "显示隐藏地点，接下来 2 个航段航速 +1",
                     2,
                     new TutorialEffect { RevealHidden = true, SpeedBoost = 1f, SpeedBoostLegs = 2 },
                     "navigator")),
@@ -192,7 +192,7 @@ namespace ShatteredSail.Core.Tutorial
                 "tutorial_boss_event",
                 "裂桅号演习舰",
                 "教学首领",
-                "裂桅号的旧演习舰封住港口水道。只有击破它，另一端港口才会准许靠泊。",
+                "裂桅号的旧演习舰封住了港口水道。只有击败它，才能获准在水道另一端的港口靠泊。",
                 false,
                 false,
                 new TutorialChoice(
@@ -397,7 +397,7 @@ namespace ShatteredSail.Core.Tutorial
                 return false;
             }
 
-            AddLog("略过「" + CurrentEncounter.Name + "」：没有推进事件时间，也没有获得奖励。");
+            AddLog("略过「" + CurrentEncounter.Name + "」：没有耗时，也没有获得奖励。");
             CurrentEncounter = null;
             Phase = TutorialVoyagePhase.ReadyToSail;
             return true;
@@ -489,7 +489,7 @@ namespace ShatteredSail.Core.Tutorial
                     "驶向第一处信号，学习处理不可跳过事件。",
                     "驶向浅滩信号，学习直接略过可选事件。",
                     "检查陌生海图，观察职业船员选项的限制。",
-                    "沿警戒航向前进；伏击属于无地图坐标的随机事件。",
+                    "沿警戒航向前进，留意礁影中的敌船。",
                 };
                 return objectives[Math.Min(CurrentNodeIndex + 1, objectives.Length - 1)];
             }
@@ -498,7 +498,7 @@ namespace ShatteredSail.Core.Tutorial
             {
                 "前往星盘信号，使用航海士职业选项。",
                 "根据新情报驶向刚刚显露的隐藏地点。",
-                "驶向首领信号，进入简化卡牌战斗。",
+                "驶向首领信号，迎击封锁航道的演习舰。",
                 "航道已经开放，驶入灰鸥港并保存海图。",
             };
             return advancedObjectives[Math.Min(CurrentNodeIndex + 1, advancedObjectives.Length - 1)];

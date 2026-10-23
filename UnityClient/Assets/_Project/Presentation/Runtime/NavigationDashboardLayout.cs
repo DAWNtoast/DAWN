@@ -118,7 +118,6 @@ namespace ShatteredSail.Presentation
             Box(endurance, new Vector2(enduranceWidth, 34f), new Vector2(size.x * .5f - 24f - enduranceWidth * .5f, headingY));
             ChartTextBox(Child(endurance, "Water Food Endurance"), new Vector2(enduranceWidth, 30f),
                 Vector2.zero, 17, panel.localScale.x);
-            float explorationHeight = LayoutExplorationStatus(panel, headingY - stripHeight * .5f);
             RectTransform hint = Child(panel, "Map Course Hint");
             ChartTextBox(hint, new Vector2(size.x - 48f, 32f),
                 new Vector2(0, -size.y * .5f + 28f), 14, panel.localScale.x);
@@ -149,7 +148,7 @@ namespace ShatteredSail.Presentation
             }
             // Fit the plotted sea, not the larger logical root's empty margins.
             // Keep the established coordinates for routes, markers and input.
-            float mapTop = headingY - stripHeight * .5f - explorationHeight;
+            float mapTop = headingY - stripHeight * .5f;
             float mapBottom = -size.y * .5f + padding + (bossGuidance != null ? 72f : hint == null ? 0f : 40f);
             Vector2 mapSize = new Vector2(size.x - padding * 2f, mapTop - mapBottom);
             RectTransform sea = Child(map, "Ocean Tile Layer");
@@ -169,22 +168,6 @@ namespace ShatteredSail.Presentation
             }
             viewport.ApplyLayout(frame, sea);
             ApplyMapMarkerScale(map);
-        }
-
-        private static float LayoutExplorationStatus(RectTransform chart, float top)
-        {
-            RectTransform panel = Child(chart, "Voyage Exploration Status");
-            RectTransform message = Child(panel, "Voyage Exploration Status Text");
-            if (panel == null || message == null) return 0f;
-            float width = chart.sizeDelta.x - 8f;
-            Text text = message.GetComponent<Text>();
-            ChartTextBox(message, new Vector2(width - 28f, 42f), Vector2.zero, 18, chart.localScale.x);
-            // Reserve the complete wrapped summary above the chart. Clues and
-            // remaining buff durations stay visible after closing an event.
-            float height = Mathf.Max(42f, Mathf.Ceil(text.preferredHeight * message.localScale.y) + 16f);
-            Box(panel, new Vector2(width, height), new Vector2(0f, top - height * .5f));
-            ChartTextBox(message, new Vector2(width - 28f, height - 16f), Vector2.zero, 18, chart.localScale.x);
-            return height;
         }
 
         public static void ApplyMapMarkerScale(RectTransform map)

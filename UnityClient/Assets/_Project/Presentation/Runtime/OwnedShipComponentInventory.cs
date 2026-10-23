@@ -11,19 +11,23 @@ namespace ShatteredSail.Presentation
         [SerializeField] private string instanceId;
         [SerializeField] private string componentId;
         [SerializeField] private int shipIndex = -1;
+        [SerializeField] private bool installedByPlayer;
 
         public string InstanceId => instanceId;
         public string ComponentId => componentId;
         public int ShipIndex => shipIndex;
+        public bool InstalledByPlayer => installedByPlayer;
 
-        internal OwnedShipComponent(string instance, string component, int ship)
+        internal OwnedShipComponent(string instance, string component, int ship, bool manuallyInstalled = false)
         {
             instanceId = instance;
             componentId = component;
             shipIndex = ship;
+            installedByPlayer = manuallyInstalled;
         }
 
         internal void MoveTo(int ship) => shipIndex = ship;
+        internal void MarkPlayerInstallation() => installedByPlayer = true;
     }
 
     /// <summary>One instance can occupy at most one vessel slot; empty slots remain empty on reload.</summary>
@@ -78,7 +82,7 @@ namespace ShatteredSail.Presentation
                     importedShips.Add(ship);
                     if (!occupied.Add(ship + ":" + entry.Slot)) ship = -1;
                 }
-                importedItems.Add(new OwnedShipComponent(item.InstanceId, entry.Id, ship));
+                importedItems.Add(new OwnedShipComponent(item.InstanceId, entry.Id, ship, item.InstalledByPlayer));
             }
             items.Clear();
             items.AddRange(importedItems);
@@ -144,6 +148,10 @@ namespace ShatteredSail.Presentation
             if (entry == null) return false;
             Installed(ship, entry.Slot)?.MoveTo(-1);
             candidate.MoveTo(ship);
+            // Automatic purchased-ship fittings and simply reinstalling a baseline
+            // fitting are not evidence of a player-authored refit.
+            if (entry.Id != catalog.Get((int)entry.Slot * ComponentArtCatalog.EntriesPerSlot).Id)
+                candidate.MarkPlayerInstallation();
             return true;
         }
 

@@ -16,7 +16,8 @@ namespace ShatteredSail.Core.Tests
         {
             CardSchoolArtCatalog.ReleaseLoadedTextures();
             CoreBattleCard[] cards = CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None &&
-                !CardSchoolArtCatalog.HasSchoolIllustration(card) && !card.Id.StartsWith("card_boarding_")).ToArray();
+                !CardSchoolArtCatalog.HasSchoolIllustration(card) && !card.Id.StartsWith("card_boarding_") &&
+                !(card.AllowedStages == NavalBattleStages.Boarding && CoreBoardingCardCatalog.IsLegacyAlias(card))).ToArray();
             Assert.That(cards.Length, Is.GreaterThan(0));
             Assert.That(cards.Select(card => card.ArtId).Distinct().Count(), Is.LessThan(cards.Length),
                 "This audit must cover older cards that shared atlas cells.");
@@ -24,14 +25,12 @@ namespace ShatteredSail.Core.Tests
             foreach (CoreBattleCard card in cards)
             {
                 string originalArtId = card.ArtId;
-                string reusedId = card.Id == "card_energy_order" ? "card_brace" :
-                    card.Id == "card_tactical_draw" ? "card_full_sail_turn" : null;
                 Texture2D texture = CardSchoolArtCatalog.Illustration(card, null);
                 Assert.That(texture, Is.Not.Null, card.Id);
-                Assert.That(texture.name, Is.EqualTo(reusedId ?? card.Id), card.Id + " resolves to its dedicated art or an explicit starter reuse.");
-                if (reusedId == null) Assert.That(textures.Add(texture), Is.True, card.Id + " reused another card's illustration.");
+                Assert.That(texture.name, Is.EqualTo(card.Id), card.Id + " resolves to its dedicated illustration.");
+                Assert.That(textures.Add(texture), Is.True, card.Id + " reused another card's illustration.");
                 Assert.That(card.ArtId, Is.EqualTo(originalArtId), "Presentation must not rewrite the saved card definition.");
-                Assert.That(CardSchoolArtCatalog.DedicatedIllustrationPath(card), Is.EqualTo("CardArt/Western/" + (reusedId ?? card.Id)));
+                Assert.That(CardSchoolArtCatalog.DedicatedIllustrationPath(card), Is.EqualTo("CardArt/Western/" + card.Id));
                 Assert.That(CardSchoolArtCatalog.NormalizeSchool(card.SchoolId), Is.EqualTo("neutral"), card.Id);
                 Assert.That(texture.width, Is.EqualTo(1024), card.Id + " imported texture budget");
                 Assert.That(texture.height, Is.EqualTo(1024), card.Id + " imported texture budget");
@@ -114,7 +113,8 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(art, Is.Not.Null, card.Id + " / " + card.ArtId);
                 Assert.That(art.width, Is.EqualTo(1024), card.Id + " preserves high-density card illustration detail");
                 Assert.That(art.height, Is.EqualTo(1024), card.Id + " preserves high-density card illustration detail");
-                Assert.That(art.name, Is.EqualTo(card.ArtId), card.Id + " must not resolve to a generic atlas or a reused school image.");
+                Assert.That(art, Is.SameAs(Resources.Load<Texture2D>(CardSchoolArtCatalog.DedicatedIllustrationPath(card))),
+                    card.Id + " uses its reviewed complete illustration without changing its mechanical ArtId.");
                 Rect uv = CardSchoolArtCatalog.IllustrationUv(card, legacy);
                 Assert.That(uv, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)), card.Id + " keeps the complete original source");
                 Assert.That(uv.xMin, Is.GreaterThanOrEqualTo(0f)); Assert.That(uv.yMin, Is.GreaterThanOrEqualTo(0f));
@@ -154,19 +154,44 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void BoardingDesigns_ReuseExistingCompleteIllustrationsAndAvailableFrames()
+        public void BoardingDesigns_ResolveReviewedCompleteIllustrationsAndAvailableFrames()
         {
             Assert.That(CoreBoardingCardCatalog.All.Count, Is.EqualTo(103));
             foreach (CoreBattleCard card in CoreBoardingCardCatalog.All)
             {
                 Texture2D illustration = CardSchoolArtCatalog.Illustration(card, null);
-                Assert.That(illustration, Is.Not.Null, card.Id + " must reuse an existing image");
-                Assert.That(illustration.name, Is.EqualTo(card.ArtId), card.Id);
+                Assert.That(illustration, Is.Not.Null, card.Id + " must have a complete image");
+                Assert.That(illustration, Is.SameAs(Resources.Load<Texture2D>(CardSchoolArtCatalog.DedicatedIllustrationPath(card))), card.Id);
                 Assert.That(CardSchoolArtCatalog.IllustrationUv(card, null), Is.EqualTo(new Rect(0f, 0f, 1f, 1f)), card.Id);
                 Assert.That(CardSchoolArtCatalog.Frame(card), Is.Not.Null, card.Id + " / " + CardSpecialCostPresentation.ResourceType(card));
             }
             Assert.That(CoreBoardingCardCatalog.All.Select(card => card.ArtId).Distinct().Count(), Is.LessThan(103),
-                "The new set intentionally reuses existing art, as requested.");
+                "Mechanical ArtId values remain shared even when presentation uses a dedicated per-card image.");
+        }
+
+        [TestCase("card_energy_order", "CardArt/Western/card_energy_order")]
+        [TestCase("card_tactical_draw", "CardArt/Western/card_tactical_draw")]
+        [TestCase("card_boarding_basic_13", "CardArt/Western/card_boarding_basic_13")]
+        [TestCase("card_boarding_basic_06", "CardArt/Western/card_boarding_basic_06")]
+        [TestCase("card_boarding_basic_08", "CardArt/Western/card_boarding_basic_08")]
+        [TestCase("card_boarding_fire_06", "CardArt/Western/card_boarding_fire_06")]
+        [TestCase("card_boarding_fire_04", "CardArt/Western/card_boarding_fire_04")]
+        [TestCase("card_school_fire_b10", "CardArt/Western/card_boarding_fire_04")]
+        [TestCase("card_crew_pistol", "CardArt/Western/card_cutlass_raid")]
+        [TestCase("card_special_plating_moonsilver_skin", "CardArt/Western/card_special_plating_moonsilver_skin")]
+        [TestCase("card_special_plating_worldtree_bark", "CardArt/Western/card_special_plating_worldtree_bark")]
+        public void ReviewedCardArt_PrefersDedicatedRedrawThenReviewedReuseWithoutChangingRules(string cardId, string expected)
+        {
+            CardSchoolArtCatalog.ReleaseLoadedTextures();
+            CoreBattleCard card = CoreVoyageSession.CardLibrary.Single(item => item.Id == cardId);
+            string artId = card.ArtId, description = card.Description;
+            Texture2D texture = Resources.Load<Texture2D>(expected);
+            Assert.That(texture, Is.Not.Null, expected);
+            Assert.That(CardSchoolArtCatalog.DedicatedIllustrationPath(card), Is.EqualTo(expected), cardId);
+            Assert.That(CardSchoolArtCatalog.Illustration(card, null), Is.SameAs(texture), cardId);
+            Assert.That(CardSchoolArtCatalog.IllustrationUv(card, null), Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+            Assert.That(card.ArtId, Is.EqualTo(artId), "Source-card mechanical suffixes must remain intact.");
+            Assert.That(card.Description, Is.EqualTo(description));
         }
 
         [Test]
@@ -242,9 +267,11 @@ namespace ShatteredSail.Core.Tests
             foreach (CoreBattleCard card in CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None))
             {
                 string special = CardSpecialCostPresentation.ResourceType(card);
+                string supply = CardSupplyCostPresentation.ResourceType(card);
                 string expected = "CardSchools/Frames/Integrated/frame-" + CardSchoolArtCatalog.NormalizeSchool(card.SchoolId) +
                     "-" + CardSchoolArtCatalog.FrameVariant(card.PowderCost, card.CannonballCost) +
-                    (special.Length == 0 || special == "wood" || special == "tide" ? "" : "-" + special);
+                    (special.Length == 0 || special == "wood" ? "" : "-" + special) +
+                    (supply.Length > 0 ? "-" + supply : "");
                 Assert.That(CardSchoolArtCatalog.FrameResourcePath(card), Is.EqualTo(expected), card.Id);
                 Assert.That(CardSchoolArtCatalog.Frame(card), Is.Not.Null, card.Id + " needs a complete cost-matching frame.");
                 paths.Add(expected);
@@ -253,6 +280,50 @@ namespace ShatteredSail.Core.Tests
             Assert.That(paths.Any(path => path.EndsWith("-health")), Is.True);
             Assert.That(paths.Any(path => path.EndsWith("-curse")), Is.True);
             Assert.That(paths.Any(path => path.EndsWith("-chain")), Is.True);
+            Assert.That(paths.Any(path => path.EndsWith("frame-neutral-ap-wood")), Is.True);
+            Assert.That(CardSchoolArtCatalog.FrameResourcePath("neutral", supplyCost: true),
+                Does.EndWith("frame-neutral-ap-supply"), "Untyped supply callers retain the shared frame.");
+            Assert.That(CardSchoolArtCatalog.FrameResourcePath("neutral", supplyType: "medicine"),
+                Does.EndWith("frame-neutral-ap-medicine"));
+        }
+
+        [Test]
+        public void AllAuthoredRanksAndAllowedStages_HaveTheCurrentEightSupplyFrames()
+        {
+            var session = new CoreVoyageSession();
+            var supplyFrames = new System.Collections.Generic.HashSet<string>();
+            int checks = 0;
+            for (int index = 0; index < CoreVoyageSession.CardLibrary.Count; index++)
+            {
+                CoreBattleCard authored = CoreVoyageSession.CardLibrary[index];
+                if (authored.AllowedStages == NavalBattleStages.None) continue;
+                for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(index); rank++)
+                foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
+                {
+                    CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
+                    if (!card.IsAllowedInStage(stage)) continue;
+                    if (stage == NavalBattleStage.Boarding) card = CoreBoardingCardCatalog.ForBoarding(card);
+                    string context = card.Id + " / " + rank + " / " + stage;
+                    string resource = CardSupplyCostPresentation.ResourceType(card, stage);
+                    string path = CardSchoolArtCatalog.FrameResourcePath(card, stage);
+                    Assert.That(CardSchoolArtCatalog.Frame(card, stage), Is.Not.Null, context + " / " + path);
+                    Assert.That(path, Does.Not.EndWith("-supply"), context + " requires a complete resource-specific frame");
+                    if (resource.Length > 0)
+                    {
+                        Assert.That(path, Does.EndWith("-" + resource), context);
+                        Assert.That(CardSchoolArtCatalog.HasBakedSupplyIcon(card, stage), Is.True, context);
+                        Rect bounds = CardSchoolArtCatalog.FrameBounds(card, stage);
+                        Assert.That(bounds.Contains(CardSchoolArtCatalog.SupplyPosition(card, stage)), Is.True, context);
+                        supplyFrames.Add(path.Substring(path.LastIndexOf('/') + 1));
+                    }
+                    checks++;
+                }
+            }
+            Assert.That(checks, Is.GreaterThan(1000), "Exercise every authored rank and all valid stages, including compatibility identities.");
+            Assert.That(supplyFrames, Is.EquivalentTo(new[] {
+                "frame-neutral-ap-wood", "frame-neutral-ap-medicine", "frame-fire-powder-medicine",
+                "frame-arcane-ap-mana-medicine", "frame-curse-ap-curse-medicine", "frame-tide-ap-tide-medicine",
+                "frame-blood-ap-medicine", "frame-tide-ap-wood" }));
         }
 
         [TestCase(1f)]
@@ -421,8 +492,8 @@ namespace ShatteredSail.Core.Tests
             string active = (string)method.Invoke(null, new object[] { battle });
             Assert.That(active, Does.Contain("法力 2/3 · 临时 +4"));
             Assert.That(active, Does.Contain("本回合雷链 4/6"));
-            Assert.That(active, Does.Contain("敌附咒 3 层 · 2 回合"));
-            Assert.That(active, Does.Contain("下次敌回合末扣血 9"));
+            Assert.That(active, Does.Contain("敌方咒印 3 层"));
+            Assert.That(active, Does.Contain("下次咒印结算额外伤害 +1"));
             Assert.That(active, Does.Contain("潮势 18/20 · 付木护盾 6"));
             Assert.That(active, Does.Not.Contain("敌出伤").And.Not.Contain("潮反伤").And.Not.Contain("须吸收"));
             SetSchoolState(battle, "TideCounterTurns", 0);
@@ -431,7 +502,67 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void BloodTooltip_QuotesLifePaymentAndRejectsLethalPaymentExplicitly()
+        public void BattleCardTooltip_OnlyExplainsVisibleKeywordsWithoutCurrentQuotes()
+        {
+            var host = new GameObject("Card Tooltip Effect Audit");
+            try
+            {
+                host.SetActive(false);
+                CoreGameplayDemoController controller = host.AddComponent<CoreGameplayDemoController>();
+                controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Battle, CoreGameplayPreviewPort.GrayGull, 0);
+                host.SetActive(true);
+                CoreVoyageSession session = controller.Session;
+                MethodInfo tooltip = typeof(CoreGameplayDemoController).GetMethod("BattleCardTooltipText", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo faceText = typeof(CoreGameplayDemoController).GetMethod("BattleCardEffectTextForCurrentStage", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(tooltip, Is.Not.Null);
+                Assert.That(faceText, Is.Not.Null);
+                int medicine = session.Cargo.Medicine, powder = session.Cargo.Powder;
+                int hull = session.Hull, health = session.Battle.PlayerBoardingHealth;
+                int described = 0;
+                for (int index = 0; index < CoreVoyageSession.CardLibrary.Count; index++)
+                {
+                    if (CoreVoyageSession.CardLibrary[index].AllowedStages == NavalBattleStages.None) continue;
+                    CoreBattleCard card = session.GetBattleCardAtLevel(index, 3);
+                    NavalBattleStage stage = card.IsAllowedInStage(NavalBattleStage.Boarding) ? NavalBattleStage.Boarding :
+                        card.IsAllowedInStage(NavalBattleStage.Naval) ? NavalBattleStage.Naval : NavalBattleStage.Preparation;
+                    session.Battle.Stage = stage;
+                    string text = (string)tooltip.Invoke(controller, new object[] { card, -1 });
+                    string description = (string)faceText.Invoke(controller, new object[] { card });
+                    var keywords = CoreBattleCardKeywordText.Build(card, description);
+                    Assert.That(text, Is.EqualTo(string.Join("\n\n", keywords.Select(entry => entry.Text))), card.Id);
+                    AssertNoCardTooltipCalculations(text, card.Id);
+                    if (keywords.Count > 0) described++;
+                }
+                Assert.That(described, Is.GreaterThan(0), "The catalog includes visible keywords requiring explanations.");
+                Assert.That(session.Cargo.Medicine, Is.EqualTo(medicine), "Reading details does not consume supplies.");
+                Assert.That(session.Cargo.Powder, Is.EqualTo(powder));
+                Assert.That(session.Hull, Is.EqualTo(hull));
+                Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health));
+
+                CoreBattleCard blood = CoreBoardingCardCatalog.FindByKey("blood_01");
+                int bloodIndex = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
+                    .Single(index => CoreVoyageSession.CardLibrary[index].Id == blood.Id);
+                session.Battle.Stage = NavalBattleStage.Boarding;
+                session.Battle.Hand.Clear(); session.Battle.Hand.Add(bloodIndex);
+                session.Battle.PlayerBoardingHealth = 3;
+                string reason = session.CardUnavailableReason(0);
+                Assert.That(reason, Is.Not.Empty);
+                string blocked = (string)tooltip.Invoke(controller, new object[] { blood, 0 });
+                Assert.That(blocked, Is.Empty, "A basic life-payment card has no separate keyword to explain.");
+                AssertNoCardTooltipCalculations(blocked, blood.Id);
+            }
+            finally { Object.DestroyImmediate(host); }
+        }
+
+        private static void AssertNoCardTooltipCalculations(string text, string context)
+        {
+            foreach (string removed in new[] { "当前结算", "当前不能使用", "生命支付预告", "支付后", "本次实际",
+                "实际治疗", "合计可用", "接舷倍率", "计算使用未取整倍率", "分类 ·", "接舷规则" })
+                Assert.That(text, Does.Not.Contain(removed), context + " only explains keyword meanings");
+        }
+
+        [Test]
+        public void BloodTooltip_DoesNotAppendLiveLifePaymentOrUnavailableReasons()
         {
             var host = new GameObject("School Blood Payment UI Audit");
             try
@@ -447,18 +578,14 @@ namespace ShatteredSail.Core.Tests
                 controller.Session.Battle.PlayerBoardingHealth = payment + 7;
                 MethodInfo method = typeof(CoreGameplayDemoController).GetMethod("SchoolCardKeywordHelp", BindingFlags.Instance | BindingFlags.NonPublic);
                 string permitted = (string)method.Invoke(controller, new object[] { card });
-                Assert.That(VisibleEffectWithoutLineBreaks(permitted), Does.Contain("支付 " + payment + "；支付后 7"));
-                Assert.That(permitted, Does.Not.Contain("生命不足"));
+                Assert.That(permitted, Is.Empty);
                 controller.Session.Battle.PlayerBoardingHealth = payment;
                 string blocked = (string)method.Invoke(controller, new object[] { card });
-                Assert.That(VisibleEffectWithoutLineBreaks(blocked), Does.Contain("生命不足，不能出牌"));
+                Assert.That(blocked, Is.EqualTo(permitted), "Current affordability does not change keyword explanations.");
+                AssertNoCardTooltipCalculations(blocked, card.Id);
             }
             finally { Object.DestroyImmediate(host); }
         }
-
-        private static string VisibleEffectWithoutLineBreaks(string text) =>
-            text.Replace("<b>", string.Empty).Replace("</b>", string.Empty)
-                .Replace("\r", string.Empty).Replace("\n", string.Empty);
 
         private static void SetSchoolState(CoreBattleState battle, string property, int value) =>
             typeof(CoreSchoolBattleState).GetProperty(property).SetValue(battle.Schools, value);

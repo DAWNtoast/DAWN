@@ -82,9 +82,9 @@ namespace ShatteredSail.Core.Gameplay
             if (GetBattleCardPowderCost(cardIndex) > Cargo.Powder) return "火药不足";
             if (card.CannonballCost > Cargo.Cannonballs) return "炮弹不足，可机动接舷";
             if (card.Action == NavalBattleCardAction.Cannon && !NavalCannonTargetInRange) return NavalCannonOutOfRangeReason;
-            if (card.Action == NavalBattleCardAction.Sabotage && Battle.DistanceMeters > 150f) return "水下破坏需要距离不超过 150 米";
-            if (card.SchoolId.Length > 0 && Battle.Stage == NavalBattleStage.Naval && card.Damage > 0 &&
-                card.Action == NavalBattleCardAction.Standard && Battle.DistanceMeters > 350f) return "攻击需要距离不超过 350 米";
+            if (Battle.Stage == NavalBattleStage.Naval &&
+                !CoreNavalCardRangeRules.Contains(card, Battle.PlayerPositionMeters, Battle.EnemyPositionMeters))
+                return "目标超出 " + CoreNavalCardRangeRules.MaximumCells(card) + " 格范围";
             string schoolReason = SchoolCardUnavailableReason(card);
             if (schoolReason.Length > 0) return schoolReason;
             // A capped strategy does not cancel a mixed card's remaining effects.
@@ -200,6 +200,7 @@ namespace ShatteredSail.Core.Gameplay
             }
 
             int block = effects.Block + (effects.Block > 0 && Battle.Stage != NavalBattleStage.Boarding ? Battle.PlayerDeckBuff : 0);
+            if (Battle.Stage != NavalBattleStage.Boarding) block = NavalArcaneBlockGain(block, true);
             int previousBlock = Battle.PlayerBlock;
             Battle.PlayerBlock = (int)Math.Min(int.MaxValue, (long)previousBlock + block);
             block = Battle.PlayerBlock - previousBlock;
@@ -236,7 +237,7 @@ namespace ShatteredSail.Core.Gameplay
                 (card.CannonballCost > 0 ? "；炮弹 -" + card.CannonballCost : string.Empty) +
                 (woodCost > 0 ? "；木板 -" + woodCost : string.Empty) +
                 (effects.MedicineCost > 0 && repaired > 0 ? "；药品 -1" : string.Empty) +
-                (fireRound && damage > 0 ? "；敌舰燃烧 2 回合" : string.Empty) +
+                (fireRound && damage > 0 ? "；施加 " + Battle.PlayerFireRoundDamage + " 层燃烧" : string.Empty) +
                 (moraleDelta > 0 ? "；士气 +" + moraleDelta : string.Empty) + "。";
             // A resolved card may be redrawn, but its next play uses the incremented
             // ID-based cost. Failed attempts never enter the discard pile or count.
@@ -304,9 +305,11 @@ namespace ShatteredSail.Core.Gameplay
         // Called only after the direct or arrival entry point has validated and paid.
         private bool ExecutePlayerRam()
         {
-            NavalBattleAlignment impactAlignment = NavalBattleAlignment.EnemyBroadside;
+            NavalBoardingConnection connection = NavalRamConnection(true);
+            string target = connection == NavalBoardingConnection.RamBowToBow ? "敌舰舰艏" :
+                connection == NavalBoardingConnection.RamBowToStern ? "敌舰舰尾" : "敌舰侧舷";
             Battle.PlayerMovingTowardEnemy = false;
-            float targetQuality = impactAlignment == NavalBattleAlignment.HeadOn ? Battle.EnemyBowQuality : Battle.EnemyHullQuality;
+            float targetQuality = NavalRamTargetQuality(true);
             RamDamage(Battle.PlayerBowQuality, targetQuality, out int enemyDamage, out int selfDamage);
             enemyDamage = CoreBattleBalance.ScaleBattleValue(enemyDamage, CoreBattleBalance.PlayerRamDamageMultiplier);
             selfDamage = ApplyCurseBattleDamage(selfDamage);
@@ -314,17 +317,15 @@ namespace ShatteredSail.Core.Gameplay
             Hull = Math.Max(0, Hull - selfDamage);
             Morale = ClampMorale((long)Morale + 5);
             Battle.DistanceMeters = 30f;
-            Battle.LastAction = "冲撞" + (impactAlignment == NavalBattleAlignment.HeadOn ? "敌舰舰艏" : "敌舰侧舷") +
+            Battle.LastAction = "冲撞" + target +
                 "：敌舰船体 -" + enemyDamage + "，己舰船体 -" + selfDamage + "（舰艏与防护结算，穿透格挡）；士气 +5。";
             if (ResolveBattleOutcome()) return true;
 
             // A successful non-lethal ram is itself the boarding connection.
-            // Keep the old planned-approach mapping so a bow-to-bow impact
-            // settles alongside while a bow-to-broadside impact stays offset.
-            Battle.BoardingApproach = impactAlignment == NavalBattleAlignment.EnemyBroadside
+            // End-on impacts settle alongside; a broadside impact stays offset.
+            Battle.BoardingApproach = connection == NavalBoardingConnection.RamBowToBroadside
                 ? NavalBoardingApproach.Quarter : NavalBoardingApproach.Alongside;
-            Battle.BoardingConnection = impactAlignment == NavalBattleAlignment.HeadOn
-                ? NavalBoardingConnection.RamBowToBow : NavalBoardingConnection.RamBowToBroadside;
+            Battle.BoardingConnection = connection;
             Battle.BoardingInitiatedByEnemy = false;
             EnterBattleStage(NavalBattleStage.Boarding);
             if (Phase != CoreDemoPhase.Battle) return true;
@@ -336,11 +337,12 @@ namespace ShatteredSail.Core.Gameplay
             BInitialize();
             Battle.PlayerMovingTowardEnemy = false;
             Battle.EnemyMovingTowardPlayer = false;
-            Battle.LastAction = (impactAlignment == NavalBattleAlignment.HeadOn
+            Battle.LastAction = (connection == NavalBoardingConnection.RamBowToBow
                 ? "角对角冲撞成功，两舰舰艏锁定。"
+                : connection == NavalBoardingConnection.RamBowToStern ? "舰艏撞击舰尾成功，己舰舰艏卡住敌舰舰尾。"
                 : "角对侧舷冲撞成功，己舰舰艏卡住敌舰侧舷。") +
                 "船只已连接，进入接舷近战；己舰船体 -" + selfDamage + "，敌舰船体 -" + enemyDamage + "。";
-            AddLog("冲撞完成，" + (impactAlignment == NavalBattleAlignment.HeadOn ? "角对角" : "角对侧舷") + "连接，进入接舷白刃战。");
+            AddLog("冲撞" + target + "完成，船只连接，进入接舷白刃战。");
             BeginGuidedBossBoarding();
             return true;
         }
@@ -426,10 +428,8 @@ namespace ShatteredSail.Core.Gameplay
                 }
                 if (ResolveBattleOutcome()) return true;
             }
-            // Keep the preview for this turn. Recomputing it after a burn tick can
-            // mistake next turn's lethal fire for the enemy action being executed now.
+            // Damage-over-time resolves at the affected side's turn end, after its actions.
             if (enemyIntent == null) enemyIntent = GetEnemyIntent();
-            if (!boardingRules && ApplySchoolNaturalBurn()) return true;
             ExecuteEnemyPlan(BuildEnemyPlan(), enemyIntent);
             if (ResolveBattleOutcome()) return true;
             if (!preparing && Battle.Stage == previousStage)
@@ -441,6 +441,7 @@ namespace ShatteredSail.Core.Gameplay
                 else
                 {
                     if (NavalFieldsEndTurn(false)) return true;
+                    if (ApplySchoolNaturalBurn()) return true;
                     if (ApplySchoolCurseTick()) return true;
                     CompleteSchoolEnemyTurn();
                     NavalExpansionEndEnemyTurn();
@@ -503,14 +504,9 @@ namespace ShatteredSail.Core.Gameplay
             public int Load;
             public int Repair;
             public CoreBoardingEnemyTurn BoardingTurn;
-            public int BoardingBurn;
-            public int BoardingDrain;
-            public int BoardingSelfDamage;
-            public int BoardingPiercing;
         }
 
         public bool EnemyWillRam => Phase == CoreDemoPhase.Battle && Battle != null &&
-            !(Battle.Stage == NavalBattleStage.Naval && Battle.EnemyBurnTurns > 0 && Battle.EnemyHull <= Battle.EnemyBurnDamage) &&
             BuildEnemyPlan().Action == EnemyBattleAction.Ram;
         public float EnemyRamRangeMeters => NavalGridCellMeters;
         public int EnemyRamFirstStrikeDamage => EnemyWillRam ? ApplyCurseBattleDamage(Battle.Profile?.MeleeDamage ?? 8) : 0;
@@ -623,9 +619,7 @@ namespace ShatteredSail.Core.Gameplay
                 : SchoolSum(fieldPreview.FinalBlock, fieldPreview.RuneClampConsumed
                     ? Math.Max(0, plan.Guard) : NavalExpansionEnemyBlockGain(plan.Guard));
             string burn = Battle.Stage != NavalBattleStage.Preparation && HasSchoolFire
-                ? (BActive ? "回合结束灼烧 " : "先承受灼烧 ") + Battle.EnemyBurnDamage + "；" : string.Empty;
-            if (!BActive && Battle.Stage != NavalBattleStage.Preparation && HasSchoolFire && SchoolEnemyHealth <= Battle.EnemyBurnDamage)
-                return "灼烧 " + Battle.EnemyBurnDamage + " 将击败敌方，敌方无法行动";
+                ? "回合结束灼烧 " + Battle.EnemyBurnDamage + "；" : string.Empty;
             if (plan.BoardingTurn != null) return BoardingEnemyIntent(plan, burn);
             if (Battle.Profile?.TrainingTarget != null)
             {
@@ -648,12 +642,12 @@ namespace ShatteredSail.Core.Gameplay
                 case EnemyBattleAction.Guard:
                     return burn + move + "防御：格挡设为 " + quotedGuard + (plan.Load > 0 ? "；装填 +" + NavalExpansionEnemyLoadGain(plan.Load) : string.Empty);
                 case EnemyBattleAction.Ram:
-                    RamDamage(Battle.EnemyBowQuality, Battle.PlayerHullQuality,
+                    RamDamage(Battle.EnemyBowQuality, NavalRamTargetQuality(false),
                         out int damage, out int recoil);
                     damage = ApplyCurseBattleDamage(SchoolEnemyRawAttack(damage));
                     damage = NavalExpansionEnemyAttackDamage(damage);
                     return burn + "冲撞→接舷：己舰 -" + damage + " / 敌舰 -" + recoil + "（穿透格挡）\n" +
-                        "敌方先手：船员伤害 " + ApplyCurseBattleDamage(plan.Attack) + "\n避让：航行离开相邻格，或改变到达朝向";
+                        "敌方先手：船员伤害 " + ApplyCurseBattleDamage(plan.Attack) + "\n避让：航行离开敌舰船头正前方的相邻格";
                 case EnemyBattleAction.Melee:
                     int melee = ApplyCurseBattleDamage(SchoolEnemyRawAttack(plan.Attack));
                     return burn + "白刃突击：船员伤害 " + (BActive ? BEnemyAttack(melee, false) : melee) + "（格挡前）";
@@ -724,8 +718,8 @@ namespace ShatteredSail.Core.Gameplay
             }
             else if (plan.Action == EnemyBattleAction.Ram)
             {
-                bool headOn = false; // Rams only connect a bow with a perpendicular broadside.
-                RamDamage(Battle.EnemyBowQuality, headOn ? Battle.PlayerBowQuality : Battle.PlayerHullQuality, out int damage, out int recoil);
+                NavalBoardingConnection connection = NavalRamConnection(false);
+                RamDamage(Battle.EnemyBowQuality, NavalRamTargetQuality(false), out int damage, out int recoil);
                 damage = ApplyCurseBattleDamage(SchoolEnemyRawAttack(damage));
                 damage = NavalExpansionEnemyAttackDamage(damage, true);
                 Hull = Math.Max(0, Hull - damage);
@@ -735,8 +729,9 @@ namespace ShatteredSail.Core.Gameplay
                 Battle.DistanceMeters = 30f;
                 Battle.LastAction = Battle.EnemyName + "冲撞：己舰船体 -" + damage + "，敌舰反伤 " + recoil + "；士气 -5。";
                 if (ResolveBattleOutcome()) return;
-                Battle.BoardingApproach = headOn ? NavalBoardingApproach.Alongside : NavalBoardingApproach.Quarter;
-                Battle.BoardingConnection = headOn ? NavalBoardingConnection.RamBowToBow : NavalBoardingConnection.RamBowToBroadside;
+                Battle.BoardingApproach = connection == NavalBoardingConnection.RamBowToBroadside
+                    ? NavalBoardingApproach.Quarter : NavalBoardingApproach.Alongside;
+                Battle.BoardingConnection = connection;
                 Battle.BoardingInitiatedByEnemy = true;
                 EnterBattleStage(NavalBattleStage.Boarding);
                 if (Phase != CoreDemoPhase.Battle) return;

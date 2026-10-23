@@ -62,16 +62,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ready.Target, Is.EqualTo(500m));
             Assert.That(ready.Detail, Is.EqualTo("水 480/500 · 粮 520/500"));
             var cargo = ExperienceProgressFor("cargo_all");
-            Assert.That(cargo.Current, Is.EqualTo(2m));
-            Assert.That(cargo.Target, Is.EqualTo(9m));
+            Assert.That(cargo.IsQuantified, Is.False, "Stock on hand cannot represent full-voyage supply history.");
+            Assert.That(cargo.Unlocked, Is.False);
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(1), 1);
-            Assert.That(ExperienceProgressFor("seventh_harbor").Current, Is.EqualTo(2m));
+            Assert.That(ExperienceProgressFor("seventh_harbor").Unlocked, Is.False);
             foreach (string port in Ports) PlayerPrefs.SetInt(CoreGameplayDemoController.PortInvestmentKey(port), 1);
             var final = ExperienceProgressFor("seventh_harbor");
-            Assert.That(final.Current, Is.EqualTo(3m));
-            Assert.That(final.Target, Is.EqualTo(3m));
-            Assert.That(final.Unlocked, Is.True);
+            Assert.That(final.IsQuantified, Is.False);
+            Assert.That(final.Unlocked, Is.False, "Six ports, graduation and a second ship are not the finale.");
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, "seventh_harbor_beacon_lantern");
+            Assert.That(ExperienceProgressFor("seventh_harbor").Unlocked, Is.True);
         }
 
         [Test]

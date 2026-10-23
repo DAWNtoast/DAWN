@@ -46,8 +46,8 @@ namespace ShatteredSail.Presentation
                 PlaySfx("course_plot", .44f);
                 Render();
             }
-            // Explicit player input pans the chart. The viewport's existing
-            // callback retains this center across subsequent dashboard renders.
+            // The complete chart is already visible. Locating the highlighted
+            // boss keeps the same map bounds, including after a course refresh.
             Transform map = contentRoot.Find("Navigation Chart/Procedural Sea Chart Frame/Map Layer");
             map?.GetComponent<NavigationMapViewport>()?.EnsureVisible(MapPosition(boss.Position), 90f);
         }

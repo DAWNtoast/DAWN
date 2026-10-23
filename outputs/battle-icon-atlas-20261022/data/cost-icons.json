@@ -1,0 +1,192 @@
+[
+  {
+    "key": "cost_energy",
+    "category": "cost",
+    "name": "能量费用",
+    "kind": "energy",
+    "renderer": "cost",
+    "effect": "支付本张卡的能量成本；具体费用随当前效果变化。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-both.png",
+    "crop": [
+      -13,
+      7,
+      256,
+      276
+    ],
+    "image": "icons/cost-energy.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_powder",
+    "category": "cost",
+    "name": "火药费用",
+    "kind": "powder",
+    "renderer": "cost",
+    "effect": "支付本张卡需要的火药；免耗效果生效时可能为 0。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-both.png",
+    "crop": [
+      715,
+      1315,
+      985,
+      1585
+    ],
+    "image": "icons/cost-powder.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_cannonball",
+    "category": "cost",
+    "name": "炮弹费用",
+    "kind": "cannonball",
+    "renderer": "cost",
+    "effect": "支付本张炮击卡需要的炮弹。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-both.png",
+    "crop": [
+      -14,
+      1312,
+      256,
+      1582
+    ],
+    "image": "icons/cost-cannonball.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_mana",
+    "category": "cost",
+    "name": "法力费用",
+    "kind": "mana",
+    "renderer": "cost",
+    "effect": "部分奥术卡额外消耗法力。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-arcane-ap-mana.png",
+    "crop": [
+      711,
+      24,
+      981,
+      294
+    ],
+    "image": "icons/cost-mana.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_health",
+    "category": "cost",
+    "name": "生命／船体费用",
+    "kind": "health",
+    "renderer": "cost",
+    "effect": "支付自身生命或船体；具体支付对象取决于战斗阶段。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-blood-ap-health.png",
+    "crop": [
+      711,
+      24,
+      981,
+      294
+    ],
+    "image": "icons/cost-health.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_curse",
+    "category": "cost",
+    "name": "咒痕费用",
+    "kind": "curse",
+    "renderer": "cost",
+    "effect": "消耗已积累的咒痕／咒印，具体数量见牌面。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-curse-ap-curse.png",
+    "crop": [
+      711,
+      24,
+      981,
+      294
+    ],
+    "image": "icons/cost-curse.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_tide",
+    "category": "cost",
+    "name": "潮势费用",
+    "kind": "tide",
+    "renderer": "cost",
+    "effect": "消耗潮势以发动对应卡牌效果。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-tide-ap-tide.png",
+    "crop": [
+      711,
+      24,
+      981,
+      294
+    ],
+    "image": "icons/cost-tide.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_chain",
+    "category": "cost",
+    "name": "雷链费用",
+    "kind": "chain",
+    "renderer": "cost",
+    "effect": "消耗雷链／连锁；消耗全部的牌在战斗中显示实际支付量。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-thunder-ap-chain.png",
+    "crop": [
+      711,
+      24,
+      981,
+      294
+    ],
+    "image": "icons/cost-chain.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_wood",
+    "category": "cost",
+    "name": "木板费用",
+    "kind": "wood",
+    "renderer": "cost",
+    "effect": "修理船体或部分战术牌消耗木板；与体系资源费用分开计算。",
+    "stage": "卡面",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/CardSchoolArtCatalog.cs:137",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/CardSchools/Frames/Integrated/frame-neutral-ap-wood.png",
+    "crop": [
+      714,
+      327,
+      984,
+      597
+    ],
+    "image": "icons/cost-wood.png",
+    "detail": "完整卡框中的实际徽记裁片。保留周围框边；不同流派的装饰边框可能不同。动态数字另由界面叠加。"
+  },
+  {
+    "key": "cost_medicine",
+    "category": "cost",
+    "name": "药品费用",
+    "kind": "medicine",
+    "renderer": "cost",
+    "effect": "治疗及部分接舷牌消耗药品；具体数量按当前治疗条件计算。",
+    "stage": "药品素材 · 卡框待就绪",
+    "source": "D:/Game/UnityClient/Assets/_Project/Presentation/Runtime/ItemIconCatalog.cs:36",
+    "sourceAsset": "D:/Game/UnityClient/Assets/_Project/Resources/ItemIcons/items_small_v1.png",
+    "crop": [
+      292,
+      317,
+      543,
+      552
+    ],
+    "image": "icons/cost-medicine.png",
+    "detail": "当前费用绑定已切换为整卡框内图案，但药品整卡框文件尚未出现；此处展示现有物品图集中的药品素材，供检查素材缺口。"
+  }
+]

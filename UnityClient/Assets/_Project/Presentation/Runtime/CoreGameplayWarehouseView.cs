@@ -187,13 +187,6 @@ namespace ShatteredSail.Presentation
             count.resizeTextForBestFit = true;
             count.resizeTextMinSize = 16;
             count.resizeTextMaxSize = 20;
-            // Keep the permanent income rules in the existing summary strip,
-            // separate from the keepsake story and display controls below.
-            Text incomeRules = WarehouseLabel("Warehouse Collection Income Rules", summary,
-                new Vector2(WarehouseLedgerWidth - 28f, 40f), new Vector2(0f, -15f), 16,
-                "所有港口已陈列藏品：每件每现实小时 10 金币\n下次上线弹窗自动发放，合计最多 300 金币", WarehouseRoomTheme.Ink);
-            incomeRules.lineSpacing = 1f;
-            incomeRules.resizeTextForBestFit = false;
             // Only the empty page needs a full-width message surface. Keep the
             // inventory slots separate; all keepsake details belong below them.
             int visibleTreasureCount = pageEnd - pageStart;

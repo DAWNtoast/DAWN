@@ -10,19 +10,21 @@ namespace ShatteredSail.Core.Gameplay
     /// </summary>
     public readonly struct CoreNavalAttackRange
     {
-        internal CoreNavalAttackRange(CoreNavalAttackRangeKind kind, float meters = 0f)
+        internal CoreNavalAttackRange(CoreNavalAttackRangeKind kind, float meters = 0f, int cells = 0)
         {
             Kind = kind;
             Meters = meters;
+            Cells = cells > 0 ? cells : CoreVoyageSession.NavalCannonRangeCells;
         }
 
         public CoreNavalAttackRangeKind Kind { get; }
         public float Meters { get; }
+        public int Cells { get; }
         public bool IsDamageCard => Kind != CoreNavalAttackRangeKind.None;
         public bool IsUnlimited => Kind == CoreNavalAttackRangeKind.Unlimited;
         /// <summary>Bounding square radius for finite ranges; unlimited ranges have no finite scan radius.</summary>
         public int ScanRadiusCells => Kind == CoreNavalAttackRangeKind.CannonCells
-            ? CoreVoyageSession.NavalCannonRangeCells : Kind == CoreNavalAttackRangeKind.MetricMeters
+            ? Cells : Kind == CoreNavalAttackRangeKind.MetricMeters
                 ? (int)Math.Ceiling(Meters / CoreVoyageSession.NavalGridCellMeters) : 0;
         public static CoreNavalAttackRange Cannon => new CoreNavalAttackRange(CoreNavalAttackRangeKind.CannonCells);
 
@@ -32,7 +34,7 @@ namespace ShatteredSail.Core.Gameplay
             // The player-occupied cell is never an enemy target cell. Invalid points are not paintable.
             if (!IsDamageCard || cells == 0 || cells == int.MaxValue) return false;
             if (Kind == CoreNavalAttackRangeKind.CannonCells)
-                return CoreVoyageSession.NavalCannonInRange(origin, target);
+                return cells <= Cells;
             if (Kind == CoreNavalAttackRangeKind.Unlimited) return true;
             double dx = (double)target.X - origin.X;
             double dy = (double)target.Y - origin.Y;
@@ -54,11 +56,8 @@ namespace ShatteredSail.Core.Gameplay
                 !(Battle.Stage == NavalBattleStage.Preparation && card.IsAllowedInStage(NavalBattleStage.Preparation)))
                 return default;
             if (CoreNavalSchoolExpansionCatalog.FindSpec(card.Id) != null) return CoreNavalAttackRange.Cannon;
-            if (card.Action == NavalBattleCardAction.Cannon) return CoreNavalAttackRange.Cannon;
-            if (card.Action == NavalBattleCardAction.Sabotage)
-                return new CoreNavalAttackRange(CoreNavalAttackRangeKind.MetricMeters, 150f);
-            if (card.SchoolId.Length > 0 && card.Damage > 0 && card.Action == NavalBattleCardAction.Standard)
-                return new CoreNavalAttackRange(CoreNavalAttackRangeKind.MetricMeters, 350f);
+            int maximum = CoreNavalCardRangeRules.MaximumCells(card);
+            if (maximum > 0) return new CoreNavalAttackRange(CoreNavalAttackRangeKind.CannonCells, cells: maximum);
             return new CoreNavalAttackRange(CoreNavalAttackRangeKind.Unlimited);
         }
 

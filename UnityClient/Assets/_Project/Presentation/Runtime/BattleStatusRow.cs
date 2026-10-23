@@ -35,6 +35,7 @@ namespace ShatteredSail.Presentation
         private CanvasGroup visibility;
         private RectTransform healthBar;
         private float maximumHeight = 140f;
+        private float cellSize;
         private bool initialized;
         private bool pendingChanges;
         private Behaviour owner;
@@ -122,6 +123,16 @@ namespace ShatteredSail.Presentation
             RefreshVisibility();
         }
 
+        public void SetCellSize(float size)
+        {
+            float next = size > 0f ? Mathf.Clamp(size, 50f, 75f) * (2f / 3f) : 0f;
+            if (Mathf.Approximately(cellSize, next)) return;
+            cellSize = next;
+            foreach (Slot slot in slots.Values) SizeSlot(slot);
+            foreach (Slot slot in retiring) SizeSlot(slot);
+            Arrange();
+        }
+
         public void FollowHealthBar(RectTransform anchor)
         {
             healthBar = anchor;
@@ -181,17 +192,19 @@ namespace ShatteredSail.Presentation
             if (layoutSlots.Count == 0) return;
             RectTransform rect = (RectTransform)transform;
             float scale = 1f;
-            int columns = Mathf.Max(1, Mathf.FloorToInt(rect.rect.width / 52f));
+            float columnWidth = cellSize > 0f ? cellSize : 52f;
+            float rowHeight = cellSize > 0f ? cellSize : 50f;
+            int columns = Mathf.Max(1, Mathf.FloorToInt(rect.rect.width / columnWidth));
             int rows = Mathf.CeilToInt(layoutSlots.Count / (float)columns);
             // Keep all effects above the hand, even during dense boss encounters.
-            while (rows * 50f * scale > maximumHeight && scale > .4f)
+            while (rows * rowHeight * scale > maximumHeight && scale > .4f)
             {
                 scale -= .025f;
-                columns = Mathf.Max(1, Mathf.FloorToInt(rect.rect.width / (52f * scale)));
+                columns = Mathf.Max(1, Mathf.FloorToInt(rect.rect.width / (columnWidth * scale)));
                 rows = Mathf.CeilToInt(layoutSlots.Count / (float)columns);
             }
-            float step = Mathf.Min(58f * scale, rect.rect.width / columns);
-            float height = rows * 50f * scale;
+            float step = Mathf.Min((cellSize > 0f ? cellSize : 58f) * scale, rect.rect.width / columns);
+            float height = rows * rowHeight * scale;
             if (!Mathf.Approximately(rect.rect.height, height))
                 rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
             for (int index = 0; index < layoutSlots.Count; index++)
@@ -199,7 +212,7 @@ namespace ShatteredSail.Presentation
                 int row = index / columns;
                 int rowCount = Mathf.Min(columns, layoutSlots.Count - row * columns);
                 layoutSlots[index].Rect.anchoredPosition = new Vector2(
-                    (index % columns - (rowCount - 1) * .5f) * step, (-25f - row * 50f) * scale);
+                    (index % columns - (rowCount - 1) * .5f) * step, (-rowHeight * .5f - row * rowHeight) * scale);
                 layoutSlots[index].Rect.localScale = Vector3.one * scale;
             }
         }
@@ -280,6 +293,19 @@ namespace ShatteredSail.Presentation
         private static Color StatusTint(CoreBattleStatus status, bool increase) =>
             status.IsDebuff == increase ? new Color(1f, .64f, .49f) : new Color(.51f, 1f, .83f);
 
+        private void SizeSlot(Slot slot)
+        {
+            bool naval = cellSize > 0f;
+            float scale = naval ? cellSize / 75f : 1f;
+            slot.Rect.sizeDelta = naval ? Vector2.one * cellSize : new Vector2(50f, 46f);
+            slot.Icon.rectTransform.sizeDelta = Vector2.one * (naval ? cellSize : 34f);
+            slot.Icon.rectTransform.anchoredPosition = new Vector2(naval ? -4f : -5f, 4f) * scale;
+            slot.Value.rectTransform.sizeDelta = naval ? new Vector2(cellSize - 4f, 28f * scale) : new Vector2(48f, 24f);
+            slot.Value.rectTransform.anchoredPosition = naval ? new Vector2(0f, -23f) * scale : new Vector2(1f, -11f);
+            slot.Value.fontSize = slot.Value.resizeTextMaxSize = naval ? Mathf.RoundToInt(26f * scale) : 18;
+            slot.Value.resizeTextMinSize = naval ? Mathf.RoundToInt(18f * scale) : 13;
+        }
+
         private Slot CreateSlot(string id)
         {
             var root = new GameObject("Status " + id, typeof(RectTransform), typeof(Image), typeof(BattleStatusHover));
@@ -310,8 +336,10 @@ namespace ShatteredSail.Presentation
             Outline outline = label.GetComponent<Outline>();
             outline.effectColor = new Color(.025f, .035f, .055f, 1f);
             outline.effectDistance = new Vector2(1f, -1f);
-            return new Slot { Rect = rect, Icon = symbol.GetComponent<BattleStatusIconGraphic>(), Value = value,
+            var slot = new Slot { Rect = rect, Icon = symbol.GetComponent<BattleStatusIconGraphic>(), Value = value,
                 Hover = root.GetComponent<BattleStatusHover>(), Motion = root.AddComponent<BattleHudChangeMotion>() };
+            SizeSlot(slot);
+            return slot;
         }
     }
 

@@ -127,16 +127,23 @@ namespace ShatteredSail.Presentation
                     bounds.size * WorkshopCollectionCardScale, center, Color.clear, Ink, 16);
                 select.GetComponentInChildren<Text>().text = string.Empty;
                 select.transition = Selectable.Transition.None;
+                string description = specialCardCollectionOpen
+                    ? IsDeckBuilderSpecialCardCollection
+                        ? session.BattleCardFaceDescription(card, selectedBattleDeckStage)
+                        : SpecialCardPreviewEffectDescription(card)
+                    : UpgradeCardEffectDescription(card);
                 RectTransform face = specialCardCollectionOpen
                     ? CreateCollectionCardFace(select.transform, card, "Special Card " + index,
                         "Special Card Icon " + index, "Special Card Name " + index,
-                        WorkshopCollectionCardScale, IsDeckBuilderSpecialCardCollection
-                            ? session.BattleCardFaceDescription(card, selectedBattleDeckStage) : SpecialCardPreviewEffectDescription(card))
+                        WorkshopCollectionCardScale, description)
                     : CreateCollectionCardFace(select.transform, card, "Upgrade Collection " + index,
                         "Upgrade Collection Art " + index, "Upgrade Collection Name " + index,
-                        WorkshopCollectionCardScale, UpgradeCardEffectDescription(card));
+                        WorkshopCollectionCardScale, description);
+                if (!specialCardCollectionOpen || IsDeckBuilderSpecialCardCollection)
+                    RefreshCardSupplyCost(face, card, previewStage: selectedBattleDeckStage);
                 // Frame bounds, rather than the inner text rectangle, define the visual center.
                 face.anchoredPosition = -bounds.center * WorkshopCollectionCardScale;
+                CollectionCardKeywordHover.Bind(select.gameObject, face, card, FormatBattleCardDescription(description));
                 if (index == selected)
                 {
                     CardSchoolFrameGraphic frame = face.GetComponentInChildren<CardSchoolFrameGraphic>();

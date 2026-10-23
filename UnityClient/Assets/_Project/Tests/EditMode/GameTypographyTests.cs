@@ -357,9 +357,9 @@ namespace ShatteredSail.Core.Tests
         [TestCase("靠近60米并转为平行\n平行且<b>距离不超过60米</b>可接舷", false)]
         [TestCase("靠近60米并转为平行\n平行且距离不超过60米可接舷", false)]
         [TestCase("<b>格挡6</b>", false)]
-        [TestCase("<b>4格内</b>炮击；船体伤害28", true)]
-        [TestCase("<b>4格内</b>炮击；<b>船体伤害28</b>", false)]
-        [TestCase("4格内炮击；船体伤害28", false)]
+        [TestCase("<b>范围1-4格</b>：造成28点船体伤害", true)]
+        [TestCase("<b>范围1-4格</b>：<b>造成28点船体伤害</b>", false)]
+        [TestCase("范围1-4格：造成28点船体伤害", false)]
         public void CardEmphasisAudit_AcceptsWrappedPrerequisitesButRejectsAddedOrMissingEmphasis(string text, bool valid)
         {
             Assert.That(NormalizedCardEmphasis(text) == ExpectedCardEmphasis(text), Is.EqualTo(valid));

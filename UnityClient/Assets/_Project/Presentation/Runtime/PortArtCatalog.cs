@@ -49,6 +49,11 @@ namespace ShatteredSail.Presentation
         public Texture2D TavernCrewDossierParchment => Load("UI/tavern_crew_dossier_parchment_v1");
         public Texture2D DossierFrame => Load("UI/tavern_crew_dossier_frame_4k_layers_v1");
 
+        /// <summary>Loads only the inspected vessel's independent dossier painting.</summary>
+        public Texture2D ShipDossierPortrait(string shipId) => string.IsNullOrWhiteSpace(shipId)
+            ? null
+            : Load("ShipDossiers/ship_" + shipId + "_dossier_v1");
+
         /// <summary>The crew portrait is painted into its complete parchment; load only the selected identity.</summary>
         public Texture2D CrewDossier(string crewId) => string.IsNullOrWhiteSpace(crewId)
             ? TavernCrewDossierParchment
@@ -161,6 +166,27 @@ namespace ShatteredSail.Presentation
                 regionalCrewFullBodies[assetName] = texture;
             }
             return texture != null;
+        }
+
+        /// <summary>Small reviewed dossier crops keep the departure roster consistent without loading full paintings.</summary>
+        public Texture2D DepartureCrewPortrait(CrewVariantDefinition crew)
+        {
+            Texture2D avatar = DepartureCrewAvatar(crew);
+            return avatar != null ? avatar : CrewPortrait(crew);
+        }
+
+        public Rect DepartureCrewPortraitUv(CrewVariantDefinition crew)
+        {
+            return DepartureCrewAvatar(crew) != null
+                ? new Rect(0f, 0f, 1f, 1f)
+                : CrewPortraitUv(crew, true);
+        }
+
+        private Texture2D DepartureCrewAvatar(CrewVariantDefinition crew)
+        {
+            return crew == null || string.IsNullOrWhiteSpace(crew.Id)
+                ? null
+                : Load("CrewAvatars/" + crew.Id + "_avatar_v1");
         }
 
         public Texture2D CrewPortrait(CrewVariantDefinition crew)

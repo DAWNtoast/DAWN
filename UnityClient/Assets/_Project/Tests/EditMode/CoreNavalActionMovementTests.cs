@@ -260,9 +260,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.EndBattleTurn(), Is.True);
             session.Battle.DistanceMeters = 100f;
             Assert.That(session.CanBoard(out string boardReason), Is.False);
-            Assert.That(boardReason, Does.Contain("同向").And.Not.Contain("打出并排行船"));
+            Assert.That(boardReason, Does.Contain("舷侧相邻").And.Not.Contain("打出并排行船"));
+            typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(session.Battle, new object[] { true, session.Battle.PlayerPositionMeters, 90f });
             Assert.That(session.CanRam(out string ramReason), Is.False);
-            Assert.That(ramReason, Does.Contain("垂直").And.Not.Contain("打出"));
+            Assert.That(ramReason, Does.Contain("船头指向").And.Not.Contain("打出"));
         }
 
         [Test]

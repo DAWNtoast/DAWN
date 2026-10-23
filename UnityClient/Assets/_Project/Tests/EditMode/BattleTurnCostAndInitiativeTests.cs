@@ -74,8 +74,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.GetBattleCardEnergyCost(23), Is.EqualTo(session.GetBattleCard(23).Energy + 1));
             session.Battle.DistanceMeters = 100;
-            typeof(CoreBattleState).GetProperty(ram ? "EnemyHeadingDegrees" : "PlayerHeadingDegrees")
-                .SetValue(session.Battle, ram ? 90f : session.Battle.EnemyHeadingDegrees);
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
+            if (!ram) typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
             session.Battle.Alignment = ram ? NavalBattleAlignment.HeadOn : NavalBattleAlignment.Parallel;
             session.Battle.PlayerMovingTowardEnemy = ram;
             int health = session.Battle.PlayerBoardingHealth, hull = session.Hull, turn = session.Battle.Turn;
@@ -217,21 +217,25 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void LethalBurnCancelsBothRamForecastAndItsOpeningAttack()
+        public void LethalEndOfTurnBurnDoesNotCancelRamForecastOrItsOpeningAttack()
         {
             CoreVoyageSession session = Start(true);
             session.Battle.Profile = RamProfile(1d);
             session.Battle.DistanceMeters = 100; typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
-            session.Battle.EnemyHull = 5;
-            session.Battle.EnemyBurnDamage = 5;
-            session.Battle.EnemyBurnTurns = 1;
-            int hull = session.Hull;
-            Assert.That(session.EnemyWillRam, Is.False);
-            Assert.That(session.EnemyRamFirstStrikeDamage, Is.Zero);
-            Assert.That(session.GetEnemyIntent(), Does.Contain("敌方无法行动"));
+            session.Battle.EnemyHull = 50;
+            session.Battle.EnemyBurnDamage = session.Battle.EnemyBurnTurns = 50;
+            int hull = session.Hull, health = session.Battle.PlayerBoardingHealth;
+            Assert.That(session.EnemyWillRam, Is.True);
+            Assert.That(session.EnemyRamFirstStrikeDamage, Is.EqualTo(7));
+            Assert.That(session.GetEnemyIntent(), Does.Contain("冲撞→接舷").And.Not.Contain("敌方无法行动"));
             Assert.That(session.EndBattleTurn(), Is.True);
-            Assert.That(session.Phase, Is.Not.EqualTo(CoreDemoPhase.Battle));
-            Assert.That(session.Hull, Is.EqualTo(hull));
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.True);
+            Assert.That(session.Hull, Is.LessThan(hull));
+            int afterCarryover = BoardingHealthAfterNavalDamage(health, session.MaxHull, hull - session.Hull);
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(afterCarryover - 7),
+                "The ram and its one announced opening resolve before any end-of-turn burn.");
         }
 
         [Test]

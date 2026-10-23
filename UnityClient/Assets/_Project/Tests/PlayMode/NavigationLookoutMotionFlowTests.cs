@@ -13,6 +13,32 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
+        public IEnumerator NavigationHeading_ReprojectsTargetsAndKeepsOceanReadyForVoyage()
+        {
+            yield return LoadLookoutMotionFixture();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            var motion = Object.FindFirstObjectByType<NavigationLookoutMotion>();
+            GameObject ocean = GameObject.Find("Lookout Ocean"), chart = GameObject.Find("Navigation Chart");
+            var costs = new NavigationArrivalCosts(controller.Session);
+            ActiveButton("Heading West").onClick.Invoke();
+            Assert.That(GameObject.Find("Lookout event-992"), Is.Null,
+                "Turning away must retire the projected ship before the next render.");
+            Assert.That(GameObject.Find("Lookout Ocean"), Is.SameAs(ocean));
+            Assert.That(GameObject.Find("Navigation Chart"), Is.SameAs(chart));
+            yield return null;
+            ActiveButton("Heading East").onClick.Invoke();
+            Assert.That(GameObject.Find("Lookout event-992"), Is.Not.Null);
+            Assert.That(GameObject.Find("Lookout Report").GetComponent<Text>().text, Does.Contain("远处商船"));
+            Assert.That(Object.FindFirstObjectByType<NavigationLookoutMotion>(), Is.SameAs(motion));
+            costs.AssertUnchanged(controller.Session);
+            yield return null;
+            ActiveButton("Execute Sail").onClick.Invoke();
+            Assert.That(motion.VoyagePrepared, Is.True, "The retained ocean must still prepare the real voyage after turning.");
+            yield return WaitForNavigationMotionCompletion(controller);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator NavigationLookoutMotion_RealVoyageMovesSceneryWithChartAndKeepsCaptionsStill()
         {
             yield return LoadLookoutMotionFixture();

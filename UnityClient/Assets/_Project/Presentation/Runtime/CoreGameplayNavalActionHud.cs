@@ -86,7 +86,8 @@ namespace ShatteredSail.Presentation
                 CoreBattleCard data = session.GetBattleCard(view.CardId);
                 view.Surface.Configure(data.Type, available, data.SchoolId);
                 view.SchoolFrame.Configure(data.SchoolId, available, data.PowderCost, data.CannonballCost,
-                    CardSpecialCostPresentation.ResourceType(data));
+                    CardSpecialCostPresentation.ResourceType(data),
+                    supplyType: CardSupplyCostPresentation.ResourceType(data, battle.Stage));
                 view.Available = available;
             }
         }

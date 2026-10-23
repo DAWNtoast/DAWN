@@ -1,0 +1,686 @@
+[
+  {
+    "id": "crew_broken_anchor_navigator_lorne",
+    "name": "测潮师 洛恩",
+    "port": "断锚港",
+    "slug": "broken_anchor",
+    "profession": 0,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_broken_anchor_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_broken_anchor_navigator_lorne_tavern.png",
+    "crop_box": [
+      260,
+      110,
+      854,
+      555
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_navigator_lorne_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_broken_anchor_navigator_lorne_portrait_v2.png",
+    "before_sha256": "e0e2f3000d77acf52f4a5f53c85a6345f0639fbe820c26f2c0147a8ad01608d3",
+    "meta_sha256": "218ec571e0685c3214b4cd9ac0809c3f0aeb6b33d393021142b802f23bd59703"
+  },
+  {
+    "id": "crew_broken_anchor_carpenter_kia",
+    "name": "铆骨匠 琪娅",
+    "port": "断锚港",
+    "slug": "broken_anchor",
+    "profession": 1,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_broken_anchor_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_broken_anchor_carpenter_kia_tavern.png",
+    "crop_box": [
+      2717,
+      512,
+      3243,
+      1370
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_carpenter_kia_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_broken_anchor_carpenter_kia_portrait_v2.png",
+    "before_sha256": "0576aa42078d2440986f29be33f60561c8c88c848780268c4c39ecb9a1ce806c",
+    "meta_sha256": "ae5e29ec9cd836e71e7202db197f26786310540a5ae9216bf8428a8b39635a3a"
+  },
+  {
+    "id": "crew_broken_anchor_doctor_hector",
+    "name": "瘢痕医师 赫克托",
+    "port": "断锚港",
+    "slug": "broken_anchor",
+    "profession": 2,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_broken_anchor_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_broken_anchor_doctor_hector_tavern.png",
+    "crop_box": [
+      374,
+      808,
+      1073,
+      1563
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_doctor_hector_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_broken_anchor_doctor_hector_portrait_v2.png",
+    "before_sha256": "2610bd5bbca8ac6d2ab6870efec6da6cf1b3542aefde9cf91450c688a79af21e",
+    "meta_sha256": "32ac96b7f325f5472509dbd887d7753f113df447d5e1929fbe480baffff11487"
+  },
+  {
+    "id": "crew_broken_anchor_gunner_mira",
+    "name": "沉钟炮师 米拉",
+    "port": "断锚港",
+    "slug": "broken_anchor",
+    "profession": 3,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_broken_anchor_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_broken_anchor_gunner_mira_tavern.png",
+    "crop_box": [
+      1649,
+      248,
+      2140,
+      865
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_gunner_mira_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_broken_anchor_gunner_mira_portrait_v2.png",
+    "before_sha256": "4354bd39b1105c6b9f4e90d1f0b307a671270fe237a9b8a8a7495d3691b7cf9a",
+    "meta_sha256": "e003521b25938b037d6d77b4009f253238ccbc269091b1ca00d69cb9ee1c154b"
+  },
+  {
+    "id": "crew_broken_anchor_cook_tam",
+    "name": "烟熏厨娘 塔姆",
+    "port": "断锚港",
+    "slug": "broken_anchor",
+    "profession": 4,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_broken_anchor_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_broken_anchor_cook_tam_tavern.png",
+    "crop_box": [
+      3199,
+      191,
+      3668,
+      670
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_cook_tam_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_broken_anchor_cook_tam_portrait_v2.png",
+    "before_sha256": "a880e4f15a2659bfde3c45878921244ba563328353aa2e553c89713ce59eb87b",
+    "meta_sha256": "0dd108f9631089a0fe51917cae2cd0bb070f5d9d454875303a808e37f7996fd6"
+  },
+  {
+    "id": "crew_broken_anchor_diver_udo",
+    "name": "锚墓潜手 乌铎",
+    "port": "断锚港",
+    "slug": "broken_anchor",
+    "profession": 5,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_broken_anchor_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_broken_anchor_diver_udo_tavern.png",
+    "crop_box": [
+      1890,
+      868,
+      2577,
+      1543
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_broken_anchor_diver_udo_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_broken_anchor_diver_udo_portrait_v2.png",
+    "before_sha256": "a46c64da6a2b6deb77afe82e36e745cbec2373344038db44e40765b6b6035cbf",
+    "meta_sha256": "ee8a03385cd9a947900db4f93ce6994e9d678bcffbe43560fea2575b15f9e4f9"
+  },
+  {
+    "id": "crew_white_shell_navigator_saina",
+    "name": "珊潮领航员 赛娜",
+    "port": "白贝港",
+    "slug": "white_shell",
+    "profession": 0,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_white_shell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_white_shell_navigator_saina_tavern.png",
+    "crop_box": [
+      202,
+      420,
+      958,
+      1359
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_navigator_saina_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_white_shell_navigator_saina_portrait_v2.png",
+    "before_sha256": "7f4c4a6b735f10294f9558707581aeb5647cd3254b6c8a24dcd258e9b4d3badc",
+    "meta_sha256": "3f360d8f855883a1547680b40056ed4e0aa699de99056f4632915b07ecfd575c"
+  },
+  {
+    "id": "crew_white_shell_carpenter_atang",
+    "name": "贝骨船匠 阿棠",
+    "port": "白贝港",
+    "slug": "white_shell",
+    "profession": 1,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_white_shell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_white_shell_carpenter_atang_tavern.png",
+    "crop_box": [
+      2671,
+      202,
+      3151,
+      652
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_carpenter_atang_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_white_shell_carpenter_atang_portrait_v2.png",
+    "before_sha256": "22b2e53a296e566688297054af3bace30d18cd1808d4e186c5f3b6dccfd6001a",
+    "meta_sha256": "eef2692b926d9bbc69fc1691602af7d7736e70b3fdf050716a29936314c026fa"
+  },
+  {
+    "id": "crew_white_shell_doctor_mirei",
+    "name": "香潮医师 米蕾",
+    "port": "白贝港",
+    "slug": "white_shell",
+    "profession": 2,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_white_shell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_white_shell_doctor_mirei_tavern.png",
+    "crop_box": [
+      2901,
+      615,
+      3679,
+      1382
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_doctor_mirei_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_white_shell_doctor_mirei_portrait_v2.png",
+    "before_sha256": "3752f1607326caba72e2f169c16f4b2dd17b79fee8c7fe09dbb35afa52b5babb",
+    "meta_sha256": "a9ff8972c170af030f779c64a3f551bd71a93ff26cb47f9163b43520903176c8"
+  },
+  {
+    "id": "crew_white_shell_gunner_gallo",
+    "name": "珠炮手 加洛",
+    "port": "白贝港",
+    "slug": "white_shell",
+    "profession": 3,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_white_shell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_white_shell_gunner_gallo_tavern.png",
+    "crop_box": [
+      1431,
+      386,
+      1991,
+      1129
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_gunner_gallo_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_white_shell_gunner_gallo_portrait_v2.png",
+    "before_sha256": "14d4a5a0c9e0217f5d9847cbf10714ea0f79a4f1048435f7028e999822735517",
+    "meta_sha256": "54a74fb33299f59117339a75416e724f0af9e3b2d89f83af3a58c9d1abbd5bba"
+  },
+  {
+    "id": "crew_white_shell_cook_flora",
+    "name": "柑潮厨师 芙萝",
+    "port": "白贝港",
+    "slug": "white_shell",
+    "profession": 4,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_white_shell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_white_shell_cook_flora_tavern.png",
+    "crop_box": [
+      953,
+      312,
+      1344,
+      785
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_cook_flora_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_white_shell_cook_flora_portrait_v2.png",
+    "before_sha256": "5a94eba9c355cf8ea412970ac8b464283250f7c7557a9096b654292fcecf50b0",
+    "meta_sha256": "6823ee673bf5b0ff0a616a5a6c1a20c9c8204c07d96abab41795bfda8de41616"
+  },
+  {
+    "id": "crew_white_shell_diver_kela",
+    "name": "采珠人 珂拉",
+    "port": "白贝港",
+    "slug": "white_shell",
+    "profession": 5,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_white_shell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_white_shell_diver_kela_tavern.png",
+    "crop_box": [
+      1975,
+      959,
+      2685,
+      1772
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_white_shell_diver_kela_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_white_shell_diver_kela_portrait_v2.png",
+    "before_sha256": "96cb091df63bd40dfd7a1eb31fdf70ed5ec8e7c4627179d877f36cd868fe568c",
+    "meta_sha256": "849f8a31578e6d71f3430b94109b1ae5e2d8f3336e792f6415e4d6e287fe542b"
+  },
+  {
+    "id": "crew_bronze_bell_navigator_vick",
+    "name": "黄铜测绘师 维克",
+    "port": "铜钟港",
+    "slug": "bronze_bell",
+    "profession": 0,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_bronze_bell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_bronze_bell_navigator_vick_tavern.png",
+    "crop_box": [
+      2738,
+      317,
+      3068,
+      877
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_bronze_bell_navigator_vick_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_bronze_bell_navigator_vick_portrait_v2.png",
+    "before_sha256": "45d669d2798b7ab5c2f4712ef7def3b5db834669625aecde447c44c8b933c861",
+    "meta_sha256": "25e5a53e4f7e5ecbade4688a9ef1933089973038d30a629646e8d2b85983b828"
+  },
+  {
+    "id": "crew_bronze_bell_carpenter_osser",
+    "name": "齿轮船匠 奥瑟",
+    "port": "铜钟港",
+    "slug": "bronze_bell",
+    "profession": 1,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_bronze_bell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_bronze_bell_carpenter_osser_tavern.png",
+    "crop_box": [
+      191,
+      489,
+      1015,
+      1324
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_bronze_bell_carpenter_osser_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_bronze_bell_carpenter_osser_portrait_v2.png",
+    "before_sha256": "53015f0b000bd8d8d190cc87a4f2dec6c44f6ed254ca2ed8151e18e4601555a6",
+    "meta_sha256": "3408baf8da7d3cd21427d193db98e1405e0ffce19086907cd1e43a1d0007adf8"
+  },
+  {
+    "id": "crew_bronze_bell_doctor_ada",
+    "name": "退役军医 艾达",
+    "port": "铜钟港",
+    "slug": "bronze_bell",
+    "profession": 2,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_bronze_bell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_bronze_bell_doctor_ada_tavern.png",
+    "crop_box": [
+      1660,
+      477,
+      2083,
+      1175
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_bronze_bell_doctor_ada_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_bronze_bell_doctor_ada_portrait_v2.png",
+    "before_sha256": "230e272afe5ccf6c00f62fb412a56bf30bd9183c372db9c32beee367d259a294",
+    "meta_sha256": "a3ec93409dc5b4fe441ac77ffceb5cb5ffe6868ca81e20b84eb69bfe3bdad7f0"
+  },
+  {
+    "id": "crew_bronze_bell_gunner_helen",
+    "name": "钟楼炮官 赫莲",
+    "port": "铜钟港",
+    "slug": "bronze_bell",
+    "profession": 3,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_bronze_bell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_bronze_bell_gunner_helen_tavern.png",
+    "crop_box": [
+      2487,
+      840,
+      3082,
+      1543
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_bronze_bell_gunner_helen_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_bronze_bell_gunner_helen_portrait_v2.png",
+    "before_sha256": "d7c1ba9482c2bfa3830ad304e28b00c8441d7a0dfdb29400f2ddaefd0862570f",
+    "meta_sha256": "a3fdcd18364d64c2ac2a63a072b0d3a040788a9503a69ac664aef0a1988c7e77"
+  },
+  {
+    "id": "crew_bronze_bell_cook_basin",
+    "name": "锅炉厨师 巴辛",
+    "port": "铜钟港",
+    "slug": "bronze_bell",
+    "profession": 4,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_bronze_bell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_bronze_bell_cook_basin_tavern.png",
+    "crop_box": [
+      3061,
+      443,
+      3691,
+      1416
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_bronze_bell_cook_basin_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_bronze_bell_cook_basin_portrait_v2.png",
+    "before_sha256": "1468e324b1465df76c2a65496a6d1a4ebc65437b94cfe88cad64790852a98cb5",
+    "meta_sha256": "c91789ec975131a61541275cb81fc59bf054a2dd1d1204e1c4b738821d59b190"
+  },
+  {
+    "id": "crew_bronze_bell_diver_duke",
+    "name": "铜盔潜工 杜克",
+    "port": "铜钟港",
+    "slug": "bronze_bell",
+    "profession": 5,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_bronze_bell_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_bronze_bell_diver_duke_tavern.png",
+    "crop_box": [
+      990,
+      358,
+      1642,
+      1228
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_bronze_bell_diver_duke_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_bronze_bell_diver_duke_portrait_v2.png",
+    "before_sha256": "12ed1c17cfd89331d8f0fa369de615bff33bac4225d427620f814e92f9927881",
+    "meta_sha256": "7dc4f0fb9d61542fc25eda4ed63a96ca3066c3e7af2d7e11ceb94173d10f453d"
+  },
+  {
+    "id": "crew_salt_crown_navigator_ashir",
+    "name": "盐路航海士 阿希尔",
+    "port": "盐冠港",
+    "slug": "salt_crown",
+    "profession": 0,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_salt_crown_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_salt_crown_navigator_ashir_tavern.png",
+    "crop_box": [
+      1477,
+      271,
+      2037,
+      911
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_salt_crown_navigator_ashir_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_salt_crown_navigator_ashir_portrait_v2.png",
+    "before_sha256": "7ace4577afd5f03e175adc14bd13c1e5a0a9220b3d3598ad8e2908453b2686ee",
+    "meta_sha256": "67d2637cb7042a19a9243a20f090060a3b64781f4e5de57d0e25c64ac02ce639"
+  },
+  {
+    "id": "crew_salt_crown_carpenter_saf",
+    "name": "晒骨匠 萨芙",
+    "port": "盐冠港",
+    "slug": "salt_crown",
+    "profession": 1,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_salt_crown_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_salt_crown_carpenter_saf_tavern.png",
+    "crop_box": [
+      3096,
+      317,
+      3702,
+      992
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_salt_crown_carpenter_saf_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_salt_crown_carpenter_saf_portrait_v2.png",
+    "before_sha256": "d4fb0c28f60bf5ee7f747b9a028f93bf6c7a8d31e66fdfbc4ecebaf74dcabede",
+    "meta_sha256": "70c8d04ff9b16fe47c726344e0c5bdf49df480a9492c01a5cd4818f90493124d"
+  },
+  {
+    "id": "crew_salt_crown_doctor_naji",
+    "name": "荒潮药师 娜吉",
+    "port": "盐冠港",
+    "slug": "salt_crown",
+    "profession": 2,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_salt_crown_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_salt_crown_doctor_naji_tavern.png",
+    "crop_box": [
+      282,
+      386,
+      740,
+      1026
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_salt_crown_doctor_naji_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_salt_crown_doctor_naji_portrait_v2.png",
+    "before_sha256": "0470ae7b21e871833a07b1c7cd0b03caebf80588cffec1cbd73651f08f7404b9",
+    "meta_sha256": "cefa5a9063405cd8df7c3cb238ad6e0bad84080915f973043955c8bee84c4e4f"
+  },
+  {
+    "id": "crew_salt_crown_gunner_rokan",
+    "name": "白焰炮手 罗坎",
+    "port": "盐冠港",
+    "slug": "salt_crown",
+    "profession": 3,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_salt_crown_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_salt_crown_gunner_rokan_tavern.png",
+    "crop_box": [
+      776,
+      810,
+      1532,
+      1657
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_salt_crown_gunner_rokan_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_salt_crown_gunner_rokan_portrait_v2.png",
+    "before_sha256": "5252dbd267738c39cb14daa2b1b61df03cec9862bb957bc4127ba152ac81505e",
+    "meta_sha256": "04258c7b2621e09bef572170f2dfda3735b6d802e327b4542e0e59e061b52332"
+  },
+  {
+    "id": "crew_salt_crown_cook_maz",
+    "name": "香路厨娘 玛兹",
+    "port": "盐冠港",
+    "slug": "salt_crown",
+    "profession": 4,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_salt_crown_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_salt_crown_cook_maz_tavern.png",
+    "crop_box": [
+      2269,
+      409,
+      2852,
+      1083
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_salt_crown_cook_maz_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_salt_crown_cook_maz_portrait_v2.png",
+    "before_sha256": "f44465c3f7a43dd5f86bb63d42ac92d7b30be3909a69601314a65941cc154260",
+    "meta_sha256": "6bd07fbb0adce17d3fe8b32dbe256eeb63c021764c3763b61f3187f2d9ecf4cc"
+  },
+  {
+    "id": "crew_salt_crown_diver_isha",
+    "name": "盐井潜客 伊沙",
+    "port": "盐冠港",
+    "slug": "salt_crown",
+    "profession": 5,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_salt_crown_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_salt_crown_diver_isha_tavern.png",
+    "crop_box": [
+      2820,
+      971,
+      3427,
+      1692
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_salt_crown_diver_isha_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_salt_crown_diver_isha_portrait_v2.png",
+    "before_sha256": "00cae0a6e6065a3bbd97c5b7251de5de92f448eb3d424878df134abbe133c367",
+    "meta_sha256": "9040b87fe11c90818b39bf2ce967af10b2eafb8c7e35f99ea925f0aaf871dadd"
+  },
+  {
+    "id": "crew_twilight_tide_navigator_selene",
+    "name": "月潮占星师 塞勒涅",
+    "port": "暮潮港",
+    "slug": "twilight_tide",
+    "profession": 0,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_twilight_tide_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_twilight_tide_navigator_selene_tavern.png",
+    "crop_box": [
+      2751,
+      55,
+      3323,
+      631
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_twilight_tide_navigator_selene_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_twilight_tide_navigator_selene_portrait_v2.png",
+    "before_sha256": "a8df4f6edd86cd973bfc1837e2149740db2eb6d46770ecf51bc4eae47d8fbf9d",
+    "meta_sha256": "07df6645fa9c5cba2d016c6b55a45c6ac189337c73fd92ae1d73419e7b8c6732"
+  },
+  {
+    "id": "crew_twilight_tide_carpenter_orlan",
+    "name": "骨舟匠 欧兰",
+    "port": "暮潮港",
+    "slug": "twilight_tide",
+    "profession": 1,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_twilight_tide_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_twilight_tide_carpenter_orlan_tavern.png",
+    "crop_box": [
+      1601,
+      482,
+      2104,
+      1145
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_twilight_tide_carpenter_orlan_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_twilight_tide_carpenter_orlan_portrait_v2.png",
+    "before_sha256": "0274f43557d822404f4c4845376739805cdd8251053b55e1e0ad4d7eeb499413",
+    "meta_sha256": "0f5a33e893786cbe83a0c44699d5b67c1fe093607e9ea4b53dbbfe34499d7e92"
+  },
+  {
+    "id": "crew_twilight_tide_doctor_viya",
+    "name": "梦疫医师 维娅",
+    "port": "暮潮港",
+    "slug": "twilight_tide",
+    "profession": 2,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_twilight_tide_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_twilight_tide_doctor_viya_tavern.png",
+    "crop_box": [
+      317,
+      870,
+      1176,
+      1625
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_twilight_tide_doctor_viya_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_twilight_tide_doctor_viya_portrait_v2.png",
+    "before_sha256": "0b94ec628c132911b75a6173eb8e71255b0e332aa445b43001554616009726d9",
+    "meta_sha256": "2b4633fed9b1e7fceb549893243e3a94883324d4ab63575189e94379b0d36f6b"
+  },
+  {
+    "id": "crew_twilight_tide_gunner_yilan",
+    "name": "蓝火炮巫 伊岚",
+    "port": "暮潮港",
+    "slug": "twilight_tide",
+    "profession": 3,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_twilight_tide_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_twilight_tide_gunner_yilan_tavern.png",
+    "crop_box": [
+      2591,
+      608,
+      3206,
+      1203
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_twilight_tide_gunner_yilan_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_twilight_tide_gunner_yilan_portrait_v2.png",
+    "before_sha256": "3a9d2893d7e113705de555b09142dd7148ff92a863331d143ee5efe423bdc502",
+    "meta_sha256": "c4e52610dc9dbe4ed543cd70c189a6f10101b2ada049f05c5a85937c12dd7ef2"
+  },
+  {
+    "id": "crew_twilight_tide_cook_lume",
+    "name": "夜宴厨师 露姆",
+    "port": "暮潮港",
+    "slug": "twilight_tide",
+    "profession": 4,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_twilight_tide_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_twilight_tide_cook_lume_tavern.png",
+    "crop_box": [
+      250,
+      308,
+      767,
+      774
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_twilight_tide_cook_lume_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_twilight_tide_cook_lume_portrait_v2.png",
+    "before_sha256": "2f5dce051dfb87d556e0766b489ed8cd73785d1bee167cbf0ce8c97126049b83",
+    "meta_sha256": "ef651fae9d1588b59ddf615eba0c775ab90674455e951cd2bdb4b10315007cb5"
+  },
+  {
+    "id": "crew_twilight_tide_diver_naive",
+    "name": "幽灯潜者 奈芙",
+    "port": "暮潮港",
+    "slug": "twilight_tide",
+    "profession": 5,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_twilight_tide_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_twilight_tide_diver_naive_tavern.png",
+    "crop_box": [
+      3257,
+      994,
+      3835,
+      1864
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_twilight_tide_diver_naive_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_twilight_tide_diver_naive_portrait_v2.png",
+    "before_sha256": "f36c7bf6dd538b918100054774b786c2ac19779d12bc3b87ad56c662ce2fb8eb",
+    "meta_sha256": "b1c1e7eb19abee944e3041ccbf40a14478017914870c69405b04449de38ea38e"
+  },
+  {
+    "id": "crew_gray_gull_navigator_evelyn",
+    "name": "星盘手 伊芙琳",
+    "port": "灰鸥港",
+    "slug": "gray_gull",
+    "profession": 0,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_gray_gull_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_gray_gull_navigator_evelyn_tavern.png",
+    "crop_box": [
+      3027,
+      386,
+      3450,
+      877
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_gray_gull_navigator_evelyn_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_gray_gull_navigator_evelyn_portrait_v2.png",
+    "before_sha256": "ace8a874d6076aed6602d16123910711403f75e656c212266256e03c05e66eab",
+    "meta_sha256": "eaa57029881b321d783035037c1e4bf62b58d1eb8652d65b42de96b9660589f5"
+  },
+  {
+    "id": "crew_gray_gull_carpenter_barlow",
+    "name": "船匠 巴洛",
+    "port": "灰鸥港",
+    "slug": "gray_gull",
+    "profession": 1,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_gray_gull_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_gray_gull_carpenter_barlow_tavern.png",
+    "crop_box": [
+      179,
+      730,
+      1210,
+      1485
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_gray_gull_carpenter_barlow_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_gray_gull_carpenter_barlow_portrait_v2.png",
+    "before_sha256": "e9543cc3392f1fd7aa014e5efbcf49a438fd6adbe6b8570cfe5a82f227cca170",
+    "meta_sha256": "7eaa0038be57fa7cea11c1ad92d3bdaeed10f791f628c8d8f1c52d6a83bba2ff"
+  },
+  {
+    "id": "crew_gray_gull_doctor_moer",
+    "name": "船医 莫尔",
+    "port": "灰鸥港",
+    "slug": "gray_gull",
+    "profession": 2,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_gray_gull_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_gray_gull_doctor_moer_tavern.png",
+    "crop_box": [
+      1856,
+      207,
+      2255,
+      675
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_gray_gull_doctor_moer_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_gray_gull_doctor_moer_portrait_v2.png",
+    "before_sha256": "8bf88d3ae433670bf76a2338e3e23be5c1f8b305fc4ddeca99a7c05e24956713",
+    "meta_sha256": "600990c5ee428dd633a63ee7d227ddf0713a2ec94325ef61b35f5233a3aa5cbb"
+  },
+  {
+    "id": "crew_gray_gull_gunner_leisa",
+    "name": "炮术官 雷萨",
+    "port": "灰鸥港",
+    "slug": "gray_gull",
+    "profession": 3,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_gray_gull_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_gray_gull_gunner_leisa_tavern.png",
+    "crop_box": [
+      2395,
+      822,
+      3220,
+      1611
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_gray_gull_gunner_leisa_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_gray_gull_gunner_leisa_portrait_v2.png",
+    "before_sha256": "903c8037d70f48955b1021db94884655d70f11cbe37828f9c3919428abf31217",
+    "meta_sha256": "72efa9d304237ee8e89023d6b84bd73699d15db5e7582c53c4ec96e1678f63b7"
+  },
+  {
+    "id": "crew_gray_gull_cook_pepe",
+    "name": "厨师 佩佩",
+    "port": "灰鸥港",
+    "slug": "gray_gull",
+    "profession": 4,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_gray_gull_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_gray_gull_cook_pepe_tavern.png",
+    "crop_box": [
+      225,
+      289,
+      827,
+      769
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_gray_gull_cook_pepe_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_gray_gull_cook_pepe_portrait_v2.png",
+    "before_sha256": "aad3fe9646e024011538c9b7ae2ac79fe179899f885c5e93fbe0a44651ea963e",
+    "meta_sha256": "dd97cd856755c88c82724b5cd22b80b4fcd127fe9f8ef9dba1ceaa62984e5408"
+  },
+  {
+    "id": "crew_gray_gull_diver_noya",
+    "name": "潜水员 诺雅",
+    "port": "灰鸥港",
+    "slug": "gray_gull",
+    "profession": 5,
+    "tavern": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortFacilities\\Regional\\Tavern\\tavern_gray_gull_v1.png",
+    "reference": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\references\\crew_gray_gull_diver_noya_tavern.png",
+    "crop_box": [
+      1546,
+      638,
+      2049,
+      1290
+    ],
+    "target": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\PortArt\\CrewDossiers\\crew_gray_gull_diver_noya_portrait_v2.png",
+    "before": "D:\\Game\\outputs\\imagegen\\crew-tavern-redraw-20261021\\before\\crew_gray_gull_diver_noya_portrait_v2.png",
+    "before_sha256": "53ed8aec4c69773469ac72cdc03ee0b196aa0d7ee101315dfe6a1b3b196bdbca",
+    "meta_sha256": "650ed58a8b29ba7ae6a276cebcb8414f57bc579fd4c505fee3e149672b5bf77f"
+  }
+]

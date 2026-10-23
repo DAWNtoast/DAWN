@@ -39,6 +39,7 @@ namespace ShatteredSail.Core.Gameplay
     {
         public int ArcanePiercing, BloodAttackBonus, TemporaryMana;
         public int FireImmunityCharges, FireImmunityUsed, FireImmunityExpires;
+        public int FieldImmunityMask, FieldImmunityExpires;
         public int AnchorCharges, AnchorExpires, MovementSlow, SlowExpires;
         public CoreNavalFieldShipState Copy() => (CoreNavalFieldShipState)MemberwiseClone();
     }
@@ -103,6 +104,10 @@ namespace ShatteredSail.Core.Gameplay
         private int FieldOwnerTurn(bool player) => player ? Battle.NavalFields.PlayerTurn : Battle.NavalFields.EnemyTurn;
         private static bool FieldDirectionValid(int dx, int dy) => Math.Abs((long)dx) + Math.Abs((long)dy) == 1;
         private static bool FieldCellValid(int x, int y) => Math.Abs((long)x) <= 100000 && Math.Abs((long)y) <= 100000;
+        private const int NavalFieldProtectionMask = (1 << (int)CoreNavalFieldKind.Fire) | (1 << (int)CoreNavalFieldKind.Curse) |
+            (1 << (int)CoreNavalFieldKind.Tide) | (1 << (int)CoreNavalFieldKind.Thunder);
+        private static bool NavalFieldImmune(CoreNavalFieldShipState ship, CoreNavalFieldKind kind, int ownerTurn) =>
+            ship.FieldImmunityExpires > ownerTurn && (ship.FieldImmunityMask & (1 << (int)kind)) != 0;
         private static string FieldTriggerKey(bool player, CoreNavalFieldCell cell) => (player ? "P:" : "E:") +
             (cell.Kind == CoreNavalFieldKind.Fire ? "F:" + cell.X + ":" + cell.Y : "K:" + (int)cell.Kind);
 
@@ -180,7 +185,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!FieldDirectionValid(targetX - sourceX, targetY - sourceY) || !FieldCellValid(targetX, targetY)) return "只能移到正交相邻的海格";
             VoyagePoint origin = owner ? Battle.PlayerPositionMeters : Battle.EnemyPositionMeters;
             var target = new VoyagePoint(targetX * NavalGridCellMeters, targetY * NavalGridCellMeters);
-            if (NavalGridDistance(origin, source.PositionMeters) > 4 || NavalGridDistance(origin, target) > 4) return "源格和落点都须在 4 格内";
+            if (NavalGridDistance(origin, source.PositionMeters) > 4) return "源格须在 4 格内";
             if (GetNavalFieldAt(targetX, targetY) != null || FieldOccupied(target)) return "落点必须没有船只和场地";
             return string.Empty;
         }
@@ -200,7 +205,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (Battle == null) return;
             CoreNavalFieldShipState ship = FieldShip(player);
-            ship.FireImmunityCharges = Math.Max(0, 2 - ship.FireImmunityUsed);
+            ship.FireImmunityCharges = SchoolSum(ship.FireImmunityCharges, 2);
             ship.FireImmunityExpires = FieldOwnerTurn(player) + 1;
         }
         public void GrantNavalAnchor(bool player)
@@ -212,8 +217,8 @@ namespace ShatteredSail.Core.Gameplay
         public void ApplyNavalMovementSlow(bool player)
         {
             if (Battle == null) return;
-            FieldShip(player).MovementSlow = 1;
-            FieldShip(player).SlowExpires = FieldOwnerTurn(player) + 1;
+            FieldShip(player).MovementSlow = SchoolSum(FieldShip(player).MovementSlow, 1);
+            FieldShip(player).SlowExpires = int.MaxValue;
         }
         private int NavalActiveMovementLimit(bool player, int normal) => Math.Max(0, normal - (Battle == null ? 0 : FieldShip(player).MovementSlow));
 
@@ -229,7 +234,6 @@ namespace ShatteredSail.Core.Gameplay
                 if (cell == null || !FieldCellValid(cell.X, cell.Y) || !Enum.IsDefined(typeof(CoreNavalFieldKind), cell.Kind) ||
                     cell.InstanceId < 1 || cell.InstanceId >= saved.NextInstanceId ||
                     cell.ExpiresAtOwnerTurn <= (cell.PlayerOwned ? saved.PlayerTurn : saved.EnemyTurn) ||
-                    cell.ExpiresAtOwnerTurn > (cell.PlayerOwned ? saved.PlayerTurn : saved.EnemyTurn) + 2 ||
                     (cell.Kind == CoreNavalFieldKind.Tide && !FieldDirectionValid(cell.DirectionX, cell.DirectionY)) ||
                     !coordinates.Add(cell.X + ":" + cell.Y)) return false;
                 if (instances.TryGetValue(cell.InstanceId, out CoreNavalFieldCell previous) &&
@@ -250,9 +254,12 @@ namespace ShatteredSail.Core.Gameplay
             }
             foreach (CoreNavalFieldShipState ship in new[] { saved.Player, saved.Enemy })
                 if (ship.ArcanePiercing < 0 || ship.ArcanePiercing > 4 || ship.BloodAttackBonus < 0 || ship.BloodAttackBonus > 4 ||
-                    ship.FireImmunityCharges < 0 || ship.FireImmunityCharges > 2 || ship.FireImmunityUsed < 0 || ship.FireImmunityUsed > 2 ||
-                    ship.FireImmunityCharges + ship.FireImmunityUsed > 2 ||
-                    ship.AnchorCharges < 0 || ship.AnchorCharges > 1 || ship.MovementSlow < 0 || ship.MovementSlow > 1 ||
+                    ship.FireImmunityCharges < 0 || ship.FireImmunityUsed < 0 ||
+                    (ship.FieldImmunityMask & ~NavalFieldProtectionMask) != 0 || ship.FieldImmunityExpires < 0 ||
+                    (ship.FieldImmunityMask == 0 && ship.FieldImmunityExpires != 0) ||
+                    (ship.FieldImmunityMask != 0 && ship.FieldImmunityExpires !=
+                        (ReferenceEquals(ship, saved.Player) ? saved.PlayerTurn : saved.EnemyTurn) + 1) ||
+                    ship.AnchorCharges < 0 || ship.AnchorCharges > 1 || ship.MovementSlow < 0 ||
                     ship.TemporaryMana < 0 || ship.FireImmunityExpires < 0 || ship.AnchorExpires < 0 || ship.SlowExpires < 0) return false;
             Battle.NavalFields = saved.Copy();
             return true;

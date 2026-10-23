@@ -234,7 +234,9 @@ namespace ShatteredSail.Presentation
                 componentDossierOfferId = null;
                 componentDossierPage = 0;
                 selectedComponentShopOfferId = null;
-                portNotice = "已返回" + session.CurrentPort + "部件商店陈列区。";
+                selectedComponentResaleInstanceId = null;
+                portNotice = componentResaleOpen ? "已返回闲置部件出售列表。" :
+                    "已返回" + session.CurrentPort + "部件商店陈列区。";
                 Render();
                 return;
             }

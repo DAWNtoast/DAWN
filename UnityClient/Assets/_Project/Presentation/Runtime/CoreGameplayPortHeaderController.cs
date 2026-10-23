@@ -136,6 +136,13 @@ namespace ShatteredSail.Presentation
             if (contentRoot == null) return;
             Transform readouts = contentRoot.Find("Battle Readouts Overlay");
             if (readouts != null) readouts.SetAsLastSibling();
+            Transform header = contentRoot.Find("Voyage Header");
+            bool boarding = session?.Battle?.Stage == NavalBattleStage.Boarding;
+            foreach (string name in new[] { "Range Inset", "Alignment Inset" })
+            {
+                Transform inset = header == null ? null : header.Find(name);
+                if (inset != null) inset.gameObject.SetActive(boarding);
+            }
         }
         private RectTransform CreateRegionalPortHeader(string headerName, string frameName, out PortHeaderTheme theme)
         {

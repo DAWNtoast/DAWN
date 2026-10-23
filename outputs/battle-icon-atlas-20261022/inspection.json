@@ -1,0 +1,131 @@
+{
+  "counts": {
+    "resource": 10,
+    "status_naval": 30,
+    "status_boarding": 30,
+    "status_doctrine": 6,
+    "intent": 10,
+    "field": 6,
+    "cost": 10,
+    "interface": 4
+  },
+  "total": 106,
+  "categories": 8,
+  "canvasChecks": "all visible icons nonempty",
+  "zoom": "open and close passed",
+  "widths": [
+    {
+      "width": 360,
+      "category": "resource",
+      "root": 328,
+      "viewport": 328,
+      "scroll": 328
+    },
+    {
+      "width": 360,
+      "category": "status_naval",
+      "root": 328,
+      "viewport": 328,
+      "scroll": 328
+    },
+    {
+      "width": 360,
+      "category": "status_boarding",
+      "root": 328,
+      "viewport": 328,
+      "scroll": 328
+    },
+    {
+      "width": 360,
+      "category": "status_doctrine",
+      "root": 328,
+      "viewport": 328,
+      "scroll": 328
+    },
+    {
+      "width": 360,
+      "category": "intent",
+      "root": 328,
+      "viewport": 328,
+      "scroll": 328
+    },
+    {
+      "width": 360,
+      "category": "field",
+      "root": 328,
+      "viewport": 328,
+      "scroll": 328
+    },
+    {
+      "width": 360,
+      "category": "cost",
+      "root": 328,
+      "viewport": 328,
+      "scroll": 328
+    },
+    {
+      "width": 360,
+      "category": "interface",
+      "root": 328,
+      "viewport": 328,
+      "scroll": 328
+    },
+    {
+      "width": 780,
+      "category": "resource",
+      "root": 748,
+      "viewport": 748,
+      "scroll": 748
+    },
+    {
+      "width": 780,
+      "category": "status_naval",
+      "root": 748,
+      "viewport": 748,
+      "scroll": 748
+    },
+    {
+      "width": 780,
+      "category": "status_boarding",
+      "root": 748,
+      "viewport": 748,
+      "scroll": 748
+    },
+    {
+      "width": 780,
+      "category": "status_doctrine",
+      "root": 748,
+      "viewport": 748,
+      "scroll": 748
+    },
+    {
+      "width": 780,
+      "category": "intent",
+      "root": 748,
+      "viewport": 748,
+      "scroll": 748
+    },
+    {
+      "width": 780,
+      "category": "field",
+      "root": 748,
+      "viewport": 748,
+      "scroll": 748
+    },
+    {
+      "width": 780,
+      "category": "cost",
+      "root": 748,
+      "viewport": 748,
+      "scroll": 748
+    },
+    {
+      "width": 780,
+      "category": "interface",
+      "root": 748,
+      "viewport": 748,
+      "scroll": 748
+    }
+  ],
+  "javascriptErrors": []
+}

@@ -15,18 +15,18 @@ namespace ShatteredSail.Core.Gameplay
             if (card?.BoardingSpec == null) return card?.Damage ?? 0;
             if (!BActive) return card.Damage;
             string key = card.BoardingSpec.Key;
-            int mana = Math.Min(3, Battle.Schools.AvailableMana);
+            int mana = Battle.Schools.AvailableMana;
             int marks = BState.CurseMarks, tide = BState.TidePower;
             int chain = Math.Min(6, Math.Max(0, Battle.Schools.ThunderChain));
             int damage = card.Damage;
             int bonus = BQuotedAttackBonus(card);
             switch (key)
             {
-                case "fire_11": damage = BValue(card, 30 + Math.Min(6, BStackTotal(BState.SelfBurn) * 2)); break;
+                case "fire_11": damage = BValue(card, 30 + BStackTotal(BState.SelfBurn) * 2); break;
                 case "arcane_04": damage = BValue(card, 24 + 6 * mana); break;
                 case "arcane_06": damage = SchoolProduct(BValue(card, 5), 2 + mana); break;
                 case "arcane_11": damage = BValue(card, 36 + 8 * mana); break;
-                case "curse_06": damage = BValue(card, 8 + marks); break;
+                case "curse_06": damage = BValue(card, 6 + marks); break;
                 case "curse_11": damage = BValue(card, 20 + 8 * marks); break;
                 case "tide_06": damage = BValue(card, 6 + tide); break;
                 case "tide_07": damage = BValue(card, 16 + tide); break;

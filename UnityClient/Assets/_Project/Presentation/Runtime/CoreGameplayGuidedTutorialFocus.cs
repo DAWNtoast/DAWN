@@ -36,7 +36,19 @@ namespace ShatteredSail.Presentation
                 GameObject selected = EventSystem.current.currentSelectedGameObject;
                 Selectable current = selected == null ? null : selected.GetComponent<Selectable>();
                 if (current == null || !current.gameObject.activeInHierarchy || !current.IsInteractable())
-                    EventSystem.current.SetSelectedGameObject(targets[0].gameObject);
+                {
+                    Selectable next = targets[0];
+                    EventSystem.current.SetSelectedGameObject(next.gameObject);
+                    // Advancing the lesson must not briefly show the new keyboard
+                    // target's previous locked tint. Settle only this automatic
+                    // focus change; ordinary pointer transitions keep their duration.
+                    if (EventSystem.current.currentSelectedGameObject == next.gameObject &&
+                        next.transition == Selectable.Transition.ColorTint && next.targetGraphic != null)
+                    {
+                        ColorBlock colors = next.colors;
+                        next.targetGraphic.CrossFadeColor(colors.selectedColor * colors.colorMultiplier, 0f, true, true);
+                    }
+                }
             }
         }
 

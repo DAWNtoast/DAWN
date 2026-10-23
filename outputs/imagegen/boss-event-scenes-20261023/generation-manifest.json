@@ -1,0 +1,201 @@
+{
+  "assets": [
+    {
+      "key": "boss_blood",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-8dd13930-e2e7-4a40-8897-74bf9aec9123.png",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_blood.png",
+      "prompt": "Paint a complete 1536x1024 dark-fantasy naval boss encounter using this ship as identity reference. The colossal Tax Queen advances through crimson moonlit waves, seen from water-level, filling 60% of the frame with expansive sea and storm sky. Retain the two masts, red-striped sails, iron-plated whale-fang bow, heavy deck mortars, red copper pipes and stern crimson glass instrument. Entire masts and bow visible. Crimson moon above distant horizon, huge foreground surf and tiny distant ship emphasize scale. Unified richly hand-painted pirate adventure concept art, imposing and dangerous, no gore. Opaque full scene, no cutout, text, UI, border or watermark."
+    },
+    {
+      "key": "boss_thunder",
+      "source": "C:/Users/Admin/.codex/generated_images/01a16314-6bf8-7160-9e2e-6d729e4acbd7/exec-66cc2cb5-6d11-48c1-96c5-74f1eca5394f.png",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_thunder.png",
+      "prompt": "Epic 1536x1024 hand-painted pirate fantasy boss encounter, complete opaque storm seascape. Aurora Edict is a colossal two-masted imperial warship with huge radial fan sails of ivory cloth shimmering turquoise and violet, layered glowing blue-violet armor plates over dark timber, gold/brass fittings, copper-sleeved broadside cannons, a thick riveted conical bow ram and a brass navigation machine with blue crystal lenses on the stern. Water-level camera looks up at its bow advancing diagonally right, ship fills 60% of frame; whole masts and ram visible. Vast purple-blue thunderstorm ocean and sky, towering waves in foreground, forked lightning illuminating wet sails, subtle electric arcs along fitted cannons, tiny distant rocky lighthouse for scale. Menacing overwhelming presence, rich wood, cloth and metal detail, unified cinematic sea spray and storm lighting. No cutout, text, UI, border or watermark."
+    },
+    {
+      "key": "legendary_blood",
+      "source": "C:/Users/Admin/.codex/generated_images/01a16314-6bf8-7160-9e2e-6d729e4acbd7/exec-69227d79-6307-4b2a-aec5-925498ecee58.png",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/legendary_blood.png",
+      "prompt": "Epic 1536x1024 hand-painted pirate fantasy legendary boss encounter, complete opaque seascape. Scarlet Blade Widow is a colossal lean three-masted raider with cream sails bearing large crimson wing shapes, long red pennants, dark red timber and gold trim, living twisted timber ribs along its hull, very long steel bow lance, crimson-shielded broadside guns and a glowing red eye in a brass sextant atop its high stern. From very low water level its enormous bow rushes diagonally toward the viewer, ship occupies 60% of frame with all masts and lance visible. Broad crimson moonlit ocean, foreground black-red waves curl toward camera, distant ruined harbor and tiny rowing boat emphasize overwhelming scale. Layered storm clouds, blood-red moon partly hidden at upper left, wet wood and sharp warm metal reflections. Integrated cinematic environment, threatening yet no gore, no cutout, words, UI, border or watermark."
+    },
+    {
+      "key": "boss_curse",
+      "prompt": "An epic full-background BOSS ENCOUNTER illustration for a hand-painted pirate fantasy game, 1536x1024 landscape. A gigantic two-masted dark wooden cursed battleship called Moon Eclipse Reliquary is sailing in a stormy black ocean, seen from a VERY LOW sea-level three-quarter camera, bow pointing right. Two black sails each display a silver eclipse emblem; a long pale bone-spike forms the prow; chainmail panels hang on the iron-reinforced hull; large upward deck mortars and a brass lunar-sphere orrery rise at the stern, warm cabin windows. The ship towers over foreground waves and occupies 60 percent of the frame. Vast sea and sky: colossal eclipsed moon, roiling green-black stormclouds, thin emerald ghostlight in waves, distant ruined reefs and tiny navigation lamps showing scale. Strong oppressive supernatural threat, lower hull deeply immersed, crashing bow wake, rich wood and cloth detail, convincing three-dimensional painted composition. Complete opaque sea-and-sky environment fills the canvas. No transparent cutout, text, labels, UI, frame or watermark.",
+      "reference": "Visual design studied from original boss_curse.png; this generation uses text description.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-d4c541fc-97b9-4fc1-aa3d-7b98ef59690c.png"
+    },
+    {
+      "key": "boss_arcane",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_arcane.png",
+      "prompt": "Create a completely new cinematic BOSS ENCOUNTER sea scene, landscape 1536x1024, sumptuous hand-painted nautical fantasy. Use this reference ONLY for the warship identity and rebuild composition. A giant lunar-arcane two-masted warship sails toward us across a vast midnight ocean, viewed from low sea level, right-facing three-quarter bow, occupying around 60% of the frame with large surrounding sea and sky. Preserve violet moon-and-star sails, silver plated hull, crescent-wing star prow, starfire cannon and large brass astrolabe at stern. Convey overwhelming threat and scholarly arcane power: a huge fractured moon and celestial conjunction above, luminous violet and indigo astronomical arcs spanning storm clouds, the bow opening a trail of starlit cyan waves, tiny faraway navigation lights showing scale. Ocean physically surrounds and immerses lower hull, crashing wake and dramatic foreshortening, strong silhouette. All cosmic effects belong to a marine night scene, no outer-space ship. Full opaque painted environment to every edge. No transparency, cutout composition, border, words, labels, UI or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-d83a10b0-fb4c-42ce-8aba-277965ddfbc2.png"
+    },
+    {
+      "key": "legendary_curse",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/legendary_curse.png",
+      "prompt": "Paint a new epic LEGENDARY BOSS ENCOUNTER illustration, wide 1536x1024, cinematic hand-painted nautical fantasy with a FULL OPAQUE SEA AND SKY. Reference is ship identity only, recompose completely from a very low sea-level viewpoint: the enormous Iron Oath galleon surges out of haunted emerald fog, its armored bow towering above the viewer. Keep three masts, patched ivory crown sails, crown crow's nest, pale stone colossus figurehead on right bow, iron-braced timber hull, ranks of heavy cannons and huge green slit-pupil eye device above stern. The cursed-school threat dominates a vast ghostly ocean: sickly emerald light from the eye splits dense cloud, spectral green currents curl around the immersed hull, ruined sea arches and distant tiny lights reveal the vessel's impossible scale. Forceful bow waves, dark weather, restrained supernatural chains in mist, weathered noble ship still solid and seaworthy. Ship occupies 60-70% of scene, visible open ocean foreground and enormous sky behind, strong depth and looming oppressive presence. No transparent background, studio cutout, text, UI, border or watermark.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-24a24968-a2b0-4afb-b06b-42df50eca166.png"
+    },
+    {
+      "key": "legendary_arcane",
+      "prompt": "An epic full-background LEGENDARY BOSS ENCOUNTER painting, 1536x1024 landscape, richly hand-painted nautical fantasy. A colossal three-masted explorer-observatory warship sails toward the viewer, low sea-level camera beside towering foreground swells, huge bow facing right, ship takes 60% of frame. Its design has cream/navy/wine patchwork compass-rose sails, a golden beacon lion figurehead with violet star jewel, living tree-bark-and-brass hull, tiny integrated leaves, rows of ornate broadside cannons and a giant violet-lensed brass telescope over the raised stern. Immense ARCANE power: the distant ocean horizon bends into a glowing celestial arc, golden constellation paths cross a vast indigo stormcloud vault, violet starfire lights the cannon ports, teal-violet currents rush past the immersed hull, tiny distant sailboats and sea cliffs establish terrifying scale. Luminous dawn breaks behind this flagship, strong readable silhouette and rich texture amid grand sea and sky. The ship is solid and sailing in real turbulent water, NOT a spaceship. Environment fills every edge, opaque image, no cutout, transparent backdrop, letters, labels, border, UI or watermark.",
+      "reference": "Visual design studied from original legendary_arcane.png; this generation uses text description.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-5af137a8-6db1-442b-9fbe-e8d87e86bec5.png"
+    },
+    {
+      "key": "boss_fire",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_fire.png",
+      "prompt": "Paint a completely new full-scene pirate-fantasy boss encounter illustration, 1536x1024 landscape, opaque background. From a very low sea-level camera, the enormous two-masted Splitmast warship surges diagonally toward us, its long single ivory kraken tusk towering over foaming foreground waves. Preserve black copper-star sails, scorched dark wood, star-stamped armor, brass organ-cannon racks with blue flame at their muzzles, stern amber horn instrument. Ship fills about 65% of frame, all mast tips readable against vast smoky sky. Red-orange fire glows from cannon decks, distant volcanic cliffs and towering ash clouds, hot burning reflections across dark rolling sea. Dense maritime scale and menacing presence; a coherent painted ocean environment with depth, not a cutout pasted on a backdrop. Rich hand-painted pirate adventure concept art, tangible materials, dramatic but legible. No text, UI, border, watermark or transparent area.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-ddb9379b-7432-471e-9aa4-ca9de530c63d.png"
+    },
+    {
+      "key": "boss_tide",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/boss_tide.png",
+      "prompt": "Use this old ship only as identity reference. Paint a completely new full-scene pirate-fantasy boss encounter illustration, 1536x1024 landscape, opaque background. Very low camera in churning turquoise surf, looking up at the enormous two-masted Ghostreef Hunter emerging through sea fog between black reefs, crossing close with its long single ivory whale-fang bow aimed toward the viewer's right. Preserve pale cyan current-pattern square sails, teal pennants, pearl-shell bow armor, slender long black cannons with brass muzzle rings and aft tide astrolabe. Ship fills about 60% of frame; looming sails rise against broad storm-blue sky. A powerful curved surge and smaller whirlpool pull foreground foam toward the hull; distant reef spires fade into fog and convey huge scale. Teal, cobalt, pale cyan; warm tiny lanterns. Refined hand-painted pirate fantasy concept illustration, atmospheric depth and tangible materials, fully integrated ocean and ship. No text, UI, border, watermark or transparency.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-818d977d-ae19-4f77-8085-2be731604a4a.png"
+    },
+    {
+      "key": "legendary_fire",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/legendary_fire.png",
+      "prompt": "Paint a completely new full-scene pirate-fantasy legendary boss encounter, 1536x1024 landscape, opaque background. Extreme low ocean-level three-quarter bow view of the colossal Ember Ark advancing directly toward us, a gigantic carved red dragon-head ram looming in front, its heavy hull rising like a fortress. Preserve three tall masts, cream sails with red-gold phoenix motifs, red pennants, crimson dragon-scale armor edged in gold, rows of dragon-mouth brass cannons and stern amber celestial furnace. Ship fills 65-70% of frame but remains grounded in a vast full ocean-and-sky scene. Red-orange cannon fire and furnace light reflect across violent dark waves, black volcanic smoke towers far behind, burning sunset splits the clouds, sparks remain near guns. Grand legendary threat, rich hand-painted nautical fantasy concept art, crisp readable focal dragon and believable timber. No text, UI, frame, watermark or transparency.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-96723996-95e6-4a29-b823-ce002d505807.png"
+    },
+    {
+      "key": "legendary_thunder",
+      "source": "C:/Users/Admin/.codex/generated_images/01a16314-10e2-7ae2-a926-0a9da6758c9f/exec-fff4fce5-47a9-4304-b2e2-a926696e71c0.png",
+      "reference": "D:/Game/UnityClient/Assets/_Project/Resources/ShipArtV2/Special/legendary_thunder.png",
+      "prompt": "Paint an epic hand-painted pirate-fantasy legendary warship encounter, 1536x1024 landscape, fully opaque ocean and sky. From an extremely low sea-level camera, a colossal three-masted thunder galleon bears down on us with its bow angled to the right. Preserve its identity: seven ivory-white square sails with blue eight-point sun emblems, blue pennants, a brass lightning armillary instrument on the raised stern, dark timber hull with iron braces and two heavy rows of cannons, blue shields bearing golden fleurs-de-lis, and an ornate golden eagle-lion figurehead with five long lance-like ramming spikes. The ship fills roughly 60% of the scene; vast sea and sky fill the rest. Huge branching blue-violet lightning illuminates towering storm clouds, slanting rain, enormous wind-driven waves and white spray. Tiny distant ships show its overwhelming scale. Tangible weathered wood, precise brass, woven sailcloth and rich painterly light. Integrated cinematic maritime composition, not a pasted cutout. No text, UI, frame, watermark or transparent area."
+    },
+    {
+      "key": "legendary_tide",
+      "prompt": "An epic LEGENDARY BOSS sea encounter illustration for a lavish hand-painted pirate fantasy game, landscape 1536x1024. A colossal three-masted galleon called Tidal Requiem advances across the rim of a titanic ocean whirlpool, viewed from an extremely low wave trough as if the vessel towers overhead, right-facing three-quarter bow. Recognizable identity: huge ivory canvas sails embroidered with blue heraldic seahorses above flowing wave motifs; overlapping turquoise-blue scale armor edged with warm brass over a dark timber hull; a trident of enormous pale whale tusks at bow, one long central tooth and two curving side teeth; rows of bronze broadside cannon; elevated stern with an ornate bronze tide compass. Keep the ship strong and readable at 60% of the picture. Surround it with a vast teal abyssal sea, towering spirals of white water and tidal walls, windblown sea mist, deep blue stormclouds parting behind the ivory sails, distant tiny wreck silhouettes for overwhelming scale. Powerful TIDE school presence, lower hull immersed in surging water, huge wake; all scene edges fully painted sea or sky, no transparency. Majestic terrifying naval presence, intricate physical rigging and cloth, no words, frame, UI or watermark.",
+      "reference": "Visual design studied from original legendary_tide.png; this generation uses text description.",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-ed4f6119-803f-4f9d-ba5f-0e094e5b0b22.png"
+    }
+  ],
+  "date": "2026-10-23",
+  "count": 12,
+  "tool": "built-in image_gen",
+  "installed": [
+    {
+      "key": "boss_blood",
+      "name": "税金女王号",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-6bf8-7160-9e2e-6d729e4acbd7\\exec-8dd13930-e2e7-4a40-8897-74bf9aec9123.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_blood.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "C8380DEA475C05E0542F802B0BE8D7A3FC030BE3615C85C1C0455770FB37FF2C"
+    },
+    {
+      "key": "boss_thunder",
+      "name": "极光敕令号",
+      "source": "C:/Users/Admin/.codex/generated_images/01a16314-6bf8-7160-9e2e-6d729e4acbd7/exec-66cc2cb5-6d11-48c1-96c5-74f1eca5394f.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_thunder.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "D62A50054A5206206DF93FF6D257AAA3A46FD6C730D75EF91DBEA0F7598C2581"
+    },
+    {
+      "key": "legendary_blood",
+      "name": "绯刃寡妇号",
+      "source": "C:/Users/Admin/.codex/generated_images/01a16314-6bf8-7160-9e2e-6d729e4acbd7/exec-69227d79-6307-4b2a-aec5-925498ecee58.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_blood.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "CBEB4D2D11A1BEF28EE55E748BB64885AD327C26322DE3B047F1B636A8634B69"
+    },
+    {
+      "key": "boss_curse",
+      "name": "月蚀圣骸",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-d4c541fc-97b9-4fc1-aa3d-7b98ef59690c.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_curse.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "A462D1B47476C0FB8FF25643E26E96F159D782C8AC3B9B4A1B571685BE36F556"
+    },
+    {
+      "key": "boss_arcane",
+      "name": "月织星槎号",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-d83a10b0-fb4c-42ce-8aba-277965ddfbc2.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_arcane.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "797BAE60436C48FAD40F72FDFBAC6FF0707B00F73AD1712A5C559DF59278CE93"
+    },
+    {
+      "key": "legendary_curse",
+      "name": "铁誓不沉号",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-24a24968-a2b0-4afb-b06b-42df50eca166.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_curse.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "F73150ECB4CC491875ECC555BFD81FD9877C01408DBA5CD85294A9EF2013BB97"
+    },
+    {
+      "key": "legendary_arcane",
+      "name": "终界观星号",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-5af137a8-6db1-442b-9fbe-e8d87e86bec5.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_arcane.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "F1BBA249869E1CF2FE410221DD5F4F555F651A07C0A5DA7A43189BB5792DA3CC"
+    },
+    {
+      "key": "boss_fire",
+      "name": "裂桅号",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-ddb9379b-7432-471e-9aa4-ca9de530c63d.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_fire.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "5B37250804D18C54685CA19EB6EBAEB1599970894D2A46094BA6AE9F1F69209F"
+    },
+    {
+      "key": "boss_tide",
+      "name": "幽礁潜猎号",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-818d977d-ae19-4f77-8085-2be731604a4a.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_boss_tide.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "0F0DC59685905FF31ED2C7BE796FC6E9B4D292614B01901CB2E8954E62D97A5D"
+    },
+    {
+      "key": "legendary_fire",
+      "name": "余烬方舟号",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16314-10e2-7ae2-a926-0a9da6758c9f\\exec-96723996-95e6-4a29-b823-ce002d505807.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_fire.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "FCFBAB5EDCE304BE39EDE49520C08385C6175DF8AA543EA5E8A4CE24946CC69A"
+    },
+    {
+      "key": "legendary_thunder",
+      "name": "雷冠审判号",
+      "source": "C:/Users/Admin/.codex/generated_images/01a16314-10e2-7ae2-a926-0a9da6758c9f/exec-fff4fce5-47a9-4304-b2e2-a926696e71c0.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_thunder.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "9F21043195030CDEF13FE735E86943BF4DC1FE00A81140F8E10B6C92E5249CC5"
+    },
+    {
+      "key": "legendary_tide",
+      "name": "潮汐镇魂号",
+      "source": "C:\\Users\\Admin\\.codex\\generated_images\\01a16301-20fc-75f2-989e-309df0fddbdb\\exec-ed4f6119-803f-4f9d-ba5f-0e094e5b0b22.png",
+      "destination": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\EncounterIllustrations\\BossScenes\\scene_legendary_tide.png",
+      "width": 1536,
+      "height": 1024,
+      "minimumAlpha": 255,
+      "sha256": "2CE371E8EAEEA083B2D81BC9E049E246FA6C1ACEA102F15082B437FFEBDB3EF0"
+    }
+  ]
+}

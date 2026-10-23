@@ -202,7 +202,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void FireBreakthrough_AppliesTwoLaterPlayerEndTicksAndThenExpires()
+        public void FireBreakthrough_DecaysAtEachLaterPlayerEndUntilZero()
         {
             CoreVoyageSession session = Battle("fire");
             SetDeck(session, LegacyFireDeck());
@@ -210,20 +210,21 @@ namespace ShatteredSail.Core.Tests
             End(session);
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 14), "Ignition must not tick on the application turn.");
             Assert.That(session.Battle.BoardingEnemy.PlayerBurnDamage, Is.EqualTo(3));
-            Assert.That(session.Battle.BoardingEnemy.PlayerBurnTurns, Is.EqualTo(2));
+            Assert.That(session.Battle.BoardingEnemy.PlayerBurnTurns, Is.EqualTo(3));
             Assert.That(session.Battle.Boarding.SelfBurn, Is.Empty, "Hostile ignition is separate from voluntary self-burn.");
             session.Battle.PlayerBlock = 1000;
             End(session);
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 17));
+            Assert.That(session.Battle.BoardingEnemy.PlayerBurnTurns, Is.EqualTo(2));
+            session.Battle.PlayerBlock = 1000;
+            End(session);
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 19), "The second tick deals the two remaining layers through guard.");
+            Assert.That(session.Battle.BoardingEnemy.PlayerBurnDamage, Is.EqualTo(1));
             Assert.That(session.Battle.BoardingEnemy.PlayerBurnTurns, Is.EqualTo(1));
             session.Battle.PlayerBlock = 1000;
             End(session);
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 20), "Burn bypasses the guard that blocks this turn's 29 damage strike.");
-            Assert.That(session.Battle.BoardingEnemy.PlayerBurnDamage, Is.Zero);
-            Assert.That(session.Battle.BoardingEnemy.PlayerBurnTurns, Is.Zero);
-            session.Battle.PlayerBlock = 1000;
-            End(session);
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 20));
+            Assert.That(session.Battle.BoardingEnemy.PlayerBurnDamage, Is.Zero);
         }
 
         [Test]
@@ -231,18 +232,18 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = Battle("fire");
             SetDeck(session, LegacyFireDeck());
-            End(session); // Turn one applies the two-tick ignition.
+            End(session); // Turn one applies three layers of ignition.
             End(session); // Turn two consumes its first tick while the enemy guards.
             Assert.That(session.Battle.PhaseTurn, Is.EqualTo(3));
             int health = session.Battle.PlayerBoardingHealth;
             End(session);
             CoreBoardingEnemyState result = session.Battle.BoardingEnemy;
             Assert.That(result.LastBurnPlayerHealth, Is.EqualTo(health));
-            Assert.That(result.LastBurnHealthLost, Is.EqualTo(3));
+            Assert.That(result.LastBurnHealthLost, Is.EqualTo(2));
             Assert.That(result.LastAttackExecuted, Is.True);
-            Assert.That(result.LastAttackPlayerHealth, Is.EqualTo(health - 3));
+            Assert.That(result.LastAttackPlayerHealth, Is.EqualTo(health - 2));
             Assert.That(result.LastAttackHealthLost, Is.EqualTo(29), "The melee result must exclude the earlier burn tick.");
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health - 3 - 29));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health - 2 - 29));
         }
 
         [Test]
@@ -258,6 +259,7 @@ namespace ShatteredSail.Core.Tests
                 .Invoke(session, new object[] { encounter, true });
             End(session);
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(session.TryBoard(), Is.True);
@@ -269,6 +271,7 @@ namespace ShatteredSail.Core.Tests
             End(session);
             Assert.That(session.Battle.PhaseTurn, Is.EqualTo(3));
             Assert.That(session.EnemyBoardingAttackDamage, Is.GreaterThan(0), "An attack was scheduled before the player's lethal end-of-turn burn.");
+            burn = session.Battle.BoardingEnemy.PlayerBurnDamage;
             session.Battle.PlayerBoardingHealth = burn;
             CoreBoardingEnemyState result = session.Battle.BoardingEnemy;
             End(session);
@@ -341,7 +344,7 @@ namespace ShatteredSail.Core.Tests
             session.Battle.PlayerBlock = 100;
             int enemyHealth = session.Battle.EnemyBoardingHealth;
             End(session);
-            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemyHealth - 4));
+            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemyHealth - 6));
             Assert.That(session.Battle.LastEnemyGuardAbsorbed, Is.EqualTo(15));
         }
 
@@ -353,6 +356,7 @@ namespace ShatteredSail.Core.Tests
             End(session);
             session.Battle.EnemyHull = session.Battle.EnemyMaxHull = 10000;
             session.Battle.DistanceMeters = 100f;
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, session.Battle.EnemyHeadingDegrees);
             session.Battle.Alignment = NavalBattleAlignment.Parallel;
             Assert.That(session.TryBoard(), Is.True);

@@ -39,7 +39,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Assert.That(controller.Session.CanBoard(out _), Is.True);
                 Assert.That(Find<Text>("Battle Board Condition").text,
-                    Does.Contain("上下左右相邻").And.Contain("船头同向").And.Contain("逆向不可").And.Contain("不耗能量"));
+                    Does.Contain("平行且舷侧相邻").And.Contain("同向或反向").And.Contain("相邻两行/两列").And.Contain("不耗能量"));
             }
             foreach (string side in new[] { "Player", "Enemy" })
             {
@@ -56,6 +56,11 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(fill.raycastTarget, Is.False);
                 foreach (string part in new[] { "Armor Bar", "Armor Bar Lower", "Armor Frame 0", "Armor Frame 1", "Armor Frame 2", "Armor Frame 3" })
                 {
+                    if (stage != NavalBattleStage.Boarding)
+                    {
+                        Assert.That(track.Find(side + " " + part), Is.Null, "Naval health has no outer armor frame or rails.");
+                        continue;
+                    }
                     Image shell = Find<Image>(side + " " + part);
                     Assert.That(shell.transform.parent, Is.SameAs(track), shell.name);
                     Assert.That(shell.raycastTarget, Is.False, shell.name);
@@ -169,9 +174,9 @@ namespace ShatteredSail.Presentation.Tests
             // Near enemy intent uses a bow-to-side ram; parallel neighbors use
             // the same heading so the boarding control is actually available.
             pose.Invoke(battle, new object[] { true, new VoyagePoint(-distance, 0f),
-                alignment == NavalBattleAlignment.EnemyBroadside ? 90f : 0f });
+                alignment == NavalBattleAlignment.HeadOn ? 0f : 90f });
             pose.Invoke(battle, new object[] { false, new VoyagePoint(0f, 0f),
-                alignment == NavalBattleAlignment.Parallel ? 0f : 180f });
+                alignment == NavalBattleAlignment.Parallel ? 90f : 180f });
             typeof(CoreBattleState).GetProperty("NavalActionPoints").SetValue(battle, 1);
             battle.Alignment = alignment;
         }

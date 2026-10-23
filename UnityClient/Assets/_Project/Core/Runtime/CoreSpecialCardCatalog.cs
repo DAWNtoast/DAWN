@@ -328,8 +328,8 @@ namespace ShatteredSail.Core.Gameplay
             if (damage > 0) parts.Add((action == A.Cannon ? "4 格内炮击：" : action == A.Sabotage ? "150 米内近距破坏：" : string.Empty) +
                 "造成 {damage} 点" + (stages == S.Boarding ? "船员" : "船体") + "伤害");
             if (block > 0) parts.Add("格挡 +{block}");
-            if (repair > 0) parts.Add("恢复 {repair} 点" + (stages == S.Boarding ? "船员生命" : "船体"));
             if (draw > 0) parts.Add("抽 {draw} 张牌");
+            if (repair > 0) parts.Add("恢复 {repair} 点" + (stages == S.Boarding ? "船员生命" : "船体"));
             if (action == A.Cannon) parts.Add("消耗 {cannonballs} 炮弹" + (powder > 0 ? "、{powder} 火药" : string.Empty));
             else if (powder > 0) parts.Add("消耗 {powder} 火药");
             if (action == A.Sabotage) parts.Add("无需弹药");

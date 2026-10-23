@@ -78,42 +78,43 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void StarBeamPiercesTenAndPreservesUnusedGuardWithoutAddingRefraction()
+        public void StarBeamUsesRefractionOnItsFirstHitAndKeepsItsSecondHitFullyPiercing()
         {
             CoreVoyageSession s = Start(); SetSchool(s, "Mana", 1); SetSchool(s, "TemporaryMana", 1);
             s.Battle.NavalFields.Player.ArcanePiercing = 4; s.Battle.EnemyBlock = 15;
             int before = s.Battle.EnemyHull; Play(s, "card_school_arcane_n03");
-            Assert.That(s.Battle.EnemyHull, Is.EqualTo(before - 10)); Assert.That(s.Battle.EnemyBlock, Is.EqualTo(1));
+            Assert.That(s.Battle.EnemyHull, Is.EqualTo(before - 14)); Assert.That(s.Battle.EnemyBlock, Is.EqualTo(5));
             Assert.That(s.Battle.Schools.AvailableMana, Is.Zero); Assert.That(s.Battle.NavalFields.Player.ArcanePiercing, Is.Zero);
         }
 
         [Test]
-        public void PartialCurseConsumptionKeepsBatchAndExhaustionClearsAllTickState()
+        public void CursePeelUsesAllLayersForDamageAndClearsTheRemainingState()
         {
             CoreVoyageSession s = Start();
             SetSchool(s, "CurseMarks", 3); SetSchool(s, "CurseTurns", 2);
             SetSchool(s, "CurseDamagePerMark", 4); SetSchool(s, "CurseNextTickBonus", 6);
             int before = s.Battle.EnemyHull;
             Play(s, "card_school_curse_n03", new CoreNavalCardPlayOptions { ResourceAmount = 2 });
-            Assert.That(s.Battle.EnemyHull, Is.EqualTo(before - 26));
-            Assert.That(s.Battle.Schools.CurseMarks, Is.EqualTo(1)); Assert.That(s.Battle.Schools.CurseNextTickBonus, Is.EqualTo(6));
-            Play(s, "card_school_curse_n02");
+            Assert.That(s.Battle.EnemyHull, Is.EqualTo(before - 32));
             Assert.That(new[] { s.Battle.Schools.CurseMarks, s.Battle.Schools.CurseTurns,
                 s.Battle.Schools.CurseDamagePerMark, s.Battle.Schools.CurseNextTickBonus }, Is.EqualTo(new[] { 0, 0, 0, 0 }));
-            Play(s, "card_school_curse_b03"); Assert.That(s.Battle.Schools.CurseDamagePerMark, Is.EqualTo(2));
+            Play(s, "card_school_curse_b03");
+            Assert.That(s.Battle.Schools.CurseMarks, Is.EqualTo(1));
+            Assert.That(s.Battle.Schools.CurseTurns, Is.EqualTo(1));
+            Play(s, "card_school_curse_n02");
+            Assert.That(s.Battle.Schools.CurseMarks, Is.Zero);
         }
 
         [Test]
-        public void TideChoiceRetainsUnspentResourceAndRejectsOverstripping()
+        public void TideCardsConsumeAllResourceIncludingMoreThanRemainingGuard()
         {
             CoreVoyageSession s = Start(); SetSchool(s, "TidePower", 5);
             Play(s, "card_school_tide_n02", new CoreNavalCardPlayOptions { ResourceAmount = 2 });
-            Assert.That(s.Battle.Schools.TidePower, Is.EqualTo(3));
+            Assert.That(s.Battle.Schools.TidePower, Is.Zero);
+            SetSchool(s, "TidePower", 3);
             s.Battle.EnemyBlock = 2; Put(s, "card_school_tide_n05");
-            Assert.That(s.PlayNavalCard(0, new CoreNavalCardPlayOptions { ResourceAmount = 3 }), Is.False);
-            Assert.That(s.Battle.Schools.TidePower, Is.EqualTo(3));
-            Assert.That(s.PlayNavalCard(0, new CoreNavalCardPlayOptions { ResourceAmount = 2 }), Is.True);
-            Assert.That(s.Battle.Schools.TidePower, Is.EqualTo(1)); Assert.That(s.Battle.EnemyBlock, Is.Zero);
+            Assert.That(s.PlayNavalCard(0, new CoreNavalCardPlayOptions { ResourceAmount = 4 }), Is.True, "Legacy resource choices do not override the current total.");
+            Assert.That(s.Battle.Schools.TidePower, Is.Zero); Assert.That(s.Battle.EnemyBlock, Is.Zero);
         }
 
         [Test]
@@ -126,7 +127,7 @@ namespace ShatteredSail.Core.Tests
             Play(s, "card_school_fire_n02");
             Assert.That(s.Battle.EnemyHull, Is.EqualTo(before - damage - 4));
             Assert.That(s.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.Zero);
-            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(3)); Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(2));
+            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(2)); Assert.That(s.Battle.EnemyBurnTurns, Is.EqualTo(2));
         }
 
         [Test]
@@ -214,26 +215,28 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void SameIdOnceLimitAndEscalatingCostShareAcrossAllCopies()
+        public void RepeatedClampPaysEscalatingEnergyAndStacksTheNextGuardReduction()
         {
             CoreVoyageSession s = Start(); SetSchool(s, "Mana", 3);
             Play(s, "card_school_arcane_n02"); Put(s, "card_school_arcane_n02");
             int mana = s.Battle.Schools.AvailableMana, energy = s.Battle.Energy;
-            Assert.That(s.PlayNavalCard(0, null), Is.False); Assert.That(s.Battle.Schools.AvailableMana, Is.EqualTo(mana));
-            Assert.That(s.Battle.Energy, Is.EqualTo(energy));
+            Assert.That(s.PlayNavalCard(0, null), Is.True); Assert.That(s.Battle.Schools.AvailableMana, Is.EqualTo(mana - 1));
+            Assert.That(s.Battle.Energy, Is.EqualTo(energy - 1));
+            Assert.That(s.NavalExpansionEnemyBlockGain(15), Is.EqualTo(3));
             Play(s, "card_school_fire_n04"); energy = s.Battle.Energy;
             Play(s, "card_school_fire_n04"); Assert.That(s.Battle.Energy, Is.EqualTo(energy - 2));
         }
 
         [Test]
-        public void DebuffsPreserveZeroGainsAndCapWholeAttackReductionAndActualHealing()
+        public void DebuffsPreserveZeroGainsAndPulsePersistsForEveryAttackWithoutHalvingCap()
         {
             CoreVoyageSession s = Start(); s.Battle.NavalExpansion.RuneClamp = s.Battle.NavalExpansion.LoadSeal = true;
             Assert.That(s.NavalExpansionEnemyBlockGain(0, true), Is.Zero); Assert.That(s.Battle.NavalExpansion.RuneClamp, Is.True);
             Assert.That(s.NavalExpansionEnemyLoadGain(0, true), Is.Zero); Assert.That(s.Battle.NavalExpansion.LoadSeal, Is.True);
             Assert.That(s.NavalExpansionEnemyBlockGain(10, true), Is.EqualTo(4));
-            Assert.That(s.NavalExpansionEnemyLoadGain(4, true), Is.Zero);
-            s.Battle.NavalExpansion.PulseReduction = 8; Assert.That(s.NavalExpansionEnemyAttackDamage(6, true), Is.EqualTo(3));
+            Assert.That(s.NavalExpansionEnemyLoadGain(4, true), Is.EqualTo(4));
+            s.Battle.NavalExpansion.PulseReduction = 8; Assert.That(s.NavalExpansionEnemyAttackDamage(6, true), Is.Zero);
+            Assert.That(s.NavalExpansionEnemyAttackDamage(10, true), Is.EqualTo(2));
             s.Battle.EnemyHull = s.Battle.EnemyMaxHull - 5; s.Battle.NavalExpansion.EnemyHealingHalved = true;
             Assert.That(s.NavalExpansionHealing(false, 20), Is.EqualTo(2));
         }

@@ -105,7 +105,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Cargo.Cannonballs, Is.EqualTo(balls - 1));
             Assert.That(session.PlayerLoadedShotDamageBonus, Is.Zero);
             Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(burn));
-            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(2));
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(burn));
             hull = session.Battle.EnemyHull;
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hull - burn));

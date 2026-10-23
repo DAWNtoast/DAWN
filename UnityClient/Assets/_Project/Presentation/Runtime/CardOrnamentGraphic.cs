@@ -3,8 +3,6 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
-    public enum CardOrnamentKind { Energy, Gunpowder, NameRibbon, TypeTag, UpgradeArrow, Cannonball, Mana, Health, Curse, Chain, Wood, Tide }
-
     /// <summary>Scalable card furniture; labels remain ordinary, accessible UGUI text.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(CanvasRenderer))]
@@ -33,7 +31,7 @@ namespace ShatteredSail.Presentation
             Configure(value, type);
             // The symbol is painted into the single frame texture. Retain a
             // semantic, non-raycasting anchor for its changing numeric value.
-            isMarkerOnly = value != CardOrnamentKind.Wood && value != CardOrnamentKind.Tide;
+            isMarkerOnly = value != CardOrnamentKind.Wood;
             SetVerticesDirty();
         }
 

@@ -52,9 +52,9 @@ namespace ShatteredSail.Core.Gameplay
                 switch (ActiveTreasureMap.RankId)
                 {
                     case "weathered": return "沉船工坊 · " + Tool("weathered_winch") + " / " + Tool("weathered_bell") +
-                        "；双工具开启主机舱";
+                        "；备齐两件工具可开启主机舱";
                     case "gilded": return "商盟密约 · 信用 " + treasureExpeditionCredit + "/6 · 通缉 " + treasureExpeditionHeat +
-                        "/5 · " + Tool("gilded_manifest") + "；兑付需信用≥3、通缉≤1";
+                        "/5 · " + Tool("gilded_manifest") + "；领取遗产需信用≥3、通缉≤1";
                     case "moonlit": return "三相仪式 · 共鸣 " + treasureExpeditionResonance + "/3 · 诅咒 " + Cargo.Curse +
                         " · 当前" + TimeBandLabel(CurrentTreasureExpeditionTimeBand) + "；完整仪式需3相、诅咒≤1";
                     default: return string.Empty;
@@ -102,15 +102,15 @@ namespace ShatteredSail.Core.Gameplay
                 choice.MaximumTreasureHeat < 5 || choice.MinimumTreasureResonance > 0 || !string.IsNullOrEmpty(effect.TreasureMark) ||
                 effect.TreasureCredit != 0 || effect.TreasureHeat != 0 || effect.TreasureResonance != 0;
             if (!usesState) return string.Empty;
-            if (!IsTreasureExpedition) return "需要本航次的专属藏宝海图。";
+            if (!IsTreasureExpedition) return "这项操作只能在专属藏宝航行中进行。";
             foreach (string mark in choice.RequiredTreasureMark.Split(new[] { '+' }, StringSplitOptions.RemoveEmptyEntries))
-                if (!HasTreasureMark(mark)) return "需要先探索取得：" + TreasureMarkLabel(mark) + "。";
+                if (!HasTreasureMark(mark)) return "请先探索并取得「" + TreasureMarkLabel(mark) + "」。";
             if (treasureExpeditionCredit < choice.MinimumTreasureCredit || (long)treasureExpeditionCredit + effect.TreasureCredit < 0)
-                return "商盟信用不足，需要 " + Math.Max(choice.MinimumTreasureCredit, -(long)effect.TreasureCredit) + "（当前 " + treasureExpeditionCredit + "）。";
+                return "商盟信用不足，需要至少 " + Math.Max(choice.MinimumTreasureCredit, -(long)effect.TreasureCredit) + "（当前 " + treasureExpeditionCredit + "）。";
             if (treasureExpeditionHeat > choice.MaximumTreasureHeat)
-                return "通缉过高，需要降至 " + choice.MaximumTreasureHeat + " 或以下（当前 " + treasureExpeditionHeat + "）。";
+                return "通缉过高，需要降至 " + choice.MaximumTreasureHeat + " 或更低（当前 " + treasureExpeditionHeat + "）。";
             if (treasureExpeditionResonance < choice.MinimumTreasureResonance || (long)treasureExpeditionResonance + effect.TreasureResonance < 0)
-                return "月潮共鸣不足，需要 " + Math.Max(choice.MinimumTreasureResonance, -(long)effect.TreasureResonance) + "（当前 " + treasureExpeditionResonance + "）。";
+                return "月潮共鸣不足，需要至少 " + Math.Max(choice.MinimumTreasureResonance, -(long)effect.TreasureResonance) + "（当前 " + treasureExpeditionResonance + "）。";
             if (!string.IsNullOrEmpty(effect.TreasureMark))
             {
                 if (TreasureMarkRank(effect.TreasureMark) != ActiveTreasureMap.RankId) return "此印记不属于本藏宝海图。";
@@ -135,7 +135,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!IsTreasureExpedition || effect == null) return;
             string rank = ActiveTreasureMap.RankId;
             if (TreasureMarkRank(effect.TreasureMark) == rank && treasureExpeditionMarks.Add(effect.TreasureMark))
-                AddLog("探索取得「" + TreasureMarkLabel(effect.TreasureMark) + "」，本航次可使用。");
+                AddLog("在探索中取得「" + TreasureMarkLabel(effect.TreasureMark) + "」，可在本航次使用。");
             if (rank == "gilded")
             {
                 treasureExpeditionCredit = (int)Math.Max(0L, Math.Min(6L, (long)treasureExpeditionCredit + effect.TreasureCredit));

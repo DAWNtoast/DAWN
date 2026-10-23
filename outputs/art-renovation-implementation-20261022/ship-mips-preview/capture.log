@@ -1,0 +1,414 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/staging' branch; Version is '6000.3.23f1 (09d2ecc7fb28) revision 643820'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Channel LicenseClient-Admin doesn't exist
+OS: 'Windows 11  (10.0.26200) CoreCountrySpecific' Language: 'zh' Physical Memory: 31904 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-10-22T16:25:34Z
+[Licensing::Module] Successfully launched the LicensingClient (PId: 45444)
+
+COMMAND LINE ARGUMENTS:
+D:\Unity\Hub\Editor\6000.3.23f1\Editor\Unity.exe
+-batchmode
+-projectPath
+D:\Game\tmp\shipyard-detail-clean-20261011
+-logFile
+D:\Game\outputs\art-renovation-implementation-20261022\ship-mips-preview\capture.log
+-executeMethod
+ShatteredSail.Editor.BattleHudCapture.CaptureQuickFromCommandLine
+-battleHudCapturePath
+D:\Game\outputs\art-renovation-implementation-20261022\ship-mips-preview\Artifacts\captures
+Successfully changed project path to: D:\Game\tmp\shipyard-detail-clean-20261011
+D:/Game/tmp/shipyard-detail-clean-20261011
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+Player connection [33684]  Target information:
+
+Player connection [33684]  * "[IP] 198.18.192.98 [Port] 55504 [Flags] 2 [Guid] 2906821647 [EditorId] 2906821647 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-SYVRNQ9) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [33684]  * "[IP] 192.168.1.4 [Port] 55504 [Flags] 2 [Guid] 2906821647 [EditorId] 2906821647 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-SYVRNQ9) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [33684] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [33684] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Admin" at "2026-10-22T16:25:35.1867337Z"
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 45444, path: "D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Package Manager] Connected to IPC stream "Upm-32028" after 0.2 seconds.
+[Licensing::Module] Licensing is not yet initialized.
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.3+d7ffd15
+  Session Id:              08ee39de150d4a198ce5076b33239e67
+  Correlation Id:          d785c563ea4e96b6dfa59549f8b4a347
+  External correlation Id: 1444510514730394490
+  Machine Id:              xlWh/iB47xjJmq8XO9S2Vlcb/3s=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-Admin" (connect: 0.24s, validation: 0.12s, handshake: 0.03s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Admin-notifications" at "2026-10-22T16:25:35.3407224Z"
+[Licensing::Module] Connected to LicensingClient (PId: 45444, launch time: 0.00, total connection time: 0.40s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: ewogICJzdWJzR3JvdXAiIDogInVuaXR5IGVkaXRvciIsCiAgIm5hbWVzcGFjZSIgOiAidW5pdHlfZWRpdG9yIiwKICAidHlwZSIgOiAiRURJVE9SIiwKICAidGFnIiA6ICJVbml0eVBlcnNvbmFsXXXX
+  Product: Unity Personal Version
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 0.43s
+[Licensing::Module] Licensing is initialized (took 0.03s).
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.25 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.23f1 (09d2ecc7fb28)
+[Subsystems] Discovering subsystems at path D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path D:/Game/tmp/shipyard-detail-clean-20261011/Assets
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 5080 (ID=0x2c02)
+    Vendor:          NVIDIA
+    VRAM:            15977 MB
+    App VRAM Budget: 15209 MB
+    Driver:          32.0.16.1088
+Initialize mono
+Mono path[0] = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/Managed'
+Mono path[1] = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56028
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/PlaybackEngines/MacStandaloneSupport/UnityEditor.OSXStandalone.Extensions.dll
+Register platform support module: D:/Unity/Hub/Editor/6000.3.23f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.001252 seconds.
+- Loaded All Assemblies, in  0.279 seconds
+Native extension for WindowsStandalone target not found
+Native extension for OSXStandalone target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.269 seconds
+Domain Reload Profiling: 547ms
+	BeginReloadAssembly (90ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (3ms)
+	RebuildCommonClasses (31ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (31ms)
+	LoadAllAssembliesAndSetupDomain (116ms)
+		LoadAssemblies (87ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (114ms)
+			TypeCache.Refresh (112ms)
+				TypeCache.ScanAssembly (103ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (269ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (244ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (41ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (53ms)
+			ProcessInitializeOnLoadAttributes (93ms)
+			ProcessInitializeOnLoadMethodAttributes (54ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 65 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.2d.animation@13.0.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.animation@cd6c3841e39a)
+    com.unity.2d.aseprite@3.0.2 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.aseprite@20edb5643ab5)
+    com.unity.2d.psdimporter@12.0.2 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.psdimporter@f207d91d598d)
+    com.unity.2d.spriteshape@13.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tilemap.extras@58739e072909)
+    com.unity.2d.tooling@1.0.4 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.collab-proxy@2.13.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.collab-proxy@4628d2ba6ea4)
+    com.unity.ide.rider@3.0.40 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ide.rider@e4950c6d131b)
+    com.unity.ide.visualstudio@2.0.26 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.20.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.inputsystem@7a4e1a2a8194)
+    com.unity.timeline@1.8.13 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.timeline@3a22918286f5)
+    com.unity.visualscripting@1.9.12 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.visualscripting@4edfcc09512f)
+    com.unity.2d.common@12.0.4 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.mathematics@1.3.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.collections@2.6.8 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.collections@84e8eb3fc12e)
+    com.unity.searcher@4.9.5 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.searcher@a463122f2c00)
+    com.unity.burst@1.8.30 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.burst@2f3d916873ea)
+    com.unity.nuget.mono-cecil@1.11.6 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.test-framework.performance@3.5.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Built-in packages:
+    com.unity.2d.sprite@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.sprite@5b922524bd83)
+    com.unity.2d.tilemap@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.2d.tilemap@f666889fd587)
+    com.unity.multiplayer.center@1.0.1 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.universal@7865b6b91f8a)
+    com.unity.test-framework@1.6.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ugui@27635d171b1a)
+    com.unity.modules.accessibility@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.core@0bb36005e9ba)
+    com.unity.shadergraph@17.3.0 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.shadergraph@b4b75cc00891)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: D:\Game\tmp\shipyard-detail-clean-20261011\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.02 seconds
+The GUID inside 'Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextStandardTests.cs.meta' cannot be extracted by the YAML Parser. Attempting to extract it via string matching instead. Please verify the file does not contain unexpected data.
+The GUID inside 'Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextBoardingTests.cs.meta' cannot be extracted by the YAML Parser. Attempting to extract it via string matching instead. Please verify the file does not contain unexpected data.
+The .meta file Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextBoardingTests.cs.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+The .meta file Assets/_Project/Tests/EditMode/CoreBattleCardRuleTextStandardTests.cs.meta does not have a valid GUID and its corresponding Asset file will be ignored. If this file is not malformed, please add a GUID, or delete the .meta file and it will be recreated correctly
+Starting: D:\Unity\Hub\Editor\6000.3.23f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: D:/Game/tmp/shipyard-detail-clean-20261011
+DisplayProgressbar: Compiling Scripts
+ExitCode: 0 Duration: 0s188ms
+[ 841/1094  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+*** Tundra build success (0.16 seconds), 1 items updated, 1094 evaluated
+AssetDatabase: script compilation time: 0.488503s
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.622 seconds
+Refreshing native plugins compatible for Editor in 1.10 ms, found 5 plugins.
+Native extension for WindowsStandalone target not found
+Native extension for OSXStandalone target not found
+Refreshing native plugins compatible for Editor in 1.06 ms, found 5 plugins.
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  2.306 seconds
+Domain Reload Profiling: 2928ms
+	BeginReloadAssembly (242ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (16ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (148ms)
+	RebuildCommonClasses (21ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (15ms)
+	LoadAllAssembliesAndSetupDomain (335ms)
+		LoadAssemblies (202ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (189ms)
+			TypeCache.Refresh (128ms)
+				TypeCache.ScanAssembly (119ms)
+			BuildScriptInfoCaches (50ms)
+			ResolveRequiredComponents (8ms)
+	FinalizeReload (2307ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (2159ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (12ms)
+			SetLoadedEditorAssemblies (2ms)
+			BeforeProcessingInitializeOnLoad (104ms)
+			ProcessInitializeOnLoadAttributes (1938ms)
+			ProcessInitializeOnLoadMethodAttributes (100ms)
+			AfterProcessingInitializeOnLoad (3ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (19ms)
+Start importing Assets/_Project/Resources/NavalTactics/Ships/merchant_v2.png using Guid(00ed7a316647812113a6fa6712ec547d) (TextureImporter) -> (artifact id: 'e13e2d384167c8a172cb2b434c36452d') in 0.1037621 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_thunder_v2.png using Guid(d1fd598f4d3470f67cd336258e133cdb) (TextureImporter) -> (artifact id: '1fe0e011c9f4e3333986db94d9d6b8fb') in 0.0708742 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/relic_v2.png using Guid(3256100562c2044f28eb380a0258e9c8) (TextureImporter) -> (artifact id: 'd96b01159330b8dc7193136d0ddd23a4') in 0.0649939 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_tide_v2.png using Guid(c2f48b38d9f52d265fd46308eab42c7c) (TextureImporter) -> (artifact id: '05f11ec3ac75ebda297b196bbb1c0a44') in 0.0669182 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_arcane_v2.png using Guid(242476e6b6d4809e4a9d5d6bfa767777) (TextureImporter) -> (artifact id: 'c9e8f2acd2182176d7b147fd615ba98c') in 0.0558067 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_thunder_v2.png using Guid(245ec3f53021af6181202d5c9902b752) (TextureImporter) -> (artifact id: 'a5005f0f8e4133e4a0946bc50cb327cc') in 0.0747055 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_blood_v2.png using Guid(058592018f386d15a2c44b17dcffc04a) (TextureImporter) -> (artifact id: 'dc5f6c9e43740f55d77605c7b0e7039c') in 0.0495377 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/privateer_v2.png using Guid(9513480098ca75411f81b0989fe33cad) (TextureImporter) -> (artifact id: '961bd17c3344f370166366f2807e5316') in 0.0573781 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/sloop_v2.png using Guid(c5f031469fff00bca17280228539be09) (TextureImporter) -> (artifact id: '2b4a91a7d34c3b1be608c79558c7eb97') in 0.0587527 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/provision_v2.png using Guid(f6043d88c71381ef6697454973f619e1) (TextureImporter) -> (artifact id: '9d492bd3fbac2fa321ecdad73aa3e6f3') in 0.058908 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/courier_v2.png using Guid(2767366376f380903e89faaff53e797f) (TextureImporter) -> (artifact id: '9bf73734fba02ca18fbd511066fe0503') in 0.0482214 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/salvage_v2.png using Guid(77ff0f87c97c8b7798fe4d1701e2a945) (TextureImporter) -> (artifact id: '28a3c8f5d6272a4655492105f74cbd0f') in 0.0531508 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/occult_v2.png using Guid(a70e822de3fb4fcc506f216b047b9608) (TextureImporter) -> (artifact id: '30b24c33b493d370586286802edb8c7e') in 0.0468003 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/patrol_v2.png using Guid(38cc573cc4f74172c51ef8d4d3fdbf12) (TextureImporter) -> (artifact id: 'a6bb5c020768e440991a70f073159348') in 0.0541822 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/gunship_v2.png using Guid(d8a0d7da4924d363a340375daca7132e) (TextureImporter) -> (artifact id: 'ebc22b3dd060d81ff5f0888b43d64f53') in 0.0559541 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/clipper_v2.png using Guid(eabe17c65f2570f819c9f410ff70ab27) (TextureImporter) -> (artifact id: '196d0f92772bbd3af4096887f517d02e') in 0.0509214 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/barge_v2.png using Guid(1d9ea61afe781af9f51e4139b6d9ed9e) (TextureImporter) -> (artifact id: '3ab0dfd95db1768f19c6b97ec1337a8b') in 0.053992 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_curse_v2.png using Guid(ad599abc2d82d8d67c558f260eef858e) (TextureImporter) -> (artifact id: 'c7c2cc03687d4b4015be1903cd67b351') in 0.0550656 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_tide_v2.png using Guid(4e36dc83b9ff360120b264306e22e571) (TextureImporter) -> (artifact id: 'ab1a00f8dc1fd870d48c11c1cbfe6432') in 0.0564189 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_fire_v2.png using Guid(aee31d51c93157304e65e6a9459e57d5) (TextureImporter) -> (artifact id: '56f1ba4b7bf3bab3e2869f9d15edf64f') in 0.0590771 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_fire_v2.png using Guid(ee77501ffb43eeaea570ee2340a5938c) (TextureImporter) -> (artifact id: '3bda79d07d9ec036d603419cb726d35d') in 0.0431115 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/boss_blood_v2.png using Guid(fe999036c0eebadcee721a8c620d2824) (TextureImporter) -> (artifact id: '6466920992552d80bbd7f2bbba1a8d74') in 0.071781 seconds
+Start importing Assets/_Project/Resources/NavalTactics/Ships/legendary_arcane_v2.png using Guid(5f247d9de8c5e51e4f12d52c991d9080) (TextureImporter) -> (artifact id: '7e751425363cd2f9474c322ba04462fd') in 0.0510089 seconds
+Refreshing native plugins compatible for Editor in 1.13 ms, found 5 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=122b63abe02a4fc4dae4d78de7998809): Total: 5.433 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=23 (actual=23, local cache=0, cache server=0)
+		Asset DB Process Time: managed=66 ms, native=4044 ms
+		Asset DB Callback time: managed=147 ms, native=26 ms
+		Scripting: domain reloads=1, domain reload time=622 ms, compile time=490 ms, other=35 ms
+		Project Asset Count: scripts=1678, non-scripts=4734
+		Asset File Changes: new=0, changed=23, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.002ms
+	InvokePackagesCallback: 23.540ms
+	ApplyChangesToAssetFolders: 0.532ms
+	Scan: 155.837ms
+	OnSourceAssetsModified: 0.743ms
+	CategorizeAssetsWithTransientArtifact: 39.534ms
+	ProcessAssetsWithTransientArtifactChanges: 57.795ms
+	CategorizeAssets: 64.621ms
+	ImportOutOfDateAssets: 3689.879ms (1823.708ms without children)
+		ImportManagerImport: 1374.324ms (2.873ms without children)
+			ImportInProcess: 1371.244ms
+			UpdateCategorizedAssets: 0.206ms
+		CompileScripts: 489.874ms
+		ReloadNativeAssets: 0.025ms
+		UnloadImportedAssets: 0.823ms
+		ReloadImportedAssets: 0.006ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.656ms
+		InitializingProgressBar: 0.009ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
+		OnDemandSchedulerStart: 0.454ms
+	PostProcessAllAssets: 148.064ms
+	Hotreload: 2.737ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.002ms
+	UnloadStreamsBegin: 2.319ms
+	PersistCurrentRevisions: 0.300ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 2.546ms
+	Untracked: 1246.627ms
+
+Application.AssetDatabase Initial Refresh End
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.01 seconds
+Scanning for USB devices : 12.688ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-ArtRenovationValidation20261022
+Unloading 19 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 8358 unused Assets / (4.7 MB). Loaded Objects now: 9218.
+Memory consumption went from 245.0 MB to 240.3 MB.
+Total: 6.278700 ms (FindLiveObjects: 0.400700 ms CreateObjectMapping: 0.189400 ms MarkObjects: 4.324500 ms  DeleteObjects: 1.363300 ms)
+
+[Project] Loading completed in 7.379 seconds
+	Project init time: 				7.031 seconds
+		Template init time: 		0.000 seconds
+		Package Manager init time: 		0.215 seconds
+		Asset Database init time: 		0.282 seconds
+		Global illumination init time: 	0.002 seconds
+		Assemblies load time: 			0.560 seconds
+		Unity extensions init time: 	0.009 seconds
+		Asset Database refresh time: 	5.433 seconds
+	Scene opening time: 			0.129 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1792686342300,"processId":32028,"projectLoad":7.3785792,"projectInit":7.0307135,"templateInit":0.0,"packageManagerInit":0.2152153,"assetDatabaseInit":0.2822656,"globalIlluminationInit":0.0016043,"assembliesLoad":0.5598581,"unityExtensionsInit":0.0086702,"assetDatabaseRefresh":5.4326296,"sceneOpening":0.1293892}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1792686342300,"processId":32028,"editorVersion":"6000.3.23f1 (09d2ecc7fb28)","branch":"6000.3/staging","buildType":"Release","platform":"Windows"}
+[Licensing::Client] Successfully resolved entitlement details
+Start Indexing on Editor startup
+[Indexing] Starting Initial Indexing for Assets
+[UnityConnectServicesConfig] config is NOT valid, switching to default
+Created GICache directory at C:/Users/Admin/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.008s, timestamps: [7.381 - 7.389]
+[Licensing::Client] Successfully resolved entitlement details
+BATTLE_HUD_CAPTURE_OK: 2 verified screenshots at D:\Game\outputs\art-renovation-implementation-20261022\ship-mips-preview\Artifacts\captures
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+ShatteredSail.Editor.BattleHudCapture/<>c__DisplayClass7_0:<CaptureSet>b__1 () (at Assets/_Project/Editor/BattleHudCapture.cs:100)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: Assets/_Project/Editor/BattleHudCapture.cs Line: 100)
+
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-Admin-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-Admin channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+Checking for leaked weakptr:
+  Found no leaked weakptrs.
+[Package Manager] Server process was shutdown
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792686345049,"processId":32028,"allocatedMemory":23470880,"memoryLabels":[{"Default":29313},{"Permanent":15236},{"NewDelete":68427},{"Thread":4237960},{"Manager":820701},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":80505},{"Material":24},{"GfxDevice":58048},{"Animation":392},{"Audio":3040},{"FreeType":8},{"FontEngine":736},{"Physics":2146},{"Physics2D":16},{"Serialization":592},{"Input":14984},{"JobScheduler":33024},{"TextLib":280},{"Mono":32},{"MonoCode":64},{"ScriptingNativeRuntime":155060},{"BaseObject":1636048},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":1016},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":62737},{"DynamicArray":119587},{"HashMap":3880810},{"Utility":2660822},{"Curl":2478},{"PoolAlloc":2248},{"AI":80},{"TypeTree":5341},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":18976},{"WebRequest":552},{"VR":47994},{"SceneManager":504},{"Video":208},{"LazyScriptCache":32},{"Camera":17},{"Secure":2377},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":464},{"Hierarchy":608},{"CoreStats":13112},{"Identifiers":6480},{"Gui":96},{"EditorUtility":121093},{"VersionControl":4},{"Undo":947},{"AssetDatabase":8931775},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":211},{"ProfilerEditor":9746},{"CoreBusinessMetrics":3498},{"Licensing":1264},{"AssetReference":32},{"IPCStream":32}]}

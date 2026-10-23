@@ -166,8 +166,9 @@ namespace ShatteredSail.Core.Gameplay
                 case GuidedBossLesson.BoardingContact:
                 case GuidedBossLesson.RamContact:
                     GuidedBossStep = lesson == GuidedBossLesson.BoardingContact ? GuidedBossBattleStep.CourseBoardContact : GuidedBossBattleStep.CourseRamMove;
-                    Battle.SetTacticalPose(true, new VoyagePoint(lesson == GuidedBossLesson.BoardingContact ? -100f : -200f, 0f), 0f);
-                    Battle.SetTacticalPose(false, new VoyagePoint(0f, 0f), lesson == GuidedBossLesson.BoardingContact ? 0f : 90f);
+                    Battle.SetTacticalPose(true, new VoyagePoint(lesson == GuidedBossLesson.BoardingContact ? -100f : -200f, 0f),
+                        lesson == GuidedBossLesson.BoardingContact ? 90f : 0f);
+                    Battle.SetTacticalPose(false, new VoyagePoint(0f, 0f), 90f);
                     break;
                 case GuidedBossLesson.BoardingCards:
                     GuidedBossStep = GuidedBossBattleStep.CourseBoardingAttack;

@@ -102,16 +102,16 @@ namespace ShatteredSail.Presentation.Tests
             cargo.Water = 40; cargo.Food = 60; cargo.Beer = 3; cargo.Medicine = 1;
             cargo.Wood = 3; cargo.Iron = 2; cargo.Cloth = 4; cargo.Powder = 4; cargo.Cannonballs = 2;
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
-            int target = ExpectedProvisionQuantity(controller, 26);
+            VoyageSupplyOrder recommended = controller.Session.CreateRecommendedSupplyOrder();
             var before = PortMarketCatalog.AllItems.ToDictionary(PortMarketCatalog.Key,
                 item => controller.Session.GetMarketCargoAmount(PortMarketCatalog.Key(item)));
             decimal gold = controller.Session.ProfileGold;
             ClickAcceptanceButton("Departure Buy Provisions"); yield return null;
             ClickAcceptanceButton("Departure Basic Supplies Recommend"); yield return null;
             var expected = new Dictionary<string, int> {
-                { "water", target - 40 }, { "food", target - 60 }, { "beer", 0 },
-                { "medicine", 1 }, { "wood", 5 }, { "iron", 0 }, { "cloth", 0 },
-                { "powder", 8 }, { "cannonballs", 8 }
+                { "water", recommended[VoyageSupplyType.Water] }, { "food", recommended[VoyageSupplyType.Food] }, { "beer", 0 },
+                { "medicine", recommended[VoyageSupplyType.Medicine] }, { "wood", recommended[VoyageSupplyType.Wood] }, { "iron", 0 }, { "cloth", 0 },
+                { "powder", recommended[VoyageSupplyType.Powder] }, { "cannonballs", recommended[VoyageSupplyType.Cannonballs] }
             };
             foreach (var item in expected)
             {

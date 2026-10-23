@@ -219,13 +219,13 @@ namespace ShatteredSail.Presentation
                     .Append("  ·  船员 ").Append(battle.EnemyBoardingHealth).Append('/').Append(battle.EnemyMaxBoardingHealth)
                     .Append("  ·  格挡 ").Append(battle.EnemyBlock)
                     .Append("\n\n当前意图\n").Append(session.GetEnemyIntent())
-                    .Append("\n\n同向接舷：上下左右相邻 100 米且船头同向，消耗 1 行动点。")
-                    .Append("\n侧舷冲撞：相邻、船头互相垂直且我舰船头朝敌，消耗 1 行动点。")
-                    .Append("\n逆向不可接舷或冲撞；两种接触动作均不消耗能量。");
+                    .Append("\n\n接舷：两舰平行（同向或反向），舷侧位于相邻两行或两列、相距 100 米，消耗 1 行动点。")
+                    .Append("\n冲撞：上下左右相邻且我舰船头朝敌，可撞敌舰前后左右，消耗 1 行动点。")
+                    .Append("\n前后排队不能直接接舷；两种接触动作均不消耗能量。");
             }
             else
             {
-                battleDeckSummary.text = boarding ? "正式接舷资源与状态" : "当前行动点、能量与随船补给";
+                battleDeckSummary.text = string.Empty;
                 body.Append("能量 ").Append(battle.Energy).Append('/').Append(battle.MaxEnergy)
                     .Append("  ·  行动点 ").Append(battle.NavalActionPoints)
                     .Append("\n火药 ").Append(session.Cargo.Powder).Append("  ·  炮弹 ").Append(session.Cargo.Cannonballs)
@@ -237,13 +237,13 @@ namespace ShatteredSail.Presentation
                     .Append("\n\n").Append(boarding ? session.GetBoardingStateSummary() : BattleActiveBuffText(battle));
                 if (boarding)
                 {
-                    body.Append("\n持续救护：");
-                    if (battle.Boarding.HealingTicks.Count == 0) body.Append("无");
-                    for (int index = 0; index < battle.Boarding.HealingTicks.Count; index++)
+                    int recovery = battle.Boarding.ContinuousRecovery;
+                    body.Append("\n持续恢复：");
+                    if (recovery == 0) body.Append("无");
+                    else
                     {
-                        CoreBoardingHealingTick heal = battle.Boarding.HealingTicks[index];
-                        body.Append("\n第 ").Append(index + 1).Append(" 项剩余 ").Append(heal.Remaining)
-                            .Append(" 次，每次恢复 ").Append(heal.Amount).Append(" 船员生命。");
+                        body.Append(recovery).Append(" 层\n下次己方回合结束恢复 ").Append(recovery)
+                            .Append(" 点船员生命，然后减少 1 层；之后按剩余层数继续恢复。");
                     }
                     body.Append("\n待结算攻击 ").Append(battle.Boarding.DelayedDamage.Count).Append(" 项");
                 }

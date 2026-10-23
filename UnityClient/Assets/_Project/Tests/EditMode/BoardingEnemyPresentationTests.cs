@@ -20,7 +20,7 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase("fire", "自燃")]
         [TestCase("arcane", "魔力")]
         [TestCase("thunder", "连锁")]
-        [TestCase("curse", "咒痕")]
+        [TestCase("curse", "咒印")]
         [TestCase("tide", "潮势")]
         [TestCase("blood", "失血")]
         public void SchoolIntentOpensReadableReadonlyDetailsAndRestoresBattleInput(string school, string resource)

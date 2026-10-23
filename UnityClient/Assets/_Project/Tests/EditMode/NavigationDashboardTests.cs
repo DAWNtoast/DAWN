@@ -149,27 +149,43 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
-        [Test]
-        public void ExplorationSummary_WrapsAboveChartWithoutCoveringTheSea()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ChartStartsDirectlyBelowTitleWithoutExplorationSummary(bool newChart)
         {
             Create();
             using (var viewport = new DashboardViewport(host))
             {
-                // Moving the host into the preview scene invokes its editor
-                // disable/enable cycle and replaces the generated controls.
-                Text summary = Find<Text>("Voyage Exploration Status Text");
-                Assert.That(summary.text, Does.Contain("探索收获"));
-                summary.text = "探索收获 · 航速 +25% 还有 18.5 小时；瞭望范围 +35% 还有 12 小时。" +
-                    "本航次线索：潮工船坞图，可调查潮痕秘藏；商队互助凭证，可与香料沉船的失主交涉；" +
-                    "月相星图，可解读月痕方碑并开启遗迹深处。线索取得后会显示相应目标，继续航行时仍可查看。";
+                if (newChart)
+                {
+                    CoreVoyageSession session = controller.Session;
+                    Set(session, "Phase", CoreDemoPhase.Port);
+                    Set(session, "GuidedTutorialLeg", 0);
+                    string seed = CoreVoyageSession.CreateChartSeed(session.SelectedRouteIndex,
+                        session.CurrentPort, session.SelectedDestinationPort);
+                    Assert.That(session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
+                    session.Cargo.Water = session.Cargo.Food = 100;
+                    session.StartVoyage();
+                    Assert.That(session.Map.GeometryVersion, Is.EqualTo(4));
+                    Assert.That(session.Map.FineColumns, Is.EqualTo(96));
+                    Assert.That(session.Map.FineRows, Is.EqualTo(68));
+                    Render();
+                    foreach (Transform child in viewport.Canvas.GetComponentsInChildren<Transform>(true))
+                        child.gameObject.layer = 31;
+                }
                 foreach (Vector2Int size in new[] { new Vector2Int(1280, 720), new Vector2Int(1920, 1080),
                     new Vector2Int(1280, 1024), new Vector2Int(3440, 1440) })
                 {
                     viewport.ResizeAndRender(size.x, size.y);
-                    AssertMapFillsAvailableChart("exploration summary " + size);
-                    Assert.That(summary.preferredHeight, Is.LessThanOrEqualTo(summary.rectTransform.rect.height + .1f));
-                    Assert.That(summary.resizeTextForBestFit, Is.False);
-                    Assert.That(summary.cachedTextGenerator.characterCountVisible, Is.GreaterThanOrEqualTo(summary.text.Length));
+                    AssertMapFillsAvailableChart("chart without exploration summary " + size);
+                    if (newChart)
+                    {
+                        Rect sea = RectIn(Find<RectTransform>("Navigation Chart"), Find<RectTransform>("Ocean Tile Layer"));
+                        CoreVoyageMap world = controller.Session.Map;
+                        float cellWidth = sea.width / world.FineColumns, cellHeight = sea.height / world.FineRows;
+                        Assert.That(cellWidth / cellHeight, Is.EqualTo(1f).Within(.003f),
+                            "The new row count retains the existing nearly square exploration cell size.");
+                    }
                 }
             }
         }
@@ -372,8 +388,12 @@ namespace ShatteredSail.Core.Tests
             RectTransform content = Find<RectTransform>("Encounter Paper Content");
             AssertInsidePanel(RectIn(card, paper), card, context + " parchment");
             AssertInsidePanel(RectIn(paper, content), paper, context + " paper margins");
-            string[] regions = { "Encounter Illustration Mount", "Encounter Location", "Encounter Title",
-                "Encounter Description Viewport", "Encounter Badge", "Encounter Decision Footer", "Encounter Decision Viewport" };
+            foreach (string name in new[] { "Encounter Journal Heading", "Encounter Badge", "Encounter Location",
+                "Encounter Decision Heading", "Encounter Decision Footer", "Encounter Footer Note" })
+                Assert.That(card.GetComponentsInChildren<Transform>(true).Any(child => child.name == name), Is.False,
+                    context + " removed explanation " + name);
+            string[] regions = { "Encounter Illustration Mount", "Encounter Title",
+                "Encounter Description Viewport", "Encounter Decision Viewport" };
             Rect[] boxes = regions.Select(name => RectIn(content, Find<RectTransform>(name))).ToArray();
             for (int index = 0; index < boxes.Length; index++)
             {
@@ -401,6 +421,20 @@ namespace ShatteredSail.Core.Tests
             }
             Text narrative = Find<Text>("Encounter Description");
             Assert.That(narrative.preferredHeight, Is.LessThanOrEqualTo(narrative.rectTransform.rect.height + .5f));
+            foreach (Text label in card.GetComponentsInChildren<Text>(false))
+            {
+                if (string.IsNullOrEmpty(label.text)) continue;
+                Assert.That(label.cachedTextGenerator.characterCountVisible,
+                    Is.GreaterThanOrEqualTo(label.text.Length), context + " complete text: " + label.name);
+                Rect rect = label.rectTransform.rect;
+                float scale = label.pixelsPerUnit;
+                foreach (UIVertex vertex in label.cachedTextGenerator.verts)
+                {
+                    float y = vertex.position.y / scale;
+                    Assert.That(y, Is.InRange(rect.yMin - 1f, rect.yMax + 1f),
+                        context + " painted glyph stays inside " + label.name);
+                }
+            }
         }
 
         private void AssertSupplyHeader(string context)
@@ -638,7 +672,9 @@ namespace ShatteredSail.Core.Tests
             RectTransform chart = Find<RectTransform>("Navigation Chart");
             Rect strip = RectIn(chart, Find<RectTransform>("Navigation Map Title Strip"));
             bool hasCourseHint = chart.Find("Map Course Hint") != null;
-            RectTransform exploration = chart.Find("Voyage Exploration Status") as RectTransform;
+            Assert.That(chart.Find("Voyage Exploration Status"), Is.Null, context + " exploration strip removed");
+            Assert.That(chart.GetComponentsInChildren<Text>(true).Any(text => text.name == "Voyage Exploration Status Text"),
+                Is.False, context + " exploration summary removed");
             bool hasBossGuidance = chart.Find("Destination Boss Guidance") != null;
             Assert.That(strip.xMin, Is.EqualTo(chart.rect.xMin + 4f).Within(.01f), context + " title meets the gold frame");
             Assert.That(strip.xMax, Is.EqualTo(chart.rect.xMax - 4f).Within(.01f), context + " title meets the gold frame");
@@ -647,16 +683,7 @@ namespace ShatteredSail.Core.Tests
             Rect frame = RectIn(chart, Find<RectTransform>("Procedural Sea Chart Frame"));
             Assert.That(frame.xMin, Is.EqualTo(strip.xMin).Within(.01f), context + " frame left edge");
             Assert.That(frame.xMax, Is.EqualTo(strip.xMax).Within(.01f), context + " frame right edge");
-            float frameTop = strip.yMin;
-            if (exploration != null)
-            {
-                Rect status = RectIn(chart, exploration);
-                Assert.That(status.yMax, Is.EqualTo(strip.yMin).Within(.01f), context + " exploration title seam");
-                Assert.That(status.xMin, Is.EqualTo(strip.xMin).Within(.01f), context + " exploration left edge");
-                Assert.That(status.xMax, Is.EqualTo(strip.xMax).Within(.01f), context + " exploration right edge");
-                frameTop = status.yMin;
-            }
-            Assert.That(frame.yMax, Is.EqualTo(frameTop).Within(.01f), context + " frame heading seam");
+            Assert.That(frame.yMax, Is.EqualTo(strip.yMin).Within(.01f), context + " chart directly meets title strip");
             Assert.That(frame.yMin, Is.EqualTo(chart.rect.yMin + 4f + (hasBossGuidance ? 72f : hasCourseHint ? 40f : 0f)).Within(.01f),
                 context + " frame bottom edge");
             if (hasCourseHint)
@@ -665,18 +692,20 @@ namespace ShatteredSail.Core.Tests
             foreach (string name in new[] { "Ocean Tile Layer", "Visibility Mask Layer" })
             {
                 Rect bounds = RectIn(chart, Find<RectTransform>(name));
-                string reason = context + " " + name + " must cover the complete clipped viewport";
-                Assert.That(bounds.xMin, Is.LessThanOrEqualTo(frame.xMin + .01f), reason + " left edge");
-                Assert.That(bounds.xMax, Is.GreaterThanOrEqualTo(frame.xMax - .01f), reason + " right edge");
-                Assert.That(bounds.yMin, Is.LessThanOrEqualTo(frame.yMin + .01f), reason + " bottom edge");
-                Assert.That(bounds.yMax, Is.GreaterThanOrEqualTo(frame.yMax - .01f), reason + " top edge");
+                string reason = context + " " + name + " must fit the entire world inside the chart";
+                Assert.That(bounds.xMin, Is.EqualTo(frame.xMin).Within(.01f), reason + " left edge");
+                Assert.That(bounds.xMax, Is.EqualTo(frame.xMax).Within(.01f), reason + " right edge");
+                Assert.That(bounds.yMin, Is.EqualTo(frame.yMin).Within(.01f), reason + " bottom edge");
+                Assert.That(bounds.yMax, Is.EqualTo(frame.yMax).Within(.01f), reason + " top edge");
             }
             Rect sea = RectIn(chart, Find<RectTransform>("Ocean Tile Layer"));
             CoreVoyageMap world = controller.Session.Map;
-            Assert.That(sea.width / world.Columns, Is.EqualTo(sea.height / world.Rows).Within(.001f),
-                context + " real terrain cells must display as squares");
-            Assert.That(sea.width / world.FineColumns, Is.EqualTo(sea.height / world.FineRows).Within(.001f),
-                context + " fine exploration cells must display as squares");
+            Assert.That(sea.width / world.FineColumns, Is.EqualTo(frame.width / world.FineColumns).Within(.001f),
+                context + " every exploration column must fit without horizontal scrolling");
+            Assert.That(sea.height / world.FineRows, Is.EqualTo(frame.height / world.FineRows).Within(.001f),
+                context + " every exploration row must fit without vertical scrolling");
+            Assert.That(Find<RectTransform>("Map Layer").anchoredPosition.sqrMagnitude, Is.LessThan(.0001f),
+                context + " the full chart remains centered");
         }
 
         private static void AssertScreenAspect(RectTransform item, float expected, Camera camera, string context)

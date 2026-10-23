@@ -424,7 +424,19 @@ namespace ShatteredSail.Core.Gameplay
             // A valid early placement can strand the last footprint even though
             // the chart has enough room. Retry the complete deterministic packing,
             // preserving every safety band and the original layout on first-pass success.
-            int restartLimit = UsesPacedEventLayout(map) ? 64 : 32;
+            int candidateCount = 1;
+            if (UsesPacedEventLayout(map) && map.GeometryVersion >= 4)
+            {
+                candidateCount = 0;
+                foreach (CoreMapNode node in map.Nodes)
+                    if (!node.IsBoss && node.Encounter.CanDiscoverBySight && node.Encounter.BossKind == CoreBossKind.None)
+                        candidateCount++;
+            }
+            // SS6 can have no legal anchor for the first chosen shoreline footprint
+            // in the narrow departure band. Preserve all 64 original attempts, then
+            // deterministically try another sighted event there without changing any
+            // footprint, clearance, route band or previously successful chart layout.
+            int restartLimit = UsesPacedEventLayout(map) ? 64 * Math.Max(1, candidateCount) : 32;
             for (int restart = 0; restart < restartLimit; restart++)
             {
                 if (restart > 0)
@@ -437,7 +449,7 @@ namespace ShatteredSail.Core.Gameplay
                 uint placementSeed = unchecked((map.Hash ^ PlacementStream) + (uint)restart * 0x9E3779B9u);
                 PlacedEvent[] result = TryPlaceFixedEvents(map, minimumEventSpacing, bossBorderMargin,
                     bossDepartureClearance, bossDestinationClearance, bossDestinationApproachRadius,
-                    portReserved, reservationOwners, placementSeed);
+                    portReserved, reservationOwners, placementSeed, restart / 64);
                 if (result != null) return result;
             }
             throw new InvalidOperationException("The fixed event footprints do not fit this chart while preserving their safety bands.");
@@ -445,12 +457,12 @@ namespace ShatteredSail.Core.Gameplay
 
         private static PlacedEvent[] TryPlaceFixedEvents(CoreVoyageMap map, float minimumEventSpacing,
             float bossBorderMargin, float bossDepartureClearance, float bossDestinationClearance,
-            float bossDestinationApproachRadius, bool[] portReserved, int[] reservationOwners, uint placementSeed)
+            float bossDestinationApproachRadius, bool[] portReserved, int[] reservationOwners, uint placementSeed, int firstBandCandidate = 0)
         {
             Mulberry32Random random = new Mulberry32Random(placementSeed);
             PlacedEvent[] placements = new PlacedEvent[map.Nodes.Count];
             List<int> order = BuildPlacementOrder(map);
-            Dictionary<int, int> routeBands = UsesPacedEventLayout(map) ? BuildPacedRouteBands(map, order) : null;
+            Dictionary<int, int> routeBands = UsesPacedEventLayout(map) ? BuildPacedRouteBands(map, order, firstBandCandidate) : null;
             List<PlacedEvent> completed = new List<PlacedEvent>();
 
             for (int orderIndex = 0; orderIndex < order.Count; orderIndex += 1)

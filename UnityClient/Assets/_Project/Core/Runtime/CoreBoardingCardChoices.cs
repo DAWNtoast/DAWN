@@ -30,7 +30,7 @@ namespace ShatteredSail.Core.Gameplay
                 case "fire_06": case "fire_09": return 1;
                 case "fire_07": case "fire_08": return options?.SelectionIndexes?.Count ?? 0;
                 case "fire_15": return Math.Min(4, BStackTotal(BState.SelfBurn));
-                case "arcane_04": case "arcane_06": case "arcane_11": return Math.Min(3, Battle.Schools.AvailableMana);
+                case "arcane_04": case "arcane_06": case "arcane_11": return Battle.Schools.AvailableMana;
                 case "arcane_05": return Cargo.Medicine > 0 ? 2 : 0;
                 case "arcane_07": case "arcane_08": case "arcane_09": case "arcane_12": case "arcane_13": case "arcane_14": return 1;
                 case "arcane_10": case "arcane_15": return 2;
@@ -38,7 +38,7 @@ namespace ShatteredSail.Core.Gameplay
                 case "curse_12": return Cargo.Medicine > 0 ? 2 : 0;
                 case "curse_13": return 1;
                 case "curse_14": case "curse_15": return 2;
-                case "tide_05": return Math.Min(6, BState.ExtendableTidePower);
+                case "tide_05": return 0;
                 case "tide_06": case "tide_07": case "tide_08": return BState.TidePower;
                 case "tide_09": return 4;
                 case "tide_10": return 2;
@@ -89,6 +89,19 @@ namespace ShatteredSail.Core.Gameplay
                     BoardingReading reading = BPreviewReading(Battle.Hand[handIndex]);
                     for (int i = 0; i < reading.Cards.Count; i++) BAddCandidate(choice, i, reading.Cards[i]);
                     choice.MinSelection = choice.MaxSelection = Math.Min(card.Draw, Math.Min(reading.Cards.Count, Math.Max(0, 9 - Battle.Hand.Count)));
+                    break;
+                case "arcane_15":
+                    choice.Kind = CoreBoardingChoiceKind.DelayedEffect;
+                    choice.MinSelection = choice.MaxSelection = 1;
+                    for (int i = 0; i < BState.DelayedDamage.Count; i++)
+                    {
+                        CoreBoardingDelayedDamage delayed = BState.DelayedDamage[i];
+                        int sourceIndex = -1;
+                        for (int at = 0; at < CardLibrary.Count; at++)
+                            if (CardLibrary[at].Id == delayed.SourceCardId) { sourceIndex = at; break; }
+                        choice.Candidates.Add(new CoreBoardingChoiceCandidate { Value = i, CardIndex = sourceIndex,
+                            Label = delayed.Label + "：造成 " + delayed.Amount + " 点伤害" });
+                    }
                     break;
             }
             choice.RequiresChoice = choice.Kind != CoreBoardingChoiceKind.None;

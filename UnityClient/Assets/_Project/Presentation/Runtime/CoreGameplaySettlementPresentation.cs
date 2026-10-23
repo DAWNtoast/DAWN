@@ -88,8 +88,6 @@ namespace ShatteredSail.Presentation
             {
                 SettlementText("Settlement Quiet Caption", hero, new Vector2(640, 44), new Vector2(0, -151), 23, ink).text =
                     failure ? "保住的物资，是下一次远航的底气" : hasLoot ? "收起风帆，记下这一程的收获" : "船员平安，便有下一次远航";
-                SettlementText("Settlement Journal Caption", hero, new Vector2(640, 28), new Vector2(0, -195), 17, muted).text =
-                    "航程已结束 · 收获与足迹载入本页";
             }
             tracks.Add(hero); delays.Add(0.20f);
             if (hasManifest)
@@ -140,8 +138,6 @@ namespace ShatteredSail.Presentation
             SettlementText("Settlement Featured Name", main, new Vector2(610, 40), new Vector2(65, 70), 27, ink).text = names[featured];
             Text mainValue = SettlementText("Settlement Reward " + ids[featured], main, new Vector2(610, 106),
                 new Vector2(65, featured == 0 ? -5 : -18), rewards[featured] >= 1000000 ? 62 : 92, hasLoot ? accent : muted);
-            if (featured == 0)
-                SettlementText("Settlement Featured Detail", main, new Vector2(610, 28), new Vector2(65, -79), 18, muted).text = "船长资金";
             SettlementRule(main, "Settlement Featured Underline", new Vector2(800, 1), new Vector2(0, -112));
             tracks.Add(main); delays.Add(0.55f); values.Add(mainValue); targets.Add(rewards[featured]); countDelays.Add(0.65f);
             int slot = 0;

@@ -109,7 +109,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCaseSource(nameof(FireLoadCases))]
-        public void FireLoad_UpgradesDamageOnly_KeepsReserveSizeAndCarriesExactlyOneBurnToTheShot(string id, int rank)
+        public void FireLoad_UpgradesLayersOnly_KeepsReserveSizeAndAppliesOneLayerBatchPerShot(string id, int rank)
         {
             CoreBattleCard original = CoreVoyageSession.CardLibrary[Index(id)];
             NavalBattleStage stage = original.IsAllowedInStage(NavalBattleStage.Preparation)
@@ -125,8 +125,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(effect.Secondary, Is.EqualTo(initial.Secondary));
             Assert.That(effect.Limit, Is.EqualTo(initial.Limit));
             Assert.That(effect.Duration, Is.EqualTo(2));
-            Assert.That(effect.Power * effect.Secondary * effect.Duration,
-                Is.EqualTo(expectedBurn * initial.Secondary * initial.Duration), "Only damage scales; reserve quantity and duration stay fixed.");
+            Assert.That(effect.Power * effect.Secondary,
+                Is.EqualTo(expectedBurn * initial.Secondary), "Only applied layers scale; ammunition reserve quantity stays fixed.");
             Play(session, id);
             int reserve = Math.Min(initial.Secondary, initial.Limit);
             Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(reserve));
@@ -139,7 +139,7 @@ namespace ShatteredSail.Core.Tests
             Play(session, "card_chain_shot");
             Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(reserve - 1));
             Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(expectedBurn));
-            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(2));
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(expectedBurn));
         }
 
         private static int AtRank(int rank, params int[] values) => values[Math.Max(0, Math.Min(values.Length - 1, rank))];

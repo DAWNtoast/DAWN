@@ -52,13 +52,6 @@ namespace ShatteredSail.Core.Gameplay
 
             bool boarding = Battle.Stage == NavalBattleStage.Boarding;
             bool preparing = Battle.Stage == NavalBattleStage.Preparation;
-            if (!boarding && !preparing && HasSchoolFire && SchoolEnemyHealth <= Battle.EnemyBurnDamage)
-            {
-                result.Add(new CoreBattleIntent("enemy_cannot_act", CoreBattleIntentKind.Wait, "无法行动", null,
-                    "敌方行动前的燃烧将造成 " + Battle.EnemyBurnDamage + " 点伤害并击败敌舰，因此不会行动。"));
-                return result.AsReadOnly();
-            }
-
             CoreNavalMovementFieldPreview fields = NavalFieldsActive ? GetEnemyNavalFieldPreview(plan.Move) : null;
             string terrain = fields == null || string.IsNullOrEmpty(fields.Summary) ? string.Empty : "\n" + fields.Summary;
             if (plan.Move > 0f)
@@ -84,12 +77,11 @@ namespace ShatteredSail.Core.Gameplay
             {
                 int load = Math.Min(Math.Max(0, 12 - Battle.EnemyLoadedShot), NavalExpansionEnemyLoadGain(plan.Load));
                 result.Add(new CoreBattleIntent("enemy_load", CoreBattleIntentKind.Load, "装填", load,
-                    "装填加伤增加 " + load + "，总装填上限 12；用于之后的炮击，开炮后消耗。已计入装填封印。"));
+                    "装填加伤增加 " + load + "，总装填上限 12；用于之后的炮击，开炮后消耗。"));
             }
             if (plan.Repair > 0)
             {
                 int health = boarding ? Battle.EnemyBoardingHealth : Battle.EnemyHull;
-                if (!boarding && !preparing && HasSchoolFire) health = Math.Max(0, health - Battle.EnemyBurnDamage);
                 if (fields != null) health = Math.Max(0, health - fields.HullDamage);
                 int maximum = boarding ? Battle.EnemyMaxBoardingHealth : Battle.EnemyMaxHull;
                 int heal = Math.Min(Math.Max(0, maximum - health), plan.Repair);
@@ -118,13 +110,13 @@ namespace ShatteredSail.Core.Gameplay
                     int melee = ApplyCurseBattleDamage(SchoolEnemyRawAttack(plan.Attack));
                     if (boarding) melee = BEnemyAttack(melee, false);
                     result.Add(new CoreBattleIntent("enemy_melee", CoreBattleIntentKind.Melee, "白刃攻击", melee,
-                        "预计船员伤害 " + melee + "（格挡前）；已计入航行诅咒与当前一次性弱化，玩家格挡可继续吸收。"));
+                        "预计船员伤害 " + melee + "（格挡前）；已计入航行诅咒与当前减伤效果，玩家格挡可继续吸收。"));
                     break;
                 case EnemyBattleAction.Ram:
-                    RamDamage(Battle.EnemyBowQuality, Battle.PlayerHullQuality, out int ram, out int recoil);
+                    RamDamage(Battle.EnemyBowQuality, NavalRamTargetQuality(false), out int ram, out int recoil);
                     ram = NavalExpansionEnemyAttackDamage(ApplyCurseBattleDamage(SchoolEnemyRawAttack(ram)));
                     result.Add(new CoreBattleIntent("enemy_ram", CoreBattleIntentKind.Ram, "冲撞", ram,
-                        "己舰承受 " + ram + " 点船体伤害，敌舰反伤 " + recoil + "，均穿透格挡。双方存活则进入接舷，敌方先手攻击。航行离开相邻格或改变到达朝向可避让。"));
+                        "己舰承受 " + ram + " 点船体伤害，敌舰反伤 " + recoil + "，均穿透格挡。双方存活则进入接舷，敌方先手攻击。航行离开敌舰船头正前方的相邻格可避让。"));
                     int opening = ApplyCurseBattleDamage(plan.Attack);
                     result.Add(new CoreBattleIntent("enemy_boarding_first_strike", CoreBattleIntentKind.Melee, "接舷先手", opening,
                         "冲撞后双方仍存活时，敌方先手造成 " + opening + " 点船员伤害（接舷掩护前）；船体格挡不会转入接舷。"));
@@ -192,7 +184,7 @@ namespace ShatteredSail.Core.Gameplay
             var text = new StringBuilder("行动 ").Append(index + 1).Append("：").Append(action.Name).Append('。');
             if (action.RawAttack > 0)
             {
-                text.Append("\n攻击伤害 ").Append(action.AttackDamage).Append("（格挡前，已计入诅咒与一次性弱化）");
+                text.Append("\n攻击伤害 ").Append(action.AttackDamage).Append("（格挡前，已计入诅咒与减伤效果）");
                 if (action.PiercingDamage > 0) text.Append("，其中 ").Append(action.PiercingDamage).Append(" 点穿透格挡");
                 text.Append("；当前格挡预计吸收 ").Append(action.AbsorbedDamage).Append("，预计实际失去 ").Append(action.HealthLost).Append(" 点生命。");
             }

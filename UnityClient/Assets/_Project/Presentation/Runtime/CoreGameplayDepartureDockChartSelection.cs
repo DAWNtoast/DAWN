@@ -28,11 +28,11 @@ namespace ShatteredSail.Presentation
             }
             Text heading = CreateText("Departure Dock Chart Records Heading", selection, Vector2.one, Vector2.zero,
                 16, FontStyle.Bold, TextAnchor.MiddleLeft, DepartureSkin.Ink);
-            heading.text = "可用海图 " + departureDockCharts.Count + " 张 · 点击选择 / 滚动查看更多";
+            heading.text = "可用海图 " + departureDockCharts.Count + " 张";
             heading.raycastTarget = false;
             departureDockChartEmpty = CreateText("Departure Dock Chart Records Empty", selection, Vector2.one, Vector2.zero,
                 17, FontStyle.Normal, TextAnchor.MiddleCenter, DepartureSkin.Ink);
-            departureDockChartEmpty.text = "暂无当前港口可用的已绘海图\n可粘贴种子，或由航海士在航程结算时绘制";
+            departureDockChartEmpty.text = string.Empty;
             departureDockChartEmpty.raycastTarget = false;
 
             RectTransform root = CreateRect("Departure Dock Chart Records", selection, new Vector2(466, 82), Vector2.zero);
@@ -88,9 +88,10 @@ namespace ShatteredSail.Presentation
                 colors.highlightedColor = new Color(1.12f, 1.12f, 1.06f);
                 colors.pressedColor = new Color(.8f, .85f, .8f);
                 button.colors = colors;
-                Text label = CreateText("Label", row, new Vector2(434, 36), new Vector2(0, -19),
+                Text label = CreateText("Label", row, new Vector2(-20, 36), new Vector2(0, -19),
                     16, FontStyle.Normal, TextAnchor.MiddleLeft, DepartureSkin.Ink);
-                label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(.5f, 1);
+                label.rectTransform.anchorMin = new Vector2(0, 1);
+                label.rectTransform.anchorMax = Vector2.one;
                 label.raycastTarget = false;
                 button.onClick.AddListener(() =>
                 {
@@ -129,7 +130,7 @@ namespace ShatteredSail.Presentation
             if (departureChartPreviewPorts != null && departureChartPreviewMap != null)
                 departureChartPreviewPorts.text = departureChartPreviewMap.DepartureName + " → " + departureChartPreviewMap.DestinationName;
             if (departureChartPreviewEmpty != null)
-                departureChartPreviewEmpty.text = "选择左侧海图\n查看航线预览";
+                departureChartPreviewEmpty.text = string.Empty;
         }
     }
 }

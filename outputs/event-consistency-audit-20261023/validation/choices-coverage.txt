@@ -1,0 +1,10 @@
+base: events=32, choices=77
+fixed: events=48, choices=159
+random: events=66, choices=222
+routeBoss: events=6, choices=6
+legendary: events=6, choices=12
+treasureBoss: events=1, choices=2
+treasure: events=39, choices=111
+tutorial: events=8, choices=10
+common: events=4, choices=5
+TOTAL: events=210, ids=195, choices=604

@@ -10,6 +10,10 @@ New-Item -ItemType Directory -Force -Path $catalogBuild | Out-Null
 $catalogFramework = Join-Path $UnityData 'MonoBleedingEdge/lib/mono/4.7.2-api'
 $catalogSources = @(Get-ChildItem -LiteralPath (Join-Path $catalogWorkspace 'UnityClient/Assets/_Project/Core/Runtime') -Filter '*.cs' | Sort-Object Name)
 $catalogSources += Get-Item -LiteralPath (Join-Path $PSScriptRoot 'ExportCatalog.cs')
+$catalogSources += Get-Item -LiteralPath (Join-Path $PSScriptRoot 'CatalogResourceCosts.cs')
+foreach ($costSource in @('CardSpecialCostPresentation.cs', 'CardSupplyCostPresentation.cs', 'CardOrnamentKind.cs')) {
+    $catalogSources += Get-Item -LiteralPath (Join-Path $catalogWorkspace ('UnityClient/Assets/_Project/Presentation/Runtime/' + $costSource))
+}
 $catalogHashes = @($catalogSources | ForEach-Object {
     [pscustomobject]@{ Source = $_.FullName; SHA256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }
 })

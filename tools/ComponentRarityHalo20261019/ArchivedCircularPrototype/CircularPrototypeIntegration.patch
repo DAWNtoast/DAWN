@@ -1,0 +1,211 @@
+diff --git a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayComponentResale.cs b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayComponentResale.cs
+index 3c914a7..5cfb12c 100644
+--- a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayComponentResale.cs
++++ b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayComponentResale.cs
+@@ -106,8 +106,8 @@ private void BuildComponentResale(RectTransform parent)
+                 Image face = line.gameObject.AddComponent<Image>();
+                 face.color = new Color(.55f, .42f, .24f, row % 2 == 0 ? .065f : .025f);
+                 face.raycastTarget = false;
+-                CreateItemIcon("Component Resale Icon " + item.InstanceId, line,
+-                    ItemIconCatalog.ForComponent(entry), new Vector2(-580f, 0f), 64f);
++                CreateComponentIcon("Component Resale Icon " + item.InstanceId, line,
++                    entry, new Vector2(-580f, 0f), 64f);
+                 Text name = CreateText("Component Resale Name " + item.InstanceId, line, new Vector2(590f, 34f),
+                     new Vector2(-230f, 17f), 24, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
+                 name.text = entry.Name;
+diff --git a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayComponentShopShowroom.cs b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayComponentShopShowroom.cs
+index 3ff68ac..c1ccdfe 100644
+--- a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayComponentShopShowroom.cs
++++ b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayComponentShopShowroom.cs
+@@ -66,9 +66,8 @@ private void BuildComponentShopCategories(RectTransform panel,
+                     ?? componentArt.Entries.FirstOrDefault(item => item.Slot == slot);
+                 if (icon != null)
+                 {
+-                    RawImage image = CreateRawImage("Component Shop Category Icon " + slot, button.transform,
+-                        new Vector2(75f, 75f), new Vector2(-67f, 0f), icon.Texture, new Rect(0, 0, 1, 1));
+-                    image.raycastTarget = false;
++                    CreateComponentIcon("Component Shop Category Icon " + slot, button.transform,
++                        icon, new Vector2(-67f, 0f), 75f);
+                 }
+                 WoodButtonSkin.SetSelected(button, index == componentShopCategory);
+                 int captured = index;
+@@ -107,9 +106,8 @@ private void BuildComponentShopCatalogue(RectTransform panel, IReadOnlyList<Port
+                     ScenePlaqueColor(.98f), WoodButtonSkin.Ink, 20);
+                 card.GetComponentInChildren<Text>().text = string.Empty;
+                 WoodButtonSkin.SetSelected(card, offer.Id == componentShopShowroomOfferId);
+-                RawImage icon = CreateRawImage("Component Shop Thumbnail " + offer.Entry.Id, card.transform,
+-                    new Vector2(91f, 91f), new Vector2(-57f, 0f), offer.Entry.Texture, new Rect(0, 0, 1, 1));
+-                icon.raycastTarget = false;
++                RawImage icon = CreateComponentIcon("Component Shop Thumbnail " + offer.Entry.Id, card.transform,
++                    offer.Entry, new Vector2(-57f, 0f), 91f, sold);
+                 icon.color = sold ? new Color(.68f, .68f, .68f, 1f) : Color.white;
+                 ShopText("Component Shop Thumbnail Name " + offer.Id, card.transform, new Vector2(112f, 53f),
+                     new Vector2(46f, 11f), 20, WoodButtonSkin.Ink, offer.Entry.Name, TextAnchor.MiddleCenter);
+@@ -180,6 +178,10 @@ private void BuildComponentShopHero(RectTransform parent, PortComponentShopStock
+             Rect uv = ComponentShopDisplayGeometry.For(entry, session.CurrentPort).ModelUv;
+             Vector2 maximum = entry.Slot == ComponentSlot.Instrument ? new Vector2(390f, 330f) : new Vector2(1100f, 610f);
+             Vector2 size = FitComponentShopArt(uv, entry.ShipLayer, maximum);
++            bool sold = PlayerPrefs.GetInt(ComponentShopPurchaseKey(offer.Id), 0) != 0;
++            if (entry.ShipLayer != null)
++                CreateComponentRarityHalo("Component Shop Rarity Halo " + entry.Id, parent, entry,
++                    new Vector2(size.x * 1.08f, size.y * 1.17f), new Vector2(0f, 25f), sold);
+             RawImage model = CreateRawImage("Component Shop Hero " + entry.Id, parent, size,
+                 new Vector2(0f, 25f), entry.ShipLayer, uv);
+             model.raycastTarget = true;
+diff --git a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayGuidedTutorialController.cs b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayGuidedTutorialController.cs
+index 75d2ee1..2f693e4 100644
+--- a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayGuidedTutorialController.cs
++++ b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayGuidedTutorialController.cs
+@@ -392,8 +392,7 @@ private void BuildGuidedTutorialRewardPlaque(Transform parent, Vector2 position)
+             paper.pixelsPerUnitMultiplier = 4f;
+             paper.raycastTarget = false;
+             if (reward != null)
+-                CreateRawImage("Guided Tutorial Reward Art", plaque, new Vector2(56, 56),
+-                    new Vector2(-266, 0), reward.Texture, new Rect(0, 0, 1, 1)).raycastTarget = false;
++                CreateComponentIcon("Guided Tutorial Reward Art", plaque, reward, new Vector2(-266, 0), 56f);
+             Image divider = CreateImage("Guided Tutorial Reward Divider", plaque, new Vector2(1, 42),
+                 new Vector2(-226, 0), new Color(.53f, .40f, .24f, .35f));
+             divider.sprite = divider.overrideSprite = null;
+diff --git a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayItemIcons.cs b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayItemIcons.cs
+index cf639db..d2ba0c7 100644
+--- a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayItemIcons.cs
++++ b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayItemIcons.cs
+@@ -5,6 +5,27 @@ namespace ShatteredSail.Presentation
+ {
+     public sealed partial class CoreGameplayDemoController
+     {
++        // Keep the rarity treatment behind the artwork so painted details and
++        // existing hit targets remain unchanged at every icon size.
++        private ComponentRarityHaloGraphic CreateComponentRarityHalo(string name, Transform parent,
++            ComponentArtEntry entry, Vector2 size, Vector2 position, bool subdued = false)
++        {
++            RectTransform rect = CreateRect(name, parent, size, position);
++            ComponentRarityHaloGraphic halo = rect.gameObject.AddComponent<ComponentRarityHaloGraphic>();
++            halo.Configure(entry.Rarity, subdued);
++            return halo;
++        }
++
++        private RawImage CreateComponentIcon(string name, Transform parent, ComponentArtEntry entry,
++            Vector2 position, float size, bool subdued = false)
++        {
++            ItemIconArt art = ItemIconCatalog.ForComponent(entry);
++            if (art.IsAvailable)
++                CreateComponentRarityHalo(name + " Rarity Halo", parent, entry,
++                    Vector2.one * (size * 1.04f), position, subdued);
++            return CreateItemIcon(name, parent, art, position, size);
++        }
++
+         // The catalog owns shared textures; each view owns only its UI graphic.
+         // Sample the atlas cell's aspect, rather than stretching the whole sheet.
+         private RawImage CreateItemIcon(string name, Transform parent, ItemIconArt art,
+diff --git a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayPortController.cs b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayPortController.cs
+index c490ff2..aa2231b 100644
+--- a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayPortController.cs
++++ b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayPortController.cs
+@@ -611,9 +611,7 @@ private static void ConfigureComponentShopHover(Button offer, Graphic aura, RawI
+             EventTrigger.Entry pointerEnter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+             pointerEnter.callback.AddListener(_ =>
+             {
+-                // Keep the showroom art at its authored brightness. A rarity
+-                // aura and a second brightened model made the offer look like a
+-                // yellow spotlight when the pointer crossed it.
++                // Hover keeps the rarity hue and artwork brightness stable.
+                 aura.color = restingAura;
+                 model.color = restingModel;
+                 plaque.color = restingPlaque;
+@@ -1254,13 +1252,12 @@ private static string FacilityKey(int index)
+ 
+         private void BuildComponentShopDisplay(Transform parent, ComponentArtEntry entry, string prefix, string suffix,
+             bool sold, bool selected, bool interactive, bool includePlaque, bool transparentPlaque,
+-            out RawImage aura, out RawImage model, out RawImage plaque)
++            out ComponentRarityHaloGraphic aura, out RawImage model, out RawImage plaque)
+         {
+             ComponentShopDisplayGeometry geometry = ComponentShopDisplayGeometry.For(entry, session.CurrentPort);
+             // A detail sheet has no foreground sign: centre the part in the
+             // illustration area rather than retaining empty space for a rack.
+-            // UIPreviewsForMe uses the left-hand showroom component as the
+-            // authored reference. Treat its 300x194.4 rectangle as a fit box,
++            // Treat the compact 300x194.4 rectangle as a fit box,
+             // not as a forced RawImage size: RawImage does not preserve the
+             // cropped UV aspect ratio by itself. Detail sheets continue to use
+             // their measured native-fit sizing.
+@@ -1268,22 +1265,11 @@ private void BuildComponentShopDisplay(Transform parent, ComponentArtEntry entry
+                 ? ComponentShopDisplayGeometry.FitShowroomModelSize(geometry.ModelUv)
+                 : ComponentShopDisplayGeometry.FitDetailModelSize(geometry.ModelUv);
+             Vector2 modelPosition = includePlaque ? geometry.ShowroomModelPositionFor(modelSize) : Vector2.zero;
+-            // The component artwork sits directly on the scene surface. Do not
+-            // add a panel, card, or rectangular shadow behind it: the source
+-            // atlas already carries the transparent silhouette edge. The two
+-            // callers intentionally use different fit boxes (the compact shop
+-            // card and the larger detail sheet) while both preserve native UV
+-            // aspect ratio.
+-            // The aura follows the same fitted bounds. Using one fixed aura
+-            // rectangle would reintroduce non-uniform scaling whenever a tall
+-            // or narrow component is displayed.
+-            aura = CreateRawImage(prefix + "Rarity Aura" + suffix, parent,
+-                modelSize * 1.035f,
+-                modelPosition, entry.ShipLayer, geometry.ModelUv);
+-            // Rarity is communicated by the plaque/text, not a persistent
+-            // coloured halo behind every offer.
+-            aura.color = Color.clear;
+-            aura.raycastTarget = false;
++            // A feathered ellipse frames the silhouette without tinting the
++            // painting or introducing a rectangular backing on the parchment.
++            aura = CreateComponentRarityHalo(prefix + "Rarity Aura" + suffix, parent, entry,
++                modelSize * 1.24f, modelPosition, sold);
++            aura.enabled = entry.ShipLayer != null;
+             model = CreateRawImage(prefix + "Model" + suffix, parent, modelSize,
+                 modelPosition, entry.ShipLayer, geometry.ModelUv);
+             model.raycastTarget = interactive;
+diff --git a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayShipyardEquipmentView.cs b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayShipyardEquipmentView.cs
+index 156a207..f0889a4 100644
+--- a/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayShipyardEquipmentView.cs
++++ b/UnityClient/Assets/_Project/Presentation/Runtime/CoreGameplayShipyardEquipmentView.cs
+@@ -257,7 +257,7 @@ private void BuildShipyardInventoryPageButton(Transform parent, int shipIndex, b
+         private void DrawShipyardComponentIcon(string name, Transform parent, ComponentArtEntry entry, Vector2 position, float size)
+         {
+             if (entry == null) return;
+-            CreateItemIcon(name, parent, ItemIconCatalog.ForComponent(entry), position, size);
++            CreateComponentIcon(name, parent, entry, position, size);
+         }
+     }
+ }
+diff --git a/UnityClient/Assets/_Project/Tests/EditMode/PortSurfaceGroundingTests.cs b/UnityClient/Assets/_Project/Tests/EditMode/PortSurfaceGroundingTests.cs
+index cdadd50..455628c 100644
+--- a/UnityClient/Assets/_Project/Tests/EditMode/PortSurfaceGroundingTests.cs
++++ b/UnityClient/Assets/_Project/Tests/EditMode/PortSurfaceGroundingTests.cs
+@@ -90,17 +90,25 @@ public void PortAndTavernHotspotsKeepTheirClickTargetsWithoutPaintingGlow()
+         }
+ 
+         [Test]
+-        public void ComponentShopOffersDoNotPaintPersistentRarityAura()
++        public void ComponentShopOffersShowRarityHalosBehindArtworkWithoutInterceptingClicks()
+         {
+             Transform preview = Preview(CoreGameplayPreviewScreen.ComponentShop);
+-            RawImage[] auras = preview.GetComponentsInChildren<RawImage>(true)
+-                .Where(image => image.name.StartsWith("Component Shop Rarity Aura"))
+-                .ToArray();
+-            Assert.That(preview.GetComponentsInChildren<Button>(true)
+-                .Count(button => button.name.StartsWith("Component Shop Offer ")), Is.GreaterThan(0),
+-                "Validate a populated showroom; removing its offers is not a valid way to remove glow.");
+-            Assert.That(auras.All(image => image.color.a == 0f), Is.True,
+-                "Rarity should be shown by the plaque/text without a persistent coloured halo.");
++            Button[] offers = preview.GetComponentsInChildren<Button>(true)
++                .Where(button => button.name.StartsWith("Component Shop Offer ")).ToArray();
++            Assert.That(offers.Length, Is.GreaterThan(0));
++            foreach (Button offer in offers)
++            {
++                ComponentRarityHaloGraphic halo = offer.GetComponentInChildren<ComponentRarityHaloGraphic>();
++                RawImage art = offer.GetComponentsInChildren<RawImage>()
++                    .Single(image => image.name.StartsWith("Component Shop Thumbnail "));
++                Assert.That(halo, Is.Not.Null, offer.name);
++                Assert.That(halo.color.a, Is.GreaterThan(0f));
++                Assert.That(halo.raycastTarget, Is.False);
++                Assert.That(halo.transform.GetSiblingIndex(), Is.LessThan(art.transform.GetSiblingIndex()));
++                Assert.That(offer.targetGraphic.raycastTarget, Is.True);
++            }
++            Assert.That(preview.GetComponentsInChildren<ComponentRarityHaloGraphic>()
++                .Any(halo => halo.name.StartsWith("Component Shop Rarity Halo ")), Is.True);
+         }
+ 
+         [Test]

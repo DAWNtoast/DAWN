@@ -101,7 +101,7 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void ProtectedManifestCoversEveryCurrentSaveProgressWriterAndNoEarlierIndependentWrites()
         {
-            Assert.That(expectedTypes.Count, Is.EqualTo(104), "32 string and 72 integer keys for the six-port profile.");
+            Assert.That(expectedTypes.Count, Is.EqualTo(106), "32 string and 74 integer keys including the two combat evidence masks.");
             Assert.That(expectedTypes.Values.Count(value => value), Is.EqualTo(32));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Is.EquivalentTo(expectedTypes.Keys));
             Assert.That(ProfileSaveJournal.ProtectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(expectedTypes.Count));
@@ -111,13 +111,15 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void NewJournalUsesVersionFiveAndIncludesCollectionIncomeShipPortsAndAllVoyageMilestones()
+        public void NewJournalUsesVersionSixAndIncludesAllAchievementEvidence()
         {
             Begin();
             Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
             JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
-            Assert.That(record.version, Is.EqualTo(5));
-            Assert.That(record.entries.Length, Is.EqualTo(104));
+            Assert.That(record.version, Is.EqualTo(6));
+            Assert.That(record.entries.Length, Is.EqualTo(106));
+            foreach (string key in AchievementCatalog.ChallengeEvidenceKeys)
+                Assert.That(record.entries.Single(entry => entry.key == key).type, Is.EqualTo("int"));
             Assert.That(record.entries.Single(entry => entry.key == CoreGameplayDemoController.WarehouseIncomeKey).type, Is.EqualTo("string"));
             Assert.That(record.entries.Single(entry => entry.key == CoreGameplayDemoController.ShipPortProgressKey).type, Is.EqualTo("string"));
             Assert.That(record.entries.Single(entry => entry.key == VoyageThreeEventsKey).type, Is.EqualTo("int"));
@@ -131,6 +133,10 @@ namespace ShatteredSail.Core.Tests
         [TestCase(true, VoyageHalfChartKey)]
         [TestCase(false, VoyageEventArrivalKey)]
         [TestCase(true, VoyageEventArrivalKey)]
+        [TestCase(false, AchievementCatalog.EditedDeckStagesKey)]
+        [TestCase(true, AchievementCatalog.EditedDeckStagesKey)]
+        [TestCase(false, AchievementCatalog.WonDeckStagesKey)]
+        [TestCase(true, AchievementCatalog.WonDeckStagesKey)]
         public void CurrentJournalRestoresEachVoyageMilestoneBeforeImage(bool existed, string key)
         {
             if (existed) PlayerPrefs.SetInt(key, 1);
@@ -203,6 +209,7 @@ namespace ShatteredSail.Core.Tests
         public void VersionFourJournalRestoresItsManifestAndRemovesInterruptedCollectionIncomeMigration()
         {
             SeedValues("before", 1100, true);
+            foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             Dictionary<string, SavedPreference> before = ReadPreferences(expectedTypes);
             Begin();
@@ -217,7 +224,7 @@ namespace ShatteredSail.Core.Tests
             Begin();
             Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
             JournalRecord upgraded = JsonUtility.FromJson<JournalRecord>(json);
-            Assert.That(upgraded.version, Is.EqualTo(5));
+            Assert.That(upgraded.version, Is.EqualTo(6));
             Assert.That(upgraded.entries.Select(entry => entry.key), Is.EquivalentTo(expectedTypes.Keys));
         }
 
@@ -226,6 +233,7 @@ namespace ShatteredSail.Core.Tests
         public void LegacyJournalRestoresItsKeysAndRemovesNewMilestonesWithoutRestoringRetiredAchievements(bool includesRetired)
         {
             SeedValues("before", 1100, true);
+            foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             PlayerPrefs.DeleteKey(VoyageThreeEventsKey);
             foreach (string key in VersionThreeAchievementKeys) PlayerPrefs.DeleteKey(key);
@@ -244,7 +252,7 @@ namespace ShatteredSail.Core.Tests
             Begin();
             Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
             JournalRecord upgraded = JsonUtility.FromJson<JournalRecord>(json);
-            Assert.That(upgraded.version, Is.EqualTo(5));
+            Assert.That(upgraded.version, Is.EqualTo(6));
             Assert.That(upgraded.entries.Select(entry => entry.key), Is.EquivalentTo(expectedTypes.Keys));
         }
 
@@ -253,6 +261,7 @@ namespace ShatteredSail.Core.Tests
         public void VersionTwoJournalRestoresExistingMilestoneAndRemovesOnlyTheTwoLaterMilestones(bool milestoneExisted)
         {
             SeedValues("before", 1100, true);
+            foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             if (milestoneExisted) PlayerPrefs.SetInt(VoyageThreeEventsKey, 1);
             else PlayerPrefs.DeleteKey(VoyageThreeEventsKey);
@@ -271,13 +280,14 @@ namespace ShatteredSail.Core.Tests
             AssertSlotEmpty();
             Begin();
             Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
-            Assert.That(JsonUtility.FromJson<JournalRecord>(json).version, Is.EqualTo(5));
+            Assert.That(JsonUtility.FromJson<JournalRecord>(json).version, Is.EqualTo(6));
         }
 
         [Test]
         public void VersionThreeJournalRestoresItsManifestAndRemovesInterruptedShipLocationMigration()
         {
             SeedValues("before", 1100, true);
+            foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.ShipPortProgressKey);
             Dictionary<string, SavedPreference> before = ReadPreferences(expectedTypes);
@@ -293,7 +303,7 @@ namespace ShatteredSail.Core.Tests
             Begin();
             Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
             JournalRecord upgraded = JsonUtility.FromJson<JournalRecord>(json);
-            Assert.That(upgraded.version, Is.EqualTo(5));
+            Assert.That(upgraded.version, Is.EqualTo(6));
             Assert.That(upgraded.entries.Select(entry => entry.key), Is.EquivalentTo(expectedTypes.Keys));
         }
 
@@ -761,12 +771,37 @@ namespace ShatteredSail.Core.Tests
 
         private JournalRecord ReadVersionFourRecord()
         {
-            Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
-            JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
+            JournalRecord record = ReadVersionFiveRecord();
             record.version = 4;
             record.entries = record.entries.Where(entry => entry.key != CoreGameplayDemoController.WarehouseIncomeKey).ToArray();
             Assert.That(record.entries.Length, Is.EqualTo(103));
             return record;
+        }
+
+        private JournalRecord ReadVersionFiveRecord()
+        {
+            Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
+            JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
+            record.version = 5;
+            record.entries = record.entries.Where(entry => !AchievementCatalog.ChallengeEvidenceKeys.Contains(entry.key)).ToArray();
+            Assert.That(record.entries.Length, Is.EqualTo(104));
+            return record;
+        }
+
+        [Test]
+        public void VersionFiveRecoveryRemovesInterruptedChallengeEvidenceButKeepsOldUnlocks()
+        {
+            const string earned = "ShatteredSail.Achievements.Unlocked.v1.battle_stages";
+            PlayerPrefs.SetInt(earned, 1);
+            Begin();
+            ReplaceJournalPayload(JsonUtility.ToJson(ReadVersionFiveRecord()));
+            foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.SetInt(key, 7);
+            PlayerPrefs.DeleteKey(earned);
+            ForgetActiveTransactionForRestartSimulation();
+            Assert.That(ProfileSaveJournal.TryRecover(out string notice), Is.True, notice);
+            Assert.That(PlayerPrefs.GetInt(earned), Is.EqualTo(1));
+            foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) Assert.That(PlayerPrefs.HasKey(key), Is.False, key);
+            AssertSlotEmpty();
         }
 
         private void SeedValues(string prefix, int number, bool includeAbsent)

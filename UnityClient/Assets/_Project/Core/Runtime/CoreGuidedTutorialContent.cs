@@ -32,25 +32,25 @@ namespace ShatteredSail.Core.Gameplay
                 new VoyageEffect { Hull = -1 }));
 
         internal static CoreEncounter OptionalEvent() => new CoreEncounter(OptionalEventId,
-            "漂流补给箱", "可选事件", "潮水送来一只补给箱。打捞会耗时，也可以略过，保留补给继续航行。", false, false, 1, 0,
+            "漂流补给箱", "可选事件", "潮水送来一只补给箱，完好的蜡封在浪间时隐时现。", false, false, 1, 0,
             new CoreEncounterChoice("靠近打捞", "耗时 1 小时；金币 +12", 1, new VoyageEffect { Gold = 12 }));
 
         internal static CoreEncounter CrewRequirementEvent() => new CoreEncounter(CrewRequirementEventId,
-            "无法辨认的潮汐笔记", "船上事件", "水手从老船长留下的箱子里翻出一页六港誓约残页。没有航海士，就无法把符号译成通往第七港口的路线；这份船上笔记不是海上的固定地点。", true, true, 0, 0,
+            "无法辨认的潮汐笔记", "船上事件", "水手从老船长留下的箱子里翻出一张六港誓约残页。只有航海士才能读懂上面的符号，找出通往第七港口的航路。", true, true, 0, 0,
             new CoreEncounterChoice("请航海士解读", "需要航海士；金币 +12", 1,
                 new VoyageEffect { Gold = 12 }, "navigator"),
-            new CoreEncounterChoice("收好笔记，准备返港招募", "保留线索，返港寻找航海士", 0, new VoyageEffect()));
+            new CoreEncounterChoice("收好笔记，返回海图", "保留线索；返回海图后，可返港招募航海士", 0, new VoyageEffect()));
 
         internal static CoreEncounter NavigatorEvent() => new CoreEncounter(NavigatorEventId,
-            "潮汐暗标", "特殊船员事件", "笔记上的潮线与前方浮标吻合。带上航海士后，可以辨认安全水道并收回藏在浮标下的报酬。", true, false, 1, 0,
+            "潮汐暗标", "特殊船员事件", "笔记上的潮线与前方浮标吻合，交错的暗记指向礁间水道。浮标下拴着一只密封小匣，随潮水轻轻晃动。", true, false, 1, 0,
             new CoreEncounterChoice("请航海士辨认暗标", "需要航海士；耗时 1 小时；金币 +24", 1,
                 new VoyageEffect { Gold = 24 }, "navigator"),
-            new CoreEncounterChoice("保留笔记，返港整备", "暂缓解读；按正常返航或拖带规则结算，补给后重试", 0, new VoyageEffect()));
+            new CoreEncounterChoice("保留笔记，返港整备", "暂缓解读；照常返航或请求拖带，结算后补充物资再来", 0, new VoyageEffect()));
 
         internal static CoreEncounter RandomEvent(bool luckyWind) => new CoreEncounter(RandomEventId,
             luckyWind ? "顺风捎来的讯息" : "水手发现漂流信筒", "随机事件",
-            luckyWind ? "一艘过路快船临时靠近，把报酬和一封港口急信交给你。这类偶遇只在航行时发生，不会提前标在海图上。" :
-                "刚刚掠过船侧的信筒里装着商会遗失的凭条。它随海流而来，没有能够提前揭示的固定位置。", false, true, 0, 0,
+            luckyWind ? "一艘过路快船临时靠近，把报酬和一封港口急信交给你。" :
+                "刚刚掠过船侧的信筒里装着商会遗失的凭条。", false, true, 0, 0,
             new CoreEncounterChoice("接收讯息，记入日志", "耗时 0.5 小时；金币 +12、声望 +1", 0.5,
                 new VoyageEffect { Gold = 12, Fame = 1 }));
 
@@ -60,8 +60,8 @@ namespace ShatteredSail.Core.Gameplay
                 new VoyageEffect()));
 
         internal static CoreEncounter BossEvent() => new CoreEncounter(BossEventId,
-            "残帆掠夺者", "近港首领", "这艘海盗船曾受老船长庇护，如今却收取过路费、忘记了自由旗。残破的船帆挡住航道，炮口正缓缓转来。", true, false, 2, 50,
-            new CoreEncounterChoice("迎击首领", "胜利获得藏宝图碎片 ×1；返港领取白色部件与「破浪者的罗盘」", 0,
+            "残帆掠夺者", "近港首领", "这艘海盗船曾受老船长庇护，如今却把自由旗抛在脑后，拦路收起了过路费。破帆下的船身横在航道上，炮口正缓缓转向你们。", true, false, 2, 50,
+            new CoreEncounterChoice("迎击首领", "获胜后获得藏宝图碎片 ×1；返港领取白色部件与「破浪者的罗盘」", 0,
                 new VoyageEffect(), startsBattle: true));
     }
 
@@ -192,7 +192,7 @@ namespace ShatteredSail.Core.Gameplay
             ActiveEncounter = encounter;
             activeNode = null;
             Phase = CoreDemoPhase.Encounter;
-            AddLog("航行中遭遇「" + encounter.Name + "」；这不是海图上预先标注的地点。");
+            AddLog("航行中遭遇「" + encounter.Name + "」。");
         }
 
         private void RecordGuidedTutorialEncounterCompleted(CoreEncounter encounter)

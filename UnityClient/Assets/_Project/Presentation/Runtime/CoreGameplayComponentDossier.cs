@@ -10,14 +10,20 @@ namespace ShatteredSail.Presentation
         private int componentDossierPage;
 
         private bool IsComponentDossierOpen => activePortFacility == PortFacilityArtCatalog.ComponentShopFacilityIndex &&
-            !componentResaleOpen && !string.IsNullOrEmpty(selectedComponentShopOfferId);
+            (componentResaleOpen ? !string.IsNullOrEmpty(selectedComponentResaleInstanceId) :
+                !string.IsNullOrEmpty(selectedComponentShopOfferId));
 
         private void BuildComponentDossier(RectTransform panel, PortComponentShopStockItem offer)
         {
-            ComponentArtEntry entry = offer.Entry;
-            if (componentDossierOfferId != offer.Id)
+            BuildComponentReadingDossier(panel, offer.Entry, offer.Id, offer);
+        }
+
+        private void BuildComponentReadingDossier(RectTransform panel, ComponentArtEntry entry, string dossierId,
+            PortComponentShopStockItem offer = null)
+        {
+            if (componentDossierOfferId != dossierId)
             {
-                componentDossierOfferId = offer.Id;
+                componentDossierOfferId = dossierId;
                 componentDossierPage = 0;
             }
             Color rarity = ComponentArtCatalog.RarityColor(entry.Rarity);
@@ -25,8 +31,7 @@ namespace ShatteredSail.Presentation
             Color muted = Html("#6C4A2C");
             Color rarityInk = Color.Lerp(rarity, ink, 0.58f);
             Color buttonPaper = new Color(1f, 0.91f, 0.7f, 1f);
-            bool sold = PlayerPrefs.GetInt(ComponentShopPurchaseKey(offer.Id), 0) != 0;
-            bool affordable = session.ProfileGold >= offer.Price;
+            bool sold = offer != null && PlayerPrefs.GetInt(ComponentShopPurchaseKey(offer.Id), 0) != 0;
             RectTransform detail = CreateRect("Component Shop Detail", panel, new Vector2(1820f, 650f), Vector2.zero);
             RawImage paper = CreateRawImage("Component Detail Parchment", detail, new Vector2(1780f, 705f), new Vector2(0f, -4f),
                 portArt.TavernCrewDossierParchment, new Rect(0f, 0f, 1f, 1f));
@@ -72,17 +77,21 @@ namespace ShatteredSail.Presentation
             RectTransform assembly = CreateRect("Component Detail Display Assembly", detail, new Vector2(390f, 422f), new Vector2(-580f, -22f));
             BuildComponentShopDisplay(assembly, entry, "Component Detail ", string.Empty,
                 sold, true, false, false, false, out _, out _, out _);
-            // Page tabs own navigation; center the two purchase actions below the reading column.
-            string purchaseStatus = sold ? "已售出" : affordable ? offer.Price + " 金币" : "金币不足";
-            Button purchase = CreateButton("Purchase Component " + offer.Id, detail, new Vector2(240f, 44f), new Vector2(80f, -242f), Gold, buttonPaper, 20);
-            purchase.GetComponentInChildren<Text>().text = "购买 · " + purchaseStatus;
-            purchase.interactable = !sold && affordable;
-            purchase.onClick.AddListener(() => PurchaseComponentOffer(offer, false));
-            Button purchaseAndEquip = CreateButton("Purchase And Equip Component " + offer.Id, detail, new Vector2(240f, 44f), new Vector2(344f, -242f), rarity, buttonPaper, 20);
-            purchaseAndEquip.GetComponentInChildren<Text>().text = "购买后装配 · " + purchaseStatus;
-            purchaseAndEquip.interactable = !sold && affordable &&
-                (!Application.isPlaying || editorPreviewBuilding || CanRefitShip(session.SelectedShipIndex));
-            purchaseAndEquip.onClick.AddListener(() => PurchaseComponentOffer(offer, true));
+            // Owned inventory opens the same reading pages without shop actions.
+            if (offer != null)
+            {
+                bool affordable = session.ProfileGold >= offer.Price;
+                string purchaseStatus = sold ? "已售出" : affordable ? offer.Price + " 金币" : "金币不足";
+                Button purchase = CreateButton("Purchase Component " + offer.Id, detail, new Vector2(240f, 44f), new Vector2(80f, -242f), Gold, buttonPaper, 20);
+                purchase.GetComponentInChildren<Text>().text = "购买 · " + purchaseStatus;
+                purchase.interactable = !sold && affordable;
+                purchase.onClick.AddListener(() => PurchaseComponentOffer(offer, false));
+                Button purchaseAndEquip = CreateButton("Purchase And Equip Component " + offer.Id, detail, new Vector2(240f, 44f), new Vector2(344f, -242f), rarity, buttonPaper, 20);
+                purchaseAndEquip.GetComponentInChildren<Text>().text = "购买后装配 · " + purchaseStatus;
+                purchaseAndEquip.interactable = !sold && affordable &&
+                    (!Application.isPlaying || editorPreviewBuilding || CanRefitShip(session.SelectedShipIndex));
+                purchaseAndEquip.onClick.AddListener(() => PurchaseComponentOffer(offer, true));
+            }
             for (int index = 0; index < pages.Length; index++)
             {
                 int captured = index;

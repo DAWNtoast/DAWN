@@ -38,13 +38,10 @@ namespace ShatteredSail.Presentation.Tests
             string authoredFace = ForgeVisibleText(face.text);
             NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_03_Medicine_Enhanced.png", "固定卡面完整展示有药恢复6与无药恢复2的两条规则", "Battle Card");
             yield return HoverMedicineCard(0);
-            Text explanation = RequiredResponsive<Button>("Battle Card 0").transform
-                .Find("Card Keyword Bubble 0/Keyword Bubble Text").GetComponent<Text>();
-            AssertCurrentBoardingRules(explanation.text, bandage, "medicine available hover");
+            AssertKeywordOnlyCardHover(RequiredResponsive<Button>("Battle Card 0"), 0, session, bandage, "medicine available hover");
             AssertMedicineQuoteIsReadOnly(session, bandage, enhanced, 1);
-            AssertBattleRuleTooltipFits(explanation, 11);
             Assert.That(session.Cargo.Medicine, Is.EqualTo(1), "Pointer preview must not spend medicine.");
-            NavalBattleVisualCapture.Capture(controller, "Medicine_01_Enhanced_Hover.png", "悬停展示完整包扎与接舷规则，预览不消耗药物", "Battle Card");
+            NavalBattleVisualCapture.Capture(controller, "Medicine_01_Enhanced_Hover.png", "包扎卡面保留治疗规则，普通恢复不生成关键词浮窗且悬停不消耗药物", "Battle Card");
 
             ClickAcceptanceButton("Battle Card 0");
             yield return WaitBoardingFeedback(controller, "BoardingFX", BoardingCombatFxKind.Heal);
@@ -60,11 +57,8 @@ namespace ShatteredSail.Presentation.Tests
             NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_04_Medicine_Empty.png", "药品耗尽后保留同一完整卡面，HUD药品刷新为0", "Battle Card");
             Assert.That(RequiredResponsive<Text>("Card Energy Cost Text 0").text, Is.EqualTo("2"));
             yield return HoverMedicineCard(0);
-            explanation = RequiredResponsive<Button>("Battle Card 0").transform
-                .Find("Card Keyword Bubble 0/Keyword Bubble Text").GetComponent<Text>();
-            AssertCurrentBoardingRules(explanation.text, bandage, "medicine exhausted hover");
+            AssertKeywordOnlyCardHover(RequiredResponsive<Button>("Battle Card 0"), 0, session, bandage, "medicine exhausted hover");
             AssertMedicineQuoteIsReadOnly(session, bandage, baseline, 0);
-            AssertBattleRuleTooltipFits(explanation, 11);
             ClickAcceptanceButton("Battle Card 0");
             yield return WaitResponsiveBattle(controller);
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(10 + enhanced + baseline));
@@ -93,16 +87,12 @@ namespace ShatteredSail.Presentation.Tests
             string fullHealthFace = ForgeVisibleText(face.text);
             NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_05_Medicine_Full.png", "满血时保留固定卡牌规则，实际出牌不消耗药物", "Battle Card");
             yield return HoverMedicineCard(0);
-            Text explanation = RequiredResponsive<Button>("Battle Card 0").transform
-                .Find("Card Keyword Bubble 0/Keyword Bubble Text").GetComponent<Text>();
-            AssertCurrentBoardingRules(explanation.text, bandage, "full health hover");
+            AssertKeywordOnlyCardHover(RequiredResponsive<Button>("Battle Card 0"), 0, session, bandage, "full health hover");
             AssertMedicineQuoteIsReadOnly(session, bandage, 0, 0);
-            AssertBattleRuleTooltipFits(explanation, 11);
-            NavalBattleVisualCapture.Capture(controller, "Medicine_03_Full_Health.png", "满血规则气泡完整展示包扎规则，悬停不改变生命或药物", "Battle Card");
+            NavalBattleVisualCapture.Capture(controller, "Medicine_03_Full_Health.png", "满血包扎仍可悬停查看卡面，不弹出计算或禁用原因浮窗", "Battle Card");
             Button fullHealthCard = RequiredResponsive<Button>("Battle Card 0");
             Assert.That(fullHealthCard.IsInteractable(), Is.False, "A full-health bandage cannot be played.");
             Assert.That(session.CardUnavailableReason(0), Is.EqualTo("当前生命已满"));
-            Assert.That(explanation.text, Does.Contain("当前不能使用").And.Contain("当前生命已满"));
             int fullHealthEnergy = session.Battle.Energy;
             int[] fullHealthHand = session.Battle.Hand.ToArray();
             // Exercise the disabled control through an actual raycast without
@@ -123,11 +113,8 @@ namespace ShatteredSail.Presentation.Tests
             AssertStableMedicineFace(face, bandage);
             Assert.That(ForgeVisibleText(face.text), Is.EqualTo(fullHealthFace), "A small wound does not rewrite the authored card rules.");
             yield return HoverMedicineCard(0);
-            explanation = RequiredResponsive<Button>("Battle Card 0").transform
-                .Find("Card Keyword Bubble 0/Keyword Bubble Text").GetComponent<Text>();
-            AssertCurrentBoardingRules(explanation.text, bandage, "small wound hover");
+            AssertKeywordOnlyCardHover(RequiredResponsive<Button>("Battle Card 0"), 0, session, bandage, "small wound hover");
             AssertMedicineQuoteIsReadOnly(session, bandage, 1, 0);
-            AssertBattleRuleTooltipFits(explanation, 11);
             Assert.That(session.CardUnavailableReason(0), Is.Empty, "A real wound makes the bandage playable again.");
             ClickAcceptanceButton("Battle Card 0");
             yield return WaitResponsiveBattle(controller);
@@ -154,7 +141,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             Assert.That(bandage.BoardingSpec.Key, Is.EqualTo("basic_06"));
             Assert.That(bandage.Repair, Is.EqualTo(6));
-            Assert.That(ForgeVisibleText(face.text), Is.EqualTo("使用1药物恢复6生命，无药物恢复2"));
+            Assert.That(ForgeVisibleText(face.text), Is.EqualTo("恢复2点生命值消耗1药物额外恢复4点生命值"));
             Assert.That(ForgeVisibleText(face.text), Is.EqualTo(ForgeVisibleText(CardDescriptionText.Compact(bandage.Description))));
             Assert.That(face.text, Does.Not.Contain("实际").And.Not.Contain("本次恢复").And.Not.Contain("无药基础"));
             Assert.That(face.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));
@@ -178,7 +165,8 @@ namespace ShatteredSail.Presentation.Tests
             { position = RectTransformUtility.WorldToScreenPoint(null, card.transform.position) };
             ExecuteEvents.Execute(card.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
             yield return new WaitForSecondsRealtime(.18f);
-            Assert.That(card.transform.Find("Card Keyword Bubble " + index).gameObject.activeInHierarchy, Is.True);
+            Assert.That(card.GetComponent<Canvas>().overrideSorting, Is.True,
+                "A basic treatment card still supports inspection without a keyword popup.");
         }
     }
 }

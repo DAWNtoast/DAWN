@@ -27,11 +27,12 @@ namespace ShatteredSail.Presentation.Tests
             SetResponsiveHand(session, "card_chain_shot");
             RenderResponsiveBattle(controller);
             yield return null;
-            Text range = Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Single(text => text.name == "Battle Range");
-            Assert.That(range.text, Is.EqualTo("5 格 / 炮击4格"));
+            Assert.That(session.NavalDistanceCells, Is.EqualTo(5));
+            Assert.That(GameObject.Find("Battle Range"), Is.Null);
+            Assert.That(GameObject.Find("Battle Alignment"), Is.Null);
             Assert.That(session.CardUnavailableReason(0), Is.EqualTo(CoreVoyageSession.NavalCannonOutOfRangeReason));
-            Text rule = RequireTacticalBoard().GetComponentsInChildren<Text>().Single(text => text.name == "Tactical scale");
-            Assert.That(rule.text, Does.Contain("炮击4格：横纵格数相加"));
+            Assert.That(RequireTacticalBoard().GetComponentsInChildren<Text>(true)
+                .Any(text => text.name == "Tactical scale"), Is.False);
             LogAssert.NoUnexpectedReceived();
         }
 
