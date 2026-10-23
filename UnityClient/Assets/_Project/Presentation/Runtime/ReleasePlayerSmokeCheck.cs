@@ -26,6 +26,7 @@ namespace ShatteredSail.Presentation
 
         private string destination;
         private readonly List<string> failures = new List<string>();
+        private readonly List<string> completedChecks = new List<string>();
         private float started;
         private bool finished;
         private int packagedAudioClipCount;
@@ -89,6 +90,7 @@ namespace ShatteredSail.Presentation
                 Require(!back.gameObject.activeInHierarchy, "Settings did not close.");
                 Require(SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null, "Graphics not initialized.");
                 Canvas.ForceUpdateCanvases();
+                completedChecks.Add("startup, packaged scenes, background, fonts, input, settings open/close");
             }
             catch (Exception error) { failures.Add(error.ToString()); }
             // A hidden Windows swap chain can have no readable backbuffer. Render
@@ -98,8 +100,12 @@ namespace ShatteredSail.Presentation
             {
                 Directory.CreateDirectory(destination);
                 CapturePackagedMenu();
+                completedChecks.Add("packaged UI offscreen frame");
                 CapturePackagedBattleShips();
+                completedChecks.Add(ShatteredSail.Core.Gameplay.CoreVoyageSession.Ships.Count +
+                    " turned/mirrored ship cutouts and visible foreground");
                 CheckPackagedAudio();
+                completedChecks.Add(packagedAudioClipCount + " verified packaged 48kHz audio clips");
                 CheckPackagedSchoolCards();
                 CheckPackagedCrewDossiers();
             }
@@ -121,16 +127,7 @@ namespace ShatteredSail.Presentation
             if (finished) return;
             finished = true;
             Application.logMessageReceived -= RecordLog;
-            string report = (failures.Count == 0 ? "PASS" : "FAIL") + "\nProduct: " + Application.productName +
-                "\nCompany: " + Application.companyName + "\nVersion: " + Application.version +
-                "\nUnity: " + Application.unityVersion + "\nGraphics: " + SystemInfo.graphicsDeviceName +
-                "\nResolution: " + Screen.width + "x" + Screen.height +
-                "\nChecks: startup, packaged scenes, background, fonts, input, settings open/close, packaged UI offscreen frame, " +
-                ShatteredSail.Core.Gameplay.CoreVoyageSession.Ships.Count + " turned/mirrored ship cutouts and visible foreground, " +
-                packagedAudioClipCount + " verified packaged 48kHz audio clips, " +
-                ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None) +
-                " card-by-card illustration checks, 36 integrated school/wood resource frames and 36 integrated crew dossier paintings." +
-                "\nSave changes: none. Explicit smoke mode bypasses main-menu profile recovery, voyage-file reads and achievement capture; new-game, continue and settings-apply callbacks are blocked. No GM action invoked.\n" + string.Join("\n", failures);
+            string report = CreateReport();
             try
             {
                 Directory.CreateDirectory(destination);
@@ -140,6 +137,14 @@ namespace ShatteredSail.Presentation
             Debug.Log("PLAYER_SMOKE_RESULT\n" + report);
             Application.Quit(failures.Count == 0 ? 0 : 1);
         }
+
+        private string CreateReport() =>
+            (failures.Count == 0 ? "PASS" : "FAIL") + "\nProduct: " + Application.productName +
+            "\nCompany: " + Application.companyName + "\nVersion: " + Application.version +
+            "\nUnity: " + Application.unityVersion + "\nGraphics: " + SystemInfo.graphicsDeviceName +
+            "\nResolution: " + Screen.width + "x" + Screen.height +
+            "\nChecks completed: " + (completedChecks.Count == 0 ? "none" : string.Join("; ", completedChecks)) +
+            "\nSave changes: none. Explicit smoke mode bypasses main-menu profile recovery, voyage-file reads and achievement capture; new-game, continue and settings-apply callbacks are blocked. No GM action invoked.\n" + string.Join("\n", failures);
 
         private void RecordLog(string message, string stack, LogType type)
         {
@@ -165,6 +170,7 @@ namespace ShatteredSail.Presentation
                 Require(portrait.width >= 512 && portrait.height >= 640,
                     "Packaged crew portrait lost native detail: " + character.Id);
             }
+            completedChecks.Add(crew.Count + " integrated crew dossier paintings");
         }
 
         private void CheckPackagedSchoolCards()
@@ -237,6 +243,7 @@ namespace ShatteredSail.Presentation
                         "Packaged integrated special-cost frame missing: " + path);
                     framePaths.Add(path);
                 }
+            Require(framePaths.Count == 36, "Expected 36 complete baseline integrated card-frame variants.");
             var usedFramePaths = new HashSet<string>();
             foreach (var card in ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary
                 .Where(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None))
@@ -255,12 +262,13 @@ namespace ShatteredSail.Presentation
                 framePaths.Add(path);
                 usedFramePaths.Add(path);
             }
-            Require(framePaths.Count == 36, "Expected 36 complete integrated card-frame variants.");
             File.WriteAllLines(Path.Combine(destination, "packaged-integrated-card-frames.txt"), framePaths.OrderBy(path => path));
             File.WriteAllLines(Path.Combine(destination, "packaged-used-card-frames.txt"), usedFramePaths.OrderBy(path => path));
             File.WriteAllLines(Path.Combine(destination, "packaged-school-card-assets.csv"), lines);
             File.WriteAllLines(Path.Combine(destination, "packaged-card-title-font.csv"), titleLines);
             CardSchoolArtCatalog.ReleaseLoadedTextures();
+            completedChecks.Add((lines.Count - 1) + " card-by-card illustration checks, " + framePaths.Count +
+                " integrated card-frame variants (36 baseline plus actual card variants)");
         }
 
         private void CheckPackagedAudio()
