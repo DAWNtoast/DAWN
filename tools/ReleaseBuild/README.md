@@ -25,7 +25,7 @@ $verification = 'D:/Game/Artifacts/Release20261018/Verification01'
 
 Snapshot 创建前及 RunTests 启动 Unity 前会只读检查全部 Assets `.meta`：每份须有唯一的 32 位十六进制 GUID，资产之间不能重复，失败会列出路径并停止。可单独调用 `AssertMetaGuids.ps1 -AssetsPath <Assets目录>`；`TestMetaGuids.ps1` 使用 `tmp` 内隔离合成数据验证规则和两个入口，不启动 Unity。
 
-若已决定发布审核完成的快照、把主工程的后续改动留到下一版，可将 `source-manifest.csv` 对应的生产源码按原路径与哈希完整保存为冻结镜像，后续 `DesktopRelease.ps1` 调用统一传 `-SourceProjectPath 'D:/Game/Artifacts/CodeReviewRelease20261023/FrozenSource11/UnityClient'`。默认仍为工作区 `UnityClient`；指定目录必须在工作区内，且与 `-ProjectPath` 独立、互不包含。Windows/Seal 仍完整校验镜像与隔离工程的文件清单、快照和测试哈希及版本，镜像不能直接使用含验证身份覆盖项的隔离工程。
+若已决定发布审核完成的快照、把主工程的后续改动留到下一版，可将 `source-manifest.csv` 对应的生产源码按原路径与哈希完整保存为冻结镜像，后续 `DesktopRelease.ps1` 调用统一传 `-SourceProjectPath 'D:/Game/Artifacts/CodeReviewRelease20261023/FrozenSource12/UnityClient'`。默认仍为工作区 `UnityClient`；指定目录必须在工作区内，且与 `-ProjectPath` 独立、互不包含。Windows/Seal 仍完整校验镜像与隔离工程的文件清单、快照和测试哈希及版本，镜像不能直接使用含验证身份覆盖项的隔离工程。
 
 每次发布必须明确版本：通用脚本传 `-Version`（例如 `0.3.20261018.1`，四段数字），直接调用 Unity builder 时传 `-releaseVersion`。示例版本仅供说明，发布时使用本轮指定的新版本；不要依赖 builder 的历史默认版本。下面保留的旧示例用于说明单项操作，不代替上述完整流程。
 
@@ -51,6 +51,8 @@ Snapshot 创建前及 RunTests 启动 Unity 前会只读检查全部 Assets `.me
 ```
 
 `-shatteredSailSmokeTest` 是显式只读验收开关：检查启动场景、资源、中文字体引用、输入系统、设置打开/关闭、绘制帧和打包场景；还用成品 Shader 离屏绘制全部船型的完整图块、镜像及不同转向，检查边缘透明和船体可见。写出截图与报告后以 0（通过）或 1（失败）退出。不会开始新游戏、应用设置或执行 GM，不写 PlayerPrefs。普通双击不创建此检查器。
+
+卡框验收先严格检查 36 种基础流派／木框资源，再按实际打包卡牌检查费用变体；总变体数可高于 36，不能用固定总数拒绝合法资源。逐卡插图、框比例和标题字体要求继续保留。冒烟报告的 `Checks completed` 仅记录实际成功完成的检查，失败时不能把后续检查列为已通过。
 
 隐藏窗口没有可读屏幕缓冲区时，成品中的真实主菜单 Canvas 通过当前渲染管线输出到 1920×1080 RenderTexture；这是打包后的 UI 渲染，不是 Windows 桌面截图，也不使用 Editor 预览素材。
 

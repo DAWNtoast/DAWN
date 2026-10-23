@@ -1,7 +1,7 @@
 第七港口：2026-10-23 代码审核与发布
 
 目标版本：0.3.20261023.1（Windows x86_64 / Mono）
-发布状态：Snapshot11完整双套回归及输入/结果哈希核验通过；准备提交并推送已审核源码，随后构建与验收Windows包。
+发布状态：Snapshot12完整双套回归7537项通过、0失败、55项跳过；已验证源码提交及远端分支，Windows r2构建、成品冒烟、ZIP逐文件校验和封存全部通过。最终身份与哈希见末尾最终发布证据。
 
 本轮修复
 1. 海战雷暴免疫：移动可达范围查询现在与实际航行一致，庇护有效时不再错误截断雷暴后的可达格。覆盖庇护过期、攻击起点和查询不改状态。
@@ -31,21 +31,21 @@
 - 包装脚本防护回归26项通过；海图6000种子语料和修复前后对比保留在本地 Artifacts/CodeReview20261023/CoreAudit。
 
 范围与证据
-- 本次整合已审核的源码、资源、工具和说明。用户随后明确选择先发布已审核快照，后续改动留到下一版；FrozenSource11在冻结版10上仅修复本轮回归问题，未纳入冻结后新增的战斗规则修改。
-- FrozenSource11/UnityClient是本版生产源码镜像，构建工程保留独立验证存储身份。Git采用独立暂存区提交相同版本，主工作区的后续修改保留。
+- 本次整合已审核的源码、资源、工具和说明。用户随后明确选择先发布已审核快照，后续改动留到下一版；FrozenSource12在完整双套回归通过的冻结版11上仅修正成品冒烟检查及对应回归；冻结版11在冻结版10上仅修复本轮回归问题，未纳入冻结后新增的战斗规则修改。
+- FrozenSource12/UnityClient是本版生产源码镜像，构建工程保留独立验证存储身份。Git采用独立暂存区提交相同版本，主工作区的后续修改保留。
 - 发布工具允许显式指定工作区内、与构建工程分离的冻结源路径；源码清单、版本及快照/测试哈希门禁不变，16项路径与证据边界回归通过。
 - 正式验收必须采用同一源码快照的完整 EditMode 与 PlayMode，并由 Verify.ps1 校验输入和结果哈希；定向测试不能代替完整发布门禁。
 - 中间快照与失败记录保留在 Artifacts/CodeReviewRelease20261023；失败、被取代或未完成的运行不计为通过。
 - UIPreviewsForMe 保持空目录且退役，不生成或恢复内容。本轮未调用外部图像 API。
 - Builds/ 与 Artifacts/ 为本地发布与证据目录，不将临时验证二进制纳入 Git。
 
-中间完整测试：Snapshot10 / Edit10，总数6951，通过6906，失败0，跳过45（退役个人预览），包含修复GUID后重新发现的22项核心关键词用例。Play10总数640，通过627，失败3，跳过10；失败为目的港夹具刷新、教学选中色、寻宝夹具刷新，不能作为发布通过依据。
+历史完整测试（不作为最终发布依据）：Snapshot10 / Edit10，总数6951，通过6906，失败0，跳过45（退役个人预览），包含修复GUID后重新发现的22项核心关键词用例。Play10总数640，通过627，失败3，跳过10；失败为目的港夹具刷新、教学选中色、寻宝夹具刷新，不能作为发布通过依据。
 Snapshot08及之前的测试不能作为最终发布依据；Play08在发现测试脚本被忽略后主动终止，记录为未完成。Snapshot09的两项头像尺寸断言已在Snapshot10修正。
-冻结版11完整验收：EditMode 6906通过、0失败、45跳过；PlayMode 630通过、0失败、10跳过；合计7536通过、0失败、55跳过。Verify.ps1核对两套完整运行的前后输入清单和结果XML哈希，通过。
+历史冻结版11双套回归（已由Snapshot12替代）：EditMode 6906通过、0失败、45跳过；PlayMode 630通过、0失败、10跳过；合计7536通过、0失败、55跳过。Verify.ps1核对两套完整运行的前后输入清单和结果XML哈希，通过。
 跳过项为45项退役个人预览与10项显式选择的长期经济审计、性能测量、画面采集和音频API诊断；没有把跳过项计入通过。逐项清单见本地Verification11/skipped-tests.json。
-Windows成品与压缩包验收结果将在出包后补充。
+历史成品验收：冻结版11的Windows构建成功，但旧冒烟检查固定要求卡框总数为36，将合法的新增费用变体误判为失败；该目录已标记未发布，不能替代下面的r2最终证据。
 
-最终候选源码证据
+历史冻结版11候选源码证据（保留审计轨迹，不代表最终r2）
 - Snapshot11生产源码清单：5405个文件，SHA256 765965588F27E0DC0667778953449F0F94AB4D4EC00D825B05F3FE73F1E35BEA。
 - 隔离工程输入清单：5407个文件，SHA256 29FFB7D0C2774546F63C835761D37C065A158E870F318549B604B14B983B129A；仅额外验证存储身份和编辑器资源检查器。
 - Snapshot10到11仅修改教学焦点生产文件及3个相关PlayMode测试文件，未添加其他玩法或素材变更。
@@ -54,3 +54,43 @@ Windows成品与压缩包验收结果将在出包后补充。
 - Play11：总数640，通过630，失败0，跳过10，前后输入校验通过。
 - Verify11：PASS；Edit11结果XML SHA256 00165C042655B686908847B78FC52E2B5F8A80C49BC9A8CBE45201A129A8C070；Play11结果XML SHA256 BF7A10E53D0CD1EC626FA0AA4E6F507A7EEFADAACA0C6CE417B28515C36E84C4。
 - 发布暂存区与主暂存区分开，索引同步保护的11项隔离回归通过；若检测到新的暂存内容、特殊标记或他人锁，则保留主索引，不覆盖。
+
+最终发布证据：Snapshot12 / Windows r2
+- 版本：0.3.20261023.1；平台：Windows x86_64 / Mono；Unity：6000.3.23f1。
+- FrozenSource12仅在已推送的冻结版11上修正两份既有文件：ReleasePlayerSmokeCheck.cs、ReleaseSmokeArgumentsTests.cs；未纳入其他聊天后续的战斗规则。
+- 成品验收修复：严格保留36种基础卡框检查，再逐张卡校验实际费用框变体、比例与标题字体；报告仅列真正完成的检查，失败不再冒列后续成功项。对应回归覆盖基础框和实际变体差异。
+- 生产源码清单：5405个文件，SHA256 A7D3E1971901CB12B5725C8DBB74CEC9599F4CF39650B69F0CD67FD99ACD0948。
+- 隔离工程输入清单：5407个文件，SHA256 1A844C39F9B68A0D1E1A9D461E57C673E399254B71380D561CCA3DA804030B26；仅使用独立验证存储身份和编辑器资源检查器。
+- EditMode：总数6952，通过6907，失败0，跳过45；结果XML SHA256 770C68B44F6051DED724CD7F58FABE9024EB785D81655E757E5FA401B9BF6D96。
+- PlayMode：总数640，通过630，失败0，跳过10；结果XML SHA256 9B935196C706E8DAFBF684026401C9631E97E325CE9CE9468B3911AF4B3FF7AB。
+- Verification12：PASS，合计7537通过、0失败、55跳过；校验完整运行、前后输入清单和结果XML哈希。
+- Windows构建：Succeeded，0错误、0警告；1235张图片入包引用检查通过，仅含MainMenu、CoreGameplayDemo两场景。
+- 实际成品冒烟：PASS，退出码0；版本0.3.20261023.1，Company=ShatteredSail，Product=Shattered Sail，沿用正式存档身份。
+- 已完成的资源检查：12组转向/镜像船体及前景、60个48kHz音频、346项逐卡插图、47种集成卡框（36基础框加实际用牌变体）、36幅船员档案画；主菜单、设置开关与成品UI离屏帧通过。
+- 冒烟报告原始成功项：startup, packaged scenes, background, fonts, input, settings open/close; packaged UI offscreen frame; 12 turned/mirrored ship cutouts and visible foreground; 60 verified packaged 48kHz audio clips; 346 card-by-card illustration checks, 47 integrated card-frame variants (36 baseline plus actual card variants); 36 integrated crew dossier paintings
+- ZIP：Builds/第七港口-代码审核20261023-r2/第七港口-Windows-20261023.zip；178个文件逐项SHA256验证通过；压缩包3153052488字节，解压内容3524052581字节。
+- ZIP SHA256：635557B5690FF042FC06BFEEB75FF8632211357C8462E993636864B4CB20F39D。
+- EXE SHA256：82EFD5A8C297A5046F6BB72C240DAB8972E64003851935EBA0A46AD121CE0305。
+- 最终源码提交：2f80d49e47c0ede2906d30e5f7c5920daa0e4867；整合基线：6e9ae9f1bdd2018291c2faed04d4dbe12b704f40。
+- 远端：https://github.com/DAWNtoast/DAWN.git；分支：codex/ui-refactor-stage2；已核对远端提交=2f80d49e47c0ede2906d30e5f7c5920daa0e4867，核对时间（UTC）2026-10-23T19:08:07.3529499Z。
+- 源码补丁使用独立新暂存区，仅含上述两文件；固定父提交与目标分支比较并交换，保留并发修改，不回滚或强制覆盖主工作树。
+- 发布清单：Builds/第七港口-代码审核20261023-r2/release-manifest.json，Result=PASS；SHA256 C16E2DB08AF194967280F18D2EA9A5ECFF4968683C63AFFBBCC99E1D0418535E。
+
+最终55项跳过原因（保留原始原因，跳过不计通过）
+完整逐项名称与原因：Artifacts/CodeReviewRelease20261023/Verification12/skipped-tests.json；SHA256 0F8A249DD983F46B77C81860014091427FED0528E7C2DB1C9C23FF436D324262。
+- 45项：UIPreviewsForMe was retired and cleared on 2026-10-13; these historical saved-scene fixtures are no longer maintained.
+- 3项：OneTimeSetUp: Opt-in API diagnostic: pass -audioNativeProbe and a fresh -audioCapturePath to run these probes.
+- 1项：Opt-in: provide -navigationHeadingPerformanceOutput with a new JSON path.
+- 1项：Opt-in: supply -achievementMenuBenchmarkPath with a new JSON output path.
+- 1项：Opt-in: supply -flowPerformanceOutput pointing to a new JSON file.
+- 1项：Opt-in: supply -noGmFirstTreasureAuditPath <new absolute directory>; bounded to 40 actual departures / 30 minutes.
+- 1项：Opt-in: this full-campaign economy/capture audit can run for four hours; supply -navalVisualCapturePath to run it.
+- 1项：Set SEVENTH_PORT_CARD_FLIGHT_CAPTURE to a new output directory to capture the live battle UI.
+- 1项：SetUp : Explicit audio API diagnostic only; pass -audioNativeProbe to run.
+
+验收边界
+- 45项跳过为退役个人预览，10项为显式启用的长期经济、性能、画面采集与音频API诊断；未将专项未运行内容计为通过。
+- 长流程与交互覆盖来自PlayMode回归。成品检查是该机器上的只读启动、渲染、主菜单和资源验收，不是全流程人工通关，也不是整体性能基准；本轮未做macOS实机验证。
+- 显式冒烟模式不开始新游戏、不读取航程文件、不应用设置、不执行GM、不修改PlayerPrefs或存档；普通游戏保留正式产品存档身份。
+- 构建0警告仅指Windows构建报告；本轮实际成品运行日志完整保留于Artifacts/CodeReviewRelease20261023/Snapshot12/Smoke/player.log，不沿用旧版日志作为本版结果。
+- UIPreviewsForMe继续退役；本轮未调用外部图像API。后续主树规则变化留待下一版，不属于此冻结包。
