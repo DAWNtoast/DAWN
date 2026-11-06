@@ -28,10 +28,6 @@ namespace ShatteredSail.Presentation
                 Button board = CreateButton("Treasure Route " + index, panel, display.Size, display.Position, Color.clear, Ink, 18);
                 board.GetComponentInChildren<Text>().text = string.Empty;
                 board.GetComponent<Image>().raycastTarget = false;
-                Image contact = CreateImage("Treasure Chart Paper Contact " + index, board.transform, display.Size,
-                    new Vector2(0f, -2f), new Color(.025f, .015f, .005f, .55f));
-                contact.raycastTarget = false;
-                display.Project(contact);
                 Image edge = CreateImage("Treasure Chart Paper Edge " + index, board.transform, display.Size,
                     Vector2.zero, ready ? Gold : selected ? Html("#D9B969") : Html("#A88C59"));
                 edge.raycastTarget = false;
@@ -168,7 +164,7 @@ namespace ShatteredSail.Presentation
             if (target == null) return;
             TreasureResultMotion.PlayIdentification(panel, target, TreasureChartDisplayLayout.For(rankIndex), piece,
                 TreasureChartDisplayLayout.PixelToPanel(new Vector2(335f, 727f)),
-                CoreTreasureHuntCatalog.Ranks[rankIndex].Name, previousCount < 4, this);
+                previousCount < 4, this);
         }
 
         private void PlayTreasureCraftResult(int slot)
@@ -348,11 +344,11 @@ namespace ShatteredSail.Presentation
             TreasureFolioRule("Treasure Folio Footer Rule", folio, new Vector2(1460f, 1f), new Vector2(0f, -310f));
             Button unused = TreasureFolioButton("Treasure Browse Unused", folio,
                 new Vector2(610f, 54f), new Vector2(-326f, -357f), "查看未使用的藏宝图", 24);
-            MarketShopSkin.SetMode(unused, treasureFolioView == 1);
+            WoodButtonSkin.SetSelected(unused, treasureFolioView == 1);
             unused.onClick.AddListener(() => { treasureFolioView = 1; treasureFolioPage = 0; Render(); });
             Button history = TreasureFolioButton("Treasure Browse Used", folio,
                 new Vector2(610f, 54f), new Vector2(326f, -357f), "查看已使用的藏宝图", 24);
-            MarketShopSkin.SetMode(history, treasureFolioView == 2);
+            WoodButtonSkin.SetSelected(history, treasureFolioView == 2);
             history.onClick.AddListener(() => { treasureFolioView = 2; treasureFolioPage = 0; Render(); });
         }
 
@@ -393,9 +389,8 @@ namespace ShatteredSail.Presentation
                 TreasureFolioText("Treasure Folio Rank Availability " + index, folio, new Vector2(400f, 28f),
                     new Vector2(x, -191f), 17, MarketShopSkin.MutedInk,
                     session.PirateLevel < rank.UnlockLevel ? "海盗等级 " + rank.UnlockLevel + " 解锁" :
-                    fragments >= CoreTreasureHuntCatalog.FragmentCost ?
-                        session.TreasureMaps.Count >= CoreTreasureHuntCatalog.MaxHeldMaps ? "碎片已集齐，图册已满" : "碎片已集齐，可在工作台合成" :
-                        "集齐四片可合成", TextAnchor.MiddleCenter);
+                    fragments >= CoreTreasureHuntCatalog.FragmentCost && session.TreasureMaps.Count >= CoreTreasureHuntCatalog.MaxHeldMaps
+                        ? "碎片已集齐，图册已满" : string.Empty, TextAnchor.MiddleCenter);
             }
             TreasureFolioRule("Treasure Folio Overview Left Rule", folio, new Vector2(1f, 358f), new Vector2(-230f, -23f));
             TreasureFolioRule("Treasure Folio Overview Right Rule", folio, new Vector2(1f, 358f), new Vector2(230f, -23f));
@@ -425,9 +420,8 @@ namespace ShatteredSail.Presentation
 
         private Button TreasureFolioButton(string name, Transform parent, Vector2 size, Vector2 position, string value, int fontSize)
         {
-            Button button = CreateButton(name, parent, size, position, Color.clear, MarketShopSkin.Ink, fontSize);
+            Button button = CreateButton(name, parent, size, position, Color.white, WoodButtonSkin.Ink, fontSize);
             button.GetComponentInChildren<Text>().text = value;
-            MarketShopSkin.ApplyLightButton(button);
             return button;
         }
 

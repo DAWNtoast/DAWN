@@ -142,9 +142,9 @@ namespace ShatteredSail.Presentation.Tests
             outputTap = listenerHost.AddComponent<AudioOutputCaptureTap>();
 
             // Preload the real imported clips; no samples are read or replaced by the fixture.
-            LoadClip("Audio/Music/port_broken_anchor");
-            LoadClip("Audio/Music/route_golden_tide_trade");
-            LoadClip("Audio/Music/battle_nonboss");
+            LoadClip("Audio/Music/captains_vow_broken_anchor");
+            LoadClip("Audio/Music/captains_vow_sailing");
+            LoadClip("Audio/Music/captains_vow_naval");
             LoadClip("Audio/Ambience/harbor_ambience");
             LoadClip("Audio/Ambience/tavern_ambience");
             foreach (string key in new[] { "battle_start", "battle_cannon_fire", "battle_impact", "battle_enemy_intent",
@@ -196,7 +196,7 @@ namespace ShatteredSail.Presentation.Tests
             // Include a fresh initial music fade in the scenario, after native priming.
             Field<AudioSource>("activeMusicSource").Stop();
             Invoke("SetMusic", controller.ActiveMusicKey, true);
-            Assert.That(controller.ActiveMusicKey, Is.EqualTo("port_broken_anchor"));
+            Assert.That(controller.ActiveMusicKey, Is.EqualTo("captains_vow_broken_anchor"));
         }
 
         [UnityTearDown]
@@ -240,7 +240,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             SetPhase(CoreDemoPhase.Battle);
             SetField("battleAnimationPlaying", true);
-            Invoke("SetMusic", "battle_nonboss", false);
+            Invoke("SetMusic", "captains_vow_naval", false);
             var actions = new List<ScheduledAction>();
             Cue(actions, 0f, "battle_start", 0.86f);
             string[] keys = { "battle_cannon_fire", "battle_impact", "battle_enemy_intent", "battle_card_play", "battle_maneuver", "battle_guard" };
@@ -258,7 +258,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 SetField("battleAnimationPlaying", false);
                 SetPhase(CoreDemoPhase.Settlement);
-                Invoke("SetMusic", "port_broken_anchor", false);
+                Invoke("SetMusic", "captains_vow_broken_anchor", false);
             });
             yield return CaptureScenario("battle", 12, actions, null);
         }
@@ -268,8 +268,8 @@ namespace ShatteredSail.Presentation.Tests
         {
             var actions = new List<ScheduledAction>();
             for (int i = 0; i < 36; i++) Cue(actions, 0.5f + i * 0.4f, "course_plot", 0.44f);
-            At(actions, 4f, "Restore master; crossfade to route", () => Invoke("SetMusic", "route_golden_tide_trade", false));
-            At(actions, 10f, "Restore categories; crossfade back to original port track", () => Invoke("SetMusic", "port_broken_anchor", false));
+            At(actions, 4f, "Restore master; crossfade to route", () => Invoke("SetMusic", "captains_vow_sailing", false));
+            At(actions, 10f, "Restore categories; crossfade back to original port track", () => Invoke("SetMusic", "captains_vow_broken_anchor", false));
             Cue(actions, 14.15f, "chart_draw", 0.5f);
             yield return CaptureScenario("settings", 15, actions, seconds =>
             {
@@ -390,7 +390,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(report.windows.Single(window => window.name == "music_zero_effects_live").rms, Is.GreaterThan(0.0001), "Muting music must preserve audible effects/ambience.");
                     Assert.That(report.windows.Single(window => window.name == "effects_zero_music_live").rms, Is.GreaterThan(0.001), "Muting effects must preserve audible music.");
                     Assert.That(report.windows.Single(window => window.name == "restored").rms, Is.GreaterThan(0.001), "Restoring volume must restore actual output.");
-                    Assert.That(report.finalMusicKey, Is.EqualTo("port_broken_anchor"));
+                    Assert.That(report.finalMusicKey, Is.EqualTo("captains_vow_broken_anchor"));
                     Assert.That(Field<float>("musicCrossfade"), Is.LessThanOrEqualTo(0f), "Music fade did not finish on the capture clock. " + ClockDiagnostic());
                 }
             }

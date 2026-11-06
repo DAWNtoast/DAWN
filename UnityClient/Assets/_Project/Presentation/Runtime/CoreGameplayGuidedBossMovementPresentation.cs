@@ -6,15 +6,14 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
-        private bool GuidedNavalMovementBlocked => tutorialActive && guidedTutorialStep != GuidedTutorialStep.Complete &&
+        private bool GuidedNavalMovementBlocked => tutorialActive && !IsGuidedBossFreeBattle && guidedTutorialStep != GuidedTutorialStep.Complete &&
             (!HasGuidedBossPresentation || !session.GuidedBossAllowsMovement);
 
         private bool GuidedBossAllowsControl(string name)
         {
             if (name == "Emergency Battle Return") return session.CanRequestEmergencyTow();
             if (name == "Retreat Battle") return false;
-            if (name == "Guided Battle Inspect Resources" || name == "Guided Battle Inspect Enemy" ||
-                name == "Guided Battle Inspect Deck" || name == "Battle Deck" || name == "Enemy Intent HUD") return true;
+            if (name == "Battle Deck" || name == "Enemy Intent HUD") return true;
             if (name == "Guided Battle Retry") return session.GuidedBossCanRestart;
             if (name == "Guided Battle Continue") return session.GuidedBossCanContinue && !session.GuidedBossExerciseFailed;
             if (name == "End Battle Turn") return session.GuidedBossAllowsEndTurn;
@@ -33,12 +32,18 @@ namespace ShatteredSail.Presentation
             get
             {
                 if (session.Battle.NavalAwaitingHeadingSelection)
+                {
+                    if (session.GuidedBossRequiresEastArrivalHeading)
+                        return "请选择朝东的方向箭头停船，让船头指向右侧相邻敌舰，然后获取行动点进行冲撞。";
                     return session.CanNavalArrivalContact(true, out _, out _) || session.CanNavalArrivalContact(false, out _, out _)
-                        ? "到达后可用剩余行动点接舷或冲撞，也可选择合法朝向普通停船；普通停船清空余量，不能直接掉头。"
-                        : "到达后任选一个亮起的合法终向。普通停船清空余量后可继续出牌；不能直接掉头。";
+                        ? "可用剩余行动点接舷或冲撞；选择亮起的方向箭头停船，会清空剩余行动点。"
+                        : "选择亮起的方向箭头停船，剩余行动点会清空。";
+                }
                 if (session.NavalMovementPlannedSteps > 0)
                     return "已选择 " + session.NavalMovementPlannedSteps + " / " + session.Battle.NavalActionPoints +
-                        " 格。可从末端继续拖动，或拖回已选格撤销；松开保留预览，普通停船后清空行动点。";
+                        (session.GuidedBossRequiresEastArrivalHeading
+                            ? " 格。确认航行，到达后请选择朝东的方向箭头，让船头指向敌舰。"
+                            : " 格。确认航行并选择停船朝向后，剩余行动点会清空。");
                 return session.GuidedBossInstruction;
             }
         }

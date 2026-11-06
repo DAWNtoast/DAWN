@@ -1,0 +1,2 @@
+Naval combat VFX atlas generated with the built-in image_gen tool on 2026-10-31.
+Original transparency and image pixels are preserved. No external image API was used.

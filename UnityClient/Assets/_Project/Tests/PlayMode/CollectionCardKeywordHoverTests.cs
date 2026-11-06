@@ -36,7 +36,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             face.anchoredPosition = new Vector2(x, 0);
             face.localScale = Vector3.one * .76f;
-            CollectionCardKeywordHover.Bind(card.gameObject, face, null, "额外装药：5；施加 3 层灼烧。");
+            CollectionCardKeywordHover.Bind(card.gameObject, face, null, "额外装药：5；施加 3 层燃烧。");
             ExecuteEvents.Execute(card.gameObject, new PointerEventData(null), ExecuteEvents.pointerEnterHandler);
             CardKeywordTooltip tooltip = ActiveTooltip();
             Assert.That(tooltip, Is.Not.Null);
@@ -117,9 +117,9 @@ namespace ShatteredSail.Presentation.Tests
         {
             CollectionCardKeywordHover.Bind(card.gameObject, face, null, "额外装药：5。").Show();
             Button second = NewCard("Second", viewport);
-            CollectionCardKeywordHover.Bind(second.gameObject, (RectTransform)second.transform, null, "施加 3 层灼烧。").Show();
+            CollectionCardKeywordHover.Bind(second.gameObject, (RectTransform)second.transform, null, "施加 3 层燃烧。").Show();
             Assert.That(viewport.GetComponentsInChildren<CardKeywordTooltip>(), Has.Length.EqualTo(1));
-            Assert.That(ActiveTooltip().GetComponentsInChildren<Text>().Select(label => label.text), Does.Contain("灼烧").And.Not.Contain("额外装药"));
+            Assert.That(ActiveTooltip().GetComponentsInChildren<Text>().Select(label => label.text), Does.Contain("燃烧").And.Not.Contain("额外装药"));
             CollectionCardKeywordHover.Bind(second.gameObject, (RectTransform)second.transform, null, "获得 6 点格挡；抽 1 张牌。").Show();
             Assert.That(ActiveTooltip(), Is.Null);
         }

@@ -14,6 +14,8 @@ namespace ShatteredSail.Core.Gameplay
     {
         public string Title, ResourceLabel;
         public bool RequiresAnchor, RequiresSource, RequiresDirection, AllowsVertical, RequiresFieldInstance;
+        public bool IsFieldPlacement;
+        public CoreNavalFieldKind FieldKind;
         public int ShapeWidth = 1, ShapeHeight = 1, ResourceMinimum, ResourceMaximum;
         public bool RequiresChoice => RequiresAnchor || RequiresSource || RequiresDirection || RequiresFieldInstance || ResourceMaximum > ResourceMinimum;
     }
@@ -28,16 +30,16 @@ namespace ShatteredSail.Core.Gameplay
             var choice = new CoreNavalCardChoice { Title = card.Name, ResourceLabel = spec.ResourceLabel,
                 ResourceMinimum = spec.ResourceMinimum, ResourceMaximum = NavalExpansionResourceMaximum(spec) };
             CoreNavalExpansionMechanic kind = spec.Mechanic;
+            choice.IsFieldPlacement = spec.IsField;
+            if (spec.IsField) choice.FieldKind = NavalExpansionFieldKind(kind);
             choice.RequiresAnchor = spec.IsField || kind == CoreNavalExpansionMechanic.HarborExplosion ||
-                kind == CoreNavalExpansionMechanic.MoveFire || kind == CoreNavalExpansionMechanic.GreatWave ||
                 kind == CoreNavalExpansionMechanic.ThunderCollapse;
-            choice.RequiresSource = kind == CoreNavalExpansionMechanic.MoveFire;
-            choice.RequiresDirection = kind == CoreNavalExpansionMechanic.TideField || kind == CoreNavalExpansionMechanic.RecedingWave || kind == CoreNavalExpansionMechanic.GreatWave;
-            choice.AllowsVertical = kind == CoreNavalExpansionMechanic.ThunderField;
-            choice.RequiresFieldInstance = kind == CoreNavalExpansionMechanic.ThunderCollapse;
-            if ((spec.IsField && !choice.AllowsVertical) || kind == CoreNavalExpansionMechanic.HarborExplosion)
+            choice.RequiresDirection = kind == CoreNavalExpansionMechanic.TideField;
+            choice.AllowsVertical = false;
+            choice.RequiresFieldInstance = false;
+            if ((spec.IsField && !choice.AllowsVertical) || kind == CoreNavalExpansionMechanic.HarborExplosion || kind == CoreNavalExpansionMechanic.ThunderCollapse)
                 choice.ShapeWidth = choice.ShapeHeight = 2;
-            if (choice.AllowsVertical || kind == CoreNavalExpansionMechanic.GreatWave) choice.ShapeWidth = 3;
+            if (spec.IsField) choice.ShapeWidth = choice.ShapeHeight = GetNavalFieldSize(choice.FieldKind);
             return choice.RequiresChoice ? choice : null;
         }
 
@@ -47,8 +49,10 @@ namespace ShatteredSail.Core.Gameplay
         public int NavalExpansionResourceAmount(CoreNavalExpansionCardSpec spec, CoreNavalCardPlayOptions options = null)
         {
             if (spec == null) return 0;
+            if (spec.Mechanic == CoreNavalExpansionMechanic.LoadSeal) return 0;
             if (!spec.ConsumesAllResource) return options?.ResourceAmount ?? spec.ResourceMinimum;
             if (Battle == null) return 0;
+            if (spec.ResourceLabel == "法力") return Battle.Schools.AvailableMana;
             if (spec.ResourceLabel == "潮势") return Math.Max(0, Battle.Schools.TidePower);
             if (spec.ResourceLabel == "咒印") return Math.Max(0, Battle.Schools.CurseMarks);
             if (spec.ResourceLabel == "连锁") return Math.Max(0, Battle.Schools.ThunderChain);
@@ -80,29 +84,25 @@ namespace ShatteredSail.Core.Gameplay
             if (card.PowderCost > Cargo.Powder) return "火药不足";
             if (card.CannonballCost > Cargo.Cannonballs) return "炮弹不足";
             if (spec.ManaCost > Battle.Schools.AvailableMana) return "法力不足";
-            int lifeCost = CoreSpecialCardRules.HealthCost(card, Battle);
+            int lifeCost = GetBattleCardHealthCost(card);
             if (lifeCost >= Hull && lifeCost > 0) return "支付船体后须至少剩余 1 点";
-            if (spec.ResourceMinimum > NavalExpansionResourceMaximum(spec)) return spec.ResourceLabel + "不足";
+            if (spec.Mechanic == CoreNavalExpansionMechanic.LoadSeal)
+            {
+                if (Battle.Schools.CurseMarks < 1) return "敌方咒印层数不足 1";
+            }
+            else if (spec.ResourceMinimum > NavalExpansionResourceMaximum(spec)) return spec.ResourceLabel + "不足";
             if (spec.OncePerTurn && Battle.SuccessfulCardUses(BattleCardUseIdentity(card)) > 0) return "同名牌本回合已使用";
+            reason = NavalThunderPowerUnavailableReason(card);
+            if (reason.Length > 0) return reason;
             if (spec.NeedsEnemyTarget && NavalGridDistance(Battle.PlayerPositionMeters, Battle.EnemyPositionMeters) > 4)
                 return "目标须在 4 格曼哈顿范围内";
-            if (spec.Mechanic == CoreNavalExpansionMechanic.MoveFire && !NavalExpansionHasMovableFire()) return "没有可移至相邻空格的己方火场";
+            if (spec.Mechanic == CoreNavalExpansionMechanic.ManaBurst &&
+                NavalGridDistance(Battle.PlayerPositionMeters, Battle.EnemyPositionMeters) < 1)
+                return "目标须在 1–4 格范围内";
+            if (spec.Mechanic == CoreNavalExpansionMechanic.MoveFire && !Battle.NavalFields.Cells.Exists(cell => cell.PlayerOwned && cell.Kind == CoreNavalFieldKind.Fire)) return "没有己方火场";
             if (spec.Mechanic == CoreNavalExpansionMechanic.HarborExplosion && !NavalExpansionHasExplodableFire()) return "没有完整落在 4 格内的己方火场引爆区域";
-            if (spec.Mechanic == CoreNavalExpansionMechanic.ThunderCollapse && !NavalExpansionHasCollapsibleThunder()) return "没有含敌舰且剩余格全在 4 格内的己方雷栅";
+            if (spec.Mechanic == CoreNavalExpansionMechanic.ThunderCollapse && !NavalExpansionHasCollapsibleThunder()) return "没有完整落在 4 格内且含己方雷栅的 2×2 区域";
             return string.Empty;
-        }
-
-        private bool NavalExpansionHasMovableFire()
-        {
-            foreach (CoreNavalFieldCell cell in Battle.NavalFields.Cells)
-                if (cell.PlayerOwned && cell.Kind == CoreNavalFieldKind.Fire && NavalExpansionCellInRange(cell.X, cell.Y))
-                    for (int direction = 0; direction < 4; direction++)
-                    {
-                        int dx = direction == 0 ? 1 : direction == 1 ? -1 : 0;
-                        int dy = direction == 2 ? 1 : direction == 3 ? -1 : 0;
-                        if (CanMoveNavalFireCell(true, cell.X, cell.Y, cell.X + dx, cell.Y + dy).Length == 0) return true;
-                    }
-            return false;
         }
 
         private bool NavalExpansionHasExplodableFire()
@@ -120,11 +120,15 @@ namespace ShatteredSail.Core.Gameplay
 
         private bool NavalExpansionHasCollapsibleThunder()
         {
-            CoreNavalFieldCell target = GetNavalFieldAt(NavalExpansionCell(Battle.EnemyPositionMeters.X), NavalExpansionCell(Battle.EnemyPositionMeters.Y));
-            if (target == null || !target.PlayerOwned || target.Kind != CoreNavalFieldKind.Thunder) return false;
             foreach (CoreNavalFieldCell cell in Battle.NavalFields.Cells)
-                if (cell.InstanceId == target.InstanceId && !NavalExpansionCellInRange(cell.X, cell.Y)) return false;
-            return true;
+                if (cell.PlayerOwned && cell.Kind == CoreNavalFieldKind.Thunder)
+                    for (int dx = -1; dx <= 0; dx++) for (int dy = -1; dy <= 0; dy++)
+                    {
+                        int x = cell.X + dx, y = cell.Y + dy;
+                        if (NavalExpansionCellInRange(x, y) && NavalExpansionCellInRange(x + 1, y) &&
+                            NavalExpansionCellInRange(x, y + 1) && NavalExpansionCellInRange(x + 1, y + 1)) return true;
+                    }
+            return false;
         }
 
         public string GetNavalChoiceUnavailableReason(int handIndex, CoreNavalCardPlayOptions options)
@@ -145,10 +149,7 @@ namespace ShatteredSail.Core.Gameplay
                 options.AnchorX, options.AnchorY, options.Vertical, options.DirectionX, options.DirectionY);
             switch (spec.Mechanic)
             {
-                case CoreNavalExpansionMechanic.MoveFire:
-                    return CanMoveNavalFireCell(true, options.SourceX, options.SourceY, options.AnchorX, options.AnchorY);
                 case CoreNavalExpansionMechanic.HarborExplosion:
-                case CoreNavalExpansionMechanic.GreatWave:
                     List<VoyagePoint> shape = NavalExpansionShape(spec.Mechanic, options);
                     bool fire = false;
                     foreach (VoyagePoint point in shape)
@@ -161,20 +162,11 @@ namespace ShatteredSail.Core.Gameplay
                     return spec.Mechanic == CoreNavalExpansionMechanic.HarborExplosion && !fire ? "区域内须至少有 1 格己方火场" : string.Empty;
                 case CoreNavalExpansionMechanic.ThunderCollapse:
                     List<CoreNavalFieldCell> cells = NavalExpansionSelectedThunder(options);
-                    if (cells.Count == 0) return "请选择己方雷栅实例";
-                    bool enemy = false;
-                    foreach (CoreNavalFieldCell cell in cells)
-                    {
-                        if (!NavalExpansionCellInRange(cell.X, cell.Y)) return "所选雷栅全部剩余格均须在 4 格内";
-                        enemy |= NavalExpansionShipAt(false, cell.X, cell.Y);
-                    }
-                    return enemy ? string.Empty : "所选雷栅须至少有一格包含敌舰";
-                case CoreNavalExpansionMechanic.RecedingWave:
-                    int enemyX = NavalExpansionCell(Battle.EnemyPositionMeters.X), enemyY = NavalExpansionCell(Battle.EnemyPositionMeters.Y);
-                    int playerX = NavalExpansionCell(Battle.PlayerPositionMeters.X), playerY = NavalExpansionCell(Battle.PlayerPositionMeters.Y);
-                    int before = Math.Abs(enemyX - playerX) + Math.Abs(enemyY - playerY);
-                    int after = Math.Abs(enemyX + options.DirectionX - playerX) + Math.Abs(enemyY + options.DirectionY - playerY);
-                    return after > before ? string.Empty : "推动方向必须使双方格距增加";
+                    if (cells.Count == 0) return "区域内须至少有 1 格己方雷栅";
+                    foreach (VoyagePoint point in NavalExpansionShape(spec.Mechanic, options))
+                        if (!NavalExpansionCellInRange(NavalExpansionCell(point.X), NavalExpansionCell(point.Y)))
+                            return "区域的每一格都须是 4 格内合法海格";
+                    return string.Empty;
             }
             return string.Empty;
         }
@@ -204,8 +196,6 @@ namespace ShatteredSail.Core.Gameplay
         private static List<VoyagePoint> NavalExpansionShape(CoreNavalExpansionMechanic mechanic, CoreNavalCardPlayOptions options)
         {
             int width = 2, height = 2;
-            if (mechanic == CoreNavalExpansionMechanic.GreatWave)
-            { width = options.DirectionX != 0 ? 1 : 3; height = options.DirectionX != 0 ? 3 : 1; }
             var result = new List<VoyagePoint>();
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++)
@@ -215,13 +205,13 @@ namespace ShatteredSail.Core.Gameplay
 
         private List<CoreNavalFieldCell> NavalExpansionSelectedThunder(CoreNavalCardPlayOptions options)
         {
-            int instance = options.FieldInstanceId;
-            CoreNavalFieldCell selected = options.HasAnchor ? GetNavalFieldAt(options.AnchorX, options.AnchorY) : null;
-            if (selected != null && selected.PlayerOwned && selected.Kind == CoreNavalFieldKind.Thunder) instance = selected.InstanceId;
             var result = new List<CoreNavalFieldCell>();
-            if (instance <= 0) return result;
-            foreach (CoreNavalFieldCell cell in Battle.NavalFields.Cells)
-                if (cell.PlayerOwned && cell.Kind == CoreNavalFieldKind.Thunder && cell.InstanceId == instance) result.Add(cell);
+            if (!options.HasAnchor) return result;
+            foreach (VoyagePoint point in NavalExpansionShape(CoreNavalExpansionMechanic.ThunderCollapse, options))
+            {
+                CoreNavalFieldCell cell = GetNavalFieldAt(NavalExpansionCell(point.X), NavalExpansionCell(point.Y));
+                if (cell != null && cell.PlayerOwned && cell.Kind == CoreNavalFieldKind.Thunder) result.Add(cell);
+            }
             return result;
         }
     }

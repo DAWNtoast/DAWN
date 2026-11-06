@@ -43,9 +43,7 @@ namespace ShatteredSail.Presentation
             header.localScale = Vector3.one;
             view.Title.text = title;
             view.Status.text = BuildHeaderStatus();
-            view.Timeline.SetVoyageHours(session.ElapsedGameHours);
-            view.Time.text = "游戏 " + CoreVoyageSession.FormatGameDate(session.GameDateTime, true) + "　·　" +
-                NavigationTimeOfDayUtility.Label(NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours));
+            VoyageTimeRibbonSkin.Update(view.Time.transform.parent as RectTransform, session.GameDateTime, session.ElapsedGameHours);
             // Render restores outgoing tutorial guards before clearing the body.
             // Bind fresh callbacks so a retained header cannot keep the old step.
             view.Cargo.onClick = new Button.ButtonClickedEvent();
@@ -54,7 +52,7 @@ namespace ShatteredSail.Presentation
             view.Settings.onClick = new Button.ButtonClickedEvent();
             view.Settings.onClick.AddListener(OpenPortSettings);
             view.Settings.interactable = true;
-            NavigationHeaderSkin.Apply(header);
+            NavigationHeaderSkin.Apply(header, VoyageHeaderPort);
             view.gameObject.SetActive(true);
             return true;
         }

@@ -220,6 +220,10 @@ namespace ShatteredSail.Presentation
             quote.Consumed = true;
             pendingMarketPurchase = null;
             string key = PortMarketCatalog.Key(quote.Item);
+            decimal visualGoldBefore = session.ProfileGold;
+            int visualItemBefore = warehouse ? session.PortWarehouse.GetAmount(quote.Port, key) : session.GetMarketCargoAmount(key);
+            Vector2 visualOrigin = CapturePortActionOrigin("Market Item Icon " + key,
+                marketTradeConfirm == null ? null : (RectTransform)marketTradeConfirm.transform);
             bool bought = warehouse ? session.TryPurchasePortWarehouseCargo(key, quote.Quantity, quote.Cost) :
                 session.TryPurchaseMarketCargo(key, quote.Quantity, quote.Cost, PortMarketCatalog.CargoVolume(quote.Item));
             if (!bought)
@@ -232,7 +236,10 @@ namespace ShatteredSail.Presentation
             SaveProgress();
             portNotice = "已购入" + PortMarketCatalog.Name(quote.Item) + " ×" + quote.Quantity + "，支付 " + PortMarketCatalog.FormatPrice(quote.Cost) +
                 " 金币，" + (warehouse ? "存入" + quote.Port + "仓库。" : "装入船只仓库。" );
+            decimal visualGoldDelta = session.ProfileGold - visualGoldBefore;
+            int visualItemDelta = (warehouse ? session.PortWarehouse.GetAmount(quote.Port, key) : session.GetMarketCargoAmount(key)) - visualItemBefore;
             Render();
+            PlayMarketTradeFeedback(quote.Item, visualGoldDelta, visualItemDelta, warehouse, visualOrigin);
         }
 
         private void BuildMarketPurchaseChoice(MarketPurchaseQuote quote)
@@ -253,39 +260,38 @@ namespace ShatteredSail.Presentation
                 PhaseSurfaceLayout.ContentSize, Vector2.zero, new Color(0f, 0f, 0f, .76f));
             shade.GetComponent<Image>().raycastTarget = true;
             RectTransform dialog = CreateFixedPanel("Market Purchase Choice", shade,
-                new Vector2(1060f, 500f), Vector2.zero, new Color(0.90f, 0.82f, 0.68f));
+                new Vector2(1060f, 400f), Vector2.zero, new Color(0.90f, 0.82f, 0.68f));
             NauticalSurfaceSkin.ApplyReadingPanel(dialog.GetComponent<Image>());
             Color marketInk = Html("#2C1B12");
             Text title = CreateText("Market Purchase Choice Title", dialog, new Vector2(960f, 50f),
-                new Vector2(0f, 193f), 29, FontStyle.Bold, TextAnchor.MiddleCenter, marketInk);
+                new Vector2(0f, 145f), 29, FontStyle.Bold, TextAnchor.MiddleCenter, marketInk);
             title.text = "选择收货位置";
-            Text terms = CreateText("Market Purchase Choice Quote", dialog, new Vector2(940f, 64f),
-                new Vector2(0f, 113f), 23, FontStyle.Normal, TextAnchor.MiddleCenter, marketInk);
+            Text terms = CreateText("Market Purchase Choice Quote", dialog, new Vector2(940f, 38f),
+                new Vector2(0f, 96f), 23, FontStyle.Normal, TextAnchor.MiddleCenter, marketInk);
             terms.text = PortMarketCatalog.Name(quote.Item) + " ×" + quote.Quantity + "　总价 " +
-                PortMarketCatalog.FormatPrice(quote.Cost) + " 金币\n选好位置后付款；取消不扣款。";
+                PortMarketCatalog.FormatPrice(quote.Cost) + " 金币";
             terms.lineSpacing = 1.15f;
             terms.horizontalOverflow = HorizontalWrapMode.Wrap;
             terms.verticalOverflow = VerticalWrapMode.Truncate;
             bool warehouseFits = MarketWarehouseCanReceive(quote), shipFits = MarketShipCanReceive(quote);
             bool canPay = session.ProfileGold >= quote.Cost;
             Button warehouse = CreateButton("Market Buy To Warehouse", dialog, new Vector2(430f, 60f),
-                new Vector2(-247f, 16f), Gold, DeepSea, 22);
+                new Vector2(-247f, 20f), Gold, DeepSea, 22);
             warehouse.GetComponentInChildren<Text>().text = "存入本港仓库";
             warehouse.interactable = canPay && warehouseFits;
             warehouse.onClick.AddListener(() => CommitMarketPurchase(quote, MarketPurchaseStorageMode.Warehouse, true));
             Button ship = CreateButton("Market Buy To Ship", dialog, new Vector2(430f, 60f),
-                new Vector2(247f, 16f), Gold, DeepSea, 22);
+                new Vector2(247f, 20f), Gold, DeepSea, 22);
             ship.GetComponentInChildren<Text>().text = "装入船只仓库";
             ship.interactable = canPay && shipFits;
             ship.onClick.AddListener(() => CommitMarketPurchase(quote, MarketPurchaseStorageMode.Ship, true));
-            Text warehouseStatus = CreateText("Market Warehouse Purchase Status", dialog, new Vector2(430f, 72f),
-                new Vector2(-247f, -64f), 19, FontStyle.Normal, TextAnchor.MiddleCenter, marketInk);
+            Text warehouseStatus = CreateText("Market Warehouse Purchase Status", dialog, new Vector2(430f, 60f),
+                new Vector2(-247f, -50f), 19, FontStyle.Normal, TextAnchor.MiddleCenter, marketInk);
             warehouseStatus.text = !warehouseFits ? "本港仓储数量已达上限" : !canPay ? "船长账户金币不足" :
                 quote.Port + "仓储 " + session.PortWarehouse.GetAmount(quote.Port, PortMarketCatalog.Key(quote.Item)) +
-                " → " + ((long)session.PortWarehouse.GetAmount(quote.Port, PortMarketCatalog.Key(quote.Item)) + quote.Quantity) +
-                "\n物资留在本港，不占船舱";
-            Text shipStatus = CreateText("Market Ship Purchase Status", dialog, new Vector2(430f, 72f),
-                new Vector2(247f, -64f), 19, FontStyle.Normal, TextAnchor.MiddleCenter, marketInk);
+                " → " + ((long)session.PortWarehouse.GetAmount(quote.Port, PortMarketCatalog.Key(quote.Item)) + quote.Quantity);
+            Text shipStatus = CreateText("Market Ship Purchase Status", dialog, new Vector2(430f, 60f),
+                new Vector2(247f, -50f), 19, FontStyle.Normal, TextAnchor.MiddleCenter, marketInk);
             shipStatus.text = !shipFits ? "货舱空间不足" : !canPay ? "船长账户金币不足" :
                 "随船货舱 " + session.Cargo.UsedVolume.ToString("0.0") + " / " + session.CargoCapacityValue.ToString("0.0") +
                 "\n本批占用 " + (quote.Quantity * PortMarketCatalog.CargoVolume(quote.Item)).ToString("0.0") + " 舱位";
@@ -298,7 +304,7 @@ namespace ShatteredSail.Presentation
                 status.resizeTextMaxSize = 19;
             }
             Button cancel = CreateButton("Cancel Market Purchase", dialog, new Vector2(430f, 52f),
-                new Vector2(0f, -181f), PanelRaised, Ink, 22);
+                new Vector2(0f, -142f), PanelRaised, Ink, 22);
             cancel.GetComponentInChildren<Text>().text = "取消购买";
             cancel.onClick.AddListener(() =>
             {

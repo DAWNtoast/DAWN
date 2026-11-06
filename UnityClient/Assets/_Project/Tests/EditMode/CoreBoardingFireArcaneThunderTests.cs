@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -10,18 +11,18 @@ namespace ShatteredSail.Core.Tests
     public sealed class CoreBoardingFireArcaneThunderTests
     {
         [Test]
-        public void ThunderCombo_FromThreeEnergyAndZeroChain_DealsFortyTwoAndFinishesAtZero()
+        public void ThunderCombo_FromThreeEnergyAndZeroChain_DealsSeventyEightAndFinisherAddsOne()
         {
             var s = Battle("thunder_01", "thunder_02", "thunder_13");
             int enemy = s.Battle.EnemyBoardingHealth;
             Play(s, "thunder_01"); Play(s, "thunder_02"); Play(s, "thunder_13");
-            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(42));
+            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(78));
             Assert.That(s.Battle.Energy, Is.Zero);
-            Assert.That(s.Battle.Schools.ThunderChain, Is.Zero);
+            Assert.That(s.Battle.Schools.ThunderChain, Is.EqualTo(1));
         }
 
-        [TestCase("arcane_04", 42)]
-        [TestCase("arcane_06", 25)]
+        [TestCase("arcane_04", 66)]
+        [TestCase("arcane_06", 35)]
         public void ArcaneImmediateAttacks_ConsumeAllMana_EvenWhenOptionsRequestZero(string key, int expectedDamage)
         {
             var s = Battle(key); SetMana(s, 3);
@@ -35,20 +36,20 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void ArcaneDelayedAttack_ConsumesAllManaAndLocksSixty()
+        public void ArcaneDelayedAttack_ConsumesAllManaAndLocksNinetySix()
         {
             var s = Battle("arcane_11"); SetMana(s, 3);
             int enemy = s.Battle.EnemyBoardingHealth;
             Play(s, "arcane_11");
             Assert.That(s.Battle.Schools.AvailableMana, Is.Zero);
             Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(enemy));
-            Assert.That(s.Battle.Boarding.DelayedDamage.Single().Amount, Is.EqualTo(60));
+            Assert.That(s.Battle.Boarding.DelayedDamage.Single().Amount, Is.EqualTo(96));
         }
 
         [Test]
         public void BurnPayment_UsesSelectedCardsAndBurnedAttackCannotBeRecovered()
         {
-            var s = Battle("fire_06", "arcane_01", "arcane_14"); SetMana(s, 1);
+            var s = Battle("fire_06", "arcane_01", "arcane_14"); SetMana(s, 2);
             int burned = Index("arcane_01");
             s.Battle.DiscardPile.Add(Index("arcane_07"));
             var choice = s.GetBoardingPlayChoice(0);
@@ -58,7 +59,7 @@ namespace ShatteredSail.Core.Tests
                 SnapshotToken = choice.SnapshotToken,
                 SelectionIndexes = new List<int> { 1 },
             }), Is.True);
-            Assert.That(s.Battle.Boarding.EnemyBurn.Sum(batch => batch.Amount), Is.EqualTo(5));
+            Assert.That(s.Battle.Boarding.EnemyBurn.Sum(batch => batch.Amount), Is.EqualTo(4));
             Assert.That(s.Battle.Boarding.ExhaustedCards, Does.Contain(burned));
             Assert.That(s.Battle.Hand.Concat(s.Battle.DrawPile).Concat(s.Battle.DiscardPile), Has.No.Member(burned));
             int recoverSlot = s.Battle.Hand.IndexOf(Index("arcane_14"));
@@ -81,12 +82,12 @@ namespace ShatteredSail.Core.Tests
                 SnapshotToken = choice.SnapshotToken, ResourceAmount = 99,
                 SelectionIndexes = new List<int> { 1, 2 },
             }), Is.True);
-            Assert.That(s.Battle.Boarding.EnemyBurn.Sum(batch => batch.Amount), Is.EqualTo(10));
+            Assert.That(s.Battle.Boarding.EnemyBurn.Sum(batch => batch.Amount), Is.EqualTo(7));
             Assert.That(s.Battle.Boarding.ExhaustedCards.Count, Is.EqualTo(2));
         }
 
         [Test]
-        public void SelfBurnTransfer_MovesAtMostFourIntoOneDecayingStack()
+        public void BurnTransfer_MovesEveryLayerIntoOneDecayingStack()
         {
             var s = Battle("fire_15");
             s.Battle.Boarding.SelfBurn.Add(new CoreBoardingTimedStacks(2, 1));
@@ -95,19 +96,18 @@ namespace ShatteredSail.Core.Tests
             var choice = s.GetBoardingPlayChoice(0);
             Assert.That(choice.RequiresChoice, Is.False);
             Play(s, "fire_15");
-            Assert.That(s.Battle.Boarding.SelfBurn.Sum(batch => batch.Amount), Is.EqualTo(1));
-            Assert.That(s.Battle.Boarding.SelfBurn.Single().Remaining, Is.EqualTo(1));
-            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Amount, Is.EqualTo(4));
-            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Remaining, Is.EqualTo(4));
-            Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(4));
             Assert.That(s.Battle.Boarding.SelfBurn, Is.Empty);
-            Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(7));
-            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Amount, Is.EqualTo(2));
-            Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(10));
+            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Amount, Is.EqualTo(5));
+            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Remaining, Is.EqualTo(5));
+            Action settle = () => typeof(CoreVoyageSession).GetMethod("BEnemyEnd", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(s, null);
+            settle();
+            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(5));
+            Assert.That(s.Battle.Boarding.SelfBurn, Is.Empty);
+            settle();
+            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(9));
+            Assert.That(s.Battle.Boarding.EnemyBurn.Single().Amount, Is.EqualTo(3));
+            settle(); settle(); settle();
+            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(15));
             Assert.That(s.Battle.Boarding.EnemyBurn, Is.Empty);
         }
 
@@ -116,24 +116,24 @@ namespace ShatteredSail.Core.Tests
         {
             var s = Battle("arcane_11", "arcane_03", "arcane_15");
             int enemy = s.Battle.EnemyBoardingHealth;
-            Play(s, "arcane_11"); // no mana: 36 delayed
-            Play(s, "arcane_03"); // gains 3 mana
+            Play(s, "arcane_11"); // no mana: 72 delayed
+            Play(s, "arcane_03"); // gains 6 mana
             int collectSlot = s.Battle.Hand.IndexOf(Index("arcane_15"));
             Assert.That(s.GetBoardingPlayChoice(collectSlot).Kind, Is.EqualTo(CoreBoardingChoiceKind.DelayedEffect));
             Assert.That(s.GetBoardingPlayChoice(collectSlot).RequiresChoice, Is.True);
             Play(s, "arcane_15");
-            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(36));
+            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(72));
             Assert.That(s.Battle.Boarding.DelayedDamage, Is.Empty);
-            Assert.That(s.Battle.Schools.AvailableMana, Is.EqualTo(1));
+            Assert.That(s.Battle.Schools.AvailableMana, Is.EqualTo(2));
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(36));
+            Assert.That(enemy - s.Battle.EnemyBoardingHealth, Is.EqualTo(72));
             Assert.That(s.Battle.Boarding.DelayedDamage, Is.Empty);
         }
 
         [Test]
         public void ReadingPreviewAndCancellation_DoNotPayOrMoveAnyCards()
         {
-            var s = Battle("arcane_09"); SetMana(s, 1);
+            var s = Battle("arcane_09"); SetMana(s, 2);
             s.Battle.DrawPile.AddRange(new[] { Index("basic_01"), Index("basic_02"), Index("basic_03"), Index("basic_04"), Index("basic_05") });
             s.Battle.DiscardPile.Add(Index("basic_06"));
             int[] hand = s.Battle.Hand.ToArray(), draw = s.Battle.DrawPile.ToArray(), discard = s.Battle.DiscardPile.ToArray();
@@ -167,7 +167,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.Energy, Is.EqualTo(energy)); Assert.That(s.Cargo.Medicine, Is.EqualTo(1));
             s.Cargo.Powder = 1; Play(s, "fire_05");
             Assert.That(s.Cargo.Powder, Is.Zero); Assert.That(s.Cargo.Medicine, Is.Zero);
-            Assert.That(s.Battle.PlayerBoardingHealth - health, Is.EqualTo(10));
+            Assert.That(s.Battle.PlayerBoardingHealth - health, Is.EqualTo(20));
 
             var fallback = Battle("fire_05"); fallback.Battle.PlayerBoardingHealth -= 50;
             fallback.Cargo.Medicine = 0; fallback.Cargo.Powder = 0;
@@ -179,7 +179,7 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void SpellSeal_RetainsOnlySelectedPhysicalCopy_AndDoesNotResetSameNameSurcharge()
         {
-            var s = Battle("arcane_12", "basic_03"); SetMana(s, 1);
+            var s = Battle("arcane_12", "basic_03"); SetMana(s, 2);
             s.Battle.DrawPile.Add(Index("basic_03"));
             var choice = s.GetBoardingPlayChoice(0);
             Assert.That(s.PlayCard(0, new CoreBoardingPlayOptions
@@ -201,7 +201,7 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void ThunderWeakness_CannotCarryItsOldStrengthAfterConsumptionOrExpiry(bool expiresWithoutAttack)
+        public void ThunderWeakness_WaitsForNextAttackAndIsConsumedOnlyOnce(bool expiresWithoutAttack)
         {
             var s = Battle("thunder_12");
             s.Battle.Profile = new CoreBattleProfile(CoreBossKind.None, CoreBattleArchetype.Balanced,
@@ -209,25 +209,26 @@ namespace ShatteredSail.Core.Tests
             s.Battle.PhaseTurn = expiresWithoutAttack ? 2 : 1;
             typeof(CoreSchoolBattleState).GetProperty("ThunderChain").SetValue(s.Battle.Schools, 6);
             Play(s, "thunder_12");
-            Assert.That(s.Battle.Boarding.ThunderWeakness, Is.EqualTo(5));
+            Assert.That(s.Battle.Boarding.ThunderWeakness, Is.EqualTo(20));
             int before = s.Battle.PlayerBoardingHealth;
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(before - (expiresWithoutAttack ? 0 : 15)));
-            Assert.That(s.Battle.Boarding.ThunderWeaknessTurns, Is.Zero);
-            Assert.That(s.Battle.Boarding.ThunderWeakness, Is.Zero);
+            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(before - (expiresWithoutAttack ? 0 : 0)));
+            Assert.That(s.Battle.Boarding.ThunderWeaknessTurns, Is.EqualTo(expiresWithoutAttack ? 1 : 0));
+            Assert.That(s.Battle.Boarding.ThunderWeakness, Is.EqualTo(expiresWithoutAttack ? 20 : 0));
             Assert.That(s.Battle.Schools.ThunderChain, Is.Zero);
             s.Battle.PhaseTurn = 1;
             s.Battle.Hand.Clear(); s.Battle.Hand.Add(Index("thunder_12"));
             Play(s, "thunder_12");
-            Assert.That(s.Battle.Boarding.ThunderWeakness, Is.EqualTo(2), "A fresh zero-chain strike cannot inherit the spent five-point debuff.");
+            Assert.That(s.Battle.Boarding.ThunderWeakness, Is.EqualTo(expiresWithoutAttack ? 20 : 0), "A zero-chain strike does not apply weakness or replace an unspent debuff.");
             before = s.Battle.PlayerBoardingHealth;
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(before - 18));
+            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(before - (expiresWithoutAttack ? 0 : 20)));
         }
         private static CoreVoyageSession Battle(params string[] keys)
         {
             var s = new CoreVoyageSession();
             s.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(s.RestoreCardPackProgress(null, s.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             s.SetSeed("BOARDING-FIRE-ARCANE-THUNDER");
             Assert.That(s.StartTrainingBattle(CoreTrainingTargets.All[0]), Is.True);
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(s, 1000);

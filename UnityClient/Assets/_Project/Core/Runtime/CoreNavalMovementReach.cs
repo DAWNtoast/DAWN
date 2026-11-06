@@ -56,10 +56,7 @@ namespace ShatteredSail.Core.Gameplay
                     // visits to the same pose cannot unlock anything the cheaper visit cannot.
                     if (!visited.Add(next)) continue;
                     if (cells.Add(((long)x << 32) | (uint)y)) result.Add(point);
-                    CoreNavalFieldCell field = NavalFieldAt(point);
-                    if (field == null || field.Kind != CoreNavalFieldKind.Thunder ||
-                        Battle.NavalFields.TriggerLedger.Contains(FieldTriggerKey(true, field)) ||
-                        NavalFieldImmune(FieldShip(true), field.Kind, FieldOwnerTurn(true))) pending.Enqueue(next);
+                    pending.Enqueue(next);
                 }
             }
             return result.AsReadOnly();
@@ -71,9 +68,19 @@ namespace ShatteredSail.Core.Gameplay
             internal CoreNavalMovementFieldPreview Travel;
         }
 
+        private readonly struct NavalAttackReachState : IEquatable<NavalAttackReachState>
+        {
+            internal NavalAttackReachState(NavalReachState pose, int chain) { Pose = pose; Chain = chain; }
+            private NavalReachState Pose { get; }
+            private int Chain { get; }
+            public bool Equals(NavalAttackReachState other) => Pose.Equals(other.Pose) && Chain == other.Chain;
+            public override bool Equals(object other) => other is NavalAttackReachState state && Equals(state);
+            public override int GetHashCode() => unchecked(Pose.GetHashCode() * 397 ^ Chain);
+        }
+
         /// <summary>
         /// Living ordinary arrival positions from which a later attack can be made.
-        /// Unlike the blue route cells, these include end-of-movement water pushes.
+        /// Currents move ships only at turn end, after attacks from these positions.
         /// This query does not select a route or commit any terrain trigger.
         /// </summary>
         public IReadOnlyList<VoyagePoint> GetNavalReachableAttackOrigins()
@@ -92,18 +99,17 @@ namespace ShatteredSail.Core.Gameplay
             VoyagePoint origin = Battle.PlayerPositionMeters;
             NavalFieldPreviewContext context = CreateNavalFieldPreviewContext(true);
             var cells = new HashSet<VoyagePoint>();
-            var frontier = new Dictionary<NavalReachState, NavalAttackReachPath>();
-            frontier.Add(new NavalReachState(0, 0, 0, 0), new NavalAttackReachPath
+            var frontier = new Dictionary<NavalAttackReachState, NavalAttackReachPath>();
+            frontier.Add(new NavalAttackReachState(new NavalReachState(0, 0, 0, 0), Battle.Schools.ThunderChain), new NavalAttackReachPath
             {
                 Nodes = new List<CoreNavalMovementNode> { new CoreNavalMovementNode(origin, Battle.PlayerHeadingDegrees) }
             });
             int limit = NavalActiveMovementLimit(true, Battle.NavalActionPoints);
             for (int cost = 1; cost <= limit && frontier.Count > 0; cost++)
             {
-                // Separate cost layers retain longer, safer detours. One best living
-                // prefix per pose/cost bounds the search instead of enumerating paths.
-                // Terrain-trigger histories are not an exponential search dimension.
-                var next = new Dictionary<NavalReachState, NavalAttackReachPath>();
+                // Different chain totals at the same pose can produce different future
+                // overloads, so retain those totals while merging equivalent prefixes.
+                var next = new Dictionary<NavalAttackReachState, NavalAttackReachPath>();
                 foreach (NavalAttackReachPath candidate in frontier.Values)
                 {
                     CoreNavalMovementNode previous = candidate.Nodes[candidate.Nodes.Count - 1];
@@ -119,23 +125,14 @@ namespace ShatteredSail.Core.Gameplay
                         if (!arrival.Sinks && !NavalMovementTargetsEnemy(arrival.FinalPositionMeters) && cells.Add(arrival.FinalPositionMeters))
                             result.Add(arrival.FinalPositionMeters);
 
-                        // A tide is applied only when stopping. A route may safely
-                        // continue through a cell whose final push would be lethal.
                         CoreNavalMovementFieldPreview travel = arrival;
-                        CoreNavalFieldCell tide = PreviewFieldAt(context.State, point);
-                        if (tide != null && tide.Kind == CoreNavalFieldKind.Tide)
-                        {
-                            int index = context.State.Cells.IndexOf(tide);
-                            context.State.Cells.RemoveAt(index);
-                            try { travel = PreviewNavalFields(path, true, context); }
-                            finally { context.State.Cells.Insert(index, tide); }
-                        }
-                        if (travel.Sinks || travel.StopsAtThunder) continue;
-                        var state = new NavalReachState((int)Math.Round((point.X - origin.X) / NavalGridCellMeters),
-                            (int)Math.Round((point.Y - origin.Y) / NavalGridCellMeters), (int)Math.Round(heading / 90f) % 4, cost);
+                        if (travel.Sinks) continue;
+                        var state = new NavalAttackReachState(new NavalReachState((int)Math.Round((point.X - origin.X) / NavalGridCellMeters),
+                            (int)Math.Round((point.Y - origin.Y) / NavalGridCellMeters), (int)Math.Round(heading / 90f) % 4, cost), travel.FinalThunderChain);
                         if (next.TryGetValue(state, out NavalAttackReachPath existing) &&
                             (existing.Travel.HullDamage < travel.HullDamage ||
-                             existing.Travel.HullDamage == travel.HullDamage && existing.Travel.FinalBlock >= travel.FinalBlock)) continue;
+                             existing.Travel.HullDamage == travel.HullDamage && existing.Travel.FinalBlock >= travel.FinalBlock &&
+                             existing.Travel.FinalThunderChain <= travel.FinalThunderChain)) continue;
                         next[state] = new NavalAttackReachPath { Nodes = path, Travel = travel };
                     }
                 }

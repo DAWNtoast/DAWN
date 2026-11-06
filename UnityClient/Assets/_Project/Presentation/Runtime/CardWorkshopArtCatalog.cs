@@ -28,6 +28,25 @@ namespace ShatteredSail.Presentation
         public Texture2D DeckBuilderCollectionParchment => LoadCached("deck_builder_collection_parchment_v3");
         public Texture2D PirateDeckFrame => LoadCached("deck_builder_pirate_frame_v1");
         public Texture2D UpgradeIcon => LoadCached("workshop_upgrade_hammer_v1");
+        public Texture2D HomeBackground => LoadCached("workshop_home_v1");
+
+        /// <summary>Each known pack owns its authored sealed-pack artwork.</summary>
+        public Texture2D CardPack(string schoolId)
+        {
+            // Keep resource names explicit: unknown school IDs must not resolve
+            // arbitrary paths or silently borrow another school's packaging.
+            switch (schoolId)
+            {
+                case "neutral": return LoadCached("card_pack_neutral_v1");
+                case "fire": return LoadCached("card_pack_fire_v1");
+                case "arcane": return LoadCached("card_pack_arcane_v1");
+                case "curse": return LoadCached("card_pack_curse_v1");
+                case "tide": return LoadCached("card_pack_tide_v1");
+                case "thunder": return LoadCached("card_pack_thunder_v1");
+                case "blood": return LoadCached("card_pack_blood_v1");
+                default: return null;
+            }
+        }
 
         public Texture2D StageIcon(int index)
         {
@@ -83,7 +102,8 @@ namespace ShatteredSail.Presentation
             Texture2D texture = Resources.Load<Texture2D>("CardWorkshopV2/" + fileName);
             if (texture != null)
             {
-                texture.filterMode = fileName.StartsWith("deck_chest_") ? FilterMode.Trilinear : FilterMode.Bilinear;
+                texture.filterMode = fileName.StartsWith("deck_chest_") || fileName.StartsWith("card_pack_")
+                    ? FilterMode.Trilinear : FilterMode.Bilinear;
                 texture.wrapMode = TextureWrapMode.Clamp;
             }
 

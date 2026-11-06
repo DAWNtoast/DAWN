@@ -45,7 +45,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("card_school_fire_b06", "抽", "敌方燃烧时")]
-        [TestCase("card_school_curse_b06", "抽", "当前咒印每有一层")]
+        [TestCase("card_school_curse_b06", "抽", "敌方每有1层咒印")]
         [TestCase("card_school_thunder_b02", "抽", "下一次雷霆攻击")]
         [TestCase("card_school_thunder_b05", "获得", "下一次雷霆攻击")]
         public void ImmediateEffectsPrecedeTheSeparateConditionalOrFutureEffect(string id, string immediate, string condition)
@@ -71,9 +71,47 @@ namespace ShatteredSail.Core.Tests
                     string text = Compact(session.GetBattleCardAtLevel(Index(basis.Id), rank).Description);
                     if (basis.SchoolId == "arcane" || basis.SchoolId == "blood")
                         Assert.That(text, Does.Match(@"位于己方[^；。]+时，额外获得\d+点格挡并(?:获得\d+点法力|修复\d+点船体)"), basis.Id);
-                    else
-                        Assert.That(text.IndexOf("免疫"), Is.GreaterThanOrEqualTo(0).And.LessThan(text.IndexOf("位于己方")), basis.Id);
+                    if (basis.SchoolId != "arcane")
+                    {
+                        string protection = "直到下个己方回合开始时，免疫" +
+                            CoreComponentFieldCards.FieldName(CoreComponentFieldCards.Kind(basis)) + "负面效果影响";
+                        Assert.That(text.IndexOf(protection), Is.GreaterThanOrEqualTo(0).And.LessThan(text.IndexOf("位于己方")), basis.Id);
+                    }
                 }
+        }
+
+        [TestCase("card_school_fire_n04", "火场")]
+        [TestCase("card_school_tide_n03", "定向水流")]
+        [TestCase("card_special_plating_fogiron_carapace", "血池")]
+        [TestCase("card_special_plating_living_hull", "血池")]
+        public void FieldImmunityFinalCardFacesHaveOneNextPlayerStartExpiry(string id, string field)
+        {
+            var session = new CoreVoyageSession();
+            int index = Index(id);
+            for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(index); rank++)
+            {
+                CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
+                string phrase = "直到下个己方回合开始时，免疫" + field + "负面效果影响";
+                foreach (string face in new[] { card.Description, session.BattleCardFaceDescription(card, NavalBattleStage.Naval) })
+                {
+                    string text = Compact(face);
+                    Assert.That(text, Does.Contain(phrase).And.Not.Contain("下个己方回合结束"), id);
+                    Assert.That(Regex.Matches(text, Regex.Escape(phrase)).Count, Is.EqualTo(1), id);
+                }
+            }
+        }
+
+        [Test]
+        public void GhostSailFinalCardFaceKeepsOrdinaryGuardInNaturalWordOrder()
+        {
+            var session = new CoreVoyageSession();
+            CoreBattleCard card = session.GetBattleCardAtLevel(Index("card_school_curse_b06"), 0);
+            foreach (string face in new[] { card.Description, session.BattleCardFaceDescription(card, NavalBattleStage.Naval) })
+            {
+                string text = Compact(face);
+                Assert.That(text, Does.Contain("获得1点普通格挡").And.Not.Contain("普通获得").And.Not.Contain("咒盾"));
+                Assert.That(Regex.Matches(text, "普通格挡").Count, Is.EqualTo(2));
+            }
         }
 
         [TestCase("card_school_curse_n03", "造成")]
@@ -94,37 +132,46 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
-        [TestCase("card_school_thunder_b03", "已有的连锁每有一层，本次伤害提高")]
-        [TestCase("card_school_thunder_b06", "出牌前的连锁每有一层，本次伤害提高")]
-        public void ChainBonusRemainsPartOfTheSameAttack(string id, string phrase)
+        [TestCase("card_school_thunder_b03")]
+        [TestCase("card_school_thunder_b06")]
+        public void ChainThresholdAndFinisherKeepTheirDistinctFormulaAndConsumption(string id)
         {
             var session = new CoreVoyageSession();
             int index = Index(id);
             for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(index); rank++)
             {
                 string text = Compact(session.GetBattleCardAtLevel(index, rank).Description);
-                Assert.That(text, Does.Contain(phrase).And.Not.Contain("额外造成"), id + " +" + rank);
+                string expected = id == "card_school_thunder_b03"
+                    ? "范围1-4格：造成" + new[] { 8, 10, 12, 15 }[rank] + "点船体伤害；连锁1：额外造成" + new[] { 4, 6, 8, 10 }[rank] + "点伤害。"
+                    : "范围1-4格：造成" + new[] { 10, 14, 18 }[rank] + "+" + new[] { 1, 12, 32 }[rank] + "X点船体伤害；结算后清空连锁，出牌时处于雷栅则不清空。";
+                Assert.That(text, Is.EqualTo(expected), id + " +" + rank);
             }
         }
 
-        [TestCase("card_school_blood_b06", "敌方生命不高于35%时，本次伤害提高")]
-        public void LiveExecutionThresholdHasACompletePredicateAndOnlyOneDamageAmount(string id, string condition)
+        [TestCase("card_school_blood_b06")]
+        public void LiveExecutionThresholdKeepsBaseAndConditionalBonusSeparate(string id)
         {
             var session = new CoreVoyageSession();
             Assert.That(session.StartTrainingBattle(CoreTrainingTargets.All[0]), Is.True);
             session.Battle.Stage = NavalBattleStage.Naval;
-            session.Battle.EnemyHull = 100;
             session.Battle.EnemyMaxHull = 1000;
             int index = Index(id);
             for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(index); rank++)
             {
                 CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
-                string text = Compact(session.BattleCardFaceDescription(card, NavalBattleStage.Naval));
-                Assert.That(text, Does.Contain(condition).And.Not.Match(@"时[，；。]+$"));
-                MatchCollection damage = Regex.Matches(text, @"造成(\d+)点船体伤害");
-                Assert.That(damage.Count, Is.EqualTo(1), text);
-                Assert.That(int.Parse(damage[0].Groups[1].Value), Is.EqualTo(session.GetBattleCardDamage(card, NavalBattleStage.Naval)));
-                Assert.That(text, Does.Not.Match(@"本次伤害提高\d"), "The quoted damage already includes the bonus.");
+                int basis = new[] { 20, 26, 34 }[rank];
+                int bonus = new[] { 10, 14, 19 }[rank];
+                foreach (int health in new[] { 351, 350 })
+                {
+                    session.Battle.EnemyHull = health;
+                    string text = Compact(session.BattleCardFaceDescription(card, NavalBattleStage.Naval));
+                    Assert.That(text, Is.EqualTo("范围1-4格：造成" + basis + "点船体伤害；敌方生命不高于35%时，伤害提高" + bonus + "点。"));
+                    Assert.That(Regex.Matches(text, @"造成\d+点船体伤害").Count, Is.EqualTo(1), text);
+                    Assert.That(Regex.Matches(text, @"伤害提高\d+点").Count, Is.EqualTo(1), text);
+                    Assert.That(session.GetBattleCardDamage(card, NavalBattleStage.Naval),
+                        Is.EqualTo(CoreNavalStatRules.ScaleCannonDamage(basis, session.EffectiveFirepower) + (health <= 350 ? bonus : 0)),
+                        "The inclusive threshold adds the displayed benefit exactly once.");
+                }
             }
         }
 
@@ -133,10 +180,9 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             string slow = Compact(session.GetBattleCardAtLevel(Index("card_school_tide_n04"), 0).Description);
-            Assert.That(slow, Does.Contain("将4格内的目标推离己舰1格")
-                .And.Contain("其下次主动移动上限减少1格"));
+            Assert.That(slow, Is.EqualTo("范围1-4格：使敌方向后移动1格，敌方下次移动时至多移动1格。"));
             string move = Compact(session.GetBattleCardAtLevel(Index("card_school_fire_n05"), 0).Description);
-            Assert.That(move, Does.Contain("将1-4格内的己方1格火场移动到相邻的格子"));
+            Assert.That(move, Is.EqualTo("将所有己方火场向上下左右各延伸1格。"));
         }
 
         [TestCase("card_boarding_basic_07")]

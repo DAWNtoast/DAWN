@@ -118,7 +118,20 @@ namespace ShatteredSail.Presentation.Tests
                 Button button = Find<Button>(name);
                 Assert.That(button.GetComponentsInChildren<DeparturePaintedHotspot>(true).All(item => !item.enabled), Is.True,
                     name + " must not depend on a button painted into the port background.");
-                Assert.That(button.GetComponent<Image>().color.a, Is.GreaterThan(0f), name);
+                if (name == "Departure Previous Vessel" || name == "Departure Next Vessel")
+                {
+                    Image hit = button.GetComponent<Image>();
+                    Assert.That(hit.enabled && hit.raycastTarget, Is.True, name);
+                    Assert.That(hit.color.a, Is.Zero, name);
+                    Assert.That(hit.sprite, Is.Null, name);
+                    DepartureVesselButtonGraphic face = button.GetComponentInChildren<DepartureVesselButtonGraphic>();
+                    Assert.That(face, Is.Not.Null, name);
+                    Assert.That(face.transform.parent, Is.SameAs(button.transform), name);
+                    Assert.That(face.enabled && face.gameObject.activeInHierarchy, Is.True, name);
+                    Assert.That(face.raycastTarget, Is.False, name);
+                    Assert.That(button.targetGraphic, Is.SameAs(face), name);
+                }
+                else Assert.That(button.GetComponent<Image>().color.a, Is.GreaterThan(0f), name);
             }
             Assert.That(DepartureDockForegroundGraphic.SourceForegroundTopY - DepartureDockForegroundGraphic.SourceWaterlineY,
                 Is.GreaterThanOrEqualTo(100f), "Leave an explicit open-water gap before the fixed lower foreground.");
@@ -143,7 +156,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void SharedHeaderKeepsLiveTextAndOriginalVisibleControlsDuringRepeatedDockRefresh()
+        public void SharedHeaderKeepsLiveReadoutsAndIconControlsDuringRepeatedDockRefresh()
         {
             Preview(CoreGameplayPreviewPort.BrokenAnchor);
             Transform header = Find<RectTransform>("Port Facility Header");
@@ -158,7 +171,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Find<Text>("Port Facility Port").enabled, Is.True);
             Assert.That(time.enabled && gold.enabled, Is.True);
             Assert.That(time.text, Does.Contain(CoreVoyageSession.FormatGameDate(controller.Session.GameDateTime, true)));
-            Assert.That(time.text, Does.Contain("游戏日期"));
+            Assert.That(time.text, Is.EqualTo(CoreVoyageSession.FormatGameDate(controller.Session.GameDateTime, true)));
             Assert.That(gold.text, Does.Contain(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
             controller.Session.RestoreProfile(1234.5678m, controller.Session.CurrentPort);
             typeof(CoreGameplayDemoController).GetMethod("UpdatePortHeaderReadouts", PrivateInstance).Invoke(controller, new object[] { true });
@@ -168,13 +181,24 @@ namespace ShatteredSail.Presentation.Tests
                 Canvas.ForceUpdateCanvases();
                 Assert.That(gold.text, Does.Contain(PortMarketCatalog.FormatPrice(1234.5678m)),
                     "The common wallet readout must continue to reflect purchases.");
-                Assert.That(time.text, Does.Contain("游戏日期"));
+                Assert.That(time.text, Is.EqualTo(CoreVoyageSession.FormatGameDate(controller.Session.GameDateTime, true)));
                 for (int index = 0; index < buttons.Length; index++)
                 {
                     Assert.That(Find<Button>(names[index]), Is.SameAs(buttons[index]));
                     Assert.That(buttons[index].GetComponent<RectTransform>().anchoredPosition, Is.EqualTo(positions[index]));
-                    Assert.That(buttons[index].GetComponent<Image>().color.a, Is.GreaterThan(0f));
-                    Assert.That(buttons[index].GetComponentInChildren<Text>(true).enabled, Is.True);
+                    Image hitArea = buttons[index].GetComponent<Image>();
+                    Assert.That(hitArea.color.a, Is.Zero, "Header buttons keep transparent hit areas without wooden plates.");
+                    Assert.That(hitArea.raycastTarget, Is.True);
+                    Assert.That(buttons[index].interactable, Is.True);
+                    Graphic icon = buttons[index].targetGraphic;
+                    Assert.That(icon, Is.Not.Null);
+                    Assert.That(icon is PortHeaderIconGraphic || icon is BattleHeaderIconGraphic, Is.True);
+                    Assert.That(icon.isActiveAndEnabled, Is.True);
+                    Assert.That(icon.color.a, Is.GreaterThan(0f));
+                    Assert.That(icon.rectTransform.rect.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+                    Assert.That(buttons[index].GetComponent<RectTransform>().rect.size,
+                        Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+                    Assert.That(buttons[index].GetComponentsInChildren<Text>(true).All(label => !label.enabled), Is.True);
                     Assert.That(buttons[index].GetComponentsInChildren<DeparturePaintedHotspot>(true).All(item => !item.enabled), Is.True);
                 }
             }

@@ -28,7 +28,10 @@ namespace ShatteredSail.Editor
         {
             var importer = (TextureImporter)assetImporter;
             if (!Eligible(importer)) return;
-            DesktopBackgroundCompressionPolicy.CompressImportedTexture(texture, importer.mipmapEnabled);
+            if (DesktopBackgroundCompressionPolicy.UsesPixelPadding(assetPath))
+                DesktopBackgroundCompressionPolicy.CompressImportedTextureWithPadding(texture, importer.mipmapEnabled);
+            else
+                DesktopBackgroundCompressionPolicy.CompressImportedTexture(texture, importer.mipmapEnabled);
         }
     }
 }

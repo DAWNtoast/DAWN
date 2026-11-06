@@ -7,8 +7,8 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
-        private const float DeckBuilderListRowHeight = 64f;
-        private const float DeckBuilderListViewportHeight = 640f;
+        private const float DeckBuilderListRowHeight = 56f;
+        private const float DeckBuilderListViewportHeight = 622f;
         private const float DeckBuilderListViewportWidth = 306f;
         private float deckBuilderBaseScrollOffset;
         private float deckBuilderSpecialScrollOffset;
@@ -37,10 +37,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildInteractiveDeckBuilder()
         {
-            float headerHeight = PhaseSurfaceLayout.GetHeaderHeight(tutorialActive);
-            RectTransform panel = CreateRect("Deck Builder Panel", contentRoot,
-                new Vector2(1896f, 948f), new Vector2(0f, -headerHeight * .5f));
-            panel.localScale = Vector3.one * Mathf.Min(1f, (1080f - headerHeight - 24f) / 948f);
+            RectTransform panel = CreateWorkshopWindowPanel("Deck Builder Panel");
             RectTransform paper = CreateWorkshopPreviewPaper("Deck Builder Parchment", panel,
                 new Vector2(1140f, 948f), new Vector2(-378f, 0f));
             RectTransform rail = CreateWorkshopPreviewPaper("Deck Builder Deck Rail", panel,
@@ -54,7 +51,7 @@ namespace ShatteredSail.Presentation
             removalGlow.raycastTarget = false;
             removalGlow.gameObject.SetActive(false);
             RectTransform header = CreateRect("Deck Builder Header", paper,
-                new Vector2(1000f, 54f), new Vector2(0f, 415f));
+                new Vector2(1000f, 54f), new Vector2(0f, 427f));
             for (int i = 0; i < WorkshopBattleStages.Length; i++)
             {
                 NavalBattleStage stage = WorkshopBattleStages[i];
@@ -74,12 +71,13 @@ namespace ShatteredSail.Presentation
                 OpenWorkshopSpecialCardCollection(true);
             });
 
+            BuildWorkshopSchoolFilters(paper);
             IReadOnlyList<int> deck = CurrentDeckBuilderCards;
             List<int> collectionCards = new List<int>();
             foreach (int index in session.GetAvailableBattleCards(selectedBattleDeckStage))
             {
                 CoreBattleCard data = session.GetBattleCard(index, selectedBattleDeckStage);
-                if (data != null && !CoreVoyageSession.IsSpecialBattleCard(data.Id) &&
+                if (MatchesWorkshopSchool(data) && !CoreVoyageSession.IsSpecialBattleCard(data.Id) &&
                     string.IsNullOrEmpty(data.RequiredCrew) && string.IsNullOrEmpty(data.RequiredComponent))
                     collectionCards.Add(index);
             }
@@ -98,17 +96,14 @@ namespace ShatteredSail.Presentation
                 float height = CardSchoolArtCatalog.FrameBounds(session.GetBattleCard(index, selectedBattleDeckStage)).height * WorkshopCollectionCardScale;
                 CreateText("Workshop Card Count " + index, collection, new Vector2(240f, 28f),
                     center - new Vector2(0f, height * .5f + 20f), 21, FontStyle.Normal,
-                    TextAnchor.MiddleCenter, WorkshopPaperInk).text = "已加入 " + BattleDeckCopies(deck, index) + " / " + session.GetBaseBattleCardOwnedCopies(index) + " 张";
+                    TextAnchor.MiddleCenter, WorkshopPaperInk).text = "已加入 " + BattleDeckCopies(deck, index) + " 张 · 拥有 " + WorkshopOwnedCardCount(session.GetBaseBattleCardOwnedCopies(index)) + " 张";
             }
             if (collectionCards.Count == 0)
-                CreateText("Deck Builder Collection Empty", collection, new Vector2(920f, 100f), Vector2.zero,
-                    28, FontStyle.Normal, TextAnchor.MiddleCenter, WorkshopPaperMuted).text = "暂无已解锁的基础卡牌";
+                CreateText("Deck Builder Collection Empty", collection, new Vector2(800f, 100f), Vector2.zero,
+                    28, FontStyle.Normal, TextAnchor.MiddleCenter, WorkshopPaperMuted).text = WorkshopSchoolEmptyMessage(false);
             Button previous = CreateWorkshopCollectionPageArrow("Previous Battle Card Collection Page", paper, false);
             previous.interactable = battleCardCollectionPage > 0;
             previous.onClick.AddListener(() => { RememberDeckBuilderScroll(); battleCardCollectionPage--; Render(); });
-            CreateText("Battle Card Collection Page", paper, new Vector2(430f, 38f), new Vector2(0f, WorkshopCollectionPagerY),
-                22, FontStyle.Normal, TextAnchor.MiddleCenter, WorkshopPaperInk).text =
-                "收藏 " + collectionCards.Count + " 种　·　第 " + (battleCardCollectionPage + 1) + " / " + pages + " 页";
             Button next = CreateWorkshopCollectionPageArrow("Next Battle Card Collection Page", paper, true);
             next.interactable = battleCardCollectionPage + 1 < pages;
             next.onClick.AddListener(() => { RememberDeckBuilderScroll(); battleCardCollectionPage++; Render(); });
@@ -143,7 +138,12 @@ namespace ShatteredSail.Presentation
             Image targetGlow, int index, bool fromDeck)
         {
             DeckBuilderCardDrag drag = card.gameObject.AddComponent<DeckBuilderCardDrag>();
-            drag.Bind(panel, rail, fromDeck, () =>
+            // Letterboxed content can occupy less space than its visible paper.
+            // The entire paper remains the deck drop target, including its edges.
+            RectTransform dropTarget = rail.parent as RectTransform;
+            if (dropTarget == null || dropTarget.GetComponent<WorkshopResponsiveSurface>() == null)
+                dropTarget = rail;
+            drag.Bind(panel, dropTarget, fromDeck, () =>
             {
                 HideDeckBuilderHoverPreview();
                 RectTransform ghost = CreateRect("Deck Builder Drag Ghost", panel, new Vector2(240f, 400f), Vector2.zero);
@@ -162,26 +162,48 @@ namespace ShatteredSail.Presentation
         private void BuildDeckBuilderCards(RectTransform panel, RectTransform rail, Image targetGlow, IReadOnlyList<int> deck)
         {
             IReadOnlyList<int> bonus = session.GetBonusBattleCards(selectedBattleDeckStage);
-            CreateText("Deck Builder Deck Title", rail, new Vector2(670f, 56f), new Vector2(0f, 389f),
-                36, FontStyle.Bold, TextAnchor.MiddleCenter, WorkshopPaperInk).text = WorkshopStageName(selectedBattleDeckStage) + "牌组";
+            BuildDeckBuilderCapacity(rail, deck.Count);
             deckBuilderBaseScrollRect = BuildDeckBuilderColumn(panel, rail, targetGlow, deck, false);
             deckBuilderSpecialScrollRect = BuildDeckBuilderColumn(panel, rail, targetGlow, bonus, true);
-            deckBuilderStatus = CreateText("Deck Builder Status", rail, new Vector2(660f, 24f), new Vector2(0f, -378f),
+            deckBuilderStatus = CreateText("Deck Builder Status", rail, new Vector2(660f, 24f), new Vector2(0f, -372f),
                 20, FontStyle.Normal, TextAnchor.MiddleCenter, WorkshopPaperInk);
             deckBuilderStatus.text = DeckBuilderStatusText;
             Button back = CreateButton("Back To Card Workshop Chests", rail, new Vector2(570f, 46f),
-                new Vector2(0f, -418f), PanelRaised, Ink, 24);
-            back.GetComponentInChildren<Text>().text = "返回卡组预览";
+                new Vector2(0f, -414f), PanelRaised, Ink, 24);
+            back.GetComponentInChildren<Text>().text = "查看已有卡牌";
             back.onClick.AddListener(() =>
             {
                 if (BlockIncompleteDeckBuilderNavigation()) return;
-                NavalBattleStage stage = selectedBattleDeckStage;
-                int page = battleCardCollectionPage;
-                ResetCardWorkshopView();
-                selectedBattleDeckStage = stage;
-                battleCardUpgradePage = page;
-                Render();
+                SelectWorkshopPage(WorkshopPage.Collection);
             });
+        }
+
+        private void BuildDeckBuilderCapacity(RectTransform rail, int count)
+        {
+            int minimum = CoreVoyageSession.MinimumBaseBattleDeckSize;
+            int maximum = CoreVoyageSession.MaximumBaseBattleDeckSize;
+            bool incomplete = count < minimum;
+            Color capacityInk = incomplete ? new Color(.68f, .25f, .10f) : new Color(.13f, .36f, .29f);
+            RawImage stage = CreateRawImage("Deck Builder Stage Emblem", rail, new Vector2(54f, 54f),
+                new Vector2(-302f, 420f), cardWorkshopArt?.StageIcon((int)selectedBattleDeckStage), new Rect(0f, 0f, 1f, 1f));
+            stage.raycastTarget = false;
+            CreateText("Deck Builder Deck Title", rail, new Vector2(410f, 52f), new Vector2(-60f, 419f),
+                32, FontStyle.Bold, TextAnchor.MiddleLeft, WorkshopPaperInk).text = WorkshopStageName(selectedBattleDeckStage) + "牌组";
+            CreateText("Deck Builder Capacity Count", rail, new Vector2(172f, 52f), new Vector2(242f, 419f),
+                38, FontStyle.Bold, TextAnchor.MiddleRight, capacityInk).text = count + " / " + maximum;
+
+            RectTransform meter = CreateRect("Deck Builder Capacity Meter", rail, new Vector2(656f, 12f), new Vector2(0f, 374f));
+            float step = meter.rect.width / maximum;
+            for (int slot = 0; slot < maximum; slot++)
+            {
+                Image segment = CreateImage("Deck Builder Capacity Slot " + slot, meter,
+                    new Vector2(step - 4f, 12f), new Vector2(-meter.rect.width * .5f + (slot + .5f) * step, 0f),
+                    slot < count ? capacityInk : new Color(.32f, .23f, .12f, .18f));
+                segment.raycastTarget = false;
+            }
+            Image threshold = CreateImage("Deck Builder Capacity Minimum Marker", meter, new Vector2(2f, 22f),
+                new Vector2(-meter.rect.width * .5f + minimum * step, 0f), new Color(.61f, .43f, .18f));
+            threshold.raycastTarget = false;
         }
 
         private void SetDeckBuilderNotice(string message)
@@ -201,8 +223,8 @@ namespace ShatteredSail.Presentation
             IReadOnlyList<int> cards, bool special)
         {
             string prefix = special ? "Deck Builder Special" : "Deck Builder Base";
-            RectTransform column = CreateDeckListFrame(rail, prefix + " Column", new Vector2(332f, 718f),
-                new Vector2(special ? 174f : -174f, -7f),
+            RectTransform column = CreateDeckListFrame(rail, prefix + " Column", new Vector2(332f, 700f),
+                new Vector2(special ? 174f : -174f, 5f),
                 (special ? "专属牌 " : "基础卡 ") + cards.Count + " 张");
             RectTransform viewport = CreateRect(prefix + " Scroll Viewport", column,
                 new Vector2(DeckBuilderListViewportWidth, DeckBuilderListViewportHeight), new Vector2(-5f, -19f));
@@ -239,7 +261,7 @@ namespace ShatteredSail.Presentation
             if (groups.Count == 0)
                 CreateText(prefix + " Empty", viewport, new Vector2(286f, 140f), Vector2.zero,
                     21, FontStyle.Normal, TextAnchor.MiddleCenter, WorkshopPaperMuted).text = special
-                    ? "本阶段暂无专属牌\n招募船员或装备对应部件后自动加入" : "本阶段暂无基础卡牌";
+                    ? "本阶段暂无专属牌\n招募船员或装备对应部件后自动加入" : "本阶段暂无已拥有的基础卡牌\n通过打开卡包获取";
 
             ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
             scroll.viewport = viewport;

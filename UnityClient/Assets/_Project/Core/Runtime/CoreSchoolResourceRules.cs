@@ -15,7 +15,7 @@ namespace ShatteredSail.Core.Gameplay
             if (card == null || Phase != CoreDemoPhase.Battle || Battle == null) return card;
             if (CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.Mechanic == CoreNavalExpansionMechanic.TideAnchor && Cargo.Wood < 1)
                 return new CoreBattleCard(card.Id, card.Name, card.Type, card.Energy, 0, 2, 0, 0, 0,
-                    "无木板：获得 2 普通格挡，不产生潮势，不获得定锚。", card.AllowedStages, card.Action,
+                    "无木板：获得 2 普通格挡，不获得定向水流免疫。", card.AllowedStages, card.Action,
                     card.RequiredCrew, card.ArtId, card.CannonballCost, card.RequiredComponent, card.UpgradeLevel, card.SchoolId);
             if (BActive)
             {
@@ -51,7 +51,7 @@ namespace ShatteredSail.Core.Gameplay
         {
             CoreBattleCard card = GetBattleCard(cardIndex);
             if (BActive && card?.BoardingSpec != null)
-                return BState.FreePowderUses > 0 ? 0 : BRequiredPowder(card);
+                return BPayablePowder(card);
             return card == null || UsesFireFallback(card) ? 0 : card.PowderCost;
         }
 
@@ -81,15 +81,18 @@ namespace ShatteredSail.Core.Gameplay
 
         private void PayMana(int amount)
         {
-            int temporary = Math.Min(amount, Battle.Schools.TemporaryMana);
-            Battle.Schools.TemporaryMana -= temporary;
-            Battle.Schools.Mana -= amount - temporary;
+            Battle.Schools.Mana = Math.Max(0, Battle.Schools.Mana - Math.Max(0, amount));
+        }
+
+        internal void GainBattleMana(int amount)
+        {
+            if (Battle != null && amount > 0)
+                Battle.Schools.Mana = SchoolSum(Battle.Schools.Mana, amount);
         }
 
         // Expire the previous enemy turn's reserve before the enemy can build a new one.
         private void EndSchoolPlayerWindow()
         {
-            Battle.Schools.TidePower = 0;
             Battle.Schools.TemporaryMana = 0;
         }
 
@@ -98,19 +101,14 @@ namespace ShatteredSail.Core.Gameplay
         public bool SettleNavalCurse(bool decayLayers)
         {
             if (!NavalExpansionActive) return false;
-            CoreSchoolBattleState s = Battle.Schools;
-            if (s.CurseMarks <= 0) return false;
-            int quoted = SchoolSum(s.CurseMarks, SchoolSum(s.CurseTickBonus, s.CurseNextTickBonus));
-            if (decayLayers) quoted = SchoolSum(quoted, NavalFieldCurseBonus(false, s.CurseMarks));
-            s.CurseNextTickBonus = 0;
-            int damage = DamageSchoolEnemy(quoted);
-            Battle.LastAction += " 咒印" + (decayLayers ? "回合末" : "额外") + "结算：" + s.CurseMarks + " 层，伤害 " + damage + "。";
-            if (decayLayers) NavalExpansionConsumeCurse(1);
-            s.CurseDamagePerMark = 0;
-            return ResolveBattleOutcome();
+            // Kept for saved callers; marks are permanent until explicitly consumed and
+            // their execution threshold is checked immediately, with no damage or decay.
+            return CheckNavalCurseExecution() && ResolveBattleOutcome();
         }
 
-        private void RecordPaidTideGuard(int absorbed)
+        private void RecordPaidTideGuard(int absorbed) => RecordPaidTideGuardCore(absorbed, true);
+
+        private void RecordPaidTideGuardCore(int absorbed, bool gainTide)
         {
             CoreSchoolBattleState s = Battle.Schools;
             int before = SchoolSum(Battle.PlayerBlock, absorbed);
@@ -118,7 +116,7 @@ namespace ShatteredSail.Core.Gameplay
             int ordinaryBefore = before - paidBefore;
             int paidAbsorbed = Math.Min(paidBefore, Math.Max(0, absorbed - ordinaryBefore));
             s.TidePaidBlock = Math.Max(0, s.TidePaidBlock - paidAbsorbed);
-            s.TidePower = Math.Min(s.TideLimit, SchoolSum(s.TidePower, paidAbsorbed));
+            if (gainTide) s.TidePower = SchoolSum(s.TidePower, paidAbsorbed);
         }
     }
 }

@@ -21,6 +21,12 @@ namespace ShatteredSail.Presentation
         public string departureCrewPort;
         public string[] selectedSpecialCrew;
         public string[] standbyCrew;
+        // Optional presentation progress. Legacy snapshots begin with unread pages.
+        public string[] completedTreasureStoryKeys;
+        public string treasureStoryKey;
+        public int treasureStoryPage;
+        public int treasureStoryPanel;
+        public string pendingLegendaryVictoryId;
     }
 
     // The voyage is kept separate from the last settled port profile: parking a
@@ -94,7 +100,8 @@ namespace ShatteredSail.Presentation
                 record.navigationInputStep < 0 || record.navigationInputStep > 2 ||
                 record.selectedOrdinaryCrew < -1 || record.selectedOrdinaryCrew > 1000 ||
                 record.departureCrewShipIndex < -1 || record.departureCrewShipIndex >= CoreVoyageSession.Ships.Count ||
-                record.departureCrewPort == null || !ValidCrew(record.selectedSpecialCrew) || !ValidCrew(record.standbyCrew)) return false;
+                record.departureCrewPort == null || !ValidCrew(record.selectedSpecialCrew) || !ValidCrew(record.standbyCrew) ||
+                !ValidComicProgress(record)) return false;
             string scope = PlayerPrefs.GetString(CoreGameplayDemoController.WorldEconomyScopeKey, string.Empty);
             if (record.profileScope != scope)
             {
@@ -108,6 +115,20 @@ namespace ShatteredSail.Presentation
         {
             if (crew == null || crew.Length > 64) return false;
             foreach (string id in crew) if (string.IsNullOrWhiteSpace(id) || id.Length > 256) return false;
+            return true;
+        }
+
+        private static bool ValidComicProgress(VoyageSuspensionRecord record)
+        {
+            if (record.treasureStoryPage < 0 || record.treasureStoryPage > 32 ||
+                record.treasureStoryPanel < 0 || record.treasureStoryPanel >= ComicPanelCatalog.QuadPanelCount ||
+                record.treasureStoryKey != null && record.treasureStoryKey.Length > 512 ||
+                !string.IsNullOrEmpty(record.pendingLegendaryVictoryId) &&
+                    LegendaryFleetComicCatalog.Find(record.pendingLegendaryVictoryId) == null) return false;
+            if (record.completedTreasureStoryKeys == null) return true;
+            if (record.completedTreasureStoryKeys.Length > 64) return false;
+            foreach (string key in record.completedTreasureStoryKeys)
+                if (string.IsNullOrWhiteSpace(key) || key.Length > 512) return false;
             return true;
         }
     }

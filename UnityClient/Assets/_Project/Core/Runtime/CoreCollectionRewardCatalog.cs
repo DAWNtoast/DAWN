@@ -52,8 +52,6 @@ namespace ShatteredSail.Core.Gameplay
         private const string ReefRoute = "route_shattered_sail_reef";
         private const string GoldenRoute = "route_golden_tide_trade";
         private const string MoonRoute = "route_moon_tide_ruins";
-        private const string ChartCompletion = "（非教学普通航程抵达目标港并确认结算，不要求全探索）";
-        private const string TreasureCompletion = "（开启秘藏后确认结算）";
         private const string FinalTreasure = "seventh_harbor_beacon_lantern";
         private static readonly string[] routeIds = { ReefRoute, GoldenRoute, MoonRoute };
         private static readonly string[] legendaryBossIds =
@@ -64,23 +62,23 @@ namespace ShatteredSail.Core.Gameplay
 
         public static IReadOnlyList<CoreCollectionRewardRule> All { get; } = Array.AsReadOnly(new[]
         {
-            Rule("first_victory_compass", "首领 · 首次击败任意首领（含教学首领）",
+            Rule("first_victory_compass", "首领 · 首次击败任意首领",
                 (p, f, o) => CountDistinct(p.defeatedBossIds, IsKnownBoss) >= 1),
             RouteBoss("boatswain_bell", GoldenRoute, "黄金潮汐商路任一首领：税金女王号或极光敕令号"),
-            Rule("sealed_chart", "海图 · 完成 3 张不同普通海图" + ChartCompletion,
+            Rule("sealed_chart", "海图 · 完成 3 张不同普通海图",
                 (p, f, o) => CountDistinct(p.completedChartSeeds) >= 3),
-            Rule("old_captain_free_flag", "海图 · 完成碎帆礁海、黄金潮汐商路、月潮遗迹海各一次" + ChartCompletion,
+            Rule("old_captain_free_flag", "海图 · 完成碎帆礁海、黄金潮汐商路、月潮遗迹海各一次",
                 (p, f, o) => ContainsAll(p.completedRouteIds, routeIds)),
-            Rule("six_port_anchor_seal", "航海 · 到访全部 6 个港口（含起始港）",
+            Rule("six_port_anchor_seal", "航海 · 到访全部 6 个港口",
                 (p, f, o) => ContainsAll(p.visitedPorts, CoreVoyageSession.DestinationPorts)),
-            Rule("no_crown_logbook", "首领 · 战胜全部 6 艘传说舰（潮汐镇魂号为切磋）",
+            Rule("no_crown_logbook", "首领 · 战胜全部 6 艘传说舰",
                 (p, f, o) => ContainsAll(p.defeatedBossIds, legendaryBossIds)),
             RouteBoss("first_stormglass", ReefRoute, "碎帆礁海任一首领：裂桅号或幽礁潜猎号"),
-            Rule("starboard_copper_scope", "首领 · 战胜 3 种不同首领（含教学首领）",
+            Rule("starboard_copper_scope", "首领 · 战胜 3 种不同首领",
                 (p, f, o) => CountDistinct(p.defeatedBossIds, IsKnownBoss) >= 3),
-            Rule("saltworn_quartermaster_key", "海图 · 完成 1 张普通海图" + ChartCompletion,
+            Rule("saltworn_quartermaster_key", "海图 · 完成 1 张普通海图",
                 (p, f, o) => CountDistinct(p.completedChartSeeds) >= 1),
-            Rule("first_berth_drydock_nail", "航海 · 到访 3 个不同港口（含起始港）",
+            Rule("first_berth_drydock_nail", "航海 · 到访 3 个不同港口",
                 (p, f, o) => CountDistinct(p.visitedPorts, IsKnownPort) >= 3),
             RouteBoss("godbreaker_oar", MoonRoute, "月潮遗迹海任一首领：月蚀圣骸或月织星槎号"),
             TreasureRank("leviathan_bone_whistle", "weathered", "残旧"),
@@ -102,23 +100,23 @@ namespace ShatteredSail.Core.Gameplay
             Crew("ada_bronze_bell_bandage", "crew_bronze_bell_doctor_ada", "铜钟港", "退役军医 艾达"),
             Crew("helen_thirteenth_cannon_coin", "crew_bronze_bell_gunner_helen", "铜钟港", "钟楼炮官 赫莲"),
             Crew("noya_drowned_diver_lens", "crew_gray_gull_diver_noya", "灰鸥港", "潜水员 诺雅"),
-            Rule("broken_anchor_sextant", "海图 · 完成 5 张不同普通海图" + ChartCompletion,
+            Rule("broken_anchor_sextant", "海图 · 完成 5 张不同普通海图",
                 (p, f, o) => CountDistinct(p.completedChartSeeds) >= 5),
-            Rule("salt_crown_trade_weight", "海图 · 完成黄金潮汐商路" + ChartCompletion,
+            Rule("salt_crown_trade_weight", "海图 · 完成黄金潮汐商路",
                 (p, f, o) => Contains(p.completedRouteIds, GoldenRoute)),
             TreasureRank("twilight_tide_moon_shard", "gilded", "鎏金"),
             TreasureCount("empty_berth_registry", 3),
             TreasureCount("nameless_sailor_nameplate", 1),
             TreasureRank("storm_altar_fragment", "moonlit", "月蚀"),
-            Rule("unfinished_seventh_berth_key", "藏宝图 · 完成残旧、鎏金、月蚀三种品质各一张" + TreasureCompletion,
+            Rule("unfinished_seventh_berth_key", "藏宝图 · 完成残旧、鎏金、月蚀三种品质各一张",
                 (p, f, o) => ContainsAll(p.completedTreasureRanks, new[] { "weathered", "gilded", "moonlit" })),
             TreasureCount("last_horizon_needle", 5),
-            Rule("free_waters_mooring_ring", "收集 · 全存档拥有 20 件不同藏品（六港合计，不消耗）",
+            Rule("free_waters_mooring_ring", "收集 · 全存档拥有 20 件不同藏品",
                 (p, f, o) => CountKnownCollections(o) >= 20),
             TreasureCount("sea_god_debt_token", 8),
-            Rule("inheritance_oath_inkstone", "收集 · 全存档拥有 30 件不同藏品（六港合计，不消耗）",
+            Rule("inheritance_oath_inkstone", "收集 · 全存档拥有 30 件不同藏品",
                 (p, f, o) => CountKnownCollections(o) >= 30),
-            Rule(FinalTreasure, "收集 · 集齐其余 39 件藏品（六港合计，不消耗）",
+            Rule(FinalTreasure, "收集 · 集齐其余 39 件藏品",
                 (p, f, o) => OwnsEveryOtherCollection(o))
         });
 
@@ -168,11 +166,11 @@ namespace ShatteredSail.Core.Gameplay
         }
 
         private static CoreCollectionRewardRule TreasureRank(string id, string rankId, string name) =>
-            Rule(id, "藏宝图 · 完成 1 张" + name + "藏宝图" + TreasureCompletion,
+            Rule(id, "藏宝图 · 完成 1 张" + name + "藏宝图",
                 (p, f, o) => Contains(p.completedTreasureRanks, rankId));
 
         private static CoreCollectionRewardRule TreasureCount(string id, int count) =>
-            Rule(id, "藏宝图 · 完成 " + count + " 张不同藏宝图" + TreasureCompletion,
+            Rule(id, "藏宝图 · 完成 " + count + " 张不同藏宝图",
                 (p, f, o) => CountDistinct(p.completedTreasureSeeds) >= count);
 
         private static bool HasCrew(IEnumerable<string> ids, string target)

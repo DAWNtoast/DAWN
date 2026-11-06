@@ -65,6 +65,7 @@ namespace ShatteredSail.Presentation.Tests
                     "结算边界夹具 · " + outcome + " · " + (store ? "勾选全货入仓" : "默认保留船货"));
                 Button.ButtonClickedEvent oldFinish = ActiveButton("Return To Port").onClick;
                 ClickAcceptanceButton("Return To Port"); yield return null;
+                yield return ClickThroughAcceptanceArrivalComic(controller);
                 Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                 Assert.That(session.CurrentPort, Is.EqualTo(port));
                 Assert.That(session.ProfileGold, Is.EqualTo(expectedGold));
@@ -211,8 +212,9 @@ namespace ShatteredSail.Presentation.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
-        private static IEnumerator CreateWarehouseSettlementFixture(CoreGameplayDemoController controller, VoyageOutcome outcome)
+        private static IEnumerator CreateWarehouseSettlementFixture(CoreGameplayDemoController controller, VoyageOutcome outcome, float chartCoverage = -1f, bool showOverview = true)
         {
+            yield return ClickThroughAcceptanceArrivalComic(controller);
             CoreVoyageSession session = controller.Session;
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
             // The all-category boundary fixture needs room for real mixed cargo.
@@ -248,6 +250,13 @@ namespace ShatteredSail.Presentation.Tests
             }
             else { ClickAcceptanceButton("Start Voyage"); yield return null; }
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+            if (chartCoverage >= 0f)
+            {
+                // Arrange chart knowledge before the real settlement computes eligibility.
+                int explored = (int)(session.Map.ExploredCells.Length * chartCoverage / 100f);
+                for (int index = 0; index < session.Map.ExploredCells.Length; index++)
+                    session.Map.ExploredCells[index] = index < explored;
+            }
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
                 // Mixed cargo and all six rare gains fit the merchant fixture;
                 // the wood gain still proves loss happens before warehouse transfer.
@@ -280,8 +289,7 @@ namespace ShatteredSail.Presentation.Tests
                 ClickAcceptanceButton("Safe Return"); yield return null;
             }
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
-            if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-            { ClickAcceptanceButton("Skip Settlement Reveal"); yield return null; }
+            if (showOverview) yield return SettlementChestTestActions.ShowOverview();
         }
 
         private static IEnumerator WaitForWarehouseNavigationUi(CoreVoyageSession session)

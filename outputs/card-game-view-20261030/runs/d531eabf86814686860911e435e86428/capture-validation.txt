@@ -1,0 +1,1 @@
+PASS 1017 actual Unity card faces; current art/frame/font/effect checked for every row.

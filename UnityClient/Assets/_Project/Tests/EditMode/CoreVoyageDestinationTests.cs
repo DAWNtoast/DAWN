@@ -9,6 +9,7 @@ namespace ShatteredSail.Core.Tests
         public void DestinationPicker_ExcludesCurrentPortAndChangesMapIdentity()
         {
             var session = new CoreVoyageSession();
+            session.RecordCollectionPortVisit("白贝港");
             Assert.That(CoreVoyageSession.DestinationPorts, Does.Contain("白贝港"));
             Assert.That(session.SelectedDestinationPort, Is.Not.EqualTo(session.CurrentPort));
             Assert.That(session.SelectDestinationPort(session.CurrentPort), Is.False);
@@ -20,6 +21,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Map.DestinationName, Is.EqualTo("铜钟港"));
 
             var alternate = new CoreVoyageSession();
+            alternate.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(3) });
+            alternate.RecordCollectionPortVisit("铜钟港");
             alternate.SetSeed("DESTINATION-IDENTITY");
             alternate.SelectDestinationPort("盐冠港");
             alternate.StartVoyage();

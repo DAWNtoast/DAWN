@@ -10,21 +10,6 @@ namespace ShatteredSail.Presentation
         {
             if (root == null || battle == null || battle.Stage == NavalBattleStage.Boarding) return;
 
-            foreach (bool player in new[] { true, false })
-            {
-                string side = player ? "Player" : "Enemy";
-                Vector2 position = new Vector2(player ? -735f : 735f, 410f);
-                SetNavalHudRect(root.Find(side + " Battle Name Board") as RectTransform,
-                    new Vector2(340f, 70f), position);
-                Text name = SetNavalHudText(root, side + " Battle Name", new Vector2(328f, 62f), position, 20);
-                if (name != null)
-                {
-                    name.resizeTextForBestFit = true;
-                    name.resizeTextMinSize = 16;
-                    name.resizeTextMaxSize = 20;
-                }
-            }
-
             RectTransform resources = SetNavalHudPanel(root, "Player Resource HUD", true, -193f, 152f);
             SetNavalHudText(resources, "Player Resource Title", new Vector2(212f, 24f), new Vector2(0f, 58f), 17);
             SetNavalHudText(resources, "Player Ammunition", new Vector2(212f, 24f), new Vector2(0f, -10f), 16);
@@ -33,8 +18,7 @@ namespace ShatteredSail.Presentation
 
             RectTransform buffs = SetNavalHudPanel(root, "Battle Buff Panel", true, -336f, 116f);
             SetNavalHudText(buffs, "Battle Active Buffs", new Vector2(212f, 100f), Vector2.zero, 17);
-            string retreatName = root.Find("Emergency Battle Return") != null ? "Emergency Battle Return" : "Retreat Battle";
-            SetNavalHudPanel(root, retreatName, true, -420f, 40f, 16);
+            SetNavalHudPanel(root, "Emergency Battle Return", true, -420f, 40f, 16);
 
             RectTransform intent = SetNavalHudPanel(root, "Enemy Intent HUD", false, -218f, 106f);
             Text intentText = SetNavalHudText(intent, "Enemy Intent Text", new Vector2(208f, 90f), Vector2.zero, 17);

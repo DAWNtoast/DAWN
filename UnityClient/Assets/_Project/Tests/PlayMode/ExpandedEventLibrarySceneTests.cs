@@ -18,6 +18,14 @@ namespace ShatteredSail.Presentation.Tests
         private static readonly string[] ExpandedLibraryRandoms = {
             "event_reef_v2_salvage_argument", "event_trade_v2_sample_sails", "event_moon_v2_star_in_jar"
         };
+        // Production-generated SS6 charts with a navigable non-combat path through
+        // this exploration chain. Keep their authored geography and boss nodes;
+        // a fresh Guid seed can put a mandatory boss on the shortest path.
+        private static readonly string[] ExpandedLibraryCharts = {
+            "SS6.0.0.1.0.0.2ACC7C62.6B875B29.80D42F16",
+            "SS6.1.0.1.0.0.9FE649C0.7A42DE36.771F9E39",
+            "SS6.2.0.1.0.0.8766A12C.5100943A.E6C61F83"
+        };
 
         [UnityTest] public IEnumerator ExpandedEventLibrary_Reef_RealButtonsAndDiskResume() => RunExpandedEventLibrary(0);
         [UnityTest] public IEnumerator ExpandedEventLibrary_Trade_RealButtonsAndDiskResume() => RunExpandedEventLibrary(1);
@@ -208,21 +216,18 @@ namespace ShatteredSail.Presentation.Tests
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(5) });
             Assert.That(session.RestoreSeaChartProgress(new CoreSeaChartProgress()), Is.True);
             session.ConfigureCrewCapabilities(true, true, false, false, true, false);
-            bool found = false;
-            for (int attempt = 0; attempt < 40; attempt++)
-            {
-                string seed = CoreVoyageSession.CreateChartSeed(route, session.CurrentPort, session.SelectedDestinationPort);
-                Assert.That(seed, Does.StartWith("SS6."));
-                Assert.That(session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
-                CoreVoyageMap preview = session.PreviewSelectedSeaChart();
-                CoreMapNode candidate = preview.Nodes.SingleOrDefault(node => node.Encounter.Id == ExpandedLibrarySources[route]);
-                if (candidate == null) continue;
-                CoreMapNode destination = preview.Nodes.Single(node => node.Encounter.Id == ExplorationTargets[route]);
-                if (PersistentCourseDistance(candidate.Position, destination.Position) * preview.Route.NauticalMilesPerMapUnit < 360f) continue;
-                found = true;
-                break;
-            }
-            Assert.That(found, Is.True, "Find a real current chart containing the new fixed source and a separately reachable chain destination.");
+            string seed = ExpandedLibraryCharts[route];
+            Assert.That(seed, Does.StartWith("SS6."));
+            Assert.That(session.TrySelectChartSeed(seed, out string reason), Is.True, reason);
+            CoreVoyageMap preview = session.PreviewSelectedSeaChart();
+            CoreMapNode candidate = preview.Nodes.SingleOrDefault(node => node.Encounter.Id == ExpandedLibrarySources[route]);
+            Assert.That(candidate, Is.Not.Null, "The fixed current chart must contain the authored clue source.");
+            CoreMapNode destination = preview.Nodes.Single(node => node.Encounter.Id == ExplorationTargets[route]);
+            Assert.That(PersistentCourseDistance(candidate.Position, destination.Position) * preview.Route.NauticalMilesPerMapUnit,
+                Is.GreaterThanOrEqualTo(360f), "The clue must still require real travel to a separate reward location.");
+            Assert.That(preview.Nodes.Any(node => node.Encounter.Id.StartsWith("boss_route_", StringComparison.Ordinal)), Is.True,
+                "The fixture selects a safe exploration route without removing the chart's mandatory boss.");
+            TestContext.WriteLine("Expanded event library chart: " + seed);
             session.Cargo.Water = session.Cargo.Food = 200;
             session.Cargo.Wood = 8; session.Cargo.Cloth = 8; session.Cargo.Iron = 4;
             session.Cargo.Medicine = 2; session.Cargo.Beer = 2; session.Cargo.Gold = 80;

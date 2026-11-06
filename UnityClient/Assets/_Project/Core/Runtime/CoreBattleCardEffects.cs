@@ -15,30 +15,34 @@ namespace ShatteredSail.Core.Gameplay
         internal CoreBattleCardEffects(CoreBattleCard card, NavalBattleStage stage, int ordinaryCrew,
             int medicine, int? missingHealth, int extraDamage = 0, int extraBlock = 0, int extraRepair = 0,
             int flatRepair = 0, bool medicineBoostAllowed = true, int flatDamage = 0, int wood = 0,
-            int unprovisionedRepair = UnprovisionedRepair, bool fixedMedicineCost = false)
+            int unprovisionedRepair = UnprovisionedRepair, bool fixedMedicineCost = false, bool healingBlocked = false,
+            int? damageOverride = null)
         {
             OrdinaryCrew = Math.Max(0, ordinaryCrew);
             BoardingScale = 1m;
-            Damage = Sum(Sum(card == null ? 0 : card.Damage, extraDamage), flatDamage);
+            Damage = damageOverride.HasValue ? Math.Max(0, damageOverride.Value) :
+                Sum(Sum(card == null ? 0 : card.Damage, extraDamage), flatDamage);
             int baseBlock = card == null ? 0 : stage == NavalBattleStage.Boarding
                 ? card.BoardingBlock ?? card.Block : card.Block;
             Block = Sum(baseBlock, extraBlock);
             FullRepair = Sum(Sum(card == null ? 0 : card.Repair, extraRepair), flatRepair);
-            bool needsSupply = medicineBoostAllowed && card != null && card.IsAllowedInStage(stage) && FullRepair > 0;
+            bool needsSupply = medicineBoostAllowed && card != null && card.IsAllowedInStage(stage) && FullRepair > 0 &&
+                CoreBattleCardUpgradeStructure.HasRepairSupply(card, stage);
             // The two-point fallback is final health and does not grow with
-            // upgrades. Blood healing opts out of the supply gate.
+            // upgrades on an existing supply treatment. A card whose baseline
+            // treatment is free keeps its full upgraded heal free as well.
             FallbackRepair = needsSupply ? Math.Min(unprovisionedRepair, FullRepair) : FullRepair;
             BaseRepair = FallbackRepair;
             HasMedicineBoost = needsSupply && stage == NavalBattleStage.Boarding && medicine > 0 && FullRepair > FallbackRepair;
             HasWoodBoost = needsSupply && stage != NavalBattleStage.Boarding && wood > 0 && FullRepair > FallbackRepair;
             Repair = !needsSupply || HasMedicineBoost || HasWoodBoost ? FullRepair : FallbackRepair;
             IsRepairPreview = !missingHealth.HasValue;
-            ActualRepair = missingHealth.HasValue ? Math.Min(Math.Max(0, missingHealth.Value), Repair) : 0;
+            ActualRepair = missingHealth.HasValue && !healingBlocked ? Math.Min(Math.Max(0, missingHealth.Value), Repair) : 0;
             // A supply is useful only if the fixed fallback cannot fill the
             // wound. Quoting and overhealing never consume inventory.
             MedicineCost = HasMedicineBoost && missingHealth.HasValue &&
                 (fixedMedicineCost || missingHealth.Value > FallbackRepair) ? 1 : 0;
-            WoodCost = HasWoodBoost && missingHealth.HasValue &&
+            WoodCost = !healingBlocked && HasWoodBoost && missingHealth.HasValue &&
                 missingHealth.Value > FallbackRepair ? 1 : 0;
         }
 
@@ -67,6 +71,12 @@ namespace ShatteredSail.Core.Gameplay
         /// <summary>Damage before critical hits and enemy guard, including the current cannon bonuses.</summary>
         public int GetBattleCardDamage(CoreBattleCard card, NavalBattleStage stage)
         {
+            int damage = GetBattleCardUnmodifiedFieldDamage(card, stage);
+            return stage == NavalBattleStage.Naval ? NavalFieldAttackDamage(damage, true, false) : damage;
+        }
+
+        private int GetBattleCardUnmodifiedFieldDamage(CoreBattleCard card, NavalBattleStage stage)
+        {
             if (card == null) return 0;
             if (stage == NavalBattleStage.Boarding)
             {
@@ -74,13 +84,25 @@ namespace ShatteredSail.Core.Gameplay
                 if (card.BoardingSpec != null) return GetBoardingCardDamageQuote(card);
             }
             int damage = GetBattleCardEffects(card, stage).Damage;
+            if (stage == NavalBattleStage.Naval && card.Action == NavalBattleCardAction.Cannon)
+            {
+                // Upgrade/supply-adjusted cannon base scales with the ship. Keep all fixed
+                // school and loading bonuses in final damage units, rather than multiplying them.
+                int cannonBase = Math.Max(0, GetSupplyAdjustedBattleCard(card).Damage);
+                damage = SchoolSum(CoreNavalStatRules.ScaleCannonDamage(cannonBase, EffectiveFirepower),
+                    Math.Max(0, damage - cannonBase));
+            }
             if (stage == NavalBattleStage.Naval) damage = SchoolSum(damage, NavalExpansionFirstDamageBonus(card));
+            damage = SchoolSum(damage, NavalThunderPowerDamageBonus(card, stage));
+            if (stage == NavalBattleStage.Naval && NavalExpansionActive &&
+                CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.Mechanic == CoreNavalExpansionMechanic.ManaBurst)
+                damage = SchoolSum(damage, SchoolProduct(Battle.Schools.AvailableMana,
+                    CoreNavalExpansionBalance.ManaBurstDamageCoefficient(card.UpgradeLevel)));
             if (stage == NavalBattleStage.Naval && NavalExpansionActive && card.Damage > 0 && card.SchoolId == "thunder" &&
                 CoreNavalSchoolExpansionCatalog.FindSpec(card.Id) != null)
                 damage = SchoolSum(damage, Battle.Schools.ThunderReadyDamage);
-            if (card.Action != NavalBattleCardAction.Cannon) return damage;
-            int firepower = Math.Max(0, (EffectiveFirepower - 8) / 2);
-            return SchoolSum(damage, SchoolSum(firepower, SchoolFinalLoadedBonus()));
+            if (stage != NavalBattleStage.Naval || card.Action != NavalBattleCardAction.Cannon) return damage;
+            return SchoolSum(damage, SchoolFinalLoadedBonus());
         }
 
         public CoreBattleCardEffects GetBattleCardEffects(int cardIndex, NavalBattleStage stage) =>
@@ -103,20 +125,28 @@ namespace ShatteredSail.Core.Gameplay
             if (stage == NavalBattleStage.Boarding && card?.BoardingSpec != null)
             {
                 bool desperate = BActive && CTBDesperate;
-                int bloodBlock = desperate && card.BoardingSpec.Key == "blood_12" ? BValue(card, 8) - card.Block : 0;
-                int bloodRepair = desperate && card.BoardingSpec.Key == "blood_09" ? BValue(card, 9) - card.Repair : 0;
-                int fallback = desperate && card.BoardingSpec.Key == "blood_09" ? 3 : CoreBattleCardEffects.UnprovisionedRepair;
-                return new CoreBattleCardEffects(card, stage, ordinaryCrew, Cargo.Medicine, missing,
+                int bloodBlock = desperate && card.BoardingSpec.Key == "blood_12" ? BGuardValue(card, 12) - card.Block : 0;
+                bool bloodHealing = card.BoardingSpec.Key == "blood_09";
+                bool doctor = card.Id == "card_special_crew_broken_anchor_doctor_hector";
+                int bloodRepair = bloodHealing ? BLinear(card, desperate ? (doctor ? 16 : 13) : (doctor ? 7 : 6)) - card.Repair : 0;
+                int fallback = desperate && bloodHealing ? (doctor ? 4 : 5) : CoreBattleCardEffects.UnprovisionedRepair;
+                int medicine = Cargo.Medicine;
+                if (BActive && (card.BoardingSpec.Key == "tide_11" && BState.TidePower < CoreBoardingCardBalance.Cost("tide_11") ||
+                    card.BoardingSpec.Key == "tide_12" && BState.TidePower < CoreBoardingCardBalance.Cost("tide_12"))) medicine = 0;
+                return new CoreBattleCardEffects(card, stage, ordinaryCrew, medicine, missing,
                     Math.Max(0, GetBoardingCardDamageQuote(card) - card.Damage), bloodBlock, bloodRepair,
                     unprovisionedRepair: fallback, fixedMedicineCost: card.BoardingSpec.Key != "basic_06" &&
-                        (!missing.HasValue || missing.Value > 0 || card.BoardingSpec.Key == "basic_07" || card.BoardingSpec.Key == "tide_12"));
+                        (!missing.HasValue || missing.Value > 0 || card.BoardingSpec.Key == "basic_07" || card.BoardingSpec.Key == "tide_12"),
+                    healingBlocked: BActive && IsBattleHealingBlocked(true),
+                    damageOverride: GetBoardingCardDamageQuote(card));
             }
             GetSchoolCardBonuses(card, stage, out int extraDamage, out int extraBlock, out int extraRepair);
             return new CoreBattleCardEffects(card, stage, ordinaryCrew, Cargo.Medicine, missing,
                 extraDamage, extraBlock, extraRepair,
                 SchoolBloodMendQuote(card, stage), card?.SchoolEffect?.Mechanic != CoreSchoolMechanic.BloodMend &&
                     card?.SchoolEffect?.Mechanic != CoreSchoolMechanic.BloodDrain && !CoreComponentFieldCards.IsFieldCard(card),
-                SchoolAttackStanceQuote(card, stage), Cargo.Wood);
+                SchoolAttackStanceQuote(card, stage), Cargo.Wood,
+                healingBlocked: SchoolBattleActive(stage) && IsBattleHealingBlocked(true));
         }
 
         /// <summary>Compact, stage-specific effects for the card face. The definition itself stays unchanged.</summary>
@@ -126,6 +156,8 @@ namespace ShatteredSail.Core.Gameplay
             if (stage == NavalBattleStage.Boarding)
                 card = CoreBoardingCardCatalog.ForBoarding(card);
             if (card.BoardingSpec != null) return card.Description;
+            if (CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.Mechanic == CoreNavalExpansionMechanic.ManaBurst)
+                return BattleCardFaceDescription(card, stage);
             if (card.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideWard ||
                 card.Id == "card_school_tide_n03") return BattleCardFaceDescription(card, stage);
             card = GetSupplyAdjustedBattleCard(card);

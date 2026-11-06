@@ -190,8 +190,7 @@ namespace ShatteredSail.Presentation
         {
             float penalty = session.GetCrewSpeedPenalty(selectedDepartureOrdinaryCrew);
             float bonus = session.GetCrewSpeedBonus(selectedDepartureOrdinaryCrew);
-            string effect = penalty > 0f ? "航速 -" + penalty.ToString("0.0") + " 节 · 战斗 -" +
-                ((session.MinimumOrdinaryCrew - selectedDepartureOrdinaryCrew) * 2) :
+            string effect = penalty > 0f ? "航速 -" + penalty.ToString("0.0") + " 节" :
                 bonus > 0f ? "航速 +" + bonus.ToString("0.0") + " 节" : "无船员航速增减";
             return "航速 " + session.GetEffectiveSpeedKnots(selectedDepartureOrdinaryCrew).ToString("0.0") +
                 " 节 · " + effect;
@@ -349,13 +348,6 @@ namespace ShatteredSail.Presentation
                 }
                 List<CrewVariantDefinition> available = AvailableDepartureCrew();
                 roster.sizeDelta = new Vector2(0f, Mathf.Max(300f, ((available.Count + 2) / 3) * 150f));
-                if (available.Count == 0)
-                {
-                    Text empty = CreateText("Departure Special Crew Empty", roster, new Vector2(690f, 80f),
-                        new Vector2(0f, -150f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, ink);
-                    empty.rectTransform.anchorMin = empty.rectTransform.anchorMax = new Vector2(.5f, 1f);
-                    empty.text = "当前港口暂无已招募的特殊船员\n可前往酒馆招募，或等待其他船员随航返回";
-                }
                 for (int index = 0; index < available.Count; index++)
                 {
                     CrewVariantDefinition crew = available[index];
@@ -363,7 +355,7 @@ namespace ShatteredSail.Presentation
                     Button toggle = CreateButton("Departure Special Crew Toggle " + index, roster,
                         new Vector2(234f, 142f), new Vector2(-246f + index % 3 * 246f, -75f - index / 3 * 150f),
                         PanelRaised, ink, 16);
-                    MarketShopSkin.ApplyLightButton(toggle, selected);
+                    MarketShopSkin.ApplyChoiceRow(toggle, selected);
                     RectTransform row = (RectTransform)toggle.transform;
                     row.anchorMin = row.anchorMax = new Vector2(.5f, 1f);
                     toggle.GetComponentInChildren<Text>().text = string.Empty;
@@ -419,12 +411,12 @@ namespace ShatteredSail.Presentation
             };
             Button back = CreateButton("Back To Voyage Setup", card, new Vector2(260f, 44f),
                 new Vector2(-150f, -198f), PanelRaised, Ink, 17);
-            MarketShopSkin.ApplyTextButton(back);
+            WoodButtonSkin.ApplyAction(back, WoodButtonRole.Secondary);
             back.GetComponentInChildren<Text>().text = HasWorkshopSpecialCardReturn ? "返回特殊卡牌" : "返回出航";
             Button confirm = CreateButton("Confirm Departure Crew", card, new Vector2(260f, 44f),
                 new Vector2(150f, -198f), Gold, DeepSea, 17);
             confirm.GetComponentInChildren<Text>().text = "确认船员配置";
-            MarketShopSkin.SetMode(confirm, true);
+            WoodButtonSkin.ApplyAction(confirm, WoodButtonRole.Primary);
             Action close = () =>
             {
                 departureCrewConfigurationOpen = false;

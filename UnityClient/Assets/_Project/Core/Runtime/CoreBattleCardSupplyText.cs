@@ -32,7 +32,8 @@ namespace ShatteredSail.Core.Gameplay
 
             int total = fullRepair ?? PotentialRepair(card);
             if (total <= 0 || !RepairPhrase.IsMatch(text)) return text;
-            int fallback = Math.Min(CoreBattleCardEffects.UnprovisionedRepair, total);
+            int fallback = CoreBattleCardUpgradeStructure.HasRepairSupply(card, stage)
+                ? Math.Min(CoreBattleCardEffects.UnprovisionedRepair, total) : total;
             bool bothStages = !stage.HasValue && card.IsAllowedInStage(NavalBattleStage.Boarding) &&
                 (card.IsAllowedInStage(NavalBattleStage.Naval) || card.IsAllowedInStage(NavalBattleStage.Preparation));
             bool boardingStage = stage == NavalBattleStage.Boarding || (!stage.HasValue &&
@@ -75,7 +76,7 @@ namespace ShatteredSail.Core.Gameplay
                 case "basic_07": return PeriodicHeal(extra, "1 药物") + "。";
                 case "fire_05": return ConditionalHeal(extra, "1 药物和 1 火药") + "。";
                 case "arcane_05": return ConditionalHeal(extra, "1 药物和 2 点魔力") + "。";
-                case "curse_12": return ConditionalHeal(extra, "1 药物和 2 层咒痕") + "。";
+                case "curse_12": return "恢复 2 点生命值；敌方咒印层数 ≥ 2 时，消耗 1 药物额外恢复 " + N(extra) + " 点生命值。";
                 case "tide_11": return ConditionalHeal(extra, "1 药物和 6 点潮势") + "。";
                 case "tide_12": return PeriodicHeal(extra, "1 药物和 8 点潮势") + "；不叠加、不刷新。";
                 case "blood_09":
@@ -118,17 +119,19 @@ namespace ShatteredSail.Core.Gameplay
 
         private static string TideGuard(string text, CoreBattleCard card, bool anchor)
         {
-            // Paid wood changes the entire shield into tide-generating guard, including its base two points.
+            // Paid wood converts all current guard, including guard gained before this card.
             Match guard = Regex.Match(text, @"获得\s*(\d+)\s*(?:点\s*)?蓄潮格挡");
             int total = guard.Success ? int.Parse(guard.Groups[1].Value, CultureInfo.InvariantCulture) : card.Block;
             int fallback = Math.Min(total, Math.Min(2, card.Block) + Math.Max(0, total - card.Block));
             int extra = Math.Max(0, total - fallback);
             int wood = anchor ? 1 : Math.Max(1, card.SchoolEffect.WoodCost);
             string replacement = "获得 " + N(fallback) + " 点普通格挡；消耗 " + N(wood) +
-                " 木板额外获得 " + N(extra) + " 点格挡，并将本牌格挡变为蓄潮格挡";
-            if (anchor) replacement += "，至下个己方回合开始可拒绝一次强制位移";
+                " 木板额外获得 " + N(extra) + " 点格挡，并将当前全部格挡变为蓄潮格挡";
+            if (anchor) replacement += "，直到下个己方回合开始时，免疫定向水流负面效果影响";
             string working = Regex.Replace(text, @"无木板[^；。\r\n]*", string.Empty);
             working = Regex.Replace(working, @"至下个己方回合开始可拒绝一次强制位移", string.Empty);
+            working = Regex.Replace(working, @"直到下个己方回合结束(?:时)?，不受定向水流影响", string.Empty);
+            working = Regex.Replace(working, @"直到下个己方回合开始时，免疫定向水流负面效果影响", string.Empty);
             working = Regex.Replace(working, @"(?:消耗|耗)\s*\d+\s*木板", string.Empty);
             bool inserted = false;
             working = Regex.Replace(working, @"获得\s*\d+\s*(?:点\s*)?蓄潮格挡", match =>

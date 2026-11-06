@@ -32,8 +32,8 @@ namespace ShatteredSail.Presentation
             if (scenery == null || deck == null) return;
             RectTransform skyRect = scenery.rectTransform;
             skyRect.anchorMin = skyRect.anchorMax = skyRect.pivot = new Vector2(.5f, .5f);
-            skyRect.sizeDelta = new Vector2(1860f, 400f);
-            skyRect.anchoredPosition = new Vector2(0f, 250f);
+            skyRect.sizeDelta = new Vector2(1860f, 480f);
+            skyRect.anchoredPosition = new Vector2(0f, 210f);
             scenery.uvRect = BoardingBattleLayout.SceneryUv(scenery.texture, skyRect.sizeDelta);
             RectTransform deckRect = deck.rectTransform;
             deckRect.anchorMin = deckRect.anchorMax = deckRect.pivot = new Vector2(.5f, .5f);

@@ -50,7 +50,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.PlayCard(1, options), Is.True);
             Assert.That(s.Battle.Hand, Is.EqualTo(new[] { Index("basic_02") }));
             Assert.That(s.Battle.Boarding.ExhaustedCards, Is.EquivalentTo(new[] { Index("basic_01"), Index("basic_03") }));
-            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(10));
+            Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(7));
             Assert.That(PhysicalCards(s), Is.EqualTo(beforeCards));
         }
 
@@ -59,7 +59,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession s = Battle();
             Hand(s, "arcane_09");
-            Mana(s, 1);
+            Mana(s, 2);
             s.Battle.DrawPile.Clear(); s.Battle.DrawPile.Add(Index("basic_01"));
             s.Battle.DiscardPile.Clear();
             s.Battle.DiscardPile.AddRange(new[] { Index("basic_02"), Index("basic_03"), Index("basic_04") });
@@ -88,7 +88,7 @@ namespace ShatteredSail.Core.Tests
         public void Reading_UnselectedCardsGoBelowUntouchedDeckInTheirOriginalOrder()
         {
             CoreVoyageSession s = Battle();
-            Hand(s, "arcane_09"); Mana(s, 1);
+            Hand(s, "arcane_09"); Mana(s, 2);
             s.Battle.DrawPile.Clear();
             s.Battle.DrawPile.AddRange(new[] { Index("basic_01"), Index("basic_02"), Index("basic_03"),
                 Index("basic_04"), Index("basic_05"), Index("basic_06") });
@@ -155,11 +155,11 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession s = Battle();
             Mana(s, 3); Hand(s, "arcane_08"); Assert.That(s.PlayCard(0), Is.True);
             s.Battle.PhaseTurn = 1; Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(5));
+            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(14));
             Hand(s, "arcane_08"); Assert.That(s.PlayCard(0), Is.True);
-            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(10));
+            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(28));
             s.Battle.PhaseTurn = 1; Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(5), "Only the second cast survives this reset.");
+            Assert.That(s.Battle.PlayerBlock, Is.EqualTo(14), "Only the second cast survives this reset.");
             Assert.That(s.Battle.Boarding.RetainedGuardBatches.Count, Is.EqualTo(1));
             s.Battle.PhaseTurn = 1; Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(s.Battle.PlayerBlock, Is.Zero);
@@ -181,6 +181,7 @@ namespace ShatteredSail.Core.Tests
         {
             var s = new CoreVoyageSession();
             s.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(s.RestoreCardPackProgress(null, s.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             s.SetSeed("BOARDING-TRANSACTION-TEST");
             Assert.That(s.StartTrainingBattle(CoreTrainingTargets.All[0]), Is.True);
             Assert.That(s.EndBattleTurn(), Is.True);

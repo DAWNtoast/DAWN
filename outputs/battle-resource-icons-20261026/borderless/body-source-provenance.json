@@ -1,0 +1,65 @@
+{
+  "method": "Existing pixels only; no repainting or image generation used in final icons.",
+  "assets": [
+    {
+      "id": "powder",
+      "sourceMethod": "original-card-item-contour-crop",
+      "originalSource": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\CardSchools\\Frames\\Integrated\\frame-neutral-both.png",
+      "originalSourceSHA256": "69a0ace69d5d8145aba369733dd906f72694316d602b126beba81f77f78a64ba",
+      "sourceCrop": [
+        700,
+        1300,
+        1000,
+        1600
+      ],
+      "sourcePixelsUnchanged": true,
+      "output": "D:\\Game\\outputs\\battle-resource-icons-20261026\\borderless\\source-icons\\powder.png",
+      "outputSHA256": "0d9f7b6c62d89ad4e02da6e296b5f10a349a4f187081b1213551cdce1b5a36bd"
+    },
+    {
+      "id": "cannonball",
+      "sourceMethod": "original-card-item-contour-crop",
+      "originalSource": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\CardSchools\\Frames\\Integrated\\frame-neutral-both.png",
+      "originalSourceSHA256": "69a0ace69d5d8145aba369733dd906f72694316d602b126beba81f77f78a64ba",
+      "sourceCrop": [
+        -29,
+        1297,
+        271,
+        1597
+      ],
+      "sourcePixelsUnchanged": true,
+      "output": "D:\\Game\\outputs\\battle-resource-icons-20261026\\borderless\\source-icons\\cannonball.png",
+      "outputSHA256": "eb9bec8007530d7e3ce198f0846cff5e44219feff525f65b517235d63e036fd9"
+    },
+    {
+      "id": "planks",
+      "sourceMethod": "existing-standalone-item-atlas-crop",
+      "originalSource": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\ItemIcons\\items_small_v1.png",
+      "originalSourceSHA256": "c72437f36067717da8178ebc3f5a638eb6a6775a7ba23b34664f05763039d7ee",
+      "sourceCrop": [
+        576,
+        51,
+        826,
+        281
+      ],
+      "sourcePixelsUnchanged": true,
+      "output": "D:\\Game\\outputs\\battle-resource-icons-20261026\\borderless\\source-icons\\planks.png",
+      "outputSHA256": "5cb10f05dee73b2bc236bad97e1f6c90b07b786a3d7e374ce35476ee3117e073"
+    },
+    {
+      "id": "medicine",
+      "sourceMethod": "existing-standalone-item-atlas-crop",
+      "originalSource": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\ItemIcons\\items_small_v1.png",
+      "originalSourceSHA256": "c72437f36067717da8178ebc3f5a638eb6a6775a7ba23b34664f05763039d7ee",
+      "sourceCrop": [
+        292,
+        317,
+        543,
+        552
+      ],
+      "sourcePixelsUnchanged": true,
+      "output": "D:\\Game\\outputs\\battle-resource-icons-20261026\\borderless\\source-icons\\medicine.png",
+      "outputSHA256": "964de1a44ba750987845b249e20846778a224b28e09fe80b0bb03d7a3f6a3fae"
+    }
+  ]
+}

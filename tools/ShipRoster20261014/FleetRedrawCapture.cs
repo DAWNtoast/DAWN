@@ -35,7 +35,7 @@ namespace ShatteredSail.Editor
             public string state, name, encounterId, file, error, expectedAssetPath, screenMatchMode;
             public int index, routeIndex, preludePage;
             public bool scalerVerified, expectedArtVerified, preludeFlowVerified, preludeBackgroundVerified;
-            public string preludeTitle, preludeText, preludeBackgroundPath;
+            public string preludeBackgroundPath;
             public float scaleFactor;
             public Vector2 displaySize, canvasSize;
             public List<Art> shipArt = new List<Art>();
@@ -85,14 +85,14 @@ namespace ShatteredSail.Editor
                 shipShaderSha256 = SourceHash("Assets/_Project/Resources/Shaders/BattleShipCutout.shader") };
             if (preludeOnly)
             {
-                report.scope = "12 actual Unity legendary ship prelude frames: six ships, two pages each. A real in-memory treasure voyage enters its battle, Render builds the modal prelude, and the actual advance button opens page two. No profile or scene writes.";
+                report.scope = "24 actual Unity legendary ship prelude frames: six ships, four wordless panels each. A real in-memory voyage enters its battle, Render builds the modal prelude, and the actual advance button opens each next panel. No profile or scene writes.";
                 for (int index = 0; index < CoreLegendaryWarships.All.Count; index++)
                 {
                     CoreLegendaryWarship ship = CoreLegendaryWarships.All[index];
-                    for (int page = 0; page < CoreTreasureStoryCatalog.FindBattle(ship.Id).Pages.Count; page++)
-                        report.frames.Add(new Frame { state = "LegendaryPrelude", index = index, preludePage = page,
+                    for (int page = 0; page < ComicPanelCatalog.QuadPanelCount; page++)
+                        report.frames.Add(new Frame { state = "LegendaryPrelude", index = index, routeIndex = 2, preludePage = page,
                             encounterId = ship.Id, name = ship.Name, file = "Legendary_" + index.ToString("D2") + "_Prelude_" + (page + 1) + ".png",
-                            expectedAssetPath = "Assets/_Project/Resources/" + SpecialWarshipArtCatalog.ResourcePath(ship.Id) + ".png" });
+                            expectedAssetPath = "Assets/_Project/Resources/" + LegendaryFleetComicCatalog.Find(ship.Id).Before.ImageResource + ".png" });
                 }
             }
             else
@@ -121,7 +121,7 @@ namespace ShatteredSail.Editor
                 Debug.Log("FLEET_FRAME: " + frame.file + " " + (string.IsNullOrEmpty(frame.error) ? "OK" : "FAILED"));
             }
             WriteGallery(output, report);
-            int expectedFrames = preludeOnly ? 12 : 48;
+            int expectedFrames = preludeOnly ? CoreLegendaryWarships.All.Count * ComicPanelCatalog.QuadPanelCount : 48;
             if (report.frames.Count != expectedFrames || report.frames.Any(f => !string.IsNullOrEmpty(f.error) || !f.scalerVerified || !f.expectedArtVerified || (preludeOnly && (!f.preludeFlowVerified || !f.preludeBackgroundVerified))))
                 throw new InvalidOperationException("Fleet capture incomplete; inspect report.json.");
             Debug.Log("FLEET_REDRAW_CAPTURE_OK: " + expectedFrames + " frames in " + output);
@@ -217,7 +217,7 @@ namespace ShatteredSail.Editor
                         screenRect = Rect.MinMaxRect(screen.Min(v => v.x), screen.Min(v => v.y), screen.Max(v => v.x), screen.Max(v => v.y)),
                         waterContactY = camera.WorldToScreenPoint(image.rectTransform.TransformPoint(SpecialWarshipArtCatalog.HullContactLocal(image))).y });
                 }
-                string expectedName = shipyard ? null : frame.state == "LegendaryPrelude" ? "Treasure Legendary Ship Art" : frame.state.EndsWith("Battle", StringComparison.Ordinal) ? "Enemy Ship Art" : "Demo Event Art";
+                string expectedName = shipyard ? null : frame.state == "LegendaryPrelude" ? "Legendary Fleet Comic Page" : frame.state.EndsWith("Battle", StringComparison.Ordinal) ? "Enemy Ship Art" : "Demo Event Art";
                 frame.expectedArtVerified = !string.IsNullOrEmpty(frame.expectedAssetPath) &&
                     frame.shipArt.Any(a => a.assetPath == frame.expectedAssetPath && (expectedName == null || a.name == expectedName));
                 if (!frame.expectedArtVerified) throw new InvalidOperationException("The production UI did not display the intended ship: " + frame.expectedAssetPath);
@@ -239,18 +239,8 @@ namespace ShatteredSail.Editor
             var session = new CoreVoyageSession();
             typeof(CoreGameplayDemoController).GetField("session", Private).SetValue(controller, session);
             bool prelude = frame.state == "LegendaryPrelude";
-            if (prelude)
-            {
-                string rank = CoreTreasureStoryCatalog.Chapters.Single(c => c.LegendaryIds.Contains(frame.encounterId)).RankId;
-                session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10),
-                    selectedMapId = "fleet-prelude", maps = new[] { new CoreTreasureMapSave { id = "fleet-prelude", seed = "FLEET-" + frame.encounterId, rankId = rank } } });
-                if (!session.TryStartTreasureVoyage(out string reason)) throw new InvalidOperationException(reason);
-            }
-            else
-            {
-                session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
-                session.SelectRoute(frame.routeIndex); session.StartVoyage();
-            }
+            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            session.SelectRoute(frame.routeIndex); session.StartVoyage();
             CoreEncounter encounter = CoreRouteBossCatalog.Find(frame.encounterId)?.CreateEncounter() ?? CoreLegendaryWarships.Find(frame.encounterId)?.CreateEncounter();
             if (encounter == null) throw new InvalidOperationException("Unknown special ship: " + frame.encounterId);
             CoreMapNode node = session.Map.Nodes.FirstOrDefault(n => n.Encounter.Id == encounter.Id);
@@ -273,18 +263,17 @@ namespace ShatteredSail.Editor
                 if (prelude)
                 {
                     for (int page = 0; page < frame.preludePage; page++)
-                        controller.GetComponentsInChildren<Button>(false).Single(b => b.name == "Treasure Story Advance").onClick.Invoke();
-                    frame.preludeTitle = controller.GetComponentsInChildren<Text>(false).Single(t => t.name == "Treasure Legendary Story Title").text;
-                    frame.preludeText = controller.GetComponentsInChildren<Text>(false).Single(t => t.name == "Treasure Legendary Story Text").text;
-                    ComicPageGraphic background = controller.GetComponentsInChildren<ComicPageGraphic>(false).Single(p => p.name == "Treasure Story Comic Page");
+                        controller.GetComponentsInChildren<Button>(false).Single(b => b.name == "Legendary Fleet Comic Advance").onClick.Invoke();
+                    ComicPageGraphic background = controller.GetComponentsInChildren<ComicPageGraphic>(false).Single(p => p.name == "Legendary Fleet Comic Page");
                     frame.preludeBackgroundPath = AssetDatabase.GetAssetPath(background.texture);
-                    frame.preludeBackgroundVerified = frame.preludeBackgroundPath.StartsWith("Assets/_Project/Resources/BattleEnvironments/", StringComparison.Ordinal);
-                    if (!frame.preludeBackgroundVerified) throw new InvalidOperationException("Legendary prelude must use a battle sea background: " + frame.preludeBackgroundPath);
-                    TreasureBattleStory story = CoreTreasureStoryCatalog.FindBattle(frame.encounterId);
-                    frame.preludeFlowVerified = session.IsTreasureVoyage && session.Phase == CoreDemoPhase.Battle &&
-                        frame.preludeText == story.Pages[frame.preludePage] && frame.preludeTitle == story.ShipName + " · " + (frame.preludePage + 1) + " / " + story.Pages.Count;
+                    frame.preludeBackgroundVerified = frame.preludeBackgroundPath == frame.expectedAssetPath;
+                    if (!frame.preludeBackgroundVerified) throw new InvalidOperationException("Legendary prelude must use its current comic: " + frame.preludeBackgroundPath);
+                    RectTransform overlay = controller.GetComponentsInChildren<RectTransform>(false).Single(t => t.name == "Legendary Fleet Comic Overlay");
+                    frame.preludeFlowVerified = session.Phase == CoreDemoPhase.Battle && session.ActiveEncounter.Id == frame.encounterId &&
+                        background.uvRect == ComicPanelCatalog.QuadPanel(frame.preludePage) && overlay.GetComponentsInChildren<Text>(true).Length == 0;
                     if (!frame.preludeFlowVerified) throw new InvalidOperationException("Actual legendary prelude page did not match the requested story.");
                 }
+                else Invoke(controller, "CloseTreasureStoryOverlay");
             }
             finally { typeof(CoreGameplayDemoController).GetField("editorPreviewBuilding", Private).SetValue(controller, previous); }
         }

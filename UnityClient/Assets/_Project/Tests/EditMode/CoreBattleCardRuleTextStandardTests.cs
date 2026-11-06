@@ -19,7 +19,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CurseShowsAppliedStacksAndTheSeparateSettlementDamageBonus()
+        public void CurseShowsAppliedStacksAndTheImmediateCurseDamageFormula()
         {
             CoreBattleCard mark = Find("card_school_curse_b03");
             string text = Compact(mark.Description);
@@ -27,7 +27,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(text, Does.Not.Contain("持续").And.Not.Contain("每层咒印扣除"));
             Assert.That(text, Does.Not.Contain("不造成直接伤害"));
             string detonate = Compact(Find("card_school_curse_b05").Description);
-            Assert.That(detonate, Does.Contain("咒印额外扣除" + Find("card_school_curse_b05").SchoolEffect.Power + "点生命值"));
+            Assert.That(detonate, Does.Contain("造成" + Find("card_school_curse_b05").SchoolEffect.Power + "×咒印层数点咒术伤害"));
+            Assert.That(CoreBattleCardKeywordText.Build(Find("card_school_curse_b05"))
+                .Single(entry => entry.Keyword == "咒术伤害").Meaning, Is.EqualTo("无视格挡造成伤害"));
         }
 
         [TestCase("card_school_thunder_b03")]
@@ -38,17 +40,24 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession();
             CoreBattleCard card = Find(id);
             string definition = Compact(card.Description);
-            Assert.That(definition, Does.Contain("连锁每有一层"));
-            Assert.That(definition, Does.Contain(card.SchoolEffect.Power.ToString()));
+            string condition = card.Id == "card_school_thunder_b03"
+                ? "连锁" + card.SchoolEffect.Threshold + "：额外造成" + card.SchoolEffect.Power + "点伤害"
+                : card.SchoolEffect.Mechanic == CoreSchoolMechanic.ThunderFinish
+                    ? "造成" + card.Damage + "+" + card.SchoolEffect.Power + "X点船体伤害"
+                    : "出牌前每有一层连锁，本次伤害提高" + card.SchoolEffect.Power + "点";
+            Assert.That(definition, Does.Contain(condition));
             if (card.SchoolEffect.Mechanic == CoreSchoolMechanic.ThunderFinish)
             {
-                Assert.That(definition, Does.Contain("出牌前的连锁每有一层，本次伤害提高" + card.SchoolEffect.Power + "点")
-                    .And.Not.Contain("消耗全部已有连锁"));
-                Assert.That(card.DescriptionTemplate, Does.Contain("消耗全部已有连锁"));
+                Assert.That(definition, Does.Contain("结算后清空连锁，出牌时处于雷栅则不清空"));
+                Assert.That(card.DescriptionTemplate, Does.Contain("结算后清空连锁，出牌时处于雷栅则不清空"));
             }
+            else Assert.That(definition, Does.Not.Contain("清空连锁").And.Not.Contain("消耗连锁"));
             foreach (string text in new[] { definition, Compact(session.BattleCardFaceDescription(card, NavalBattleStage.Naval)) })
+            {
+                Assert.That(text, Does.Contain(condition));
                 Assert.That(text, Does.Not.Contain("攻击后连锁").And.Not.Contain("雷攻后连锁")
                     .And.Not.Contain("上限6").And.Not.Contain("回合结束清空"));
+            }
         }
 
         [TestCase("card_school_tide_b04")]
@@ -72,9 +81,11 @@ namespace ShatteredSail.Core.Tests
                 .Where(card => card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ComponentFieldMastery))
             {
                 string text = Compact(card.Description);
-                Assert.That(text, Does.Contain(CoreComponentFieldCards.FieldName(CoreComponentFieldCards.Kind(card)))
-                    .And.Contain("新增" + card.SchoolEffect.Power + "格")
-                    .And.Contain("延长" + card.SchoolEffect.Secondary + "回合")
+                Assert.That(card.SchoolEffect.Power, Is.EqualTo(1), "All friendly fields expand one cell in each cardinal direction.");
+                Assert.That(card.SchoolEffect.Secondary, Is.Zero, "Expansion no longer also extends field duration.");
+                Assert.That(text, Does.Contain("抽" + card.Draw + "张牌")
+                    .And.Contain("将所有己方" + CoreComponentFieldCards.FieldName(CoreComponentFieldCards.Kind(card)) + "向上下左右各延伸1格")
+                    .And.Not.Contain("延长")
                     .And.Not.Contain("每回合首次").And.Not.Contain("同类不叠加"), card.Id);
             }
         }
@@ -101,10 +112,14 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CardSpecificHealingLimitsRemainVisible()
+        public void UncappedLifestealKeepsItsKeywordAndActualHealthLossMeaning()
         {
             CoreBattleCard heal = Find("card_school_blood_b04");
-            Assert.That(Compact(heal.Description), Does.Contain("最多恢复" + heal.SchoolEffect.Limit + "点"));
+            Assert.That(heal.SchoolEffect.Power, Is.EqualTo(100));
+            Assert.That(heal.SchoolEffect.Limit, Is.Zero, "The revised drain heals actual health loss without a separate card cap.");
+            Assert.That(Compact(heal.Description), Does.Contain("吸血").And.Not.Contain("最多恢复"));
+            Assert.That(CoreBattleCardKeywordText.Build(heal).Single(entry => entry.Keyword == "吸血").Meaning,
+                Is.EqualTo("按目标实际扣除的船体或生命值，恢复等量自身船体或生命值"));
         }
 
         private static CoreBattleCard Find(string id) => CoreVoyageSession.CardLibrary.Single(card => card.Id == id);

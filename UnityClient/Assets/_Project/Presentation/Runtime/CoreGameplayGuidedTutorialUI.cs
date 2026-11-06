@@ -19,6 +19,7 @@ namespace ShatteredSail.Presentation
         // uses the ambush step before the fixed boss lesson.
         SecondRandom, SecondAmbush, SecondRetreat, SecondSettlement, Workshop, BuildDeck,
         ThirdPier, ThirdRoute, ThirdDeparture, ThirdSail, TutorialBoss,
+        // DrawChart is retired; retain its identifier/ordinal for older saved progress.
         ThirdReturn, ThirdSettlement, DrawChart, Warehouse, SelectTreasure, DisplayTreasure, Complete,
         Shipyard, ShipEquipment, UnequipRewardComponent, SelectRewardComponent, EquipRewardComponent
     }
@@ -58,6 +59,9 @@ namespace ShatteredSail.Presentation
         {
             RestoreGuidedTutorialControls(false);
             if (!tutorialActive || guidedTutorialStep == GuidedTutorialStep.Complete || contentRoot == null || HasActiveSettlementChest) return;
+            // The three short lessons end before the real battle. Do not fall
+            // back to the voyage banner or wrap its ordinary battle controls.
+            if (IsGuidedBossFreeBattle) return;
             if (HasGuidedBossPresentation) BuildGuidedBattleCoursePresentation();
             BuildGuidedBossMovementControls();
 
@@ -148,7 +152,9 @@ namespace ShatteredSail.Presentation
             Transform activeChart = FindActiveGuidedContent("Navigation Chart");
             Transform hint = activeChart == null ? null : activeChart.Find("Map Course Hint");
             if (hint != null && hint.TryGetComponent(out Text mapHint))
-                mapHint.text = "教学航线 · 固定向东航行 · 完成引导后开放自由航点";
+                mapHint.text = GuidedTutorialCourseEvent != null
+                    ? "教学航线 · 点击事件点锁定目标并调整航向"
+                    : "教学航线 · 固定向东航行 · 完成引导后开放自由航点";
 
             // A previously selected button must not keep keyboard submit focus
             // when its role is locked by the next tutorial step.
@@ -230,6 +236,7 @@ namespace ShatteredSail.Presentation
 
         private bool GuidedTutorialAllowsControl(string name)
         {
+            if (IsGuidedBossFreeBattle) return true;
             if (session != null && session.Phase == CoreDemoPhase.Encounter && name == "Encounter Decision Scrollbar") return true;
             // Settings and safe suspension remain available even when a lesson
             // restricts ordinary navigation or requires an emergency return.
@@ -263,9 +270,7 @@ namespace ShatteredSail.Presentation
                 case GuidedTutorialStep.SecondRandom:
                     return name.StartsWith("Encounter Choice ", StringComparison.Ordinal);
                 case GuidedTutorialStep.SecondAmbush:
-                    return session != null && session.UsesCombinedGuidedTutorialVoyage
-                        ? GuidedEncounterChoiceMatches(name, choice => !choice.StartsBattle)
-                        : name.StartsWith("Encounter Choice ", StringComparison.Ordinal);
+                    return GuidedEncounterChoiceMatches(name, choice => !choice.StartsBattle);
                 case GuidedTutorialStep.FirstOptional:
                     return name == "Skip Encounter" || name.StartsWith("Encounter Choice ", StringComparison.Ordinal);
                 case GuidedTutorialStep.FirstCrewEvent:
@@ -275,14 +280,11 @@ namespace ShatteredSail.Presentation
                 case GuidedTutorialStep.FirstReturn:
                 case GuidedTutorialStep.ThirdReturn:
                     return name == "Safe Return";
-                case GuidedTutorialStep.SecondRetreat:
-                    return name == "Retreat Battle";
                 case GuidedTutorialStep.FirstSettlement:
                 case GuidedTutorialStep.SecondSettlement:
                 case GuidedTutorialStep.ThirdSettlement:
-                    return name == "Return To Port" || name == "Skip Settlement Reveal";
                 case GuidedTutorialStep.DrawChart:
-                    return name == "Draw Sea Chart" || name == "Skip Settlement Reveal";
+                    return name == "Return To Port" || name == "Skip Settlement Reveal" || name == "Draw Sea Chart";
                 case GuidedTutorialStep.Tavern:
                     return name == "Port Hotspot Tavern" || name == "Return To Port Hub";
                 case GuidedTutorialStep.RecruitNavigator:
@@ -425,7 +427,8 @@ namespace ShatteredSail.Presentation
                 : session.Phase == CoreDemoPhase.Sailing && GuidedIsSailingTarget(guidedTutorialStep) &&
                     !GuidedTutorialNeedsSupplyReturn && !session.CanRequestEmergencyTow()
                     ? CurrentGuidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Heading
-                        ? "航行指引 1 / 2 · 选择航向" : "航行指引 2 / 2 · 执行航行"
+                        ? GuidedTutorialCourseEvent != null ? "航行指引 1 / 2 · 锁定海图事件" : "航行指引 1 / 2 · 选择航向"
+                        : "航行指引 2 / 2 · 执行航行"
                     : GuidedTutorialObjective(guidedTutorialStep);
             title.horizontalOverflow = HorizontalWrapMode.Wrap;
             title.verticalOverflow = VerticalWrapMode.Truncate;
@@ -485,7 +488,7 @@ namespace ShatteredSail.Presentation
             if (step <= GuidedTutorialStep.FirstSettlement) return "初航 1 / 2 · 认识航行与事件";
             if (step <= GuidedTutorialStep.RecruitNavigator) return "初航 2 / 2 · 招募你的航海士";
             if (step <= GuidedTutorialStep.SecondSettlement) return "初航 2 / 2 · 船员与伏击";
-            if (step < GuidedTutorialStep.ThirdReturn) return "首领教学 · 炮战与接舷";
+            if (step < GuidedTutorialStep.ThirdReturn) return "海战教学 · 行动点、同名卡与接舷/冲撞";
             if (step >= GuidedTutorialStep.Warehouse && step <= GuidedTutorialStep.DisplayTreasure)
                 return "初航收尾 · 陈列你的首胜纪念品";
             return "初航收尾 · 返航结算与战利品";
@@ -516,8 +519,12 @@ namespace ShatteredSail.Presentation
                 switch (CurrentGuidedTutorialNavigationInputStep)
                 {
                     case GuidedTutorialNavigationInputStep.Heading:
+                        if (GuidedTutorialCourseEvent != null)
+                            return "除了右下角罗盘的八个方向，\n也能点击海图事件锁定航向。\n请点击红框中的「潮汐暗标」。";
                         return "点击右侧罗盘中的「东」，\n确定教学航向。";
                     default:
+                        if (GuidedTutorialCourseEvent != null && session.HasDirectCourseTarget)
+                            return "已锁定「潮汐暗标」。\n航向已对准事件，核对补给后，\n点击「执行航行」。";
                         return "教学航程已设定。核对用时与补给，点击「执行航行」。";
                 }
             }
@@ -528,7 +535,7 @@ namespace ShatteredSail.Presentation
                         return activePortFacility < 0
                             ? "进入红框中的「出航码头」，\n准备第一次航行。"
                             : "先「返回港口」，再进入「出航码头」。";
-                    if (!guidedDepartureDestinationSelected) return "先选择到达港口。\n置暗的港口是当前出发港。";
+                    if (!guidedDepartureDestinationSelected) return "先选择到达港口。\n置暗的港口暂不可选，悬停可查看解锁条件。";
                     if (!guidedDepartureRouteSelected) return "选择第一张海图，确认本次航线难度。";
                     return "选择「扬帆出航」，开始第一段航程。";
                 case GuidedTutorialStep.FirstSail: return "选择「东」并「执行航行」；补给与事件按正常规则结算。";
@@ -555,7 +562,6 @@ namespace ShatteredSail.Presentation
                     return session != null && session.UsesCombinedGuidedTutorialVoyage
                         ? "航海士提前发现伏击。选择「避开炮烟，继续航行」，保留物资前往首领。"
                         : "遭遇伏击后，选择脱离战斗并返航。";
-                case GuidedTutorialStep.SecondRetreat: return "选择「脱离战斗 · 撤回港口」，进入结算。";
                 case GuidedTutorialStep.SecondSettlement:
                     return session == null || !session.GuidedTutorialCompletedEncounterIds.Contains(CoreGuidedTutorialContent.NavigatorEventId)
                         ? "暗标尚未解读。结算返港补给后重试航海士事件；本次不推进首领教学。"
@@ -571,14 +577,14 @@ namespace ShatteredSail.Presentation
                 case GuidedTutorialStep.ThirdSail: return "向东航行，前往首领信号。默认卡组已备好，无需前往工坊。";
                 case GuidedTutorialStep.TutorialBoss:
                     return session != null && session.Phase == CoreDemoPhase.Encounter
-                        ? "选择红框交战选项，学习炮战与接舷。本次胜利必得 1 个藏宝图碎片。"
-                        : "先打策略牌，再炮击或接舷，行动后「结束回合」。同名牌每次打出后费用 +1，副本共享；下回合或切换阶段重置。";
+                        ? "选择红框交战选项，了解行动点清空、同名卡加费，以及接舷与冲撞。"
+                        : "行动点使用后清空；同名卡再次使用费用增加。两舰舷侧相邻可接舷，船头朝向相邻敌舰可冲撞。";
                 case GuidedTutorialStep.ThirdReturn: return "已获得藏宝图碎片×1、普通部件\n与「破浪者的罗盘」。\n选择「主动返航」，保全战利品。";
-                case GuidedTutorialStep.DrawChart: return "先「绘制海图」，再确认结算，将战利品带回仓库。";
+                case GuidedTutorialStep.DrawChart:
                 case GuidedTutorialStep.ThirdSettlement:
                     return session != null && session.Settlement != null && session.Settlement.Outcome == VoyageOutcome.Failure
                         ? "挑战未完成，结算返港补给后用默认卡组重试。本次不完成初航教学。"
-                        : "海图已绘制，确认结算返港，将碎片、部件与贵重品入库。随后学习陈列藏品。";
+                        : "确认结算返港，将碎片、部件与贵重品入库。随后学习陈列藏品。";
                 case GuidedTutorialStep.Warehouse: return "进入「仓库」陈列首胜贵重品，再到皇家船坞装备部件。";
                 case GuidedTutorialStep.SelectTreasure: return "在右侧「藏品陈列」中选择「破浪者的罗盘」，准备陈列并赚取金币。";
                 case GuidedTutorialStep.DisplayTreasure: return "将罗盘拖到左侧展位，或点击「陈列到展位」。\n所有港口已陈列藏品，每件每现实小时获得 10 金币；下次上线弹窗自动发放，合计最多 300 金币。\n航海失败后，也能靠藏品收益补充出航资金。";

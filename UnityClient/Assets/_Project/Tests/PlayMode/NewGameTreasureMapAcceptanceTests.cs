@@ -81,24 +81,35 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(seen, Does.Contain("DisplayTreasure"));
             Assert.That(seen, Does.Contain("EquipRewardComponent"));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.TutorialCompletedKey), Is.EqualTo(1));
-            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.DrawnSeaChartKey), Is.Not.Empty);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.DrawnSeaChartKey), Is.Empty,
+                "The completed tutorial must not fabricate a drawn sea chart; ordinary voyages require at least 50% exploration and the real draw action.");
             Assert.That(controller.WarehouseCollection.IsDisplayed(CoreWarehouseCollection.TutorialTreasureId), Is.True);
             Assert.That(controller.EquippedComponent(ComponentSlot.Bow).Id,
                 Is.EqualTo(CoreGameplayDemoController.GuidedTutorialRewardComponentId));
             AssertGuidedDefaultDecks(controller);
 
-            // Leave the actual equipment dossier and use the unlocked port map
-            // entrance. The settlement's Draw Sea Chart button is a different UI.
-            if (GameObject.Find("Shipyard Detail") != null)
-            {
-                ClickAcceptanceButton("Return To Port Hub");
-                yield return null;
-                yield return null;
-                capture.Capture(controller, "Completed_Shipyard", "Shipyard Panel", "UI_Shipyard");
-            }
+            // The full-window equipment page returns to its original dossier,
+            // then the vessel gallery, then the hub. Traverse every real back
+            // button before using the unlocked port treasure-table entrance.
+            Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null);
             ClickAcceptanceButton("Return To Port Hub");
             yield return null;
             yield return null;
+            Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Null);
+            Assert.That(GameObject.Find("Shipyard Detail"), Is.Not.Null,
+                "Leaving equipment must restore the original ship dossier.");
+            capture.Capture(controller, "Completed_ShipyardDossier", "Shipyard Detail", "UI_ShipyardDetail");
+            ClickAcceptanceButton("Return To Port Hub");
+            yield return null;
+            yield return null;
+            Assert.That(GameObject.Find("Shipyard Detail"), Is.Null);
+            Assert.That(GameObject.Find("Shipyard Panel"), Is.Not.Null);
+            capture.Capture(controller, "Completed_Shipyard", "Shipyard Panel", "UI_Shipyard");
+            ClickAcceptanceButton("Return To Port Hub");
+            yield return null;
+            yield return null;
+            Assert.That(ActiveButton("Port Hotspot Treasure"), Is.Not.Null,
+                "The final back action must reach the real port hub before entering the treasure table.");
             capture.Capture(controller, "Completed_PortHub", "Port Hotspot Treasure", "UI_PortHub");
             Assert.That(GameObject.Find("Treasure Panel"), Is.Null, "The first treasure-table visit must happen through its port entrance.");
             ClickAcceptanceButton("Port Hotspot Treasure");
@@ -164,6 +175,37 @@ namespace ShatteredSail.Presentation.Tests
 
         private static int AcceptanceIdentifiedFragments(CoreVoyageSession session) =>
             CoreTreasureHuntCatalog.Ranks.Sum(rank => session.GetIdentifiedTreasureFragments(rank.Id));
+
+        internal static IEnumerator ClickThroughAcceptanceArrivalComic(CoreGameplayDemoController controller)
+        {
+            Assert.That(controller, Is.Not.Null);
+            if (!controller.IsArrivalComicPlaying) yield break;
+            Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port),
+                "An arrival comic follows the confirmed port transaction.");
+            ArrivalComicStory story = ArrivalComicCatalog.Find(controller.Session.CurrentPort);
+            Assert.That(story, Is.Not.Null, "The actual arrival port must select its own comic.");
+            for (int index = 0; controller.IsArrivalComicPlaying && index < story.Pages.Count * ComicPanelCatalog.QuadPanelCount; index++)
+            {
+                GameObject pageObject = GameObject.Find("Arrival Comic Page");
+                Assert.That(pageObject, Is.Not.Null);
+                var image = pageObject.GetComponent<RawImage>();
+                Assert.That(image.texture, Is.Not.Null);
+                string resource = story.Pages[index / ComicPanelCatalog.QuadPanelCount];
+                int panel = index % ComicPanelCatalog.QuadPanelCount;
+                Texture2D independent = Resources.Load<Texture2D>(ComicPanelCatalog.HighResolutionPanelResource(resource, panel));
+                Texture2D expected = independent != null ? independent : Resources.Load<Texture2D>(resource);
+                Assert.That(image.texture, Is.SameAs(expected),
+                    "The real arrival overlay must render the correct page and panel for the confirmed port.");
+                Assert.That(image.uvRect, Is.EqualTo(independent != null
+                    ? new Rect(0f, 0f, 1f, 1f) : ComicPanelCatalog.QuadPanel(panel)),
+                    "Each pointer click must advance to the next complete panel.");
+                ClickAcceptanceButton("Arrival Comic Advance");
+                yield return null;
+            }
+            Assert.That(controller.IsArrivalComicPlaying, Is.False,
+                "Finish every pending page through the real pointer surface before using port controls.");
+            Assert.That(GameObject.Find("Arrival Comic Overlay"), Is.Null);
+        }
 
         private static void ClickAcceptanceButton(string name)
         {

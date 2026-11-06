@@ -27,14 +27,14 @@ namespace ShatteredSail.Core.Tests
 
         private static readonly string[] Titles =
         {
-            "船长收藏室", "皇家船坞", "灰鸥酒馆", "部件商店", "卡组工坊",
+            "船长收藏室", "皇家船坞", "灰鸥酒馆", "部件商店", "卡牌工坊",
             "藏宝图桌", "港口投资建设", "出航码头", "港口市场",
         };
 
         private static readonly string[] BackgroundNames =
         {
             "Warehouse Background", "Shipyard Background", "Tavern Background", "ComponentShop Background",
-            "CardWorkshop Background", "Treasure Background", "Maintenance Background",
+            "Workshop Home Background", "Treasure Background", "Maintenance Background",
             "Voyage Background", "Market Background",
         };
 
@@ -178,9 +178,9 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(preview.All(control).Count(), Is.EqualTo(1));
                         Assert.That(preview.Find(control).parent, Is.SameAs(facilityHeader));
                     }
-                    Assert.That(facilityHeader.Cast<Transform>().Count(item => item.GetComponent<Text>() != null || item.GetComponent<Button>() != null),
-                        Is.EqualTo(9), "Facility navigation keeps all eight controls plus the section caption.");
-                    Assert.That(preview.Require<Text>("Port Header Section").raycastTarget, Is.False);
+                    Assert.That(facilityHeader.Cast<Transform>().Count(item => item.GetComponent<Button>() != null ||
+                        item.GetComponent<Text>() is Text label && label.isActiveAndEnabled),
+                        Is.EqualTo(8), "The facility keeps its eight original controls without the old section caption.");
                     AssertTitle(preview, index);
                     Assert.That(preview.Require<Image>("Port Facility Frame").sprite.texture, Is.SameAs(regionalTexture));
                     preview.Require<Button>("Return To Port Hub").onClick.Invoke();
@@ -219,7 +219,7 @@ namespace ShatteredSail.Core.Tests
                         "The obsolete generic Header must be removed from every facility preview: " + context);
 
                     RectTransform content = preview.Require<RectTransform>("Phase Content");
-                    Assert.That(content.sizeDelta, Is.EqualTo(PhaseSurfaceLayout.ContentSize), context);
+                    Assert.That(content.rect.size, Is.EqualTo(PhaseSurfaceLayout.ContentSize), context);
                     Assert.That(content.anchoredPosition, Is.EqualTo(Vector2.zero),
                         "Phase Content must use the full 1920 x 1080 reference surface: " + context);
 
@@ -283,7 +283,7 @@ namespace ShatteredSail.Core.Tests
 
                     AssertButtonText(preview, HeaderOrder[0], "返回港口");
                     AssertNavigationLabels(preview, index);
-                    AssertButtonText(preview, HeaderOrder[7], "设置");
+                    AssertSettingsIcon(preview.Require<Button>(HeaderOrder[7]), header);
                     AssertTitle(preview, index);
                     Assert.That(preview.Require<Text>("Port Facility Port").text, Is.EqualTo(preview.Controller.Session.CurrentPort), context);
                     AssertGold(preview);
@@ -307,9 +307,11 @@ namespace ShatteredSail.Core.Tests
                     string context = "Wide canvas / " + Screens[index];
                     Rect header = BoundsIn(preview.Require<RectTransform>("Port Facility Header"), canvasRect);
                     Assert.That(header.width, Is.EqualTo(1920f).Within(0.01f),
-                        "A wider viewport must retain the established scene width: " + context);
+                        "Every facility entrance keeps the authored fixed viewport: " + context);
+                    Assert.That(header.center.x, Is.EqualTo(canvasRect.rect.center.x).Within(.01f), context);
                     Assert.That(header.xMin, Is.GreaterThan(canvasRect.rect.xMin), context);
                     Assert.That(header.xMax, Is.LessThan(canvasRect.rect.xMax), context);
+                    AssertSettingsIcon(preview.Require<Button>("Port Facility Settings"), preview.Require<RectTransform>("Port Facility Header"));
                     Assert.That(header.yMax, Is.EqualTo(canvasRect.rect.yMax).Within(0.01f), context);
                     AssertHeaderMeetsBackground(preview, index, header, context);
                 }
@@ -413,6 +415,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(navigationHeader, Is.Not.Null, "The current voyage header artwork must be included.");
                 Assert.That(frame.sprite.texture, Is.SameAs(navigationHeader));
                 Assert.That(preview.Require<Image>("Voyage Header Compass").sprite, Is.Not.Null);
+                AssertSettingsIcon(preview.Require<Button>("Voyage Settings"), preview.Require<RectTransform>("Voyage Header"));
                 Assert.That(preview.Find("Port Facility Header"), Is.Null);
             }
         }
@@ -428,9 +431,33 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(preview.Find(oldName), Is.Null, "Unexpected legacy or facility UI in the hub: " + oldName);
             foreach (string facilityControl in HeaderOrder)
                 Assert.That(preview.Find(facilityControl), Is.Null, "Facility navigation is not part of the four-item hub header.");
-            Assert.That(header.Cast<Transform>().Count(item => item.GetComponent<Text>() != null || item.GetComponent<Button>() != null),
-                Is.EqualTo(5), "The hub contains time, port, gold, settings and the section caption.");
-            Assert.That(preview.Require<Text>("Port Header Section").raycastTarget, Is.False);
+            Assert.That(header.Cast<Transform>().Count(item => item.GetComponent<Button>() != null ||
+                item.GetComponent<Text>() is Text label && label.isActiveAndEnabled),
+                Is.EqualTo(4), "The hub contains time, port, gold and settings without a section caption.");
+            Text section = header.Find("Port Header Section")?.GetComponent<Text>();
+            Assert.That(section == null || !section.isActiveAndEnabled, Is.True);
+
+            Text port = preview.Require<Text>("Port Hub Port");
+            RawImage portIcon = preview.Require<RawImage>("Port Hub Port Icon");
+            Assert.That(preview.All("Port Hub Port Icon").Count(), Is.EqualTo(1));
+            Assert.That(portIcon.transform.parent, Is.SameAs(header));
+            Assert.That(portIcon.texture, Is.SameAs(new PortMapIconCatalog().Get(preview.Controller.Session.CurrentPort)),
+                "The heading must show the current port's own icon after each view binding.");
+            Assert.That(portIcon.texture, Is.Not.Null);
+            Assert.That(portIcon.isActiveAndEnabled, Is.True);
+            Assert.That(portIcon.raycastTarget, Is.False, "The port identity must not intercept header controls.");
+            Assert.That(portIcon.rectTransform.rect.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+            Rect iconBounds = BoundsIn(portIcon.rectTransform, header);
+            Rect portBounds = BoundsIn(port.rectTransform, header);
+            Assert.That((iconBounds.xMin + portBounds.xMax) * .5f, Is.EqualTo(header.rect.center.x).Within(.01f),
+                "Center the port icon and name together in the game viewport.");
+            Assert.That(portBounds.xMin - iconBounds.xMax, Is.EqualTo(NauticalHeaderSkin.IconGap).Within(.01f));
+            Assert.That(iconBounds.center.y, Is.EqualTo(header.rect.center.y).Within(.01f));
+            Assert.That(portBounds.center.y, Is.EqualTo(iconBounds.center.y).Within(.01f));
+            AssertBoundsInside(iconBounds, header.rect, "Port icon stays within the header");
+            Assert.That(port.fontSize, Is.EqualTo(38));
+            Assert.That(preview.Require<Text>("Port Hub Time").fontSize, Is.EqualTo(30));
+            Assert.That(preview.Require<Text>("Port Hub Gold").fontSize, Is.EqualTo(34));
 
             Rect? preceding = null;
             foreach (string name in HubHeaderOrder)
@@ -455,7 +482,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(settings.transform.GetSiblingIndex(), Is.GreaterThan(preview.Find("Port Hub Frame").GetSiblingIndex()));
             foreach (Text label in settings.GetComponentsInChildren<Text>())
                 Assert.That(label.raycastTarget, Is.False);
-            AssertButtonText(preview, "Port Hub Settings", "设置");
+            AssertSettingsIcon(settings, header);
         }
 
         private static void AssertHubSceneUnmoved(PreviewFixture preview, Rect header)
@@ -528,7 +555,26 @@ namespace ShatteredSail.Core.Tests
         private static void AssertTitle(PreviewFixture preview, int index)
         {
             string expected = PortFacilityArtCatalog.RegionalFacilityTitle(index, preview.Controller.Session.CurrentPort, Titles[index]);
-            Assert.That(preview.Require<Text>("Port Facility Title").text, Is.EqualTo(expected));
+            Text title = preview.Require<Text>("Port Facility Title");
+            Assert.That(title.text, Is.EqualTo(expected));
+            RectTransform header = preview.Require<RectTransform>("Port Facility Header");
+            PortHeaderIconGraphic icon = preview.Require<PortHeaderIconGraphic>("Port Facility Icon");
+            Assert.That(icon.transform.parent, Is.SameAs(header));
+            Assert.That(icon.Kind, Is.EqualTo((PortHeaderIconKind)index), "The title icon identifies the current page, not its neighbor.");
+            Assert.That(icon.texture, Is.Not.Null);
+            Assert.That(icon.isActiveAndEnabled, Is.True);
+            Assert.That(icon.raycastTarget, Is.False, "The current page identity must not intercept navigation clicks.");
+            Assert.That(icon.rectTransform.rect.width, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
+            Assert.That(icon.rectTransform.rect.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
+            Rect iconBounds = BoundsIn(icon.rectTransform, header);
+            Rect titleBounds = BoundsIn(title.rectTransform, header);
+            Assert.That(titleBounds.xMin - iconBounds.xMax, Is.GreaterThanOrEqualTo(15.99f), "Keep a clear gap between the current icon and its name.");
+            Assert.That(titleBounds.center.y, Is.EqualTo(iconBounds.center.y).Within(.01f));
+            Assert.That(iconBounds.xMin, Is.GreaterThan(BoundsIn(preview.Require<RectTransform>("Previous Port Facility"), header).xMax));
+            Assert.That(titleBounds.xMax, Is.LessThan(BoundsIn(preview.Require<RectTransform>("Next Port Facility"), header).xMin));
+            Assert.That(title.preferredHeight, Is.LessThanOrEqualTo(40f), "The Chinese page name should remain on one line.");
+            Text section = header.Find("Port Header Section")?.GetComponent<Text>();
+            Assert.That(section == null || !section.isActiveAndEnabled, Is.True, "The former section eyebrow is replaced by the current page identity.");
         }
 
         private static void AssertNavigationLabels(PreviewFixture preview, int index)
@@ -540,6 +586,46 @@ namespace ShatteredSail.Core.Tests
             string nextTitle = PortFacilityArtCatalog.RegionalFacilityTitle(nextIndex, port, Titles[nextIndex]);
             AssertButtonText(preview, "Previous Port Facility", "← " + previousTitle);
             AssertButtonText(preview, "Next Port Facility", nextTitle + " →");
+            AssertPortNavigationIcon(preview.Require<Button>("Previous Port Facility"), (PortHeaderIconKind)previousIndex);
+            AssertPortNavigationIcon(preview.Require<Button>("Next Port Facility"), (PortHeaderIconKind)nextIndex);
+            Button back = preview.Require<Button>("Return To Port Hub");
+            AssertPortNavigationIcon(back, PortHeaderIconKind.Back);
+            RectTransform header = preview.Require<RectTransform>("Port Facility Header");
+            Rect bounds = BoundsIn((RectTransform)back.transform, header);
+            Assert.That(bounds.center.x, Is.EqualTo(header.rect.xMin + 62f).Within(.01f));
+            Assert.That(bounds.center.y, Is.EqualTo(header.rect.yMax - 54f).Within(.01f));
+        }
+
+        private static void AssertPortNavigationIcon(Button button, PortHeaderIconKind expected)
+        {
+            Assert.That(button.targetGraphic, Is.TypeOf<PortHeaderIconGraphic>(), button.name);
+            var icon = (PortHeaderIconGraphic)button.targetGraphic;
+            Assert.That(icon.Kind, Is.EqualTo(expected), button.name + " must represent its actual destination");
+            Assert.That(icon.texture, Is.Not.Null, button.name + " needs its authored icon");
+            Assert.That(icon.isActiveAndEnabled && icon.raycastTarget, Is.True, button.name);
+            Assert.That(icon.rectTransform.rect.width, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f), button.name);
+            Assert.That(icon.rectTransform.rect.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f), button.name);
+            RectTransform control = (RectTransform)button.transform;
+            Assert.That(control.rect.width, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f), button.name + " hit width");
+            Assert.That(control.rect.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f), button.name + " hit height");
+            Assert.That(button.GetComponent<Image>().color.a, Is.Zero, button.name + " has no wooden backing");
+            Assert.That(button.GetComponentsInChildren<Text>(true).Any(label => label.isActiveAndEnabled), Is.False,
+                button.name + " keeps only its icon visible");
+            Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(icon.gameObject), Is.SameAs(button.gameObject),
+                button.name + " icon clicks must reach the original navigation button");
+            if (expected == PortHeaderIconKind.Back) return;
+            HeaderNavigationArrowGraphic arrow = button.transform.Find("Navigation Arrow")?.GetComponent<HeaderNavigationArrowGraphic>();
+            Assert.That(arrow, Is.Not.Null, button.name + " needs an outward navigation arrow");
+            bool pointsRight = button.name == "Next Port Facility";
+            Assert.That(arrow.PointsRight, Is.EqualTo(pointsRight));
+            Assert.That(arrow.isActiveAndEnabled && arrow.raycastTarget, Is.True, button.name);
+            Rect arrowBounds = BoundsIn(arrow.rectTransform, button.transform);
+            Rect iconBounds = BoundsIn(icon.rectTransform, button.transform);
+            Assert.That(pointsRight ? arrowBounds.xMin - iconBounds.xMax : iconBounds.xMin - arrowBounds.xMax,
+                Is.GreaterThanOrEqualTo(11.99f), "The arrow stays outside its destination icon.");
+            Assert.That(arrowBounds.center.y, Is.EqualTo(iconBounds.center.y).Within(.01f));
+            Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(arrow.gameObject), Is.SameAs(button.gameObject),
+                "Clicking the arrow must invoke the same original navigation button.");
         }
 
         private static void NavigateToLabel(PreviewFixture preview, string buttonName, int destinationIndex)
@@ -560,7 +646,8 @@ namespace ShatteredSail.Core.Tests
             RawImage background = preview.Require<RawImage>(BackgroundNames[index]);
             // These paintings contain a complete 16:9 composition, with the
             // facility header overlaid. Older room paintings fill the area below it.
-            bool fullSurface = Screens[index] == CoreGameplayPreviewScreen.Warehouse ||
+            bool fullSurface = Screens[index] == CoreGameplayPreviewScreen.CardWorkshop ||
+                Screens[index] == CoreGameplayPreviewScreen.Warehouse ||
                 Screens[index] == CoreGameplayPreviewScreen.Maintenance ||
                 Screens[index] == CoreGameplayPreviewScreen.VoyageDeparture &&
                     PortFacilityArtCatalog.UsesPaintedDepartureScene(preview.Controller.Session.CurrentPort);
@@ -570,9 +657,12 @@ namespace ShatteredSail.Core.Tests
             Assert.That(background.rectTransform.anchoredPosition,
                 Is.EqualTo(fullSurface ? Vector2.zero : PhaseSurfaceLayout.BackgroundPosition), context);
             if (Screens[index] == CoreGameplayPreviewScreen.CardWorkshop)
-                Assert.That(background.texture, Is.Null, "The card workshop is a direct parchment preview without room art.");
-            else
-                Assert.That(background.uvRect,
+            {
+                Assert.That(background.texture, Is.Not.Null);
+                Assert.That(background.texture.name, Is.EqualTo("workshop_home_v1"));
+                Assert.That(background.raycastTarget, Is.False, "The painting leaves input to its furniture hotspots.");
+            }
+            Assert.That(background.uvRect,
                     Is.EqualTo(fullSurface ? new Rect(0f, 0f, 1f, 1f) : PhaseSurfaceLayout.BackgroundUv(background.texture)),
                     "Full paintings retain their complete UVs; below-header rooms retain their aspect-preserving crop: " + context);
             Rect bounds = BoundsIn(background.rectTransform, preview.Canvas.transform);
@@ -591,20 +681,37 @@ namespace ShatteredSail.Core.Tests
         private static void AssertGold(PreviewFixture preview, string name = "Port Facility Gold")
         {
             string label = Regex.Replace(preview.Require<Text>(name).text, "<[^>]*>", string.Empty);
-            if (label.StartsWith("金币  ", StringComparison.Ordinal))
-            {
-                Assert.That(label.Substring(4).Trim(), Is.EqualTo(PortMarketCatalog.FormatPrice(preview.Controller.Session.ProfileGold)));
-                return;
-            }
-            Assert.That(label, Does.Contain("总金币"));
-            Assert.That(label.Split('\n').Last().Trim(), Is.EqualTo(PortMarketCatalog.FormatPrice(preview.Controller.Session.ProfileGold)),
+            Assert.That(label, Is.EqualTo(PortMarketCatalog.FormatPrice(preview.Controller.Session.ProfileGold)),
                 "The bar must show total profile gold, not voyage pocket gold or a cached preview constant.");
+            BattleCommandIconGraphic icon = preview.Require<BattleCommandIconGraphic>(name + " Icon");
+            Assert.That(icon.Kind, Is.EqualTo(BattleCommandIconKind.Gold));
+            Assert.That(icon.rectTransform.rect.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize),
+                "The coin uses the same icon size as settings and deck controls.");
+            Assert.That(icon.isActiveAndEnabled && !icon.raycastTarget, Is.True);
+            Assert.That(BoundsIn(icon.rectTransform, icon.transform.parent).Overlaps(
+                BoundsIn(preview.Require<Text>(name).rectTransform, icon.transform.parent)), Is.False,
+                "The coin icon must not obscure the live amount.");
+        }
+
+        private static void AssertSettingsIcon(Button button, RectTransform header)
+        {
+            Rect bounds = BoundsIn((RectTransform)button.transform, header);
+            Assert.That(bounds.center.x, Is.EqualTo(header.rect.xMax - 62f).Within(.01f));
+            Assert.That(bounds.center.y, Is.EqualTo(header.rect.yMax - 54f).Within(.01f));
+            Assert.That(bounds.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+            Assert.That(button.GetComponent<Image>().color.a, Is.Zero, "No wooden button backing.");
+            Assert.That(button.GetComponentsInChildren<Text>(true).Any(text => text.isActiveAndEnabled), Is.False);
+            Assert.That(button.targetGraphic, Is.TypeOf<BattleHeaderIconGraphic>());
+            Assert.That(button.targetGraphic.isActiveAndEnabled, Is.True);
+            Assert.That(button.targetGraphic.rectTransform.rect.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize),
+                "The visible gear must fill the shared header icon slot.");
         }
 
         private static void AssertGameMinute(string label, DateTime before, DateTime after)
         {
             Match match = Regex.Match(label, @"(?<!\d)[1-9]\d{0,3}-\d{2}-\d{2} \d{2}:\d{2}");
             Assert.That(match.Success, Is.True, "Show the game calendar with no leading zeros in the year.");
+            Assert.That(label, Is.EqualTo(match.Value), "The date is a single readout without the retired small caption.");
             DateTime parsed = DateTime.ParseExact(match.Value.PadLeft(16, '0'), "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
             long minute = parsed.Ticks / TimeSpan.TicksPerMinute;
             Assert.That(minute, Is.InRange(before.Ticks / TimeSpan.TicksPerMinute, after.Ticks / TimeSpan.TicksPerMinute),

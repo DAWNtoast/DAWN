@@ -54,7 +54,7 @@ namespace ShatteredSail.Core.Gameplay
             var restored = new Dictionary<int, string>();
             foreach (int index in owned)
             {
-                int home = CoreShipMarketCatalog.HomePortIndex(index);
+                int home = CoreShipMarketCatalog.LegacyHomePortIndex(index);
                 restored[index] = saved.TryGetValue(index, out string port) ? port : portNames[home];
             }
             restored[activeShipIndex] = CurrentPort;

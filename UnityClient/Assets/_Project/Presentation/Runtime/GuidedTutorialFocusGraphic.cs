@@ -223,6 +223,10 @@ namespace ShatteredSail.Presentation
         {
             Canvas owner = canvas;
             RectTransform viewport = FixedGameViewport.Bounds(owner);
+            // Full-window workspaces are reparented outside the fixed painted
+            // viewport. Their edge controls remain visible across the canvas.
+            if (owner != null && viewport != null && Target != null && !Target.IsChildOf(viewport))
+                viewport = owner.rootCanvas.transform as RectTransform;
             return viewport != null ? BoundsInAnnotation(viewport, viewport.rect) : rectTransform.rect;
         }
 

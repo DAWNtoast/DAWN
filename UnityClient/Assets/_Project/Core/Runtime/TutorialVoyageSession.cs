@@ -468,7 +468,7 @@ namespace ShatteredSail.Core.Tutorial
                 case TutorialVoyagePhase.FirstLegComplete:
                     return "首航完成。招募疯帽航海士，准备进阶航行。";
                 case TutorialVoyagePhase.Complete:
-                    return "教学完成：新港已解锁，种子与航迹已经保存为海图。";
+                    return "教学完成：新港已解锁，可以继续自由航行。";
                 case TutorialVoyagePhase.Battle:
                     return "观察敌舰下一次伤害，在炮击、防御与修理之间选择。";
                 case TutorialVoyagePhase.ResolvingEncounter:
@@ -499,7 +499,7 @@ namespace ShatteredSail.Core.Tutorial
                 "前往星盘信号，使用航海士职业选项。",
                 "根据新情报驶向刚刚显露的隐藏地点。",
                 "驶向首领信号，迎击封锁航道的演习舰。",
-                "航道已经开放，驶入灰鸥港并保存海图。",
+                "航道已经开放，驶入灰鸥港完成教学。",
             };
             return advancedObjectives[Math.Min(CurrentNodeIndex + 1, advancedObjectives.Length - 1)];
         }

@@ -79,14 +79,14 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase("boss_route_moon_tide_ruins", "route_moon")]
         [TestCase("boss_route_shattered_sail_reef_tide", "ghost")]
         [TestCase("boss_route_golden_tide_trade_thunder", "imperial")]
-        [TestCase("boss_route_moon_tide_ruins_arcane", "treasure")]
+        [TestCase("boss_route_moon_tide_ruins_arcane", "moon_weave")]
         [TestCase("treasure_boss_moon_vault", "treasure")]
         [TestCase("legendary_pirate_iron_oath", "iron_oath")]
         [TestCase("legendary_pirate_thunder_crown", "thunder_crown")]
         [TestCase("legendary_pirate_red_widow", "red_widow")]
         [TestCase("legendary_pirate_ember_ark", "ember_ark")]
         [TestCase("legendary_pirate_tide_requiem", "tide_requiem")]
-        [TestCase("legendary_pirate_last_horizon", "treasure")]
+        [TestCase("legendary_pirate_last_horizon", "last_horizon")]
         public void BoardingArt_EnemyIdentitySelectsItsOwnInstalledParty(string encounterId, string suffix)
         {
             CoreEncounter encounter = Encounter(encounterId);

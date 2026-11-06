@@ -80,6 +80,20 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void QuarterOrbit_KeepsEnemyAsWorldPivotAndTurnsCompassWithoutRotatingText()
         {
+            RectTransform compass = (RectTransform)board.transform.Find("Tactical compass");
+            NavalTacticalCompassGraphic graphic = compass.GetComponent<NavalTacticalCompassGraphic>();
+            Assert.That(graphic, Is.Not.Null);
+            Assert.That(Vector2.Distance(compass.sizeDelta, new Vector2(164f, 164f)), Is.LessThan(.001f));
+            Assert.That(Vector2.Distance(compass.anchoredPosition, new Vector2(-195f, -205f)), Is.LessThan(.001f));
+            Assert.That(compass.GetComponentsInChildren<Image>(true), Is.Empty,
+                "The compass rose must not retain the old black rectangular image backing.");
+            foreach (string name in new[] { "Compass 东", "Compass 北", "Compass 西", "Compass 南", "Compass 中心" })
+                Assert.That(compass.Find(name), Is.Null, name + " is replaced by the compass rose.");
+            foreach (Graphic item in compass.GetComponentsInChildren<Graphic>(true))
+                Assert.That(item.raycastTarget, Is.False, "The compass must not intercept battlefield clicks.");
+            Text[] labels = compass.GetComponentsInChildren<Text>(true);
+            Assert.That(labels, Has.Length.EqualTo(1));
+            Assert.That(labels[0].text, Is.EqualTo("N"));
             for (int step = 0; step <= 12; step++)
             {
                 float bearing = 180f - step * 7.5f;
@@ -90,14 +104,18 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(board.PlayerScreenPosition.x, Is.EqualTo(-225f).Within(.002f));
                 Assert.That(board.EnemyScreenPosition.x, Is.EqualTo(225f).Within(.002f));
                 AssertEnemyRemainsWorldPivot();
+                Vector2 worldNorth = (board.WorldToBoard(new VoyagePoint(0f, 100f)) -
+                    board.WorldToBoard(new VoyagePoint(0f, 0f))).normalized;
+                Assert.That(graphic.NorthDirection.magnitude, Is.EqualTo(1f).Within(.001f));
+                Assert.That(Vector2.Distance(graphic.NorthDirection, worldNorth), Is.LessThan(.001f),
+                    "The compass north must follow the same world projection as the battlefield.");
+                Assert.That(Mathf.Abs(Mathf.DeltaAngle(graphic.WorldRotationDegrees, board.CameraRotationDegrees)),
+                    Is.LessThan(.001f));
+                Assert.That(Vector2.Distance(labels[0].rectTransform.anchoredPosition.normalized, worldNorth), Is.LessThan(.001f));
+                Assert.That(Quaternion.Angle(labels[0].transform.localRotation, Quaternion.identity), Is.LessThan(.001f));
             }
             Assert.That(board.CameraRotationDegrees, Is.EqualTo(90f).Within(.001f));
-            var east = (RectTransform)board.transform.Find("Tactical compass/Compass 东");
-            var north = (RectTransform)board.transform.Find("Tactical compass/Compass 北");
-            Assert.That(east.anchoredPosition.y, Is.GreaterThan(50f));
-            Assert.That(north.anchoredPosition.x, Is.LessThan(-50f));
-            foreach (Transform child in board.transform.Find("Tactical compass"))
-                Assert.That(Quaternion.Angle(child.localRotation, Quaternion.identity), Is.LessThan(.001f));
+            Assert.That(graphic.NorthDirection.x, Is.LessThan(-.999f));
         }
 
         [Test]
@@ -141,11 +159,22 @@ namespace ShatteredSail.Core.Tests
             Assert.That(actual.Y, Is.EqualTo(expected.Y).Within(.01f));
         }
 
-        [Test]
-        public void SeaLandmarks_StayAtTheSameWorldCoordinatesThroughOrbitMovementResizeAndZoom()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SeaLandmarks_StayAtTheSameWorldCoordinatesThroughOrbitMovementResizeAndZoom(bool lessonViewport)
         {
             var landmark = new VoyagePoint(140f, -90f);
             Vector2 before = SeaUvAt(landmark);
+            if (lessonViewport)
+            {
+                RectTransform chart = (RectTransform)board.transform;
+                chart.sizeDelta = new Vector2(1860f, 750f);
+                chart.anchoredPosition = new Vector2(0f, -75f);
+                board.ExtendSeaToBattleSurface();
+                board.SetVerticalFraming(0f);
+                Assert.That(Vector2.Distance(SeaUvAt(landmark), before), Is.LessThan(.00001f),
+                    "Extending the ocean behind the lesson must not move its landmarks.");
+            }
             board.ApplyFrame(new CoreNavalTacticalFrame(new VoyagePoint(200f, 500f),
                 new VoyagePoint(200f, -100f), 90f, 180f));
             Assert.That(Vector2.Distance(SeaUvAt(landmark), before), Is.LessThan(.00001f));
@@ -160,7 +189,7 @@ namespace ShatteredSail.Core.Tests
 
         private Vector2 SeaUvAt(VoyagePoint point)
         {
-            RawImage sea = board.transform.Find("Tactical world/Shared tactical sea").GetComponent<RawImage>();
+            RawImage sea = root.GetComponentInChildren<RawImage>();
             Vector2 local = sea.rectTransform.InverseTransformPoint(board.transform.TransformPoint(board.WorldToBoard(point)));
             Rect rect = sea.rectTransform.rect;
             return new Vector2(sea.uvRect.x + (local.x - rect.xMin) / rect.width * sea.uvRect.width,

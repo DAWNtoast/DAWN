@@ -57,7 +57,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest, Timeout(120000)]
-        public IEnumerator DepartureDockCharts_FiltersUnavailableRecordsSelectsRouteAndStartsSameSeed()
+        public IEnumerator DepartureDockCharts_ShowsLockedRecordsSelectsAvailableRouteAndStartsSameSeed()
         {
             string first = CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
             string foreign = CoreVoyageSession.CreateChartSeed(0, "铜钟港", "盐冠港");
@@ -70,6 +70,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreVoyageSession session = controller.Session;
             session.RestoreTreasureProgress(new CoreTreasureProgress
                 { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(3) });
+            session.RecordCollectionPortVisit("白贝港");
             Assert.That(session.CanSelectRoute(1, out _), Is.True);
             Assert.That(session.CanSelectRoute(2, out _), Is.False);
             session.Cargo.Water = session.Cargo.Food = 80;
@@ -81,10 +82,16 @@ namespace ShatteredSail.Presentation.Tests
 
             yield return SetDepartureChartMode(true);
             Button[] records = InlineDockChartButtons(controller);
-            Assert.That(records.Length, Is.EqualTo(2), "Only charts joining this port on unlocked routes can be selected.");
+            Assert.That(records.Length, Is.EqualTo(3), "Charts at this port remain visible with their lock reason; records at other ports stay in the archive.");
+            Assert.That(records.Count(record => record.IsInteractable()), Is.EqualTo(2));
+            Assert.That(records[2].IsInteractable(), Is.False);
+            session.CanSelectRoute(2, out string lockedRouteReason);
+            Assert.That(records[2].GetComponentInChildren<Text>().text, Does.Contain(lockedRouteReason));
             Assert.That(GameObject.Find("Departure Dock Chart Records Heading").GetComponent<Text>().text, Does.Contain("2"));
             yield return ClickDestinationTestGraphic(records[0].gameObject, Vector2.zero);
             Assert.That(session.SelectedSeed, Is.EqualTo(first));
+            records[2].onClick.Invoke();
+            Assert.That(session.SelectedSeed, Is.EqualTo(first), "A disabled chart callback must preserve the selected available chart.");
             Assert.That(session.SelectedDestinationPort, Is.EqualTo("白贝港"));
             yield return ClickDestinationTestGraphic(records[1].gameObject, Vector2.zero);
             Assert.That(session.SelectedSeed, Is.EqualTo(second));
@@ -103,11 +110,47 @@ namespace ShatteredSail.Presentation.Tests
                 "Filtering and selecting records must not rewrite or prune the archive.");
             Assert.That(ActiveButton("Start Voyage").IsInteractable(), Is.True);
             NavalBattleVisualCapture.Capture(controller, "DepartureDockCharts_Selected.png",
-                "只列出当前港口可用海图；点击第二张切换航线和端点，码头背景与船只保持原位", "Route Selection");
+                "当前港口海图保留锁定原因；点击可用海图切换航线和端点，码头背景与船只保持原位", "Route Selection");
             yield return ClickDestinationTestGraphic(ActiveButton("Start Voyage").gameObject, Vector2.zero);
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             Assert.That(session.CurrentChartSeed, Is.EqualTo(second));
             Assert.That(session.Map.DestinationName, Is.EqualTo("铜钟港"));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator DepartureDockCharts_LockedDestinationRemainsVisibleAndCannotBeLoadedBeforePriorArrival()
+        {
+            string available = CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
+            string locked = CoreVoyageSession.CreateChartSeed(0, "断锚港", "铜钟港");
+            InstallInlineDockChartArchive(available, locked);
+            string archive = PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey);
+            yield return LoadProvisioningFixture();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            var session = controller.Session;
+            Assert.That(session.HasVisitedPort("白贝港"), Is.False);
+            ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
+            yield return SetDepartureChartMode(true);
+            Button[] records = InlineDockChartButtons(controller);
+            Assert.That(records.Length, Is.EqualTo(2));
+            Assert.That(records[0].IsInteractable(), Is.True);
+            Assert.That(records[1].IsInteractable(), Is.False);
+            string reason = session.PortUnlockReason("铜钟港");
+            Assert.That(records[1].GetComponentInChildren<Text>().text, Does.Contain(reason));
+            InvestmentResourceSnapshot before = SnapshotInvestmentResources(session);
+            records[1].onClick.Invoke();
+            Assert.That(session.IsChartSeedSelected, Is.False);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey), Is.EqualTo(archive));
+            InputField input = GameObject.Find("Seed Input").GetComponent<InputField>();
+            input.text = locked;
+            input.onEndEdit.Invoke(locked); yield return null;
+            Assert.That(session.IsChartSeedSelected, Is.False);
+            Assert.That(GameObject.Find("Chart Seed Warning Reason").GetComponent<Text>().text, Does.Contain(reason));
+            Assert.That(ActiveButton("Start Voyage").IsInteractable(), Is.False);
+            ActiveButton("Start Voyage").onClick.Invoke(); yield return null;
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
+            AssertInvestmentResourcesEqual(session, before);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey), Is.EqualTo(archive));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -185,7 +228,7 @@ namespace ShatteredSail.Presentation.Tests
                 }).ToArray(),
             });
             session.ConfigureCrewCapabilities(false, false, false, false, false, false);
-            Assert.That(session.CanDrawSeaChart, Is.False);
+            Assert.That(session.CanUseSeaCharts, Is.False);
             session.Cargo.Water = session.Cargo.Food = 80;
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
             Texture background = GameObject.Find("Voyage Background").GetComponent<RawImage>().texture;

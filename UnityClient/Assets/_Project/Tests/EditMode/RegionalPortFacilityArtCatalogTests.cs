@@ -157,8 +157,7 @@ namespace ShatteredSail.Core.Tests
                     ? catalog.Background(facilityIndex)
                     : catalog.RegionalBackground(facilityIndex, portName);
                 if (expected == null) expected = catalog.Background(facilityIndex);
-                if (screen == CoreGameplayPreviewScreen.ComponentShop)
-                    expected = Resources.Load<Texture2D>("ComponentShopV3/shipyard_hall") ?? expected;
+
 
                 RawImage background = backgroundObject.GetComponent<RawImage>();
                 Assert.That(background.texture, Is.SameAs(expected));

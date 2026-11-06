@@ -27,7 +27,13 @@ namespace ShatteredSail.Presentation
             // Migrate only evidence already present in a player's save. A past
             // tutorial-completed flag alone is not proof of winning its battle.
             session.ImportCollectionHistory(session.CaptureSeaChartProgress(), session.CaptureTreasureProgress());
+            // Older profiles may predate collection history. Read proven visits
+            // without capturing achievements, then persist through the existing
+            // collection record at the normal save boundary.
+            foreach (string port in AchievementCatalog.ReadVisitedPorts()) session.RecordCollectionPortVisit(port);
             session.RecordCollectionPortVisit(session.CurrentPort);
+            // Level and visit history are both restored by this point.
+            session.RefreshPortDestinationSelection();
             collectionProgressOwner = null;
             savedCollectionRevision = -1;
         }
@@ -77,8 +83,8 @@ namespace ShatteredSail.Presentation
                 HashSet<string> owned = GlobalWarehouseTreasureIds();
                 var granted = new List<string>();
                 // Collection milestones may unlock a later milestone in this
-                // same claim. Stop at a fixed point; ownership is global even
-                // though the physical exhibit stays in its receiving port.
+                // same claim. Stop at a fixed point; ownership is global while
+                // only displayed keepsakes stay in their exhibition port.
                 bool advanced;
                 do
                 {

@@ -20,11 +20,10 @@ namespace ShatteredSail.Presentation
         private Action<float> chooseHeading;
         private NavalTacticalRouteGraphic route;
         private RectTransform controls, headingControls;
-        private Text instruction;
         private Button sail, clear;
         private readonly Button[] headings = new Button[3];
+        private readonly RectTransform[] headingArrows = new RectTransform[3];
         private readonly float[] headingValues = new float[3];
-        private string message;
         private int lastPoints = -1, lastSteps = -1, lastRevision = -1;
         private bool lastBlocked, lastAwaiting, initialized;
         private int lastContext, lastSelectionContext, lastPresentation;
@@ -50,16 +49,15 @@ namespace ShatteredSail.Presentation
             route = routeRect.gameObject.AddComponent<NavalTacticalRouteGraphic>();
             route.raycastTarget = false;
             controls = MakeRect("Naval movement controls", root, new Vector2(230f, 44f), new Vector2(735f, -247f));
-            instruction = MakeText("Naval movement instruction", controls, font, 16, new Vector2(680f, 36f), new Vector2(-735f, 43f));
             sail = MakeButton("Commit Naval Movement", controls, "确定航行", font, new Vector2(111f, 44f), new Vector2(-59.5f, 0f));
             clear = MakeButton("Clear Naval Movement", controls, "清空路线", font, new Vector2(111f, 44f), new Vector2(59.5f, 0f));
             sail.onClick.AddListener(CommitSelection);
-            clear.onClick.AddListener(() => { if (CanPlan) { session.ClearNavalMovementPath(); message = null; RefreshNow(); } });
+            clear.onClick.AddListener(() => { if (CanPlan) { session.ClearNavalMovementPath(); RefreshNow(); } });
             headingControls = MakeRect("Naval arrival headings", root, Vector2.zero, Vector2.zero);
             for (int i = 0; i < headings.Length; i++)
             {
                 int slot = i;
-                headings[i] = MakeButton("Naval Arrival Heading " + i, headingControls, string.Empty, font, new Vector2(92f, 44f), Vector2.zero);
+                headings[i] = MakeHeadingButton("Naval Arrival Heading " + i, headingControls, out headingArrows[i]);
                 headings[i].onClick.AddListener(() => ChooseHeading(headingValues[slot]));
             }
             RefreshNow();
@@ -74,7 +72,7 @@ namespace ShatteredSail.Presentation
             if (suppressClick) return;
             if (eventData.button == PointerEventData.InputButton.Right)
             {
-                if (CanPlan && session.UndoNavalMovementStep()) { message = null; RefreshNow(); }
+                if (CanPlan && session.UndoNavalMovementStep()) RefreshNow();
                 return;
             }
             if (eventData.button != PointerEventData.InputButton.Left || !CanPlan) return;
@@ -115,7 +113,6 @@ namespace ShatteredSail.Presentation
             dragNeedsAnchor = false;
             SetShipSelected(true);
             if (dragFromShip) session.ClearNavalMovementPath();
-            message = null;
             OnDrag(eventData);
         }
 
@@ -128,7 +125,6 @@ namespace ShatteredSail.Presentation
             {
                 dragNeedsAnchor = true;
                 dragArmed = false;
-                message = "回到已选航线后继续拖动";
                 RefreshNow();
                 return;
             }
@@ -225,7 +221,6 @@ namespace ShatteredSail.Presentation
                     // or steer around an enemy on behalf of the player.
                     if (!TryReturnToPath(CellAt(to)))
                     {
-                        message = "请沿格子转弯，不要从格角斜穿；可拖回已选航线修正";
                         dragNeedsAnchor = true;
                     }
                     return;
@@ -240,12 +235,7 @@ namespace ShatteredSail.Presentation
         {
             if (TryReturnToPath(cell)) return;
             if (dragNeedsAnchor) return;
-            if (session.TryAppendNavalMovementStep(cell, out string reason)) message = null;
-            else
-            {
-                message = reason;
-                dragNeedsAnchor = true;
-            }
+            if (!session.TryAppendNavalMovementStep(cell, out _)) dragNeedsAnchor = true;
         }
 
         private bool TryReturnToPath(VoyagePoint cell)
@@ -256,7 +246,6 @@ namespace ShatteredSail.Presentation
                 {
                     if (index < path.Count - 1 && !session.TryTruncateNavalMovementPath(index, out _)) return false;
                     dragNeedsAnchor = false;
-                    message = null;
                     return true;
                 }
             return false;
@@ -265,8 +254,7 @@ namespace ShatteredSail.Presentation
         public bool SelectCell(VoyagePoint cell)
         {
             if (!CanPlan) return false;
-            bool accepted = session.TryAppendNavalMovementStep(cell, out string reason);
-            message = accepted ? null : reason;
+            bool accepted = session.TryAppendNavalMovementStep(cell, out _);
             if (accepted) SetShipSelected(true);
             RefreshNow();
             return accepted;
@@ -277,7 +265,6 @@ namespace ShatteredSail.Presentation
             if (!CanPlan || session.NavalMovementPlannedSteps == 0) return;
             EndGesture();
             SetShipSelected(false, false);
-            message = null;
             commit?.Invoke();
             RefreshNow();
         }
@@ -285,11 +272,7 @@ namespace ShatteredSail.Presentation
         public void ChooseHeading(float angle)
         {
             if (!isActiveAndEnabled || !CurrentBattle || Blocked || !battle.NavalAwaitingHeadingSelection) return;
-            bool allowed = false;
-            foreach (float value in session.GetNavalArrivalHeadings())
-                if (Mathf.Abs(Mathf.DeltaAngle(value, angle)) < .01f) allowed = true;
-            if (!allowed) return;
-            message = null;
+            if (session.NavalArrivalHeadingUnavailableReason(angle).Length > 0) return;
             chooseHeading?.Invoke(angle);
             RefreshNow();
         }
@@ -310,7 +293,7 @@ namespace ShatteredSail.Presentation
             if (!initialized || lastPoints != battle.NavalActionPoints || lastSteps != session.NavalMovementPlannedSteps ||
                 lastRevision != battle.TacticalRevision || lastBlocked != Blocked || lastAwaiting != battle.NavalAwaitingHeadingSelection ||
                 lastContext != ContextSignature() || lastPresentation != PresentationSignature())
-            { message = null; RefreshNow(); }
+                RefreshNow();
         }
 
         private int ContextSignature()
@@ -374,7 +357,6 @@ namespace ShatteredSail.Presentation
                     IsShipSelected = true;
                 if (!battle.NavalAwaitingHeadingSelection) session.ClearNavalMovementPath();
                 reachDirty = true;
-                message = null;
             }
             lastContext = context;
             lastSelectionContext = selectionContext;
@@ -388,8 +370,6 @@ namespace ShatteredSail.Presentation
             initialized = true;
             controls.gameObject.SetActive(true);
             bool planning = !lastBlocked && !lastAwaiting;
-            instruction.text = message ?? string.Empty;
-            instruction.gameObject.SetActive(!string.IsNullOrEmpty(message));
             sail.interactable = clear.interactable = planning && lastSteps > 0;
             sail.GetComponentInChildren<Text>().text = session.NavalMovementEndsInRam ? "确定冲撞" : "确定航行";
             route.gameObject.SetActive(planning && (IsShipSelected || lastSteps > 0));
@@ -415,7 +395,8 @@ namespace ShatteredSail.Presentation
                 headings[i].gameObject.SetActive(i < options.Count);
                 if (i >= options.Count) continue;
                 headingValues[i] = options[i];
-                float radians = (options[i] + board.CameraRotationDegrees) * Mathf.Deg2Rad;
+                float screenAngle = options[i] + board.CameraRotationDegrees;
+                float radians = screenAngle * Mathf.Deg2Rad;
                 RectTransform headingRect = (RectTransform)headings[i].transform;
                 Vector2 position = board.PlayerScreenPosition + new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * 132f;
                 Rect bounds = ((RectTransform)headingControls.parent).rect;
@@ -423,15 +404,25 @@ namespace ShatteredSail.Presentation
                 position.x = Mathf.Clamp(position.x, bounds.xMin + inset.x, bounds.xMax - inset.x);
                 position.y = Mathf.Clamp(position.y, bounds.yMin + inset.y, bounds.yMax - inset.y);
                 headingRect.anchoredPosition = position;
-                headings[i].interactable = true;
-                headings[i].GetComponentInChildren<Text>().text = "朝" + DirectionName(options[i]);
+                headings[i].interactable = session.NavalArrivalHeadingUnavailableReason(options[i]).Length == 0;
+                headingArrows[i].localRotation = Quaternion.Euler(0f, 0f, screenAngle);
             }
         }
 
-        private static string DirectionName(float angle)
+        private static Button MakeHeadingButton(string name, RectTransform parent, out RectTransform arrowRect)
         {
-            int quadrant = Mathf.RoundToInt(Mathf.Repeat(angle, 360f) / 90f) % 4;
-            return new[] { "东", "北", "西", "南" }[quadrant];
+            RectTransform rect = MakeRect(name, parent, new Vector2(64f, 64f), Vector2.zero);
+            // Keep a generous, unrotated hit area while only the direction cue turns.
+            Image hitArea = rect.gameObject.AddComponent<Image>();
+            hitArea.color = Color.clear;
+            Button button = rect.gameObject.AddComponent<Button>();
+            arrowRect = MakeRect("Heading Arrow", rect, new Vector2(40f, 64f), Vector2.zero);
+            arrowRect.gameObject.AddComponent<CanvasRenderer>();
+            HeaderNavigationArrowGraphic arrow = arrowRect.gameObject.AddComponent<HeaderNavigationArrowGraphic>();
+            arrow.Configure(true, button);
+            arrow.raycastTarget = false;
+            button.targetGraphic = arrow;
+            return button;
         }
 
         private static RectTransform MakeRect(string name, RectTransform parent, Vector2 size, Vector2 position)

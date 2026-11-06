@@ -44,15 +44,16 @@ namespace ShatteredSail.Presentation.Tests
             {
                 string key = RareWarehouseTestKeys[i];
                 Assert.That(ActiveButton("Warehouse Rare Row " + key), Is.Not.Null);
-                Assert.That(GameObject.Find("Warehouse Rare Stored " + key).GetComponent<Text>().text, Does.Contain("0"));
-                Assert.That(GameObject.Find("Warehouse Rare Carried " + key).GetComponent<Text>().text,
-                    Does.Contain(initial[i].ToString(CultureInfo.InvariantCulture)));
-                Assert.That(GameObject.Find("Warehouse Rare Volume " + key).GetComponent<Text>().text,
-                    Does.Contain((initial[i] * RareWarehouseTestVolumes[i]).ToString("0.00", CultureInfo.InvariantCulture)));
+                Assert.That(GameObject.Find("Warehouse Rare Quantity " + key).GetComponent<Text>().text, Is.EqualTo("0"));
+                Assert.That(GameObject.Find("Warehouse Rare Volume " + key), Is.Null);
             }
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            for (int i = 0; i < RareWarehouseTestKeys.Length; i++)
+                Assert.That(GameObject.Find("Warehouse Rare Quantity " + RareWarehouseTestKeys[i]).GetComponent<Text>().text,
+                    Is.EqualTo(initial[i].ToString(CultureInfo.InvariantCulture)));
             foreach (string excluded in new[] { "curse", "gold", "maps", "fragments" })
                 Assert.That(GameObject.Find("Warehouse Rare Row " + excluded), Is.Null);
-            CaptureRareWarehouse(controller, "01_Six_Rare_Rows", "珍稀六行与基础九行分别显示，体积为真实随船占用");
+            CaptureRareWarehouse(controller, "01_Six_Rare_Rows", "珍稀六格显示船舱数量，切换位置不移动物品");
             ClickAcceptanceButton("Warehouse Tab Storage"); yield return null;
             Assert.That(ActiveRareWarehouseRows("Warehouse Storage Row "), Is.EqualTo(9));
             ClickAcceptanceButton("Warehouse Tab Rare"); yield return null;
@@ -106,6 +107,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Cargo.UsedVolume, Is.EqualTo(used).Within(.001f));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             yield return OpenRareWarehouse();
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text, Is.EqualTo("0"),
+                "A reloaded session opens the warehouse location rather than inheriting the old ship view.");
             CaptureRareWarehouse(controller, "04_Transfer_Reload", "返回港口并重载后，随船与本港库存总量守恒");
             LogAssert.NoUnexpectedReceived();
         }
@@ -214,7 +217,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest, Timeout(120000)]
-        public IEnumerator RareWarehouse_StoreAllReleasesSpaceWithoutMovingCurseMoneyOrTreasureProgress()
+        public IEnumerator RareWarehouse_IndividualDepositsReleaseSpaceWithoutMovingCurseMoneyOrTreasureProgress()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -236,11 +239,18 @@ namespace ShatteredSail.Presentation.Tests
             InvestmentResourceSnapshot basics = SnapshotInvestmentResources(session);
             decimal gold = session.ProfileGold;
             yield return OpenRareWarehouse();
-            Button.ButtonClickedEvent oldAll = ActiveButton("Warehouse Store All Rare").onClick;
-            Assert.That(ActiveButton("Warehouse Store All Rare").IsInteractable(), Is.True);
-            CaptureRareWarehouse(controller, "07_Before_Store_All", "六类珍稀可一键卸货，诅咒和金币不是仓储货物");
-            ClickAcceptanceButton("Warehouse Store All Rare"); yield return null;
-            Assert.DoesNotThrow(oldAll.Invoke, "A saved callback from the replaced warehouse view must be inert."); yield return null;
+            Assert.That(ActiveButton("Warehouse Store All Rare"), Is.Null);
+            CaptureRareWarehouse(controller, "07_Before_Individual_Deposits", "六类珍稀通过各自物品格存取，诅咒和金币不是仓储货物");
+            Button.ButtonClickedEvent firstDeposit = null;
+            foreach (string key in RareWarehouseTestKeys)
+            {
+                yield return OpenRareWarehouseAdjustment(key);
+                yield return DragWarehouseSlider(RareWarehouseSlider(), RareWarehouseSlider().minValue);
+                Button.ButtonClickedEvent depositAgain = ActiveButton("Confirm Warehouse Cargo Adjustment").onClick;
+                if (firstDeposit == null) firstDeposit = depositAgain;
+                ClickAcceptanceButton("Confirm Warehouse Cargo Adjustment"); yield return null;
+                Assert.DoesNotThrow(depositAgain.Invoke, "A saved confirmation must not repeat a completed deposit."); yield return null;
+            }
             CollectionAssert.AreEqual(new int[6], RareWarehouseCargo(session));
             for (int i = 0; i < RareWarehouseTestKeys.Length; i++)
                 Assert.That(session.PortWarehouse.GetAmount(port, RareWarehouseTestKeys[i]), Is.EqualTo(original[i] + (i == 0 ? 2 : 0)));
@@ -248,16 +258,16 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Cargo.UsedVolume, Is.EqualTo(beforeUsed - released).Within(.001d));
             AssertInvestmentResourcesEqual(session, basics);
             AssertRareWarehouseExcluded(session, progress, gold, 73, 11);
-            Assert.That(ActiveButton("Warehouse Store All Rare").IsInteractable(), Is.False);
+            Assert.That(ActiveButton("Warehouse Store All Rare"), Is.Null);
             AssertRareWarehouseSavedSplit(session);
-            CaptureRareWarehouse(controller, "08_After_Store_All", "只卸下六种珍稀，空出真实舱位，地图碎片与诅咒不变");
+            CaptureRareWarehouse(controller, "08_After_Individual_Deposits", "逐种卸下六类珍稀，空出真实舱位，地图碎片与诅咒不变");
             string stored = session.PortWarehouse.Serialize();
             for (int reload = 0; reload < 2; reload++)
             {
                 ClickAcceptanceButton("Return To Port Hub"); yield return null;
                 SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
                 controller = Object.FindFirstObjectByType<CoreGameplayDemoController>(); session = controller.Session;
-                Assert.DoesNotThrow(oldAll.Invoke, "A saved callback from a destroyed scene must be inert."); yield return null;
+                Assert.DoesNotThrow(firstDeposit.Invoke, "A saved callback from a destroyed scene must be inert."); yield return null;
                 CollectionAssert.AreEqual(new int[6], RareWarehouseCargo(session));
                 Assert.That(session.PortWarehouse.Serialize(), Is.EqualTo(stored));
                 Assert.That(session.Cargo.UsedVolume, Is.EqualTo(beforeUsed - released).Within(.001d));

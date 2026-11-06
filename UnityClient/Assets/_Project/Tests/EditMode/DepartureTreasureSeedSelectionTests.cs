@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation.Tests
         public void OwnedSeedsCanBeSelectedSwitchedAndRemovedAtEveryPortWithoutNavigator(CoreGameplayPreviewPort port)
         {
             Create(port, 2, false);
-            Assert.That(controller.Session.CanDrawSeaChart, Is.False);
+            Assert.That(controller.Session.CanUseSeaCharts, Is.False);
             string origin = controller.Session.CurrentPort;
             Select(0);
             Assert.That(controller.Session.SelectedTreasureMap.Seed, Is.EqualTo("DEPARTURE-TREASURE-0"));
@@ -207,7 +207,7 @@ namespace ShatteredSail.Presentation.Tests
         public void DockDropdownSwitchesAllSixSeedsAndShowsTheirOwnThumbnailWithoutNavigator()
         {
             Create(CoreGameplayPreviewPort.BrokenAnchor, 6, false);
-            Assert.That(controller.Session.CanDrawSeaChart, Is.False);
+            Assert.That(controller.Session.CanUseSeaCharts, Is.False);
             Find<Button>("Departure Treasure Seed Picker").onClick.Invoke();
             Assert.That(Find<Dropdown>("Departure Dock Treasure Dropdown").options.Count, Is.EqualTo(7));
             for (int index = 0; index < 6; index++)

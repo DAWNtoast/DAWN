@@ -11,9 +11,10 @@ namespace ShatteredSail.Presentation
         private readonly List<Vector2> playerPath = new List<Vector2>();
         private readonly List<Vector2> enemyPath = new List<Vector2>();
         private Vector2 player, enemy;
+        private float playerHeading, enemyHeading;
 
         public void SetTrack(IReadOnlyList<Vector2> playerPoints, IReadOnlyList<Vector2> enemyPoints,
-            Vector2 playerPosition, Vector2 enemyPosition)
+            Vector2 playerPosition, Vector2 enemyPosition, float playerHeadingDegrees, float enemyHeadingDegrees)
         {
             playerPath.Clear();
             enemyPath.Clear();
@@ -21,18 +22,20 @@ namespace ShatteredSail.Presentation
             if (enemyPoints != null) for (int i = 0; i < enemyPoints.Count; i++) enemyPath.Add(enemyPoints[i]);
             player = playerPosition;
             enemy = enemyPosition;
+            playerHeading = playerHeadingDegrees;
+            enemyHeading = enemyHeadingDegrees;
             SetVerticesDirty();
         }
 
         protected override void OnPopulateMesh(VertexHelper helper)
         {
             helper.Clear();
-            Color ally = new Color(.28f, .91f, 1f, .8f);
-            Color hostile = new Color(1f, .36f, .26f, .8f);
-            DrawPath(helper, playerPath, ally);
-            DrawPath(helper, enemyPath, hostile);
-            DrawRing(helper, player, 52f, ally);
-            DrawRing(helper, enemy, 52f, hostile);
+            Color ally = new Color(.28f, .91f, 1f, .95f);
+            Color hostile = new Color(1f, .36f, .26f, .95f);
+            DrawPath(helper, playerPath, new Color(ally.r, ally.g, ally.b, .38f));
+            DrawPath(helper, enemyPath, new Color(hostile.r, hostile.g, hostile.b, .38f));
+            DrawMarker(helper, player, playerHeading, ally);
+            DrawMarker(helper, enemy, enemyHeading, hostile);
         }
 
         private static void DrawPath(VertexHelper helper, List<Vector2> path, Color tint)
@@ -49,7 +52,23 @@ namespace ShatteredSail.Presentation
             }
         }
 
-        private static void DrawRing(VertexHelper helper, Vector2 center, float radius, Color tint)
+        private static void DrawMarker(VertexHelper helper, Vector2 center, float heading, Color tint)
+        {
+            Color shadow = new Color(.015f, .035f, .045f, .65f);
+            DrawRing(helper, center, 58f, 6f, shadow);
+            DrawRing(helper, center, 58f, 2.5f, tint);
+            Vector2 forward = new Vector2(Mathf.Cos(heading * Mathf.Deg2Rad), Mathf.Sin(heading * Mathf.Deg2Rad));
+            Vector2 side = new Vector2(-forward.y, forward.x);
+            Vector2 tip = center + forward * 104f;
+            Vector2 left = center + forward * 89f + side * 10f;
+            Vector2 right = center + forward * 89f - side * 10f;
+            AddLine(helper, left, tip, 7f, shadow);
+            AddLine(helper, tip, right, 7f, shadow);
+            AddLine(helper, left, tip, 3.5f, tint);
+            AddLine(helper, tip, right, 3.5f, tint);
+        }
+
+        private static void DrawRing(VertexHelper helper, Vector2 center, float radius, float width, Color tint)
         {
             const int segments = 48;
             for (int index = 0; index < segments; index++)
@@ -57,7 +76,7 @@ namespace ShatteredSail.Presentation
                 float first = index * Mathf.PI * 2f / segments;
                 float last = (index + 1) * Mathf.PI * 2f / segments;
                 AddLine(helper, center + new Vector2(Mathf.Cos(first), Mathf.Sin(first)) * radius,
-                    center + new Vector2(Mathf.Cos(last), Mathf.Sin(last)) * radius, 2.5f, tint);
+                    center + new Vector2(Mathf.Cos(last), Mathf.Sin(last)) * radius, width, tint);
             }
         }
 

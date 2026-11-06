@@ -62,6 +62,7 @@ namespace ShatteredSail.Core.Gameplay
                 return false;
             }
             if (!CanSelectRoute(chart.RouteIndex, out reason)) return false;
+            if (!CanSelectDestinationPort(chart.OtherPort(CurrentPort), out reason)) return false;
             selectedSeaChart = chart;
             SelectedSeed = chart.Seed;
             SelectedRouteIndex = chart.RouteIndex;
@@ -75,6 +76,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!CanStartWithDepartureCrew(out reason)) return false;
             if (selectedSeaChart == null || GuidedTutorialLeg > 0 || SelectedTreasureMap != null) return true;
             if (!CanSelectRoute(selectedSeaChart.RouteIndex, out reason)) return false;
+            if (!CanSelectDestinationPort(selectedSeaChart.OtherPort(CurrentPort), out reason)) return false;
             if (Phase != CoreDemoPhase.Port) reason = "只能在港口载入海图。";
             else if (!selectedSeaChart.ContainsPort(CurrentPort))
                 reason = "这张海图仅连接" + selectedSeaChart.PortA + "与" + selectedSeaChart.PortB + "。";

@@ -54,10 +54,22 @@ namespace ShatteredSail.Presentation.Tests
         {
             CreatePreview(CoreGameplayPreviewScreen.CardUpgrade, stage);
             AssertWorkshopPaperControls("Battle Card Upgrade Panel",
-                "Card Upgrade Heading", "Upgrade Selected Name", "Back From Card Upgrades", "Confirm Battle Card Upgrade");
-            AssertWorkshopPaperControls("Workshop Preview Parchment", "Previous Upgrade Cards", "Next Upgrade Cards",
+                "Upgrade Selected Name", "Confirm Battle Card Upgrade");
+            AssertWorkshopPaperControls("Workshop Upgrade Library", "Previous Upgrade Cards", "Next Upgrade Cards",
                 "Workshop Preview Stage Preparation", "Workshop Preview Stage Naval", "Workshop Preview Stage Boarding",
-                "Open Special Card Collection");
+                "Workshop Collection Page Count");
+            AssertWorkshopSchoolControls("Workshop Upgrade Library");
+            Button[] rows = Find<RectTransform>("Workshop Upgrade Library").GetComponentsInChildren<Button>()
+                .Where(button => button.name.StartsWith("Select Upgrade Card ")).ToArray();
+            Assert.That(rows, Has.Length.EqualTo(6), "A populated upgrade list must remain inside its reading surface.");
+            foreach (Button row in rows)
+            {
+                AssertWorkshopPaperControls("Workshop Upgrade Library", row.name);
+                foreach (Text label in row.GetComponentsInChildren<Text>().Where(label => !string.IsNullOrEmpty(label.text)))
+                    AssertWorkshopPaperControls("Workshop Upgrade Library", label.name);
+            }
+            Assert.That(host.GetComponentsInChildren<Button>(true).Any(button => button.name == "Open Special Card Collection"), Is.False,
+                "Special cards grow through voyages and do not enter the paid upgrade list.");
             AssertProfileUnchanged();
         }
 
@@ -67,11 +79,11 @@ namespace ShatteredSail.Presentation.Tests
             CreatePreview(CoreGameplayPreviewScreen.SpecialCardCollection);
             AssertWorkshopPaperControls("Workshop Preview Parchment", "Previous Upgrade Cards", "Next Upgrade Cards",
                 "Workshop Preview Stage Preparation", "Workshop Preview Stage Naval", "Workshop Preview Stage Boarding",
-                "Open Special Card Collection", "Upgrade Collection Page");
-            AssertWorkshopPaperControls("Workshop Forge Entry", "Card Upgrade Heading", "Workshop Upgrade Hammer Icon",
-                "Workshop Upgrade Disabled Mark", "Open Battle Card Upgrades");
-            foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
-                AssertWorkshopPaperControls("Workshop Stage " + stage, "Edit Stage Deck " + stage);
+                "Open Special Card Collection");
+            AssertWorkshopSchoolControls("Workshop Preview Parchment");
+            AssertWorkshopPaperControls("Workshop Collection Detail", "Workshop Collection Heading");
+            foreach (string page in new[] { "Collection", "DeckBuilder", "Packs", "Upgrade" })
+                Assert.That(Find<Button>("Workshop Page " + page).interactable, Is.True);
             foreach (RectTransform status in host.GetComponentsInChildren<RectTransform>(true).Where(item =>
                 item.name.StartsWith("Special Card Deck Status ") || item.name.StartsWith("Configure Special Card Source ")))
                 AssertWorkshopPaperControls("Workshop Preview Parchment", status.name);
@@ -79,7 +91,7 @@ namespace ShatteredSail.Presentation.Tests
                 item.name.StartsWith("Special Card Source ") || item.name.StartsWith("Special Card Progress ")), Is.False);
             foreach (string removed in new[] { "Special Card Collection Panel", "Special Card Collection Heading", "Special Card Detail Active", "Special Card Read Only Notice" })
                 Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == removed), Is.False, removed);
-            Assert.That(Find<Button>("Open Battle Card Upgrades").interactable, Is.False);
+            Assert.That(host.GetComponentsInChildren<Button>(true).Any(button => button.name == "Confirm Battle Card Upgrade"), Is.False);
             AssertProfileUnchanged();
         }
 
@@ -88,7 +100,8 @@ namespace ShatteredSail.Presentation.Tests
         {
             CreatePreview(CoreGameplayPreviewScreen.DeckBuilder);
             AssertWorkshopPaperControls("Deck Builder Parchment", "Previous Battle Card Collection Page",
-                "Next Battle Card Collection Page", "Battle Card Collection Page");
+                "Next Battle Card Collection Page");
+            AssertWorkshopSchoolControls("Deck Builder Parchment");
             AssertWorkshopPaperControls("Deck Builder Deck Rail", "Back To Card Workshop Chests");
             Assert.That(Find<Text>("Deck Builder Status").text, Is.Empty,
                 "A valid deck needs no explanatory status caption.");
@@ -114,6 +127,14 @@ namespace ShatteredSail.Presentation.Tests
                 "An incomplete draft must not replace the last valid gameplay deck.");
             AssertWorkshopPaperControls("Deck Builder Deck Rail", "Deck Builder Status", "Back To Card Workshop Chests");
             AssertProfileUnchanged();
+        }
+
+        private void AssertWorkshopSchoolControls(string paper)
+        {
+            foreach (string school in new[] { "neutral", "fire", "arcane", "curse", "tide", "thunder", "blood" })
+                AssertWorkshopPaperControls(paper, "Workshop School Filter " + school);
+            foreach (string obsolete in new[] { "Upgrade Collection Page", "Battle Card Collection Page" })
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == obsolete), Is.False);
         }
 
         [Test]
@@ -165,7 +186,14 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Assert.That(paper.sprite, Is.SameAs(NauticalSurfaceSkin.Paper));
                 Assert.That(paper.type, Is.EqualTo(Image.Type.Tiled));
-                AssertGlyphs(paper, host.transform, "Navigation Title", "Distance Label", "Forecast");
+                AssertGlyphs(paper, host.transform, "Navigation Title", "Distance Label");
+                foreach (string metric in new[] { "Time", "Speed", "Water", "Food" })
+                    AssertGlyphs(paper, host.transform, "Forecast " + metric + " Label", "Forecast " + metric + " Value");
+                // The four metrics are always visible; the parent text is now
+                // reserved for optional locked-course, obstruction or edge notes.
+                Text notes = Find<Text>("Forecast");
+                AssertRect(paper, notes.rectTransform);
+                if (!string.IsNullOrEmpty(notes.text)) AssertGlyph(paper, notes);
                 AssertButtons(paper, "Execute Sail", "Safe Return", "Forecast Details");
                 AssertRect(paper, Find<Slider>("Distance Slider").GetComponent<RectTransform>());
                 foreach (Button heading in paper.GetComponentsInChildren<Button>(false)
@@ -276,9 +304,10 @@ namespace ShatteredSail.Presentation.Tests
                 // The default preview notice is empty. Exercise the actual footer Text
                 // with a representative result, without mutating inventories or saving.
                 Find<Text>(hintName).text = "本港库存已更新，随船货物已核对。";
-                AssertGlyphs(paper, host.transform,
-                    page == 1 ? "Warehouse Storage Summary" : "Warehouse Rare Summary", hintName);
-                if (page == 2) AssertButtons(paper, "Warehouse Store All Rare");
+                AssertGlyphs(paper, host.transform, hintName);
+                AssertButtons(paper, "Warehouse Inventory Location Stored", "Warehouse Inventory Location Carried");
+                Assert.That(paper.GetComponentsInChildren<Button>(false).Any(button =>
+                    button.name == "Warehouse Store All Rare"), Is.False);
                 foreach (Button row in paper.GetComponentsInChildren<Button>(false).Where(button =>
                     button.name.StartsWith(page == 1 ? "Warehouse Storage Row " : "Warehouse Rare Row ", StringComparison.Ordinal)))
                     AssertRect(paper, row.GetComponent<RectTransform>());
@@ -385,7 +414,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Cargo.Wood, Is.EqualTo(wood));
             controller.ConfigureEditorPreviewWarehouseRare(0);
             int gems = controller.Session.Cargo.Gem;
-            Find<Button>("Warehouse Store All Rare").onClick.Invoke();
+            Find<Button>("Warehouse Rare Row gem").onClick.Invoke();
             Assert.That(controller.Session.Cargo.Gem, Is.EqualTo(gems));
             AssertProfileUnchanged();
             controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Market, CoreGameplayPreviewPort.GrayGull, 0);
@@ -664,6 +693,7 @@ namespace ShatteredSail.Presentation.Tests
 
         private static IEnumerable<string> IntKeys()
         {
+            yield return CoreGameplayDemoController.SplitSupportCardVersionKey;
             yield return CoreGameplayDemoController.ProfileGoldKey;
             yield return CoreGameplayDemoController.SelectedShipKey;
             yield return CoreGameplayDemoController.TutorialCompletedKey;
@@ -688,6 +718,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return CoreGameplayDemoController.PortWarehouseCargoKey;
             yield return CoreGameplayDemoController.BattleDeckKey;
             yield return CoreGameplayDemoController.BattleCardUpgradeKey;
+            yield return CoreGameplayDemoController.CardPackProgressKey;
             yield return CoreGameplayDemoController.SpecialCardExperienceKey;
             yield return CoreGameplayDemoController.AcquiredSpecialCardsKey;
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))

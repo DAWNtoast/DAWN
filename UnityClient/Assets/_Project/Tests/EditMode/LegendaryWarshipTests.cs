@@ -43,22 +43,32 @@ namespace ShatteredSail.Core.Tests
             CoreEncounterChoice choice = encounter.Choices[0];
             long gold = CoreBattleRewardBalance.GoldReward(true, choice.Effect, false);
             long fame = CoreBattleRewardBalance.FameReward(true, choice.Effect, false);
-            Assert.That(choice.Detail, Does.Contain("击沉：金币 +" + gold + "、声望 +" + fame));
-            Assert.That(choice.Detail, Does.Contain("夺船×2：金币 +" + (gold * 2) + "、声望 +" + (fame * 2)));
+            bool sparring = CoreLegendaryWarships.IsSparringEncounter(encounter.Id);
+            Assert.That(choice.Detail, Does.Contain((sparring ? "海战切磋：金币 +" : "击沉：金币 +") + gold + "、声望 +" + fame));
+            Assert.That(choice.Detail, Does.Contain((sparring ? "接舷切磋×1.25：金币 +" : "夺船×1.25：金币 +") + (long)(gold * 1.25m) + "、声望 +" + (long)(fame * 1.25m)));
         }
 
         [Test]
-        public void LegendaryProfiles_KeepDistinctStrengthsAndUseOrdinarySailorHealth()
+        public void LegendaryProfiles_KeepAuthoredStageBudgetsAndUseOrdinarySailorHealth()
         {
             CoreBattleProfile treasure = CoreBattleBalance.ThirdTreasureBoss;
+            // Legends now span early, middle and late player progression. A legend
+            // no longer has to exceed the late treasure boss on every budget.
+            var budgets = new Dictionary<string, int[]>
+            {
+                { "legendary_pirate_iron_oath", new[] { 420, 21, 42, 830, 35 } },
+                { "legendary_pirate_thunder_crown", new[] { 750, 52, 44, 960, 20 } },
+                { "legendary_pirate_red_widow", new[] { 420, 22, 48, 800, 20 } },
+                { "legendary_pirate_ember_ark", new[] { 690, 44, 46, 810, 25 } },
+                { "legendary_pirate_tide_requiem", new[] { 1680, 86, 40, 460, 40 } },
+                { "legendary_pirate_last_horizon", new[] { 2280, 86, 44, 610, 30 } }
+            };
             foreach (CoreLegendaryWarship ship in CoreLegendaryWarships.All)
             {
                 CoreBattleProfile profile = ship.Profile;
                 Assert.That(profile.BossKind, Is.EqualTo(CoreBossKind.Legendary));
-                Assert.That(profile.EnemyHull > treasure.EnemyHull || profile.BoardingHealth > treasure.BoardingHealth,
-                    Is.True, ship.Name + " needs an endurance advantage, not superiority on every axis.");
-                Assert.That(profile.CannonDamage > treasure.CannonDamage || profile.MeleeDamage > treasure.MeleeDamage,
-                    Is.True, ship.Name + " needs an offensive specialty.");
+                Assert.That(new[] { profile.EnemyHull, profile.CannonDamage, profile.MeleeDamage,
+                    profile.BoardingHealth, profile.BoardingGuard }, Is.EqualTo(budgets[ship.Id]), ship.Name);
                 Assert.That(profile.OrdinaryCrewCount, Is.GreaterThan(0), ship.Name);
                 Assert.That(profile.BoardingHealth,
                     Is.EqualTo((int)Math.Round(CoreBattleBalance.BoardingHealthForOrdinaryCrew(profile.OrdinaryCrewCount) *
@@ -66,7 +76,8 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(profile.RamChance, Is.InRange(0d, 1d), ship.Name);
                 Assert.That(profile.RamRangeMeters, Is.GreaterThan(0f), ship.Name);
             }
-            Assert.That(treasure.EnemyHull, Is.GreaterThan(CoreBattleBalance.ThirdRouteBoss.EnemyHull));
+            Assert.That(treasure.EnemyHull, Is.EqualTo(1500));
+            Assert.That(CoreBattleBalance.ThirdRouteBoss.EnemyHull, Is.EqualTo(600));
             Assert.That(treasure.BoardingHealth, Is.GreaterThan(CoreBattleBalance.ThirdRouteBoss.BoardingHealth));
         }
 

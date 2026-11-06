@@ -57,7 +57,7 @@ namespace ShatteredSail.Presentation
             }
             if (!RestorePortProgression())
             {
-                ReturnToMenuAfterSuspensionFailure(ShipPortReadFailureNotice);
+                ReturnToMenuAfterSuspensionFailure(profileSaveFailure ?? ShipPortReadFailureNotice);
                 return;
             }
             RestoreWarehouseCollection();
@@ -87,7 +87,8 @@ namespace ShatteredSail.Presentation
             InitializeAchievementNotifications();
             if (OpeningComicCatalog.ConsumePlaybackRequest() && suspendedVoyage == null)
                 BuildOpeningComicOverlay();
-            ShowWarehouseIncomeReceipt();
+            else ResumeOpeningPortComic();
+            if (openingComicOverlay == null) ShowWarehouseIncomeReceipt();
         }
 
         private void OnEnable()
@@ -99,6 +100,7 @@ namespace ShatteredSail.Presentation
                 ResumeBattlePresentation();
                 ResumeNavigationPresentation();
                 QueueUnusedArtCollection();
+                ResumeOpeningPortComic();
             }
             // Saved previews own their authored controls. Explicit editor sync
             // upgrades old seed fields without overlaying an obsolete dropdown.
@@ -128,7 +130,7 @@ namespace ShatteredSail.Presentation
             UpdateBattleEntryCue();
             UpdateWorldPhaseCue();
             string desiredKey = ResolveDesiredMusicKey();
-            if (desiredKey != activeMusicKey && musicCrossfade <= 0f) SetMusic(desiredKey, false);
+            if (desiredKey != activeMusicKey) SetMusic(desiredKey, false);
             UpdateMusicCrossfade();
             UpdateAmbience();
             UpdateEffectVoices();
@@ -142,7 +144,7 @@ namespace ShatteredSail.Presentation
             else if (isActiveAndEnabled) ResumeNavigationPresentation();
 
             if (paused && (ramComicOverlay != null || boardingTransitionOverlay != null ||
-                activeBattleSchoolAttack != null || HasBattleResolutionPresentation))
+                activeBattleSchoolAttack != null || activeBoardingSchoolCast != null || battleAnimationPlaying || HasBattleResolutionPresentation))
             {
                 ramComicResumeAfterPause = true;
                 SuspendBattlePresentation();
@@ -156,6 +158,7 @@ namespace ShatteredSail.Presentation
 
         private void OnDisable()
         {
+            if (Application.isPlaying) RememberMenuPortMusic();
             DismissSchoolUnlockNotice();
             RestoreDeparturePaintedHeader();
             CloseOpeningComic();

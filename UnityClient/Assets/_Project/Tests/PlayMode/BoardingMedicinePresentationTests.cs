@@ -25,8 +25,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitResponsiveBattle(controller);
             Assert.That(session.Battle.PlayerOrdinaryCrew, Is.EqualTo(10));
             CoreBattleCard bandage = session.GetBattleCard(ResponsiveCardIndex("card_crew_bandage"));
-            const int enhanced = 6;
-            Assert.That(bandage.Repair, Is.EqualTo(enhanced), "The authored full treatment is unchanged by the ten-sailor roster.");
+            const int enhanced = 12;
+            Assert.That(bandage.Repair, Is.EqualTo(enhanced), "The current boarding treatment is independent of the ten-sailor roster.");
             int baseline = 2;
             BoardingCinematicAssertions.AssertScene(session);
             int healthBarId = RequiredResponsive<Image>("Player Battle Hull Bar").GetInstanceID();
@@ -36,7 +36,7 @@ namespace ShatteredSail.Presentation.Tests
             Text face = RequiredResponsive<Button>("Battle Card 0").transform.Find("Label").GetComponent<Text>();
             AssertStableMedicineFace(face, bandage);
             string authoredFace = ForgeVisibleText(face.text);
-            NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_03_Medicine_Enhanced.png", "固定卡面完整展示有药恢复6与无药恢复2的两条规则", "Battle Card");
+            NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_03_Medicine_Enhanced.png", "固定卡面完整展示有药恢复12与无药恢复2的两条规则", "Battle Card");
             yield return HoverMedicineCard(0);
             AssertKeywordOnlyCardHover(RequiredResponsive<Button>("Battle Card 0"), 0, session, bandage, "medicine available hover");
             AssertMedicineQuoteIsReadOnly(session, bandage, enhanced, 1);
@@ -140,8 +140,8 @@ namespace ShatteredSail.Presentation.Tests
         private static void AssertStableMedicineFace(Text face, CoreBattleCard bandage)
         {
             Assert.That(bandage.BoardingSpec.Key, Is.EqualTo("basic_06"));
-            Assert.That(bandage.Repair, Is.EqualTo(6));
-            Assert.That(ForgeVisibleText(face.text), Is.EqualTo("恢复2点生命值消耗1药物额外恢复4点生命值"));
+            Assert.That(bandage.Repair, Is.EqualTo(12));
+            Assert.That(ForgeVisibleText(face.text), Is.EqualTo("恢复2点生命值消耗1药物额外恢复10点生命值"));
             Assert.That(ForgeVisibleText(face.text), Is.EqualTo(ForgeVisibleText(CardDescriptionText.Compact(bandage.Description))));
             Assert.That(face.text, Does.Not.Contain("实际").And.Not.Contain("本次恢复").And.Not.Contain("无药基础"));
             Assert.That(face.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));
@@ -151,7 +151,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             int beforeHealth = session.Battle.PlayerBoardingHealth, beforeMedicine = session.Cargo.Medicine;
             CoreBattleCardEffects quote = session.GetBattleCardEffects(bandage, NavalBattleStage.Boarding);
-            Assert.That(quote.FullRepair, Is.EqualTo(6));
+            Assert.That(quote.FullRepair, Is.EqualTo(12));
             Assert.That(quote.FallbackRepair, Is.EqualTo(2));
             Assert.That(quote.ActualRepair, Is.EqualTo(healing));
             Assert.That(quote.MedicineCost, Is.EqualTo(medicine));

@@ -83,9 +83,9 @@ namespace ShatteredSail.Core.Tests
             }
             if (id == "card_boarding_arcane_06")
                 Assert.That(Compact(session.GetBattleCardAtLevel(index, 0).Description),
-                    Is.EqualTo("造成5点伤害2+X次。"));
+                    Is.EqualTo("造成5点伤害4+X次。"));
             if (id == "card_boarding_curse_11")
-                Assert.That(Compact(session.GetBattleCardAtLevel(index, 0).Description), Does.Contain("目标至少有1层咒印时才可使用"));
+                Assert.That(Compact(session.GetBattleCardAtLevel(index, 0).Description), Does.Contain("敌方咒印层数≥2才可以使用"));
         }
 
         [TestCase("fire_07")]
@@ -104,7 +104,6 @@ namespace ShatteredSail.Core.Tests
         [TestCase("card_boarding_curse_12", NavalBattleStage.Boarding)]
         [TestCase("card_boarding_tide_11", NavalBattleStage.Boarding)]
         [TestCase("card_boarding_tide_12", NavalBattleStage.Boarding)]
-        [TestCase("card_special_crew_gray_gull_cook_pepe", NavalBattleStage.Naval)]
         public void SupplyHealingAtEveryRankKeepsTheFreeBaseAndPaidTotal(string id, NavalBattleStage stage)
         {
             CoreVoyageSession session = Battle(stage);
@@ -130,11 +129,37 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
+        [TestCase(NavalBattleStage.Preparation)]
+        [TestCase(NavalBattleStage.Naval)]
+        [TestCase(NavalBattleStage.Boarding)]
+        public void PepeFreeHealingKeepsItsReviewedAmountWithoutInventingASupplyBranch(NavalBattleStage stage)
+        {
+            CoreVoyageSession session = Battle(stage);
+            int index = Index("card_special_crew_gray_gull_cook_pepe");
+            for (int rank = 0; rank <= 1; rank++)
+            foreach (int stock in new[] { 0, 10 })
+            {
+                CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
+                session.Cargo.Medicine = session.Cargo.Wood = stock;
+                CoreBattleCardEffects effects = session.GetBattleCardEffects(card, stage);
+                int expected = rank == 0 ? 4 : 6;
+                Assert.That(effects.FullRepair, Is.EqualTo(expected));
+                Assert.That(effects.FallbackRepair, Is.EqualTo(expected));
+                Assert.That(effects.ActualRepair, Is.EqualTo(expected));
+                Assert.That(effects.WoodCost + effects.MedicineCost, Is.Zero);
+                string text = Compact(session.BattleCardFaceDescription(card, stage));
+                Assert.That(Value(text, @"(?:恢复|修复)(?<value>\d+)点"), Is.EqualTo(expected));
+                Assert.That(text, Does.Not.Contain("消耗").And.Not.Contain("额外恢复").And.Not.Contain("额外修复"));
+                Assert.That(session.Cargo.Wood, Is.EqualTo(stock));
+                Assert.That(session.Cargo.Medicine, Is.EqualTo(stock));
+            }
+        }
+
         [TestCase("fire_05", "1药物和1火药")]
-        [TestCase("arcane_05", "1药物和2点魔力")]
-        [TestCase("curse_12", "1药物和2层咒印")]
-        [TestCase("tide_11", "1药物和6点潮势")]
-        [TestCase("tide_12", "1药物和8点潮势")]
+        [TestCase("arcane_05", "1药物和4点魔力")]
+        [TestCase("curse_12", "1药物")]
+        [TestCase("tide_11", "1药物和12点潮势")]
+        [TestCase("tide_12", "1药物和16点潮势")]
         public void ConditionalTreatmentRetainsItsLinkedPaymentAsTheExtraEffectCondition(string key, string payment)
         {
             CoreBattleCard card = CoreBoardingCardCatalog.FindByKey(key);
@@ -142,6 +167,7 @@ namespace ShatteredSail.Core.Tests
             string paymentCondition = key == "tide_12" ? "消耗" + payment + "额外获得持续恢复：" :
                 "消耗" + payment + "额外恢复";
             Assert.That(text, Does.Contain(paymentCondition), text);
+            if (key == "curse_12") Assert.That(text, Does.Contain("敌方咒印层数≥4时").And.Not.Contain("消耗4层咒印"));
             Assert.That(text, Does.Not.Contain("有药物时固定消耗").And.Not.Contain("无药物恢复"), text);
         }
 
@@ -158,9 +184,9 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(text, Does.Contain("获得2点格挡").And.Contain("消耗1木板额外获得"), id + " +" + rank);
                 int extra = Value(text, @"额外获得(?<value>\d+)点格挡");
                 Assert.That(2 + extra, Is.EqualTo(card.Block), text);
-                Assert.That(text, Does.Contain("本牌格挡变为蓄潮格挡"), text);
+                Assert.That(text, Does.Contain("当前全部格挡变为蓄潮格挡"), text);
                 if (id == "card_school_tide_n03")
-                    Assert.That(text, Does.Contain("可在下个己方回合开始前拒绝一次强制位移"));
+                    Assert.That(text, Does.Contain("直到下个己方回合开始时，免疫定向水流负面效果影响"));
 
                 foreach (int wood in new[] { 0, 1 })
                 {
@@ -193,6 +219,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             if (upgradedCard != null)
                 session.ConfigureCardUpgrades(new System.Collections.Generic.Dictionary<string, int> { { upgradedCard, rank } });
             session.ConfigureSpecialCardSources(CoreVoyageSession.CardLibrary.Select(card => card.RequiredCrew)

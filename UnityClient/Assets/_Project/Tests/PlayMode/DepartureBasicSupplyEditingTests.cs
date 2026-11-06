@@ -126,7 +126,7 @@ namespace ShatteredSail.Presentation.Tests
                 PlayerPrefs.SetInt(quotaKey, maximum - 3);
                 SetBasicSupplyInput("water", "9999999999");
                 Assert.That(DepartureBasicSupplyQuantity("water"), Is.EqualTo(3));
-                Assert.That(GameObject.Find("Departure Basic Supplies Hint").GetComponent<Text>().text, Does.Contain("最多可购 3"));
+                Assert.That(GameObject.Find("Departure Basic Supplies Hint"), Is.Null, "The supplies footer stays free of small-print notices.");
                 ActiveButton("Departure Basic Supply Increase Ten water").onClick.Invoke();
                 Assert.That(DepartureBasicSupplyQuantity("water"), Is.EqualTo(3));
                 SetBasicSupplyInput("water", "9999999999");

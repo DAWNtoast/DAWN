@@ -42,7 +42,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(4), "A retained shipyard callback cannot select a remote hull.");
             yield return ClickShipyardControl("Port Hotspot Shipyard");
-            yield return AssertShipPortGallery(new[] { 5, 6, 4 });
+            yield return AssertShipPortGallery(new[] { 1, 5, 6, 4 });
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ShipOwnedKey(0), 1), Is.EqualTo(1));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ShipPortProgressKey), Is.Not.Empty);
 
@@ -54,7 +54,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.ShipPort(0), Is.EqualTo("断锚港"));
             Assert.That(controller.Session.ShipPort(4), Is.EqualTo("白贝港"));
             yield return ClickShipyardControl("Port Hotspot Shipyard");
-            yield return AssertShipPortGallery(new[] { 5, 6, 4 });
+            yield return AssertShipPortGallery(new[] { 1, 5, 6, 4 });
             yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Port Hotspot Voyage");
             foreach (string arrow in new[] { "Departure Previous Vessel", "Departure Next Vessel" })
@@ -78,7 +78,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Return To Port Hub");
             yield return SailShipPortFixtureTo(controller, 1);
             yield return ClickShipyardControl("Port Hotspot Shipyard");
-            yield return AssertShipPortGallery(new[] { 5, 6, 0 });
+            yield return AssertShipPortGallery(new[] { 1, 5, 6, 0 });
             Assert.That(controller.Session.ShipPort(4), Is.EqualTo("断锚港"), "Switching flagship leaves the salvage vessel at the departure port.");
             Assert.That(controller.Session.IsShipAtCurrentPort(4), Is.False);
             LogAssert.NoUnexpectedReceived();
@@ -100,7 +100,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.ShipPort(0), Is.EqualTo("断锚港"));
             Assert.That(controller.Session.ShipPort(4), Is.EqualTo("白贝港"));
             yield return ClickShipyardControl("Port Hotspot Shipyard");
-            yield return AssertShipPortGallery(new[] { 5, 6, 4 });
+            yield return AssertShipPortGallery(new[] { 1, 5, 6, 4 });
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(5000));
             LogAssert.NoUnexpectedReceived();
         }
@@ -115,6 +115,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Shipyard Ship 4");
             yield return ClickShipyardControl("Confirm Shipyard Vessel");
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(4));
+            // This mooring fixture needs an installed item to verify that
+            // remote refits are rejected; purchased hulls no longer include one.
+            var catalog = new ComponentArtCatalog();
+            OwnedShipComponent fittedBow = controller.GrantOwnedComponent(catalog.Get(0));
+            Assert.That(controller.TryEquipOwnedComponent(4, fittedBow.InstanceId), Is.True);
             yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Return To Port Hub");
             yield return SailShipPortFixtureTo(controller, 1);
@@ -145,7 +150,7 @@ namespace ShatteredSail.Presentation.Tests
 
             yield return SailShipPortFixtureTo(controller, 1);
             yield return ClickShipyardControl("Port Hotspot Shipyard");
-            yield return AssertShipPortGallery(new[] { 5, 6, 4 });
+            yield return AssertShipPortGallery(new[] { 1, 5, 6, 4 });
             yield return BrowseShipMarketTo(4);
             yield return ClickShipyardControl("Shipyard Ship 4");
             decimal goldBeforeSwitch = controller.Session.ProfileGold;
@@ -178,6 +183,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.ArrivedAtPort));
             Object.FindFirstObjectByType<SettlementRevealController>().CompleteImmediately();
             yield return ClickShipyardControl("Return To Port");
+            yield return ClickThroughAcceptanceArrivalComic(controller);
             yield return SchoolUnlockNoticeTestActions.ConfirmAll();
             Assert.That(session.CurrentPort, Is.EqualTo(ShipMarketTestPorts[portIndex]));
         }

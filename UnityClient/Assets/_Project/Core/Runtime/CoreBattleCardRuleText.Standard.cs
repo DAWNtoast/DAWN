@@ -98,6 +98,7 @@ namespace ShatteredSail.Core.Gameplay
             text = Remove(text,
                 "；付费护盾吸收伤害才蓄积潮势",
                 "；此盾挡伤蓄潮势",
+                "；当前全部格挡变为蓄潮格挡",
                 "；本牌格挡实际吸收敌方攻击时等量获得潮势，上限 20");
             text = Rewrite(text, "无木板时基础格挡 2，不蓄积潮势，保底不随强化增长", "无木板时仅获得 2 点普通格挡");
             return Rewrite(text, "无木板仅基础格挡 2，不蓄势", "无木板时仅获得 2 点普通格挡");

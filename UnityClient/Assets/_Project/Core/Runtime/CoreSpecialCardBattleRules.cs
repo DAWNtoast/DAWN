@@ -43,14 +43,29 @@ namespace ShatteredSail.Core.Gameplay
             battle.SpecialCards.IsActive("blood") && !battle.SpecialCards.HasPlayed("blood");
 
         /// <summary>The same read-only life cost is used for validation, payment and the live resource badge.</summary>
-        public static int HealthCost(CoreBattleCard card, CoreBattleState battle = null)
+        public static int HealthCost(CoreBattleCard card, CoreBattleState battle = null,
+            int? currentHealth = null, int? maximumHealth = null)
         {
             if (card == null || WaivesBloodCost(card, battle)) return 0;
+            if (currentHealth.HasValue && HasOptionalBloodCost(card) &&
+                !HasBloodPaidBenefit(card, battle, currentHealth.Value, maximumHealth ?? int.MaxValue)) return 0;
             CoreNavalExpansionCardSpec spec = CoreNavalSchoolExpansionCatalog.FindSpec(card.Id);
             if (spec != null) return spec.HullCost;
             CoreSchoolCardEffect effect = card.SchoolEffect;
             return effect != null && (effect.Mechanic == CoreSchoolMechanic.BloodRisk || effect.Mechanic == CoreSchoolMechanic.BloodWard)
                 ? effect.Threshold : 0;
+        }
+
+        public static bool HasOptionalBloodCost(CoreBattleCard card) =>
+            card?.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodRisk ||
+            card?.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodWard ||
+            CoreNavalSchoolExpansionCatalog.FindSpec(card?.Id)?.Mechanic == CoreNavalExpansionMechanic.DesperateCannon;
+
+        public static bool HasBloodPaidBenefit(CoreBattleCard card, CoreBattleState battle, int health, int maximum)
+        {
+            if (CoreNavalSchoolExpansionCatalog.FindSpec(card?.Id)?.Mechanic == CoreNavalExpansionMechanic.DesperateCannon &&
+                !CoreBloodRules.IsDesperate(health, maximum)) return false;
+            return WaivesBloodCost(card, battle) || health > HealthCost(card);
         }
 
         public static string CostDescription(string text, CoreBattleCard card, CoreBattleState battle)
@@ -82,15 +97,13 @@ namespace ShatteredSail.Core.Gameplay
             switch (school)
             {
                 case "fire": ApplySchoolBurn(3, 2); break;
-                case "arcane": state.Mana = Math.Min(state.ManaLimit, SchoolSum(state.Mana, 1)); break;
+                case "arcane": GainBattleMana(1); break;
                 case "curse":
                     if (SchoolEnemyHealth <= 0) break;
-                    state.CurseMarks = Math.Max(state.CurseMarks, Math.Min(6, SchoolSum(state.CurseMarks, 1)));
-                    state.CurseDamagePerMark = 0;
-                    state.CurseTurns = state.CurseMarks;
+                    ApplyNavalEnemyCurseMarks(state.CurseMarks < 6 ? 1 : 0);
                     break;
-                case "tide": state.TidePower = Math.Min(state.TideLimit, SchoolSum(state.TidePower, 3)); break;
-                case "thunder": state.ThunderChain = Math.Min(state.ThunderLimit, SchoolSum(state.ThunderChain, 1)); break;
+                case "tide": state.TidePower = SchoolSum(state.TidePower, 3); break;
+                case "thunder": GainNavalThunderChain(true, 1); break;
                 // Blood's benefit was already quoted and paid before this successful-use record.
             }
         }

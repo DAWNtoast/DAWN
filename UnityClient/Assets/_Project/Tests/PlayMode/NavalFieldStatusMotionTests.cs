@@ -21,7 +21,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadResponsiveBattleScene();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = CreateFieldStatusMotionBattle(controller);
-            SetNavalFieldTestPose(session, false, 4, 0);
+            SetNavalFieldTestPose(session, false, 6, 0);
+            UseStationaryFieldStatusTarget(session);
             string[] schools = { "fire", "arcane", "curse", "tide", "thunder", "blood" };
             CoreNavalFieldKind[] kinds = { CoreNavalFieldKind.Fire, CoreNavalFieldKind.Arcane,
                 CoreNavalFieldKind.Curse, CoreNavalFieldKind.Tide, CoreNavalFieldKind.Thunder, CoreNavalFieldKind.Blood };
@@ -37,10 +38,10 @@ namespace ShatteredSail.Presentation.Tests
             long sequenceBeforeCancel = motion.LastConsumedSequence;
             RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
             yield return null;
-            Object.FindFirstObjectByType<NavalCardChoiceOverlay>().SelectCell(3, 0);
-            Button invalid = RequiredResponsive<Button>("Confirm Naval Card Choice");
-            Assert.That(invalid.interactable, Is.False);
-            invalid.onClick.Invoke();
+            NavalCardChoiceOverlay invalid = Object.FindFirstObjectByType<NavalCardChoiceOverlay>();
+            invalid.SelectCell(5, 0);
+            Assert.That(invalid.Draft.HasAnchor, Is.False);
+            invalid.ConfirmSelection();
             Assert.That(controller.IsNavalCardChoiceOpen, Is.True);
             RequiredResponsive<Button>("Cancel Naval Card Choice").onClick.Invoke();
             yield return null;
@@ -56,33 +57,33 @@ namespace ShatteredSail.Presentation.Tests
             {
                 int previousPlaced = motion.TotalPlacedCues, previousRetired = motion.TotalRetiredCues;
                 int overlap = session.Battle.NavalFields.Cells.Count(cell =>
-                    session.GetNavalFieldShape(kinds[index], 0, 1, false).Any(point =>
+                    session.GetNavalFieldShape(kinds[index], 0, 0, false).Any(point =>
                         Mathf.Approximately(point.X, cell.X * 100f) && Mathf.Approximately(point.Y, cell.Y * 100f)));
                 int energy = session.Battle.Energy, powder = session.Cargo.Powder, hull = session.Hull;
                 int cardsPlayed = session.Battle.CardsPlayedThisTurn;
                 int cost = session.GetBattleCardEnergyCost(session.Battle.Hand[0]);
-                yield return BeginFieldStatusPlacement(kinds[index], 0, 1);
-                UnityEvent confirm = RequiredResponsive<Button>("Confirm Naval Card Choice").onClick;
-                confirm.Invoke(); confirm.Invoke();
+                Action repeatSelection = null;
+                yield return BeginFieldStatusPlacement(kinds[index], 0, 0, choice => repeatSelection = choice.ConfirmSelection);
                 CoreNavalFieldKind kind = kinds[index];
                 yield return ObserveFieldStatusCue(controller, motion,
                     cue => cue.Event.Change == CoreNavalFieldChangeKind.Placed && cue.Event.Kind == kind,
                     "FieldStatus_Field_" + index.ToString("00") + "_" + schools[index] + ".png",
                     "真实" + schools[index] + "场地铺设：新格展开，被覆盖旧格消退，放置本身不触发");
-                Assert.That(motion.TotalPlacedCues - previousPlaced, Is.EqualTo(kind == CoreNavalFieldKind.Thunder ? 3 : 4));
+                Assert.That(motion.TotalPlacedCues - previousPlaced,
+                    Is.EqualTo(kind == CoreNavalFieldKind.Thunder ? 49 : kind == CoreNavalFieldKind.Tide ? 16 : kind == CoreNavalFieldKind.Fire ? 9 : 4));
                 Assert.That(motion.TotalRetiredCues - previousRetired, Is.EqualTo(overlap));
                 Assert.That(motion.TotalTriggeredCues, Is.Zero, "Placement alone must never be portrayed as a field hit.");
                 Assert.That(session.Battle.Energy, Is.EqualTo(energy - cost));
                 Assert.That(session.Cargo.Powder, Is.EqualTo(powder - (kind == CoreNavalFieldKind.Fire ? 1 : 0)));
                 Assert.That(session.Hull, Is.EqualTo(hull - (kind == CoreNavalFieldKind.Blood ? 4 : 0)));
                 Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(cardsPlayed + 1));
-                Assert.That(session.GetNavalFieldAt(0, 1).Kind, Is.EqualTo(kind));
+                Assert.That(session.GetNavalFieldAt(0, 0).Kind, Is.EqualTo(kind));
                 Assert.That(session.Battle.NavalFields.Cells.Select(cell => cell.X + ":" + cell.Y).Distinct().Count(),
                     Is.EqualTo(session.Battle.NavalFields.Cells.Count));
                 if (kind == CoreNavalFieldKind.Tide)
                     Assert.That(session.Battle.NavalFields.Cells.Where(cell => cell.Kind == kind).All(cell => cell.DirectionX == 0 && cell.DirectionY == 1), Is.True);
                 long sequence = motion.LastConsumedSequence;
-                confirm.Invoke();
+                repeatSelection();
                 yield return null;
                 Assert.That(motion.LastConsumedSequence, Is.EqualTo(sequence));
                 Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(cardsPlayed + 1));
@@ -90,17 +91,22 @@ namespace ShatteredSail.Presentation.Tests
             }
 
             int ownerTurn = session.Battle.NavalFields.PlayerTurn;
-            RequiredResponsive<Button>("End Battle Turn").onClick.Invoke();
-            yield return WaitResponsiveBattle(controller);
-            Assert.That(session.Battle.NavalFields.PlayerTurn, Is.EqualTo(ownerTurn + 1));
-            Assert.That(session.Battle.NavalFields.Cells.Count, Is.GreaterThan(0));
-            int remaining = session.Battle.NavalFields.Cells.Count, retiredBeforeExpiry = motion.TotalRetiredCues;
-            RequiredResponsive<Button>("End Battle Turn").onClick.Invoke();
-            yield return ObserveFieldStatusCue(controller, motion,
-                cue => cue.Event.Change == CoreNavalFieldChangeKind.Expired,
-                "FieldStatus_Field_06_Expiry.png", "第二次己方回合开始：规则已清除场地，旧格执行有限消散");
+            int rounds = session.Battle.NavalFields.Cells.Max(session.GetNavalFieldRemainingTurns);
+            Assert.That(rounds, Is.EqualTo(5), "Uncovered thunder cells keep their five-turn duration.");
+            for (int round = 1; round <= rounds; round++)
+            {
+                int expiring = session.Battle.NavalFields.Cells.Count(cell => session.GetNavalFieldRemainingTurns(cell) == 1);
+                int retiredBeforeExpiry = motion.TotalRetiredCues;
+                RequiredResponsive<Button>("End Battle Turn").onClick.Invoke();
+                if (expiring > 0)
+                    yield return ObserveFieldStatusCue(controller, motion,
+                        cue => cue.Event.Change == CoreNavalFieldChangeKind.Expired,
+                        "FieldStatus_Field_06_Expiry_" + round + ".png", "敌方回合结束：己方场地持续时间减一，归零格子执行消散");
+                else yield return WaitResponsiveBattle(controller);
+                Assert.That(session.Battle.NavalFields.PlayerTurn, Is.EqualTo(ownerTurn + round));
+                Assert.That(motion.TotalRetiredCues - retiredBeforeExpiry, Is.EqualTo(expiring));
+            }
             Assert.That(session.Battle.NavalFields.Cells, Is.Empty);
-            Assert.That(motion.TotalRetiredCues - retiredBeforeExpiry, Is.EqualTo(remaining));
             yield return new WaitForSecondsRealtime(1f);
             Assert.That(motion.ActiveCues, Is.Empty);
             Assert.That(RequiredResponsive<NavalFieldGraphic>("Persistent Naval Fields").Cells, Is.Empty);
@@ -108,12 +114,13 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator NavalFieldStatusMotion_RealMovementDefersArcaneStatusUntilArrivalHeadingIsChosen()
+        public IEnumerator NavalFieldStatusMotion_ArcaneEntryWaitsForNextPlayerTurnAndAddsRemainingDurationMana()
         {
             yield return LoadResponsiveBattleScene();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = CreateFieldStatusMotionBattle(controller);
             SetNavalFieldTestPose(session, false, 4, 0);
+            UseStationaryFieldStatusTarget(session);
             SetResponsiveHand(session, "card_school_arcane_n01", "card_brace");
             SetResponsiveDrawPile(session);
             session.Battle.Energy = session.Battle.MaxEnergy = 20;
@@ -121,13 +128,13 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             NavalFieldMotion fields = RequiredResponsive<NavalFieldMotion>("Persistent Naval Fields");
             yield return BeginFieldStatusPlacement(CoreNavalFieldKind.Arcane, 1, 0);
-            RequiredResponsive<Button>("Confirm Naval Card Choice").onClick.Invoke();
             yield return WaitResponsiveBattle(controller);
             Assert.That(fields.TotalTriggeredCues, Is.Zero);
             Assert.That(session.Battle.Schools.TemporaryMana, Is.Zero);
             BattleStatusRow row = RequiredResponsive<BattleStatusRow>("Player Battle Status Row");
             BattleResourceChangeTracker mana = FieldStatusResource("Mana");
             int manaPlays = mana.Motion.PlayCount;
+            int manaBeforeEntry = session.Battle.Schools.Mana;
             yield return DragTacticalRoute(controller, new[] { new VoyagePoint(100f, 0f) });
             Assert.That(session.NavalMovementPlannedSteps, Is.EqualTo(1));
             UnityEvent commit = RequiredResponsive<Button>("Commit Naval Movement").onClick;
@@ -135,30 +142,38 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(fields.TotalTriggeredCues, Is.Zero,
                 "Committing the complete route must not flash a field before the displayed ship enters it.");
             Assert.That(fields.ActiveCues.Any(cue => cue.Event.Change == CoreNavalFieldChangeKind.Triggered), Is.False);
-            yield return ObserveFieldStatusCue(controller, fields,
-                cue => cue.Event.Change == CoreNavalFieldChangeKind.Triggered && cue.Event.Kind == CoreNavalFieldKind.Arcane && cue.Event.TargetPlayer,
-                "FieldStatus_Field_07_ArcaneEntry.png", "真实路线进入折射阵：场地触发，临时法力即时增加；隐藏状态行等待朝向选择",
-                () => Assert.That(RequiredResponsive<NavalTacticalBoardView>("Naval Tactical Board").DisplayedPlayerPositionMeters.X,
-                    Is.GreaterThanOrEqualTo(45f), "The displayed ship must approach the next cell before its field trigger begins."));
-            Assert.That(session.Battle.Schools.TemporaryMana, Is.EqualTo(1));
-            Assert.That(mana.LastTemporaryDelta, Is.EqualTo(1));
-            Assert.That(mana.Motion.PlayCount, Is.EqualTo(manaPlays + 1));
-            Assert.That(FieldStatusResourceValue("Mana"), Is.EqualTo(session.Battle.Schools.Mana + "+1"));
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(fields.TotalTriggeredCues, Is.Zero, "Entering a refraction field is not its turn-start trigger.");
+            Assert.That(session.Battle.Schools.Mana, Is.EqualTo(manaBeforeEntry));
+            Assert.That(session.Battle.Schools.TemporaryMana, Is.Zero);
+            Assert.That(mana.Motion.PlayCount, Is.EqualTo(manaPlays));
             Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.True);
             Assert.That(row.IsSuppressed, Is.True);
-            BattleHudChangeMotion piercing = FieldStatusSlotMotion(row, "arcane_piercing");
-            Assert.That(piercing, Is.Not.Null);
-            Assert.That(piercing.PlayCount, Is.Zero, "Do not spend a status cue while its entire row is hidden.");
+            Assert.That(FieldStatusSlotMotion(row, "arcane_piercing"), Is.Null);
             int energy = session.Battle.Energy, cards = session.Battle.CardsPlayedThisTurn;
             yield return WaitTacticalHeadingPointerReady("Naval Arrival Heading 0");
             RequiredResponsive<Button>("Naval Arrival Heading 0").onClick.Invoke();
-            yield return ObserveFieldStatusHudMotion(controller, () => piercing, 0, BattleHudChangeKind.Added,
-                "FieldStatus_07_DeferredArcaneStatus.png", "选择到达朝向后状态行恢复：奥术穿透只提示一次，法力不重复增加");
+            yield return WaitResponsiveBattle(controller);
             Assert.That(row.IsSuppressed, Is.False);
-            Assert.That(session.Battle.Schools.TemporaryMana, Is.EqualTo(1));
+            Assert.That(session.Battle.Schools.Mana, Is.EqualTo(manaBeforeEntry));
+            Assert.That(FieldStatusSlotMotion(row, "arcane_piercing"), Is.Null);
             Assert.That(session.Battle.Energy, Is.EqualTo(energy));
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(cards));
+            Assert.That(fields.TotalTriggeredCues, Is.Zero);
+            RequiredResponsive<Button>("End Battle Turn").onClick.Invoke();
+            yield return ObserveFieldStatusCue(controller, fields,
+                cue => cue.Event.Change == CoreNavalFieldChangeKind.Triggered && cue.Event.Kind == CoreNavalFieldKind.Arcane && cue.Event.TargetPlayer,
+                "FieldStatus_Field_07_ArcaneTurnStart.png", "下个己方回合开始：法力先恢复至上限，再获得等于折射阵剩余持续时间的法力");
+            int remainingDuration = session.GetNavalFieldRemainingTurns(session.GetNavalFieldAt(1, 0));
+            Assert.That(remainingDuration, Is.EqualTo(2));
+            Assert.That(session.Battle.Schools.Mana, Is.EqualTo(session.Battle.Schools.ManaLimit + remainingDuration));
+            Assert.That(session.Battle.Schools.TemporaryMana, Is.Zero);
+            Assert.That(mana.LastDelta, Is.EqualTo(remainingDuration));
+            Assert.That(mana.LastTemporaryDelta, Is.Zero);
+            Assert.That(mana.Motion.PlayCount, Is.EqualTo(manaPlays + 1));
+            Assert.That(FieldStatusResourceValue("Mana"), Is.EqualTo(session.Battle.Schools.Mana + "/" + session.Battle.Schools.ManaLimit));
             Assert.That(fields.TotalTriggeredCues, Is.EqualTo(1));
+            Assert.That(FieldStatusSlotMotion(row, "arcane_piercing"), Is.Null);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -175,15 +190,17 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             NavalFieldMotion fields = RequiredResponsive<NavalFieldMotion>("Persistent Naval Fields");
             yield return BeginFieldStatusPlacement(CoreNavalFieldKind.Fire, 0, 0);
-            RequiredResponsive<Button>("Confirm Naval Card Choice").onClick.Invoke();
             yield return WaitResponsiveBattle(controller);
             Assert.That(fields.TotalTriggeredCues, Is.Zero);
+            UseStationaryFieldStatusTarget(session);
+            session.Battle.PlayerBlock = 1000;
             int hull = session.Hull, turn = session.Battle.NavalFields.PlayerTurn;
             RequiredResponsive<Button>("End Battle Turn").onClick.Invoke();
             yield return ObserveFieldStatusCue(controller, fields,
                 cue => cue.Event.Change == CoreNavalFieldChangeKind.Triggered && cue.Event.Kind == CoreNavalFieldKind.Fire && cue.Event.TargetPlayer,
-                "FieldStatus_Field_08_FireTurnTick.png", "真实回合末火场伤害：新回合已重置规则去重账本，表现事件仍按序播放");
-            Assert.That(session.Hull, Is.LessThanOrEqualTo(hull - 2));
+                "FieldStatus_Field_08_FireTurnTick.png", "真实回合末火场添加燃烧：新燃烧留待下次回合末结算，表现事件不因账本重置丢失");
+            Assert.That(session.Hull, Is.EqualTo(hull), "New fire-field burn must not deal damage on the same turn end.");
+            Assert.That(session.Battle.PlayerBurnStacks, Is.EqualTo(5));
             Assert.That(session.Battle.NavalFields.PlayerTurn, Is.EqualTo(turn + 1));
             Assert.That(session.Battle.NavalFields.TriggerLedger.Contains("P:F:0:0"), Is.False);
             int triggerCount = fields.TotalTriggeredCues;
@@ -194,7 +211,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
-        public IEnumerator NavalFieldStatusMotion_RealManaGainCapAndSpendUseActualDeltasWithoutReplay()
+        public IEnumerator NavalFieldStatusMotion_RealManaGainAboveLimitAndSpendUseActualDeltasWithoutReplay()
         {
             yield return LoadResponsiveBattleScene();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -215,27 +232,23 @@ namespace ShatteredSail.Presentation.Tests
             {
                 int before = session.Battle.Schools.Mana, previousPlays = mana.Motion.PlayCount;
                 int previousEnergyPlays = energyFeedback.Motion.PlayCount;
-                int expectedGain = Math.Min(2, session.Battle.Schools.ManaLimit - before);
+                const int expectedGain = 2;
                 Button card = RequiredResponsive<Button>("Battle Card 0");
                 int cardsPlayed = session.Battle.CardsPlayedThisTurn, energy = session.Battle.Energy;
                 int cost = session.GetBattleCardEnergyCost(session.Battle.Hand[0]);
                 UnityEvent stale = card.onClick;
                 stale.Invoke(); stale.Invoke();
-                if (expectedGain > 0)
-                {
-                    yield return ObserveFieldStatusHudMotion(controller, () => mana.Motion,
-                        previousPlays, BattleHudChangeKind.Gained, index == 0 ? "FieldStatus_01_ManaGain.png" : null,
-                        "真实余辉回收：法力只显示实际增加量，能量同步支付");
-                }
-                else yield return WaitResponsiveBattle(controller);
+                yield return ObserveFieldStatusHudMotion(controller, () => mana.Motion,
+                    previousPlays, BattleHudChangeKind.Gained, index == 0 ? "FieldStatus_01_ManaGain.png" : null,
+                    "真实余辉回收：法力只显示实际增加量，能量同步支付");
                 Assert.That(session.Battle.Schools.Mana, Is.EqualTo(before + expectedGain));
                 Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(cardsPlayed + 1));
                 Assert.That(session.Battle.Energy, Is.EqualTo(energy - cost));
                 Assert.That(energyFeedback.Motion.PlayCount, Is.EqualTo(previousEnergyPlays + 1));
                 Assert.That(energyFeedback.LastDelta, Is.EqualTo(-cost));
-                Assert.That(mana.Motion.PlayCount, Is.EqualTo(previousPlays + (expectedGain > 0 ? 1 : 0)),
-                    "Reaching the cap must not invent gains or replay feedback during the retained refresh.");
-                if (expectedGain > 0) Assert.That(mana.LastDelta, Is.EqualTo(expectedGain));
+                Assert.That(mana.Motion.PlayCount, Is.EqualTo(previousPlays + 1),
+                    "Every gain remains visible above the refill limit, without replay during the retained refresh.");
+                Assert.That(mana.LastDelta, Is.EqualTo(expectedGain));
                 Assert.That(FieldStatusResourceValue("Mana"), Is.EqualTo(session.Battle.Schools.Mana + "/" + session.Battle.Schools.ManaLimit));
                 stale.Invoke();
                 yield return null;
@@ -282,17 +295,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.PlayerBlock, Is.GreaterThan(block));
             Assert.That(FieldStatusSlotMotion(row, "guard"), Is.SameAs(guard));
 
-            int fireCount = fire.PlayCount;
-            RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
-            yield return ObserveFieldStatusHudMotion(controller, () => fire, fireCount,
-                BattleHudChangeKind.Decreased, "FieldStatus_05_FireRoundSpent.png", "真实炮击：附火从两发降为一发，消耗反馈不改写状态值");
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(1));
-            Assert.That(row.transform.Find("Status fire_rounds/Amount").GetComponent<Text>().text, Is.EqualTo("1"));
-
             ExecuteEvents.Execute(fire.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
             yield return null;
             Assert.That(GameObject.Find("Battle Status Tooltip"), Is.Not.Null);
-            fireCount = fire.PlayCount;
+            int fireCount = fire.PlayCount;
             RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
             bool sawRemoval = false;
             float deadline = Time.realtimeSinceStartup + 12f;
@@ -307,7 +313,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(fire.GetComponentsInChildren<Graphic>().All(item => !item.raycastTarget), Is.True,
                         "The fading remnant must not intercept input or reopen its tooltip.");
                     fire.SetElapsed(.12f);
-                    NavalBattleVisualCapture.Capture(controller, "FieldStatus_06_StatusRemoved.png", "最后一发附火已消耗：失效图标退出，悬浮说明立即关闭");
+                    NavalBattleVisualCapture.Capture(controller, "FieldStatus_06_StatusRemoved.png", "下一次攻击消耗全部两层附火：失效图标退出，悬浮说明立即关闭");
                     sawRemoval = true;
                     break;
                 }
@@ -386,10 +392,10 @@ namespace ShatteredSail.Presentation.Tests
             int energy = session.Battle.Energy, hull = session.Hull;
             long beforeHiddenPlacement = fields.PresentationSequence;
             motion.gameObject.SetActive(false);
-            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 0, 1, false, 0, 0), Is.True);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 0, 0, false, 0, 0), Is.True);
             long hiddenSequence = fields.PresentationSequence;
             Assert.That(hiddenSequence, Is.GreaterThan(beforeHiddenPlacement));
-            Assert.That(fields.Cells.Count, Is.EqualTo(4));
+            Assert.That(fields.Cells.Count, Is.EqualTo(9));
             // No yield while inactive: OnEnable must baseline facts created after OnDisable.
             motion.gameObject.SetActive(true);
             Assert.That(motion.LastConsumedSequence, Is.EqualTo(hiddenSequence));
@@ -400,10 +406,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(motion.TotalRetiredCues, Is.Zero);
             Assert.That(motion.TotalTriggeredCues, Is.Zero);
             Assert.That(motion.LastConsumedSequence, Is.EqualTo(hiddenSequence));
-            Assert.That(motion.GetComponent<NavalFieldGraphic>().Cells.Count, Is.EqualTo(4));
+            Assert.That(motion.GetComponent<NavalFieldGraphic>().Cells.Count, Is.EqualTo(9));
             Assert.That(fields.Cells.All(cell => cell.Kind == CoreNavalFieldKind.Fire), Is.True);
 
-            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Arcane, true, 0, 1, false, 0, 0), Is.True);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Arcane, true, 0, 0, false, 0, 0), Is.True);
             long coverageSequence = fields.PresentationSequence;
             yield return null;
             Assert.That(motion.ActiveCues.Count(cue => cue.Event.Change == CoreNavalFieldChangeKind.Placed &&
@@ -419,8 +425,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(motion.TotalPlacedCues, Is.EqualTo(4), "A refresh must not replay new coverage.");
             Assert.That(motion.TotalRetiredCues, Is.EqualTo(4));
             Assert.That(fields.PresentationSequence, Is.EqualTo(coverageSequence));
-            Assert.That(fields.Cells.Count, Is.EqualTo(4));
-            Assert.That(fields.Cells.All(cell => cell.Kind == CoreNavalFieldKind.Arcane), Is.True);
+            Assert.That(fields.Cells.Count, Is.EqualTo(9));
+            Assert.That(fields.Cells.Count(cell => cell.Kind == CoreNavalFieldKind.Arcane), Is.EqualTo(4));
+            Assert.That(fields.Cells.Count(cell => cell.Kind == CoreNavalFieldKind.Fire), Is.EqualTo(5));
             Assert.That(session.Battle.Energy, Is.EqualTo(energy));
             Assert.That(session.Hull, Is.EqualTo(hull));
             LogAssert.NoUnexpectedReceived();
@@ -435,7 +442,15 @@ namespace ShatteredSail.Presentation.Tests
             return session;
         }
 
-        private static IEnumerator BeginFieldStatusPlacement(CoreNavalFieldKind kind, int x, int y)
+        private static void UseStationaryFieldStatusTarget(CoreVoyageSession session)
+        {
+            // Keep the real turn runner while avoiding an unrelated enemy ram
+            // ending the five-turn field-lifecycle fixture early.
+            session.Battle.Profile = (CoreBattleProfile)Activator.CreateInstance(typeof(CoreBattleProfile),
+                BindingFlags.Instance | BindingFlags.NonPublic, null, new object[] { CoreTrainingTargets.All[0] }, null);
+        }
+
+        private static IEnumerator BeginFieldStatusPlacement(CoreNavalFieldKind kind, int x, int y, Action<NavalCardChoiceOverlay> capture = null)
         {
             Button card = RequiredResponsive<Button>("Battle Card 0");
             Assert.That(card.interactable, Is.True, "The next field card must be available through the real hand.");
@@ -443,9 +458,14 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             var choice = Object.FindFirstObjectByType<NavalCardChoiceOverlay>();
             Assert.That(choice, Is.Not.Null);
-            if (kind == CoreNavalFieldKind.Tide) RequiredResponsive<Button>("Naval field direction 1").onClick.Invoke();
+            capture?.Invoke(choice);
             choice.SelectCell(x, y);
-            Assert.That(RequiredResponsive<Button>("Confirm Naval Card Choice").interactable, Is.True);
+            if (kind == CoreNavalFieldKind.Tide)
+            {
+                Assert.That(choice.IsSelectingDirection, Is.True);
+                RequiredResponsive<Button>("Naval field direction 1").onClick.Invoke();
+            }
+            choice.SelectCell(x, y); choice.ConfirmSelection();
         }
 
         private static IEnumerator ObserveFieldStatusCue(CoreGameplayDemoController controller, NavalFieldMotion motion,

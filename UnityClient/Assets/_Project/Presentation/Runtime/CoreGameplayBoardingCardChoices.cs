@@ -128,8 +128,10 @@ namespace ShatteredSail.Presentation
             var outline = selection.gameObject.AddComponent<Outline>();
             outline.effectColor = selected ? Gold : new Color(.22f, .19f, .14f, .6f);
             outline.effectDistance = new Vector2(3f, -3f);
-            Button button = BoardingChoiceButton("Boarding Candidate " + candidate.Value, sheet,
-                new Vector2(252f, 432f), position, string.Empty, () => ToggleBoardingChoiceCandidate(candidate.Value));
+            Button button = CreateButton("Boarding Candidate " + candidate.Value, sheet,
+                new Vector2(252f, 432f), position, Gold, DeepSea, 22);
+            MarketShopSkin.ApplyChoiceRow(button);
+            button.onClick.AddListener(() => ToggleBoardingChoiceCandidate(candidate.Value));
             button.GetComponentInChildren<Text>().enabled = false;
             Image backing = button.image;
             backing.color = selected ? Gold : PanelRaised;
@@ -199,7 +201,7 @@ namespace ShatteredSail.Presentation
         {
             Button button = CreateButton(name, parent, size, position, Gold, DeepSea, 22);
             button.GetComponentInChildren<Text>().text = caption;
-            MarketShopSkin.ApplyLightButton(button);
+            WoodButtonSkin.ApplyAction(button, WoodButtonSkin.DefaultRoleFor(name));
             button.onClick.AddListener(() => action());
             return button;
         }

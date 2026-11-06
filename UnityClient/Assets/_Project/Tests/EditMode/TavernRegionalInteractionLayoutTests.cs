@@ -149,23 +149,21 @@ namespace ShatteredSail.Presentation.Tests
                     expected.Id + " hotspot overlaps profession " + other);
 
             Text name = Find<Text>("Tavern Crew Name " + profession);
-            Text status = Find<Text>("Tavern Crew Status " + profession);
             Assert.That(name.text, Is.EqualTo(expected.DisplayName));
-            foreach (Text label in new[] { name, status })
-            {
-                Rect bounds = BoundsIn(canvas, label.rectTransform);
-                Assert.That(label.text, Is.Not.Empty, expected.Id + " / " + label.name);
-                AssertContained(picture, bounds, expected.Id + " / complete " + label.name);
-                Assert.That(bounds.yMax, Is.LessThanOrEqualTo(header.yMin + .05f),
-                    expected.Id + " / " + label.name + " must stay below the facility header");
-                Assert.That(label.preferredWidth, Is.LessThanOrEqualTo(label.rectTransform.rect.width + .5f),
-                    expected.Id + " / " + label.name + " must not truncate horizontally");
-                Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .5f),
-                    expected.Id + " / " + label.name + " must not truncate vertically");
-                foreach (int other in Enumerable.Range(0, 6).Where(index => index != profession))
-                    Assert.That(OverlapsBeyondTransformTolerance(bounds, BoundsIn(canvas, crew[other].GetComponent<RectTransform>())), Is.False,
-                        expected.Id + " / " + label.name + " covers another person's head/torso (profession " + other + ")");
-            }
+            // Portraits show only their names, without action/status copy.
+            Assert.That(Active<Text>("Tavern Crew Status " + profession), Is.Null, expected.Id);
+            Rect bounds = BoundsIn(canvas, name.rectTransform);
+            Assert.That(name.text, Is.Not.Empty, expected.Id + " / " + name.name);
+            AssertContained(picture, bounds, expected.Id + " / complete " + name.name);
+            Assert.That(bounds.yMax, Is.LessThanOrEqualTo(header.yMin + .05f),
+                expected.Id + " / " + name.name + " must stay below the facility header");
+            Assert.That(name.preferredWidth, Is.LessThanOrEqualTo(name.rectTransform.rect.width + .5f),
+                expected.Id + " / " + name.name + " must not truncate horizontally");
+            Assert.That(name.preferredHeight, Is.LessThanOrEqualTo(name.rectTransform.rect.height + .5f),
+                expected.Id + " / " + name.name + " must not truncate vertically");
+            foreach (int other in Enumerable.Range(0, 6).Where(index => index != profession))
+                Assert.That(OverlapsBeyondTransformTolerance(bounds, BoundsIn(canvas, crew[other].GetComponent<RectTransform>())), Is.False,
+                    expected.Id + " / " + name.name + " covers another person's head/torso (profession " + other + ")");
         }
 
         private void ClickAndAssertDossier(RectTransform clickTarget, int profession, CrewVariantDefinition expected)

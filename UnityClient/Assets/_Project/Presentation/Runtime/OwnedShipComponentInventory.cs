@@ -113,7 +113,7 @@ namespace ShatteredSail.Presentation
         /// <summary>
         /// Marks a vessel as initialized while leaving every component slot empty.
         ///
-        /// A new player's starter hull is deliberately bare.  Keeping the
+        /// Starter and newly purchased hulls are deliberately bare. Keeping the
         /// initialized marker means a later load/refresh cannot repopulate the
         /// slots with the catalogue's free baseline fittings.
         /// </summary>

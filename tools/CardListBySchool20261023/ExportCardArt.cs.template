@@ -1,0 +1,117 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Security.Cryptography;
+using System.Text;
+using System.Web.Script.Serialization;
+using ShatteredSail.Core.Gameplay;
+
+// Template filled from the CURRENT CardSchoolArtCatalog methods by ExportCardArt.ps1.
+// It does not copy old resource mappings or modify the Unity project.
+internal static class ExportCardArt
+{
+    public sealed class Variant { public string[] Stages { get; set; } }
+    public sealed class Card { public string Id { get; set; } public string Name { get; set; } public Variant[] StageVariants { get; set; } }
+    public sealed class BaseReport { public Card[] Cards { get; set; } public int StageCount { get; set; } }
+    public sealed class ArtRow {
+        public string Id, Name, Stage, StageId, ResourcePath, SourcePath, SourceSha256, Image, ImageSha256, OriginalImage;
+        public int Width, Height, SourceWidth, SourceHeight;
+    }
+    private static Dictionary<string,string> resources;
+    private static readonly Dictionary<string,ArtRow> thumbnails = new Dictionary<string,ArtRow>(StringComparer.Ordinal);
+    private static string output;
+    private static int maximumEdge;
+    private static object Load(string resource) => resources.ContainsKey(resource) ? new object() : null;
+
+/* CURRENT_RUNTIME_ART_METHODS */
+
+    private static string Hash(string filename) {
+        using (var hash = SHA256.Create()) using (var input = File.OpenRead(filename))
+            return BitConverter.ToString(hash.ComputeHash(input)).Replace("-", "").ToLowerInvariant();
+    }
+    private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
+    private static string StageName(NavalBattleStage stage) => stage == NavalBattleStage.Preparation ? "准备" : stage == NavalBattleStage.Naval ? "海战" : "接舷";
+    private static bool Published(CoreBattleCard card) => card.AllowedStages != NavalBattleStages.None && !CoreBattleCardAliases.IsAlias(card.Id) &&
+        !(card.AllowedStages == NavalBattleStages.Boarding && card.RequiredCrew.Length == 0 && card.RequiredComponent.Length == 0 && CoreBoardingCardCatalog.IsLegacyAlias(card));
+    private static ArtRow Map(CoreBattleCard card, NavalBattleStage stage) {
+        string resource = DedicatedIllustrationPath(card);
+        Require(resource != null && resources.ContainsKey(resource), "Missing current dedicated artwork: " + card.Id + "/" + stage + " -> " + resource);
+        if (!thumbnails.TryGetValue(resource, out ArtRow thumbnail)) {
+            string source = resources[resource];
+            string hash = Hash(source);
+            string relativeImage = "art/" + Path.GetFileNameWithoutExtension(source) + "-" + hash.Substring(0,16) + ".webp";
+            using (Image input = Image.FromFile(source)) {
+                double factor = Math.Min(1d, (double)maximumEdge / Math.Max(input.Width, input.Height));
+                int width = Math.Max(1, (int)Math.Round(input.Width * factor));
+                int height = Math.Max(1, (int)Math.Round(input.Height * factor));
+                string originalImage = new Uri(output.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar)
+                    .MakeRelativeUri(new Uri(source)).ToString();
+                thumbnail = new ArtRow { ResourcePath=resource, SourcePath=source.Replace('\\','/'), SourceSha256=hash, Image=relativeImage, OriginalImage=originalImage,
+                    ImageSha256=null, Width=width, Height=height, SourceWidth=input.Width, SourceHeight=input.Height };
+            }
+            Require(Hash(source) == hash, "Artwork changed during export: " + source);
+            thumbnails.Add(resource, thumbnail);
+        }
+        return new ArtRow { Id=card.Id, Name=card.Name, Stage=StageName(stage), StageId=stage.ToString(),
+            ResourcePath=thumbnail.ResourcePath, SourcePath=thumbnail.SourcePath, SourceSha256=thumbnail.SourceSha256,
+            Image=thumbnail.Image, ImageSha256=thumbnail.ImageSha256, OriginalImage=thumbnail.OriginalImage, Width=thumbnail.Width, Height=thumbnail.Height,
+            SourceWidth=thumbnail.SourceWidth, SourceHeight=thumbnail.SourceHeight };
+    }
+    private static int Main(string[] args) {
+        Require(args.Length == 4, "Usage: ExportCardArt.exe <output> <resources> <base-json> <max-edge>");
+        output=Path.GetFullPath(args[0]);
+        string root=Path.GetFullPath(args[1]).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        maximumEdge=int.Parse(args[3]);
+        var serializer=new JavaScriptSerializer { MaxJsonLength=int.MaxValue };
+        BaseReport baseline=serializer.Deserialize<BaseReport>(File.ReadAllText(args[2],Encoding.UTF8));
+        Require(baseline?.Cards != null && baseline.Cards.Length > 0, "Missing base catalogue.");
+        Require(baseline.Cards.Select(c=>c.Id).Distinct().Count()==baseline.Cards.Length, "Duplicate base identities.");
+        resources=new Dictionary<string,string>(StringComparer.Ordinal);
+        foreach (string file in Directory.EnumerateFiles(root,"*",SearchOption.AllDirectories)) {
+            string extension=Path.GetExtension(file).ToLowerInvariant();
+            if (extension!=".png" && extension!=".jpg" && extension!=".jpeg" && extension!=".bmp") continue;
+            string relative=file.Substring(root.Length);
+            string resource=relative.Substring(0,relative.Length-extension.Length).Replace('\\','/');
+            Require(!resources.ContainsKey(resource), "Ambiguous resource identity: " + resource);
+            resources.Add(resource,file);
+        }
+        Directory.CreateDirectory(Path.Combine(output,"art"));
+        var rows=new List<ArtRow>();
+        var session=new CoreVoyageSession();
+        var published=new HashSet<string>(CoreVoyageSession.CardLibrary.Where(Published).Select(c=>c.Id),StringComparer.Ordinal);
+        Require(published.SetEquals(baseline.Cards.Select(c=>c.Id)), "Current published identities differ from base catalogue; re-export base first.");
+        for(int index=0;index<CoreVoyageSession.CardLibrary.Count;index++) {
+            CoreBattleCard original=CoreVoyageSession.CardLibrary[index];
+            if(!Published(original)) continue;
+            CoreBattleCard card=session.GetBattleCardAtLevel(index,0);
+            Card basis=baseline.Cards.Single(c=>c.Id==card.Id);
+            Require(basis.Name==card.Name,"Base name differs: " + card.Id);
+            var mappedStages=new List<string>();
+            foreach(var stage in new[]{NavalBattleStage.Preparation,NavalBattleStage.Naval,NavalBattleStage.Boarding}) {
+                if(!card.IsAllowedInStage(stage)) continue;
+                CoreBattleCard resolved=stage==NavalBattleStage.Boarding ? CoreBoardingCardCatalog.ForBoarding(card) : card;
+                rows.Add(Map(resolved,stage));
+                mappedStages.Add(StageName(stage));
+            }
+            Require(mappedStages.OrderBy(s=>s).SequenceEqual(basis.StageVariants.SelectMany(v=>v.Stages).OrderBy(s=>s)),"Playable stages differ: " + card.Id);
+        }
+        Require(rows.Count==baseline.StageCount,"Mapped stage count differs from base.");
+        Require(rows.Select(r=>r.Id+"/"+r.Stage).Distinct().Count()==rows.Count,"Duplicate stage art.");
+        foreach(var image in thumbnails.Values) {
+            Require(Hash(image.SourcePath)==image.SourceSha256,"Artwork changed during export: " + image.SourcePath);
+
+        }
+        var report=new { Date=DateTime.Now.ToString("yyyy-MM-dd"),CardCount=baseline.Cards.Length,StageCount=rows.Count,UniqueImageCount=thumbnails.Count,
+            MaximumEdge=maximumEdge,Method="Current runtime art selection methods compiled verbatim. OriginalImage references the exact unchanged source file; Image is a separate scaled thumbnail.",Cards=rows };
+        File.WriteAllText(Path.Combine(output,"card-art-data.json"),serializer.Serialize(report),new UTF8Encoding(false));
+        string validation="Card identities: " + baseline.Cards.Length + "\nStage art mappings: " + rows.Count + "\nUnique images: " + thumbnails.Count +
+            "\nMissing images: 0\nMaximum thumbnail edge: " + maximumEdge + "\nPASS: Current published identities and stages match base; all resource paths resolve; full compositions preserved; source hashes verified; thumbnail validation follows.\n";
+        File.WriteAllText(Path.Combine(output,"art-validation.txt"),validation,new UTF8Encoding(false));
+        Console.Write(validation);
+        return 0;
+    }
+}

@@ -32,10 +32,8 @@ namespace ShatteredSail.Presentation.Tests
                         "Only parallel ships in neighboring columns may board, including opposite headings.");
                     Assert.That(RequiredResponsive<Button>("Battle Ram").IsInteractable(), Is.EqualTo(playerHeading == 0f),
                         "A bow pointing at the enemy can hit its front, stern, or either side.");
-                    if (alongside)
-                        Assert.That(NavalHudTooltipText("Battle Board"), Does.Contain("同向或反向").And.Contain("舷侧相邻"));
-                    if (playerHeading == 0f)
-                        Assert.That(NavalHudTooltipText("Battle Ram"), Does.Contain("前后左右"));
+                    AssertNavalHudHasNoTooltip("Battle Board");
+                    AssertNavalHudHasNoTooltip("Battle Ram");
                 }
             LogAssert.NoUnexpectedReceived();
         }
@@ -62,7 +60,8 @@ namespace ShatteredSail.Presentation.Tests
                 Button action = RequiredResponsive<Button>(actionName);
                 Assert.That(action.interactable, Is.False, "The adjacent pose still needs one action point.");
                 Assert.That(action.GetComponentInChildren<Text>().text, Is.EqualTo(ram ? "冲撞" : "接舷"));
-                Assert.That(NavalHudTooltipText(actionName), Does.Contain("消耗 1 行动点"));
+                Assert.That(NavalActionPointAmount().text, Is.EqualTo("0"));
+                AssertNavalHudHasNoTooltip(actionName);
 
                 Assert.That(session.GetBattleCardEnergyCost(session.Battle.Hand[0]), Is.Zero,
                     "The first approach grants an AP at its actual zero energy cost.");
@@ -72,8 +71,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.Battle.Energy, Is.Zero);
                 Assert.That(RequiredResponsive<Button>(actionName), Is.SameAs(action));
                 Assert.That(action.interactable, Is.True, "An AP card must immediately enable the retained action even with zero energy.");
-                Assert.That(NavalHudTooltipText(actionName),
-                    Does.Contain(ram ? "前后左右" : "平行且舷侧相邻").And.Contain("不耗能量"));
+                Assert.That(NavalActionPointAmount().text, Is.EqualTo("1"));
+                AssertNavalHudHasNoTooltip(actionName);
 
                 // AP changes without rebuilding the scene still refresh these
                 // controls through the same observer that updates the resource HUD.
@@ -148,15 +147,14 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.NavalActionPoints, Is.Zero, "The committed route spends the ordinary movement budget.");
             Assert.That(NavalActionPointAmount().text, Is.EqualTo(session.Battle.NavalArrivalActionPoints.ToString()),
                 "The visible badge shows the contact-only remainder while the ship travels.");
-            Assert.That(NavalHudTooltipText("Resource ActionPoint"), Does.Contain("抵达剩余行动点"));
+            AssertNavalHudHasNoTooltip("Resource ActionPoint");
             yield return WaitResponsiveBattle(controller);
 
             Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.True);
             Assert.That(retainedGuard.interactable, Is.False);
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.EqualTo(1));
             Assert.That(NavalActionPointAmount().text, Is.EqualTo("1"));
-            Assert.That(NavalHudTooltipText("Resource ActionPoint"),
-                Does.Contain("冲撞或接舷").And.Contain("选择到达朝向后清空"));
+            AssertNavalHudHasNoTooltip("Resource ActionPoint");
             retainedGuard.onClick.Invoke();
             yield return null;
             Assert.That(session.Battle.Energy, Is.EqualTo(energyBefore));
@@ -175,7 +173,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero);
             Assert.That(session.Battle.PlayerHeadingDegrees, Is.EqualTo(arrivalHeading));
             Assert.That(NavalActionPointAmount().text, Is.EqualTo("0"));
-            Assert.That(NavalHudTooltipText("Resource ActionPoint"), Does.Contain("用于海战航行、冲撞和接舷"));
+            AssertNavalHudHasNoTooltip("Resource ActionPoint");
             Assert.That(retainedGuard.interactable, Is.True);
             Assert.That(Quaternion.Angle(guardRect.localRotation, restingRotation), Is.LessThan(.1f));
             Assert.That(Vector2.Distance(guardRect.anchoredPosition, restingPosition), Is.LessThan(.1f));
@@ -266,6 +264,21 @@ namespace ShatteredSail.Presentation.Tests
 
         private static Text NavalActionPointAmount() => RequiredResponsive<RectTransform>("Resource ActionPoint")
             .Find("Amount").GetComponent<Text>();
+
+        private static void AssertNavalHudHasNoTooltip(string targetName)
+        {
+            GameObject target = RequiredResponsive<RectTransform>(targetName).gameObject;
+            var pointer = new PointerEventData(EventSystem.current);
+            foreach (BattleStatusHover hover in target.GetComponentsInChildren<BattleStatusHover>(true))
+                Assert.That(hover.isActiveAndEnabled, Is.False, targetName + " still has a tooltip trigger.");
+            bool receivedHover = ExecuteEvents.Execute(target, pointer, ExecuteEvents.pointerEnterHandler);
+            Assert.That(receivedHover, Is.EqualTo(target.GetComponent<Button>() != null),
+                "Commands keep their normal button hover feedback; resource icons have no hover action.");
+            foreach (BattleStatusTooltip tooltip in RequiredResponsive<RectTransform>("Battle Card")
+                .GetComponentsInChildren<BattleStatusTooltip>(true))
+                Assert.That(tooltip.gameObject.activeInHierarchy, Is.False, targetName + " opened a tooltip.");
+            ExecuteEvents.Execute(target, pointer, ExecuteEvents.pointerExitHandler);
+        }
 
         private static string NavalHudTooltipText(string targetName)
         {

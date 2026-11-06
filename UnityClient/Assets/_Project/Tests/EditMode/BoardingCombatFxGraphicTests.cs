@@ -15,6 +15,8 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase(BoardingCombatFxKind.Guard)]
         [TestCase(BoardingCombatFxKind.GuardBreak)]
         [TestCase(BoardingCombatFxKind.Heal)]
+        [TestCase(BoardingCombatFxKind.Curse)]
+        [TestCase(BoardingCombatFxKind.LifeCost)]
         public void BoardingFx_HasFiniteBoundedDeterministicGeometryAndNoGrowingChildHierarchy(BoardingCombatFxKind kind)
         {
             var host = new GameObject("Boarding FX Test", typeof(RectTransform), typeof(BoardingCombatFxGraphic));

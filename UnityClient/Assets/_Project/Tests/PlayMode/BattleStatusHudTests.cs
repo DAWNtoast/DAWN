@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -42,6 +43,10 @@ namespace ShatteredSail.Presentation.Tests
                 BattleStatusRow row = Row(player);
                 Transform badge = row.GetComponentsInChildren<Transform>(true).Single(item => item.name == "Status " + status.Id);
                 var pointer = new PointerEventData(EventSystem.current) { position = RectTransformUtility.WorldToScreenPoint(null, badge.position) };
+                var hits = new List<RaycastResult>();
+                EventSystem.current.RaycastAll(pointer, hits);
+                Assert.That(hits.Any(hit => hit.gameObject == badge.gameObject), Is.True,
+                    "Removing the status backdrop must preserve its full hover target.");
                 Assert.That(ExecuteEvents.Execute(badge.gameObject, pointer, ExecuteEvents.pointerEnterHandler), Is.True);
                 yield return null;
                 GameObject tooltip = Named("Battle Status Tooltip", true);
@@ -169,7 +174,10 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (var status in statuses)
                 {
                     Assert.That(status.Tooltip, Is.Not.Empty);
-                    Assert.That(row.GetComponentsInChildren<Transform>(false).Any(item => item.name == "Status " + status.Id), Is.True, status.Id);
+                    Transform slot = row.GetComponentsInChildren<Transform>(false).SingleOrDefault(item => item.name == "Status " + status.Id);
+                    Assert.That(slot, Is.Not.Null, status.Id);
+                    Assert.That(slot.GetComponent<Image>().color.a, Is.Zero,
+                        "Status icons and amounts must appear without a dark rectangular backing.");
                 }
             }
         }

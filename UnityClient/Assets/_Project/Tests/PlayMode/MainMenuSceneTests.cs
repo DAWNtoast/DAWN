@@ -228,6 +228,10 @@ namespace ShatteredSail.Presentation.Tests
         [UnityTest]
         public IEnumerator NewGame_ConfirmsAndResetsExistingProgress()
         {
+            CoreVoyageSession oldPacks = new CoreVoyageSession();
+            Assert.That(oldPacks.GrantCardPacks("fire", 2), Is.True);
+            Assert.That(oldPacks.TryOpenCardPack("fire", out _, out string packReason), Is.True, packReason);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CardPackProgressKey, JsonUtility.ToJson(oldPacks.CaptureCardPackProgress()));
             foreach (string key in AchievementCatalog.PersistenceKeys) PlayerPrefs.SetInt(key, 1);
             string oldScope = System.Guid.NewGuid().ToString("N");
             PlayerPrefs.SetString(CoreGameplayDemoController.WorldEconomyScopeKey, oldScope);
@@ -371,6 +375,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.GuidedTutorialEquipmentPendingKey), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.BattleDeckKey), Is.False);
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.BattleDeckEditedKey), Is.False);
+            Assert.That(game.Session.CaptureCardPackProgress().packs, Is.Empty, "A new captain must not inherit unopened packs.");
+            Assert.That(game.Session.CaptureCardPackProgress().cards, Is.Empty, "A new captain must not inherit cards obtained from packs.");
             Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.LegacyWitchRecruitedKey), Is.False);
             Assert.That(CoreVoyageSession.CardLibrary.Any(card => card.Id.StartsWith("card_witch_") || card.RequiredCrew == "crew_witch_jinchao"), Is.False);
             CoreVoyageSession defaults = new CoreVoyageSession();
@@ -458,6 +464,7 @@ namespace ShatteredSail.Presentation.Tests
 
         private static IEnumerable<string> MetaStringKeys()
         {
+            yield return OpeningPortComicProgress.PlayerPrefsKey;
             yield return CoreGameplayDemoController.GameClockKey;
             yield return CoreGameplayDemoController.WorldEconomyScopeKey;
             yield return ProfileGoldPersistence.DecimalKey;
@@ -481,6 +488,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return CoreGameplayDemoController.WarehouseIncomeKey;
             yield return CoreGameplayDemoController.BattleDeckKey;
             yield return CoreGameplayDemoController.BattleCardUpgradeKey;
+            yield return CoreGameplayDemoController.CardPackProgressKey;
             yield return CoreGameplayDemoController.SpecialCardExperienceKey;
             yield return CoreGameplayDemoController.AcquiredSpecialCardsKey;
             foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))

@@ -66,6 +66,9 @@ namespace ShatteredSail.Presentation
                     Math.Max(0m, CoreEconomyBalance.MaximumProfileGold - session.ProfileGold));
                 if (!ProfileSaveJournal.TryBegin(out reason)) throw new ProfileSaveException(reason);
                 ProfileGoldPersistence.Save(session.ProfileGold + credited);
+                // Commit old-save carry/migration with the login transaction.
+                // Only keepsake keys are written; suspended voyage cargo stays untouched.
+                SaveWarehouseKeepsakes();
                 PlayerPrefs.SetString(WarehouseIncomeKey, restored.Serialize());
                 PlayerPrefs.Save();
                 if (!ProfileSaveJournal.TryComplete(out reason)) throw new ProfileSaveException(reason);
@@ -118,11 +121,16 @@ namespace ShatteredSail.Presentation
                 new Vector2(0f, 155f), 32, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
             title.text = "船长收藏室 · 藏品收益";
             Text amount = CreateText("Warehouse Income Amount", panel, new Vector2(740f, 80f),
-                new Vector2(0f, 75f), 46, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
-            amount.text = "+" + warehouseIncomeReceipt.ToString("0.####", CultureInfo.InvariantCulture) + " 金币";
-            Text detail = CreateText("Warehouse Income Detail", panel, new Vector2(740f, 120f),
-                new Vector2(0f, -30f), 22, FontStyle.Normal, TextAnchor.MiddleCenter, Ink);
-            detail.text = "所有港口已陈列的藏品，每件每现实小时产出 10 金币。\n下次上线自动发放，每次合计最多 300 金币。\n本次收益已存入账户，助你在航海失利后再次起航。";
+                Vector2.zero, 46, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
+            amount.text = "+" + warehouseIncomeReceipt.ToString("0.####", CultureInfo.InvariantCulture);
+            float amountWidth = Mathf.Ceil(amount.preferredWidth) + 4f;
+            amount.rectTransform.sizeDelta = new Vector2(amountWidth, NauticalHeaderSkin.IconSize);
+            amount.rectTransform.anchoredPosition = new Vector2((NauticalHeaderSkin.IconSize + NauticalHeaderSkin.IconGap) * .5f, 8f);
+            amount.raycastTarget = false;
+            RectTransform goldIcon = CreateRect("Warehouse Income Gold Icon", panel,
+                Vector2.one * NauticalHeaderSkin.IconSize,
+                new Vector2(-(amountWidth + NauticalHeaderSkin.IconGap) * .5f, 8f));
+            goldIcon.gameObject.AddComponent<BattleCommandIconGraphic>().Configure(BattleCommandIconKind.Gold);
             Button close = CreateButton("Close Warehouse Income", panel, new Vector2(340f, 62f),
                 new Vector2(0f, -150f), Gold, DeepSea, 24);
             close.GetComponentInChildren<Text>(true).text = "收下收益，继续冒险";

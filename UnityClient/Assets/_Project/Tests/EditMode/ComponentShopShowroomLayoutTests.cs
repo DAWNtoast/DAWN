@@ -236,13 +236,24 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform next = Find<RectTransform>("Next Port Facility");
             Vector2 titlePosition = title.anchoredPosition, titleSize = title.sizeDelta, nextPosition = next.anchoredPosition;
             MethodInfo apply = typeof(CoreGameplayDemoController).GetMethod("ApplyComponentShopHeaderLayout", BindingFlags.Instance | BindingFlags.NonPublic);
-            apply.Invoke(controller, new object[] { header, true });
+            Assert.That(apply, Is.Not.Null);
+            apply.Invoke(controller, new object[] { header, (int)PortHeaderIconKind.ComponentShop });
             Assert.That(title.anchoredPosition, Is.EqualTo(titlePosition));
+            Assert.That(title.sizeDelta, Is.EqualTo(titleSize));
             Assert.That(next.anchoredPosition.x, Is.GreaterThan(title.anchoredPosition.x));
-            apply.Invoke(controller, new object[] { header, false });
+            Assert.That(next.anchoredPosition, Is.EqualTo(nextPosition));
+            Assert.That(next.sizeDelta, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+            Assert.That(Find<PortHeaderIconGraphic>("Port Facility Icon").Kind, Is.EqualTo(PortHeaderIconKind.ComponentShop));
+            Assert.That(Find<PortHeaderIconGraphic>("Previous Port Facility Icon").Kind, Is.EqualTo(PortHeaderIconKind.Tavern));
+            Assert.That(Find<PortHeaderIconGraphic>("Next Port Facility Icon").Kind, Is.EqualTo(PortHeaderIconKind.CardWorkshop));
+            apply.Invoke(controller, new object[] { header, (int)PortHeaderIconKind.Tavern });
             Assert.That(title.anchoredPosition, Is.EqualTo(titlePosition));
             Assert.That(title.sizeDelta, Is.EqualTo(titleSize));
             Assert.That(next.anchoredPosition, Is.EqualTo(nextPosition));
+            Assert.That(next.sizeDelta, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+            Assert.That(Find<PortHeaderIconGraphic>("Port Facility Icon").Kind, Is.EqualTo(PortHeaderIconKind.Tavern));
+            Assert.That(Find<PortHeaderIconGraphic>("Previous Port Facility Icon").Kind, Is.EqualTo(PortHeaderIconKind.Shipyard));
+            Assert.That(Find<PortHeaderIconGraphic>("Next Port Facility Icon").Kind, Is.EqualTo(PortHeaderIconKind.ComponentShop));
         }
         private void CreatePreview(CoreGameplayPreviewPort port = CoreGameplayPreviewPort.GrayGull)
         {

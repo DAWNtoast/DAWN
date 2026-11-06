@@ -8,6 +8,7 @@ namespace ShatteredSail.Presentation
     /// <summary>Authored encounter-to-scene bindings for the refreshed encounter paintings.</summary>
     public sealed class EncounterIllustrationCatalog
     {
+        public const string OptimizedResourceRoot = "EncounterIllustrations/Optimized20261104/";
         public const string TreasureResourcePath = "EncounterIllustrations/legacy_treasure_v3";
         public const string BossSceneResourceRoot = "EncounterIllustrations/BossScenes/scene_";
         public const string ReviewedResourceRoot = "EncounterIllustrations/Reviewed20261023/";
@@ -331,6 +332,9 @@ namespace ShatteredSail.Presentation
                 "event_moon_drowned_library", "event_moon_healing_spring"
             }) result[id] = Reviewed(id);
             result["moonlit_cleanse"] = result["event_moon_healing_spring"];
+            // Exact reviewed story IDs only; keep copied legacy aliases on their own scenes.
+            foreach (string id in new[] { "treasure_clue_bottle", "treasure_clue_whalebone", "treasure_clue_star", "treasure_clue_fogbell", "treasure_clue_twinmoon", "event_reef_shortcut", "event_reef_sunken_boat", "event_trade_floating_auction", "weathered_camp", "gilded_bonded_vault", "moonlit_pearl_moon" })
+                result[id] = new Location(OptimizedResourceRoot + id, new Rect(0, 0, 1, 1));
             return result;
         }
     }

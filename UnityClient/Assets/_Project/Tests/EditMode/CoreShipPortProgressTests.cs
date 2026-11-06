@@ -116,6 +116,7 @@ namespace ShatteredSail.Core.Tests
         public void LegacyCheckpointPreservesTheLoadedProfilesInactiveBerths()
         {
             var source = new CoreVoyageSession();
+            source.RecordCollectionPortVisit("白贝港"); // This fixture tests fleet restoration after an unlocked departure.
             source.SelectShip(5);
             source.StartVoyage("铜钟港");
             CoreVoyageCheckpoint checkpoint = source.CaptureVoyageCheckpoint();

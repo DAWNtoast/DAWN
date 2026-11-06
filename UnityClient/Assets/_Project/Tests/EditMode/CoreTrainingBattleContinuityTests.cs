@@ -27,7 +27,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.NavalStartPlayerHull, Is.EqualTo(hull));
             Assert.That(Supplies(s), Is.EqualTo(new[] { 75, 120, 54, 30 }));
             Assert.That(s.Battle.Energy, Is.EqualTo(3));
-            Assert.That(s.Battle.Schools.Mana, Is.Zero);
+            Assert.That(s.Battle.Schools.Mana, Is.EqualTo(3), "A fresh battle begins with mana restored to its base limit.");
             AssertRealDecks(s);
         }
 
@@ -70,7 +70,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.Energy, Is.EqualTo(3));
             Assert.That(s.Battle.PlayerBlock, Is.Zero);
             Assert.That(s.Battle.Schools.ManaLimit, Is.EqualTo(3));
-            Assert.That(new[] { s.Battle.Schools.Mana, s.Battle.Schools.TemporaryMana, s.Battle.Schools.ThunderChain,
+            Assert.That(s.Battle.Schools.Mana, Is.EqualTo(3));
+            Assert.That(new[] { s.Battle.Schools.TemporaryMana, s.Battle.Schools.ThunderChain,
                 s.Battle.Schools.TidePower, s.Battle.Schools.CurseMarks }, Is.All.Zero);
             Assert.That(s.GetBattleCardEnergyCost(cardIndex), Is.EqualTo(baseCost));
             AssertRealDecks(s);

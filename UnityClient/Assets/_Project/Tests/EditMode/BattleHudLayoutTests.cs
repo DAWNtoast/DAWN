@@ -112,7 +112,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Battle, Is.SameAs(battle));
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
 
-            float expectedHeaderHeight = tutorial ? 148f : 108f;
+            float expectedHeaderHeight = 108f;
             RectTransform header = Find<RectTransform>("Voyage Header");
             RectTransform overlay = Find<RectTransform>("Battle Overlay");
             RectTransform card = Find<RectTransform>("Battle Card");
@@ -131,11 +131,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(headerBounds.height, Is.GreaterThan(1f), "Collapsed canvas geometry must not make containment checks vacuous.");
             Assert.That(WorldRect(overlay).yMax, Is.EqualTo(headerBounds.yMin).Within(0.1f), "Battle surface meets the actual header without a seam or overlap.");
             bool boarding = battle.Stage == NavalBattleStage.Boarding;
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Alignment"), Is.False);
             if (!boarding)
-                foreach (string name in new[] { "Battle Range", "Battle Alignment" })
-                    Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False, name);
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Range"), Is.False);
             string[] readoutNames = boarding
-                ? new[] { "Battle Range", "Battle Alignment", "Voyage Header Status" }
+                ? new[] { "Battle Range", "Voyage Header Status" }
                 : new[] { "Voyage Header Status" };
             Rect[] bounds = new Rect[readoutNames.Length];
             for (int i = 0; i < readoutNames.Length; i++)
@@ -188,18 +188,54 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void BattleResources_UseThreeIconRowsWithoutTheRetiredTextPanels()
+        public void BattleResources_UseTwoRowsOfSevenIconsWithoutTooltipsOrRetiredTextPanels()
         {
             CreateBattlePreview();
-            Image retreat = Find<Button>("Retreat Battle").GetComponent<Image>();
-            Assert.That(retreat.sprite, Is.Not.Null, "Retreat Battle needs its wood board face.");
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Retreat Battle"), Is.False,
+                "Ordinary battle retreat is no longer exposed in the combat HUD.");
             RectTransform resources = Find<RectTransform>("Battle Compact Resources");
-            for (int line = 1; line <= 3; line++)
+            BattleCommandIconKind[][] expectedResources =
+            {
+                new[] { BattleCommandIconKind.Energy, BattleCommandIconKind.ActionPoint, BattleCommandIconKind.Mana },
+                new[] { BattleCommandIconKind.Powder, BattleCommandIconKind.Cannonball, BattleCommandIconKind.Planks, BattleCommandIconKind.Medicine }
+            };
+            Assert.That(resources.childCount, Is.EqualTo(2));
+            Assert.That(resources.GetComponentsInChildren<BattleStatusHover>(true), Is.Empty,
+                "The seven resources remain visible without hover tooltips.");
+            BattleStatusRow statusRow = Find<BattleStatusRow>("Player Battle Status Row");
+            PopulateStatusRow(statusRow, true);
+            Canvas.ForceUpdateCanvases();
+            Rect statusIcon = WorldRect((RectTransform)statusRow.transform.Find("Status guard/Icon"));
+            Assert.That(statusIcon.width, Is.GreaterThan(0f));
+            for (int line = 1; line <= expectedResources.Length; line++)
             {
                 RectTransform row = Find<RectTransform>("Battle Resource Line " + line);
                 Assert.That(row.parent, Is.SameAs(resources));
                 Assert.That(row.rect.width, Is.EqualTo(resources.rect.width).Within(.1f));
-                Assert.That(row.GetComponentsInChildren<BattleCommandIconGraphic>(false).Length, Is.EqualTo(line == 1 ? 2 : 4));
+                CollectionAssert.AreEqual(expectedResources[line - 1],
+                    row.GetComponentsInChildren<BattleCommandIconGraphic>(false).Select(icon => icon.Kind),
+                    "The first row contains energy, action points and mana; the second contains the four supplies.");
+                foreach (BattleCommandIconGraphic icon in row.GetComponentsInChildren<BattleCommandIconGraphic>(false))
+                {
+                    Assert.That(icon.mainTexture, Is.SameAs(BattleIconArtCatalog.Texture), "Resource HUD must display the authored icon atlas.");
+                    Assert.That(Vector2.Distance(WorldRect(icon.rectTransform).size, statusIcon.size), Is.LessThanOrEqualTo(.1f),
+                        icon.Kind + " must match the visible status icon size.");
+                }
+            }
+            foreach (string pileName in new[] { "Battle Draw Pile", "Battle Discard Pile" })
+            {
+                RectTransform pile = Find<RectTransform>(pileName);
+                Assert.That(pile.GetComponentsInChildren<BattleStatusHover>(true), Is.Empty,
+                    "Card piles retain click inspection without hover tooltips.");
+                Assert.That(pile.GetComponent<Button>().IsInteractable(), Is.True,
+                    "Removing the tooltip must preserve card-pile inspection.");
+                Transform pileIcon = pile.Find("Icon");
+                Assert.That(pileIcon.Find("Card Back"), Is.Not.Null, "Pile backs and flight anchors must remain intact.");
+                BattleCommandIconGraphic direction = pileIcon.Find("Pile Direction").GetComponent<BattleCommandIconGraphic>();
+                Assert.That(direction.enabled, Is.True);
+                Assert.That(direction.raycastTarget, Is.False);
+                Assert.That(direction.mainTexture, Is.SameAs(BattleIconArtCatalog.Texture));
+                Assert.That(direction.Kind, Is.EqualTo(pileName == "Battle Draw Pile" ? BattleCommandIconKind.DrawPile : BattleCommandIconKind.DiscardPile));
             }
             foreach (string name in new[] { "Player Resource HUD", "Enemy Resource HUD", "Enemy Intent HUD", "Battle School Status Panel" })
                 Assert.That(Find<RectTransform>(name).gameObject.activeInHierarchy, Is.False, name + " was replaced by compact icons.");
@@ -217,8 +253,7 @@ namespace ShatteredSail.Presentation.Tests
             Rect hand = WorldRect(Find<RectTransform>("Battle Hand"));
             RectTransform player = Find<RectTransform>("Battle Compact Resources");
             RectTransform enemy = Find<RectTransform>("Battle Discard Pile");
-            RectTransform retreat = Find<RectTransform>("Retreat Battle");
-            foreach (RectTransform panel in new[] { player, enemy, retreat })
+            foreach (RectTransform panel in new[] { player, enemy })
                 Assert.That(WorldRect(panel).Overlaps(hand), Is.False, panel.name + " must not cover the hand.");
             Assert.That(WorldRect(player).yMin, Is.GreaterThan(WorldRect(Find<RectTransform>("Battle Draw Pile")).yMax),
                 "The three resource rows remain above the clickable draw pile.");
@@ -292,22 +327,29 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform voyageStatus = Find<RectTransform>("Voyage Header Status");
             Assert.That(voyageTitle.anchoredPosition, Is.EqualTo(new Vector2(-734f, 0f)).Within(0.1f));
             Assert.That(voyageTitle.sizeDelta, Is.EqualTo(new Vector2(234.8733f, 60f)).Within(0.1f));
-            Assert.That(voyageStatus.anchoredPosition, Is.EqualTo(new Vector2(600f, 0f)).Within(0.1f));
-            Assert.That(voyageStatus.sizeDelta, Is.EqualTo(new Vector2(316f, 60f)).Within(0.1f));
+            Assert.That(voyageStatus.anchoredPosition, Is.EqualTo(new Vector2(311f, 0f)).Within(0.1f));
+            Assert.That(voyageStatus.sizeDelta, Is.EqualTo(new Vector2(822f, 60f)).Within(0.1f));
+            Assert.That(NauticalHeaderSkin.IconSize, Is.EqualTo(96f));
+            Assert.That(WorldRect(voyageStatus).xMax + 16f * previewCanvas.lossyScale.x,
+                Is.LessThanOrEqualTo(WorldRect(Find<RectTransform>("Battle Deck")).xMin + .1f),
+                "The ship readout must leave the shared 16-unit gap before the 96-unit deck button.");
+            Text status = voyageStatus.GetComponent<Text>();
+            Assert.That(status.fontSize, Is.EqualTo(28));
+            Assert.That(status.resizeTextForBestFit, Is.False, "Do not hide a narrow summary behind smaller type.");
+            Assert.That(status.preferredWidth, Is.LessThanOrEqualTo(voyageStatus.rect.width),
+                "The full ship summary, including its distance unit, must fit at the readable size.");
+            status.cachedTextGenerator.Populate(status.text, status.GetGenerationSettings(voyageStatus.rect.size));
+            Assert.That(status.cachedTextGenerator.lineCount, Is.EqualTo(1), "Keep the summary on one line.");
 
-            Image retreat = Find<Button>("Retreat Battle").GetComponent<Image>();
             RectTransform intent = Find<RectTransform>("Enemy Intent Icons");
             typeof(BattleIntentAnchor).GetMethod("LateUpdate", BindingFlags.NonPublic | BindingFlags.Instance)
                 .Invoke(intent.GetComponent<BattleIntentAnchor>(), null);
             Assert.That(intent.GetComponentsInChildren<BattleCommandIconGraphic>(false), Is.Not.Empty);
             Assert.That(WorldRect(intent).yMin, Is.GreaterThan(WorldRect(Find<RectTransform>("Enemy Ship Art")).yMax),
                 "The compact enemy intents remain above the enemy ship.");
-            Assert.That(Find<RectTransform>("Player Battle Name").anchoredPosition.x, Is.EqualTo(-735f).Within(.1f));
-            Assert.That(Find<RectTransform>("Enemy Battle Name").anchoredPosition.x, Is.EqualTo(735f).Within(.1f));
-            Assert.That(Find<Image>("Player Battle Name Board").sprite, Is.SameAs(retreat.sprite));
-            Assert.That(Find<Image>("Enemy Battle Name Board").sprite, Is.SameAs(retreat.sprite));
-            Assert.That(Find<RectTransform>("Retreat Battle").anchoredPosition.y,
-                Is.GreaterThan(0f), "Retreat stays above the lower resource and deck controls.");
+            foreach (string name in new[] { "Player Battle Name", "Enemy Battle Name", "Player Battle Name Board", "Enemy Battle Name Board" })
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == name), Is.False, name);
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Retreat Battle"), Is.False);
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Header"), Is.False,
                 "Battle previews should not keep the obsolete generic Header.");
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Ocean Backdrop"), Is.False,

@@ -58,8 +58,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(player.sprite, Is.Not.SameAs(enemy.sprite));
                 Assert.That(player.sprite, Is.Not.Null);
                 Assert.That(enemy.sprite, Is.Not.Null);
-                Assert.That(player.rectTransform.sizeDelta, Is.EqualTo(new Vector2(112f, 168f)));
-                Assert.That(enemy.rectTransform.sizeDelta, Is.EqualTo(new Vector2(112f, 168f)));
+                Assert.That(player.rectTransform.sizeDelta, Is.EqualTo(new Vector2(128f, 192f)));
+                Assert.That(enemy.rectTransform.sizeDelta, Is.EqualTo(new Vector2(128f, 192f)));
                 Assert.That(session.Battle.PlayerPositionMeters, Is.EqualTo(beforePlayer));
                 Assert.That(session.Battle.EnemyPositionMeters, Is.EqualTo(beforeEnemy));
                 Assert.That(Mathf.Abs(Mathf.DeltaAngle(player.rectTransform.localEulerAngles.z,

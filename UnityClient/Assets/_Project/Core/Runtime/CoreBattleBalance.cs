@@ -71,8 +71,8 @@ namespace ShatteredSail.Core.Gameplay
         public const int BossVictoryGold = 120;
         public const int BossVictoryFame = 18;
         public const double BossTreasureFragmentDropChance = 0.5d;
-        public const int CaptainBoardingHealth = 20;
-        public const int BoardingHealthPerSailor = 4;
+        public const int CaptainBoardingHealth = 40;
+        public const int BoardingHealthPerSailor = 8;
         public const decimal EnemyHealthMultiplier = 1.5m;
         public const decimal LateBossBoardingHealthMultiplier = 2m;
         // Ramming is an equipment action, independent of authored card values.
@@ -81,28 +81,31 @@ namespace ShatteredSail.Core.Gameplay
             (int)Math.Min(int.MaxValue, decimal.Round(Math.Max(0, value) * multiplier, 0, MidpointRounding.AwayFromZero));
         public static int BoardingHealthForOrdinaryCrew(int ordinaryCrew) =>
             (int)Math.Min(int.MaxValue, CaptainBoardingHealth + (long)Math.Max(0, ordinaryCrew) * BoardingHealthPerSailor);
-        public static string BossVictoryBonusDescription => "夺船胜利金币、声望×2；物资战利品折为整百金币；" +
+        public static string BossVictoryBonusDescription => "夺船胜利金币、声望为海战胜利的1.25倍；物资战利品计入海战整百金币报价；" +
             "另有 50% 概率掉落藏宝图碎片 ×1";
 
         // Tables contain authored stats; profiles apply health scaling once so
         // encounter previews, simulation and live battle share the same values.
         // Naval hull, cannon fire and guard leave more room for error than boarding.
+        // Route guardians test an unlocked build and a few voyages of development;
+        // legendary fleets remain the final challenge. Authored hull inputs below
+        // still receive the common 1.5 multiplier exactly once.
         // Early-chart boarding durability is tuned separately from naval hull:
-        // 119 HP for the starter deck, 133 HP for a partially upgraded crew deck.
+        // Boarding-only budgets account for shared inherited fields and upgraded crew cards.
         public static readonly CoreBattleProfile FirstRouteBoss = new CoreBattleProfile(
-            CoreBossKind.Route, CoreBattleArchetype.Balanced, 60, 9, 10, 5, 0, 9, 1.8f, 1.6f, .12d,
-            boardingHealthMultiplier: 2.125m, boardingGuard: 4);
+            CoreBossKind.Route, CoreBattleArchetype.Balanced, 96, 6, 20, 4, 0, 9, 1.8f, 1.6f, .12d,
+            boardingHealthMultiplier: 300m / 112m, boardingGuard: 10);
         public static readonly CoreBattleProfile SecondRouteBoss = new CoreBattleProfile(
-            CoreBossKind.Route, CoreBattleArchetype.Artillery, 112, 14, 15, 7, 0, 16, 2.4f, 2.5f, .25d,
-            boardingHealthMultiplier: 19m / 12m, boardingGuard: 6);
+            CoreBossKind.Route, CoreBattleArchetype.Artillery, 240, 23, 30, 8, 0, 16, 2.4f, 2.5f, .25d,
+            boardingHealthMultiplier: 480m / 168m, boardingGuard: 15);
         // Finite-energy combat: naval durability/firepower and boarding crew/melee
         // pressure are calibrated independently. Ramming adds a telegraphed threat.
         public static readonly CoreBattleProfile ThirdRouteBoss = new CoreBattleProfile(
-            CoreBossKind.Route, CoreBattleArchetype.Balanced, 168, 19, 20, 10, 0, 25, 3.0f, 3.0f, .35d, 120f,
-            boardingHealthMultiplier: LateBossBoardingHealthMultiplier, boardingGuard: 8);
+            CoreBossKind.Route, CoreBattleArchetype.Balanced, 400, 33, 40, 13, 0, 25, 3.0f, 3.0f, .35d, 120f,
+            boardingHealthMultiplier: 600m / 240m, boardingGuard: 20);
         public static readonly CoreBattleProfile ThirdTreasureBoss = new CoreBattleProfile(
-            CoreBossKind.Treasure, CoreBattleArchetype.Ironclad, 210, 21, 22, 12, 8, 31, 3.7f, 3.9f, .40d, 120f,
-            boardingHealthMultiplier: LateBossBoardingHealthMultiplier, boardingGuard: 12);
+            CoreBossKind.Treasure, CoreBattleArchetype.Ironclad, 1000, 80, 44, 36, 20, 31, 3.7f, 3.9f, .40d, 120f,
+            boardingHealthMultiplier: 1510m / 288m, boardingGuard: 30);
 
         public static CoreBossKind Classify(string encounterId)
         {
@@ -133,9 +136,9 @@ namespace ShatteredSail.Core.Gameplay
                 return tier == 0 ? FirstRouteBoss : tier == 1 ? SecondRouteBoss : ThirdRouteBoss;
             int power = Math.Max(0, encounter == null ? 70 : encounter.Power);
             return new CoreBattleProfile(CoreBossKind.None, CoreBattleArchetype.Balanced,
-                Math.Max(38, (int)Math.Round(power * 0.46)), 9 + tier * 3, 6 + tier * 3,
+                Math.Max(38, (int)Math.Round(power * 0.46)), 9 + tier * 3, 12 + tier * 6,
                 6 + tier * 2, 0, 5 + power / 28 + tier * 2,
-                1f + tier * 0.6f, 1f + tier * 0.7f, tier >= 2 ? .15d : 0d, boardingGuard: 4 + tier * 2);
+                1f + tier * 0.6f, 1f + tier * 0.7f, tier >= 2 ? .15d : 0d, boardingHealthMultiplier: 1.75m + tier * .375m, boardingGuard: 10 + tier * 5);
         }
     }
 }

@@ -68,6 +68,20 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(actions[index - 1].yMin - actions[index].yMax, Is.GreaterThan(0f),
                         actionNames[index - 1] + " must appear above " + actionNames[index] + " with separate hit areas.");
 
+                Button settings = fixture.Find<Button>("Settings");
+                Assert.That(settings.transform.parent, Is.SameAs(menu),
+                    "Settings belongs between Continue Game and Achievements in the text menu.");
+                Text settingsTitle = settings.GetComponentInChildren<Text>();
+                Assert.That(settingsTitle, Is.Not.Null);
+                Assert.That(settingsTitle.text, Is.EqualTo("设置"));
+                Assert.That(settingsTitle.isActiveAndEnabled && settingsTitle.color.a > .01f, Is.True);
+                Assert.That(settings.GetComponent<RectTransform>().rect.size, Is.EqualTo(new Vector2(580f, 62f)));
+                Assert.That(settings.GetComponentsInChildren<RawImage>(true), Is.Empty,
+                    "The main menu settings entry must not display a gear icon.");
+                Image hit = settings.GetComponent<Image>();
+                Assert.That(hit.raycastTarget && hit.color.a <= .01f, Is.True);
+                Assert.That(settings.targetGraphic, Is.SameAs(settingsTitle));
+
                 fixture.Click("Settings");
                 Assert.That(fixture.Find<RectTransform>("Settings Panel").gameObject.activeInHierarchy, Is.True,
                     "The centered game surface must preserve real pointer interaction at " + width + "x" + height);
@@ -106,8 +120,9 @@ namespace ShatteredSail.Presentation.Tests
                         Assert.That(cancel.yMax, Is.LessThan(RectIn(card, body.rectTransform).yMin));
                         WoodButtonRoleState cancelWood = fixture.Find<Button>("Cancel New Game").GetComponent<WoodButtonRoleState>();
                         WoodButtonRoleState confirmWood = fixture.Find<Button>("Confirm New Game").GetComponent<WoodButtonRoleState>();
-                        Assert.That(cancelWood == null || !cancelWood.enabled, Is.True);
-                        Assert.That(confirmWood != null && confirmWood.enabled, Is.True);
+                        Assert.That(cancelWood.Role, Is.EqualTo(WoodButtonRole.Secondary));
+                        Assert.That(confirmWood.Role, Is.EqualTo(WoodButtonRole.Danger));
+                        Assert.That(confirmWood.IsSelected, Is.False);
                     }
                     foreach (Text label in panel.GetComponentsInChildren<Text>(false))
                     {
@@ -119,11 +134,8 @@ namespace ShatteredSail.Presentation.Tests
                     foreach (Button button in panel.GetComponentsInChildren<Button>(false))
                     {
                         Text label = button.GetComponentInChildren<Text>();
-                        WoodButtonRoleState wood = button.GetComponent<WoodButtonRoleState>();
-                        if (wood != null && wood.enabled)
-                            Assert.That(Luminance(label.color), Is.GreaterThan(0.5f), button.name + " remains light on wood");
-                        else
-                            Assert.That(Contrast(label.color, button.colors.normalColor), Is.GreaterThanOrEqualTo(4.5f), button.name + " remains dark on ivory");
+                        Assert.That(((Image)button.targetGraphic).sprite, Is.SameAs(WoodButtonSkin.Face), button.name);
+                        Assert.That(Luminance(label.color), Is.GreaterThan(0.5f), button.name + " remains light on wood");
                     }
                 }
             }

@@ -68,14 +68,17 @@ namespace ShatteredSail.Presentation.Tests
             Button back = ActiveButton("Return To Port Hub");
 
             ClickAcceptanceButton("Configure Voyage Battle Decks"); yield return null;
-            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
+            AssertDepartureReturnCaption(back, "返回工坊");
+            NavalBattleVisualCapture.Capture(controller, "Departure_Deck_Return.png", "从出航直接组建三阶段牌组，先返回工坊首页后保留码头返回上下文", "Deck Builder Panel");
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
             AssertDepartureReturnCaption(back, "返回出航界面");
-            NavalBattleVisualCapture.Capture(controller, "Departure_Deck_Return.png", "从出航配置三阶段牌组，页头直接返回出航界面", "Card Workshop Preview Panel");
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
             AssertDepartureReturnSelection(controller, route, destination);
 
             ClickAcceptanceButton("Configure Voyage Battle Decks"); yield return null;
-            ClickAcceptanceButton("Edit Stage Deck " + NavalBattleStage.Preparation); yield return null;
+            ClickAcceptanceButton("Battle Deck Stage Tab Preparation"); yield return null;
             Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
             ClickAcceptanceButton("Battle Deck Stage Tab " + NavalBattleStage.Naval); yield return null;
             int initialDeckCount = controller.Session.GetBattleDeck(NavalBattleStage.Naval).Count;
@@ -85,22 +88,28 @@ namespace ShatteredSail.Presentation.Tests
             ClickAcceptanceButton(addition.name); yield return null;
             int[] editedDeck = controller.Session.GetBattleDeck(NavalBattleStage.Naval).ToArray();
             Assert.That(editedDeck.Length, Is.EqualTo(initialDeckCount + 1));
+            AssertDepartureReturnCaption(back, "返回工坊");
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
             AssertDepartureReturnCaption(back, "返回出航界面");
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
             AssertDepartureReturnSelection(controller, route, destination);
             CollectionAssert.AreEqual(editedDeck, controller.Session.GetBattleDeck(NavalBattleStage.Naval));
 
             ClickAcceptanceButton("Configure Voyage Battle Decks"); yield return null;
-            ClickAcceptanceButton("Edit Stage Deck " + NavalBattleStage.Naval); yield return null;
+            ClickAcceptanceButton("Battle Deck Stage Tab Naval"); yield return null;
             ClickAcceptanceButton("Open Special Card Collection"); yield return null;
             Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
             Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Null);
-            AssertDepartureReturnCaption(back, "返回出航界面");
+            AssertDepartureReturnCaption(back, "返回工坊");
             ClickAcceptanceButton("Workshop Preview Stage Naval"); yield return null;
             Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
-            AssertDepartureReturnCaption(back, "返回出航界面");
+            AssertDepartureReturnCaption(back, "返回工坊");
             ClickAcceptanceButton("Back To Card Workshop Chests"); yield return null;
             Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
+            AssertDepartureReturnCaption(back, "返回工坊");
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
             AssertDepartureReturnCaption(back, "返回出航界面");
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
             AssertDepartureReturnSelection(controller, route, destination);
@@ -110,10 +119,15 @@ namespace ShatteredSail.Presentation.Tests
 
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
             ClickAcceptanceButton("Port Hotspot CardWorkshop"); yield return null;
-            AssertDepartureReturnCaption(back, "返回港口");
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
+            ClickAcceptanceButton("Workshop Entrance Collection"); yield return null;
+            AssertDepartureReturnCaption(back, "返回工坊");
             ClickAcceptanceButton("Workshop Preview Stage Naval"); yield return null;
-            ClickAcceptanceButton("Open Battle Card Upgrades"); yield return null;
+            ClickAcceptanceButton("Workshop Page Upgrade"); yield return null;
             yield return ReturnFromWorkshopForgeToSelectedDeck();
+            AssertDepartureReturnCaption(back, "返回工坊");
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
             AssertDepartureReturnCaption(back, "返回港口");
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
             Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
@@ -128,19 +142,25 @@ namespace ShatteredSail.Presentation.Tests
             yield return SelectDepartureReturnFixture(controller);
             Button back = ActiveButton("Return To Port Hub");
             string[] departureActions = { "Adjust Voyage Supplies", "Configure Voyage Battle Decks" };
-            string[] panels = { "Market Panel", "Card Workshop Preview Panel" };
+            string[] panels = { "Market Panel", "Deck Builder Panel" };
             for (int index = 0; index < departureActions.Length; index++)
             {
                 if (index > 0) { ClickAcceptanceButton("Port Hotspot Voyage"); yield return null; }
                 ClickAcceptanceButton(departureActions[index]); yield return null;
                 Assert.That(GameObject.Find(panels[index]), Is.Not.Null);
-                AssertDepartureReturnCaption(back, index == 0 ? "返回码头" : "返回出航界面");
+                AssertDepartureReturnCaption(back, index == 0 ? "返回码头" : "返回工坊");
                 string section = controller.ActivePortSection;
                 ClickAcceptanceButton("Next Port Facility"); yield return null;
                 AssertDepartureReturnCaption(back, "返回港口");
                 ClickAcceptanceButton("Previous Port Facility"); yield return null;
                 Assert.That(controller.ActivePortSection, Is.EqualTo(section));
                 AssertDepartureReturnCaption(back, "返回港口");
+                if (index == 1)
+                {
+                    Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null,
+                        "Revisiting by facility arrows opens the home with its old departure origin cleared.");
+                    Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null);
+                }
                 ClickAcceptanceButton("Return To Port Hub"); yield return null;
                 Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
                 Assert.That(GameObject.Find("Voyage Setup"), Is.Null);
@@ -155,6 +175,11 @@ namespace ShatteredSail.Presentation.Tests
             var progress = controller.Session.CaptureTreasureProgress();
             progress.pirateExperience = 1500;
             controller.Session.RestoreTreasureProgress(progress);
+            // A copper-bell destination also requires an actual prior white-shell visit.
+            // Arrange that history before exercising the real destination button.
+            controller.Session.RecordCollectionPortVisit("白贝港");
+            Assert.That(controller.Session.CanSelectDestinationPort("铜钟港", out string destinationReason),
+                Is.True, destinationReason);
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
             ClickAcceptanceButton("Route 1"); yield return null;
             int destination = Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count).Single(index =>

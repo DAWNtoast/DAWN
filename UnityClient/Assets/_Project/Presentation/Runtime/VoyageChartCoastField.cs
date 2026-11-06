@@ -14,7 +14,11 @@ namespace ShatteredSail.Presentation
     {
         public const int SamplesPerCell = 12;
         private const float Range = 2f;
-        private readonly float[] distances;
+        // Most of the chart is open water at the clamped distance. Only keep
+        // exact samples for blocks that contain at least one other value.
+        private const int DistanceBlockSize = 64;
+        private readonly int[] blockOffsets;
+        private readonly float[] coastDistances;
         public int Width { get; }
         public int Height { get; }
         public Color32[] Pixels { get; }
@@ -26,10 +30,9 @@ namespace ShatteredSail.Presentation
             Height = map.Rows * SamplesPerCell + 1;
             GeometryFingerprint = Fingerprint(map);
             int length = Width * Height;
-            bool[] land = new bool[length];
             float[] toLand = new float[length];
             float[] toWater = new float[length];
-            distances = new float[length];
+            blockOffsets = new int[(length - 1) / DistanceBlockSize + 1];
             Pixels = new Color32[length];
             for (int y = 0; y < Height; ++y)
             for (int x = 0; x < Width; ++x)
@@ -49,7 +52,6 @@ namespace ShatteredSail.Presentation
                     Mathf.Min(gy, map.Rows - gy));
                 bool solid = density + roughness > .5f && border > .20f;
                 int i = y * Width + x;
-                land[i] = solid;
                 toLand[i] = solid ? 0f : 10000f;
                 toWater[i] = solid ? 10000f : 0f;
                 float shoal = Mathf.Max(SampleTerrain(map, gx, gy, SeaTerrainType.Shoal),
@@ -60,14 +62,31 @@ namespace ShatteredSail.Presentation
             }
             DistanceTransform(toLand, Width, Height);
             DistanceTransform(toWater, Width, Height);
-            for (int i = 0; i < length; ++i)
+            int storedSamples = 0;
+            for (int start = 0; start < length; start += DistanceBlockSize)
             {
-                float d = land[i] ? toWater[i] - .5f : .5f - toLand[i];
-                d = Mathf.Clamp(d / SamplesPerCell, -Range, Range);
-                distances[i] = d;
-                Color32 pixel = Pixels[i];
-                pixel.r = (byte)Mathf.RoundToInt((d / (Range * 2f) + .5f) * 255f);
-                Pixels[i] = pixel;
+                int end = Math.Min(start + DistanceBlockSize, length);
+                bool hasShore = false;
+                for (int i = start; i < end; ++i)
+                {
+                    // Only solid samples remain zero in the distance-to-land transform.
+                    float d = toLand[i] == 0f ? toWater[i] - .5f : .5f - toLand[i];
+                    d = Mathf.Clamp(d / SamplesPerCell, -Range, Range);
+                    toLand[i] = d;
+                    hasShore |= d != -Range;
+                    Color32 pixel = Pixels[i];
+                    pixel.r = (byte)Mathf.RoundToInt((d / (Range * 2f) + .5f) * 255f);
+                    Pixels[i] = pixel;
+                }
+                blockOffsets[start / DistanceBlockSize] = hasShore ? storedSamples : -1;
+                if (hasShore) storedSamples += end - start;
+            }
+            coastDistances = new float[storedSamples];
+            for (int block = 0; block < blockOffsets.Length; block++)
+            {
+                int start = block * DistanceBlockSize;
+                if (blockOffsets[block] >= 0)
+                    Array.Copy(toLand, start, coastDistances, blockOffsets[block], Math.Min(DistanceBlockSize, length - start));
             }
         }
 
@@ -94,8 +113,14 @@ namespace ShatteredSail.Presentation
             float y = Mathf.Clamp(gridY * SamplesPerCell, 0f, Height - 1f);
             int ix = Mathf.FloorToInt(x), iy = Mathf.FloorToInt(y);
             int nx = Mathf.Min(ix + 1, Width - 1), ny = Mathf.Min(iy + 1, Height - 1);
-            return Mathf.Lerp(Mathf.Lerp(distances[iy * Width + ix], distances[iy * Width + nx], x - ix),
-                Mathf.Lerp(distances[ny * Width + ix], distances[ny * Width + nx], x - ix), y - iy);
+            return Mathf.Lerp(Mathf.Lerp(DistanceAt(iy * Width + ix), DistanceAt(iy * Width + nx), x - ix),
+                Mathf.Lerp(DistanceAt(ny * Width + ix), DistanceAt(ny * Width + nx), x - ix), y - iy);
+        }
+
+        private float DistanceAt(int index)
+        {
+            int offset = blockOffsets[index / DistanceBlockSize];
+            return offset < 0 ? -Range : coastDistances[offset + index % DistanceBlockSize];
         }
 
         private static float SampleTerrain(CoreVoyageMap map, float gx, float gy, SeaTerrainType type)

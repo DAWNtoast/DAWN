@@ -44,8 +44,16 @@ namespace ShatteredSail.Presentation
         private bool guidedNavigationInitialized;
         public GuidedTutorialStep CurrentGuidedTutorialStep => guidedTutorialStep;
         public GuidedTutorialNavigationInputStep CurrentGuidedTutorialNavigationInputStep => guidedTutorialNavigationInputStep;
+        private CoreMapNode GuidedTutorialCourseEvent => tutorialActive && session?.Map != null &&
+            session.GuidedTutorialLeg == CoreGuidedTutorialContent.NavigatorVoyageLeg &&
+            !session.GuidedTutorialCompletedEncounterIds.Contains(CoreGuidedTutorialContent.NavigatorEventId)
+                ? session.Map.Nodes.FirstOrDefault(node => !node.Visited && !node.Skipped && node.IsChartVisible &&
+                    node.Encounter.Id == CoreGuidedTutorialContent.NavigatorEventId)
+                : null;
         private string GuidedTutorialNavigationTargetControl =>
-            guidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Heading ? "Heading East" : "Execute Sail";
+            guidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Heading
+                ? GuidedTutorialCourseEvent is CoreMapNode node ? "Event Node " + node.Id : "Heading East"
+                : "Execute Sail";
         public bool GuidedTutorialRecoveryActive => tutorialActive && PlayerPrefs.GetInt(GuidedTutorialRecoveryKey, 0) == 1;
         public bool GuidedTutorialWarehousePending => tutorialActive && PlayerPrefs.GetInt(GuidedTutorialWarehousePendingKey, 0) == 1;
         public bool GuidedTutorialEquipmentPending => tutorialActive && PlayerPrefs.GetInt(GuidedTutorialEquipmentPendingKey, 0) == 1;
@@ -197,7 +205,7 @@ namespace ShatteredSail.Presentation
             if (session.Phase == CoreDemoPhase.Settlement)
             {
                 guidedTutorialStep = session.GuidedTutorialBossDefeated && session.Settlement.Outcome != VoyageOutcome.Failure
-                    ? pendingDrawnChart == null ? GuidedTutorialStep.DrawChart : GuidedTutorialStep.ThirdSettlement
+                    ? GuidedTutorialStep.ThirdSettlement
                     : leg == 1 ? GuidedTutorialStep.FirstSettlement
                     : leg == CoreGuidedTutorialContent.NavigatorVoyageLeg ? GuidedTutorialStep.SecondSettlement
                     : GuidedTutorialStep.ThirdSettlement;
@@ -205,8 +213,7 @@ namespace ShatteredSail.Presentation
             }
             if (session.Phase == CoreDemoPhase.Battle)
             {
-                guidedTutorialStep = session.ActiveEncounter != null && session.ActiveEncounter.Id == CoreGuidedTutorialContent.AmbushEventId
-                    ? GuidedTutorialStep.SecondRetreat : GuidedTutorialStep.TutorialBoss;
+                guidedTutorialStep = GuidedTutorialStep.TutorialBoss;
                 return;
             }
             if (session.Phase == CoreDemoPhase.Encounter)
@@ -267,7 +274,8 @@ namespace ShatteredSail.Presentation
             if (control == null || !control.isActiveAndEnabled || !control.IsInteractable() ||
                 navigationMotionPlaying || session == null || session.Phase != CoreDemoPhase.Sailing) return false;
             return !tutorialActive || (input != GuidedTutorialNavigationInputStep.Distance && GuidedIsSailingTarget(guidedTutorialStep) &&
-                !GuidedTutorialNeedsSupplyReturn && guidedTutorialNavigationInputStep == input);
+                !GuidedTutorialNeedsSupplyReturn && guidedTutorialNavigationInputStep == input &&
+                GuidedTutorialAllowsControl(control.name));
         }
 
         private void OnGuidedTutorialRouteSelected(int index)
@@ -324,7 +332,7 @@ namespace ShatteredSail.Presentation
             PlayerPrefs.SetInt(TutorialCompletedKey, 1);
             PlayerPrefs.SetInt(TutorialRewardGrantedKey, 1);
             session.ConfigureGuidedTutorialVoyage(0);
-            portNotice = "引导完成！罗盘已陈列，白色部件「漂木锯齿首」已亲自装上旗舰，海图已收录。现在可以自由探索。";
+            portNotice = "引导完成！罗盘已陈列，白色部件「漂木锯齿首」已亲自装上旗舰。现在可以自由探索。";
             SaveProgress();
             ShowGuidedTutorialCompletionNotice();
         }
@@ -415,14 +423,6 @@ namespace ShatteredSail.Presentation
             return null;
         }
 
-        private void RetreatCurrentBattle()
-        {
-            if (battleAnimationPlaying || !session.CanRetreatBattle) return;
-            if (tutorialActive && guidedTutorialStep != GuidedTutorialStep.SecondRetreat) return;
-            if (!session.RetreatFromBattle()) return;
-            Render();
-        }
-
         // A normal settlement feature, shared by the tutorial and free voyages.
         private void DrawCurrentSeaChart()
         {
@@ -462,7 +462,6 @@ namespace ShatteredSail.Presentation
                 session.GuidedTutorialCompletedEncounterIds.Contains(CoreGuidedTutorialContent.NavigatorEventId);
             bool lessonComplete = bossLessonComplete || legacyNavigatorComplete ||
                 tutorialActive && success && leg == 1 && session.GuidedTutorialCompletedEncounters >= 3;
-            if (bossLessonComplete && pendingDrawnChart == null) return;
             VoyageSettlement settledResult = session.Settlement;
             bool isTutorialVoyage = tutorialActive || leg > 0 ||
                 (CoreVoyageSession.TryParseChartSeed(session.CurrentChartSeed, out CoreSeaChartDefinition achievementChart) && achievementChart.TutorialWaters);
@@ -572,9 +571,11 @@ namespace ShatteredSail.Presentation
                 pendingVoyageCollectionBefore = collectionBefore;
             }
             SaveProgress();
+            QueueArrivalComic(settledResult);
             if (tutorialActive) ResetGuidedTutorialPortStep();
             Render();
             ShowSchoolUnlockNotice(previousPirateLevel);
+            ResumeOpeningPortComic();
         }
 
         private string LastDrawnChartSummary(int routeIndex = -1)

@@ -140,7 +140,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void BossTemplate_FixedLessonAndOneNavigator_CanWinAndChart()
+        public void BossTemplate_FixedLessonAndOneNavigator_CanWinAndSettleWithoutDrawing()
         {
             CoreVoyageSession session = Start(CoreGuidedTutorialContent.BossVoyageLeg, true);
             SailTo(session, CoreGuidedTutorialContent.BossEventId);
@@ -169,7 +169,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.PlayCard(0), Is.False);
             Assert.That(session.Cargo.Gold, Is.EqualTo(earned));
             Assert.That(session.SafeReturn(), Is.True);
-            Assert.That(session.Settlement.ChartSaved, Is.True);
+            Assert.That(session.Settlement.ChartSaved,
+                Is.EqualTo(session.Settlement.Coverage >= CoreVoyageSession.SeaChartDrawingExplorationThreshold));
             session.ReturnToPortAfterSettlement();
             Assert.That(session.GuidedTutorialBossDefeated, Is.True);
             Assert.That(session.ConfigureGuidedTutorialVoyage(0), Is.True);
@@ -301,7 +302,8 @@ namespace ShatteredSail.Core.Tests
             CoreGuidedBossScriptTests.PlayToCompletion(session);
             Assert.That(session.GuidedTutorialBossDefeated, Is.True);
             Assert.That(session.SafeReturn(), Is.True);
-            Assert.That(session.Settlement.ChartSaved, Is.True);
+            Assert.That(session.Settlement.ChartSaved,
+                Is.EqualTo(session.Settlement.Coverage >= CoreVoyageSession.SeaChartDrawingExplorationThreshold));
             session.ReturnToPortAfterSettlement();
             Assert.That(session.Cargo.Water, Is.GreaterThan(0));
             Assert.That(session.Cargo.Food, Is.GreaterThan(0));
@@ -346,7 +348,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GuidedTutorialBossDefeated, Is.True);
             Assert.That(session.Hull, Is.GreaterThan(0));
             Assert.That(session.SafeReturn(), Is.True);
-            Assert.That(session.Settlement.ChartSaved, Is.True);
+            Assert.That(session.Settlement.ChartSaved,
+                Is.EqualTo(session.Settlement.Coverage >= CoreVoyageSession.SeaChartDrawingExplorationThreshold));
             session.ReturnToPortAfterSettlement();
             Assert.That(session.Cargo.Water, Is.InRange(1, water - 1));
             Assert.That(session.Cargo.Food, Is.InRange(1, food - 1));

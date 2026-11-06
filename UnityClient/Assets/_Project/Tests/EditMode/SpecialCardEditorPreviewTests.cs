@@ -60,7 +60,7 @@ namespace ShatteredSail.Presentation.Tests
             AssertUpgradeStage(stage);
             controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.CardWorkshop, CoreGameplayPreviewPort.GrayGull, 0);
             Assert.That(controller.HasCompleteEditorPreview, Is.True);
-            Assert.That(Find<RectTransform>("Card Workshop Preview Panel").gameObject.activeSelf, Is.True);
+            Assert.That(Find<RectTransform>("Workshop Home Panel").gameObject.activeSelf, Is.True);
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Card Upgrade Panel"), Is.False);
             controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.DeckBuilder, CoreGameplayPreviewPort.GrayGull, 0);
             Assert.That(controller.HasCompleteEditorPreview, Is.True);
@@ -73,16 +73,19 @@ namespace ShatteredSail.Presentation.Tests
             CreatePreview(CoreGameplayPreviewScreen.CardWorkshop, CoreGameplayPreviewPort.GrayGull, 0);
             foreach (int chest in new[] { 3, 0, 1, 2 })
             {
+                Find<Button>("Workshop Entrance Collection").onClick.Invoke();
+                Canvas.ForceUpdateCanvases();
                 if (chest == 3) Find<Button>("Open Special Card Collection").onClick.Invoke();
                 else
                 {
                     Find<Button>("Workshop Preview Stage " + (NavalBattleStage)chest).onClick.Invoke();
-                    Find<Button>("Open Battle Card Upgrades").onClick.Invoke();
+                    Find<Button>("Workshop Page Upgrade").onClick.Invoke();
                 }
                 Find<RectTransform>(chest == 3 ? "Card Workshop Preview Panel" : "Battle Card Upgrade Panel");
                 controller.RefreshEditorPreview();
                 Assert.That(controller.HasCompleteEditorPreview, Is.True);
-                Find<RectTransform>("Card Workshop Preview Panel");
+                Find<RectTransform>("Workshop Home Panel");
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Workshop Preview Collection"), Is.False);
             }
         }
 
@@ -122,12 +125,14 @@ namespace ShatteredSail.Presentation.Tests
             foreach (string id in expected) Assert.That(controller.Session.GetSpecialCardExperience(id), Is.Zero);
             foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
             {
+                Find<Button>("Workshop School Filter neutral").onClick.Invoke();
                 Find<Button>("Workshop Preview Stage " + stage).onClick.Invoke();
-                Assert.That(Find<Button>("Open Battle Card Upgrades").interactable, Is.True);
+                Assert.That(Find<Button>("Workshop Page Upgrade").interactable, Is.True);
                 Find<Button>("Open Special Card Collection").onClick.Invoke();
-                Assert.That(Find<Button>("Open Battle Card Upgrades").interactable, Is.False);
+                Assert.That(host.GetComponentsInChildren<Button>(true).Any(button => button.name == "Confirm Battle Card Upgrade"), Is.False);
                 CollectionAssert.AreEquivalent(expected, controller.Session.AcquiredSpecialCardIds);
-                Assert.That(host.GetComponentsInChildren<Text>(true).Any(item => item.name == "Workshop Preview Empty"), Is.False);
+                bool hasNeutral = expected.Any(id => CardSchoolArtCatalog.NormalizeSchool(CoreSpecialCardCatalog.FindByCardId(id).Card.SchoolId) == "neutral");
+                Assert.That(host.GetComponentsInChildren<Text>(true).Any(item => item.name == "Workshop Preview Empty"), Is.EqualTo(!hasNeutral));
             }
             controller.RefreshEditorPreview();
             CollectionAssert.AreEquivalent(expected, controller.Session.AcquiredSpecialCardIds);
@@ -149,51 +154,63 @@ namespace ShatteredSail.Presentation.Tests
             finally { previewBuilding.SetValue(controller, false); }
             Find<RectTransform>("Card Workshop Preview Panel");
             Assert.That(Find<Text>("Workshop Preview Empty").text, Does.Contain("暂无已获得"));
-            Assert.That(Find<Button>("Open Battle Card Upgrades").interactable, Is.False);
+            Assert.That(host.GetComponentsInChildren<Button>(true).Any(button => button.name == "Confirm Battle Card Upgrade"), Is.False);
             Assert.That(Find<Button>("Previous Upgrade Cards").interactable, Is.False);
             Assert.That(Find<Button>("Next Upgrade Cards").interactable, Is.False);
-            Find<ProhibitionMarkGraphic>("Workshop Upgrade Disabled Mark");
+            Find<RectTransform>("Workshop Collection Detail");
         }
 
         private void AssertCompleteSpecialCollectionLayout()
         {
-            Canvas.ForceUpdateCanvases();
-            RectTransform panel = Find<RectTransform>("Workshop Preview Collection");
-            Button[] choices = panel.GetComponentsInChildren<Button>(true)
-                .Where(button => button.name.StartsWith("Select Special Card ", StringComparison.Ordinal))
-                .OrderBy(button => button.GetComponent<RectTransform>().anchoredPosition.x).ToArray();
-            Assert.That(choices, Has.Length.EqualTo(3), "The regional sample shows three complete cards in one row.");
-            Rect? previous = null;
-            foreach (Button choice in choices)
+            var seen = new HashSet<string>();
+            foreach (string school in new[] { "neutral", "fire", "arcane", "curse", "tide", "thunder", "blood" })
             {
-                string index = choice.name.Substring("Select Special Card ".Length);
-                RectTransform face = Find<RectTransform>("Special Card " + index + " Face");
-                Assert.That(face.sizeDelta, Is.EqualTo(CardFaceLayout.CardSize));
-                Assert.That(face.localScale, Is.EqualTo(Vector3.one * .76f));
-                AssertCompleteUpgradeFace(face);
-                Rect bounds = UpgradeBoundsIn(panel, face);
-                Assert.That(bounds.width, Is.EqualTo(CardFaceLayout.CardSize.x * .76f).Within(.1f));
-                Assert.That(bounds.height, Is.EqualTo(CardFaceLayout.CardSize.y * .76f).Within(.1f));
-                bounds = UpgradeBoundsIn(panel, face.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
-                Assert.That(bounds.width, Is.EqualTo(ExpectedFrameBounds(face).width * .76f).Within(.1f));
-                Assert.That(bounds.height, Is.EqualTo(ExpectedFrameBounds(face).height * .76f).Within(.1f));
-                if (previous.HasValue)
+                Find<Button>("Workshop School Filter " + school).onClick.Invoke();
+                Canvas.ForceUpdateCanvases();
+                RectTransform panel = Find<RectTransform>("Workshop Preview Collection");
+                Button[] choices = panel.GetComponentsInChildren<Button>(true)
+                    .Where(button => button.name.StartsWith("Select Special Card ", StringComparison.Ordinal))
+                    .OrderBy(button => button.GetComponent<RectTransform>().anchoredPosition.x).ToArray();
+                string[] expected = controller.Session.AcquiredSpecialCardIds.Where(id =>
+                    CardSchoolArtCatalog.NormalizeSchool(CoreSpecialCardCatalog.FindByCardId(id).Card.SchoolId) == school).ToArray();
+                Assert.That(choices, Has.Length.EqualTo(expected.Length), "Each school shows only its regional sample cards.");
+                CollectionAssert.AreEquivalent(expected, choices.Select(choice => controller.Session.GetBattleCard(
+                    int.Parse(choice.name.Substring("Select Special Card ".Length))).Id));
+                foreach (string id in expected) Assert.That(seen.Add(id), Is.True, "A sample card belongs to one school filter.");
+                Rect? previous = null;
+                foreach (Button choice in choices)
                 {
-                    Assert.That(bounds.center.y, Is.EqualTo(previous.Value.center.y).Within(.1f));
-                    Assert.That(bounds.xMin, Is.GreaterThan(previous.Value.xMax), "Collection cards must not overlap.");
+                    string index = choice.name.Substring("Select Special Card ".Length);
+                    RectTransform face = Find<RectTransform>("Special Card " + index + " Face");
+                    Assert.That(face.sizeDelta, Is.EqualTo(CardFaceLayout.CardSize));
+                    Assert.That(face.localScale, Is.EqualTo(Vector3.one * .78f));
+                    AssertCompleteUpgradeFace(face);
+                    Rect bounds = UpgradeBoundsIn(panel, face);
+                    Assert.That(bounds.width, Is.EqualTo(CardFaceLayout.CardSize.x * .78f).Within(.1f));
+                    Assert.That(bounds.height, Is.EqualTo(CardFaceLayout.CardSize.y * .78f).Within(.1f));
+                    bounds = UpgradeBoundsIn(panel, face.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
+                    Assert.That(bounds.width, Is.EqualTo(ExpectedFrameBounds(face).width * .78f).Within(.1f));
+                    Assert.That(bounds.height, Is.EqualTo(ExpectedFrameBounds(face).height * .78f).Within(.1f));
+                    if (previous.HasValue)
+                    {
+                        Assert.That(bounds.center.y, Is.EqualTo(previous.Value.center.y).Within(.1f));
+                        Assert.That(bounds.xMin, Is.GreaterThan(previous.Value.xMax), "Collection cards must not overlap.");
+                    }
+                    previous = bounds;
                 }
-                previous = bounds;
+                Assert.That(Find<Button>("Previous Upgrade Cards").interactable, Is.False);
+                Assert.That(Find<Button>("Next Upgrade Cards").interactable, Is.False);
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Upgrade Collection Page"), Is.False);
+                Outline[] selection = panel.GetComponentsInChildren<CardSchoolFrameGraphic>(true)
+                    .Select(frame => frame.GetComponent<Outline>()).Where(outline => outline != null).ToArray();
+                Assert.That(selection, Has.Length.EqualTo(choices.Length > 0 ? 1 : 0));
+                Assert.That(host.GetComponentsInChildren<Button>(true).Any(button => button.name == "Confirm Battle Card Upgrade"), Is.False);
+                Find<RectTransform>("Workshop Collection Detail");
+                Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Card Upgrade Panel"), Is.False);
             }
-            Assert.That(Find<Button>("Previous Upgrade Cards").interactable, Is.False);
-            Assert.That(Find<Button>("Next Upgrade Cards").interactable, Is.False);
-            Assert.That(Find<Text>("Upgrade Collection Page").text.Replace(" ", string.Empty), Does.Contain("1/1"));
-            Outline[] selection = panel.GetComponentsInChildren<CardSchoolFrameGraphic>(true)
-                .Select(frame => frame.GetComponent<Outline>()).Where(outline => outline != null).ToArray();
-            Assert.That(selection, Has.Length.EqualTo(1));
-            Assert.That(Find<Button>("Open Battle Card Upgrades").interactable, Is.False);
-            Assert.That(Find<ProhibitionMarkGraphic>("Workshop Upgrade Disabled Mark").raycastTarget, Is.False);
-            Find<Button>("Open Battle Card Upgrades").onClick.Invoke();
-            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Card Upgrade Panel"), Is.False);
+            CollectionAssert.AreEquivalent(controller.Session.AcquiredSpecialCardIds, seen);
+            Assert.That(seen, Has.Count.EqualTo(3), "All three regional samples remain reachable through school filters.");
+            Find<Button>("Workshop School Filter neutral").onClick.Invoke();
         }
 
         private void AssertUpgradeStage(int stage)
@@ -210,27 +227,32 @@ namespace ShatteredSail.Presentation.Tests
         {
             Canvas.ForceUpdateCanvases();
             RectTransform panel = Find<RectTransform>("Battle Card Upgrade Panel");
-            RectTransform collection = Find<RectTransform>("Workshop Preview Collection");
+            RectTransform collection = Find<RectTransform>("Workshop Upgrade Library");
             Button[] choices = collection.GetComponentsInChildren<Button>(true)
-                .Where(button => button.name.StartsWith("Select Upgrade Card ", StringComparison.Ordinal))
-                .OrderBy(button => int.Parse(button.name.Substring("Select Upgrade Card ".Length))).ToArray();
-            Assert.That(choices.Length, Is.InRange(1, 8), "Each page fits at most two rows of four complete available cards.");
+                .Where(button => button.name.StartsWith("Select Upgrade Card ", StringComparison.Ordinal)).ToArray();
+            Assert.That(choices.Length, Is.InRange(1, 6), "The upgrade library shows at most six compact choices.");
+            NavalBattleStage stage = (NavalBattleStage)typeof(CoreGameplayDemoController)
+                .GetField("selectedBattleDeckStage", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
             var bounds = new List<Rect>();
             foreach (Button choice in choices)
             {
                 string index = choice.name.Substring("Select Upgrade Card ".Length);
-                RectTransform face = Find<RectTransform>("Upgrade Collection " + index + " Face");
-                Assert.That(face.sizeDelta, Is.EqualTo(CardFaceLayout.CardSize));
-                Assert.That(face.localScale.x, Is.GreaterThan(0f));
-                Assert.That(face.localScale.y, Is.EqualTo(face.localScale.x), "Card faces use uniform scaling.");
-                AssertCompleteUpgradeFace(face);
-                Rect frame = UpgradeBoundsIn(collection, face.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform);
-                Assert.That(frame.width / frame.height, Is.EqualTo(ExpectedFrameBounds(face).width / ExpectedFrameBounds(face).height).Within(.001f));
-                Assert.That(bounds.All(previous => !previous.Overlaps(frame)), Is.True, "Complete card frames cannot overlap.");
-                bounds.Add(frame);
+                CoreBattleCard card = controller.Session.GetBattleCard(int.Parse(index), stage);
+                Assert.That(Find<RawImage>("Upgrade List Art " + index).texture, Is.Not.Null);
+                Assert.That(Find<Text>("Upgrade List Name " + index).text, Is.EqualTo(card.Name));
+                Assert.That(Find<Text>("Upgrade List Level " + index).text, Is.EqualTo("+" + card.UpgradeLevel));
+                Assert.That(choice.GetComponentInChildren<CardSchoolFrameGraphic>(), Is.Null,
+                    "The picker reserves full card faces for the comparison panel.");
+                Rect row = UpgradeBoundsIn(collection, choice.GetComponent<RectTransform>());
+                Assert.That(row.xMin, Is.GreaterThanOrEqualTo(collection.rect.xMin));
+                Assert.That(row.xMax, Is.LessThanOrEqualTo(collection.rect.xMax));
+                Assert.That(row.yMin, Is.GreaterThanOrEqualTo(collection.rect.yMin));
+                Assert.That(row.yMax, Is.LessThanOrEqualTo(collection.rect.yMax));
+                Assert.That(bounds.All(previous => !previous.Overlaps(row)), Is.True, "Picker rows cannot overlap.");
+                bounds.Add(row);
             }
-            Assert.That(bounds.Select(rect => Mathf.Round(rect.center.x)).Distinct().Count(), Is.EqualTo(Mathf.Min(4, choices.Length)));
-            Assert.That(bounds.Select(rect => Mathf.Round(rect.center.y)).Distinct().Count(), Is.EqualTo(Mathf.CeilToInt(choices.Length / 4f)));
+            Assert.That(bounds.Select(rect => Mathf.Round(rect.center.x)).Distinct().Count(), Is.EqualTo(1));
+            Assert.That(bounds.Select(rect => Mathf.Round(rect.center.y)).Distinct().Count(), Is.EqualTo(choices.Length));
             RectTransform current = Find<RectTransform>("Upgrade Comparison Current Face");
             RectTransform next = Find<RectTransform>("Upgrade Comparison Next Face");
             RectTransform arrow = Find<RectTransform>("Upgrade Comparison Arrow");
@@ -245,16 +267,15 @@ namespace ShatteredSail.Presentation.Tests
                 AssertCompleteUpgradeFace(face);
             }
             Assert.That(current.localScale, Is.EqualTo(next.localScale));
+            Assert.That(current.localScale, Is.EqualTo(Vector3.one * 1.3f));
             Assert.That(currentBounds.center.y, Is.EqualTo(nextBounds.center.y).Within(.1f));
             Assert.That(arrowBounds.xMin, Is.GreaterThan(currentBounds.xMax));
             Assert.That(arrowBounds.xMax, Is.LessThan(nextBounds.xMin));
             Assert.That(arrow.GetComponent<Graphic>(), Is.Not.Null);
             Assert.That(arrow.GetComponent<Graphic>().raycastTarget, Is.False);
-            Rect title = UpgradeBoundsIn(panel, Find<Text>("Card Upgrade Heading").rectTransform);
             Rect name = UpgradeBoundsIn(panel, Find<Text>("Upgrade Selected Name").rectTransform);
             Rect confirm = UpgradeBoundsIn(panel, Find<Button>("Confirm Battle Card Upgrade").GetComponent<RectTransform>());
-            Assert.That(Find<Text>("Card Upgrade Heading").text, Is.EqualTo("卡牌强化"));
-            Assert.That(title.yMin, Is.GreaterThanOrEqualTo(name.yMax));
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Card Upgrade Heading"), Is.False);
             Assert.That(name.yMin, Is.GreaterThan(currentBounds.yMax));
             Assert.That(confirm.yMax, Is.LessThan(currentBounds.yMin));
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Workshop Actions"), Is.False,

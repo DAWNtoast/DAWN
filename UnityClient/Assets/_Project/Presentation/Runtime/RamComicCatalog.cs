@@ -1,5 +1,6 @@
 using System;
 using ShatteredSail.Core.Gameplay;
+using UnityEngine;
 
 namespace ShatteredSail.Presentation
 {
@@ -9,6 +10,14 @@ namespace ShatteredSail.Presentation
         public const int SequenceCount = 4;
         public const int PagesPerSequence = 4;
         public const int ResourceCount = SequenceCount * PagesPerSequence;
+        public const int SourceWidth = 3344, SourceHeight = 1882;
+
+        // Desktop BC7 imports append two repeated edge rows. Keep the original
+        // visible pixels and aspect; other platforms retain their full source UV.
+        public static Rect ImageUvRect(Texture2D texture) => texture != null && texture.format == TextureFormat.BC7 &&
+            texture.width == SourceWidth && texture.height == 1884
+                ? new Rect(0f, 0f, 1f, SourceHeight / 1884f)
+                : new Rect(0f, 0f, 1f, 1f);
 
         private static readonly string[] SequenceNames =
         {

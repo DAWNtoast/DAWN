@@ -181,7 +181,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(label.text, Does.Contain("锁定："));
             Assert.That(label.text, Does.Contain(node.Encounter.Name));
             Assert.That(label.text, Does.Contain("本段"));
-            Assert.That(GameObject.Find("Forecast").GetComponent<Text>().text, Does.Contain("手动改航向可取消锁定"));
+            Assert.That(GameObject.Find("Forecast").GetComponent<Text>().text, Does.Not.Contain("手动改航向可取消锁定"));
         }
 
         private static CoreEncounter PersistentCourseEncounter(string id, string name) =>

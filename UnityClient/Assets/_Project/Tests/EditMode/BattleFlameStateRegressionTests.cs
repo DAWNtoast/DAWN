@@ -18,14 +18,15 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = CreateMixedFlameBattle();
             ExhaustStrongReserve(session);
             Assert.That(session.Battle.PlayerFireRounds, Is.Zero);
-            int weakDamage = session.GetBattleCard(Index(WeakFlame)).BurnDamage;
-            Assert.That(weakDamage, Is.LessThan(session.GetBattleCard(Index(StrongFlame)).BurnDamage));
+            int weakLayers = session.GetBattleCard(Index(WeakFlame)).StrategyAmount;
+            Assert.That(weakLayers, Is.EqualTo(2));
+            Assert.That(session.GetBattleCard(Index(StrongFlame)).StrategyAmount, Is.EqualTo(3));
 
             Play(session, WeakFlame);
 
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(2));
-            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(weakDamage),
-                "An exhausted upgraded reserve must not permanently upgrade a different source.");
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(weakLayers),
+                "An exhausted upgraded reserve must not increase the next source's authored attached-fire layers.");
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(2), "Preparing attached fire does not apply it before an attack.");
         }
 
         [Test]
@@ -34,12 +35,16 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = CreateMixedFlameBattle();
             ExhaustStrongReserve(session);
             int layers = session.Battle.EnemyBurnTurns;
+            session.Battle.EnemyBlock = 1;
             while (layers > 0)
             {
                 int before = session.Battle.EnemyHull;
+                int block = session.Battle.EnemyBlock;
+                int absorbed = Math.Min(block, layers);
                 typeof(CoreVoyageSession).GetMethod("ApplySchoolNaturalBurn", BindingFlags.Instance | BindingFlags.NonPublic)
                     .Invoke(session, null);
-                Assert.That(session.Battle.EnemyHull, Is.EqualTo(before - layers));
+                Assert.That(session.Battle.EnemyHull, Is.EqualTo(before - layers + absorbed));
+                Assert.That(session.Battle.EnemyBlock, Is.EqualTo(block - absorbed));
                 Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(--layers));
                 Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(layers));
             }
@@ -47,12 +52,16 @@ namespace ShatteredSail.Core.Tests
             Play(session, WeakFlame);
             Play(session, "card_chain_shot");
 
-            int weakDamage = session.GetBattleCard(Index(WeakFlame)).BurnDamage;
+            int weakDamage = session.GetBattleCard(Index(WeakFlame)).StrategyAmount;
             Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(weakDamage));
-            Assert.That(session.GetEnemyIntent(), Does.Contain("灼烧 " + weakDamage));
+            Assert.That(session.GetEnemyIntent(), Does.Contain("燃烧 " + weakDamage));
             int hull = session.Battle.EnemyHull;
-            Assert.That(session.EndBattleTurn(), Is.True);
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hull - weakDamage));
+            session.Battle.EnemyBlock = 1;
+            typeof(CoreVoyageSession).GetMethod("ApplySchoolNaturalBurn", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(session, null);
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hull - weakDamage + 1));
+            Assert.That(session.Battle.EnemyBlock, Is.Zero);
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(weakDamage - 1));
         }
 
         [Test]
@@ -61,13 +70,13 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = CreateMixedFlameBattle();
             ExhaustStrongReserve(session);
             Assert.That(session.EndBattleTurn(), Is.True);
-            int remaining = session.GetBattleCard(Index(StrongFlame)).BurnDamage * 2 - 2;
+            int remaining = session.GetBattleCard(Index(StrongFlame)).StrategyAmount - 2;
             Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(remaining), "Each completed enemy turn removes exactly one layer.");
             Play(session, WeakFlame);
             Play(session, "card_chain_shot");
 
-            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(session.GetBattleCard(Index(WeakFlame)).BurnDamage));
-            int total = remaining + session.GetBattleCard(Index(WeakFlame)).BurnDamage;
+            Assert.That(session.Battle.PlayerFireRounds, Is.Zero);
+            int total = remaining + session.GetBattleCard(Index(WeakFlame)).StrategyAmount;
             Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(total));
             Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(total),
                 "New applications add layers without replacing or reviving an earlier source.");
@@ -94,7 +103,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.LastAction, Does.Not.Contain("敌方无法行动"),
                 "Next turn's lethal burn must not replace the attack that just occurred.");
             Assert.That(session.GetEnemyIntent(), Does.Not.Contain("敌方无法行动"));
-            Assert.That(session.GetEnemyIntent(), Does.Contain("回合结束灼烧 9"),
+            Assert.That(session.GetEnemyIntent(), Does.Contain("回合结束燃烧 9"),
                 "Even a lethal next burn resolves after the enemy action.");
         }
 
@@ -120,16 +129,17 @@ namespace ShatteredSail.Core.Tests
         private static void ExhaustStrongReserve(CoreVoyageSession session)
         {
             Play(session, StrongFlame);
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(2), "Upgrade damage does not multiply ammunition reserves.");
-            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(session.GetBattleCard(Index(StrongFlame)).BurnDamage));
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(3), "The upgraded source grants three layers for the next attack.");
             for (int shot = 0; shot < 2; shot++)
             {
-                // Exhaust ammunition through normal turns. Each shot adds its own
-                // layers; the intervening enemy turn settles and removes one layer.
+                // Only the first attack applies the reserve. The next turn's shot
+                // cannot revive it; natural burn still loses one layer per turn.
                 if (shot > 0) Assert.That(session.EndBattleTurn(), Is.True);
                 Play(session, "card_chain_shot");
+                Assert.That(session.Battle.PlayerFireRounds, Is.Zero);
+                Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(3 - shot));
             }
-            int layers = session.GetBattleCard(Index(StrongFlame)).BurnDamage * 2 - 1;
+            int layers = session.GetBattleCard(Index(StrongFlame)).StrategyAmount - 1;
             Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(layers));
             Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(layers));
         }

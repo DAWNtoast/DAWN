@@ -61,6 +61,9 @@ namespace ShatteredSail.Presentation
             Text energy = CreateText(objectName + " Energy",root,new Vector2(38f,44f),energyPosition,
                 28,FontStyle.Bold,TextAnchor.MiddleCenter,Color.white);
             energy.text = data.Energy.ToString();
+            // Center the visible numeral on the crystal, ignoring font bearings and line padding.
+            energy.alignByGeometry = true;
+            energy.gameObject.AddComponent<SettlementTextCentering>();
             Text title = CreateText(objectName + " Name",root,new Vector2(129f,40f),
                 new Vector2(54f + 64.5f-size.x*.5f,0f),22,FontStyle.Bold,TextAnchor.MiddleLeft,Html("#F9EFD1"));
             title.text = CardFaceLayout.DisplayName(data);

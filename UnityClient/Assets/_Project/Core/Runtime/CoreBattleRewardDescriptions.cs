@@ -7,10 +7,10 @@ namespace ShatteredSail.Core.Gameplay
     public static class CoreBattleRewardDescriptions
     {
         public static string Victory(bool boss, VoyageEffect reward, double rewardMultiplier = 1d,
-            bool doctor = false, bool diver = false) =>
-            "击沉：金币 +" + CoreBattleRewardBalance.GoldReward(boss, reward, false, rewardMultiplier, doctor, diver) +
+            bool doctor = false, bool diver = false, bool sparring = false) =>
+            (sparring ? "海战切磋：金币 +" : "击沉：金币 +") + CoreBattleRewardBalance.GoldReward(boss, reward, false, rewardMultiplier, doctor, diver) +
             "、声望 +" + CoreBattleRewardBalance.FameReward(boss, reward, false, rewardMultiplier) +
-            "；夺船×2：金币 +" + CoreBattleRewardBalance.GoldReward(boss, reward, true, rewardMultiplier, doctor, diver) +
+            (sparring ? "；接舷切磋×1.25：金币 +" : "；夺船×1.25：金币 +") + CoreBattleRewardBalance.GoldReward(boss, reward, true, rewardMultiplier, doctor, diver) +
             "、声望 +" + CoreBattleRewardBalance.FameReward(boss, reward, true, rewardMultiplier);
 
         public static string AdditionalEffects(VoyageEffect effect, double rewardMultiplier = 1d, bool doctor = false)

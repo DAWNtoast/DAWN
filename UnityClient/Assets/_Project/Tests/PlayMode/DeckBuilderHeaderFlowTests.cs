@@ -16,16 +16,18 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
-        public IEnumerator DeckBuilderCards_TenDifferentRowsFillBothColumns()
+        public IEnumerator DeckBuilderCards_ElevenDifferentRowsFitBothColumns()
         {
+            const int fittingRows = 11;
+            const float rowHeight = 56f;
             yield return LoadDeckBuilderCardFixture();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             int[] deck = controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval)
                 .Where(index => !CoreVoyageSession.IsSpecialBattleCard(controller.Session.GetBattleCard(index).Id))
-                .OrderByDescending(index => CardFaceLayout.DisplayName(controller.Session.GetBattleCard(index)).Length).Take(10).ToArray();
+                .OrderByDescending(index => CardFaceLayout.DisplayName(controller.Session.GetBattleCard(index)).Length).Take(fittingRows).ToArray();
             Assert.That(controller.Session.SetBattleDeck(NavalBattleStage.Naval, deck), Is.True);
             CoreSpecialCardDefinition[] sources = CoreSpecialCardCatalog.All.Where(card => card.Card.IsAllowedInStage(NavalBattleStage.Naval))
-                .OrderByDescending(card => CardFaceLayout.DisplayName(controller.Session.GetBattleCard(DeckBuilderIndex(card.Card.Id))).Length).Take(10).ToArray();
+                .OrderByDescending(card => CardFaceLayout.DisplayName(controller.Session.GetBattleCard(DeckBuilderIndex(card.Card.Id))).Length).Take(fittingRows).ToArray();
             ClickDeckBuilderHeader("Battle Deck Stage Tab Naval");
             yield return null;
             // Render refreshes production crew/equipment sources. Inject this visual fixture only after
@@ -33,7 +35,7 @@ namespace ShatteredSail.Presentation.Tests
             controller.Session.ConfigureSpecialCardSources(
                 sources.Where(card => card.SourceKind == CoreSpecialCardSourceKind.Crew).Select(card => card.SourceId).ToArray(),
                 sources.Where(card => card.SourceKind == CoreSpecialCardSourceKind.Component).Select(card => card.SourceId).ToArray());
-            Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval), Has.Count.EqualTo(10));
+            Assert.That(controller.Session.GetBonusBattleCards(NavalBattleStage.Naval), Has.Count.EqualTo(fittingRows));
             GameObject oldColumn = GameObject.Find("Deck Builder Special Column");
             int siblingIndex = oldColumn.transform.GetSiblingIndex();
             oldColumn.SetActive(false);
@@ -58,20 +60,26 @@ namespace ShatteredSail.Presentation.Tests
             {
                 ScrollRect scroll = DeckBuilderScroll(special);
                 Button[] rows = special ? DeckBuilderSpecialCards() : DeckBuilderBaseCards();
-                Assert.That(rows, Has.Length.EqualTo(10));
-                foreach (Button row in rows) AssertDeckBuilderCompactCard(controller, row, 1);
+                Assert.That(rows, Has.Length.EqualTo(fittingRows));
+                foreach (Button row in rows)
+                {
+                    AssertDeckBuilderCompactCard(controller, row, 1);
+                    Assert.That(row.GetComponent<RectTransform>().rect.height, Is.EqualTo(rowHeight).Within(.1f));
+                }
+                Assert.That(scroll.viewport.rect.height, Is.EqualTo(622f).Within(.1f));
                 Assert.That(scroll.content.rect.height, Is.EqualTo(scroll.viewport.rect.height).Within(.1f));
                 Rect first = ForgeBoundsIn(scroll.viewport, rows[0].GetComponent<RectTransform>());
                 Rect last = ForgeBoundsIn(scroll.viewport, rows.Last().GetComponent<RectTransform>());
                 Assert.That(first.yMax, Is.EqualTo(scroll.viewport.rect.yMax).Within(.1f));
-                Assert.That(last.yMin, Is.EqualTo(scroll.viewport.rect.yMin).Within(.1f));
+                Assert.That(last.yMin - scroll.viewport.rect.yMin, Is.EqualTo(622f - fittingRows * rowHeight).Within(.1f),
+                    "Eleven rows fit at their normal height with six units left below the last row.");
                 DeckListDiamondScrollbar bar = scroll.transform.parent.GetComponentInChildren<DeckListDiamondScrollbar>(true);
                 Assert.That(bar.HasOverflow, Is.False);
                 Assert.That(bar.Handle.gameObject.activeSelf, Is.False);
             }
             yield return new WaitForSecondsRealtime(.7f);
-            NavalBattleVisualCapture.Capture(controller, "DeckBuilderCards_00_TenDifferentRows.png",
-                "两列包含当前炮击阶段最长基础与专属卡名，各10种铺满，验证缩字与数量图标互不遮挡", "Deck Builder Panel");
+            NavalBattleVisualCapture.Capture(controller, "DeckBuilderCards_00_ElevenDifferentRows.png",
+                "两列各显示11种卡牌，检查最长基础及专属卡名、数量图标和底部余量", "Deck Builder Panel");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -153,6 +161,8 @@ namespace ShatteredSail.Presentation.Tests
             Button[] rows = DeckBuilderBaseCards();
             Assert.That(GameObject.Find("Deck Builder Heading"), Is.Null);
             Assert.That(GameObject.Find("Deck Builder Interaction Hint"), Is.Null);
+            Assert.That(GameObject.Find("Workshop Collection Page Count"), Is.Null);
+            Canvas.ForceUpdateCanvases();
             Assert.That(GameObject.Find("Deck Builder Hover Preview"), Is.Null);
 
             PointerEventData firstPointer = DeckBuilderPointer(rows[0]);
@@ -383,23 +393,44 @@ namespace ShatteredSail.Presentation.Tests
             yield return DragDeckBuilderCard(source, new Vector2(-50f, -50f), false);
             CollectionAssert.AreEqual(original, controller.Session.GetBattleDeck(NavalBattleStage.Naval), "Dropping outside the screen does not remove a card.");
             CollectionAssert.AreEquivalent(saved, DeckBuilderSavedProgress(), "Canceled or invalid drags never save.");
+
+            source = DeckBuilderBaseCards().First(card => DeckBuilderCardIndex(card) == chain);
+            yield return RevealDeckBuilderCard(source);
+            Vector2 paperEdge = DeckBuilderWidePaperEdgePoint(false);
+            yield return DragDeckBuilderCard(source, paperEdge, false);
+            CollectionAssert.AreEqual(original, controller.Session.GetBattleDeck(NavalBattleStage.Naval),
+                "Dropping a deck card on the visible paper's expanded left edge must not remove it.");
+            CollectionAssert.AreEquivalent(saved, DeckBuilderSavedProgress());
+            source = ActiveButton("Add Deck Card " + chain);
+            paperEdge = DeckBuilderWidePaperEdgePoint(true);
+            yield return DragDeckBuilderCard(source, paperEdge, false);
+            AssertDeckBuilderSaved(controller, 12);
+            Assert.That(controller.Session.GetBattleDeck(NavalBattleStage.Naval).Count(index => index == chain), Is.EqualTo(2),
+                "Dropping a library card on the visible paper's expanded right edge adds exactly one copy.");
             LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]
-        public IEnumerator DeckBuilderHeader_AllFourButtonsStayOnPaperAndFilterReadOnlySpecialCardsByStage()
+        public IEnumerator DeckBuilderHeader_AllFourButtonsStayOnPaperAndFilterReadOnlySpecialCardsByStageAndSchool()
         {
             yield return LoadDeckBuilderCardFixture();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             NavalBattleStage[] stages = { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding };
             string[] labels = { "备战策略", "炮击机动", "接舷近战" };
+            string[] schools = { "neutral", "fire", "arcane", "curse", "tide", "thunder", "blood" };
+            // Pagination applies after both filters. Seed nine cards in each populated stage/school
+            // group so the neutral collection still exercises a second page in every stage.
             controller.Session.AcquireSpecialCards(stages.SelectMany(stage => CoreSpecialCardCatalog.All
-                .Where(source => source.Card.IsAllowedInStage(stage)).Take(9)).Select(source => source.Card.Id).Distinct().ToArray());
+                .Where(source => source.Card.IsAllowedInStage(stage))
+                .GroupBy(source => CardSchoolArtCatalog.NormalizeSchool(source.Card.SchoolId))
+                .SelectMany(group => group.Take(9))).Select(source => source.Card.Id).Distinct().ToArray());
             Dictionary<NavalBattleStage, int[]> decks = stages.ToDictionary(stage => stage, stage => controller.Session.GetBattleDeck(stage).ToArray());
             Dictionary<string, string> saves = DeckBuilderSavedProgress();
             for (int index = 0; index < stages.Length; index++)
             {
                 ClickDeckBuilderHeader("Battle Deck Stage Tab " + stages[index]);
+                yield return null;
+                ClickDeckBuilderHeader("Workshop School Filter neutral");
                 yield return null;
                 Assert.That(GameObject.Find("Deck Builder Deck Title").GetComponent<Text>().text, Does.Contain(labels[index]));
                 Button[] tabs = GameObject.Find("Deck Builder Header").GetComponentsInChildren<Button>();
@@ -414,11 +445,11 @@ namespace ShatteredSail.Presentation.Tests
                 }
                 Button[] available = GameObject.Find("Deck Builder Collection").GetComponentsInChildren<Button>()
                     .Where(button => button.name.StartsWith("Add Deck Card ")).ToArray();
-                Assert.That(available.Length, Is.InRange(1, 8));
+                Assert.That(available.Length, Is.InRange(1, 6));
                 foreach (Button button in available)
                     Assert.That(controller.Session.GetBattleCard(DeckBuilderCardIndex(button)).IsAllowedInStage(stages[index]), Is.True);
                 NavalBattleVisualCapture.Capture(controller, "DeckBuilderCards_Stage_" + stages[index] + ".png", "真实卡面编组 · " + labels[index], "Deck Builder Panel");
-                Assert.That(ActiveButton("Open Battle Card Upgrades"), Is.Null);
+                Assert.That(ActiveButton("Workshop Page Upgrade"), Is.Not.Null);
                 Assert.That(ActiveButton("Open Special Card Collection").GetComponentInChildren<Text>().text, Is.EqualTo("特殊卡牌"));
                 ClickDeckBuilderHeader("Open Special Card Collection");
                 yield return null;
@@ -426,37 +457,61 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null);
                 Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
                 HashSet<int> visible = new HashSet<int>();
-                int[] expected = controller.Session.AcquiredSpecialCardIds.Select(DeckBuilderIndex)
-                    .Where(card => controller.Session.GetBattleCard(card).IsAllowedInStage(stages[index])).ToArray();
-                for (int page = 0; page < Mathf.CeilToInt(expected.Length / 8f); page++)
+                int[] expectedStage = controller.Session.AcquiredSpecialCardIds.Select(DeckBuilderIndex)
+                    .Where(card => controller.Session.GetBattleCard(card, stages[index]).IsAllowedInStage(stages[index])).ToArray();
+                bool visitedSecondPage = false;
+                foreach (string school in schools)
                 {
-                    Button[] specialCards = GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>()
-                        .Where(button => button.name.StartsWith("Select Special Card ")).ToArray();
-                    foreach (Button card in specialCards)
-                    {
-                        int cardIndex = int.Parse(card.name.Substring("Select Special Card ".Length));
-                        Assert.That(visible.Add(cardIndex), Is.True, "Each matching special appears only once across pages.");
-                        Assert.That(controller.Session.GetBattleCard(cardIndex).IsAllowedInStage(stages[index]), Is.True);
-                        Assert.That(card.GetComponent<DeckBuilderCardDrag>(), Is.Null);
-                        AssertSpecialCardMembership(cardIndex, controller.Session.GetBonusBattleCards(stages[index]).Contains(cardIndex));
-                    }
-                    int[] bonusBeforeSelection = controller.Session.GetBonusBattleCards(stages[index]).ToArray();
-                    ClickDeckBuilderHeader(specialCards.Last().name);
+                    ClickDeckBuilderHeader("Workshop School Filter " + school);
                     yield return null;
-                    CollectionAssert.AreEqual(decks[stages[index]], controller.Session.GetBattleDeck(stages[index]),
-                        "Clicking a special card only selects its preview and cannot add it to the base deck.");
-                    CollectionAssert.AreEqual(bonusBeforeSelection, controller.Session.GetBonusBattleCards(stages[index]),
-                        "Clicking a source-provided card cannot remove it from the special deck.");
-                    if (page == 0)
-                        NavalBattleVisualCapture.Capture(controller, "DeckBuilderSpecial_Stage_" + stages[index] + ".png",
-                            labels[index] + "只展示本阶段特殊卡牌，卡牌下方按实际来源显示已加入或配置入口", "Card Workshop Preview Panel");
-                    if (page + 1 < Mathf.CeilToInt(expected.Length / 8f))
+                    int[] expected = expectedStage.Where(card =>
+                            CardSchoolArtCatalog.NormalizeSchool(controller.Session.GetBattleCard(card, stages[index]).SchoolId) == school)
+                        .OrderBy(card => CoreBattleCardNumbering.Number(CoreVoyageSession.CardLibrary[card])).ThenBy(card => card).ToArray();
+                    if (school == "neutral")
+                        Assert.That(expected.Length, Is.GreaterThan(8), "Every stage retains a real multi-page special-card fixture.");
+                    int pages = Mathf.Max(1, Mathf.CeilToInt(expected.Length / 6f));
+                    for (int page = 0; page < pages; page++)
                     {
-                        ClickDeckBuilderHeader("Next Upgrade Cards");
-                        yield return null;
+                        Button[] specialCards = GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>()
+                            .Where(button => button.name.StartsWith("Select Special Card ")).ToArray();
+                        CollectionAssert.AreEqual(expected.Skip(page * 6).Take(6),
+                            specialCards.Select(card => int.Parse(card.name.Substring("Select Special Card ".Length))),
+                            stages[index] + " / " + school + " shows exactly the acquired matching cards in catalog order.");
+                        Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.EqualTo(page > 0), "Changing school starts at its first page.");
+                        Assert.That(ActiveButton("Next Upgrade Cards").interactable, Is.EqualTo(page + 1 < pages), "Paging stops at the filtered collection boundary.");
+                        foreach (Button card in specialCards)
+                        {
+                            int cardIndex = int.Parse(card.name.Substring("Select Special Card ".Length));
+                            Assert.That(visible.Add(cardIndex), Is.True, "Each matching special appears only once across schools and pages.");
+                            Assert.That(controller.Session.GetBattleCard(cardIndex, stages[index]).IsAllowedInStage(stages[index]), Is.True);
+                            Assert.That(card.GetComponent<DeckBuilderCardDrag>(), Is.Null);
+                            AssertSpecialCardMembership(cardIndex, controller.Session.GetBonusBattleCards(stages[index]).Contains(cardIndex));
+                        }
+                        if (specialCards.Length > 0)
+                        {
+                            int[] bonusBeforeSelection = controller.Session.GetBonusBattleCards(stages[index]).ToArray();
+                            ClickDeckBuilderHeader(specialCards.Last().name);
+                            yield return null;
+                            CollectionAssert.AreEqual(decks[stages[index]], controller.Session.GetBattleDeck(stages[index]),
+                                "Clicking a special card only selects its preview and cannot add it to the base deck.");
+                            CollectionAssert.AreEqual(bonusBeforeSelection, controller.Session.GetBonusBattleCards(stages[index]),
+                                "Clicking a source-provided card cannot remove it from the special deck.");
+                        }
+                        else
+                            Assert.That(GameObject.Find("Workshop Preview Empty"), Is.Not.Null, "An empty stage/school category explains why no cards are shown.");
+                        if (school == "neutral" && page == 0)
+                            NavalBattleVisualCapture.Capture(controller, "DeckBuilderSpecial_Stage_" + stages[index] + ".png",
+                                labels[index] + "只展示本阶段与当前流派的特殊卡牌，卡牌下方按实际来源显示已加入或配置入口", "Card Workshop Preview Panel");
+                        if (page + 1 < pages)
+                        {
+                            ClickDeckBuilderHeader("Next Upgrade Cards");
+                            yield return null;
+                            visitedSecondPage = true;
+                        }
                     }
                 }
-                CollectionAssert.AreEquivalent(expected, visible, "The builder special collection includes only acquired cards for its current stage.");
+                Assert.That(visitedSecondPage, Is.True, "Every stage must exercise the enabled next-page control.");
+                CollectionAssert.AreEquivalent(expectedStage, visible, "The school filters together expose exactly the acquired cards allowed in this stage.");
                 ClickDeckBuilderHeader("Workshop Preview Stage " + stages[index]);
                 yield return null;
                 Assert.That(GameObject.Find("Deck Builder Deck Title").GetComponent<Text>().text, Does.Contain(labels[index]));
@@ -500,7 +555,10 @@ namespace ShatteredSail.Presentation.Tests
             yield return null; yield return null;
             ClickDeckBuilderHeader("Port Hotspot CardWorkshop");
             yield return null;
-            ClickDeckBuilderHeader("Edit Stage Deck Naval");
+            ClickDeckBuilderHeader("Workshop Entrance DeckBuilder");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            ClickDeckBuilderHeader("Battle Deck Stage Tab Naval");
             yield return null;
             IReadOnlyList<int> deck = Object.FindFirstObjectByType<CoreGameplayDemoController>().Session.GetBattleDeck(NavalBattleStage.Naval);
             Assert.That(deck.Count, Is.EqualTo(12));
@@ -512,13 +570,14 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator EnsureDeckBuilderBaseOverflow()
         {
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            while (DeckBuilderBaseCards().Length <= 10)
+            for (int rows = DeckBuilderBaseCards().Length; rows < 12; rows++)
             {
                 int index = controller.Session.GetAvailableBattleCards(NavalBattleStage.Naval)
                     .First(value => !controller.Session.GetBattleDeck(NavalBattleStage.Naval).Contains(value));
                 yield return RevealDeckBuilderLibraryCard(index);
                 ClickDeckBuilderHeader("Add Deck Card " + index);
                 yield return null;
+                Assert.That(DeckBuilderBaseCards(), Has.Length.EqualTo(rows + 1), "Adding a new card kind creates one visible list row.");
             }
             while (ActiveButton("Previous Battle Card Collection Page").interactable)
             {
@@ -678,6 +737,32 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         private static Vector2 DeckBuilderNamedPoint(string name) => DeckBuilderScreenPoint(GameObject.Find(name).GetComponent<RectTransform>());
+
+        private static Vector2 DeckBuilderWidePaperEdgePoint(bool right)
+        {
+            // Exercise a 21:9 workspace inside the existing Game View, without
+            // changing the desktop resolution or making pointer coordinates offscreen.
+            RectTransform panel = GameObject.Find("Deck Builder Panel").GetComponent<RectTransform>();
+            float height = Mathf.Min(panel.rect.height, panel.rect.width * (972f / 2560f));
+            panel.offsetMin += new Vector2(0f, panel.rect.height - height);
+            Canvas.ForceUpdateCanvases();
+            RectTransform paper = GameObject.Find("Deck Builder Deck Rail Texture").GetComponent<RectTransform>();
+            RectTransform content = GameObject.Find("Deck Builder Deck Rail").GetComponent<RectTransform>();
+            Rect contentBounds = ForgeBoundsIn(paper, content);
+            float edge = right ? paper.rect.xMax : paper.rect.xMin;
+            float contentEdge = right ? contentBounds.xMax : contentBounds.xMin;
+            Assert.That(Mathf.Abs(edge - contentEdge), Is.GreaterThan(20f), "The wider paper has a visible edge outside its fitted content.");
+            Canvas canvas = paper.GetComponentInParent<Canvas>().rootCanvas;
+            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            Vector2 point = RectTransformUtility.WorldToScreenPoint(camera,
+                paper.TransformPoint(new Vector2((edge + contentEdge) * .5f, paper.rect.center.y)));
+            Assert.That(RectTransformUtility.RectangleContainsScreenPoint(paper, point, camera), Is.True);
+            Assert.That(RectTransformUtility.RectangleContainsScreenPoint(content, point, camera), Is.False,
+                "This drop must exercise the visible paper outside the old inner-rectangle hit area.");
+            Assert.That(point.x, Is.InRange(0f, Screen.width - 1f));
+            Assert.That(point.y, Is.InRange(0f, Screen.height - 1f));
+            return point;
+        }
 
         private static IEnumerator DragDeckBuilderDiamondToBottom()
         {

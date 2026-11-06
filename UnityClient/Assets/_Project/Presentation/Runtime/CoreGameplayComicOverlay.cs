@@ -54,6 +54,10 @@ namespace ShatteredSail.Presentation
             if (selected != null && selected.transform.IsChildOf(overlay)) EventSystem.current.SetSelectedGameObject(null);
             overlay.gameObject.SetActive(false);
             if (Application.isPlaying) Destroy(overlay.gameObject); else DestroyImmediate(overlay.gameObject);
+            // Story and collision comics can close without a phase change. Let
+            // deferred destruction finish before scanning; a rapid reopen or a
+            // new panel is protected by its live Graphic and coalesces here.
+            QueueUnusedArtCollection(true);
         }
     }
 }

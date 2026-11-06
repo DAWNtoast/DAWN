@@ -36,6 +36,7 @@ namespace ShatteredSail.Presentation
         public int TotalPlacedCues { get; private set; }
         public int TotalRetiredCues { get; private set; }
         public int TotalTriggeredCues { get; private set; }
+        public int TotalExtendedCues { get; private set; }
         public float AmbientTime { get; private set; }
         public bool Suspended => paused || focusLost || (hadOwner && (owner == null || !owner.isActiveAndEnabled));
 
@@ -84,6 +85,7 @@ namespace ShatteredSail.Presentation
             cues.Add(new NavalFieldMotionCue(fact, 0f));
             if (fact.Change == CoreNavalFieldChangeKind.Placed) TotalPlacedCues++;
             else if (fact.Change == CoreNavalFieldChangeKind.Triggered) TotalTriggeredCues++;
+            else if (fact.Change == CoreNavalFieldChangeKind.Extended) TotalExtendedCues++;
             else TotalRetiredCues++;
         }
 

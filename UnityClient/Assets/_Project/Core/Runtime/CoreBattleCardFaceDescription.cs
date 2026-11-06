@@ -28,9 +28,28 @@ namespace ShatteredSail.Core.Gameplay
             if (!tideWard) card = GetSupplyAdjustedBattleCard(card);
             CoreBattleCardEffects current = GetBattleCardEffects(card, stage);
             CoreBattleCardEffects effect = FaceCardEffects(card, stage, current);
-            // Retain the cannon quote's firepower/loading bonuses when substituting a port-only
-            // payable school effect. The same final values are used by combat.
-            int damage = SchoolSum(Math.Max(0, GetBattleCardDamage(card, stage) - current.Damage), effect.Damage);
+            // Keep the signed firepower adjustment as well as loading bonuses when substituting
+            // a port-only payable school effect. Low firepower must also lower the visible value.
+            int damage = (int)Math.Min(int.MaxValue, Math.Max(0L,
+                (long)GetBattleCardUnmodifiedFieldDamage(card, stage) - current.Damage + effect.Damage));
+            // Mana X remains a formula on this face. Quote the fixed slot independently
+            // instead of subtracting a possibly saturated X contribution from the total.
+            if (CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.Mechanic == CoreNavalExpansionMechanic.ManaBurst)
+                damage = SchoolSum(effect.Damage, stage == NavalBattleStage.Naval ? NavalExpansionFirstDamageBonus(card) : 0);
+            if (card.Id == "card_school_thunder_n09")
+                damage = SchoolSum(effect.Damage, SchoolBattleActive(stage) ?
+                    SchoolSum(NavalExpansionFirstDamageBonus(card), Battle.Schools.ThunderReadyDamage) : 0);
+            // Thunder cards retain their threshold/formula clause on the face. Remove
+            // that same conditional contribution from the base slot to avoid counting it twice.
+            if (SchoolBattleActive(stage) && (card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ThunderChain ||
+                card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ThunderFinish))
+            {
+                CoreSchoolCardEffect chainEffect = card.SchoolEffect;
+                int chainBonus = chainEffect.Mechanic == CoreSchoolMechanic.ThunderChain && chainEffect.Threshold > 0
+                    ? (Battle.Schools.ThunderChain >= chainEffect.Threshold ? chainEffect.Power : 0)
+                    : SchoolProduct(chainEffect.Power, Battle.Schools.ThunderChain);
+                damage = Math.Max(0, damage - chainBonus);
+            }
             int block = tideWard ? card.Block : effect.Block;
             if (SchoolBattleActive(stage) && stage != NavalBattleStage.Boarding && block > 0)
                 block = NavalArcaneBlockGain(SchoolSum(block, Battle.PlayerDeckBuff));
@@ -40,6 +59,20 @@ namespace ShatteredSail.Core.Gameplay
             {
                 damage = Math.Max(0, damage - ComponentFieldDamageBonus(card));
                 block = Math.Max(0, block - ComponentFieldBlockBonus(card));
+            }
+            // Blood cards state their base and conditional benefit separately.
+            // The quote already combines them, so restore the base slot on the face.
+            CoreSchoolMechanic? bloodMechanic = card.SchoolEffect?.Mechanic;
+            if (bloodMechanic == CoreSchoolMechanic.BloodRisk || bloodMechanic == CoreSchoolMechanic.BloodWard)
+            {
+                int paidBenefit = !SchoolBattleActive(stage) || HasBloodPaidBenefit(card) ? card.SchoolEffect.Power : 0;
+                if (bloodMechanic == CoreSchoolMechanic.BloodRisk) damage = Math.Max(0, damage - paidBenefit);
+                else block = Math.Max(0, block - paidBenefit);
+            }
+            else if (bloodMechanic == CoreSchoolMechanic.BloodExecute && SchoolBattleActive(stage))
+            {
+                GetSchoolCardBonuses(card, stage, out int bloodDamage, out _, out _);
+                damage = Math.Max(0, damage - bloodDamage);
             }
             bool repairSupply = FaceCardUsesRepairSupply(card, stage, effect);
             int repair = repairSupply ? effect.FullRepair : effect.IsRepairPreview ? effect.Repair : effect.ActualRepair;
@@ -54,28 +87,21 @@ namespace ShatteredSail.Core.Gameplay
             }
             else if (SchoolBattleActive(stage) && card.Action == NavalBattleCardAction.Polish)
                 strategyAmount = FaceCapacityGain(card.StrategyAmount, Battle.PlayerDeckBuff, strategyLimit);
-            else if (SchoolBattleActive(stage) && card.Action == NavalBattleCardAction.FireRounds)
-                strategyAmount = FaceCapacityGain(card.StrategyAmount, Battle.PlayerFireRounds, strategyLimit);
 
             CoreSchoolCardEffect school = card.SchoolEffect;
             int power = school?.Power ?? 0;
             int secondary = school?.Secondary ?? 0;
-            if (school != null && SchoolBattleActive(stage))
-            {
-                CoreSchoolBattleState state = Battle.Schools;
-                switch (school.Mechanic)
-                {
-                    case CoreSchoolMechanic.ArcaneCharge:
-                        power = FaceCapacityGain(school.Power, state.Mana, state.ManaLimit); break;
-                    case CoreSchoolMechanic.FireLoad:
-                        secondary = FaceCapacityGain(school.Secondary, Battle.PlayerFireRounds, SchoolDefault(school.Limit, 4)); break;
-                }
-            }
 
             string template = FaceCardTemplate(card, SchoolBattleActive(stage));
+            template = CoreNavalFireArcanePower.RenderTemplate(template, card);
+            template = CoreNavalThunderPower.RenderTemplate(template, card);
             if (SchoolBattleActive(stage)) template = CoreSpecialCardRules.CostDescription(template, card, Battle);
             return CoreBattleCardText.FormatCardEffects(template
                 .Replace("{damage}", FaceNumber(damage))
+                .Replace("{thunderCollapseChain}", FaceNumber(CoreNavalExpansionBalance.ThunderCollapseChainCoefficient(card.UpgradeLevel)))
+                .Replace("{manaBurstDamage}", FaceNumber(CoreNavalExpansionBalance.ManaBurstDamageCoefficient(card.UpgradeLevel)))
+                .Replace("{tideStrikeDamage}", FaceNumber(CoreNavalExpansionBalance.TideStrikeDamageCoefficient(card.UpgradeLevel)))
+                .Replace("{desperateBonus}", FaceNumber(CoreNavalExpansionBalance.DesperateCannonBonus(card.UpgradeLevel)))
                 .Replace("{block}", FaceNumber(block))
                 .Replace("{boardingBlock}", FaceNumber(card.BoardingBlock ?? card.Block))
                 .Replace("{repair}", FaceNumber(repair))
@@ -97,7 +123,8 @@ namespace ShatteredSail.Core.Gameplay
                 .Replace("{schoolDuration}", FaceNumber(school?.Duration ?? 0))
                 .Replace("{schoolLimit}", FaceNumber(school?.Limit ?? 0))
                 .Replace("{medicine}", FaceNumber(medicine))
-                .Replace("{wood}", FaceNumber(wood)), card, stage, repairSupply ? (int?)effect.FullRepair : null);
+                .Replace("{wood}", FaceNumber(wood)), card, stage, repairSupply ? (int?)effect.FullRepair : null) +
+                (stage == NavalBattleStage.Naval ? NavalFieldAttackCardDescription(card) : string.Empty);
         }
 
         public string BattleCardFaceDescription(CoreBattleCard card) =>
@@ -173,6 +200,12 @@ namespace ShatteredSail.Core.Gameplay
                 case CoreSchoolMechanic.CurseExploit:
                     return template.Replace("伤害额外 +{schoolPower}", "强化伤害");
                 case CoreSchoolMechanic.CurseWard:
+                    if (template.Contains("敌方每有 1 层咒印，获得 {schoolPower} 点普通格挡"))
+                        return liveBattle ? template.Replace("获得 {block} 点普通格挡；", string.Empty)
+                            .Replace("敌方每有 1 层咒印，获得 {schoolPower} 点普通格挡", "合计获得 {block} 点普通格挡") : template;
+                    if (template.Contains("敌方每有 1 层咒印，获得 {schoolPower} 点格挡"))
+                        return liveBattle ? template.Replace("格挡 +{block}；", string.Empty)
+                            .Replace("敌方每有 1 层咒印，获得 {schoolPower} 点格挡", "合计获得 {block} 格挡") : template;
                     if (template.Contains("按消耗前每层咒印获得 {schoolPower} 额外格挡"))
                     {
                         if (liveBattle) template = template.Replace("获得 {block} 格挡；", string.Empty);
@@ -187,6 +220,8 @@ namespace ShatteredSail.Core.Gameplay
                 case CoreSchoolMechanic.CurseDrain:
                     return template.Replace("恢复 {schoolPower} 生命", "恢复 {repair} 生命");
                 case CoreSchoolMechanic.TideRiposte:
+                    if (liveBattle && (card.Id == "card_school_tide_b03" || card.Id == "card_school_tide_b06"))
+                        return template.Replace("{damage}+1.25X", "{damage}").Replace("{damage}+X", "{damage}");
                     return template.Replace("按 {schoolPower}% 追加伤害", "按 {schoolPower}% 折入伤害");
                 case CoreSchoolMechanic.TideRenew:
                     return template.Replace("额外恢复 {schoolPower}", "强化恢复");

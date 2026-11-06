@@ -8,38 +8,44 @@ namespace ShatteredSail.Presentation
 
     /// <summary>Deterministic school trajectories and contact glyphs; no textures, rules, or input ownership.</summary>
     [RequireComponent(typeof(CanvasRenderer)), DisallowMultipleComponent]
-    public sealed class BattleSchoolAttackGraphic : MaskableGraphic
+    public sealed partial class BattleSchoolAttackGraphic : MaskableGraphic
     {
         public const float Duration = .62f;
         public const float ContactProgress = .32f;
+        public const float BoardingDuration = 1.15f;
+        public const float BoardingContactProgress = .36f;
         private BattleSchoolAttackKind kind;
         private BattleSchoolAttackOutcome outcome;
         private Vector2 start, end;
         private float progress, size = 1f;
         private Behaviour owner;
-        private bool hadOwner, retiring;
+        private bool hadOwner, retiring, boardingStage;
         private Text resultLabel;
         private Vector2 labelOrigin;
         private Rect meshBounds;
         public BattleSchoolAttackKind Kind => kind;
         public BattleSchoolAttackOutcome Outcome => outcome;
         public float Progress => progress;
+        public float PresentationDuration => boardingStage ? BoardingDuration : Duration;
+        public float ContactAt => boardingStage ? BoardingContactProgress : ContactProgress;
         public bool IsPlaying { get; private set; }
-        public Vector2 ContactPoint => outcome == BattleSchoolAttackOutcome.Missed ? end + Normal * 70f * size : end;
+        public Vector2 ContactPoint => boardingStage ? SpellTarget : outcome == BattleSchoolAttackOutcome.Missed ? end + Normal * 70f * size : end;
         private Vector2 Direction => (end - start).sqrMagnitude > .01f ? (end - start).normalized : Vector2.right;
         private Vector2 Normal => new Vector2(-Direction.y, Direction.x);
 
         public void Configure(BattleSchoolAttackKind school, BattleSchoolAttackOutcome result, Vector2 from, Vector2 to, bool boarding)
         {
-            kind = school; outcome = result; start = Safe(from); end = Safe(to); size = boarding ? .8f : 1f;
+            kind = school; outcome = result; start = Safe(from); end = Safe(to); boardingStage = boarding; size = boarding ? 1.08f : 1f;
             progress = 0f; IsPlaying = false; retiring = false; raycastTarget = false;
+            ConfigureBoardingEnvironment(start + Vector2.down * 140f, end + Vector2.down * 140f, end.y + 270f);
+            ConfigureBoardingSprites();
             SetVerticesDirty();
         }
 
         public void BindResult(Text label)
         {
             resultLabel = label;
-            labelOrigin = ContactPoint + Vector2.up * 82f * size;
+            labelOrigin = ContactPoint + Vector2.up * (boardingStage ? 120f : 82f) * size;
             if (label != null) { label.raycastTarget = false; label.gameObject.SetActive(false); }
         }
 
@@ -54,11 +60,12 @@ namespace ShatteredSail.Presentation
             progress = float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Clamp01(value);
             if (resultLabel != null)
             {
-                float t = Mathf.InverseLerp(ContactProgress, 1f, progress);
+                float t = Mathf.InverseLerp(ContactAt, 1f, progress);
                 resultLabel.gameObject.SetActive(t > 0f && t < 1f);
                 resultLabel.rectTransform.anchoredPosition = labelOrigin + Vector2.up * (24f * t);
                 Color c = resultLabel.color; c.a = Mathf.Min(1f, t * 8f) * Mathf.Clamp01((1f - t) * 3f); resultLabel.color = c;
             }
+            UpdateBoardingSprites();
             SetVerticesDirty();
         }
 
@@ -67,7 +74,7 @@ namespace ShatteredSail.Presentation
             if (!IsPlaying) return;
             if (hadOwner && (owner == null || !owner.isActiveAndEnabled)) { Cancel(); return; }
             if (float.IsNaN(seconds) || float.IsInfinity(seconds)) return;
-            SetProgress(progress + Mathf.Max(0f, seconds) / Duration);
+            SetProgress(progress + Mathf.Max(0f, seconds) / PresentationDuration);
             if (progress >= 1f) Cancel();
         }
 
@@ -106,11 +113,12 @@ namespace ShatteredSail.Presentation
             mesh.Clear();
             meshBounds = rectTransform.rect;
             if (progress >= 1f || meshBounds.width <= 0f || meshBounds.height <= 0f) return;
+            if (boardingStage) { DrawBoardingScene(mesh); return; }
             float travel = Mathf.Clamp01(progress / ContactProgress);
             Color ink = Tint(kind); ink.a = Mathf.Clamp01((1f - progress) * 3f);
             DrawTrajectory(mesh, travel, ink);
             if (progress < ContactProgress) return;
-            float t = Mathf.InverseLerp(ContactProgress, 1f, progress);
+            float t = Mathf.InverseLerp(ContactAt, 1f, progress);
             Vector2 center = ContactPoint;
             if (outcome == BattleSchoolAttackOutcome.Missed)
             {
@@ -275,6 +283,7 @@ namespace ShatteredSail.Presentation
 
         private void Vertex(VertexHelper mesh, Vector2 point, Color tint)
         {
+            if (boardingStage && boardingSprites != null) tint.a *= .34f;
             point.x = Mathf.Clamp(point.x, meshBounds.xMin, meshBounds.xMax);
             point.y = Mathf.Clamp(point.y, meshBounds.yMin, meshBounds.yMax);
             mesh.AddVert(point, tint, Vector2.zero);

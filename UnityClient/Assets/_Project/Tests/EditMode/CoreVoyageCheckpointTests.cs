@@ -15,6 +15,8 @@ namespace ShatteredSail.Core.Tests
         {
             var source = new CoreVoyageSession();
             source.RestoreProfile(500, "白贝港");
+            source.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(3) });
+            source.RecordCollectionPortVisit("盐冠港"); // Arrange the destination prerequisite; this test covers fleet serialization.
             Assert.That(source.RestoreShipPortProgress(new CoreShipPortProgress
             {
                 ships = new[]

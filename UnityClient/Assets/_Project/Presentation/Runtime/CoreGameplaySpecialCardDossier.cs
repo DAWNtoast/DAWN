@@ -51,7 +51,9 @@ namespace ShatteredSail.Presentation
                 textName: prefix + (boarding ? " Special Card Calculation" : " Special Card Lore"));
             DossierCardText(prefix + " Special Card Growth", page, textWidth, 48f,
                 new Vector2(textCenter, -pageHeight * 0.5f + 44f), 20, muted,
-                SpecialCardGrowthDescription(card) + "\n仅随该来源出海成长，不可金币强化。", TextAnchor.MiddleLeft);
+                SpecialCardGrowthDescription(card) + "\n随来源实航每" +
+                (1d / CoreVoyageSession.SpecialCardExperiencePerNauticalMile).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) +
+                "海里获1经验，不可金币强化。", TextAnchor.MiddleLeft);
         }
 
         private string SpecialCardGrowthDescription(CoreBattleCard card)

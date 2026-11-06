@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -15,10 +16,11 @@ namespace ShatteredSail.Presentation
 
         private void RefreshBoardingEnemyHud(RectTransform root, CoreBattleState battle)
         {
+            Transform intent = root.Find("Enemy Intent HUD");
+            RemoveEnemyIntentInspection(intent);
             if (!HasBoardingEnemySchool(battle)) return;
             var deck = battle.BoardingEnemy.Deck;
             var preview = session.GetBoardingEnemyPreview();
-            Transform intent = root.Find("Enemy Intent HUD");
             Text intentLabel = intent?.Find("Enemy Intent Text")?.GetComponent<Text>();
             if (intentLabel != null)
             {
@@ -26,18 +28,13 @@ namespace ShatteredSail.Presentation
                     ((System.Math.Max(1, battle.PhaseTurn) - 1) % deck.Turns.Count + 1) + "/" + deck.Turns.Count +
                     "\n" + deck.TurnAt(battle.PhaseTurn).Name +
                     "\n攻击 " + preview.AttackDamage + " · 穿盾 " + preview.PiercingDamage +
-                    "\n失血 " + preview.PlayerHealthLoss + " · 灼烧 " + preview.PlayerBurnDamage +
-                    " · 咒印 " + preview.PlayerCurseDamage + "\n点击查看行动";
+                    "\n失血 " + preview.PlayerHealthLoss + " · 燃烧 " + preview.PlayerBurnDamage +
+                    (preview.PlayerBloodPoolLoss > 0 ? " · 血池 " + preview.PlayerBloodPoolLoss : string.Empty) +
+                    (preview.PlayerExecutedByCurse ? " · 我方被咒印消灭" : string.Empty) +
+                    (preview.EnemyExecutedByCurse ? " · 敌方被咒印消灭" : string.Empty);
                 intentLabel.raycastTarget = false;
                 intentLabel.resizeTextMinSize = 14;
             }
-            if (intent != null && intent.GetComponent<Button>() == null)
-            {
-                Button inspect = intent.gameObject.AddComponent<Button>();
-                inspect.targetGraphic = intent.GetComponent<Image>();
-                inspect.onClick.AddListener(OpenBoardingEnemyOverview);
-            }
-
             Transform resources = root.Find("Enemy Resource HUD");
             if (resources == null) return;
             foreach (string name in new[] { "Resource 回 Icon", "Resource 回 Value", "Resource 盾 Icon", "Resource 盾 Value" })
@@ -58,6 +55,16 @@ namespace ShatteredSail.Presentation
                 status.resizeTextMinSize = 14;
                 status.resizeTextMaxSize = 16;
             }
+        }
+
+        private void RemoveEnemyIntentInspection(Transform target)
+        {
+            Button inspect = target == null ? null : target.GetComponent<Button>();
+            if (inspect == null) return;
+            // Retained intent HUDs keep their hover explanations, but no click action.
+            inspect.onClick.RemoveListener(OpenBoardingEnemyOverview);
+            inspect.enabled = false;
+            if (Application.isPlaying) Destroy(inspect); else DestroyImmediate(inspect);
         }
 
         private void RefreshBoardingEnemyOverview()
@@ -101,12 +108,17 @@ namespace ShatteredSail.Presentation
 
         private IEnumerator AnimateBoardingEnemyActions(RectTransform stage, RectTransform player, RectTransform enemy,
             Image playerBar, Image enemyBar, BattleAnimationSnapshot before, BattleAnimationSnapshot after,
-            CoreBoardingEnemyState results, CoreBoardingBattleState resolvedState = null, long resolvedAfterSequence = long.MaxValue)
+            CoreBoardingEnemyState results, CoreBoardingBattleState resolvedState = null, long resolvedAfterSequence = long.MaxValue,
+            List<CoreBattleSettlementFact> settlementFacts = null)
         {
             int playerHealth = results.LastCurseHealthLost > 0
                 ? results.LastCursePlayerHealth - results.LastCurseHealthLost
                 : results.LastBurnHealthLost > 0 ? results.LastBurnPlayerHealth - results.LastBurnHealthLost : before.PlayerCrew;
             int enemyHealth = before.EnemyCrew;
+            if (settlementFacts != null)
+                foreach (var fact in settlementFacts)
+                    if (fact.Window == CoreBattleSettlementWindow.PlayerEnd && fact.HealthAfter >= 0)
+                    { if (fact.Player) playerHealth = fact.HealthAfter; else enemyHealth = fact.HealthAfter; }
             int playerGuard = before.PlayerBlock, enemyGuard = before.EnemyBlock;
             foreach (CoreBoardingEnemyActionResult action in results.LastActions)
             {
@@ -116,16 +128,27 @@ namespace ShatteredSail.Presentation
                 if (enemyHealth != action.EnemyHealthBefore)
                     yield return AnimateHealthBar(enemyBar, enemyHealth, action.EnemyHealthBefore, before.EnemyMaxCrew,
                         action.EnemyHealthBefore > enemyHealth ? Green : Coral);
+                Coroutine supportCast = null;
+                if (BoardingEnemyCastPlan.TryResolve(results.Deck, action, out var supportSchool, out var supportRole))
+                {
+                    BoardingActorAction gesture = supportRole == BoardingSchoolCastRole.Guard ? BoardingActorAction.Guard :
+                        supportRole == BoardingSchoolCastRole.Heal ? BoardingActorAction.Heal : BoardingActorAction.Cast;
+                    enemy.GetComponent<BoardingPartyPresentation>()?.PlayAction(gesture, BoardingCardActorPresentation.Duration(gesture));
+                    supportCast = StartCoroutine(AnimateBoardingSchoolCast(stage, enemy, player, supportSchool, supportRole));
+                }
                 yield return AnimateFloatingText(stage, BattleEffectPosition(stage, enemy) + Vector2.up * 90f,
                     action.Name + (string.IsNullOrEmpty(action.Detail) ? string.Empty : "\n" + action.Detail), Gold, "Enemy School Action");
+                if (supportCast != null) yield return supportCast;
                 if (action.RawAttack > 0)
                 {
                     bool schoolAttack = BattleSchoolAttackPresentation.TryEnemy(results.Deck?.SchoolId, action,
                         out BattleSchoolAttackKind school, out BattleSchoolAttackOutcome outcome);
+                    enemy.GetComponent<BoardingPartyPresentation>()?.PlayAction(
+                        BoardingCardActorPresentation.ForEnemyAttack(results.Deck, action.CardId), .58f);
                     if (!schoolAttack) yield return AnimateShipWindup(enemy, DirectionToward(enemy, player), false);
                     Coroutine damage = StartCoroutine(schoolAttack
                         ? AnimateSchoolContactDamage(playerBar, action.PlayerHealthBefore, action.PlayerHealthAfter,
-                            before.PlayerMaxCrew, action.PlayerGuardBefore, action.PlayerGuardAfter, stage)
+                            before.PlayerMaxCrew, action.PlayerGuardBefore, action.PlayerGuardAfter, stage, true)
                         : AnimateBattleDamage(playerBar, action.PlayerHealthBefore, action.PlayerHealthAfter,
                             before.PlayerMaxCrew, action.PlayerGuardBefore, action.PlayerGuardAfter, stage));
                     string result = action.HealthLost > 0 ? "-" + action.HealthLost : action.AbsorbedDamage > 0 ? "格挡" : "未命中";
@@ -136,9 +159,11 @@ namespace ShatteredSail.Presentation
                 else if (action.PlayerHealthBefore != action.PlayerHealthAfter)
                     yield return AnimateHealthBar(playerBar, action.PlayerHealthBefore, action.PlayerHealthAfter, before.PlayerMaxCrew, Coral);
                 if (action.SelfDamage > 0)
-                    yield return AnimateAura(stage, enemy, Coral, "自损 -" + action.SelfDamage, "Enemy School Life Cost");
+                    yield return AnimateAura(stage, enemy, Coral, "自损 -" + action.SelfDamage,
+                        "Enemy School Life Cost", boardingKind: BoardingCombatFxKind.LifeCost);
                 if (action.Healed > 0)
-                    yield return AnimateAura(stage, enemy, Green, "恢复 +" + action.Healed, "Enemy School Healing");
+                    yield return AnimateAura(stage, enemy, Green, "恢复 +" + action.Healed,
+                        "Enemy School Healing", boardingKind: BoardingCombatFxKind.Heal);
                 if (action.EnemyHealthBefore != action.EnemyHealthAfter)
                     yield return AnimateHealthBar(enemyBar, action.EnemyHealthBefore, action.EnemyHealthAfter, before.EnemyMaxCrew,
                         action.EnemyHealthAfter > action.EnemyHealthBefore ? Green : Coral);
@@ -147,7 +172,7 @@ namespace ShatteredSail.Presentation
                 playerHealth = action.PlayerHealthAfter; enemyHealth = action.EnemyHealthAfter;
                 playerGuard = action.PlayerGuardAfter; enemyGuard = action.EnemyGuardAfter;
             }
-            if (playerHealth != after.PlayerCrew)
+            if (playerHealth != after.PlayerCrew && !SettlementCovers(settlementFacts, true, playerHealth, after.PlayerCrew, CoreBattleSettlementWindow.EnemyEnd))
                 yield return AnimateHealthBar(playerBar, playerHealth, after.PlayerCrew, before.PlayerMaxCrew,
                     after.PlayerCrew > playerHealth ? Green : Coral);
             int enemyAfter = after.EnemyCrew, enemyGuardAfter = after.EnemyBlock;
@@ -159,10 +184,11 @@ namespace ShatteredSail.Presentation
                         enemyGuardAfter = attack.GuardBefore;
                         break;
                     }
-            if (enemyHealth != enemyAfter)
+            if (enemyHealth != enemyAfter && !SettlementCovers(settlementFacts, false, enemyHealth, enemyAfter, CoreBattleSettlementWindow.EnemyEnd))
             {
                 if (enemyHealth > enemyAfter)
-                    yield return AnimateAura(stage, enemy, Coral, "回合结算 -" + (enemyHealth - enemyAfter), "Enemy School Turn End");
+                    yield return AnimateAura(stage, enemy, Coral, "回合结算 -" + (enemyHealth - enemyAfter),
+                        "Enemy School Turn End", boardingKind: BoardingCombatFxKind.Slash);
                 yield return AnimateHealthBar(enemyBar, enemyHealth, enemyAfter, before.EnemyMaxCrew,
                     enemyAfter > enemyHealth ? Green : Coral);
             }

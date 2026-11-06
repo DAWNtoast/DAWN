@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -71,8 +72,76 @@ namespace ShatteredSail.Presentation.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest]
+        [Timeout(120000)]
+        public IEnumerator GuidedTutorialLayout_RecruitedNavigatorTeachesEventTargetLockAcrossViewports()
+        {
+            yield return LoadGuidedTutorialScene();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            yield return DriveGuidedTutorial(controller, "SecondSail", new System.Collections.Generic.HashSet<string>(), false);
+            Assert.That(controller.Session.HasNavigator, Is.True);
+            Assert.That(controller.Session.GuidedTutorialLeg, Is.EqualTo(CoreGuidedTutorialContent.NavigatorVoyageLeg));
+            CoreMapNode targetNode = controller.Session.Map.Nodes.Single(node =>
+                node.Encounter.Id == CoreGuidedTutorialContent.NavigatorEventId);
+            string targetName = "Event Node " + targetNode.Id;
+            Assert.That(controller.Session.HasDirectCourseTarget, Is.False,
+                "Recruitment must teach an actual map click, not preselect the event for the player.");
+            float distanceBefore = controller.Session.TotalDistanceNm;
+            int waterBefore = controller.Session.Cargo.Water;
+            Button east = RequireGuidedButton("Heading East");
+            Button sail = RequireGuidedButton("Execute Sail");
+            Button.ButtonClickedEvent priorEastClick = east.onClick;
+            Assert.That(east.IsInteractable(), Is.False);
+            Assert.That(sail.IsInteractable(), Is.False);
+            east.onClick.Invoke();
+            sail.onClick.Invoke();
+            foreach (CoreMapNode other in controller.Session.Map.Nodes.Where(node => node != targetNode && node.IsChartVisible))
+            {
+                Button otherMarker = RequireGuidedButton("Event Node " + other.Id);
+                Assert.That(otherMarker.IsInteractable(), Is.False);
+                otherMarker.onClick.Invoke();
+            }
+            Assert.That(controller.CurrentGuidedTutorialNavigationInputStep, Is.EqualTo(GuidedTutorialNavigationInputStep.Heading));
+            Assert.That(controller.Session.HasDirectCourseTarget, Is.False);
+            Assert.That(controller.Session.TotalDistanceNm, Is.EqualTo(distanceBefore));
+
+            using (var viewport = new GuidedLayoutViewport(controller))
+            {
+                yield return AssertGuidedNavigationLayoutSizes(viewport, controller, targetName, "八个方向", true);
+                Assert.That(GameObject.Find("Guided Tutorial Instruction").GetComponent<Text>().text, Does.Contain("锁定"));
+                viewport.Capture("78_Guided_Event_Target_Lock.png");
+                Button marker = RequireGuidedButton(targetName);
+                Button.ButtonClickedEvent priorMarkerClick = marker.onClick;
+                ClickNavigationInterfaceRefreshGraphic(marker.gameObject, Vector2.zero);
+                yield return null;
+                Assert.That(controller.CurrentGuidedTutorialNavigationInputStep, Is.EqualTo(GuidedTutorialNavigationInputStep.Sail));
+                Assert.That(controller.Session.HasDirectCourseTarget, Is.True);
+                Assert.That(controller.Session.DirectCourseTarget, Is.EqualTo(targetNode.Position));
+                Assert.That(controller.Session.TotalDistanceNm, Is.EqualTo(distanceBefore), "Selecting an event must not sail automatically.");
+                Assert.That(controller.Session.Cargo.Water, Is.EqualTo(waterBefore));
+                Assert.That(RequireGuidedButton(targetName).IsInteractable(), Is.False);
+                Assert.That(RequireGuidedButton("Heading East").IsInteractable(), Is.False);
+                priorMarkerClick.Invoke();
+                priorEastClick.Invoke();
+                Assert.That(controller.Session.DirectCourseTarget, Is.EqualTo(targetNode.Position), "Cached callbacks cannot clear the event lock.");
+                Assert.That(controller.CurrentGuidedTutorialNavigationInputStep, Is.EqualTo(GuidedTutorialNavigationInputStep.Sail));
+                yield return AssertGuidedNavigationLayoutSizes(viewport, controller, "Execute Sail", "锁定");
+                Assert.That(GameObject.Find("Guided Tutorial Instruction").GetComponent<Text>().text, Does.Contain("执行航行"));
+                viewport.Capture("79_Guided_Event_Target_Execute.png");
+                ClickNavigationInterfaceRefreshGraphic(RequireGuidedButton("Execute Sail").gameObject, Vector2.zero);
+                yield return null;
+                yield return WaitForGuidedNavigationPresentation();
+                Assert.That(controller.Session.ActiveEncounter.Id, Is.EqualTo(CoreGuidedTutorialContent.NavigatorEventId));
+                ClickGuidedButton("Encounter Choice 0");
+                yield return null;
+                Assert.That(controller.Session.GuidedTutorialCompletedEncounterIds, Does.Contain(CoreGuidedTutorialContent.NavigatorEventId));
+                AssertSingleGuidedLayoutFocus("Heading East");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
         private static IEnumerator AssertGuidedNavigationLayoutSizes(GuidedLayoutViewport viewport,
-            CoreGameplayDemoController controller, string target, string instructionTerm)
+            CoreGameplayDemoController controller, string target, string instructionTerm, bool verifyPointerTarget = false)
         {
             foreach (Vector2Int size in new[] { new Vector2Int(1920, 1080), new Vector2Int(1280, 720),
                 new Vector2Int(1280, 800) })
@@ -81,7 +150,36 @@ namespace ShatteredSail.Presentation.Tests
                 yield return null;
                 viewport.Render();
                 AssertSingleGuidedLayoutFocus(target);
+                if (verifyPointerTarget)
+                {
+                    Button button = RequireGuidedButton(target);
+                    RectTransform rect = (RectTransform)button.transform;
+                    Canvas canvas = button.GetComponentInParent<Canvas>();
+                    var pointer = new PointerEventData(EventSystem.current)
+                    {
+                        button = PointerEventData.InputButton.Left,
+                        position = RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, rect.TransformPoint(rect.rect.center)),
+                    };
+                    var hits = new System.Collections.Generic.List<RaycastResult>();
+                    EventSystem.current.RaycastAll(pointer, hits);
+                    Assert.That(hits, Is.Not.Empty, target + " at " + size);
+                    Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(hits[0].gameObject), Is.SameAs(button.gameObject),
+                        "The event target must remain clickable without the instruction covering it at " + size);
+                }
                 AssertGuidedInstructionsRemainVisible(controller);
+                Text instruction = GameObject.Find("Guided Tutorial Instruction").GetComponent<Text>();
+                TextGenerationSettings textSettings = instruction.GetGenerationSettings(instruction.rectTransform.rect.size);
+                instruction.cachedTextGenerator.Populate(instruction.text, textSettings);
+                textSettings.verticalOverflow = VerticalWrapMode.Overflow;
+                textSettings.generateOutOfBounds = true;
+                using (var complete = new TextGenerator())
+                {
+                    complete.Populate(instruction.text, textSettings);
+                    Assert.That(instruction.cachedTextGenerator.characterCountVisible, Is.EqualTo(complete.characterCountVisible),
+                        "The instruction must retain its last line at " + size);
+                    Assert.That(instruction.cachedTextGenerator.vertexCount, Is.EqualTo(complete.vertexCount),
+                        "The instruction must render its complete glyph mesh at " + size);
+                }
                 Assert.That(GameObject.Find("Guided Tutorial Instruction").GetComponent<Text>().text,
                     Does.Contain(instructionTerm), target + " at " + size);
                 Assert.That(GameObject.Find("Guided Tutorial Instruction").GetComponent<Text>().text,
@@ -177,6 +275,43 @@ namespace ShatteredSail.Presentation.Tests
                     if (GraphicsSettings.currentRenderPipeline != null)
                         RenderPipeline.SubmitRenderRequest(camera, new RenderPipeline.StandardRequest { destination = target });
                     else camera.Render();
+                }
+            }
+
+            public void Capture(string fileName)
+            {
+                string[] args = Environment.GetCommandLineArgs();
+                int index = Array.IndexOf(args, "-navalVisualCapturePath");
+                if (index < 0) return;
+                if (fileName != "78_Guided_Event_Target_Lock.png" && fileName != "79_Guided_Event_Target_Execute.png")
+                    throw new ArgumentException("Expected one of the event-target lesson screenshots.", nameof(fileName));
+                // Reserve the same opt-in directory as other visual tests without
+                // switching this measured camera canvas into world-space capture.
+                MethodInfo resolve = typeof(NavalBattleVisualCapture).GetMethod("ResolveDirectory",
+                    BindingFlags.Static | BindingFlags.NonPublic);
+                Assert.That(resolve, Is.Not.Null);
+                resolve.Invoke(null, null);
+                string path = Path.Combine(Path.GetFullPath(args[index + 1]), fileName);
+                Assert.That(target, Is.Not.Null, "Capture requires the measured viewport render texture.");
+                RenderTexture originalActive = RenderTexture.active;
+                Texture2D pixels = null;
+                try
+                {
+                    Render();
+                    RenderTexture.active = target;
+                    pixels = new Texture2D(target.width, target.height, TextureFormat.RGB24, false, false);
+                    pixels.ReadPixels(new Rect(0f, 0f, target.width, target.height), 0, 0);
+                    pixels.Apply(false, false);
+                    using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    {
+                        byte[] png = pixels.EncodeToPNG();
+                        stream.Write(png, 0, png.Length);
+                    }
+                }
+                finally
+                {
+                    RenderTexture.active = originalActive;
+                    if (pixels != null) Object.DestroyImmediate(pixels);
                 }
             }
 

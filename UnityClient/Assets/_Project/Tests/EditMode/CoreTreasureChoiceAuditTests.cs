@@ -55,10 +55,10 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(session.TreasureAdventureCompleted, Is.True);
                 Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.TreasureRecovered));
                 Assert.That(session.Settlement.TreasureCompleted, Is.True);
-                Assert.That(session.Settlement.BankedGold, Is.EqualTo((int)Math.Floor(Math.Max(0, choice.Effect.Gold) * .95f)));
-                Assert.That(session.Settlement.BankedGem, Is.EqualTo((int)Math.Ceiling(Math.Max(0, choice.Effect.Gem) * .95d)));
-                Assert.That(session.Settlement.BankedRelic, Is.EqualTo((int)Math.Ceiling(Math.Max(0, choice.Effect.Relic) * .95d)));
-                Assert.That(session.Settlement.BankedBlackPearl, Is.EqualTo((int)Math.Ceiling(Math.Max(0, choice.Effect.BlackPearl) * .95d)));
+                Assert.That(session.Settlement.BankedGold, Is.EqualTo((int)(Math.Max(0L, choice.Effect.Gold) * 95 / 100)));
+                Assert.That(session.Settlement.BankedGem, Is.EqualTo((int)((Math.Max(0L, choice.Effect.Gem) * 95 + 99) / 100)));
+                Assert.That(session.Settlement.BankedRelic, Is.EqualTo((int)((Math.Max(0L, choice.Effect.Relic) * 95 + 99) / 100)));
+                Assert.That(session.Settlement.BankedBlackPearl, Is.EqualTo((int)((Math.Max(0L, choice.Effect.BlackPearl) * 95 + 99) / 100)));
             }
             else
             {

@@ -22,7 +22,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void EveryCombatSymbol_HasDistinctBoundedGeometryAtSmallHudSize()
+        public void EveryCombatSymbol_HasDistinctBoundedArtAtSmallHudSize()
         {
             HashSet<string> fingerprints = new HashSet<string>();
             foreach (CoreBattleStatusKind kind in Enum.GetValues(typeof(CoreBattleStatusKind)))
@@ -30,6 +30,7 @@ namespace ShatteredSail.Presentation.Tests
                 BattleStatusIconGraphic graphic = Create();
                 graphic.Configure(kind, "test_status", false);
                 Mesh mesh = Populate(graphic);
+                Assert.That(graphic.mainTexture, Is.SameAs(BattleIconArtCatalog.Texture));
                 Assert.That(mesh.vertexCount, Is.GreaterThan(0), kind.ToString());
                 Assert.That(mesh.vertexCount, Is.LessThan(2048), kind.ToString());
                 Assert.That(mesh.triangles.Length, Is.GreaterThan(0), kind.ToString());
@@ -51,6 +52,8 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     unchecked { fingerprint = fingerprint * 31 + tint.r * 256 * 256 + tint.g * 256 + tint.b; }
                 }
+                foreach (Vector2 uv in mesh.uv)
+                    unchecked { fingerprint = fingerprint * 31 + Mathf.RoundToInt(uv.x * 10000f) * 10001 + Mathf.RoundToInt(uv.y * 10000f); }
                 Assert.That(fingerprints.Add(fingerprint.ToString()), Is.True, "Symbols must differ: " + kind);
                 Assert.That(graphic.raycastTarget, Is.False, kind.ToString());
             }
@@ -133,6 +136,8 @@ namespace ShatteredSail.Presentation.Tests
                     hash = hash * 31 + Mathf.RoundToInt(vertex.y * 1000f);
                 }
                 foreach (Color32 tint in mesh.colors32) hash = hash * 31 + tint.r * 256 * 256 + tint.g * 256 + tint.b;
+                foreach (Vector2 uv in mesh.uv)
+                    hash = hash * 31 + Mathf.RoundToInt(uv.x * 10000f) * 10001 + Mathf.RoundToInt(uv.y * 10000f);
                 return hash;
             }
         }

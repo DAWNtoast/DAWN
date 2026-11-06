@@ -1,13 +1,15 @@
-Current card identities: 315
-Playable stage definitions: 349
-Grouped display variants: 318
-Glossary definitions: 31
-Crew cards: 42; component cards: 95
-普通: 90
-火焰: 39
-秘术: 36
+Current card identities: 313
+Playable stage definitions: 340
+Grouped display variants: 314
+Glossary definitions: 23
+Boarding field inheritance rules: 8
+Crew cards: 36; component cards: 90
+普通: 79
+火焰: 41
+秘术: 40
 诅咒: 36
 潮汐: 39
-雷霆: 39
+雷霆: 42
 血契: 36
+School unlocks from CoreSchoolUnlockCatalog: fire=2; arcane=3; curse=4; tide=5; thunder=6; blood=7
 PASS: unique identities/numbers, all special cards, complete effects, glossary resolution, stage-specific costs, representative values.

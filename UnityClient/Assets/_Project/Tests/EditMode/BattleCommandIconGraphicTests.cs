@@ -16,7 +16,7 @@ namespace ShatteredSail.Presentation.Tests
 
         [TestCase(36f, 36f)]
         [TestCase(64f, 40f)]
-        public void EveryCommandAndResource_HasADistinctFiniteBoundedSymbol(float width, float height)
+        public void EveryCommandAndResource_HasADistinctBoundedTexturedSymbol(float width, float height)
         {
             BattleCommandIconGraphic graphic = Create(width, height);
             var fingerprints = new HashSet<int>();
@@ -27,6 +27,7 @@ namespace ShatteredSail.Presentation.Tests
                 try
                 {
                     Populate(graphic, mesh);
+                    Assert.That(graphic.mainTexture, Is.SameAs(BattleIconArtCatalog.Texture));
                     Assert.That(mesh.vertexCount, Is.InRange(1, 2048), kind.ToString());
                     Assert.That(mesh.triangles.Length, Is.GreaterThan(0), kind.ToString());
                     Rect rect = graphic.rectTransform.rect;
@@ -45,6 +46,8 @@ namespace ShatteredSail.Presentation.Tests
                     }
                     foreach (Color32 tint in mesh.colors32)
                         unchecked { fingerprint = fingerprint * 31 + tint.r * 65536 + tint.g * 256 + tint.b; }
+                    foreach (Vector2 uv in mesh.uv)
+                        unchecked { fingerprint = fingerprint * 31 + Mathf.RoundToInt(uv.x * 10000f) * 10001 + Mathf.RoundToInt(uv.y * 10000f); }
                     Assert.That(fingerprints.Add(fingerprint), Is.True, "Distinct symbol required for " + kind);
                     Assert.That(graphic.Kind, Is.EqualTo(kind));
                     Assert.That(graphic.raycastTarget, Is.False, "The outer HUD cell owns hover and click events.");

@@ -134,9 +134,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Find<Button>("End Battle Turn").interactable, Is.False);
             Assert.That(source.interactable, Is.False);
             HashSet<BattleFxKind> observed = new HashSet<BattleFxKind>();
+            HashSet<int> observedCannonCasts = new HashSet<int>();
             bool capturedCard = false, capturedMuzzle = false, capturedImpact = false, capturedHealth = false;
-            bool capturedCardTypeStamp = false;
-            int maximumMuzzleFlashCount = 0;
+            bool sawNavalMesh = false, sawFireRound = false, sawBeforeContact = false, sawAfterContact = false;
             bool sawDamageChip = false, sawIntermediateHull = false, sawIntermediateGuard = false;
             int cardBoundsChecks = 0;
             float deadline = Time.realtimeSinceStartup + 12f;
@@ -144,13 +144,32 @@ namespace ShatteredSail.Presentation.Tests
             {
                 GameObject root = GameObject.Find("Battle Card");
                 BattleFxGraphic[] effects = root == null ? Array.Empty<BattleFxGraphic>() : root.GetComponentsInChildren<BattleFxGraphic>();
-                maximumMuzzleFlashCount = Mathf.Max(maximumMuzzleFlashCount, effects.Count(effect => effect.Kind == BattleFxKind.MuzzleFlash));
+                NavalCombatFxGraphic[] navalEffects = root == null ? Array.Empty<NavalCombatFxGraphic>() : root.GetComponentsInChildren<NavalCombatFxGraphic>();
                 foreach (BattleFxGraphic effect in effects)
                 {
                     observed.Add(effect.Kind);
                     Assert.That(effect.raycastTarget, Is.False, "Particles cannot swallow ship/card pointer input.");
                 }
-                if (source != null && source.gameObject.activeInHierarchy && effects.Any(effect => effect.Kind == BattleFxKind.CardShine && effect.Progress > 0f))
+                foreach (NavalCombatFxGraphic effect in navalEffects.Where(effect => effect.Role == NavalVfxRole.Cannon))
+                {
+                    observedCannonCasts.Add(effect.GetInstanceID());
+                    Assert.That(effect.raycastTarget, Is.False, "The batched naval effect cannot swallow ship/card pointer input.");
+                    Assert.That(effect.mainTexture.width, Is.GreaterThanOrEqualTo(1024), "The real naval atlas must be bound.");
+                    sawFireRound |= effect.HasSchool && effect.School == BattleSchoolAttackKind.Fire;
+                    sawBeforeContact |= effect.Progress > .02f && effect.Progress < effect.ContactAt;
+                    sawAfterContact |= effect.Progress > effect.ContactAt && effect.Progress < .95f;
+                    if (!sawNavalMesh && effect.Progress > .04f && effect.Progress < .95f)
+                    {
+                        Canvas.ForceUpdateCanvases();
+                        Mesh mesh = effect.canvasRenderer.GetMesh();
+                        sawNavalMesh = mesh != null && mesh.vertexCount > 0;
+                    }
+                }
+                // A cannon cast starts only after RaiseCardToCenter has placed the card
+                // fully on screen. Inspect that reveal/release pose without depending on
+                // the brief foil sweep, or checking a legally clipped card still in hand.
+                if (root != null && source != null && source.gameObject.activeInHierarchy &&
+                    source.transform.parent == root.transform && navalEffects.Any(effect => effect.Role == NavalVfxRole.Cannon))
                 {
                     AssertCardInsideStage(source.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform, root.GetComponent<RectTransform>());
                     cardBoundsChecks++;
@@ -160,15 +179,14 @@ namespace ShatteredSail.Presentation.Tests
                     NavalBattleVisualCapture.Capture(controller, "08_Card_Release.png", "出牌蓄势：卡面扫光与释放反馈");
                     capturedCard = true;
                 }
-                if (!capturedMuzzle && effects.Any(effect => effect.Kind == BattleFxKind.MuzzleFlash && effect.Progress > 0.1f))
+                if (!capturedMuzzle && navalEffects.Any(effect => effect.Role == NavalVfxRole.Cannon &&
+                    effect.Progress > .08f && effect.Progress < effect.ContactAt))
                 {
                     NavalBattleVisualCapture.Capture(controller, "09_Cannon_Muzzle.png", "开炮瞬间：炮口焰、烟雾与炮弹轨迹");
                     capturedMuzzle = true;
                 }
-                if (!capturedCardTypeStamp && GameObject.Find("Battle Card Cast Stamp") != null)
-                    capturedCardTypeStamp = true;
-
-                if (!capturedImpact && effects.Any(effect => effect.Kind == BattleFxKind.Impact && effect.Progress > 0.08f))
+                if (!capturedImpact && navalEffects.Any(effect => effect.Role == NavalVfxRole.Cannon &&
+                    effect.Progress > effect.ContactAt + .07f && effect.Progress < .95f))
                 {
                     NavalBattleVisualCapture.Capture(controller, "10_Cannon_Impact.png", "命中瞬间：敌舰受击与白色护甲破裂反馈");
                     capturedImpact = true;
@@ -188,12 +206,12 @@ namespace ShatteredSail.Presentation.Tests
             }
             Assert.That(controller.IsBattleAnimationPlaying, Is.False, "A single card must complete its feedback and unlock the next input.");
             yield return null;
-            Assert.That(observed, Does.Contain(BattleFxKind.MuzzleFlash));
-            Assert.That(capturedCardTypeStamp, Is.True, "A played card should briefly label its category while the action resolves.");
-            Assert.That(maximumMuzzleFlashCount, Is.GreaterThanOrEqualTo(3), "Loaded fire rounds should read as a staggered three-shot salvo.");
-            Assert.That(observed, Does.Contain(BattleFxKind.Smoke));
+            Assert.That(observedCannonCasts.Count, Is.EqualTo(1), "Duplicate input must not create a second naval cannon cast.");
+            Assert.That(sawFireRound, Is.True, "Loaded fire rounds must use the fire cannon artwork.");
+            Assert.That(sawNavalMesh, Is.True, "The atlas effect must submit real visible geometry.");
+            Assert.That(sawBeforeContact && capturedMuzzle, Is.True, "Observe the muzzle/travel phase before damage contact.");
+            Assert.That(sawAfterContact && capturedImpact, Is.True, "Observe the impact/aftermath phase after damage contact.");
             Assert.That(observed, Does.Contain(BattleFxKind.Trail));
-            Assert.That(observed, Does.Contain(BattleFxKind.Impact));
             Assert.That(observed, Does.Contain(BattleFxKind.ArmorBreak));
             Assert.That(cardBoundsChecks, Is.GreaterThan(0), "The card must remain inside the battle frame while its real release animation runs.");
             Assert.That(sawIntermediateGuard, Is.True, "Guard should visually deplete through intermediate values.");
@@ -220,6 +238,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(Find<Button>("End Battle Turn").interactable, Is.True);
             Assert.That(GameObject.Find("Battle Card").GetComponentsInChildren<BattleFxGraphic>(), Is.Empty,
                 "The completed action must remove its transient effect objects.");
+            Assert.That(GameObject.Find("Battle Card").GetComponentsInChildren<NavalCombatFxGraphic>(), Is.Empty,
+                "The completed action must remove its atlas-backed naval effect.");
             NavalBattleVisualCapture.Capture(controller, "12_Cannon_Resolved.png", "命中结算完成：仅扣除一次弹药、能量与敌舰生命，操作解锁");
             LogAssert.NoUnexpectedReceived();
         }
@@ -418,6 +438,8 @@ namespace ShatteredSail.Presentation.Tests
                 command.onClick.Invoke();
                 Assert.That(controller.IsBattleAnimationPlaying, Is.True, action);
                 bool sawMotion = false, capturedMotion = false, sawRamComic = false, sawEffects = false;
+                var enemyCannons = new HashSet<int>();
+                bool sawEnemyDamage = false, capturedEnemyContact = false;
                 int checkedFrames = 0;
                 float deadline = Time.realtimeSinceStartup + 12f;
                 while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
@@ -438,7 +460,34 @@ namespace ShatteredSail.Presentation.Tests
                         Assert.That(enemy.GetComponent<Image>().sprite, Is.Not.Null);
                         Assert.That(float.IsNaN(player.anchoredPosition.x) || float.IsNaN(enemy.anchoredPosition.x), Is.False);
                         checkedFrames++;
-                        sawEffects |= GameObject.Find("Battle Card").GetComponentsInChildren<BattleFxGraphic>().Length > 0;
+                        RectTransform stage = Find<RectTransform>("Battle Card");
+                        if (action == "enemy_fire")
+                        {
+                            foreach (NavalCombatFxGraphic effect in stage.GetComponentsInChildren<NavalCombatFxGraphic>())
+                            {
+                                if (!effect.IsPlaying || !enemyCannons.Add(effect.GetInstanceID())) continue;
+                                Assert.That(effect.Role, Is.EqualTo(NavalVfxRole.Cannon));
+                                Assert.That(effect.HasSchool, Is.False);
+                                Assert.That(effect.Outcome, Is.EqualTo(BattleSchoolAttackOutcome.Hit));
+                                Assert.That(effect.raycastTarget, Is.False);
+                                Assert.That(Vector2.Distance(effect.From, stage.InverseTransformPoint(enemy.position)), Is.LessThan(.1f));
+                                Assert.That(Vector2.Distance(effect.To, stage.InverseTransformPoint(player.position)), Is.LessThan(.1f));
+                                sawEffects = true;
+                            }
+                            CoreNavalResolvedAttack contact = session.Battle.LastNavalAttack;
+                            if (contact != null && stage.GetComponentsInChildren<Text>().Any(text =>
+                                text.name == "Naval VFX Result" && text.text == "-" + contact.HealthLost && text.color.a > .3f))
+                            {
+                                sawEnemyDamage = true;
+                                if (!capturedEnemyContact)
+                                {
+                                    NavalBattleVisualCapture.Capture(controller, "ShipAudit_SaltFreighter_enemy_fire_Contact.png",
+                                        "敌方真实炮击：命中我舰，浮字读取权威炮击伤害，装备与战术船标保持");
+                                    capturedEnemyContact = true;
+                                }
+                            }
+                        }
+                        else sawEffects |= stage.GetComponentsInChildren<BattleFxGraphic>().Length > 0;
                         sawMotion |= Vector2.Distance(player.anchoredPosition, playerStart) > 0.5f ||
                             Quaternion.Angle(enemy.localRotation, enemyStart) > 1f;
                         if (sawMotion && !capturedMotion)
@@ -461,7 +510,14 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(session.Battle.PlayerPositionMeters, Is.EqualTo(playerWorldBefore), "Cards grant movement for a later route commitment.");
                     Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
                 }
-                if (action == "enemy_fire") Assert.That(session.Hull, Is.LessThan(hullBefore));
+                if (action == "enemy_fire")
+                {
+                    Assert.That(session.Hull, Is.LessThan(hullBefore));
+                    Assert.That(session.Battle.LastNavalAttack, Is.Not.Null);
+                    Assert.That(session.Battle.LastNavalAttack.HealthLost, Is.GreaterThan(0));
+                    Assert.That(enemyCannons.Count, Is.EqualTo(1), "One committed enemy cannon contact creates exactly one current naval VFX.");
+                    Assert.That(sawEnemyDamage, Is.True, "Visible damage text must match the committed cannon contact.");
+                }
                 if (action == "card_chain_shot" || action == "ram") Assert.That(session.Battle.EnemyHull, Is.LessThan(enemyHullBefore));
                 if (action == "ram")
                 {
@@ -616,7 +672,10 @@ namespace ShatteredSail.Presentation.Tests
             if (fitOwnedComponents)
             {
                 PlayerPrefs.SetInt(CoreGameplayDemoController.ShipOwnedKey(shipIndex), 1);
-                controller.EnsureShipComponentLoadout(shipIndex);
+                // Explicit visual-audit fixture: purchased hulls no longer grant fittings.
+                var inventory = (OwnedShipComponentInventory)typeof(CoreGameplayDemoController)
+                    .GetField("componentInventory", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+                inventory.EnsureLoadout(shipIndex);
             }
             session.StartVoyage();
             CoreEncounter encounter = new CoreEncounter("naval_visual_feedback", "视觉验收敌舰", "海战", "动态画面回归。", true, false, 2, 180);

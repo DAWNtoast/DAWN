@@ -55,7 +55,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(face.rectTransform.sizeDelta, Is.EqualTo(CardFaceLayout.EffectSize));
             Assert.That(face.preferredHeight, Is.LessThanOrEqualTo(face.rectTransform.rect.height + .5f));
             Assert.That(session.BattleCardDescription(definition, NavalBattleStage.Naval),
-                Does.Contain("当前炮击 " + afterDamage).And.Contain("命中点燃敌舰"),
+                Does.Contain("当前炮击 " + afterDamage).And.Contain("本次攻击向目标施加 2 层燃烧"),
                 "The separate detailed explanation still exposes conditional context.");
             NavalBattleVisualCapture.Capture(controller, "CardFaceLiveValues_02_Cannon_Loaded.png",
                 "装填增益后同一炮击卡面仅增加主伤害数字，不追加当前炮击或点燃说明", "Battle Card");

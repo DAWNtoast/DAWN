@@ -1,0 +1,12 @@
+{
+  "Result": "PASS",
+  "RecordedUtc": "2026-11-05T11:39:24.9339198Z",
+  "CrossRevisionRestoration": "PASS: original differential backup + first frozen source; three originals restored, later task file removed",
+  "UnknownInputGuard": "PASS: unexpected modification rejected before any input changes",
+  "OriginalLegacyLock": "PRESERVED",
+  "RealProjectTouched": false,
+  "UnityStarted": false,
+  "SyntheticBytesRemoved": 46846.0,
+  "ReleaseScriptSHA256": "DE2A26B699BC75A291951BA9F0B3E7BF24EBBF1B79EAA56CFE4283828FB7C380",
+  "RestoreScriptSHA256": "021A050595CEE73B25FB641F983F55A4DC030A01C532316E3768114211607589"
+}

@@ -34,25 +34,51 @@ namespace ShatteredSail.Core.Tests
                 Canvas.ForceUpdateCanvases();
                 Rect buttonBounds = Bounds(header, (RectTransform)button.transform);
                 string[] readouts = battle
-                    ? new[] { "Voyage Header Title", "Voyage Header Status", "Alignment Inset", "Ship Status Inset", "Battle Deck" }
+                    ? new[] { "Voyage Header Title", "Voyage Header Status", "Battle Deck" }
                     : new[] { "Voyage Header Title", "Voyage Header Status", "Lookout Time Ribbon", "Voyage Cargo" };
                 foreach (string name in readouts)
                     Assert.That(buttonBounds.Overlaps(Bounds(header, (RectTransform)header.Find(name))), Is.False, name);
                 Assert.That(adjacent.transform.parent, Is.SameAs(header));
                 Rect adjacentBounds = Bounds(header, (RectTransform)adjacent.transform);
-                Assert.That(buttonBounds.xMin - adjacentBounds.xMax, Is.GreaterThanOrEqualTo(11.99f), "The adjacent control leaves a clear gap before Settings.");
+                Assert.That(buttonBounds.xMin - adjacentBounds.xMax, Is.GreaterThanOrEqualTo(15.99f), "The adjacent control leaves a clear gap before Settings.");
                 if (battle)
                 {
-                    Rect statusBounds = Bounds(header, (RectTransform)header.Find("Ship Status Inset"));
-                    Rect alignmentBounds = Bounds(header, (RectTransform)header.Find("Alignment Inset"));
+                    Rect statusBounds = Bounds(header, (RectTransform)header.Find("Voyage Header Status"));
+                    Rect titleBounds = Bounds(header, (RectTransform)header.Find("Voyage Header Title"));
                     Assert.That(adjacentBounds.xMin - statusBounds.xMax, Is.GreaterThanOrEqualTo(15.99f));
-                    Assert.That(statusBounds.xMin - alignmentBounds.xMax, Is.GreaterThanOrEqualTo(14.99f));
-                    Assert.That(button.GetComponentInChildren<BattleHeaderIconGraphic>().raycastTarget, Is.False);
-                    Assert.That(adjacent.GetComponentInChildren<BattleHeaderIconGraphic>().raycastTarget, Is.False);
+                    Assert.That(statusBounds.Overlaps(titleBounds), Is.False);
+                    Text range = host.GetComponentsInChildren<Text>().SingleOrDefault(item => item.name == "Battle Range");
+                    if (range != null)
+                        Assert.That(statusBounds.Overlaps(Bounds(header, range.rectTransform)), Is.False,
+                            "The summary must leave room for the actual boarding readout.");
                 }
-                Assert.That(header.rect.xMax - buttonBounds.xMax, Is.EqualTo(30f).Within(.01f), "Settings stays near the right edge.");
-                Assert.That(buttonBounds.yMin, Is.GreaterThan(-37f), "Leave the tutorial instruction band clear.");
-                Assert.That(buttonBounds.yMax, Is.LessThan(39f), "Leave the tutorial objective band clear.");
+                foreach (Button iconButton in new[] { button, adjacent })
+                {
+                    if (iconButton == cargo)
+                    {
+                        Assert.That(iconButton.targetGraphic, Is.TypeOf<PortHeaderIconGraphic>());
+                        var cabin = (PortHeaderIconGraphic)iconButton.targetGraphic;
+                        Assert.That(cabin.Kind, Is.EqualTo(PortHeaderIconKind.Cabin));
+                        Assert.That(cabin.texture, Is.Not.Null, "The cabin control must load its visible icon.");
+                    }
+                    else
+                        Assert.That(iconButton.targetGraphic, Is.TypeOf<BattleHeaderIconGraphic>());
+                    Assert.That(iconButton.targetGraphic.raycastTarget, Is.True, "The icon forwards clicks to its original button.");
+                    Assert.That(iconButton.targetGraphic.rectTransform.rect.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize),
+                        "Every header control displays its icon at the shared size.");
+                    Rect iconBounds = Bounds(header, (RectTransform)iconButton.transform);
+                    Assert.That(iconBounds.width, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
+                    Assert.That(iconBounds.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
+                    Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(iconButton.targetGraphic.gameObject), Is.SameAs(iconButton.gameObject));
+                    Assert.That(iconButton.GetComponent<Image>().color.a, Is.Zero);
+                    Assert.That(iconButton.GetComponentsInChildren<Text>(true).Any(text => text.isActiveAndEnabled), Is.False);
+                }
+                Assert.That(header.rect.xMax - buttonBounds.xMax, Is.EqualTo(NauticalHeaderSkin.SettingsRightMargin).Within(.01f), "Settings keeps its center while its icon grows.");
+                Assert.That(buttonBounds.center.x, Is.EqualTo(header.rect.xMax - 62f).Within(.01f));
+                Assert.That(buttonBounds.center.y, Is.EqualTo(header.rect.yMax - 54f).Within(.01f), "Use the same top offset as the port settings.");
+                Assert.That(buttonBounds.yMin, Is.GreaterThanOrEqualTo(header.rect.yMin), "The enlarged icon stays inside the header.");
+                Assert.That(buttonBounds.yMax, Is.LessThanOrEqualTo(header.rect.yMax), "The enlarged icon stays inside the header.");
+                Assert.That(buttonBounds.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
                 button.onClick.Invoke();
                 Assert.That(Read<RectTransform>(controller, "portSettingsOverlay"), Is.Not.Null);
             }
@@ -74,6 +100,18 @@ namespace ShatteredSail.Core.Tests
                 int[] hand = battle.Hand.ToArray();
                 Assert.That(ButtonNamed(host, "Battle Deck").IsInteractable(), Is.True);
                 Assert.That(ButtonNamed(host, "Battle Settings").IsInteractable(), Is.True);
+                RectTransform header = (RectTransform)ButtonNamed(host, "Battle Settings").transform.parent;
+                Canvas.ForceUpdateCanvases();
+                Assert.That(header.rect.height, Is.EqualTo(108f).Within(.01f), "Teaching headers must match ordinary gameplay height.");
+                Rect settingsBounds = Bounds(header, (RectTransform)ButtonNamed(host, "Battle Settings").transform);
+                Assert.That(settingsBounds.width, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
+                Assert.That(settingsBounds.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
+                Assert.That(ButtonNamed(host, "Battle Settings").targetGraphic.rectTransform.rect.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+                Assert.That(settingsBounds.center.x, Is.EqualTo(header.rect.xMax - 62f).Within(.01f));
+                Assert.That(settingsBounds.center.y, Is.EqualTo(header.rect.yMax - 54f).Within(.01f),
+                    "The taller teaching header must not move Settings down the screen.");
+                Assert.That(settingsBounds.yMin, Is.GreaterThanOrEqualTo(header.rect.yMin));
+                Assert.That(settingsBounds.yMax, Is.LessThanOrEqualTo(header.rect.yMax));
                 ButtonNamed(host, "Battle Deck").onClick.Invoke();
                 Assert.That(Read<RectTransform>(controller, "battleDeckOverlay"), Is.Not.Null);
                 ButtonNamed(host, "Close Battle Deck").onClick.Invoke();
@@ -159,7 +197,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(ButtonNamed(host, "Apply Port Settings").IsInteractable(), Is.False);
                 Assert.That(master.IsInteractable(), Is.False);
                 Assert.That(events.currentSelectedGameObject, Is.SameAs(ButtonNamed(host, "Cancel Return To Main Menu").gameObject));
-                Assert.That(Read<Text>(controller, "returnMenuMessage").text, Does.Contain("下次可继续航行"));
+                Assert.That(Read<Text>(controller, "returnMenuMessage").text, Is.Empty);
 
                 // Old settings callbacks may still be queued when the child opens.
                 ButtonNamed(host, "Apply Port Settings").onClick.Invoke();

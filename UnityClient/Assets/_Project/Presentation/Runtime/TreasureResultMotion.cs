@@ -12,7 +12,7 @@ namespace ShatteredSail.Presentation
         private CanvasGroup[] pieceGroups;
         private Vector2[] starts, ends;
         private float[] angles;
-        private CanvasGroup targetGroup, captionGroup, seamGroup, chartGroup;
+        private CanvasGroup targetGroup, seamGroup, chartGroup;
         private RectTransform chartMask, leftRoll, rightRoll;
         private Vector2 chartSize;
         private float targetAlpha;
@@ -24,7 +24,7 @@ namespace ShatteredSail.Presentation
         public bool IsCrafting => craft;
 
         public static TreasureResultMotion PlayIdentification(RectTransform parent, RawImage target,
-            TreasureChartDisplayLayout layout, int quadrant, Vector2 source, string rankName, bool hideTarget,
+            TreasureChartDisplayLayout layout, int quadrant, Vector2 source, bool hideTarget,
             Behaviour owner = null)
         {
             RectTransform root = Rect("Treasure Identification Motion", parent, parent.rect.size, Vector2.zero);
@@ -40,12 +40,6 @@ namespace ShatteredSail.Presentation
             // Account for the actual four-corner paper projection when finding the drop point.
             motion.starts = new[] { source - layout.FragmentCenter(quadrant) };
             motion.angles = new[] { quadrant % 2 == 0 ? -5f : 5f };
-            RectTransform caption = Rect("Identification Result", root, new Vector2(310f, 40f), source + new Vector2(0f, -67f));
-            Image paper = caption.gameObject.AddComponent<Image>();
-            paper.color = new Color(.14f, .10f, .055f, .91f); paper.raycastTarget = false;
-            Label("Result", caption, new Vector2(242f, 38f), new Vector2(-28f, 0f), rankName + "碎片 +1", 20);
-            motion.captionGroup = caption.gameObject.AddComponent<CanvasGroup>();
-            motion.AddSkip(caption, new Vector2(119f, 0f), new Vector2(65f, 38f));
             motion.SetElapsed(0f);
             return motion;
         }
@@ -86,12 +80,6 @@ namespace ShatteredSail.Presentation
                 new Color(1f, .89f, .65f, .5f)).rectTransform;
             motion.rightRoll = Solid("Right Paper Fold", root, new Vector2(3f, motion.chartSize.y), Vector2.zero,
                 new Color(1f, .89f, .65f, .5f)).rectTransform;
-            RectTransform caption = Rect("Craft Result", root, new Vector2(188f, 34f),
-                new Vector2(0f, -motion.chartSize.y * .5f + 23f));
-            Solid("Caption Backing", caption, caption.sizeDelta, Vector2.zero, new Color(.14f, .10f, .055f, .88f));
-            Label("Result", caption, new Vector2(130f, 32f), new Vector2(-25f, 0f), "拼合海图", 18);
-            motion.captionGroup = caption.gameObject.AddComponent<CanvasGroup>();
-            motion.AddSkip(caption, new Vector2(62f, 0f), new Vector2(62f, 34f));
             motion.SetElapsed(0f);
             return motion;
         }
@@ -105,16 +93,6 @@ namespace ShatteredSail.Presentation
             if (ownsTargetGroup) targetGroup = target.gameObject.AddComponent<CanvasGroup>();
             targetAlpha = targetGroup.alpha;
             targetGroup.alpha = 0f;
-        }
-
-        private void AddSkip(Transform parent, Vector2 position, Vector2 size)
-        {
-            Image image = Solid("Skip Treasure Result", parent, size, position, new Color(.62f, .43f, .19f, .38f));
-            image.raycastTarget = true;
-            Button button = image.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            Label("Label", button.transform, size, Vector2.zero, "跳过", 17);
-            button.onClick.AddListener(CompleteImmediately);
         }
 
         private void Update()
@@ -141,7 +119,6 @@ namespace ShatteredSail.Presentation
             piece.localScale = Vector3.one * Mathf.Lerp(.94f, 1f, reveal);
             piece.localRotation = Quaternion.Euler(0f, 0f, angles[0] * (1f - travel));
             pieceGroups[0].alpha = reveal;
-            captionGroup.alpha = reveal * (1f - Ease((Elapsed - .94f) / .2f));
         }
 
         private void ApplyCraft()
@@ -163,7 +140,6 @@ namespace ShatteredSail.Presentation
             rightRoll.anchoredPosition = new Vector2(width * .5f, 0f);
             float foldAlpha = chartGroup.alpha * (1f - unfold) * .55f;
             leftRoll.GetComponent<Image>().color = rightRoll.GetComponent<Image>().color = new Color(1f, .89f, .65f, foldAlpha);
-            captionGroup.alpha = Ease(Elapsed / .18f) * (1f - Ease((Elapsed - 1.55f) / .25f));
         }
 
         public void CompleteImmediately()
@@ -218,14 +194,6 @@ namespace ShatteredSail.Presentation
             Image image = Rect(name, parent, size, position).gameObject.AddComponent<Image>();
             image.color = color; image.raycastTarget = false;
             return image;
-        }
-
-        private static void Label(string name, Transform parent, Vector2 size, Vector2 position, string value, int fontSize)
-        {
-            Text text = Rect(name, parent, size, position).gameObject.AddComponent<Text>();
-            GameTypography.Apply(text, fontSize, FontStyle.Normal);
-            text.color = new Color(1f, .9f, .69f, 1f); text.text = value;
-            text.alignment = TextAnchor.MiddleCenter; text.raycastTarget = false;
         }
     }
 }

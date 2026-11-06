@@ -109,6 +109,8 @@ namespace ShatteredSail.Core.Gameplay
             bool horizontal = Math.Abs(dy) < .01f && Math.Abs(Math.Abs(dx) - NavalGridCellMeters) < .01f;
             bool vertical = Math.Abs(dx) < .01f && Math.Abs(Math.Abs(dy) - NavalGridCellMeters) < .01f;
             if (!horizontal && !vertical) return "请沿相邻的上、下、左、右海域逐格拖出航线";
+            if (NavalFieldsActive && NavalTideBlocksMovement(Battle.NavalFields, true, previous.PositionMeters, targetMeters))
+                return "定向水流中不能向水流相反方向移动";
             float heading = NavalBearing(previous.PositionMeters, targetMeters);
             float turn = Math.Abs(NavalAngleDelta(previous.HeadingDegrees, heading));
             if (precedingSteps == 0 && turn > .01f) return "第一格必须沿当前船头正前方航行";
@@ -209,7 +211,7 @@ namespace ShatteredSail.Core.Gameplay
                 TurnNavalShip(true, node.HeadingDegrees, frames);
                 AdvanceNavalShip(true, NavalGridCellMeters, frames);
                 steps++;
-                FieldShip(true).MovementSlow = 0;
+                FieldShip(true).MovementSlow = FieldShip(true).NextMovementMaxCells = 0;
                 bool interrupted = NavalFieldsEntered(true, true);
                 if (!NavalActionMovementActive)
                 {
@@ -221,7 +223,6 @@ namespace ShatteredSail.Core.Gameplay
                 }
                 if (interrupted) break;
             }
-            if (steps > 0) NavalFieldsMovementEnded(true, frames);
             if (!NavalActionMovementActive)
             {
                 committedBattle.CommitTacticalMovement(frames);
@@ -266,13 +267,21 @@ namespace ShatteredSail.Core.Gameplay
             return Array.AsReadOnly(new[] { NormalizeNavalHeading(heading), NormalizeNavalHeading(heading + 90f), NormalizeNavalHeading(heading - 90f) });
         }
 
-        public bool ConfirmNavalArrivalHeading(float headingDegrees, out string reason)
+        public string NavalArrivalHeadingUnavailableReason(float headingDegrees)
         {
             if (!NavalActionMovementActive || !Battle.NavalAwaitingHeadingSelection)
-            { reason = "当前没有等待确定的到达朝向"; return false; }
-            if (float.IsNaN(headingDegrees) || float.IsInfinity(headingDegrees)) { reason = "朝向无效"; return false; }
+                return "当前没有等待确定的到达朝向";
+            if (float.IsNaN(headingDegrees) || float.IsInfinity(headingDegrees)) return "朝向无效";
             float heading = NormalizeNavalHeading(headingDegrees);
-            if (!IsNavalArrivalHeadingAllowed(heading)) { reason = "到达后只能保持直行、左转或右转朝向，不能反向"; return false; }
+            if (!IsNavalArrivalHeadingAllowed(heading)) return "到达后只能保持直行、左转或右转朝向，不能反向";
+            return GuidedBossArrivalHeadingRestriction(heading);
+        }
+
+        public bool ConfirmNavalArrivalHeading(float headingDegrees, out string reason)
+        {
+            reason = NavalArrivalHeadingUnavailableReason(headingDegrees);
+            if (reason.Length > 0) return false;
+            float heading = NormalizeNavalHeading(headingDegrees);
             var frames = new List<CoreNavalTacticalFrame> { Battle.TacticalFrame };
             bool wasClosing = Battle.PlayerMovingTowardEnemy;
             TurnNavalShip(true, heading, frames);

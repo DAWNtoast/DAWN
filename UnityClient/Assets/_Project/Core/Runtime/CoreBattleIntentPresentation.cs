@@ -7,7 +7,7 @@ namespace ShatteredSail.Core.Gameplay
 {
     public enum CoreBattleIntentKind
     {
-        Cannon, Melee, Ram, Guard, Heal, Load, Move, Fire, Arcane, Thunder, Curse, Tide, Blood, Wait
+        Cannon, Melee, Ram, Guard, Heal, Load, Move, Fire, Arcane, Thunder, Curse, Tide, Blood, Wait, Immunity
     }
 
     /// <summary>One visible part of the next enemy action; Sequence groups compound card effects.</summary>
@@ -37,6 +37,8 @@ namespace ShatteredSail.Core.Gameplay
 
     public sealed partial class CoreVoyageSession
     {
+        private bool UsesSparringBattleText => CoreLegendaryWarships.IsSparringEncounter(ActiveEncounter?.Id);
+
         // Stay beside the rules assembly so the UI never parses localized intent text,
         // copies damage formulas, consumes a debuff, or advances the enemy decision RNG.
         internal IReadOnlyList<CoreBattleIntent> BuildBattleIntentPresentation()
@@ -54,25 +56,31 @@ namespace ShatteredSail.Core.Gameplay
             bool preparing = Battle.Stage == NavalBattleStage.Preparation;
             CoreNavalMovementFieldPreview fields = NavalFieldsActive ? GetEnemyNavalFieldPreview(plan.Move) : null;
             string terrain = fields == null || string.IsNullOrEmpty(fields.Summary) ? string.Empty : "\n" + fields.Summary;
+            if (EnemyNavalBossFieldImmunityMaskThisTurn != 0)
+                result.Add(new CoreBattleIntent("enemy_boss_field_immunity", CoreBattleIntentKind.Immunity,
+                    EnemyNavalBossRushThisTurn ? "全场地防护" : "本系场地防护", null,
+                    EnemyNavalBossFieldImmunityDescription));
             if (plan.Move > 0f)
             {
                 int steps = fields == null ? (int)(QuantizeNavalEnemyTravel(plan.Move) / NavalGridCellMeters) : fields.ActiveSteps;
-                result.Add(new CoreBattleIntent("enemy_move", CoreBattleIntentKind.Move, "机动", steps,
-                    "预计主动移动 " + steps + " 格（每格 100 米）。海流可能额外推动，雷栅可能提前终止移动。" + terrain));
+                result.Add(new CoreBattleIntent(plan.BossRush ? "enemy_boss_rush" : "enemy_move", CoreBattleIntentKind.Move,
+                    plan.BossRush ? "极速行进" : "机动", steps,
+                    "预计主动移动 " + steps + " 格（每格 100 米）。" +
+                    (plan.BossRush ? NavalBossRushDescription : "定向水流在回合末推动，雷栅可能提前终止移动。") + terrain));
             }
             if (fields != null && fields.Sinks)
             {
                 result.Add(new CoreBattleIntent("enemy_cannot_act", CoreBattleIntentKind.Wait, "无法行动", null,
-                    "敌舰将在行动前或移动途中沉没，不会继续获得格挡、装填、治疗或攻击。" + terrain));
+                    (UsesSparringBattleText
+                        ? "对方将在行动前或移动途中达到认输条件，结束切磋，不会继续获得格挡、装填、治疗或攻击。"
+                        : "敌舰将在行动前或移动途中沉没，不会继续获得格挡、装填、治疗或攻击。") + terrain));
                 return result.AsReadOnly();
             }
 
-            int guard = boarding ? CTBEnemyBlockGain(plan.Guard, false) : fields == null
-                ? NavalExpansionEnemyBlockGain(plan.Guard)
-                : SchoolSum(fields.FinalBlock, fields.RuneClampConsumed ? Math.Max(0, plan.Guard) : NavalExpansionEnemyBlockGain(plan.Guard));
+            int guard = boarding ? CTBEnemyBlockGain(plan.Guard, false) : NavalEnemyActionGuard(plan, fields);
             if (plan.Guard > 0 || guard > 0)
                 result.Add(new CoreBattleIntent("enemy_guard", CoreBattleIntentKind.Guard, "防御", guard,
-                    "本次行动后的格挡预计为 " + guard + "；已计入当前减盾效果和移动途中获得的护盾。普通旧格挡在行动开始时清除。" + terrain));
+                    "本次行动后的格挡预计为 " + guard + "；已计入当前减盾效果、移动途中护盾及可实际支付的血池返盾。普通旧格挡在行动开始时清除。" + terrain));
             if (plan.Load > 0)
             {
                 int load = Math.Min(Math.Max(0, 12 - Battle.EnemyLoadedShot), NavalExpansionEnemyLoadGain(plan.Load));
@@ -85,23 +93,29 @@ namespace ShatteredSail.Core.Gameplay
                 if (fields != null) health = Math.Max(0, health - fields.HullDamage);
                 int maximum = boarding ? Battle.EnemyMaxBoardingHealth : Battle.EnemyMaxHull;
                 int heal = Math.Min(Math.Max(0, maximum - health), plan.Repair);
-                if (!boarding && Battle.NavalExpansion.EnemyHealingHalved) heal /= 2;
+                if (IsBattleHealingBlocked(false)) heal = 0;
                 result.Add(new CoreBattleIntent("enemy_heal", CoreBattleIntentKind.Heal, "治疗", heal,
                     "本次行动预计恢复 " + heal + " 点" + (boarding ? "船员生命" : "船体") +
                     "；基础恢复上限 " + plan.Repair + "，受缺失生命及禁疗限制。"));
             }
 
+            if (NavalBossPaymentExecutesActor(plan, fields))
+            {
+                result.Add(new CoreBattleIntent("enemy_boss_payment_execution", CoreBattleIntentKind.Wait, "付血触发咒印", null,
+                    NavalBossMoveDescription(plan, fields)));
+                return result.AsReadOnly();
+            }
             switch (plan.Action)
             {
                 case EnemyBattleAction.Cannon:
                     bool inRange = fields == null ? NavalCannonTargetInRange :
-                        NavalCannonInRange(Battle.PlayerPositionMeters, fields.FinalPositionMeters);
+                        NavalCannonInRange(NavalPlayerPositionForEnemyPlan, fields.FinalPositionMeters);
                     if (!inRange)
                         result.Add(new CoreBattleIntent("enemy_out_of_range", CoreBattleIntentKind.Wait, "无法开炮", null,
                             "机动后的目标仍超出 4 格炮击范围，本轮不会开炮。" + terrain));
                     else
                     {
-                        int attack = EnemyCannonDamage(plan.Attack, false, fields?.AttackBonus);
+                        int attack = EnemyCannonDamage(NavalBossAttack(plan, fields), false, fields);
                         result.Add(new CoreBattleIntent("enemy_cannon", CoreBattleIntentKind.Cannon, "炮击", attack,
                             "预计炮击伤害 " + attack + "（装甲后、格挡前）。已计入装填、地形强化、航行诅咒和脉冲弱化；玩家格挡可继续吸收。" + terrain));
                     }
@@ -113,15 +127,21 @@ namespace ShatteredSail.Core.Gameplay
                         "预计船员伤害 " + melee + "（格挡前）；已计入航行诅咒与当前减伤效果，玩家格挡可继续吸收。"));
                     break;
                 case EnemyBattleAction.Ram:
-                    RamDamage(Battle.EnemyBowQuality, NavalRamTargetQuality(false), out int ram, out int recoil);
-                    ram = NavalExpansionEnemyAttackDamage(ApplyCurseBattleDamage(SchoolEnemyRawAttack(ram)));
+                    RamDamage(Battle.EnemyBowQuality, EnemyPlannedRamTargetQuality, out int ram, out int recoil);
+                    ram = NavalExpansionEnemyAttackDamage(EnemyNavalFieldAttackDamage(ApplyCurseBattleDamage(SchoolEnemyRawAttack(ram)), false, fields));
                     result.Add(new CoreBattleIntent("enemy_ram", CoreBattleIntentKind.Ram, "冲撞", ram,
-                        "己舰承受 " + ram + " 点船体伤害，敌舰反伤 " + recoil + "，均穿透格挡。双方存活则进入接舷，敌方先手攻击。航行离开敌舰船头正前方的相邻格可避让。"));
+                        "己舰承受 " + ram + " 点船体伤害，敌舰反伤 " + recoil + "，均穿透格挡。" +
+                        (UsesSparringBattleText ? "双方均未达到认输条件则进入接舷切磋" : "双方存活则进入接舷") +
+                        "，敌方先手攻击。航行离开敌舰船头正前方的相邻格可避让。"));
                     int opening = ApplyCurseBattleDamage(plan.Attack);
                     result.Add(new CoreBattleIntent("enemy_boarding_first_strike", CoreBattleIntentKind.Melee, "接舷先手", opening,
-                        "冲撞后双方仍存活时，敌方先手造成 " + opening + " 点船员伤害（接舷掩护前）；船体格挡不会转入接舷。"));
+                        (UsesSparringBattleText ? "冲撞后双方均未达到认输条件时" : "冲撞后双方仍存活时") +
+                        "，敌方先手造成 " + opening + " 点船员伤害（接舷掩护前）；船体格挡不会转入接舷。"));
                     break;
             }
+            if (plan.Action != EnemyBattleAction.Cannon || (fields == null ? NavalCannonTargetInRange :
+                NavalCannonInRange(NavalPlayerPositionForEnemyPlan, fields.FinalPositionMeters)))
+                AddNavalBossIntent(result, plan, fields);
             if (result.Count == 0)
                 result.Add(new CoreBattleIntent("enemy_wait", CoreBattleIntentKind.Wait,
                     preparing ? "准备" : "等待", null, "本轮不攻击。"));
@@ -176,7 +196,8 @@ namespace ShatteredSail.Core.Gameplay
             }
             if (result.Count == 0)
                 result.Add(new CoreBattleIntent("enemy_cannot_act", CoreBattleIntentKind.Wait, "无法行动", null,
-                    "当前玩家回合末效果将结束战斗，敌方不会行动。"));
+                    UsesSparringBattleText ? "当前玩家回合末效果将触发认输条件，结束切磋，敌方不会行动。" :
+                        "当前玩家回合末效果将结束战斗，敌方不会行动。"));
         }
 
         private static string BoardingIntentDetail(CoreBoardingEnemyActionResult action, int index)

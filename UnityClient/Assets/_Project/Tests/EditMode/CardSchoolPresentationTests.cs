@@ -93,18 +93,18 @@ namespace ShatteredSail.Core.Tests
             CoreBattleCard[] expansion = CoreNavalSchoolExpansionCatalog.All.ToArray();
             var expansionIds = new System.Collections.Generic.HashSet<string>(expansion.Select(card => card.Id));
             CoreBattleCard[] activeExpansion = schoolCards.Where(card => expansionIds.Contains(card.Id)).ToArray();
-            Assert.That(expansion, Has.Length.EqualTo(27));
-            Assert.That(expansionIds, Has.Count.EqualTo(27), "Every naval expansion card needs a distinct stable identity.");
-            Assert.That(activeExpansion, Has.Length.EqualTo(27));
+            Assert.That(expansion, Has.Length.EqualTo(36));
+            Assert.That(expansionIds, Has.Count.EqualTo(36), "Every naval expansion card needs a distinct stable identity.");
+            Assert.That(activeExpansion, Has.Length.EqualTo(36));
             Assert.That(activeExpansion.Select(card => card.Id), Is.EquivalentTo(expansionIds),
                 "All naval expansion cards must remain active and classified in a known school.");
             CoreBattleCard[] cards = schoolCards.Where(card => !boardingIds.Contains(card.Id) && !expansionIds.Contains(card.Id)).ToArray();
             Assert.That(cards, Has.Length.EqualTo(132), "Six schools each contain ten base, two crew, five epic and five legendary cards.");
             Assert.That(cards.Select(card => card.ArtId).Distinct().Count(), Is.EqualTo(132), "Each card needs its own authored illustration.");
-            Assert.That(schoolCards, Has.Length.EqualTo(249));
+            Assert.That(schoolCards, Has.Length.EqualTo(258));
             var originalArtIds = new System.Collections.Generic.HashSet<string>(cards.Select(card => card.ArtId));
             Assert.That(originalArtIds.SetEquals(schoolCards.Select(card => card.ArtId)), Is.True,
-                "Boarding and naval expansion cards must reuse the complete approved set of 132 school illustrations.");
+                "Boarding and naval expansion cards retain the 132 historical mechanical ArtIds while dedicated paintings resolve by card identity.");
             var legacy = new LegacyDemoArtCatalog();
             foreach (CoreBattleCard card in cards.Concat(expansion))
             {
@@ -177,7 +177,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("card_boarding_fire_06", "CardArt/Western/card_boarding_fire_06")]
         [TestCase("card_boarding_fire_04", "CardArt/Western/card_boarding_fire_04")]
         [TestCase("card_school_fire_b10", "CardArt/Western/card_boarding_fire_04")]
-        [TestCase("card_crew_pistol", "CardArt/Western/card_cutlass_raid")]
+        [TestCase("card_crew_pistol", "CardArt/Western/card_boarding_basic_03")]
         [TestCase("card_special_plating_moonsilver_skin", "CardArt/Western/card_special_plating_moonsilver_skin")]
         [TestCase("card_special_plating_worldtree_bark", "CardArt/Western/card_special_plating_worldtree_bark")]
         public void ReviewedCardArt_PrefersDedicatedRedrawThenReviewedReuseWithoutChangingRules(string cardId, string expected)
@@ -322,7 +322,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(checks, Is.GreaterThan(1000), "Exercise every authored rank and all valid stages, including compatibility identities.");
             Assert.That(supplyFrames, Is.EquivalentTo(new[] {
                 "frame-neutral-ap-wood", "frame-neutral-ap-medicine", "frame-fire-powder-medicine",
-                "frame-arcane-ap-mana-medicine", "frame-curse-ap-curse-medicine", "frame-tide-ap-tide-medicine",
+                "frame-arcane-ap-mana-medicine", "frame-curse-ap-medicine", "frame-tide-ap-tide-medicine",
                 "frame-blood-ap-medicine", "frame-tide-ap-wood" }));
         }
 
@@ -475,7 +475,7 @@ namespace ShatteredSail.Core.Tests
         public void SchoolHud_ShowsManaCurseTicksAndCurrentTideWithoutRetiredReactionState()
         {
             var battle = new CoreBattleState();
-            SetSchoolState(battle, "Mana", 2);
+            SetSchoolState(battle, "Mana", 6);
             SetSchoolState(battle, "TemporaryMana", 4);
             SetSchoolState(battle, "ThunderChain", 4);
             SetSchoolState(battle, "CurseMarks", 3);
@@ -488,13 +488,20 @@ namespace ShatteredSail.Core.Tests
             SetSchoolState(battle, "TideCounter", 18);
             SetSchoolState(battle, "TideCounterMinimum", 6);
             SetSchoolState(battle, "TideCounterTurns", 1);
+            typeof(CoreBoardingBattleState).GetProperty("TideGuardConversionActive").SetValue(battle.Boarding, true);
+            battle.NavalFields.Player.TideImmunityExpiresAfterPlayerTurnEnd = battle.NavalFields.PlayerTurn + 1;
+            battle.NavalFields.Enemy.NextMovementMaxCells = 1;
             MethodInfo method = typeof(CoreGameplayDemoController).GetMethod("BattleSchoolStatusText", BindingFlags.Static | BindingFlags.NonPublic);
             string active = (string)method.Invoke(null, new object[] { battle });
-            Assert.That(active, Does.Contain("法力 2/3 · 临时 +4"));
-            Assert.That(active, Does.Contain("本回合雷链 4/6"));
+            Assert.That(active, Does.Contain("法力 6/3").And.Not.Contain("临时"));
+            Assert.That(active, Does.Contain("连锁 4"));
+            Assert.That(active, Does.Not.Contain("雷链").And.Not.Contain("2147483647"));
             Assert.That(active, Does.Contain("敌方咒印 3 层"));
-            Assert.That(active, Does.Contain("下次咒印结算额外伤害 +1"));
-            Assert.That(active, Does.Contain("潮势 18/20 · 付木护盾 6"));
+            Assert.That(active, Does.Contain("消灭阈值 100%").And.Not.Contain("咒印结算额外伤害"));
+            Assert.That(active, Does.Contain("潮势 18 · 蓄潮格挡 6"));
+            Assert.That(active, Does.Contain("潮势保留至战斗结束"));
+            Assert.That(active, Does.Contain("留潮 · 本场后续格挡转换为蓄潮格挡"));
+            Assert.That(active, Does.Contain("定向水流免疫 · 至下回合结束").And.Contain("敌下次航行至多 1 格"));
             Assert.That(active, Does.Not.Contain("敌出伤").And.Not.Contain("潮反伤").And.Not.Contain("须吸收"));
             SetSchoolState(battle, "TideCounterTurns", 0);
             string expired = (string)method.Invoke(null, new object[] { battle });

@@ -14,8 +14,6 @@ namespace ShatteredSail.Core.Tests
 card_approach|1/2/2/2
 card_retreat|1/2/2/2
 card_full_sail_turn|1/2/2/2
-card_navigator_course|1/2/2/2
-card_component_sail|1/2/2/2
 card_school_tide_b05|1/2/2/2
 card_school_thunder_b05|1/2/2/2
 card_school_fire_b06|1/1/2/2
@@ -83,11 +81,11 @@ card_special_sail_thunderreef_wing|1/2/2/2";
         }
 
         [Test]
-        public void OnlyTheThirtySevenMovementCardsGainActionPointsAtAnyRank()
+        public void OnlyTheThirtyFiveLiveMovementCardsGainActionPointsAtAnyRank()
         {
             var expected = new HashSet<string>(Curves.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(row => row.Split('|')[0]), StringComparer.Ordinal);
-            Assert.That(expected, Has.Count.EqualTo(37));
+            Assert.That(expected, Has.Count.EqualTo(35));
             var session = new CoreVoyageSession();
             CoreBattleCard[] live = CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None).ToArray();
             Assert.That(live.Where(card => card.NavalActionPointGain > 0).Select(card => card.Id), Is.EquivalentTo(expected));

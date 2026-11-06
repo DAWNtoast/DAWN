@@ -334,7 +334,7 @@ namespace ShatteredSail.Presentation
 
         private void BuildSelectedEditorPreview()
         {
-            RestoreShipyardEquipmentViewport();
+            RestoreFullWindowFacilityViewport();
             ClearChildren(contentRoot);
             if (headerTitle != null) headerTitle.text = GameClientInfo.DisplayName + " · UI 场景预览";
             string previewPortName = PreviewPortName(editorPreviewPort);
@@ -352,6 +352,8 @@ namespace ShatteredSail.Presentation
                 shipyardDetailOpen = editorPreviewScreen == CoreGameplayPreviewScreen.ShipyardDetail;
                 shipyardDossierTab = (ShipyardDossierTab)Mathf.Clamp(editorPreviewShipPage, 0, 2);
                 selectedComponentShopOfferId = null;
+                workshopPacksOpen = false;
+                workshopCollectionOpen = editorPreviewScreen == CoreGameplayPreviewScreen.SpecialCardCollection;
                 cardWorkshopDeckBuilderOpen = editorPreviewScreen == CoreGameplayPreviewScreen.DeckBuilder ||
                     editorPreviewScreen == CoreGameplayPreviewScreen.CardUpgrade;
                 battleCardUpgradeOpen = editorPreviewScreen == CoreGameplayPreviewScreen.CardUpgrade;
@@ -548,7 +550,7 @@ namespace ShatteredSail.Presentation
                 case CoreGameplayPreviewScreen.TavernCrewDetail: return "特殊船员详情";
                 case CoreGameplayPreviewScreen.ComponentShop: return "部件商店";
                 case CoreGameplayPreviewScreen.ComponentShopDetail: return "部件详情";
-                case CoreGameplayPreviewScreen.CardWorkshop: return "卡组工坊";
+                case CoreGameplayPreviewScreen.CardWorkshop: return "卡牌工坊";
                 case CoreGameplayPreviewScreen.DeckBuilder: return "卡组构筑";
                 case CoreGameplayPreviewScreen.CardUpgrade: return "基础卡牌强化";
                 case CoreGameplayPreviewScreen.SpecialCardCollection: return "特殊卡牌收藏";
@@ -576,7 +578,7 @@ namespace ShatteredSail.Presentation
                 case CoreGameplayPreviewScreen.TavernCrewDetail: return "Tavern Crew Detail";
                 case CoreGameplayPreviewScreen.ComponentShop: return "Component Shop Panel";
                 case CoreGameplayPreviewScreen.ComponentShopDetail: return "Component Shop Detail";
-                case CoreGameplayPreviewScreen.CardWorkshop: return "Card Workshop Preview Panel";
+                case CoreGameplayPreviewScreen.CardWorkshop: return "Workshop Home Panel";
                 case CoreGameplayPreviewScreen.DeckBuilder: return "Deck Builder Panel";
                 case CoreGameplayPreviewScreen.CardUpgrade: return "Battle Card Upgrade Panel";
                 case CoreGameplayPreviewScreen.SpecialCardCollection: return "Card Workshop Preview Panel";

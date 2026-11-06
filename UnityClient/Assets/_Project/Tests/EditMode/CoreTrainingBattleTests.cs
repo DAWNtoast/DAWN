@@ -56,7 +56,8 @@ namespace ShatteredSail.Core.Tests
             s.EndBattleTurn();
             if (boarding) Board(s);
             CoreTrainingTarget target = CoreTrainingTargets.All[index];
-            int damage = boarding ? target.MeleeDamage : Math.Max(1, target.CannonDamage - Math.Max(0, (s.EffectiveArmor - 4) / 2));
+            Assert.That(s.EffectiveArmor, Is.EqualTo(2), "Starter armor is the 100% incoming-cannon reference.");
+            int damage = boarding ? target.MeleeDamage : new[] { 10, 16, 24, 36, 50 }[index];
             foreach (int turn in new[] { 1, 2, 10, 40 })
             {
                 s.Battle.PhaseTurn = turn;
@@ -97,12 +98,13 @@ namespace ShatteredSail.Core.Tests
             SetSchool(s, "CurseMarks", 3); SetSchool(s, "CurseWeaknessPercent", 4); SetSchool(s, "CurseTurns", 3);
             SetSchool(s, "TideStance", 2); SetSchool(s, "TideStancePower", 6); SetSchool(s, "TideStanceTurns", 2);
             s.Battle.PlayerBlock = 999;
-            int expected = Math.Max(1, 50 - Math.Max(0, (s.EffectiveArmor - 4) / 2));
+            Assert.That(s.EffectiveArmor, Is.EqualTo(2));
+            const int expected = 50;
             Assert.That(s.GetEnemyIntent(), Does.Contain("炮击伤害 " + expected));
             s.EndBattleTurn();
             Assert.That(s.Battle.LastEnemyGuardAbsorbed, Is.EqualTo(expected));
-            Assert.That(s.Battle.Schools.CurseMarks, Is.EqualTo(2));
-            Assert.That(s.Battle.Schools.CurseTurns, Is.EqualTo(2));
+            Assert.That(s.Battle.Schools.CurseMarks, Is.EqualTo(3), "Instant-execution marks persist instead of decaying each turn.");
+            Assert.That(s.Battle.Schools.CurseTurns, Is.EqualTo(3));
             Assert.That(s.Battle.Schools.TideStanceTurns, Is.EqualTo(1));
         }
 
@@ -194,12 +196,13 @@ namespace ShatteredSail.Core.Tests
             int hull = s.Hull;
             Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(s.TrainingOutcome, Is.EqualTo(CoreTrainingBattleOutcome.InProgress));
-            Assert.That(s.Battle.EnemyHull, Is.EqualTo(1 + CoreTrainingTargets.All[4].Repair - 2));
+            Assert.That(s.Battle.EnemyHull, Is.EqualTo(1 + CoreTrainingTargets.All[4].Repair));
+            Assert.That(s.Battle.EnemyBlock, Is.EqualTo(CoreTrainingTargets.All[4].Guard - 2), "Fresh dummy guard absorbs burn after its repair and attack.");
             Assert.That(s.Battle.EnemyBurnDamage, Is.EqualTo(1));
             Assert.That(s.Battle.LastEnemyGuardAbsorbed, Is.GreaterThan(0), "The target attacks before its burn settles.");
             s.Battle.PlayerBlock = 999;
             s.Battle.EnemyHull = 1;
-            s.Battle.EnemyBurnDamage = s.Battle.EnemyBurnTurns = CoreTrainingTargets.All[4].Repair + 1;
+            s.Battle.EnemyBurnDamage = s.Battle.EnemyBurnTurns = CoreTrainingTargets.All[4].Guard + CoreTrainingTargets.All[4].Repair + 1;
             Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(s.TrainingOutcome, Is.EqualTo(CoreTrainingBattleOutcome.Victory));
             Assert.That(s.Battle.EnemyHull, Is.Zero);

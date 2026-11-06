@@ -32,7 +32,7 @@ namespace ShatteredSail.Presentation
 #endif
         }
 
-        public static void Apply(RectTransform header)
+        public static void Apply(RectTransform header, string departurePort = null)
         {
             // Port and battle surfaces must retain their existing regional artwork.
             if (header == null || header.name != "Voyage Header") return;
@@ -78,9 +78,6 @@ namespace ShatteredSail.Presentation
 
             StyleText(Child(header, "Voyage Header Title"), 29, HeadingInk, FontStyle.Normal, TextAnchor.MiddleLeft);
             StyleText(Child(header, "Voyage Header Status"), 18, ReadoutInk, FontStyle.Normal, TextAnchor.MiddleLeft);
-            RectTransform ribbon = Child(header, "Lookout Time Ribbon");
-            StyleText(Child(ribbon, "Lookout Time Readout"), 20, ReadoutInk, FontStyle.Normal, TextAnchor.MiddleCenter);
-            StyleText(Child(ribbon, "Lookout Time Legend"), 12, new Color(.82f, .77f, .66f, 1f), FontStyle.Normal, TextAnchor.MiddleCenter);
             foreach (string name in new[] { "Voyage Cargo", "Voyage Settings" })
             {
                 RectTransform control = Child(header, name);
@@ -95,14 +92,15 @@ namespace ShatteredSail.Presentation
                 }
             }
             ApplyLayout(header);
-            NauticalHeaderSkin.ApplyVoyage(header, Brass, false);
+            NauticalHeaderSkin.ApplyVoyage(header, Brass, false, portName: departurePort);
         }
 
         public static void ApplyLayout(RectTransform header)
         {
             if (header == null || header.name != "Voyage Header") return;
             const float informationLeft = 128f, informationWidth = 520f;
-            const float rightMargin = 30f, settingsWidth = 128f, cargoWidth = 144f, actionGap = 16f;
+            const float rightMargin = NauticalHeaderSkin.SettingsRightMargin;
+            const float settingsWidth = NauticalHeaderSkin.IconSize, cargoWidth = NauticalHeaderSkin.IconSize, actionGap = NauticalHeaderSkin.IconGap;
             float informationRight = informationLeft + informationWidth;
             // The Expand canvas guarantees at least the 1920px design width.
             // Anchor the timeline between the fixed left/right groups rather
@@ -115,29 +113,23 @@ namespace ShatteredSail.Presentation
                 0f, informationLeft + informationWidth * .5f, 17f);
             HeaderBox(Child(header, "Voyage Header Status"), new Vector2(informationWidth, 24f),
                 0f, informationLeft + informationWidth * .5f, -23f);
-            HeaderBox(Child(header, "Voyage Cargo"), new Vector2(cargoWidth, 64f),
+            HeaderBox(Child(header, "Voyage Cargo"), new Vector2(cargoWidth, NauticalHeaderSkin.IconSize),
                 1f, -rightMargin - settingsWidth - actionGap - cargoWidth * .5f, 0f);
-            HeaderBox(Child(header, "Voyage Settings"), new Vector2(settingsWidth, 64f),
-                1f, -rightMargin - settingsWidth * .5f, 0f);
+            RectTransform cargo = Child(header, "Voyage Cargo");
+            if (cargo != null)
+            {
+                cargo.anchorMin = cargo.anchorMax = Vector2.one;
+                cargo.anchoredPosition = new Vector2(-rightMargin - settingsWidth - actionGap - cargoWidth * .5f, -NauticalHeaderSkin.SettingsTopOffset);
+            }
+            NauticalHeaderSkin.PositionSettingsButton(Child(header, "Voyage Settings"));
             LayoutButtonCaption(Child(header, "Voyage Cargo"));
-            LayoutButtonCaption(Child(header, "Voyage Settings"));
 
             // All information stays in the central 70px band. The taller tutorial
             // header retains its objective/instruction space and its existing height.
-            float compassSize = header.rect.height > PhaseSurfaceLayout.HeaderHeight + 1f ? 68f : 88f;
-            HeaderBox(Child(header, CompassName), Vector2.one * compassSize, 0f, 64f, 0f);
+            HeaderBox(Child(header, CompassName), Vector2.one * NauticalHeaderSkin.IconSize, 0f, 64f, 0f);
             RectTransform ribbon = Child(header, "Lookout Time Ribbon");
             HeaderBox(ribbon, new Vector2(clockWidth, 68f), .5f, clockCenterOffset, 0f);
-            HeaderBox(Child(ribbon, "Lookout Time Readout"), new Vector2(clockWidth - 20f, 24f), .5f, 0f, 22f);
-            HeaderBox(Child(ribbon, "Lookout Time Legend"), new Vector2(clockWidth - 20f, 16f), .5f, 0f, -26f);
-            RectTransform track = Child(ribbon, "Lookout Time Track");
-            if (track != null)
-            {
-                // Preserve the timeline's hour/marker geometry and its live state;
-                // changing the outer header never replaces its Graphic component.
-                HeaderBox(track, new Vector2(clockWidth / .4f, 116f), .5f, 0f, -3f);
-                track.localScale = Vector3.one * .4f;
-            }
+            VoyageTimeRibbonSkin.Apply(ribbon);
         }
 
         private static void LayoutButtonCaption(RectTransform control)

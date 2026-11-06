@@ -21,6 +21,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadProvisioningFixture();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = controller.Session;
+            // Keep this pointer/layout fixture independent of earned progression.
+            CoreTreasureProgress progress = session.CaptureTreasureProgress();
+            progress.pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10);
+            session.RestoreTreasureProgress(progress);
+            foreach (string port in CoreVoyageSession.DestinationPorts) session.RecordCollectionPortVisit(port);
             yield return ClickDestinationTestGraphic(ActiveButton("Port Hotspot Voyage").gameObject, Vector2.zero);
             string origin = session.CurrentPort;
             string initial = session.SelectedDestinationPort;
@@ -63,6 +68,47 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                 Assert.That(ActiveButton("Departure Destination " + originIndex).IsInteractable(), Is.False);
             }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator DepartureDestinationButtons_NewProfileAllowsOnlyWhiteShellAndLockedCallbacksCannotSelectPorts()
+        {
+            yield return LoadProvisioningFixture();
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreVoyageSession session = controller.Session;
+            Assert.That(session.CurrentPort, Is.EqualTo("断锚港"));
+            Assert.That(session.PirateLevel, Is.EqualTo(1));
+            Assert.That(session.HasVisitedPort("白贝港"), Is.False);
+            yield return ClickDestinationTestGraphic(ActiveButton("Port Hotspot Voyage").gameObject, Vector2.zero);
+            Assert.That(session.SelectedDestinationPort, Is.EqualTo("白贝港"));
+            for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
+            {
+                string port = CoreVoyageSession.DestinationPorts[index];
+                Button picker = ActiveButton("Departure Destination " + index);
+                Assert.That(picker, Is.Not.Null, "All six named ports remain visible.");
+                Assert.That(picker.GetComponentInChildren<Text>().text, Is.EqualTo(port));
+                Assert.That(picker.IsInteractable(), Is.EqualTo(index == 1), port);
+                if (index == 1) continue;
+                picker.onClick.Invoke();
+                Assert.That(session.SelectedDestinationPort, Is.EqualTo("白贝港"),
+                    port + ": a locked callback cannot bypass progression or select the origin.");
+                if (index == 0) continue;
+                string reason = session.PortUnlockReason(port);
+                Assert.That(reason, Is.Not.Empty, port);
+                BattleStatusHover hover = picker.GetComponent<BattleStatusHover>();
+                Assert.That(hover != null && hover.enabled, Is.True, port + " exposes its unlock condition.");
+                var pointer = new PointerEventData(EventSystem.current);
+                hover.OnPointerEnter(pointer);
+                Assert.That(GameObject.Find("Battle Status Tooltip").transform.Find("Description").GetComponent<Text>().text,
+                    Does.Contain(reason));
+                hover.OnPointerExit(pointer);
+            }
+            yield return ClickDestinationTestGraphic(ActiveButton("Departure Destination 1").gameObject, Vector2.zero);
+            Assert.That(session.SelectedDestinationPort, Is.EqualTo("白贝港"));
+            Assert.That(session.CurrentPort, Is.EqualTo("断锚港"));
+            Assert.That(session.HasVisitedPort("白贝港"), Is.False, "Choosing a destination is not arriving there.");
+            Assert.That(ActiveButton("Departure Destination 2").IsInteractable(), Is.False);
             LogAssert.NoUnexpectedReceived();
         }
 

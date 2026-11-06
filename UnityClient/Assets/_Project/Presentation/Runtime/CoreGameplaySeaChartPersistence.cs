@@ -109,9 +109,26 @@ namespace ShatteredSail.Presentation
 
         private void SaveSeaChartProgress()
         {
-            // Standalone voyage updates still commit depletion and defeated
-            // bosses without saving/replaying active-voyage cargo.
-            if (QueueSeaChartProgress()) PlayerPrefs.Save();
+            if (!Application.isPlaying || editorPreviewBuilding || profileSaveBlocked || session == null) return;
+            bool chartChanged = !seaChartProgressReadFailed &&
+                (!ReferenceEquals(seaChartProgressOwner, session) || savedSeaChartRevision != session.SeaChartProgressRevision);
+            bool packsChanged = CardPackProgressChanged();
+            if (!chartChanged && !packsChanged) return;
+            // Defeated bosses/depleted encounters and their packs are one durable
+            // transaction. Never bank voyage cargo as part of this narrow save.
+            try
+            {
+                if (!ProfileSaveJournal.TryBegin(out string notice)) throw new ProfileSaveException(notice);
+                if (chartChanged) QueueSeaChartProgress();
+                if (packsChanged) SaveCardPacks();
+                PlayerPrefs.Save();
+                if (!ProfileSaveJournal.TryComplete(out notice)) throw new ProfileSaveException(notice);
+            }
+            catch (Exception error)
+            {
+                BlockAfterProfileSaveFailure(error.Message);
+                throw error is ProfileSaveException ? error : new ProfileSaveException(profileSaveFailure, error);
+            }
         }
 
         private bool QueueSeaChartProgress()

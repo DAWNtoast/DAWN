@@ -35,7 +35,9 @@ namespace ShatteredSail.Presentation
         public void EnsureShipComponentLoadout(int index)
         {
             if (componentInventoryReadFailed || componentInventory == null || !OwnsComponentVessel(index)) return;
-            componentInventory.EnsureLoadout(index);
+            // Newly purchased hulls have no bundled components. Persist the
+            // empty marker so restoring or selecting the vessel cannot refill it.
+            componentInventory.InitializeEmptyLoadout(index);
             SaveComponentInventory();
         }
 
@@ -56,10 +58,13 @@ namespace ShatteredSail.Presentation
             if (!Application.isPlaying || editorPreviewBuilding || session == null || componentArt == null ||
                 componentInventoryReadFailed || componentInventory == null)
                 return;
-            while (BoardingComponentDropSelection.TryGrantNext(session, componentArt.ExpandedEntries,
-                selected => GrantOwnedComponent(selected) != null, out ComponentArtEntry granted))
+            while (session.TryPeekBoardingComponentDrop(out var drop))
             {
-                session.RecordBoardingComponentDrop(granted.Name);
+                // TryGrantNext acknowledges this item, so keep its source before advancing the queue.
+                string sourceEncounterId = drop.SourceEncounterId;
+                if (!BoardingComponentDropSelection.TryGrantNext(session, componentArt.ExpandedEntries,
+                    selected => GrantOwnedComponent(selected) != null, out ComponentArtEntry granted)) break;
+                session.RecordBoardingComponentDrop(granted.Name, sourceEncounterId);
             }
         }
 

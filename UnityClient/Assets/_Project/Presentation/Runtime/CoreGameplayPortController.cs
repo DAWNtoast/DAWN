@@ -25,7 +25,7 @@ namespace ShatteredSail.Presentation
             "皇家船坞",
             "灰鸥酒馆",
             "部件商店",
-            "卡组工坊",
+            "卡牌工坊",
             "藏宝图桌",
             "港口投资建设",
             "出航码头",
@@ -266,9 +266,10 @@ namespace ShatteredSail.Presentation
         {
             if (index == 4)
             {
-                // Explicitly clear the retained room texture when entering the card workspace.
-                BuildReusablePortBackdrop("CardWorkshop Background", null, Html("#1D1711"),
-                    "Facility Backdrop Tint", Color.clear);
+                bool home = CurrentWorkshopPage == WorkshopPage.Home;
+                BuildReusablePortBackdrop(home ? "Workshop Home Background" : "CardWorkshop Background",
+                    cardWorkshopArt?.HomeBackground, home ? Color.white : new Color(.38f, .34f, .28f, 1f),
+                    "Facility Backdrop Tint", Color.clear, fullSurface: true);
                 return;
             }
             string portName = session == null ? string.Empty : session.CurrentPort;
@@ -292,11 +293,6 @@ namespace ShatteredSail.Presentation
                 }
             }
 
-            if (index == PortFacilityArtCatalog.ComponentShopFacilityIndex)
-            {
-                Texture2D hall = Resources.Load<Texture2D>("ComponentShopV3/shipyard_hall");
-                if (hall != null) texture = hall;
-            }
 
             bool preserveFacilityColor =
                 index == PortFacilityArtCatalog.WarehouseFacilityIndex ||
@@ -338,7 +334,7 @@ namespace ShatteredSail.Presentation
                 new Vector2(-176f, 0f), nextTitle + " →", 20, theme.Accent);
             next.onClick.AddListener(NextCachedFacility);
             BuildPortHeaderReadouts(header, theme, false);
-            ApplyComponentShopHeaderLayout(header, index == PortFacilityArtCatalog.ComponentShopFacilityIndex);
+            ApplyComponentShopHeaderLayout(header, index);
 
         }
 
@@ -419,38 +415,20 @@ namespace ShatteredSail.Presentation
                 Text name = CreateText(
                     "Tavern Crew Name " + index,
                     character.transform,
-                    new Vector2(220f, 34f),
+                    new Vector2(280f, 44f),
                     namePosition,
-                    17,
+                    24,
                     FontStyle.Bold,
                     TextAnchor.MiddleCenter,
-                    Ink);
+                    Html("#FFF1C2"));
                 name.text = crew.DisplayName;
                 // Labels may sit beside a counter or below a high platform.
                 // They remain clickable children of their own crew button.
                 name.raycastTarget = true;
                 AddSceneLabelOutline(name);
-                UiLabelBacking.Apply(name);
-                Text status = CreateText(
-                    "Tavern Crew Status " + index,
-                    character.transform,
-                    new Vector2(205f, 23f),
-                    namePosition + new Vector2(0f, 28f),
-                    12,
-                    FontStyle.Bold,
-                    TextAnchor.MiddleCenter,
-                    !recruited ? Gold : availableHere ? Green : MutedInk);
-                status.text = !recruited && !awayHere ? "查看档案" : availableHere ? "✓ 已入队" : "人在其他港口";
-                status.raycastTarget = true;
-                AddSceneLabelOutline(status);
-                UiLabelBacking.Apply(status, true);
+                UiLabelBacking.Apply(name, true);
                 ConfigurePortHotspotHover(character, hotspotGlow, name);
                 character.interactable = availableHere;
-                if ((!recruited && awayHere) || (recruited && !availableHere))
-                {
-                    Image unavailableShade = CreateImage("Tavern Crew Away Shade " + index, character.transform, hotspotSizes[index], Vector2.zero, new Color(0.02f, 0.03f, 0.04f, 0.62f));
-                    unavailableShade.raycastTarget = false;
-                }
                 character.onClick.AddListener(() =>
                 {
                     if (!availableHere) return;
@@ -489,6 +467,7 @@ namespace ShatteredSail.Presentation
             SaveProgress();
             portNotice = "已从" + crew.PortName + "招募「" + crew.DisplayName + "」，职业能力已启用。";
             Render();
+            PlayCommittedRecruitmentVfx(crew.DisplayName);
         }
 
         private void BuildComponentShopFacility()
@@ -648,6 +627,16 @@ namespace ShatteredSail.Presentation
 
         private void BuildCardWorkshopFacility()
         {
+            if (CurrentWorkshopPage == WorkshopPage.Home)
+            {
+                BuildCardWorkshopHome();
+                return;
+            }
+            if (workshopPacksOpen)
+            {
+                BuildWorkshopPacksPage();
+                return;
+            }
             if (specialCardCollectionOpen)
             {
                 BuildSpecialCardCollection();
@@ -664,6 +653,9 @@ namespace ShatteredSail.Presentation
 
         private void ResetCardWorkshopView()
         {
+            ResetWorkshopPackPresentation();
+            workshopPacksOpen = false;
+            workshopCollectionOpen = false;
             ClearWorkshopSpecialCardReturn();
             ResetDeckBuilderPresentation();
             specialCardCollectionOpen = false;
@@ -1223,6 +1215,7 @@ namespace ShatteredSail.Presentation
 
         private bool RestorePortProgression()
         {
+            if (!RestoreCardPacks()) return false;
             PlayerPrefs.DeleteKey(LegacyWitchRecruitedKey);
             MigrateLegacyCrewIdentities();
             MigrateMissingCrewLocations();

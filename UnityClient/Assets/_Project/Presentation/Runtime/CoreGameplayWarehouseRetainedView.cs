@@ -14,7 +14,7 @@ namespace ShatteredSail.Presentation
         }
 
         // This cache belongs to one open warehouse. Stable item keys keep the
-        // same row/card objects when sorted, paged or switched between tabs.
+        // same row/card objects when paged or switched between tabs.
         // Entries absent from a binding pass are hidden, not destroyed.
         private readonly Dictionary<Transform, Dictionary<string, WarehouseRetainedNode>> warehouseRetainedNodes =
             new Dictionary<Transform, Dictionary<string, WarehouseRetainedNode>>();
@@ -200,13 +200,6 @@ namespace ShatteredSail.Presentation
                 button.onClick = new Button.ButtonClickedEvent();
             }
             button.interactable = true;
-            if (name.StartsWith("Warehouse Storage Header ", System.StringComparison.Ordinal) ||
-                name.StartsWith("Warehouse Rare Header ", System.StringComparison.Ordinal))
-            {
-                Text header = button.GetComponentInChildren<Text>();
-                header.color = WarehouseRoomTheme.Ink;
-                GameTypography.Apply(header, 18, FontStyle.Normal);
-            }
             return button;
         }
     }

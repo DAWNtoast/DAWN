@@ -162,6 +162,11 @@ namespace ShatteredSail.Presentation.Tests
             progress.pirateExperience = 1500;
             controller.Session.RestoreTreasureProgress(progress);
             Assert.That(controller.Session.CanSelectRoute(1, out _), Is.True);
+            // This same-frame binding fixture already visited White Shell.
+            // Copper Bell must remain an unvisited, legitimately reachable target.
+            controller.Session.RecordCollectionPortVisit("白贝港");
+            Assert.That(controller.Session.HasVisitedPort("铜钟港"), Is.False);
+            Assert.That(controller.Session.CanSelectDestinationPort("铜钟港", out string destinationReason), Is.True, destinationReason);
             yield return ClickShipyardControl("Port Hotspot Voyage");
             string original = CoreVoyageSession.CreateChartSeed(0, "断锚港", "白贝港");
             yield return EnterDepartureChartSeed(original);

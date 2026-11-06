@@ -61,40 +61,37 @@ namespace ShatteredSail.Presentation
 
         private void BuildComponentResale(RectTransform parent)
         {
-            Color ink = MarketShopSkin.Ink, muted = new Color(.42f, .33f, .24f, 1f);
-            RectTransform sheet = CreateFixedPanel("Component Resale Panel", parent,
-                new Vector2(1440f, 760f), Vector2.zero, Color.white);
-            MarketShopSkin.ApplyPanel(sheet.GetComponent<Image>());
-            Text eyebrow = CreateText("Component Resale Eyebrow", sheet, new Vector2(1260f, 26f),
-                new Vector2(0f, 328f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, muted);
-            eyebrow.text = "COMPONENT EXCHANGE";
-            Text title = CreateText("Component Resale Title", sheet, new Vector2(1260f, 48f),
-                new Vector2(0f, 286f), 34, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
-            title.text = session.CurrentPort + " · 闲置部件回收";
-            Text rule = CreateText("Component Resale Rule", sheet, new Vector2(1260f, 32f),
-                new Vector2(0f, 241f), 20, FontStyle.Normal, TextAnchor.MiddleCenter, muted);
-            rule.text = "按本港售价的 50% 回收；已装配部件须先在皇家船坞卸下。";
-            ComponentResaleRule(sheet, "Component Resale Heading Divider", 1290f, 212f);
-
             OwnedShipComponent[] items = OwnedComponents.Where(item => item.ShipIndex == -1)
                 .OrderBy(item => (int)componentArt.GetById(item.ComponentId).Slot)
                 .ThenByDescending(item => (int)componentArt.GetById(item.ComponentId).Rarity)
                 .ThenBy(item => item.InstanceId, StringComparer.Ordinal).ToArray();
+            bool isEmpty = items.Length == 0;
+            Color ink = MarketShopSkin.Ink, muted = new Color(.42f, .33f, .24f, 1f);
+            RectTransform sheet = CreateFixedPanel("Component Resale Panel", parent,
+                isEmpty ? new Vector2(1120f, 500f) : new Vector2(1440f, 760f), Vector2.zero, Color.white);
+            MarketShopSkin.ApplyPanel(sheet.GetComponent<Image>());
+            float headingWidth = isEmpty ? 980f : 1260f;
+            float dividerWidth = isEmpty ? 980f : 1290f;
+            Text eyebrow = CreateText("Component Resale Eyebrow", sheet, new Vector2(headingWidth, 26f),
+                new Vector2(0f, isEmpty ? 204f : 328f), 18, FontStyle.Normal, TextAnchor.MiddleCenter, muted);
+            eyebrow.text = "COMPONENT EXCHANGE";
+            Text title = CreateText("Component Resale Title", sheet, new Vector2(headingWidth, 48f),
+                new Vector2(0f, isEmpty ? 162f : 286f), 34, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
+            title.text = session.CurrentPort + " · 闲置部件回收";
+            ComponentResaleRule(sheet, "Component Resale Heading Divider", dividerWidth, isEmpty ? 116f : 212f);
+
             int pages = Math.Max(1, (items.Length + ComponentResalePageSize - 1) / ComponentResalePageSize);
             componentResalePage = Mathf.Clamp(componentResalePage, 0, pages - 1);
-            if (items.Length == 0)
+            if (isEmpty)
             {
                 Image emblem = CreateImage("Component Resale Empty Emblem", sheet, new Vector2(14f, 14f),
-                    new Vector2(0f, 88f), Html("#AA844B"));
+                    new Vector2(0f, 24f), Html("#AA844B"));
                 emblem.sprite = emblem.overrideSprite = null;
                 emblem.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
                 emblem.raycastTarget = false;
-                Text empty = CreateText("Component Resale Empty", sheet, new Vector2(1120f, 48f),
-                    new Vector2(0f, 30f), 30, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
+                Text empty = CreateText("Component Resale Empty", sheet, new Vector2(980f, 48f),
+                    new Vector2(0f, -34f), 30, FontStyle.Bold, TextAnchor.MiddleCenter, ink);
                 empty.text = "暂无闲置部件";
-                Text detail = CreateText("Component Resale Empty Detail", sheet, new Vector2(1120f, 40f),
-                    new Vector2(0f, -20f), 22, FontStyle.Normal, TextAnchor.MiddleCenter, muted);
-                detail.text = "卸下或航行获得的部件可在此出售。";
             }
             for (int row = 0; row < ComponentResalePageSize; row++)
             {
@@ -126,33 +123,32 @@ namespace ShatteredSail.Presentation
                 Button choose = CreateButton("Select Component Sale " + item.InstanceId, line,
                     new Vector2(200f, 48f), new Vector2(512f, 0f), Gold, DeepSea, 22);
                 choose.GetComponentInChildren<Text>().text = "出售此部件";
-                MarketShopSkin.ApplyLightButton(choose);
                 choose.interactable = Application.isPlaying && !editorPreviewBuilding && !tutorialActive &&
                     session.ProfileGold + price <= CoreEconomyBalance.MaximumProfileGold;
                 choose.onClick.AddListener(() => { pendingComponentSaleId = item.InstanceId; Render(); });
                 ComponentResaleRule(line, "Component Resale Row Divider " + item.InstanceId, 1260f, -42f);
             }
-            ComponentResaleRule(sheet, "Component Resale Footer Divider", 1290f, -270f);
+            ComponentResaleRule(sheet, "Component Resale Footer Divider", dividerWidth, isEmpty ? -140f : -270f);
             Button back = CreateButton("Back To Component Shop Sales", sheet, new Vector2(300f, 50f),
-                new Vector2(-475f, -320f), Gold, DeepSea, 23);
+                isEmpty ? new Vector2(0f, -190f) : new Vector2(-475f, -320f), Gold, DeepSea, 23);
             back.GetComponentInChildren<Text>().text = "返回部件商店";
-            WoodButtonSkin.SetRole(back, WoodButtonRole.Primary);
             back.onClick.AddListener(() => { componentResaleOpen = false; pendingComponentSaleId = null; Render(); });
-            Button previous = CreateButton("Component Resale Previous", sheet, new Vector2(150f, 46f),
-                new Vector2(10f, -320f), PanelRaised, Ink, 22);
-            previous.GetComponentInChildren<Text>().text = "上一页";
-            MarketShopSkin.ApplyLightButton(previous);
-            previous.interactable = componentResalePage > 0;
-            previous.onClick.AddListener(() => { componentResalePage--; pendingComponentSaleId = null; Render(); });
-            Text page = CreateText("Component Resale Page", sheet, new Vector2(290f, 42f),
-                new Vector2(275f, -320f), 20, FontStyle.Normal, TextAnchor.MiddleCenter, muted);
-            page.text = (componentResalePage + 1) + " / " + pages + " 页 · " + items.Length + " 件闲置";
-            Button next = CreateButton("Component Resale Next", sheet, new Vector2(150f, 46f),
-                new Vector2(550f, -320f), PanelRaised, Ink, 22);
-            next.GetComponentInChildren<Text>().text = "下一页";
-            MarketShopSkin.ApplyLightButton(next);
-            next.interactable = componentResalePage + 1 < pages;
-            next.onClick.AddListener(() => { componentResalePage++; pendingComponentSaleId = null; Render(); });
+            if (!isEmpty)
+            {
+                Button previous = CreateButton("Component Resale Previous", sheet, new Vector2(150f, 46f),
+                    new Vector2(10f, -320f), PanelRaised, Ink, 22);
+                previous.GetComponentInChildren<Text>().text = "上一页";
+                previous.interactable = componentResalePage > 0;
+                previous.onClick.AddListener(() => { componentResalePage--; pendingComponentSaleId = null; Render(); });
+                Text page = CreateText("Component Resale Page", sheet, new Vector2(290f, 42f),
+                    new Vector2(275f, -320f), 20, FontStyle.Normal, TextAnchor.MiddleCenter, muted);
+                page.text = (componentResalePage + 1) + " / " + pages + " 页 · " + items.Length + " 件闲置";
+                Button next = CreateButton("Component Resale Next", sheet, new Vector2(150f, 46f),
+                    new Vector2(550f, -320f), PanelRaised, Ink, 22);
+                next.GetComponentInChildren<Text>().text = "下一页";
+                next.interactable = componentResalePage + 1 < pages;
+                next.onClick.AddListener(() => { componentResalePage++; pendingComponentSaleId = null; Render(); });
+            }
             if (!string.IsNullOrEmpty(pendingComponentSaleId)) BuildComponentSaleConfirmation(parent);
         }
 
@@ -201,7 +197,6 @@ namespace ShatteredSail.Presentation
             Button cancel = CreateButton("Cancel Component Sale", dialog, new Vector2(350f, 52f),
                 new Vector2(-205f, -134f), PanelRaised, Ink, 23);
             cancel.GetComponentInChildren<Text>().text = "保留部件";
-            MarketShopSkin.ApplyLightButton(cancel);
             cancel.onClick.AddListener(() => { pendingComponentSaleId = null; Render(); });
             Button confirm = CreateButton("Confirm Component Sale", dialog, new Vector2(350f, 52f),
                 new Vector2(205f, -134f), Gold, DeepSea, 23);

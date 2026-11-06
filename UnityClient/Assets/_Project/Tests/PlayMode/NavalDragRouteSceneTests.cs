@@ -151,7 +151,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(RequiredResponsive<Button>("Commit Naval Movement").GetComponentInChildren<Text>().text, Is.EqualTo("确定冲撞"));
             collision.DragTo(new VoyagePoint(100f, 0f));
             AssertTacticalPlannedPath(session, new VoyagePoint(-200f, 0f), new VoyagePoint(-100f, 0f), new VoyagePoint(0f, 0f));
-            Assert.That(RequiredResponsive<Text>("Naval movement instruction").text, Does.Contain("敌舰格结束"));
+            Assert.That(GameObject.Find("Naval movement instruction"), Is.Null,
+                "Rejected routes must not restore the removed movement instruction strip.");
             collision.Release();
             Assert.That(GuidedBossFingerprint(session), Is.EqualTo(unchanged));
             LogAssert.NoUnexpectedReceived();
@@ -221,6 +222,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.NavalMovementPath[2].HeadingDegrees, Is.EqualTo(0f));
             Assert.That(session.NavalMovementPath[3].HeadingDegrees, Is.EqualTo(90f));
             int energy = session.Battle.Energy, cards = session.Battle.Hand.Count, turn = session.Battle.Turn;
+            float intentHeight = TacticalIntentHeightAboveShip();
             Button oldCard = RequiredResponsive<Button>("Battle Card 0");
             var oldCommit = RequiredResponsive<Button>("Commit Naval Movement").onClick;
             ClickAcceptanceButton("Commit Naval Movement");
@@ -229,7 +231,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(oldCard.IsInteractable(), Is.False);
             oldCommit.Invoke();
             oldCard.onClick.Invoke();
-            yield return WaitResponsiveBattle(controller);
+            yield return WaitTacticalMovementWithStableIntent(controller, intentHeight);
             AssertTacticalPoint(session.Battle.PlayerPositionMeters, third);
             Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.True);
             Assert.That(oldCard.IsInteractable(), Is.False);
@@ -241,18 +243,68 @@ namespace ShatteredSail.Presentation.Tests
             CollectionAssert.AreEquivalent(new[] { 90f, 180f, 0f }, session.GetNavalArrivalHeadings());
             int heading = session.GetNavalArrivalHeadings().ToList().IndexOf(0f);
             yield return WaitTacticalHeadingPointerReady("Naval Arrival Heading " + heading);
+            AssertTacticalHeadingReadoutsDoNotOverlap(session.GetNavalArrivalHeadings().Count);
             NavalBattleVisualCapture.Capture(controller, "NavalDrag_RotatedBeforeHeading.png",
                 "旋转后终向按钮已真实绘制，点击前的实际画面", "Naval Tactical Board");
             yield return WaitTacticalHeadingPointerReady("Naval Arrival Heading " + heading);
             ClickAcceptanceButton("Naval Arrival Heading " + heading);
-            yield return WaitResponsiveBattle(controller);
+            yield return WaitTacticalMovementWithStableIntent(controller, intentHeight);
             Assert.That(session.Battle.PlayerHeadingDegrees, Is.EqualTo(0f));
             Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.False);
             Assert.That(session.Battle.NavalActionPoints, Is.Zero);
             Assert.That(RequiredResponsive<Button>("End Battle Turn").IsInteractable(), Is.True);
+            Assert.That(RequiredResponsive<RectTransform>("Player Battle Hull Bar Track").anchoredPosition.y,
+                Is.EqualTo(board.PlayerScreenPosition.y - 125f).Within(.1f),
+                "The normal readout position returns after choosing the arrival heading.");
             NavalBattleVisualCapture.Capture(controller, "NavalDrag_03_RotatedCameraArrival.png",
                 "旋转镜头下按世界北、东、北拖出折线；确认与终向选择走正式动画并清空行动点", "Naval Tactical Board");
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static float TacticalIntentHeightAboveShip()
+        {
+            RectTransform enemy = RequiredResponsive<RectTransform>("Enemy Ship Art");
+            RectTransform row = RequiredResponsive<RectTransform>("Enemy Intent Icons");
+            return enemy.parent.InverseTransformPoint(row.position).y - enemy.localPosition.y;
+        }
+
+        private static IEnumerator WaitTacticalMovementWithStableIntent(CoreGameplayDemoController controller, float expectedHeight)
+        {
+            // Let the first LateUpdate follow the committed pose. Ship framing
+            // keeps its vertical position throughout the subsequent movement.
+            yield return null;
+            yield return null;
+            float deadline = Time.realtimeSinceStartup + 10f;
+            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                Assert.That(TacticalIntentHeightAboveShip(), Is.EqualTo(expectedHeight).Within(.1f),
+                    "Enemy intents must not jump when hull readouts make room for arrival controls.");
+                yield return null;
+            }
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(TacticalIntentHeightAboveShip(), Is.EqualTo(expectedHeight).Within(.1f));
+        }
+
+        private static void AssertTacticalHeadingReadoutsDoNotOverlap(int headingCount)
+        {
+            var readouts = RequiredResponsive<RectTransform>("Player Battle Hull Bar Track")
+                .GetComponentsInChildren<Text>();
+            for (int index = 0; index < headingCount; index++)
+            {
+                Rect buttonBounds = TacticalReadoutWorldBounds(RequiredResponsive<RectTransform>("Naval Arrival Heading " + index));
+                foreach (Text readout in readouts)
+                    if (!string.IsNullOrWhiteSpace(readout.text))
+                        Assert.That(buttonBounds.Overlaps(TacticalReadoutWorldBounds(readout.rectTransform)), Is.False,
+                            "Arrival heading controls must leave the player's hull and defense numbers unobstructed.");
+            }
+        }
+
+        private static Rect TacticalReadoutWorldBounds(RectTransform rect)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            return Rect.MinMaxRect(corners.Min(corner => corner.x), corners.Min(corner => corner.y),
+                corners.Max(corner => corner.x), corners.Max(corner => corner.y));
         }
 
         private static IEnumerator PrepareThreePointDragHand(CoreGameplayDemoController controller, CoreVoyageSession session)

@@ -95,7 +95,7 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(name.text, Is.EqualTo(card.Name + (expectedLevel > 0 ? "+" + expectedLevel : string.Empty)));
                     layout.Invoke(null, new object[] { label });
                     Assert.That(label.resizeTextForBestFit, Is.False, card.Id);
-                    Assert.That(label.supportRichText, Is.True, card.Id + " renders condition emphasis instead of visible tags");
+                    Assert.That(label.supportRichText, Is.True, card.Id + " renders keyword emphasis instead of visible tags");
                     Assert.That(name.resizeTextForBestFit, Is.False, card.Id);
                     Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .01f), card.Id);
                     string expected = controller.Session.BattleCardFaceDescription(card, controller.Session.Battle.Stage);
@@ -110,15 +110,27 @@ namespace ShatteredSail.Core.Tests
                     auditedIds.Add(card.Id);
                 }
                 Assert.That(CoreBoardingCardCatalog.All.Count, Is.EqualTo(103), "The new canonical boarding catalog is included.");
-                Assert.That(CoreNavalSchoolExpansionCatalog.All.Count, Is.EqualTo(27), "The six-school naval expansion adds 27 cards; its nine reused cards retain their existing identities.");
+                Assert.That(CoreNavalSchoolExpansionCatalog.All.Count, Is.EqualTo(36), "The naval expansion includes the nine newly added cards without replacing earlier identities.");
                 int publishedCards = CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != NavalBattleStages.None);
-                Assert.That(publishedCards, Is.EqualTo(216 + 103 + 27), "Existing naval/legacy cards, 103 canonical boarding cards and 27 appended naval expansion cards; retired aliases are excluded.");
+                string[] retiredSourceIds = {
+                    "card_navigator_course", "card_carpenter_shoring", "card_doctor_sutures", "card_gunner_precision",
+                    "card_cook_rations", "card_diver_sabotage", "card_component_bow", "card_component_sail",
+                    "card_component_cannon", "card_component_plating", "card_component_instrument"
+                };
+                foreach (string retiredId in retiredSourceIds)
+                {
+                    Assert.That(CoreVoyageSession.CardLibrary.Single(card => card.Id == retiredId).AllowedStages,
+                        Is.EqualTo(NavalBattleStages.None), retiredId + " retains only its retired save slot");
+                    Assert.That(auditedIds, Has.No.Member(retiredId), retiredId + " cannot replace a published card in the audit");
+                }
+                Assert.That(publishedCards, Is.EqualTo(216 - 11 + 103 + 36),
+                    "The eleven retired generic crew/component cards are excluded; all 344 remaining naval/legacy, canonical boarding and naval expansion identities stay covered.");
                 Assert.That(checkedCards, Is.EqualTo(publishedCards), "Every published card, excluding retired slots, is audited at every rank.");
                 Assert.That(auditedIds.Distinct().Count(), Is.EqualTo(publishedCards), "Each published identity is audited once.");
                 CollectionAssert.IsSubsetOf(CoreBoardingCardCatalog.All.Select(card => card.Id).ToArray(), auditedIds,
                     "All 103 new canonical boarding cards pass the same actual layout checks.");
                 CollectionAssert.IsSubsetOf(CoreNavalSchoolExpansionCatalog.All.Select(card => card.Id).ToArray(), auditedIds,
-                    "All 27 naval expansion cards pass the same actual layout checks.");
+                    "All 36 naval expansion cards pass the same actual layout checks.");
             }
             finally { Object.DestroyImmediate(host); }
         }
@@ -218,6 +230,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(Compact(text), Does.Contain("范围1-4格：造成18点船体伤害"));
         }
 
+        [TestCase("范围 1-4 格：8 点船体伤害。", "范围1-4格", "范围1-4格：造成8点船体伤害")]
         [TestCase("4格内：8 点船体伤害。", "4格内", "4格内：造成8点船体伤害")]
         [TestCase("4 格内：8 点船体伤害。", "4格内", "4格内：造成8点船体伤害")]
         [TestCase("4 格以内可炮击。", "4格以内", "4格以内可炮击")]
@@ -233,11 +246,10 @@ namespace ShatteredSail.Core.Tests
         [TestCase("须再次推进才能冲撞。", "须再次推进才能冲撞", "须再次推进才能冲撞")]
         [TestCase("须推进后才能冲撞。", "须推进后才能冲撞", "须推进后才能冲撞")]
         [TestCase("靠近 60 米，再次推进后可冲撞。", "再次推进后", "靠近60米，再次推进后可冲撞")]
-        public void FormatDescription_EmphasizesConditionsAndUsesExplicitCompactWording(string source, string condition, string expectedVisible)
+        public void FormatDescription_LeavesConditionsUnemphasizedAndUsesExplicitCompactWording(string source, string condition, string expectedVisible)
         {
             string formatted = CardFaceLayout.FormatDescription(source);
-            Assert.That(formatted, Does.Contain("<b>" + condition + "</b>"));
-            Assert.That(Regex.Matches(formatted, "<b>").Count, Is.EqualTo(1));
+            Assert.That(formatted, Does.Contain(condition).And.Not.Contain("<b>"));
             Assert.That(Compact(formatted), Is.EqualTo(expectedVisible));
         }
 
@@ -252,15 +264,15 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void FormatDescription_PreservesExistingBoldAndIsIdempotent()
+        public void FormatDescription_ReplacesOldConditionBoldWithKeywordBoldAndIsIdempotent()
         {
-            const string source = "<b>350 米内</b>：8 点船体伤害；<b>靠近 60 米</b>。";
+            const string source = "<b>350 米内</b>：8 点船体伤害；<b>靠近 60 米</b>；施加 2 层燃烧。";
             string once = CardFaceLayout.FormatDescription(source);
             string twice = CardFaceLayout.FormatDescription(once);
             Assert.That(twice, Is.EqualTo(once));
-            Assert.That(once, Does.Contain("<b>350米内</b>").And.Contain("<b>靠近60米</b>"));
-            Assert.That(Regex.Matches(once, "<b>").Count, Is.EqualTo(2));
-            Assert.That(Compact(once), Is.EqualTo("350米内：造成8点船体伤害靠近60米"));
+            Assert.That(once, Does.Contain("<b>燃烧</b>").And.Not.Contain("<b>350米内</b>").And.Not.Contain("<b>靠近60米</b>"));
+            Assert.That(Regex.Matches(once, "<b>").Count, Is.EqualTo(1));
+            Assert.That(Compact(once), Is.EqualTo("350米内：造成8点船体伤害靠近60米施加2层燃烧"));
         }
 
         private static string Compact(string value) => Regex.Replace(value, @"</?(?:b|i|size|color|material)(?:=[^>]*)?>", string.Empty)

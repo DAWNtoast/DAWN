@@ -1,0 +1,94 @@
+{
+  "installed": true,
+  "atlas": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\BattleIcons\\battle_icons_v1.png",
+  "atlasSHA256": "1191bb94fcd6cd8e7f37366a81eccdb96ffada6fe535b6f80f277ba20a7556b6",
+  "frameLayoutSHA256": "b5c9cca44981dc50d56e5cb4988c11ddeb9c4cae061e22a3f9ec2c4ef3f006e6",
+  "unchangedAtlasCellsVerified": 44,
+  "sourcePixels": "Existing card art; crop, alpha clip and resize only.",
+  "assets": [
+    {
+      "id": "powder",
+      "name": "火药",
+      "source": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\CardSchools\\Frames\\Integrated\\frame-neutral-both.png",
+      "sourceSHA256": "69a0ace69d5d8145aba369733dd906f72694316d602b126beba81f77f78a64ba",
+      "sourceCrop": [
+        700,
+        1300,
+        1000,
+        1600
+      ],
+      "atlasCell": 7,
+      "atlasRect": [
+        1792,
+        0,
+        256,
+        256
+      ],
+      "icon": "D:\\Game\\outputs\\battle-resource-icons-20261026\\shared-icons\\powder.png",
+      "iconSHA256": "c147ff89aedaf06f968516e6af729f83f3614cf0a5a2c285d25697bd1b9a6334"
+    },
+    {
+      "id": "cannonball",
+      "name": "炮弹",
+      "source": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\CardSchools\\Frames\\Integrated\\frame-neutral-both.png",
+      "sourceSHA256": "69a0ace69d5d8145aba369733dd906f72694316d602b126beba81f77f78a64ba",
+      "sourceCrop": [
+        -29,
+        1297,
+        271,
+        1597
+      ],
+      "atlasCell": 8,
+      "atlasRect": [
+        0,
+        256,
+        256,
+        256
+      ],
+      "icon": "D:\\Game\\outputs\\battle-resource-icons-20261026\\shared-icons\\cannonball.png",
+      "iconSHA256": "dfc3636b61575a935675a4fa3f5ba0928490f83946baaba0a6c440ec65fdfd83"
+    },
+    {
+      "id": "planks",
+      "name": "木板",
+      "source": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\CardSchools\\Frames\\Integrated\\frame-neutral-ap-wood.png",
+      "sourceSHA256": "1052c63c9fbf5460b50588ce27144a2c420e18bfa0b58accfe043da4267e4e96",
+      "sourceCrop": [
+        699,
+        312,
+        999,
+        612
+      ],
+      "atlasCell": 9,
+      "atlasRect": [
+        256,
+        256,
+        256,
+        256
+      ],
+      "icon": "D:\\Game\\outputs\\battle-resource-icons-20261026\\shared-icons\\planks.png",
+      "iconSHA256": "cb090d0ffd34a877e76f23826ff286b2c9f69b7fea7803b57f85a00d8fe8b6cc"
+    },
+    {
+      "id": "medicine",
+      "name": "药品",
+      "source": "D:\\Game\\UnityClient\\Assets\\_Project\\Resources\\CardSchools\\Frames\\Integrated\\frame-neutral-ap-medicine.png",
+      "sourceSHA256": "2074f6ea4542cc37bf0c6bd414923c944c187e45a2772421a9eb8e21fd002406",
+      "sourceCrop": [
+        699,
+        312,
+        999,
+        612
+      ],
+      "atlasCell": 10,
+      "atlasRect": [
+        512,
+        256,
+        256,
+        256
+      ],
+      "icon": "D:\\Game\\outputs\\battle-resource-icons-20261026\\shared-icons\\medicine.png",
+      "iconSHA256": "10ba71250cd7b125721a7fba88feaca9d2810ee3a8e3b10c5a4cf8883122c092"
+    }
+  ]
+}

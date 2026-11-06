@@ -42,10 +42,17 @@ namespace ShatteredSail.Presentation
         };
         private static readonly Dictionary<string, int> CargoCells = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
-            { "water", 0 }, { "food", 1 }, { "wood", 2 }, { "iron", 3 }, { "cloth", 4 },
-            { "beer", 5 }, { "medicine", 6 }, { "powder", 7 }, { "cannonballs", 8 },
+            { "water", 0 }, { "food", 1 }, { "iron", 3 }, { "cloth", 4 }, { "beer", 5 },
             { "gem", 10 }, { "ancientmaterial", 11 }, { "relic", 12 },
             { "blackpearl", 13 }, { "ancientcompass", 14 }, { "lantern", 15 },
+        };
+        // These cells are extracted from the authored card-frame emblems. All
+        // cargo views and combat badges borrow the same texture and UV, including
+        // retained details that switch the selected item without rebuilding UI.
+        private static readonly Dictionary<string, string> SharedSupplyIcons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "wood", "planks" }, { "medicine", "medicine" },
+            { "powder", "powder" }, { "cannonballs", "cannonball" },
         };
         private static readonly Dictionary<string, int> SpecialCells = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
@@ -102,8 +109,15 @@ namespace ShatteredSail.Presentation
         private static bool treasureAtlasALoaded;
         private static bool treasureAtlasBLoaded;
 
-        public static ItemIconArt ForCargo(string key) =>
-            key != null && CargoCells.TryGetValue(key.Trim(), out int cell) ? AtlasCell(cell) : default;
+        public static ItemIconArt ForCargo(string key)
+        {
+            if (key == null) return default;
+            string normalized = key.Trim();
+            if (SharedSupplyIcons.TryGetValue(normalized, out string id))
+                return BattleIconArtCatalog.TryGetUv(id, out Rect uv)
+                    ? new ItemIconArt(BattleIconArtCatalog.Texture, uv) : default;
+            return CargoCells.TryGetValue(normalized, out int cell) ? AtlasCell(cell) : default;
+        }
 
         public static ItemIconArt ForComponent(ComponentArtEntry entry) =>
             entry != null && entry.Texture != null ? new ItemIconArt(entry.Texture, FullImage) : default;

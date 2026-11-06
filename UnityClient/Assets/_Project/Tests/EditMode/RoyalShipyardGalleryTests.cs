@@ -75,8 +75,11 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform header = instance.GetComponent<RectTransform>();
             Text title = header.Find("Port Facility Title").GetComponent<Text>();
             title.text = "皇家船坞";
+            NauticalHeaderSkin.ApplyPort(header, Color.white, false);
+            var sharedSurface = header.Find("Header Brass Rules").GetComponent<NauticalHeaderGraphic>();
             Font originalFont = title.font;
             FontStyle originalStyle = title.fontStyle;
+            Color originalColor = title.color;
             float originalSpacing = title.lineSpacing;
             Image regionalFrame = header.Find("Port Facility Frame").GetComponent<Image>();
             Button next = header.Find("Next Port Facility").GetComponent<Button>();
@@ -87,10 +90,12 @@ namespace ShatteredSail.Presentation.Tests
             {
                 navigationCount++;
                 Assert.That(regionalFrame.enabled, Is.True, "Restore before the destination facility binds its header.");
+                Assert.That(sharedSurface.isActiveAndEnabled, Is.True, "Navigation must preserve the common header surface.");
                 Assert.That(header.Find("Royal Shipyard Header Decorations").gameObject.activeSelf, Is.False);
                 Assert.That(next.GetComponent<RectTransform>().anchoredPosition, Is.EqualTo(originalPosition));
                 Assert.That(title.font, Is.SameAs(originalFont));
                 Assert.That(title.fontStyle, Is.EqualTo(originalStyle));
+                Assert.That(title.color, Is.EqualTo(originalColor));
                 Assert.That(title.lineSpacing, Is.EqualTo(originalSpacing));
                 title.text = "断锚酒馆";
             });
@@ -100,8 +105,14 @@ namespace ShatteredSail.Presentation.Tests
             RoyalShipyardHeaderSkin.Apply((RectTransform)host.transform);
             RoyalShipyardHeaderSkin.Apply((RectTransform)host.transform);
             Assert.That(regionalFrame.enabled, Is.False);
+            Assert.That(sharedSurface.isActiveAndEnabled, Is.True, "The shipyard uses the same gradient surface as other facilities.");
+            Transform cloth = header.Find("Royal Shipyard Header Decorations/Royal Shipyard Naval Cloth");
+            Assert.That(cloth == null || !cloth.gameObject.activeInHierarchy, Is.True, "No separate cloth backing.");
+            Assert.That(header.Find("Royal Shipyard Header Decorations").GetSiblingIndex(), Is.GreaterThan(sharedSurface.transform.GetSiblingIndex()),
+                "The harbour legend stays visible above the shared surface.");
             Assert.That(title.font, Is.SameAs(GameTypography.InterfaceFont));
             Assert.That(title.fontStyle, Is.EqualTo(FontStyle.Normal), "The authored title face must not receive synthetic bold.");
+            Assert.That(title.color, Is.EqualTo(originalColor), "Shipyard and dossier headings use the common facility title color.");
             next.onClick.Invoke();
 
             Assert.That(navigationCount, Is.EqualTo(1));

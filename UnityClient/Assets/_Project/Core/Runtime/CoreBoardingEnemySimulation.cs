@@ -9,23 +9,27 @@ namespace ShatteredSail.Core.Gameplay
         private sealed class BoardingEnemyContext
         {
             internal CoreBoardingEnemyState State;
+            internal CoreBoardingFieldState Fields;
             internal int PlayerHealth, PlayerGuard, EnemyHealth, EnemyGuard, AttackBase, GuardBase;
-            internal int PlayerMarks, FireRetaliations, PlayerSelfBurn;
-            internal bool Weak, Armor, ContractTriggered, CounterTriggered, Ambush, DebtTriggered;
+            internal int PlayerMarks, FireRetaliations;
+            internal bool PlayerOilConsumed, EnemyOilConsumed;
+            internal bool PlayerExecutedByCurse, EnemyExecutedByCurse;
+            internal bool Weak, Armor, ContractTriggered, CounterTriggered, Ambush;
         }
 
         private BoardingEnemyContext NewBoardingEnemyContext(bool commit)
         {
             return new BoardingEnemyContext {
                 State = commit ? Battle.BoardingEnemy : Battle.BoardingEnemy.CopyResources(),
+                Fields = commit ? Battle.BoardingFields : Battle.BoardingFields.Copy(),
                 PlayerHealth = Battle.PlayerBoardingHealth, PlayerGuard = Battle.PlayerBlock,
                 EnemyHealth = Battle.EnemyBoardingHealth, EnemyGuard = Battle.EnemyBlock,
                 AttackBase = Battle.Profile?.MeleeDamage ?? (Battle.IsBoss ? 12 : 8),
                 GuardBase = Battle.Profile?.BoardingGuard ?? (Battle.IsBoss ? 8 : 4),
-                PlayerMarks = BState.CurseMarks, FireRetaliations = BState.FireRetaliations, PlayerSelfBurn = BStackTotal(BState.SelfBurn),
+                PlayerMarks = BState.CurseMarks, FireRetaliations = BState.FireRetaliations,
                 Weak = true, Armor = BState.CurseArmorTurns > 0,
                 ContractTriggered = BState.CurseContractTriggered, CounterTriggered = BState.CurseCounterTriggered,
-                Ambush = BState.TideAmbushTurns > 0, DebtTriggered = BState.BloodDebtTriggered
+                Ambush = BState.TideAmbushTurns > 0
             };
         }
 
@@ -33,29 +37,39 @@ namespace ShatteredSail.Core.Gameplay
         {
             var preview = new CoreBoardingEnemyPreview();
             BoardingEnemyContext c = NewBoardingEnemyContext(commit);
-            if (includePlayerEnd)
+            ResolveBoardingContextCurse(c);
+            if (includePlayerEnd && c.PlayerHealth > 0 && c.EnemyHealth > 0)
             {
-                foreach (var heal in BState.HealingTicks)
-                    c.PlayerHealth = Math.Min(Battle.PlayerMaxBoardingHealth, SchoolSum(c.PlayerHealth, heal.Amount));
-                c.PlayerHealth = Math.Max(0, c.PlayerHealth - BStackTotal(BState.SelfBurn));
-                c.PlayerSelfBurn = Math.Max(0, BStackTotal(BState.SelfBurn) - 1);
+                if (!IsBattleHealingBlocked(true))
+                    foreach (var heal in BState.HealingTicks)
+                        c.PlayerHealth = Math.Min(Battle.PlayerMaxBoardingHealth, SchoolSum(c.PlayerHealth, heal.Amount));
                 if (c.State.PlayerBurnTurns > 0)
                 {
-                    preview.PlayerBurnDamage = Math.Min(c.PlayerHealth, c.State.PlayerBurnDamage);
+                    int absorbed = Math.Min(c.PlayerGuard, c.State.PlayerBurnDamage);
+                    c.PlayerGuard -= absorbed;
+                    preview.PlayerBurnDamage = Math.Min(c.PlayerHealth, c.State.PlayerBurnDamage - absorbed);
                     c.PlayerHealth -= preview.PlayerBurnDamage;
+                    ResolveBoardingContextCurse(c);
                     if (preview.PlayerBurnDamage > 0 && c.PlayerHealth > 0) c.PlayerMarks = SchoolSum(c.PlayerMarks, BCurseContractAmount);
+                    ResolveBoardingContextCurse(c);
                     c.State.PlayerBurnDamage = Math.Max(0, c.State.PlayerBurnDamage - 1);
                     c.State.PlayerBurnTurns = c.State.PlayerBurnDamage;
                 }
-                int curseLoss = Math.Min(c.PlayerHealth, c.State.CurseMarks);
-                preview.PlayerCurseDamage = curseLoss;
-                c.PlayerHealth -= curseLoss;
-                if (curseLoss > 0 && c.PlayerHealth > 0) c.PlayerMarks = SchoolSum(c.PlayerMarks, BCurseContractAmount);
-                if (c.State.CurseMarks > 0) c.State.CurseDurations.RemoveAt(0);
+                preview.PlayerBloodPoolLoss = PreviewBoardingContextFieldEnd(c, true);
+            }
+            if (c.PlayerHealth <= 0 || c.EnemyHealth <= 0)
+            {
+                if (commit) CommitEnemyVitals(c);
+                preview.PlayerExecutedByCurse = c.PlayerExecutedByCurse;
+                preview.EnemyExecutedByCurse = c.EnemyExecutedByCurse;
+                preview.ResourcesAfter = c.State.CopyResources();
+                return preview;
             }
             c.EnemyGuard = Math.Min(c.EnemyGuard, c.State.RetainedGuard);
+            c.State.TideGuard = Math.Min(c.State.TideGuard, c.EnemyGuard);
             c.State.RetainedGuard = 0;
-            c.State.ThunderChain = 0;
+            if (!c.Fields.Contains(CoreNavalFieldKind.Thunder)) c.State.ThunderChain = 0;
+            c.State.Mana = SchoolSum(CoreBoardingEnemyState.ManaLimit, c.Fields.Remaining(CoreNavalFieldKind.Arcane));
             CoreBoardingEnemyTurn turn = (c.State.Deck ?? CoreBoardingEnemyCatalog.ForSchool("neutral")).TurnAt(Battle.PhaseTurn);
             foreach (CoreBoardingEnemyCard card in turn.Cards)
             {
@@ -69,21 +83,19 @@ namespace ShatteredSail.Core.Gameplay
             }
             if (!commit && c.PlayerHealth > 0 && c.EnemyHealth > 0)
             {
-                preview.EnemySelfBurnDamage = Math.Min(c.EnemyHealth, c.State.SelfBurnTurns > 0 ? c.State.SelfBurnDamage : 0);
+                int burn = c.State.SelfBurnTurns > 0 ? c.State.SelfBurnDamage : 0;
+                int absorbed = Math.Min(c.EnemyGuard, burn);
+                c.EnemyGuard -= absorbed;
+                preview.EnemySelfBurnDamage = Math.Min(c.EnemyHealth, burn - absorbed);
                 c.EnemyHealth -= preview.EnemySelfBurnDamage;
-                NoteBoardingEnemyLoss(c.State, 0, preview.EnemySelfBurnDamage);
+                NoteBoardingEnemyLoss(c.State, absorbed, preview.EnemySelfBurnDamage, c.EnemyGuard);
+                ResolveBoardingContextCurse(c);
+                c.State.RetainedGuard = Math.Min(c.State.RetainedGuard, c.EnemyGuard);
                 EnemySchoolEndResources(c.State);
-                if (c.EnemyHealth > 0)
-                {
-                    int burn = Math.Min(c.EnemyHealth, BStackTotal(BState.EnemyBurn));
-                    c.EnemyHealth -= burn; NoteBoardingEnemyLoss(c.State, 0, burn);
-                }
-                if (c.EnemyHealth > 0)
-                {
-                    int curse = Math.Min(c.EnemyHealth, SchoolSum(c.PlayerMarks, Battle.Schools.CurseNextTickBonus));
-                    c.EnemyHealth -= curse; NoteBoardingEnemyLoss(c.State, 0, curse);
-                }
+                preview.EnemyBloodPoolLoss = PreviewBoardingContextFieldEnd(c, false);
             }
+            preview.PlayerExecutedByCurse = c.PlayerExecutedByCurse;
+            preview.EnemyExecutedByCurse = c.EnemyExecutedByCurse;
             preview.ResourcesAfter = c.State.CopyResources();
             return preview;
         }
@@ -98,39 +110,48 @@ namespace ShatteredSail.Core.Gameplay
             int attackPercent = card.AttackPercent, healPercent = card.HealPercent, piercePercent = card.PiercePercent;
             r.SelfDamage = Math.Min(Math.Max(0, c.EnemyHealth - 1), BoardingEnemyScale(c.AttackBase, card.SelfDamagePercent));
             c.EnemyHealth -= r.SelfDamage;
-            NoteBoardingEnemyLoss(c.State, 0, r.SelfDamage);
+            NoteBoardingEnemyLoss(c.State, 0, r.SelfDamage, c.EnemyGuard);
+            if (r.SelfDamage > 0 && c.Fields.Contains(CoreNavalFieldKind.Blood))
+            {
+                int poolGuard = CoreFieldTradeoffRules.BloodGuard(r.SelfDamage);
+                poolGuard = commit ? CTBEnemyBlockGain(poolGuard, true) : c.Armor
+                    ? Math.Max(0, poolGuard - BCurseArmorAmount(c.PlayerMarks)) : poolGuard;
+                c.EnemyGuard = SchoolSum(c.EnemyGuard, poolGuard);
+                r.GuardGained = poolGuard;
+            }
+            if (ResolveBoardingContextCurse(c)) return FinishBoardingEnemyAction(c, r, commit);
             int paid = 0;
             switch (card.Mechanic)
             {
                 case CoreBoardingEnemyMechanic.FireSelfBurn:
-                    c.State.SelfBurnDamage = SchoolSum(c.State.SelfBurnDamage, card.ResourceAmount);
-                    c.State.SelfBurnTurns = c.State.SelfBurnDamage;
-                    r.Detail = "自燃 +" + card.ResourceAmount; break;
+                    AddBoardingContextBurn(c, false, card.ResourceAmount, commit);
+                    r.Detail = "自身燃烧 +" + card.ResourceAmount; break;
                 case CoreBoardingEnemyMechanic.FireTransfer:
                     paid = Math.Min(card.ResourceAmount, c.State.SelfBurnDamage);
-                    int duration = c.State.SelfBurnTurns;
                     c.State.SelfBurnDamage -= paid;
                     c.State.SelfBurnTurns = c.State.SelfBurnDamage;
-                    AddHostileBurn(c.State, paid, duration);
-                    r.Detail = "转移自燃 " + paid; break;
+                    AddBoardingContextBurn(c, true, paid, commit);
+                    r.Detail = "转移燃烧 " + paid; break;
                 case CoreBoardingEnemyMechanic.FireConsume:
                     paid = Math.Min(card.ResourceAmount, c.State.PlayerBurnDamage);
                     c.State.PlayerBurnDamage -= paid;
                     c.State.PlayerBurnTurns = c.State.PlayerBurnDamage;
                     attackPercent = SchoolSum(attackPercent, paid * card.BonusPercent);
-                    r.Detail = "消耗敌施灼烧 " + paid; break;
+                    r.Detail = "消耗目标燃烧 " + paid; break;
                 case CoreBoardingEnemyMechanic.ArcaneGain:
                     int beforeMana = c.State.Mana;
-                    c.State.Mana = Math.Min(CoreBoardingEnemyState.ManaLimit, SchoolSum(c.State.Mana, card.ResourceAmount));
+                    c.State.Mana = SchoolSum(c.State.Mana, card.ResourceAmount);
                     r.Detail = "魔力 +" + (c.State.Mana - beforeMana); break;
                 case CoreBoardingEnemyMechanic.ArcaneSpend:
                     paid = Math.Min(card.ResourceAmount, c.State.Mana); c.State.Mana -= paid;
                     attackPercent = SchoolSum(attackPercent, paid * card.BonusPercent);
                     r.Detail = "消耗魔力 " + paid + "/" + card.ResourceAmount; break;
                 case CoreBoardingEnemyMechanic.ThunderFinisher:
-                    paid = Math.Min(card.ResourceAmount, c.State.ThunderChain); c.State.ThunderChain -= paid;
+                    paid = Math.Min(card.ResourceAmount, c.State.ThunderChain);
+                    if (!c.Fields.Contains(CoreNavalFieldKind.Thunder)) c.State.ThunderChain -= paid;
                     attackPercent = SchoolSum(attackPercent, paid * card.BonusPercent);
-                    r.Detail = "消耗连锁 " + paid; break;
+                    r.Detail = c.Fields.Contains(CoreNavalFieldKind.Thunder)
+                        ? "连锁增伤 " + paid + "（雷栅中免除消耗）" : "消耗连锁 " + paid; break;
                 case CoreBoardingEnemyMechanic.CurseMark:
                     for (int i = 0; i < card.ResourceAmount; i++)
                     { c.State.CurseDurations.Add(1); paid++; }
@@ -140,38 +161,43 @@ namespace ShatteredSail.Core.Gameplay
                     c.State.CurseDurations.Sort(); c.State.CurseDurations.RemoveRange(0, paid);
                     attackPercent = SchoolSum(attackPercent, paid * card.BonusPercent);
                     piercePercent = paid > 0 ? 100 : 0;
-                    r.Detail = "引爆咒痕 " + paid + (paid > 0 ? "（无视格挡）" : "（无咒痕，普通攻击）"); break;
+                    r.Detail = "引爆咒印 " + paid + (paid > 0 ? "（无视格挡）" : "（无咒印，普通攻击）"); break;
                 case CoreBoardingEnemyMechanic.TideStrike:
                     paid = Math.Min(card.ResourceAmount, c.State.TidePower); c.State.TidePower -= paid;
-                    attackPercent = SchoolSum(attackPercent, paid * card.BonusPercent);
+                    attackPercent = SchoolSum(attackPercent, SchoolProduct(paid, card.BonusPercent));
                     r.Detail = "消耗潮势 " + paid + "/" + card.ResourceAmount; break;
                 case CoreBoardingEnemyMechanic.TideHeal:
                     paid = Math.Min(card.ResourceAmount, c.State.TidePower); c.State.TidePower -= paid;
-                    healPercent = card.ResourceAmount == 0 ? 0 : healPercent * paid / card.ResourceAmount;
+                    healPercent = card.ResourceAmount == 0 ? 0 : (int)Math.Min(int.MaxValue, (long)healPercent * paid / card.ResourceAmount);
                     r.Detail = "消耗潮势 " + paid + "/" + card.ResourceAmount; break;
                 case CoreBoardingEnemyMechanic.BloodStrike:
                 case CoreBoardingEnemyMechanic.BloodHarvest:
                     paid = Math.Min(card.ResourceAmount, c.State.BloodLoss); c.State.BloodLoss -= paid;
                     attackPercent = SchoolSum(attackPercent, paid * card.BonusPercent);
-                    bool desperate = (long)c.EnemyHealth * 100 <= (long)Battle.EnemyMaxBoardingHealth * 40;
+                    bool desperate = CoreBloodRules.IsDesperate(c.EnemyHealth, Battle.EnemyMaxBoardingHealth);
                     if (desperate) attackPercent = SchoolSum(attackPercent, 25);
                     r.Detail = "消耗失血 " + paid + (desperate ? "；绝境强化" : string.Empty); break;
             }
+            if (ResolveBoardingContextCurse(c)) return FinishBoardingEnemyAction(c, r, commit);
             int guard = BoardingEnemyScale(c.GuardBase, card.GuardPercent);
+            int ordinaryGuardGained = 0;
             if (guard > 0)
             {
                 if (commit) guard = CTBEnemyBlockGain(guard, true);
                 else if (c.Armor)
                 { guard = Math.Max(0, guard - BCurseArmorAmount(c.PlayerMarks)); }
-                int newGuard = Math.Min(SchoolSum(c.GuardBase, c.GuardBase), SchoolSum(c.EnemyGuard, guard));
-                r.GuardGained = newGuard - c.EnemyGuard; c.EnemyGuard = newGuard;
+                int newGuard = Math.Max(c.EnemyGuard,
+                    Math.Min(SchoolSum(c.GuardBase, c.GuardBase), SchoolSum(c.EnemyGuard, guard)));
+                ordinaryGuardGained = newGuard - c.EnemyGuard;
+                r.GuardGained = SchoolSum(r.GuardGained, ordinaryGuardGained); c.EnemyGuard = newGuard;
             }
             if (card.Mechanic == CoreBoardingEnemyMechanic.TideGuard)
             {
-                c.State.RetainedGuard = Math.Min(c.GuardBase, c.EnemyGuard);
+                c.State.TideGuard = Math.Min(c.EnemyGuard, SchoolSum(c.State.TideGuard, ordinaryGuardGained));
+                c.State.RetainedGuard = Math.Min(c.GuardBase, c.State.TideGuard);
                 r.Detail = "留盾 " + c.State.RetainedGuard + "；实际吸收转为潮势";
             }
-            r.Healed = Math.Min(Math.Max(0, Battle.EnemyMaxBoardingHealth - c.EnemyHealth), BoardingEnemyScale(c.AttackBase, healPercent));
+            r.Healed = IsBattleHealingBlocked(false) ? 0 : Math.Min(Math.Max(0, Battle.EnemyMaxBoardingHealth - c.EnemyHealth), BoardingEnemyScale(c.AttackBase, healPercent));
             c.EnemyHealth += r.Healed;
             r.RawAttack = BoardingEnemyScale(c.AttackBase, attackPercent);
             if (r.RawAttack > 0)
@@ -187,43 +213,76 @@ namespace ShatteredSail.Core.Gameplay
                 r.AbsorbedDamage = Math.Min(c.PlayerGuard, r.AttackDamage - r.PiercingDamage);
                 r.HealthLost = Math.Min(c.PlayerHealth, r.AttackDamage - r.AbsorbedDamage);
                 c.PlayerGuard -= r.AbsorbedDamage; c.PlayerHealth -= r.HealthLost;
-                int drain = Math.Min(Math.Min(r.HealthLost, BoardingEnemyScale(c.AttackBase, card.DrainPercent)), Math.Max(0, Battle.EnemyMaxBoardingHealth - c.EnemyHealth));
+                ResolveBoardingContextCurse(c);
+                int drain = card.DrainPercent > 0 && c.EnemyHealth > 0 && !IsBattleHealingBlocked(false)
+                    ? Math.Min(r.HealthLost, Math.Max(0, Battle.EnemyMaxBoardingHealth - c.EnemyHealth)) : 0;
                 c.EnemyHealth += drain; r.Healed = SchoolSum(r.Healed, drain);
                 if (r.HealthLost > 0 && c.PlayerHealth > 0)
-                    AddHostileBurn(c.State, BoardingEnemyScale(c.AttackBase, card.BurnPercent), 2);
-                if (card.Mechanic == CoreBoardingEnemyMechanic.ThunderStrike)
-                {
-                    c.State.ThunderChain = Math.Min(CoreBoardingEnemyState.ThunderChainLimit, c.State.ThunderChain + 1);
-                    r.Detail = "连锁 +1 → " + c.State.ThunderChain;
-                }
+                    AddBoardingContextBurn(c, true, BoardingEnemyScale(c.AttackBase, card.BurnPercent), commit);
                 if (commit)
                 {
                     CommitEnemyVitals(c);
                     c.State.RecordAttack(r.PlayerHealthBefore, r.HealthLost);
                     Battle.LastEnemyGuardAbsorbed = SchoolSum(Battle.LastEnemyGuardAbsorbed, r.AbsorbedDamage);
-                    if (c.PlayerHealth > 0) BAfterEnemyAttack(r.AbsorbedDamage, r.HealthLost);
+                    BAfterEnemyAttack(r.AbsorbedDamage, r.HealthLost);
                     c.PlayerHealth = Battle.PlayerBoardingHealth; c.PlayerGuard = Battle.PlayerBlock;
                     c.EnemyHealth = Battle.EnemyBoardingHealth; c.EnemyGuard = Battle.EnemyBlock;
+                    c.PlayerMarks = BState.CurseMarks;
+                    c.PlayerExecutedByCurse |= BState.PlayerExecutedByCurse;
+                    c.EnemyExecutedByCurse |= BState.EnemyExecutedByCurse;
                 }
                 else PreviewPlayerReactions(c, r.AbsorbedDamage, r.HealthLost);
             }
-            if (commit) CommitEnemyVitals(c);
+            if (card.Mechanic == CoreBoardingEnemyMechanic.ThunderStrike || card.Mechanic == CoreBoardingEnemyMechanic.ThunderFinisher)
+            {
+                int previousChain = c.State.ThunderChain;
+                c.State.ThunderChain = SchoolSum(c.State.ThunderChain, 1);
+                r.Detail += (r.Detail.Length > 0 ? "；" : string.Empty) + "连锁 +1 → " + c.State.ThunderChain;
+                if (c.Fields.Contains(CoreNavalFieldKind.Thunder) &&
+                    CoreThunderRules.TriggersOverload(c.State.ThunderChain, c.State.ThunderChain - previousChain))
+                {
+                    PreviewEnemyReceives(c, CoreThunderRules.OverloadDamage, false);
+                    r.Detail += "；雷栅造成 " + CoreThunderRules.OverloadDamage + " 点伤害";
+                }
+            }
+            else if (!c.Fields.Contains(CoreNavalFieldKind.Thunder))
+                c.State.ThunderChain = 0;
+            return FinishBoardingEnemyAction(c, r, commit);
+        }
+
+        private CoreBoardingEnemyActionResult FinishBoardingEnemyAction(BoardingEnemyContext c, CoreBoardingEnemyActionResult r, bool commit)
+        {
+            if (commit) { CommitEnemyVitals(c); BSyncBurn(); }
+            r.PlayerExecutedByCurse = c.PlayerExecutedByCurse;
+            r.EnemyExecutedByCurse = c.EnemyExecutedByCurse;
             r.PlayerHealthAfter = c.PlayerHealth; r.PlayerGuardAfter = c.PlayerGuard;
             r.EnemyHealthAfter = c.EnemyHealth; r.EnemyGuardAfter = c.EnemyGuard;
             r.ResourcesAfter = c.State.CopyResources();
             return r;
         }
 
+        private bool ResolveBoardingContextCurse(BoardingEnemyContext c)
+        {
+            if (CoreCurseRules.ReachesExecutionThreshold(c.State.CurseMarks, c.PlayerHealth))
+            { c.PlayerHealth = 0; c.PlayerExecutedByCurse = true; }
+            if (CoreCurseRules.ReachesExecutionThreshold(c.PlayerMarks, c.EnemyHealth, Battle.Schools.EnemyCurseExecutionThresholdPercent))
+            { c.EnemyHealth = 0; c.EnemyExecutedByCurse = true; }
+            return c.PlayerHealth <= 0 || c.EnemyHealth <= 0;
+        }
+
         private void CommitEnemyVitals(BoardingEnemyContext c)
         {
             Battle.PlayerBoardingHealth = c.PlayerHealth; Battle.PlayerBlock = c.PlayerGuard;
             Battle.EnemyBoardingHealth = c.EnemyHealth; Battle.EnemyBlock = c.EnemyGuard;
+            BState.PlayerExecutedByCurse |= c.PlayerExecutedByCurse;
+            BState.EnemyExecutedByCurse |= c.EnemyExecutedByCurse;
         }
 
         private int PreviewEnemyAttack(BoardingEnemyContext c, int attack)
         {
+            attack = BBoardingFieldAttackDamage(c.Fields, attack);
             int reduction = BContinuousAttackReduction(c.PlayerMarks);
-            if (c.Weak && BState.ThunderWeaknessTurns > 0) reduction = Math.Max(reduction, Math.Min(attack / 2, BState.ThunderWeakness));
+            if (c.Weak && BState.ThunderWeaknessTurns > 0) reduction = Math.Max(reduction, BState.ThunderWeakness);
             c.Weak = false;
             return c.EnemyHealth <= 0 ? 0 : Math.Max(0, attack - reduction);
         }
@@ -232,21 +291,74 @@ namespace ShatteredSail.Core.Gameplay
         {
             if (c.PlayerHealth <= 0 || c.EnemyHealth <= 0) return;
             if (lost > 0 && BState.CurseContractTurns > 0) c.PlayerMarks = SchoolSum(c.PlayerMarks, BCurseContractAmount);
+            if (ResolveBoardingContextCurse(c)) return;
             if (c.EnemyHealth > 0 && c.Ambush)
             { c.Ambush = false; PreviewEnemyReceives(c, BTideAmbushAmount, false); }
-            if (c.EnemyHealth > 0 && lost > 0 && BState.BloodDebtTurns > 0 && !c.DebtTriggered)
-            { c.DebtTriggered = true; PreviewEnemyReceives(c, BValue(BState.BloodDebtCard, 8), false); }
+            if (c.EnemyHealth > 0 && (lost > 0 || absorbed > 0) && BState.BloodDebtTurns > 0)
+                PreviewEnemyReceives(c, BLinear(BState.BloodDebtCard, 8), false);
             if (absorbed > 0 && c.FireRetaliations > 0 && c.EnemyHealth > 0)
-            { PreviewEnemyReceives(c, SchoolProduct(c.FireRetaliations, c.PlayerSelfBurn * 2), false); }
+            { PreviewEnemyReceives(c, SchoolProduct(c.FireRetaliations, c.State.PlayerBurnDamage), false); }
         }
 
-        private static void PreviewEnemyReceives(BoardingEnemyContext c, int damage, bool pierce)
+        private void AddBoardingContextBurn(BoardingEnemyContext c, bool targetPlayer, int amount, bool commit)
+        {
+            if (amount <= 0) return;
+            if (commit)
+            {
+                if (targetPlayer) BApplyPlayerBurn(amount, false);
+                else BAddEnemyBurn(amount);
+                return;
+            }
+            int adjusted = PrepareFireBurnApplication(targetPlayer, amount, false);
+            // A detached preview consumes its own one-shot oil flag, never live oil.
+            if (adjusted > amount)
+            {
+                bool consumed = targetPlayer ? c.PlayerOilConsumed : c.EnemyOilConsumed;
+                if (consumed) adjusted = amount;
+                else if (targetPlayer) c.PlayerOilConsumed = true;
+                else c.EnemyOilConsumed = true;
+            }
+            if (targetPlayer)
+            {
+                c.State.PlayerBurnDamage = SchoolSum(c.State.PlayerBurnDamage, adjusted);
+                c.State.PlayerBurnTurns = c.State.PlayerBurnDamage;
+            }
+            else
+            {
+                c.State.SelfBurnDamage = SchoolSum(c.State.SelfBurnDamage, adjusted);
+                c.State.SelfBurnTurns = c.State.SelfBurnDamage;
+            }
+        }
+
+        private void PreviewEnemyReceives(BoardingEnemyContext c, int damage, bool pierce)
         {
             int blocked = pierce ? 0 : Math.Min(c.EnemyGuard, damage);
             c.EnemyGuard -= blocked;
             int lost = Math.Min(c.EnemyHealth, Math.Max(0, damage - blocked)); c.EnemyHealth -= lost;
-            NoteBoardingEnemyLoss(c.State, blocked, lost);
+            NoteBoardingEnemyLoss(c.State, blocked, lost, c.EnemyGuard);
             c.State.RetainedGuard = Math.Min(c.State.RetainedGuard, c.EnemyGuard);
+            ResolveBoardingContextCurse(c);
+        }
+
+        private int PreviewBoardingContextFieldEnd(BoardingEnemyContext c, bool player)
+        {
+            if (c.PlayerHealth <= 0 || c.EnemyHealth <= 0) return 0;
+            AddBoardingContextBurn(c, player, c.Fields.Remaining(CoreNavalFieldKind.Fire), false);
+            int marks = c.Fields.Remaining(CoreNavalFieldKind.Curse);
+            if (player)
+                for (int i = 0; i < marks; i++) c.State.CurseDurations.Add(int.MaxValue);
+            else c.PlayerMarks = SchoolSum(c.PlayerMarks, marks);
+            if (ResolveBoardingContextCurse(c)) return 0;
+            int lost = Math.Min(player ? c.PlayerHealth : c.EnemyHealth, c.Fields.Remaining(CoreNavalFieldKind.Blood));
+            if (player) c.PlayerHealth -= lost;
+            else
+            {
+                c.EnemyHealth -= lost;
+                NoteBoardingEnemyLoss(c.State, 0, lost, c.EnemyGuard);
+            }
+            if (ResolveBoardingContextCurse(c)) return lost;
+            c.Fields.EndTurn(player);
+            return lost;
         }
 
         private static void AddHostileBurn(CoreBoardingEnemyState state, int amount, int turns)
@@ -256,24 +368,26 @@ namespace ShatteredSail.Core.Gameplay
             state.PlayerBurnTurns = state.PlayerBurnDamage;
         }
 
-        private static void NoteBoardingEnemyLoss(CoreBoardingEnemyState state, int absorbed, int lost)
+        private static void NoteBoardingEnemyLoss(CoreBoardingEnemyState state, int absorbed, int lost, int remainingGuard)
         {
-            if (state.Deck?.SchoolId == "tide")
-                state.TidePower = Math.Min(CoreBoardingEnemyState.TidePowerLimit, SchoolSum(state.TidePower, absorbed));
+            int before = SchoolSum(Math.Max(0, remainingGuard), Math.Max(0, absorbed));
+            int tideBefore = Math.Min(before, state.TideGuard);
+            int tideAbsorbed = Math.Min(tideBefore, Math.Max(0, absorbed - (before - tideBefore)));
+            state.TideGuard = Math.Min(remainingGuard, tideBefore - tideAbsorbed);
+            state.TidePower = SchoolSum(state.TidePower, tideAbsorbed);
             if (state.Deck?.SchoolId == "blood")
                 state.BloodLoss = Math.Min(CoreBoardingEnemyState.BloodLossLimit, SchoolSum(state.BloodLoss, lost));
         }
 
         private void OnBoardingEnemyDamaged(int absorbed, int lost)
         {
-            if (!BActive || Battle.Profile?.TrainingTarget != null) return;
-            NoteBoardingEnemyLoss(Battle.BoardingEnemy, absorbed, lost);
+            if (!BActive) return;
+            NoteBoardingEnemyLoss(Battle.BoardingEnemy, absorbed, lost, Battle.EnemyBlock);
             Battle.BoardingEnemy.RetainedGuard = Math.Min(Battle.BoardingEnemy.RetainedGuard, Battle.EnemyBlock);
         }
 
         private static void EnemySchoolEndResources(CoreBoardingEnemyState state)
         {
-            state.ThunderChain = 0; state.TidePower = 0;
             state.SelfBurnDamage = Math.Max(0, state.SelfBurnDamage - 1);
             state.SelfBurnTurns = state.SelfBurnDamage;
         }
@@ -281,11 +395,18 @@ namespace ShatteredSail.Core.Gameplay
         private bool BEnemySchoolEnd()
         {
             CoreBoardingEnemyState state = Battle.BoardingEnemy;
-            int lost = Math.Min(Battle.EnemyBoardingHealth, state.SelfBurnTurns > 0 ? state.SelfBurnDamage : 0);
+            int burn = state.SelfBurnTurns > 0 ? state.SelfBurnDamage : 0;
+            int absorbed = Math.Min(Battle.EnemyBlock, burn);
+            Battle.EnemyBlock -= absorbed;
+            int lost = Math.Min(Battle.EnemyBoardingHealth, burn - absorbed);
             Battle.EnemyBoardingHealth -= lost; state.LastSelfBurnHealthLost = lost;
-            NoteBoardingEnemyLoss(state, 0, lost);
+            Battle.RecordSettlement(CoreBattleSettlementKind.Burn, false, lost, absorbed, healthAfter: Battle.EnemyBoardingHealth);
+            NoteBoardingEnemyLoss(state, absorbed, lost, Battle.EnemyBlock);
+            BResolveCurseExecutions();
+            state.RetainedGuard = Math.Min(state.RetainedGuard, Battle.EnemyBlock);
             EnemySchoolEndResources(state);
-            if (lost > 0) AddLog("敌方自燃结算：船员生命 -" + lost + "。");
+            BSyncBurn();
+            if (burn > 0) AddLog("敌方燃烧结算：格挡 -" + absorbed + "；船员生命 -" + lost + "。");
             return ResolveBattleOutcome();
         }
     }

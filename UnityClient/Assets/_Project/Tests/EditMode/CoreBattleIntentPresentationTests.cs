@@ -59,7 +59,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = Training(NavalBattleStage.Naval, 1);
             session.Battle.EnemyHull = session.Battle.EnemyMaxHull - 1;
-            session.Battle.NavalExpansion.EnemyHealingHalved = true;
+            session.ApplyBattleHealingBan(false, 2);
             var heal = CoreBattleIntentPresentation.Build(session).Single(intent => intent.Kind == CoreBattleIntentKind.Heal);
             Assert.That(heal.Amount, Is.EqualTo(0));
             int before = session.Battle.EnemyHull;
@@ -104,7 +104,7 @@ namespace ShatteredSail.Core.Tests
             session.Battle.Boarding.ThunderWeakness = 4;
             session.Battle.Boarding.ThunderWeaknessTurns = 1;
             var attacks = CoreBattleIntentPresentation.Build(session).Where(intent => intent.IsAttack).ToArray();
-            Assert.That(attacks.Select(intent => intent.Amount.Value), Is.EqualTo(new[] { 2, 5, 7 }));
+            Assert.That(attacks.Select(intent => intent.Amount.Value), Is.EqualTo(new[] { 0, 5, 7 }));
             Assert.That(attacks.Select(intent => intent.Sequence), Is.EqualTo(new[] { 0, 1, 2 }));
             Assert.That(attacks.All(intent => intent.Tooltip.Contains("格挡前")), Is.True);
             Assert.That(session.Battle.PlayerBlock, Is.EqualTo(100));
@@ -132,6 +132,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = Boarding("thunder");
             session.Battle.PlayerBoardingHealth = 2;
+            typeof(CoreVoyageSession).GetMethod("BInitialize", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(session, null);
             session.Battle.Boarding.SelfBurn.Add(new CoreBoardingTimedStacks(3, 2));
             var intents = CoreBattleIntentPresentation.Build(session);
             Assert.That(intents.Count, Is.EqualTo(1));

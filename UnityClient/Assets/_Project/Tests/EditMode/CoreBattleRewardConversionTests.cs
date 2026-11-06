@@ -76,18 +76,32 @@ namespace ShatteredSail.Core.Tests
         {
             var reward = new VoyageEffect { Gold = promised };
             Assert.That(CoreBattleRewardBalance.GoldReward(boss, reward, false), Is.EqualTo(expected));
-            Assert.That(CoreBattleRewardBalance.GoldReward(boss, reward, true), Is.EqualTo(expected * 2));
+            Assert.That(CoreBattleRewardBalance.GoldReward(boss, reward, true), Is.EqualTo(expected * 1.25m));
         }
 
         [TestCase(0d, 0L)]
         [TestCase(.25d, 100L)]
         [TestCase(.5d, 200L)]
         [TestCase(1d, 400L)]
-        public void ChartReductionPrecedesRoundingAndCaptureDoublesTheSameQuote(double multiplier, long expected)
+        public void ChartReductionPrecedesRoundingAndCaptureAddsOneQuarterToTheSameQuote(double multiplier, long expected)
         {
             var reward = new VoyageEffect { Gold = 300, Iron = 1 };
             Assert.That(CoreBattleRewardBalance.GoldReward(false, reward, false, multiplier), Is.EqualTo(expected));
-            Assert.That(CoreBattleRewardBalance.GoldReward(false, reward, true, multiplier), Is.EqualTo(expected * 2));
+            Assert.That(CoreBattleRewardBalance.GoldReward(false, reward, true, multiplier), Is.EqualTo(expected * 1.25m));
+        }
+
+        [TestCase(false, 0, 1d, 6, 7)]
+        [TestCase(true, 0, 1d, 18, 22)]
+        [TestCase(false, 4, 1d, 10, 12)]
+        [TestCase(false, 1, .25d, 1, 1)]
+        [TestCase(true, 3, .5d, 10, 12)]
+        [TestCase(false, 4, 0d, 0, 0)]
+        public void CaptureFameAddsOneQuarterToNavalQuoteAndFloorsOnlyTheFractionalBonus(
+            bool boss, int promised, double multiplier, long naval, long captured)
+        {
+            var reward = new VoyageEffect { Fame = promised };
+            Assert.That(CoreBattleRewardBalance.FameReward(boss, reward, false, multiplier), Is.EqualTo(naval));
+            Assert.That(CoreBattleRewardBalance.FameReward(boss, reward, true, multiplier), Is.EqualTo(captured));
         }
 
         [Test]
@@ -96,13 +110,13 @@ namespace ShatteredSail.Core.Tests
             var reward = new VoyageEffect { Gold = int.MaxValue, Wood = int.MaxValue };
             Assert.That(CoreBattleRewardBalance.MaterialGoldValue(reward, diver: true), Is.EqualTo(13421772790m));
             Assert.That(CoreBattleRewardBalance.GoldReward(false, reward, false, diver: true), Is.EqualTo(15569256500L));
-            Assert.That(CoreBattleRewardBalance.GoldReward(false, reward, true, diver: true), Is.EqualTo(31138513000L));
+            Assert.That(CoreBattleRewardBalance.GoldReward(false, reward, true, diver: true), Is.EqualTo(19461570625L));
         }
 
         [TestCase(false, false, false, 1300)]
-        [TestCase(true, false, false, 2600)]
+        [TestCase(true, false, false, 1625)]
         [TestCase(false, true, true, 1400)]
-        [TestCase(true, true, true, 2800)]
+        [TestCase(true, true, true, 1750)]
         public void VictoryConvertsAllFifteenMaterialsOnceAndPreservesOtherProgress(bool captured, bool doctor, bool diver, int expectedGold)
         {
             CoreVoyageSession session = Voyage(doctor, diver);
@@ -116,7 +130,7 @@ namespace ShatteredSail.Core.Tests
             CollectionAssert.AreEqual(cargo, Snapshot(session), "Accepting battle must not prepay materials.");
             Win(session, captured);
             Assert.That(session.Cargo.Gold - gold, Is.EqualTo(expectedGold));
-            Assert.That(session.Cargo.Fame - fame, Is.EqualTo(captured ? 20 : 10));
+            Assert.That(session.Cargo.Fame - fame, Is.EqualTo(captured ? 12 : 10));
             CollectionAssert.AreEqual(cargo, Snapshot(session), "All fifteen physical rewards must be converted, never loaded.");
             Assert.That(session.VoyageTreasureFragments, Is.EqualTo(captured ? 3 : 2), "Authored fragment rewards retain their existing capture rule.");
             Assert.That(session.TreasureClues, Is.EqualTo(2));
@@ -140,7 +154,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.IsChoiceAvailable(0), Is.True);
             Assert.That(session.ResolveChoice(0), Is.True);
             Win(session, captured);
-            Assert.That(session.Cargo.Gold - gold, Is.EqualTo(captured ? 2600 : 1300));
+            Assert.That(session.Cargo.Gold - gold, Is.EqualTo(captured ? 1625 : 1300));
             CollectionAssert.AreEqual(cargo, Snapshot(session));
             Assert.That(session.Cargo.UsedVolume, Is.EqualTo(session.CargoCapacityValue).Within(.001f));
         }
@@ -208,9 +222,9 @@ namespace ShatteredSail.Core.Tests
         [TestCase(0d, false, 0, 0)]
         [TestCase(0d, true, 0, 0)]
         [TestCase(.25d, false, 100, 3)]
-        [TestCase(.25d, true, 200, 6)]
+        [TestCase(.25d, true, 125, 3)]
         [TestCase(.5d, false, 200, 6)]
-        [TestCase(.5d, true, 400, 12)]
+        [TestCase(.5d, true, 250, 7)]
         public void SettlementUsesTheCombinedGoldQuoteUnderChartReduction(double multiplier, bool captured, int expectedGold, int expectedFame)
         {
             CoreVoyageSession session = Voyage(diver: true);

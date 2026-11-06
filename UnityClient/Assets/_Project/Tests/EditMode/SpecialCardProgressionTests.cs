@@ -255,7 +255,8 @@ namespace ShatteredSail.Core.Tests
         public void LegacyPaidUpgrades_MigrateOnceAndSurviveBothRestoreOrders()
         {
             CoreSpecialCardDefinition definition = Crew();
-            string legacyId = CoreVoyageSession.CardLibrary.Take(32).First(card => card.RequiredCrew == definition.LegacySourceKey).Id;
+            string legacyId = "card_navigator_course";
+            Assert.That(definition.LegacySourceKey, Is.EqualTo("navigator"));
             CoreVoyageSession session = new CoreVoyageSession();
             session.ConfigureSpecialCardSources(new[] { definition.SourceId }, null);
             Dictionary<string, int> grades = new Dictionary<string, int> { { legacyId, 2 }, { "card_chain_shot", 1 } };
@@ -289,7 +290,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetSpecialCardExperience(second.Card.Id), Is.Zero);
             Assert.That(session.GetCardUpgradeLevel(first.Card.Id), Is.EqualTo(2));
 
-            string legacyId = CoreVoyageSession.CardLibrary.Take(32).First(card => card.RequiredCrew == first.LegacySourceKey).Id;
+            string legacyId = "card_navigator_course";
+            Assert.That(first.LegacySourceKey, Is.EqualTo("navigator"));
             session.ConfigureCardUpgrades(new Dictionary<string, int> { { legacyId, 1 } });
             Assert.That(session.GetSpecialCardExperience(second.Card.Id), Is.EqualTo(120));
             Assert.That(session.GetSpecialCardExperience(first.Card.Id), Is.EqualTo(900), "Migration is a historical floor, not an overwrite.");
@@ -380,13 +382,40 @@ namespace ShatteredSail.Core.Tests
             Award(session, float.PositiveInfinity);
             Award(session, -5f);
             Assert.That(session.GetSpecialCardExperience(id), Is.EqualTo(119));
-            Award(session, 2f);
+            Award(session, 38f);
             Assert.That(session.GetSpecialCardExperience(id), Is.EqualTo(120));
             Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(1));
             Award(session, float.MaxValue);
             Award(session, float.MaxValue);
             Assert.That(session.GetSpecialCardExperience(id), Is.EqualTo(int.MaxValue));
             Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void SlowerCrewAndComponentGrowth_ResumesFractionalDistanceWithoutLosingHistoricalExperience()
+        {
+            CoreSpecialCardDefinition crew = Crew();
+            CoreSpecialCardDefinition part = Part();
+            var source = new CoreVoyageSession();
+            source.ConfigureSpecialCardSources(new[] { crew.SourceId }, new[] { part.SourceId });
+            source.RestoreSpecialCardExperience(new Dictionary<string, int>
+                { { crew.Card.Id, 119 }, { part.Card.Id, 119 } });
+            source.StartVoyage();
+            Award(source, 39f);
+            CoreVoyageCheckpoint checkpoint = source.CaptureVoyageCheckpoint();
+            Assert.That(checkpoint.specialCardDistanceRemainder, Is.EqualTo(.975d).Within(1e-9));
+            var resumed = new CoreVoyageSession();
+            Assert.That(resumed.TryRestoreVoyageCheckpoint(checkpoint, out string reason), Is.True, reason);
+            foreach (string id in new[] { crew.Card.Id, part.Card.Id })
+                Assert.That(resumed.GetSpecialCardExperience(id), Is.EqualTo(119));
+            Award(source, 1f);
+            Award(resumed, 1f);
+            foreach (string id in new[] { crew.Card.Id, part.Card.Id })
+            {
+                Assert.That(resumed.GetSpecialCardExperience(id), Is.EqualTo(120));
+                Assert.That(resumed.GetSpecialCardExperience(id), Is.EqualTo(source.GetSpecialCardExperience(id)));
+                Assert.That(resumed.GetCardUpgradeLevel(id), Is.EqualTo(1));
+            }
         }
 
         [Test]

@@ -54,6 +54,7 @@ namespace ShatteredSail.Presentation.Tests
             int componentCount = controller.OwnedComponents.Count;
             decimal settledGold = controller.Session.ProfileGold;
             string settledChart = PlayerPrefs.GetString(CoreGameplayDemoController.DrawnSeaChartKey);
+            Assert.That(settledChart, Is.Empty, "Tutorial rewards must settle without drawing or automatically recording a chart.");
             string[] settledCollections = controller.WarehouseCollection.OwnedIds.ToArray();
             string collectedAcrossPorts = PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey);
 
@@ -94,8 +95,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
             GameObject equipmentWindow = GameObject.Find("Shipyard Equipment Overlay");
             Assert.That(equipmentWindow, Is.Not.Null, "Completing the final fitting keeps the equipment window open.");
-            Assert.That(equipmentWindow.transform.Find("Shipyard Detail/Shipyard Equipment Page"), Is.Not.Null);
-            Assert.That(RequireGuidedButton("Close Shipyard Equipment").IsInteractable(), Is.True);
+            Assert.That(equipmentWindow.transform.Find("Shipyard Equipment Paper/Shipyard Detail/Shipyard Equipment Page"), Is.Not.Null);
+            Assert.That(RequireGuidedButton("Return To Port Hub").IsInteractable(), Is.True);
             Assert.That(seen, Does.Contain("FirstMandatory"));
             Assert.That(seen, Does.Contain("FirstOptional"));
             Assert.That(seen, Does.Contain("FirstCrewEvent"));
@@ -104,7 +105,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(seen, Does.Contain("SecondDeparture"));
             foreach (string required in new[] { "SecondCrewEvent", "SecondAmbush" })
                 Assert.That(seen, Does.Contain(required), "The guide must route through " + required);
-            foreach (string retired in new[] { "Workshop", "BuildDeck", "SecondRetreat", "SecondSettlement", "ThirdPier", "ThirdRoute", "ThirdDeparture" })
+            foreach (string retired in new[] { "Workshop", "BuildDeck", "SecondRetreat", "SecondSettlement", "ThirdPier", "ThirdRoute", "ThirdDeparture", "DrawChart" })
                 Assert.That(seen, Does.Not.Contain(retired), "The guide must not require " + retired);
             Assert.That(seen, Does.Contain("TutorialBoss"));
             Assert.That(seen, Does.Contain("Warehouse"));
@@ -134,8 +135,7 @@ namespace ShatteredSail.Presentation.Tests
                 Is.EqualTo(rewardInstanceId), "The exact rewarded inventory instance must be installed, not a newly granted copy.");
             Assert.That(controller.OwnedComponents.Count, Is.EqualTo(componentCount));
             string chart = PlayerPrefs.GetString(CoreGameplayDemoController.DrawnSeaChartKey);
-            Assert.That(chart, Is.Not.Empty, "The final drawing must become a real persistent chart record.");
-            Assert.That(chart, Does.Contain("\"tutorialWaters\":true"));
+            Assert.That(chart, Is.Empty, "Completing the tutorial must not require or automatically create a drawn chart.");
             decimal gold = controller.Session.ProfileGold;
             string[] components = Enum.GetValues(typeof(ComponentSlot)).Cast<ComponentSlot>()
                 .Select(slot => controller.EquippedComponent(slot)?.Id).ToArray();
@@ -320,7 +320,7 @@ namespace ShatteredSail.Presentation.Tests
             int savedPowder = PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Powder"));
             ClickAcceptanceButton("Encounter Choice 0");
             yield return null;
-            yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseLoad);
+            yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseApproach2);
             Assert.That(controller.Session.CanCaptureVoyageCheckpoint, Is.False);
             Assert.That(controller.Session.GuidedTutorialBossDefeated, Is.False);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Powder")), Is.EqualTo(savedPowder),
@@ -1058,7 +1058,6 @@ namespace ShatteredSail.Presentation.Tests
                             yield return PlayGuidedBattleAction(controller, capture, captured);
                         }
                         break;
-                    case "DrawChart":
                     case "ThirdSettlement":
                         Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
                         Assert.That(controller.Session.GuidedTutorialBossDefeated, Is.True);
@@ -1071,18 +1070,12 @@ namespace ShatteredSail.Presentation.Tests
                         AssertGuidedRewardVisible();
                         if (capture && captured.Add("settlement"))
                         {
-                            Button skipReveal = ActiveButton("Skip Settlement Reveal");
-                            if (skipReveal != null && skipReveal.IsInteractable())
-                            {
-                                ClickGuidedButton("Skip Settlement Reveal");
-                                yield return null;
-                            }
+                            yield return SettlementChestTestActions.ShowOverview();
                             NavalBattleVisualCapture.Capture(controller, "55_Guided_Normal_Chart_Settlement.png",
-                                "正常结算中绘制海图，确认返港后提交白色部件与首胜藏品，再进入仓库陈列教学", "Return To Port");
+                                "直接确认返港并提交白色部件与首胜藏品，再进入仓库陈列教学", "Return To Port");
                         }
-                        Button draw = ActiveButton("Draw Sea Chart");
-                        if (draw != null && draw.IsInteractable()) ClickGuidedButton("Draw Sea Chart");
-                        else ClickGuidedButton("Return To Port");
+                        AssertGuidedFocusTarget("Return To Port");
+                        ClickGuidedButton("Return To Port");
                         break;
                     case "Warehouse":
                         Assert.That(controller.WarehouseCollection.Owns(CoreWarehouseCollection.TutorialTreasureId), Is.True);
@@ -1238,9 +1231,18 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             if (controller.CurrentGuidedTutorialNavigationInputStep == GuidedTutorialNavigationInputStep.Heading)
             {
-                AssertGuidedFocusTarget("Heading East");
-                ClickGuidedButton("Heading East");
+                CoreMapNode navigatorEvent = controller.Session.GuidedTutorialLeg == CoreGuidedTutorialContent.NavigatorVoyageLeg
+                    ? controller.Session.Map.Nodes.FirstOrDefault(node => !node.Visited && !node.Skipped &&
+                        node.IsChartVisible && node.Encounter.Id == CoreGuidedTutorialContent.NavigatorEventId) : null;
+                string target = navigatorEvent == null ? "Heading East" : "Event Node " + navigatorEvent.Id;
+                AssertGuidedFocusTarget(target);
+                ClickGuidedButton(target);
                 yield return null;
+                if (navigatorEvent != null)
+                {
+                    Assert.That(controller.Session.HasDirectCourseTarget, Is.True);
+                    Assert.That(controller.Session.DirectCourseTarget, Is.EqualTo(navigatorEvent.Position));
+                }
             }
             Assert.That(GameObject.Find("Distance Slider").GetComponent<Slider>().IsInteractable(), Is.False);
             Assert.That(controller.Session.PlannedDistanceNm, Is.EqualTo(CoreGuidedTutorialContent.PlannedDistanceNm));
@@ -1270,6 +1272,11 @@ namespace ShatteredSail.Presentation.Tests
         private static void AssertGuidedInstructionsRemainVisible(CoreGameplayDemoController controller)
         {
             Canvas.ForceUpdateCanvases();
+            if (controller.Session.IsGuidedBossBattle && controller.Session.GuidedBossStep == GuidedBossBattleStep.CourseFinal)
+            {
+                AssertUnguidedFinalBattlePresentation(controller);
+                return;
+            }
             string headerName = controller.Session.Phase == CoreDemoPhase.Port
                 ? controller.ActivePortSection == "港口总览" ? "Port Hub" : "Port Facility Header"
                 : "Voyage Header";

@@ -108,6 +108,7 @@ namespace ShatteredSail.Presentation
             selectedSpecialCardIndex = context.SelectedIndex;
             selectedCardWorkshopChest = context.Chest;
             specialCardCollectionOpen = true;
+            workshopCollectionOpen = !context.DeckBuilder;
             cardWorkshopDeckBuilderOpen = context.DeckBuilder;
             battleDeckOverviewOpen = context.DeckOverview;
             battleCardUpgradeOpen = false;

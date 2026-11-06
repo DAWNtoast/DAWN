@@ -1,0 +1,5 @@
+{
+  "name": "ShatteredSail.RuntimeMemory20261104",
+  "references": ["ShatteredSail.Presentation", "ShatteredSail.Core", "ShatteredSail.Content", "Unity.UGUI"],
+  "autoReferenced": true
+}

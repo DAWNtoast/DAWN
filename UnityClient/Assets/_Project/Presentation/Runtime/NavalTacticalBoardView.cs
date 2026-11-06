@@ -16,12 +16,20 @@ namespace ShatteredSail.Presentation
         // A complete sea painting covers a fixed world square. Camera and UI
         // changes crop the painting instead of stretching waves or tiling edges.
         private const float SeaWorldSpanMeters = 4000f;
-        private RectTransform board, root, worldLayer, backgroundRect, gridRect;
+        private RectTransform board, root, worldLayer, backgroundRect, gridRect, seaViewport;
         private RawImage sea;
+        private Image seaVeil;
+        private NavalSeaLightGraphic seaLight;
+        private CoreVoyageSession environmentSession;
+        private CoreBattleState displayedBattle;
+        private SeaTerrainType displayedTerrain;
+        private double displayedGameHours;
+        private bool hasEnvironment;
         private RectTransform playerShip, enemyShip, playerBar, enemyBar;
         private NavalTacticalGridGraphic grid;
         private NavalTacticalTrackGraphic track;
-        private readonly RectTransform[] compassLabels = new RectTransform[4];
+        private NavalTacticalCompassGraphic compassGraphic;
+        private RectTransform compassNorth;
         private readonly List<Vector2> playerTrack = new List<Vector2>();
         private readonly List<Vector2> enemyTrack = new List<Vector2>();
         private IReadOnlyList<CoreNavalTacticalFrame> pathFrames;
@@ -40,10 +48,26 @@ namespace ShatteredSail.Presentation
         public VoyagePoint DisplayedEnemyPositionMeters => currentFrame.EnemyPositionMeters;
         // Identifies the movement being presented, including its in-progress frames.
         public int DisplayedMovementRevision => lastMovementRevision;
+        public NavalEnvironmentLight EnvironmentLight { get; private set; }
+
+        internal static float HullReadoutOffset(CoreBattleState battle) =>
+            battle != null && battle.NavalAwaitingHeadingSelection ? 200f : 125f;
 
         public void SetVerticalFraming(float height)
         {
             shipScreenHeight = height;
+            if (hasFrame) ApplyFrame(currentFrame);
+        }
+
+        public void ExtendSeaToBattleSurface()
+        {
+            if (!built || root == null || seaViewport != null) return;
+            // Keep the ocean continuous behind the lesson banner while the
+            // grid and its input stay clipped below the reading area.
+            seaViewport = CreateRect("Tactical sea viewport", root, new Vector2(1860f, 900f));
+            seaViewport.gameObject.AddComponent<RectMask2D>();
+            seaViewport.SetAsFirstSibling();
+            backgroundRect.SetParent(seaViewport, false);
             if (hasFrame) ApplyFrame(currentFrame);
         }
 
@@ -92,19 +116,53 @@ namespace ShatteredSail.Presentation
             board.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 900f);
             hasFrame = false;
             BuildVisuals(font);
-            sea.texture = NavalTacticalArtCatalog.ForSea(session?.BattleTerrain ?? SeaTerrainType.OpenWater);
-            sea.color = sea.texture == null ? new Color(.018f, .19f, .23f, 1f) :
-                session?.BattleTerrain == SeaTerrainType.StormFront ? new Color(.8f, .8f, .8f, 1f) : Color.white;
             ApplyShipArt(playerShip, NavalTacticalArtCatalog.ForPlayer(session?.SelectedShip.Id));
             ApplyShipArt(enemyShip, NavalTacticalArtCatalog.ForEnemy(battle, session?.ActiveEncounter, session?.SelectedRouteIndex ?? 0));
+            environmentSession = session;
+            hasEnvironment = false;
+            RefreshEnvironment();
             SnapToBattle(battle);
         }
 
+        /// <summary>Refreshes retained views without rebuilding or disturbing an in-progress tactical move.</summary>
+        public void RefreshEnvironment()
+        {
+            if (!built) return;
+            SeaTerrainType terrain = environmentSession?.BattleTerrain ?? SeaTerrainType.OpenWater;
+            double hours = environmentSession?.ElapsedGameHours ?? 0d;
+            if (hasEnvironment && displayedTerrain == terrain && displayedGameHours.Equals(hours)) return;
+            if (!hasEnvironment || displayedTerrain != terrain)
+                sea.texture = NavalTacticalArtCatalog.ForSea(terrain);
+            EnvironmentLight = NavalEnvironmentLighting.ForVoyageHours(terrain, hours);
+            sea.color = (sea.texture == null ? new Color(.018f, .19f, .23f, 1f) : Color.white) * EnvironmentLight.SeaTint;
+            seaVeil.color = new Color(.025f, .105f, .13f, Mathf.Lerp(
+                EnvironmentLight.Blend.From == NavigationTimeOfDay.Night ? .08f : .18f,
+                EnvironmentLight.Blend.To == NavigationTimeOfDay.Night ? .08f : .18f,
+                EnvironmentLight.Blend.Amount));
+            seaLight.color = EnvironmentLight.ReflectionColor;
+            ApplyShipLight(playerShip);
+            ApplyShipLight(enemyShip);
+            displayedTerrain = terrain;
+            displayedGameHours = hours;
+            hasEnvironment = true;
+        }
+
+        private void ApplyShipLight(RectTransform ship)
+        {
+            Image image = ship == null ? null : ship.GetComponent<Image>();
+            if (image != null) image.color = EnvironmentLight.ShipTint;
+        }
+
+        private void LateUpdate() => RefreshEnvironment();
+        private void OnEnable() => RefreshEnvironment();
+
         public void SnapToBattle(CoreBattleState battle)
         {
+            RefreshEnvironment();
             animationGeneration++;
             IsAnimating = false;
             if (battle == null) return;
+            displayedBattle = battle;
             lastMovementRevision = battle.TacticalRevision;
             pathFrames = battle.LastTacticalMovement?.Frames;
             ApplyFrame(battle.TacticalFrame);
@@ -136,13 +194,22 @@ namespace ShatteredSail.Presentation
             SetShipPose(enemyShip, EnemyScreenPosition, frame.EnemyHeadingDegrees + CameraRotationDegrees - 90f);
             // Health and defense remain readable when the ships meet at boarding
             // range. Only the readouts spread apart; ship/world distances stay exact.
-            SetBarPose(playerBar, new Vector2(Mathf.Clamp(PlayerScreenPosition.x, -430f, -185f), PlayerScreenPosition.y - 105f));
-            SetBarPose(enemyBar, new Vector2(Mathf.Clamp(EnemyScreenPosition.x, 185f, 430f), EnemyScreenPosition.y - 105f));
+            float hullOffset = HullReadoutOffset(displayedBattle);
+            SetBarPose(playerBar, new Vector2(Mathf.Clamp(PlayerScreenPosition.x, -430f, -185f), PlayerScreenPosition.y - hullOffset));
+            SetBarPose(enemyBar, new Vector2(Mathf.Clamp(EnemyScreenPosition.x, 185f, 430f), EnemyScreenPosition.y - hullOffset));
 
             Vector2 pivot = ToBoard(EnemyScreenPosition);
             worldLayer.anchoredPosition = pivot;
             worldLayer.localRotation = Quaternion.Euler(0f, 0f, CameraRotationDegrees);
             float coveringRadius = MaximumCornerDistance(board.rect, pivot) + CellSizePixels * 2f;
+            if (seaViewport != null)
+            {
+                backgroundRect.position = worldLayer.position;
+                backgroundRect.rotation = worldLayer.rotation;
+                Vector2 seaPivot = seaViewport.InverseTransformPoint(worldLayer.position);
+                coveringRadius = Mathf.Max(coveringRadius,
+                    MaximumCornerDistance(seaViewport.rect, seaPivot) + CellSizePixels * 2f);
+            }
             float side = Mathf.Max(2200f, coveringRadius * 2f);
             backgroundRect.sizeDelta = gridRect.sizeDelta = new Vector2(side, side);
             float uvSide = side / (pixelsPerMetre * SeaWorldSpanMeters);
@@ -195,10 +262,20 @@ namespace ShatteredSail.Presentation
             backgroundRect = CreateRect("Shared tactical sea", worldLayer, new Vector2(2600f, 2600f));
             sea = backgroundRect.gameObject.AddComponent<RawImage>();
             sea.raycastTarget = false;
+            RectTransform veilRect = CreateRect("Tactical sea veil", backgroundRect, Vector2.zero);
+            veilRect.anchorMin = Vector2.zero;
+            veilRect.anchorMax = Vector2.one;
+            seaVeil = veilRect.gameObject.AddComponent<Image>();
+            seaVeil.raycastTarget = false;
+            RectTransform lightRect = CreateRect("Tactical sea light", backgroundRect, Vector2.zero);
+            lightRect.anchorMin = Vector2.zero;
+            lightRect.anchorMax = Vector2.one;
+            seaLight = lightRect.gameObject.AddComponent<NavalSeaLightGraphic>();
+            seaLight.raycastTarget = false;
             gridRect = CreateRect("100 metre grid", worldLayer, new Vector2(2600f, 2600f));
             grid = gridRect.gameObject.AddComponent<NavalTacticalGridGraphic>();
             grid.raycastTarget = false;
-            grid.color = new Color(.32f, .78f, .79f, .24f);
+            grid.color = new Color(.48f, .74f, .76f, .13f);
 
             RectTransform trackRect = CreateRect("Tactical course", board, board.rect.size);
             track = trackRect.gameObject.AddComponent<NavalTacticalTrackGraphic>();
@@ -206,18 +283,12 @@ namespace ShatteredSail.Presentation
             RectTransform compass = CreateRect("Tactical compass", board, new Vector2(164f, 164f));
             compass.anchorMin = compass.anchorMax = Vector2.one;
             compass.anchoredPosition = new Vector2(-195f, -205f);
-            Image compassBack = compass.gameObject.AddComponent<Image>();
-            compassBack.color = new Color(.025f, .065f, .065f, .8f);
-            compassBack.raycastTarget = false;
-            Text center = CreateText("Compass center", compass, "+", font, 45, new Vector2(50f, 50f));
-            center.color = new Color(.85f, .72f, .45f);
-            string[] directions = { "东", "北", "西", "南" };
-            for (int index = 0; index < compassLabels.Length; index++)
-            {
-                Text label = CreateText("Compass " + directions[index], compass, directions[index], font, 26, new Vector2(42f, 38f));
-                label.color = index == 1 ? new Color(1f, .78f, .36f) : new Color(.94f, .91f, .8f);
-                compassLabels[index] = label.rectTransform;
-            }
+            compassGraphic = compass.gameObject.AddComponent<NavalTacticalCompassGraphic>();
+            compassGraphic.raycastTarget = false;
+            Text north = CreateText("Compass North", compass, "N", font, 16, new Vector2(20f, 22f));
+            GameTypography.Apply(north, 16, FontStyle.Bold);
+            north.color = new Color(.29f, .22f, .13f, 1f);
+            compassNorth = north.rectTransform;
             built = true;
         }
 
@@ -234,12 +305,12 @@ namespace ShatteredSail.Presentation
 
         private void UpdateCompass()
         {
-            for (int index = 0; index < compassLabels.Length; index++)
-            {
-                float radians = (index * 90f + CameraRotationDegrees) * Mathf.Deg2Rad;
-                compassLabels[index].anchoredPosition = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * 55f;
-                compassLabels[index].localRotation = Quaternion.identity;
-            }
+            compassGraphic.SetWorldRotation(CameraRotationDegrees);
+            // World north uses the same projection as the tactical grid. The
+            // rose follows the camera, while its single north initial stays upright.
+            float diameter = Mathf.Min(compassGraphic.rectTransform.rect.width, compassGraphic.rectTransform.rect.height);
+            compassNorth.anchoredPosition = compassGraphic.NorthDirection * (diameter * .342f);
+            compassNorth.localRotation = Quaternion.identity;
         }
 
         private void UpdateTrack()
@@ -252,7 +323,9 @@ namespace ShatteredSail.Presentation
                     playerTrack.Add(ToBoard(ProjectToRoot(pathFrames[index].PlayerPositionMeters)));
                     enemyTrack.Add(ToBoard(ProjectToRoot(pathFrames[index].EnemyPositionMeters)));
                 }
-            track.SetTrack(playerTrack, enemyTrack, ToBoard(PlayerScreenPosition), ToBoard(EnemyScreenPosition));
+            track.SetTrack(playerTrack, enemyTrack, ToBoard(PlayerScreenPosition), ToBoard(EnemyScreenPosition),
+                currentFrame.PlayerHeadingDegrees + CameraRotationDegrees,
+                currentFrame.EnemyHeadingDegrees + CameraRotationDegrees);
         }
 
         private Vector2 ProjectToRoot(VoyagePoint position)

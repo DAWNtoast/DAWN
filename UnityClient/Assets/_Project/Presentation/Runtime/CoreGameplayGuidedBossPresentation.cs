@@ -5,7 +5,10 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
-        private bool HasGuidedBossPresentation => tutorialActive && session != null && session.IsGuidedBossBattle;
+        private bool IsGuidedBossFreeBattle => tutorialActive && session != null && session.IsGuidedBossBattle &&
+            session.GuidedBossLesson == GuidedBossLesson.FinalBattle;
+        private bool HasGuidedBossPresentation => tutorialActive && session != null && session.IsGuidedBossBattle &&
+            !IsGuidedBossFreeBattle;
         private GuidedBossBattleStep GuidedBossPresentationStep => HasGuidedBossPresentation
             ? session.GuidedBossStep : GuidedBossBattleStep.None;
         private string GuidedBossObjective => session.GuidedBossLessonTitle;

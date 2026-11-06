@@ -193,8 +193,7 @@ namespace ShatteredSail.Presentation.Tests
             var repeatedContact = action.onClick;
             Assert.That(action.IsInteractable(), Is.True);
             Assert.That(action.GetComponentInChildren<Text>().text, Is.EqualTo(boarding ? "接舷" : "冲撞"));
-            Assert.That(NavalHudTooltipText(name), Does.Contain("消耗 1 行动点")
-                .And.Contain("到达剩余 1 点").And.Contain(boarding ? "自动朝北" : "自动朝东"));
+            AssertNavalHudHasNoTooltip(name);
             Assert.That(session.Battle.Energy, Is.Zero,
                 "Arrival contact must work without paying for an extra energy card.");
             NavalBattleVisualCapture.Capture(controller,
@@ -280,6 +279,8 @@ namespace ShatteredSail.Presentation.Tests
             var board = RequiredResponsive<Button>("Battle Board");
             var ram = RequiredResponsive<Button>("Battle Ram");
             var duplicateCommit = RequiredResponsive<Button>("Commit Naval Movement").onClick;
+            AssertNavalHudHasNoTooltip("Commit Naval Movement");
+            AssertNavalHudHasNoTooltip("Clear Naval Movement");
             ClickAcceptanceButton("Commit Naval Movement");
             Assert.That(controller.IsBattleAnimationPlaying, Is.True);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
@@ -302,8 +303,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.NavalArrivalActionPoints, Is.EqualTo(1));
             Assert.That(RequiredResponsive<Button>("End Battle Turn").IsInteractable(), Is.False);
             Assert.That(NavalActionPointAmount().text, Is.EqualTo("1"));
-            Assert.That(NavalHudTooltipText("Resource ActionPoint"), Does.Contain("抵达剩余行动点")
-                .And.Contain("冲撞或接舷").And.Contain("选择到达朝向后清空"));
+            AssertNavalHudHasNoTooltip("Resource ActionPoint");
+            Assert.That(RequiredResponsive<Button>("Battle Board").IsInteractable(), Is.True);
+            Assert.That(RequiredResponsive<Button>("Battle Ram").IsInteractable(), Is.True);
         }
     }
 }

@@ -20,6 +20,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null; yield return null;
             ActiveButton("Port Hotspot CardWorkshop").onClick.Invoke();
             yield return null;
+            yield return OpenWorkshopCollectionFromHome();
             ActiveButton("Workshop Preview Stage Naval").onClick.Invoke();
             yield return null;
             int index = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
@@ -37,12 +38,12 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(choice, Is.Not.Null);
             choice.onClick.Invoke();
             yield return null;
-            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
+            ActiveButton("Workshop Page Upgrade").onClick.Invoke();
             yield return null;
             yield return new WaitForSecondsRealtime(.5f);
             RectTransform current = GameObject.Find("Upgrade Comparison Current Face").GetComponent<RectTransform>();
             RectTransform upgraded = GameObject.Find("Upgrade Comparison Next Face").GetComponent<RectTransform>();
-            RectTransform viewport = FixedGameViewport.Bounds(current.GetComponentInParent<Canvas>());
+            RectTransform viewport = CollectionKeywordViewport(current);
             Rect currentBounds = CollectionCardKeywordHoverTests.VisualBounds(current, viewport);
             Rect upgradedBounds = CollectionCardKeywordHoverTests.VisualBounds(upgraded, viewport);
             foreach (RectTransform inspected in new[] { current, upgraded })
@@ -77,49 +78,56 @@ namespace ShatteredSail.Presentation.Tests
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             ActiveButton("Port Hotspot CardWorkshop").onClick.Invoke();
             yield return null;
+            yield return OpenWorkshopCollectionFromHome();
             ActiveButton("Workshop Preview Stage Naval").onClick.Invoke();
             yield return null;
             yield return new WaitForSecondsRealtime(.5f);
-            bool sawLeft = false, sawRight = false;
+            Button keywordChoice = null;
+            CoreBattleCard keywordCard = null;
             for (int page = 0; page < 12; page++)
             {
                 Button[] choices = GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>()
                     .Where(button => button.name.StartsWith("Select Upgrade Card ")).ToArray();
+                Assert.That(choices, Is.Not.Empty);
                 foreach (Button choice in choices)
                 {
                     int index = int.Parse(choice.name.Substring("Select Upgrade Card ".Length));
-                    CardKeywordTooltip tooltip = AssertCollectionKeywordHover(choice, controller.Session.GetBattleCard(index));
+                    CoreBattleCard card = controller.Session.GetBattleCard(index);
+                    CardKeywordTooltip tooltip = AssertCollectionKeywordHover(choice, card);
                     if (tooltip == null) continue;
-                    RectTransform viewport = FixedGameViewport.Bounds(choice.GetComponentInParent<Canvas>());
-                    RectTransform face = CollectionKeywordFace(choice);
-                    bool right = CollectionCardKeywordHoverTests.Bounds((RectTransform)tooltip.transform, viewport).xMin >
-                        CollectionCardKeywordHoverTests.VisualBounds(face, viewport).xMax;
-                    if (right && !sawRight || !right && !sawLeft)
-                        NavalBattleVisualCapture.Capture(controller, right ? "collection_left_edge_right_tooltip.png" : "collection_left_tooltip.png",
-                            right ? "左侧收藏卡牌没有空间时，关键词浮窗自动显示在卡牌右侧" : "收藏卡牌默认在左侧显示关键词与释义", "Card Workshop Preview Panel");
-                    sawRight |= right; sawLeft |= !right;
+                    keywordChoice = choice;
+                    keywordCard = card;
                 }
-                if (sawLeft && sawRight) break;
+                if (keywordChoice != null) break;
                 Button next = ActiveButton("Next Upgrade Cards");
-                Assert.That(next.interactable, Is.True, "The real catalog must exercise both placement branches.");
+                Assert.That(next.interactable, Is.True, "The real catalog must contain a card with visible keywords.");
                 next.onClick.Invoke();
                 yield return null;
                 Assert.That(VisibleCollectionKeywords(), Is.Empty, "Paging destroys the old card and tooltip.");
             }
-            Assert.That(sawLeft && sawRight, Is.True);
-            ActiveButton("Next Upgrade Cards").onClick.Invoke();
+            Assert.That(keywordChoice, Is.Not.Null);
+            // Responsive paper and the unlocked catalog no longer guarantee that
+            // natural grid columns straddle the fallback threshold. Keep the
+            // normal-grid checks above, then exercise both edges with a real card.
+            AssertCollectionKeywordBothSides(controller, keywordChoice, keywordCard);
+            AssertCollectionKeywordHover(keywordChoice, keywordCard);
+            Assert.That(VisibleCollectionKeywords(), Has.Length.EqualTo(1));
+            Button pageNavigation = ActiveButton("Next Upgrade Cards");
+            if (!pageNavigation.interactable) pageNavigation = ActiveButton("Previous Upgrade Cards");
+            Assert.That(pageNavigation.interactable, Is.True, "The real collection must provide another page.");
+            pageNavigation.onClick.Invoke();
             yield return null;
-            Assert.That(VisibleCollectionKeywords(), Is.Empty);
-            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
+            Assert.That(VisibleCollectionKeywords(), Is.Empty, "Paging destroys the hovered real card and its tooltip.");
+            ActiveButton("Workshop Page Upgrade").onClick.Invoke();
             yield return null;
             foreach (string side in new[] { "Current", "Next" })
             {
                 var comparison = GameObject.Find("Upgrade Comparison " + side + " Face");
                 Assert.That(comparison.GetComponent<CollectionCardKeywordHover>(), Is.Not.Null, side + " upgrade card hover");
             }
-            ActiveButton("Back From Card Upgrades").onClick.Invoke();
+            ActiveButton("Workshop Page Collection").onClick.Invoke();
             yield return null;
-            ActiveButton("Edit Stage Deck Naval").onClick.Invoke();
+            ActiveButton("Workshop Page DeckBuilder").onClick.Invoke();
             yield return null;
             Button[] deckChoices = GameObject.Find("Deck Builder Collection").GetComponentsInChildren<Button>()
                 .Where(button => button.name.StartsWith("Add Deck Card ")).ToArray();
@@ -146,12 +154,13 @@ namespace ShatteredSail.Presentation.Tests
             controller.Session.AcquireSpecialCards(CoreSpecialCardCatalog.All.Select(item => item.Card.Id).ToArray());
             ActiveButton("Port Hotspot CardWorkshop").onClick.Invoke();
             yield return null;
+            yield return OpenWorkshopCollectionFromHome();
             ActiveButton("Open Special Card Collection").onClick.Invoke();
             yield return null;
             yield return new WaitForSecondsRealtime(.5f);
             Button[] choices = GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>()
                 .Where(button => button.name.StartsWith("Select Special Card ")).ToArray();
-            Assert.That(choices, Has.Length.EqualTo(8));
+            Assert.That(choices, Has.Length.EqualTo(6), "The authored collection keeps two rows of three complete cards.");
             Button inspected = null;
             foreach (Button choice in choices)
             {
@@ -193,7 +202,7 @@ namespace ShatteredSail.Presentation.Tests
             CardKeywordTooltip tooltip = tooltips[0];
             CollectionAssert.AreEqual(expected.SelectMany(entry => new[] { entry.Keyword, entry.Meaning }).ToArray(),
                 tooltip.GetComponentsInChildren<Text>().Select(label => label.text).ToArray(), button.name);
-            RectTransform viewport = FixedGameViewport.Bounds(button.GetComponentInParent<Canvas>());
+            RectTransform viewport = CollectionKeywordViewport(face);
             Rect bubble = CollectionCardKeywordHoverTests.Bounds((RectTransform)tooltip.transform, viewport);
             Rect frame = CollectionCardKeywordHoverTests.VisualBounds(face, viewport);
             bool shouldRight = frame.xMin - CardKeywordTooltip.CardGap - bubble.width < viewport.rect.xMin + 8f;
@@ -201,6 +210,9 @@ namespace ShatteredSail.Presentation.Tests
             else Assert.That(bubble.xMax, Is.LessThanOrEqualTo(frame.xMin - CardKeywordTooltip.CardGap + .2f), button.name);
             Assert.That(bubble.xMin, Is.GreaterThanOrEqualTo(viewport.rect.xMin), button.name);
             Assert.That(bubble.xMax, Is.LessThanOrEqualTo(viewport.rect.xMax), button.name);
+            Assert.That(bubble.yMin, Is.GreaterThanOrEqualTo(viewport.rect.yMin), button.name);
+            Assert.That(bubble.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax), button.name);
+            Assert.That(bubble.Overlaps(frame), Is.False, button.name + " must remain readable while its glossary is open.");
             Assert.That(tooltip.GetComponent<Canvas>().overrideSorting, Is.True);
             Assert.That(tooltip.GetComponentsInChildren<Graphic>().All(graphic => !graphic.raycastTarget), Is.True);
             Canvas.ForceUpdateCanvases();
@@ -208,6 +220,53 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(label.cachedTextGenerator.characterCountVisible, Is.GreaterThanOrEqualTo(label.text.Length),
                     button.name + " renders the entire keyword explanation, including its last line: " + label.text);
             return tooltip;
+        }
+
+        private static void AssertCollectionKeywordBothSides(CoreGameplayDemoController controller, Button button, CoreBattleCard card)
+        {
+            RectTransform rect = (RectTransform)button.transform;
+            RectTransform face = CollectionKeywordFace(button);
+            RectTransform viewport = CollectionKeywordViewport(face);
+            Vector3 originalPosition = rect.localPosition;
+            try
+            {
+                foreach (bool right in new[] { true, false })
+                {
+                    Rect frame = CollectionCardKeywordHoverTests.VisualBounds(face, viewport);
+                    float left = right ? viewport.rect.xMin + 24f : viewport.rect.center.x;
+                    Vector3 position = viewport.InverseTransformPoint(rect.position);
+                    position.x += left - frame.xMin;
+                    rect.position = viewport.TransformPoint(position);
+                    Canvas.ForceUpdateCanvases();
+                    CardKeywordTooltip tooltip = AssertCollectionKeywordHover(button, card);
+                    Assert.That(tooltip, Is.Not.Null);
+                    Rect bubble = CollectionCardKeywordHoverTests.Bounds((RectTransform)tooltip.transform, viewport);
+                    frame = CollectionCardKeywordHoverTests.VisualBounds(face, viewport);
+                    if (right)
+                        Assert.That(bubble.xMin, Is.EqualTo(frame.xMax + CardKeywordTooltip.CardGap).Within(.2f),
+                            "The real card at the visible left edge must use the right fallback.");
+                    else
+                        Assert.That(bubble.xMax, Is.EqualTo(frame.xMin - CardKeywordTooltip.CardGap).Within(.2f),
+                            "The real card with enough left space must use the preferred left side.");
+                    NavalBattleVisualCapture.Capture(controller, right ? "collection_left_edge_right_tooltip.png" : "collection_left_tooltip.png",
+                        right ? "实卡左边界测试：空间不足时关键词浮窗位于右侧" : "实卡中央测试：空间充足时关键词浮窗位于左侧", "Card Workshop Preview Panel");
+                    ExecuteEvents.Execute(button.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerExitHandler);
+                    Assert.That(VisibleCollectionKeywords(), Is.Empty, "Pointer exit hides either placement branch.");
+                }
+            }
+            finally
+            {
+                button.GetComponent<CollectionCardKeywordHover>().Hide();
+                rect.localPosition = originalPosition;
+                Canvas.ForceUpdateCanvases();
+            }
+        }
+
+        private static RectTransform CollectionKeywordViewport(RectTransform face)
+        {
+            Canvas canvas = face.GetComponentInParent<Canvas>().rootCanvas;
+            RectTransform fixedViewport = FixedGameViewport.Bounds(canvas);
+            return face.IsChildOf(fixedViewport) ? fixedViewport : (RectTransform)canvas.transform;
         }
 
         private static RectTransform CollectionKeywordFace(Button button) => button.GetComponentsInChildren<RectTransform>()

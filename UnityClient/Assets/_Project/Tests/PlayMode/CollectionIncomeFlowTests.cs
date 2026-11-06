@@ -226,7 +226,7 @@ namespace ShatteredSail.Presentation.Tests
             hosts.Add(canvas.gameObject);
             Button close = canvas.GetComponentsInChildren<Button>(true).Single(value => value.name == "Close Warehouse Income");
             Assert.That(canvas.GetComponentsInChildren<Text>(true).Single(value => value.name == "Warehouse Income Amount").text,
-                Is.EqualTo("+20 金币"));
+                Is.EqualTo("+20"));
             yield return null;
             yield return new WaitForSecondsRealtime(.15f);
             NavalBattleVisualCapture.Capture(controller, "01_Collection_Income_Receipt.png", "所有港口藏品收益已存入账户；确认仅关闭弹窗", "Warehouse Income Receipt");
@@ -268,6 +268,113 @@ namespace ShatteredSail.Presentation.Tests
             Initialize(retry, LoginTime);
             Assert.That(retry.Session.ProfileGold, Is.EqualTo(120m));
             Assert.That(SavedIncome().PendingGold, Is.Zero);
+        }
+
+        [Test]
+        public void StartupCollectionMigrationCommitsWithIncomeAndRepeatedInitializationKeepsUniqueOwnership()
+        {
+            Dictionary<string, SavedPreference> before = SeedStrandedCollectionMigration();
+            CoreGameplayDemoController controller = CreateControllerAtSavedPort();
+            CollectionAssert.AreEquivalent(new[] { CoreWarehouseCollection.TutorialTreasureId, CoreWarehouseCollection.SealedChartTreasureId },
+                controller.WarehouseCollection.OwnedIds, "Restore must recover carried keepsakes in memory before any UI opens.");
+            AssertCollectionPreferencesUnchanged(before);
+            Assert.That(controller.Session.ProfileGold, Is.Zero);
+
+            Initialize(controller, LoginTime);
+            AssertStrandedCollectionMigrationCommitted(controller);
+            Initialize(controller, LoginTime);
+            AssertStrandedCollectionMigrationCommitted(controller);
+            CoreGameplayDemoController reloaded = CreateControllerAtSavedPort();
+            Initialize(reloaded, LoginTime);
+            AssertStrandedCollectionMigrationCommitted(reloaded);
+        }
+
+        [Test]
+        public void FailedStartupCollectionMigrationPreservesEveryPortAndLegacyMarkerUntilRetryCommits()
+        {
+            Dictionary<string, SavedPreference> before = SeedStrandedCollectionMigration();
+            string blocker = Path.Combine(directory, "blocked-collection-migration-directory");
+            File.WriteAllText(blocker, "preserve the original collection save");
+            FieldInfo journalDirectory = typeof(ProfileSaveJournal).GetField("directoryOverride", StaticFlags);
+            journalDirectory.SetValue(null, blocker);
+            CoreGameplayDemoController failed = CreateControllerAtSavedPort();
+            AssertCollectionPreferencesUnchanged(before);
+            object[] args = { LoginTime, null };
+
+            Assert.That((bool)Invoke(failed, "TryInitializeWarehouseIncome", args), Is.False);
+            Assert.That((string)args[1], Is.Not.Empty);
+            AssertCollectionPreferencesUnchanged(before);
+            Assert.That(failed.Session.ProfileGold, Is.Zero);
+            Assert.That(ProfileGoldPersistence.Load(), Is.Zero);
+            Assert.That(LoginScopes, Is.Empty);
+            Assert.That(File.ReadAllText(blocker), Is.EqualTo("preserve the original collection save"));
+
+            journalDirectory.SetValue(null, Path.Combine(directory, "profile"));
+            CoreGameplayDemoController retry = CreateControllerAtSavedPort();
+            AssertCollectionPreferencesUnchanged(before);
+            Initialize(retry, LoginTime);
+            AssertStrandedCollectionMigrationCommitted(retry);
+        }
+
+        private Dictionary<string, SavedPreference> SeedStrandedCollectionMigration()
+        {
+            const string sourcePort = "断锚港", destinationPort = "白贝港";
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, destinationPort);
+            ProfileGoldPersistence.Save(0m);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehousePortMigrationKey);
+            // A legacy global item and two scoped source-port items exercise both
+            // migrations in one startup transaction, including an exhibit that stays put.
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, CoreWarehouseCollection.SealedChartTreasureId);
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseDisplayKey, ",,,,,");
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedPortKey(sourcePort),
+                CoreWarehouseCollection.TutorialTreasureId + "," + CoreWarehouseCollection.BoatswainBellTreasureId);
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseDisplayPortKey(sourcePort),
+                ",,,," + CoreWarehouseCollection.BoatswainBellTreasureId + ",");
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedPortKey(destinationPort), string.Empty);
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseDisplayPortKey(destinationPort), ",,,,,");
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Gold"), 53);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.CargoKey("Water"), 91);
+            return ProfileSaveJournal.ProtectedKeys.ToDictionary(key => key, CapturePreference);
+        }
+
+        private CoreGameplayDemoController CreateControllerAtSavedPort()
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreProfile(ProfileGoldPersistence.Load(), PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey));
+            return CreateController(session);
+        }
+
+        private static void AssertCollectionPreferencesUnchanged(Dictionary<string, SavedPreference> before)
+        {
+            foreach (KeyValuePair<string, SavedPreference> pair in before)
+            {
+                SavedPreference actual = CapturePreference(pair.Key), expected = pair.Value;
+                Assert.That(actual.Exists, Is.EqualTo(expected.Exists), "Preference existence changed before commit: " + pair.Key);
+                if (!expected.Exists) continue;
+                Assert.That(actual.Type, Is.EqualTo(expected.Type), pair.Key);
+                Assert.That(actual.Text, Is.EqualTo(expected.Text), pair.Key);
+                Assert.That(actual.Integer, Is.EqualTo(expected.Integer), pair.Key);
+                Assert.That(actual.Real, Is.EqualTo(expected.Real), pair.Key);
+            }
+        }
+
+        private static void AssertStrandedCollectionMigrationCommitted(CoreGameplayDemoController controller)
+        {
+            string compass = CoreWarehouseCollection.TutorialTreasureId;
+            string bell = CoreWarehouseCollection.BoatswainBellTreasureId;
+            string chart = CoreWarehouseCollection.SealedChartTreasureId;
+            CollectionAssert.AreEqual(new[] { compass, chart }, controller.WarehouseCollection.OwnedIds);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey("断锚港")), Is.EqualTo(bell));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseDisplayPortKey("断锚港")), Is.EqualTo(",,,," + bell + ","));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey("白贝港")), Is.EqualTo(compass + "," + chart));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseDisplayPortKey("白贝港")), Is.EqualTo(",,,,,"));
+            CollectionAssert.AreEqual(new[] { compass, bell, chart }, PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey).Split(','));
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.WarehousePortMigrationKey), Is.EqualTo(1));
+            Assert.That(controller.Session.ProfileGold, Is.Zero);
+            Assert.That(ProfileGoldPersistence.Load(), Is.Zero);
+            Assert.That(SavedIncome().CurrentDisplayedCount, Is.EqualTo(1));
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Gold")), Is.EqualTo(53));
+            Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.CargoKey("Water")), Is.EqualTo(91));
         }
 
         [Test]

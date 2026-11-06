@@ -87,7 +87,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void AttackOriginsUseTideArrivalWithoutChangingBlueCellsOrLiveState()
+        public void AttackOriginsWaitForTurnEndBeforeAnyTidePushWithoutChangingLiveState()
         {
             var s = NewFieldBattle(1, 20);
             Field(s, CoreNavalFieldKind.Tide, 1, 0, 1, 0);
@@ -97,8 +97,8 @@ namespace ShatteredSail.Core.Tests
             int revision = s.Battle.TacticalRevision, block = s.Battle.PlayerBlock, energy = s.Battle.Energy;
             long sequence = s.Battle.NavalFields.PresentationSequence;
 
-            CollectionAssert.AreEqual(new[] { new VoyagePoint(200, 0) }, s.GetNavalReachableAttackOrigins());
-            CollectionAssert.AreEqual(new[] { new VoyagePoint(200, 0) }, s.GetNavalReachableAttackOrigins());
+            CollectionAssert.AreEqual(new[] { new VoyagePoint(100, 0) }, s.GetNavalReachableAttackOrigins());
+            CollectionAssert.AreEqual(new[] { new VoyagePoint(100, 0) }, s.GetNavalReachableAttackOrigins());
             CollectionAssert.AreEqual(new[] { new VoyagePoint(100, 0) }, s.GetNavalReachableCells());
             CollectionAssert.AreEqual(path, s.NavalMovementPath);
             CollectionAssert.AreEqual(ledger, s.Battle.NavalFields.TriggerLedger);
@@ -126,29 +126,33 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void AttackOriginsExcludeSinkingAndStopAtUntriggeredThunder()
+        public void AttackOriginsExcludeOverloadDeathsButContinueThroughSafeThunder()
         {
             var s = NewFieldBattle(3, 2);
-            Field(s, CoreNavalFieldKind.Fire, 1, 0);
+            typeof(CoreSchoolBattleState).GetProperty("ThunderChain").SetValue(s.Battle.Schools, 45);
+            Field(s, CoreNavalFieldKind.Thunder, 1, 0);
             Assert.That(s.GetNavalReachableAttackOrigins(), Is.Empty);
             Assert.That(s.Hull, Is.EqualTo(2));
             Assert.That(s.Battle.NavalFields.TriggerLedger, Is.Empty);
 
             s.Battle.NavalFields.Cells.Clear();
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(s, 20);
+            typeof(CoreSchoolBattleState).GetProperty("ThunderChain").SetValue(s.Battle.Schools, 0);
             Field(s, CoreNavalFieldKind.Thunder, 1, 0);
-            CollectionAssert.AreEqual(new[] { new VoyagePoint(100, 0) }, s.GetNavalReachableAttackOrigins());
+            CollectionAssert.Contains(s.GetNavalReachableAttackOrigins(), new VoyagePoint(100, 0));
+            CollectionAssert.Contains(s.GetNavalReachableAttackOrigins(), new VoyagePoint(300, 0));
             Assert.That(s.Hull, Is.EqualTo(20));
             Assert.That(s.Battle.NavalFields.TriggerLedger, Is.Empty);
         }
 
         [Test]
-        public void AttackOriginsCanSailThroughTideWhoseStoppingPushWouldSinkTheShip()
+        public void AttackOriginsCanAttackFromCurrentBeforeItsLethalTurnEndPush()
         {
             var s = NewFieldBattle(1, 2);
+            typeof(CoreSchoolBattleState).GetProperty("ThunderChain").SetValue(s.Battle.Schools, 45);
             Field(s, CoreNavalFieldKind.Tide, 1, 0, 0, 1);
-            Field(s, CoreNavalFieldKind.Fire, 1, 1);
-            Assert.That(s.GetNavalReachableAttackOrigins(), Is.Empty);
+            Field(s, CoreNavalFieldKind.Thunder, 1, 1);
+            CollectionAssert.Contains(s.GetNavalReachableAttackOrigins(), new VoyagePoint(100, 0));
             Points(s, 2);
             var origins = s.GetNavalReachableAttackOrigins();
             CollectionAssert.Contains(origins, new VoyagePoint(200, 0));
@@ -158,17 +162,29 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void AttackOriginsRetainLongerSurvivingDetoursAroundFire()
+        public void AttackOriginsRetainLongerSurvivingDetoursAroundThunder()
         {
-            var s = NewFieldBattle(5, 3);
-            Field(s, CoreNavalFieldKind.Fire, 2, 0);
-            Field(s, CoreNavalFieldKind.Fire, 5, 0);
+            var s = NewFieldBattle(5, 4);
+            Field(s, CoreNavalFieldKind.Thunder, 2, 0);
+            Field(s, CoreNavalFieldKind.Thunder, 5, 0);
+            foreach (CoreNavalFieldCell cell in s.Battle.NavalFields.Cells) cell.ExpiresAtOwnerTurn = 25;
             CollectionAssert.DoesNotContain(s.GetNavalReachableAttackOrigins(), new VoyagePoint(500, 0));
-            // Seven steps can bypass the first fire along the next row, leaving
-            // enough hull to stop in the second fire. The five-step route sinks.
+            // The longer route avoids gaining the first 25 chain, so the destination does not overload.
             Points(s, 7);
             CollectionAssert.Contains(s.GetNavalReachableAttackOrigins(), new VoyagePoint(500, 0));
-            Assert.That(s.Hull, Is.EqualTo(3));
+            Assert.That(s.Hull, Is.EqualTo(4));
+            Assert.That(s.Battle.NavalFields.TriggerLedger, Is.Empty);
+        }
+
+        [Test]
+        public void AttackOriginsCanCrossFireEvenWithOneHullBecauseBurnWaitsUntilTurnEnd()
+        {
+            var s = NewFieldBattle(5, 1);
+            Field(s, CoreNavalFieldKind.Fire, 2, 0);
+            Field(s, CoreNavalFieldKind.Fire, 5, 0);
+            CollectionAssert.Contains(s.GetNavalReachableAttackOrigins(), new VoyagePoint(500, 0));
+            Assert.That(s.Hull, Is.EqualTo(1));
+            Assert.That(s.Battle.PlayerBurnStacks, Is.Zero);
             Assert.That(s.Battle.NavalFields.TriggerLedger, Is.Empty);
         }
 
@@ -176,17 +192,19 @@ namespace ShatteredSail.Core.Tests
         public void RangeAndDragAreLockedByTutorialAndArrivalSelection()
         {
             var tutorial = CoreGuidedBossScriptTests.StartBoss();
-            Assert.That(tutorial.GetNavalReachableCells(), Is.Empty);
-            Assert.That(tutorial.TryAppendNavalMovementSegment(new VoyagePoint(-500, 0), out string reason), Is.False);
-            Assert.That(reason, Does.Contain("教学"));
-            Assert.That(tutorial.TryTruncateNavalMovementPath(0, out reason), Is.False);
-            CoreGuidedBossScriptTests.Reach(tutorial, GuidedBossBattleStep.CourseFreeMove);
+            Assert.That(tutorial.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseFreeMove));
             Assert.That(tutorial.GetNavalReachableCells().Count, Is.EqualTo(1));
-            Assert.That(tutorial.TryAppendNavalMovementSegment(new VoyagePoint(-500, 0), out reason), Is.True, reason);
+            Assert.That(tutorial.TryAppendNavalMovementSegment(new VoyagePoint(-500, 0), out string reason), Is.True, reason);
             Assert.That(tutorial.CommitNavalMovement(out reason), Is.True, reason);
             Assert.That(tutorial.GetNavalReachableCells(), Is.Empty);
             Assert.That(tutorial.TryAppendNavalMovementSegment(new VoyagePoint(-400, 0), out reason), Is.False);
             Assert.That(reason, Does.Contain("到达朝向"));
+            Assert.That(tutorial.TryTruncateNavalMovementPath(0, out reason), Is.False);
+            Assert.That(tutorial.ConfirmNavalArrivalHeading(0f, out reason), Is.True, reason);
+            Assert.That(tutorial.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseApproach1));
+            Assert.That(tutorial.GetNavalReachableCells(), Is.Empty);
+            Assert.That(tutorial.TryAppendNavalMovementSegment(new VoyagePoint(-400, 0), out reason), Is.False);
+            Assert.That(reason, Does.Contain("教学"));
             Assert.That(tutorial.TryTruncateNavalMovementPath(0, out reason), Is.False);
         }
 
@@ -288,7 +306,7 @@ namespace ShatteredSail.Core.Tests
         }
         private static void Field(CoreVoyageSession s, CoreNavalFieldKind kind, int x, int y, int dx = 0, int dy = 0) =>
             s.Battle.NavalFields.Cells.Add(new CoreNavalFieldCell { X = x, Y = y, Kind = kind, PlayerOwned = true,
-                InstanceId = s.Battle.NavalFields.Cells.Count + 1, ExpiresAtOwnerTurn = 100, DirectionX = dx, DirectionY = dy });
+                InstanceId = s.Battle.NavalFields.Cells.Count + 1, ExpiresAtOwnerTurn = kind == CoreNavalFieldKind.Thunder ? 5 : 100, DirectionX = dx, DirectionY = dy });
         private static void Pose(CoreVoyageSession s, bool player, VoyagePoint point, float heading) =>
             typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(s.Battle, new object[] { player, point, heading });

@@ -30,9 +30,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.NavalCardCanTargetCell(cannon, new VoyagePoint(origin.X + 300f, origin.Y + 200f)), Is.False);
         }
 
-        [TestCase("card_diver_sabotage", 100f, 100f, true)]
-        [TestCase("card_diver_sabotage", 200f, 0f, true)]
-        [TestCase("card_diver_sabotage", 200f, 100f, false)]
+        [TestCase("card_special_crew_broken_anchor_diver_udo", 100f, 100f, true)]
+        [TestCase("card_special_crew_broken_anchor_diver_udo", 200f, 0f, true)]
+        [TestCase("card_special_crew_broken_anchor_diver_udo", 200f, 100f, false)]
         [TestCase("card_school_arcane_b03", 300f, 100f, true)]
         [TestCase("card_school_arcane_b03", 300f, 200f, false)]
         [TestCase("card_school_arcane_b03", 400f, 0f, true)]
@@ -47,7 +47,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("card_load_shot")]
-        [TestCase("card_gunner_precision")]
+        [TestCase("card_special_crew_gray_gull_gunner_leisa")]
         [TestCase("card_evasive_maneuver")]
         [TestCase("card_school_blood_b02")]
         [TestCase("card_school_fire_b01")]
@@ -80,6 +80,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = NewBattle();
             session.Battle.Energy = 0;
             session.Cargo.Powder = session.Cargo.Cannonballs = 0;
+            typeof(CoreSchoolBattleState).GetProperty("Mana").SetValue(session.Battle.Schools, 0);
             session.Battle.PlayerLoadedShot = 7;
             CoreBattleCard cannon = Card("card_school_tide_b03");
             Assert.That(session.Battle.Schools.TidePower, Is.Zero);

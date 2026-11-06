@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return null;
                 yield return WaitForGuidedCaptureScreenReveal(controller);
                 Assert.That(controller.Session.IsGuidedBossBattle, Is.True);
-                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseActionCard);
+                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseApproach1);
 
                 // Initialize the existing opt-in capture directory before adding
                 // the actual viewport images beneath it. Ordinary runs write none.
@@ -99,7 +99,7 @@ namespace ShatteredSail.Presentation.Tests
                 // all the resizes and inspection transitions.
                 yield return null;
                 yield return PlayGuidedScriptAction(controller, false, null);
-                Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseSecondMove));
+                Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseApproach2));
                 LogAssert.NoUnexpectedReceived();
             }
         }
@@ -151,6 +151,7 @@ namespace ShatteredSail.Presentation.Tests
                     visibleBottom + visibleHeight * .5f)), Is.True, context + " outline follows visible card");
             }
             AssertGuidedInstructionsRemainVisible(controller);
+            AssertGuidedBattleSeaFillsReadingArea(controller, context);
             AssertSingleGuidedLayoutFocus(card.name);
 
             // The visible resource emblem protrudes beyond the smaller button
@@ -165,6 +166,33 @@ namespace ShatteredSail.Presentation.Tests
             Vector2 screen = RectTransformUtility.WorldToScreenPoint(camera, focus.Target.TransformPoint(local));
             AssertGuidedBattleTopRaycastButton(screen, card, context + " full-frame energy emblem");
             return protectedBounds;
+        }
+
+        private static void AssertGuidedBattleSeaFillsReadingArea(CoreGameplayDemoController controller, string context)
+        {
+            NavalTacticalBoardView board = controller.GetComponentInChildren<NavalTacticalBoardView>();
+            RectTransform battle = (RectTransform)board.transform.parent;
+            RectTransform viewport = battle.Find("Tactical sea viewport") as RectTransform;
+            Assert.That(viewport, Is.Not.Null, context + " ocean must fill the lesson's reading strip");
+            Assert.That(viewport.GetComponent<RectMask2D>(), Is.Not.Null, context + " ocean stays below the battle header");
+            Assert.That(viewport.GetSiblingIndex(), Is.LessThan(board.transform.GetSiblingIndex()), context);
+            Assert.That(viewport.sizeDelta, Is.EqualTo(new Vector2(1860f, 900f)), context);
+            RawImage sea = viewport.GetComponentInChildren<RawImage>();
+            Assert.That(sea, Is.Not.Null, context);
+            Assert.That(sea.texture, Is.Not.Null, context);
+            Assert.That(sea.raycastTarget, Is.False, context + " backdrop cannot intercept controls");
+            Assert.That(battle.GetComponentsInChildren<RawImage>().Count(item => item.name == "Shared tactical sea"),
+                Is.EqualTo(1), context + " use one continuous painting without overlapping copies");
+            RectTransform world = board.transform.Find("Tactical world") as RectTransform;
+            Assert.That(Vector3.Distance(sea.transform.position, world.position), Is.LessThan(.01f), context);
+            Assert.That(Quaternion.Angle(sea.transform.rotation, world.rotation), Is.LessThan(.01f), context);
+            var corners = new Vector3[4];
+            viewport.GetWorldCorners(corners);
+            foreach (Vector3 corner in corners)
+                Assert.That(sea.rectTransform.rect.Contains(sea.rectTransform.InverseTransformPoint(corner)),
+                    Is.True, context + " every corner is painted even when the sea rotates");
+            RectTransform banner = battle.Find("Guided Tutorial Banner") as RectTransform;
+            AssertGuidedRectContains(GuidedWorldRect(viewport), GuidedWorldRect(banner), context);
         }
 
         private static void AssertGuidedBattleTopRaycastButton(Vector2 position, Button expected, string context)

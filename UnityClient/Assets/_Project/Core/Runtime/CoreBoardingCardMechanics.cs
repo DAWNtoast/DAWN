@@ -63,6 +63,7 @@ namespace ShatteredSail.Core.Gameplay
         public string Label = "延迟攻击";
         public string SourceSchoolId = string.Empty;
         public string SourceCardId = string.Empty;
+        internal bool AppliesAttachedFire;
         internal List<CoreBattleCard> EchoCards { get; } = new List<CoreBattleCard>();
     }
 

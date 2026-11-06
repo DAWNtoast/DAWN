@@ -24,6 +24,7 @@ namespace ShatteredSail.Presentation
         public const float JackpotHoldDuration = .35f;
         public const float JackpotLandDuration = .50f;
         public const float FadeDuration = .55f;
+        public const float ClickPlaybackSpeed = 6f;
         private const float JackpotDuration = JackpotChargeDuration + JackpotFlightDuration +
             JackpotCountDuration + JackpotHoldDuration + JackpotLandDuration;
 
@@ -43,6 +44,7 @@ namespace ShatteredSail.Presentation
         private Vector3 chestScale;
         private Quaternion chestRotation;
         private float ordinaryDuration, rewardsEnd, fadeStart;
+        private float acceleratedUntil = -1f;
         private int ordinaryCount;
         private bool animate, allowCompletion, completionDelivered, configured;
         private readonly List<float> soundTimes = new List<float>();
@@ -90,6 +92,7 @@ namespace ShatteredSail.Presentation
             Duration = plan.HasRewards ? Mathf.Max(plan.IsJackpot ? 8.2f : 5.2f, rewardsEnd + .75f + FadeDuration) : 0f;
             fadeStart = Duration - FadeDuration;
             completionDelivered = false;
+            acceleratedUntil = -1f;
             animate = play;
             allowCompletion = false;
             configured = true;
@@ -104,7 +107,31 @@ namespace ShatteredSail.Presentation
         private void Update()
         {
             if (animate && Application.isPlaying && !IsComplete)
-                SetElapsed(Elapsed + Time.unscaledDeltaTime, true);
+            {
+                // Stop exactly at this item's boundary; a long frame must not speed up the next item.
+                float next = acceleratedUntil > Elapsed
+                    ? Mathf.Min(acceleratedUntil, Elapsed + Time.unscaledDeltaTime * ClickPlaybackSpeed)
+                    : Elapsed + Time.unscaledDeltaTime;
+                SetElapsed(next, true);
+            }
+        }
+
+        public void AccelerateCurrentReward()
+        {
+            if (!configured || !animate || IsComplete || !isActiveAndEnabled) return;
+            if (Elapsed < OpeningDuration)
+                acceleratedUntil = OpeningDuration;
+            else if (Elapsed >= rewardsEnd)
+                acceleratedUntil = Duration;
+            else if (plan.IsJackpot && Elapsed >= JackpotStart)
+                acceleratedUntil = rewardsEnd;
+            else
+            {
+                int current = 0;
+                while (current + 1 < ordinaryCount && Elapsed >= OpeningDuration + (current + 1) * ordinaryDuration)
+                    current++;
+                acceleratedUntil = Mathf.Min(rewardsEnd, OpeningDuration + (current + 1) * ordinaryDuration);
+            }
         }
 
         public void CompleteImmediately()
@@ -123,6 +150,7 @@ namespace ShatteredSail.Presentation
             if (!configured) return;
             float previous = Elapsed;
             Elapsed = float.IsNaN(seconds) ? 0f : Mathf.Clamp(seconds, 0f, Duration);
+            if (Elapsed < previous || Elapsed >= acceleratedUntil) acceleratedUntil = -1f;
             float fade = Duration > 0 ? Smooth((Elapsed - fadeStart) / FadeDuration) : 1f;
             if (intro != null)
             {

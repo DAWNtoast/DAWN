@@ -7,21 +7,16 @@ namespace ShatteredSail.Presentation.Tests
     public sealed class BoardingPartyPresentationTests
     {
         [Test]
-        public void GroundedStep_IsMirroredBoundedAndReturnsToItsDeckPosition()
+        public void LegacyLungeRequestsLeaveBothPartiesCompletelyStill()
         {
-            Assert.That(BoardingPartyPresentation.LungeOffset(0f, 1f), Is.EqualTo(Vector2.zero));
-            Assert.That(BoardingPartyPresentation.LungeOffset(1f, 1f).magnitude, Is.LessThan(.0001f));
-            Assert.That(BoardingPartyPresentation.LungeOffset(.5f, 1f).x, Is.EqualTo(64f).Within(.001f));
             for (int frame = 0; frame <= 100; frame++)
             {
                 float t = frame / 100f;
-                Vector2 advance = BoardingPartyPresentation.LungeOffset(t, 1f);
-                Assert.That(advance.y, Is.Zero, "The boots and their shared contact shadow must remain on the deck.");
-                Assert.That(advance.x, Is.InRange(0f, 64.001f));
-                Assert.That(BoardingPartyPresentation.LungeOffset(t, -1f), Is.EqualTo(-advance));
+                Assert.That(BoardingPartyPresentation.LungeOffset(t, 1f), Is.EqualTo(Vector2.zero),
+                    "Only the effects may advance; the player artwork must stay fixed.");
+                Assert.That(BoardingPartyPresentation.LungeOffset(t, -1f), Is.EqualTo(Vector2.zero),
+                    "The same static presentation applies to the enemy artwork.");
             }
-            Assert.That(BoardingPartyPresentation.LungeOffset(.001f, 1f).x, Is.LessThan(.001f),
-                "An eased departure should not snap the whole formation forward on its first frame.");
         }
 
         [Test]

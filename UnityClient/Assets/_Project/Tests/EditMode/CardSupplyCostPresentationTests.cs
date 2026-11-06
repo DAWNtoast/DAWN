@@ -11,6 +11,81 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class CardSupplyCostPresentationTests
     {
+        [TestCase("card_school_blood_b01", 5)]
+        [TestCase("card_school_blood_b02", 3)]
+        [TestCase("card_school_blood_b03", 5)]
+        [TestCase("card_school_blood_b05", 5)]
+        public void OptionalBloodFeeBadgeUsesActualAffordablePayment(string id, int cost)
+        {
+            var session = Battle(NavalBattleStage.Naval);
+            CoreBattleCard card = Card(id);
+            typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, cost);
+            Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle, session: session), Is.EqualTo("0"));
+            typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, cost + 1);
+            Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle, session: session), Is.EqualTo(cost.ToString()));
+            Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo(cost.ToString()));
+        }
+
+        [Test]
+        public void DesperateCannonBadgeRequiresBothDesperationAndAffordablePayment()
+        {
+            var session = Battle(NavalBattleStage.Naval);
+            CoreBattleCard card = Card("card_school_blood_n03");
+            foreach (int health in new[] { session.MaxHull, session.MaxHull * 40 / 100, 5 })
+            {
+                typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, health);
+                string expected = health > 5 && (long)health * 100 <= (long)session.MaxHull * 40 ? "5" : "0";
+                Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle, session: session), Is.EqualTo(expected));
+            }
+        }
+
+        [TestCase("card_school_thunder_b03")]
+        [TestCase("card_school_thunder_b04")]
+        [TestCase("card_school_thunder_n02")]
+        [TestCase("card_school_thunder_n03")]
+        [TestCase("card_school_thunder_n04")]
+        [TestCase("card_school_thunder_n05")]
+        [TestCase("card_school_thunder_n07")]
+        [TestCase("card_school_thunder_n08")]
+        [TestCase("card_boarding_thunder_09")]
+        public void NonFinisherThunderCardsHaveNoChainCostBadgeAtAnyRank(string id)
+        {
+            var session = new CoreVoyageSession();
+            int index = Index(id);
+            for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(index); rank++)
+            {
+                CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
+                Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.Empty, id + " +" + rank);
+                Assert.That(CardSpecialCostPresentation.CostText(card), Is.Empty, id + " +" + rank);
+            }
+        }
+
+        [Test]
+        public void OnlyTheThreePublishedNavalFinishersDisplayChainCostBadges()
+        {
+            string[] ids = CoreVoyageSession.CardLibrary
+                .Where(card => card.SchoolId == "thunder" && card.IsAllowedInStage(NavalBattleStage.Naval) &&
+                    CardSpecialCostPresentation.ResourceType(card) == "chain")
+                .Select(card => card.Id).ToArray();
+            Assert.That(ids, Is.EquivalentTo(new[] { "card_school_thunder_b06", "card_school_thunder_n06", "card_school_thunder_n09" }));
+        }
+
+        [Test]
+        public void TideBarrierCostsFourAndPermanentConversionHasNoResourcePaymentAtEveryRank()
+        {
+            var session = new CoreVoyageSession();
+            foreach (string key in new[] { "tide_05", "tide_15" })
+            {
+                int index = Index(CoreBoardingCardCatalog.FindByKey(key).Id);
+                for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(index); rank++)
+                {
+                    CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
+                    Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.EqualTo(key == "tide_05" ? "" : "tide"));
+                    Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo(key == "tide_05" ? "" : "4"));
+                }
+            }
+        }
+
         [Test]
         public void FieldComponentsDoNotDisplayRetiredSupplyOrSchoolResourceCostsAtAnyRank()
         {
@@ -25,6 +100,7 @@ namespace ShatteredSail.Core.Tests
                 }
         }
 
+        [TestCase("card_school_arcane_n04", "mana")]
         [TestCase("card_school_curse_n03", "curse")]
         [TestCase("card_school_tide_n02", "tide")]
         [TestCase("card_school_tide_n05", "tide")]
@@ -32,6 +108,12 @@ namespace ShatteredSail.Core.Tests
         [TestCase("card_boarding_arcane_04", "mana")]
         [TestCase("card_boarding_arcane_06", "mana")]
         [TestCase("card_boarding_arcane_11", "mana")]
+        [TestCase("card_school_thunder_b06", "chain")]
+        [TestCase("card_school_thunder_n06", "chain")]
+        [TestCase("card_school_thunder_n09", "chain")]
+        [TestCase("card_boarding_thunder_13", "chain")]
+        [TestCase("card_boarding_thunder_14", "chain")]
+        [TestCase("card_boarding_thunder_15", "chain")]
         public void AllResourceCardsDisplayXOnTheMatchingIconAtEveryRank(string id, string resource)
         {
             var session = new CoreVoyageSession();
@@ -87,7 +169,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("basic_06", 1, 2, "0")]
         [TestCase("basic_06", 1, 8, "1")]
         [TestCase("basic_07", 1, 0, "1")]
-        [TestCase("tide_12", 1, 0, "1")]
+        [TestCase("tide_12", 1, 0, "0")]
         [TestCase("arcane_05", 0, 8, "0")]
         [TestCase("arcane_05", 1, 8, "1")]
         public void BoardingMedicineBadge_RespectsFallbackAndPayOnCast(string key, int medicine, int wound, string expected)
@@ -101,7 +183,6 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("arcane_05")]
-        [TestCase("curse_12")]
         [TestCase("tide_11")]
         [TestCase("tide_12")]
         public void NoMedicineFallback_AlsoRemovesTheLinkedSchoolPayment(string key)
@@ -111,12 +192,70 @@ namespace ShatteredSail.Core.Tests
             Assert.That(CardSpecialCostPresentation.CostText(card, availableMedicine: 1), Is.Not.EqualTo("0"));
         }
 
-        [Test]
-        public void FireLifePayment_IsShownAsASpecialResource()
+        [TestCase("card_boarding_tide_11", 11, 0)]
+        [TestCase("card_boarding_tide_11", 12, 12)]
+        [TestCase("card_boarding_tide_12", 15, 0)]
+        [TestCase("card_boarding_tide_12", 16, 16)]
+        [TestCase("card_special_crew_white_shell_doctor_mirei", 15, 0)]
+        [TestCase("card_special_crew_white_shell_doctor_mirei", 16, 16)]
+        public void TideHealingBadgesMatchActualPaymentWhenMedicineExists(string id, int tide, int paid)
         {
-            CoreBattleCard card = CoreBoardingCardCatalog.FindByKey("fire_14");
-            Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.EqualTo("health"));
-            Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo("2"));
+            var session = Battle(NavalBattleStage.Boarding, true);
+            CoreBattleCard card = Card(id);
+            session.Cargo.Medicine = 2;
+            session.Battle.PlayerBoardingHealth = session.Battle.PlayerMaxBoardingHealth - 20;
+            typeof(CoreVoyageSession).GetMethod("CTBGainTide", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(session, new object[] { tide });
+            Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle, session: session), Is.EqualTo(paid.ToString()));
+            Assert.That(CardSupplyCostPresentation.CostText(card, session), Is.EqualTo(paid > 0 ? "1" : "0"));
+            Assert.That(session.Battle.Boarding.TidePower, Is.EqualTo(tide), "Quoting must not spend resources.");
+            Assert.That(session.Cargo.Medicine, Is.EqualTo(2));
+            session.Battle.Hand.Clear(); session.Battle.Hand.Add(Index(id));
+            Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
+            Assert.That(session.Battle.Boarding.TidePower, Is.EqualTo(tide - paid));
+            Assert.That(session.Cargo.Medicine, Is.EqualTo(paid > 0 ? 1 : 2));
+        }
+
+        [TestCase("card_school_curse_n02")]
+        [TestCase("card_boarding_curse_12")]
+        [TestCase("card_boarding_curse_14")]
+        [TestCase("card_boarding_curse_15")]
+        public void CurseRequirementsNeverDisplayAnActualMarkPayment(string id)
+        {
+            CoreBattleCard card = Card(id);
+            Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.Empty);
+            Assert.That(CardSpecialCostPresentation.CostText(card), Is.Empty);
+            Assert.That(CardSpecialCostPresentation.CostText(card, availableMedicine: 0), Is.Empty);
+        }
+
+        [TestCase(0, "0")]
+        [TestCase(1, "0")]
+        [TestCase(2, "1")]
+        public void CurseHealingMedicineBadgeTracksItsMarkRequirement(int marks, string cost)
+        {
+            CoreVoyageSession session = Battle(NavalBattleStage.Boarding);
+            session.Cargo.Medicine = 3;
+            session.Battle.PlayerBoardingHealth = session.Battle.PlayerMaxBoardingHealth - 20;
+            typeof(CoreVoyageSession).GetMethod("CTBAddMarks", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(session, new object[] { marks });
+            Assert.That(CardSupplyCostPresentation.CostText(Card("card_boarding_curse_12"), session,
+                NavalBattleStage.Boarding), Is.EqualTo(cost));
+            Assert.That(session.Cargo.Medicine, Is.EqualTo(3));
+            Assert.That(session.Battle.Boarding.CurseMarks, Is.EqualTo(marks));
+        }
+
+        [Test]
+        public void FireIgnition_HasNoLifeCostOrSpecialResourceAtAnyRank()
+        {
+            var session = new CoreVoyageSession();
+            int index = System.Linq.Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
+                .Single(i => CoreVoyageSession.CardLibrary[i].Id == "card_boarding_fire_14");
+            for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(index); rank++)
+            {
+                CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
+                Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.Empty);
+                Assert.That(CardSpecialCostPresentation.CostText(card), Is.Empty);
+            }
         }
 
         [Test]
@@ -231,10 +370,10 @@ namespace ShatteredSail.Core.Tests
             finally { Object.DestroyImmediate(host); }
         }
 
-        [TestCase("card_cook_rations")]
-        [TestCase("card_special_crew_gray_gull_cook_pepe")]
-        public void SharedCrewSupply_ChangesWithAuthoredRankAndDisplayedStageOnTheSameFace(string id)
+        [Test]
+        public void CrewSupportWithoutSupplyCost_RemainsFreeAtEveryRankAndStageOnTheSameFace()
         {
+            const string id = "card_special_crew_gray_gull_cook_pepe";
             GameObject host = new GameObject("Shared Crew Supply Refresh Audit");
             host.SetActive(false);
             try
@@ -243,33 +382,28 @@ namespace ShatteredSail.Core.Tests
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.DeckBuilder, CoreGameplayPreviewPort.GrayGull, 0);
                 var session = new CoreVoyageSession();
                 int index = Index(id);
-                MethodInfo factory = typeof(CoreGameplayDemoController).GetMethod("CreateCollectionCardFace", BindingFlags.Instance | BindingFlags.NonPublic);
-                RectTransform face = (RectTransform)factory.Invoke(controller, new object[] {
-                    host.transform, session.GetBattleCardAtLevel(index, 0), "Crew Audit", "Crew Art", "Crew Name", 1f, null, "Crew Effect" });
+                // Exercise the retained native UI refresh directly. The complete
+                // card-face artwork has its own asset-backed tests above.
+                RectTransform face = new GameObject("Crew Supply Audit Face", typeof(RectTransform)).GetComponent<RectTransform>();
+                face.SetParent(host.transform, false);
+                var frameObject = new GameObject("Crew Supply Audit Frame", typeof(RectTransform), typeof(CardSchoolFrameGraphic));
+                frameObject.transform.SetParent(face, false);
+                var oldSupply = new GameObject("Reused Supply View", typeof(RectTransform), typeof(CardSupplyCostView));
+                oldSupply.transform.SetParent(face, false);
                 MethodInfo refresh = typeof(CoreGameplayDemoController).GetMethod("RefreshCardSupplyCost", BindingFlags.Instance | BindingFlags.NonPublic);
                 foreach (int rank in new[] { 0, 1, 0, 1 })
                 foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
                 {
                     CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
-                    bool pays = id != "card_cook_rations" || rank > 0;
-                    string supplyType = pays ? stage == NavalBattleStage.Boarding ? "medicine" : "wood" : "";
+                    Assert.That(CardSupplyCostPresentation.ResourceType(card, stage), Is.Empty);
                     // Availability refresh can choose the new texture before
                     // the shared supply/layout refresh runs on a retained face.
                     face.GetComponentInChildren<CardSchoolFrameGraphic>(true).Configure(card.SchoolId, true,
-                        card.PowderCost, card.CannonballCost, CardSpecialCostPresentation.ResourceType(card), supplyType: supplyType);
+                        card.PowderCost, card.CannonballCost, CardSpecialCostPresentation.ResourceType(card), supplyType: string.Empty);
+                    oldSupply.SetActive(true);
                     refresh.Invoke(controller, new object[] { face, card, null, stage });
-                    string expectedFrame = "frame-neutral-ap" + (pays ? "-" + supplyType : "");
-                    Assert.That(face.GetComponentInChildren<CardSchoolFrameGraphic>(true).mainTexture.name, Is.EqualTo(expectedFrame));
                     CardSupplyCostView supply = face.GetComponentInChildren<CardSupplyCostView>(true);
-                    if (!pays) Assert.That(supply == null || !supply.gameObject.activeSelf, Is.True);
-                    else
-                    {
-                        Assert.That(supply.gameObject.activeSelf, Is.True);
-                        Assert.That(supply.ResourceType, Is.EqualTo(supplyType));
-                        Assert.That(supply.GetComponentInChildren<RawImage>(true).enabled, Is.False);
-                        Assert.That(supply.Amount.text, Is.EqualTo("1"));
-                        Assert.That(supply.Amount.rectTransform.anchoredPosition, Is.EqualTo(Vector2.zero));
-                    }
+                    Assert.That(supply == null || !supply.gameObject.activeSelf, Is.True);
                     AssertFaceCalibration(face, card, stage);
                 }
             }
@@ -293,9 +427,16 @@ namespace ShatteredSail.Core.Tests
 
         private static CoreBattleCard Card(string id) => CoreVoyageSession.CardLibrary.Single(value => value.Id == id);
         private static int Index(string id) => Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).Single(i => CoreVoyageSession.CardLibrary[i].Id == id);
-        private static CoreVoyageSession Battle(NavalBattleStage stage)
+        private static CoreVoyageSession Battle(NavalBattleStage stage, bool unlockTide = false)
         {
             var session = new CoreVoyageSession();
+            if (unlockTide)
+            {
+                session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+                Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True,
+                    "The resource/field fixture starts with a migrated owned school-card collection before departure.");
+                session.ConfigureSpecialCardSources(new[] { "crew_white_shell_doctor_mirei" }, new string[0]);
+            }
             session.SetSeed("CARD-SUPPLY-FRAME");
             session.StartVoyage();
             typeof(CoreVoyageSession).GetMethod("StartBattle", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(session,

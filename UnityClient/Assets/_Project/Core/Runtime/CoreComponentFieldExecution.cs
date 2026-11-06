@@ -39,16 +39,16 @@ namespace ShatteredSail.Core.Gameplay
             switch (effect.Mechanic)
             {
                 case CoreSchoolMechanic.ComponentFieldExpand:
-                    ExpandComponentField(kind, effect.Power);
+                    ExpandAllPlayerFields(kind);
                     break;
                 case CoreSchoolMechanic.ComponentFieldExtend:
-                    ExtendComponentField(kind, effect.Power);
+                    ExtendAllPlayerFields(kind, effect.Power);
                     break;
                 case CoreSchoolMechanic.ComponentFieldMastery:
-                    ExpandComponentField(kind, effect.Power);
-                    ExtendComponentField(kind, effect.Secondary);
+                    ExpandAllPlayerFields(kind);
                     break;
                 case CoreSchoolMechanic.ComponentFieldShelter:
+                    if (kind == CoreNavalFieldKind.Fire) { GrantFireBurnPrevention(true, false); break; }
                     int protection = (1 << (int)kind) & NavalFieldProtectionMask;
                     if (protection != 0)
                     {
@@ -71,15 +71,13 @@ namespace ShatteredSail.Core.Gameplay
                         case CoreNavalFieldKind.Fire: ApplySchoolBurn(effect.Power, 0); break;
                         case CoreNavalFieldKind.Arcane: RestoreComponentFieldMana(effect.Power); break;
                         case CoreNavalFieldKind.Curse:
-                            school.CurseMarks = SchoolSum(school.CurseMarks, effect.Power);
-                            school.CurseDamagePerMark = school.CurseWeaknessPercent = 0;
-                            school.CurseTurns = school.CurseMarks;
+                            ApplyNavalEnemyCurseMarks(effect.Power);
                             break;
                         case CoreNavalFieldKind.Tide:
-                            school.TidePower = Math.Min(school.TideLimit, SchoolSum(school.TidePower, effect.Power));
+                            school.TidePower = SchoolSum(school.TidePower, effect.Power);
                             break;
                         case CoreNavalFieldKind.Thunder:
-                            school.ThunderChain = Math.Min(school.ThunderLimit, SchoolSum(school.ThunderChain, effect.Power));
+                            GainNavalThunderChain(true, effect.Power);
                             break;
                     }
                     break;
@@ -87,11 +85,67 @@ namespace ShatteredSail.Core.Gameplay
             return true;
         }
 
-        private void RestoreComponentFieldMana(int amount) => Battle.Schools.Mana =
-            Math.Min(Battle.Schools.ManaLimit, SchoolSum(Battle.Schools.Mana, amount));
+        private void RestoreComponentFieldMana(int amount) => GainBattleMana(amount);
 
         private bool ComponentFieldInRange(CoreNavalFieldCell cell) =>
             NavalGridDistance(Battle.PlayerPositionMeters, cell.PositionMeters) <= NavalCannonRangeCells;
+
+        private void ExpandAllPlayerFireFields() => ExpandAllPlayerFields(CoreNavalFieldKind.Fire);
+
+        private void ExpandAllPlayerFields(CoreNavalFieldKind kind)
+        {
+            // A cast expands the original footprint by one cardinal step. New cells never grow in this cast.
+            var sources = new List<CoreNavalFieldCell>();
+            foreach (CoreNavalFieldCell cell in Battle.NavalFields.Cells)
+                if (cell.PlayerOwned && cell.Kind == kind) sources.Add(cell.Copy());
+            var additions = new Dictionary<string, CoreNavalFieldCell>(StringComparer.Ordinal);
+            var equalDurationSources = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (CoreNavalFieldCell source in sources)
+                foreach (var offset in new[] { new[] { -1, 0 }, new[] { 0, -1 }, new[] { 0, 1 }, new[] { 1, 0 } })
+                {
+                    CoreNavalFieldCell candidate = source.Copy();
+                    candidate.X += offset[0]; candidate.Y += offset[1];
+                    if (!FieldCellValid(candidate.X, candidate.Y) || GetNavalFieldAt(candidate.X, candidate.Y) != null) continue;
+                    string key = candidate.X + ":" + candidate.Y;
+                    if (!additions.TryGetValue(key, out CoreNavalFieldCell prior) || candidate.ExpiresAtOwnerTurn > prior.ExpiresAtOwnerTurn)
+                    {
+                        additions[key] = candidate;
+                        equalDurationSources[key] = 1;
+                    }
+                    else if (candidate.ExpiresAtOwnerTurn == prior.ExpiresAtOwnerTurn)
+                    {
+                        int count = equalDurationSources[key] + 1;
+                        equalDurationSources[key] = count;
+                        // A tie selects one actual source, preserving its direction and instance.
+                        // Reservoir sampling gives every equally long-lived source the same chance.
+                        bool replace = kind == CoreNavalFieldKind.Tide
+                            ? voyageRandom.NextDouble() < 1d / count
+                            : candidate.InstanceId < prior.InstanceId;
+                        if (replace) additions[key] = candidate;
+                    }
+                }
+            foreach (CoreNavalFieldCell cell in additions.Values)
+            {
+                Battle.NavalFields.Cells.Add(cell);
+                Battle.NavalFields.RecordPresentation(CoreNavalFieldChangeKind.Placed, cell);
+            }
+        }
+
+        private void ExtendAllFireFields(int turns, bool playerOwnedOnly)
+        {
+            if (turns <= 0) return;
+            foreach (CoreNavalFieldCell cell in Battle.NavalFields.Cells)
+                if (cell.Kind == CoreNavalFieldKind.Fire && (!playerOwnedOnly || cell.PlayerOwned))
+                    cell.ExpiresAtOwnerTurn = SchoolSum(cell.ExpiresAtOwnerTurn, turns);
+        }
+
+        private void ExtendAllPlayerFields(CoreNavalFieldKind kind, int turns)
+        {
+            if (turns <= 0) return;
+            foreach (CoreNavalFieldCell cell in Battle.NavalFields.Cells)
+                if (cell.Kind == kind && cell.PlayerOwned)
+                    cell.ExpiresAtOwnerTurn = SchoolSum(cell.ExpiresAtOwnerTurn, turns);
+        }
 
         private void ExpandComponentField(CoreNavalFieldKind kind, int count)
         {

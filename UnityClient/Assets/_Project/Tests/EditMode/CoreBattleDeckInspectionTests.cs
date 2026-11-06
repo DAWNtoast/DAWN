@@ -114,15 +114,15 @@ namespace ShatteredSail.Core.Tests
             int[] hand = session.Battle.Hand.ToArray();
             Assert.That(session.CardUpgradeLevels["card_tactical_draw"], Is.EqualTo(3), "Keep the historical purchased rank.");
             CoreBattleCard ship = session.GetBattleCard(index, NavalBattleStage.Naval);
-            CoreBattleCard boarding = session.GetBattleCard(index, NavalBattleStage.Boarding);
+            CoreBattleCard boarding = session.GetBattleCard(CardIndex("card_boarding_basic_08"), NavalBattleStage.Boarding);
             Assert.That(ship.BoardingSpec, Is.Null);
-            Assert.That(ship.UpgradeLevel, Is.EqualTo(2), "The shared card's effective rank respects its highest stage cap.");
+            Assert.That(ship.UpgradeLevel, Is.EqualTo(2), "The ship card respects its own upgrade cap.");
             Assert.That(ship.Draw, Is.EqualTo(4), "The authored ship curve draws 2/3/4 cards through its two upgrades.");
             Assert.That(boarding.BoardingSpec, Is.Not.Null);
             Assert.That(boarding.BoardingSpec.Key, Is.EqualTo("basic_08"));
-            Assert.That(boarding.UpgradeLevel, Is.EqualTo(2));
-            Assert.That(boarding.Draw, Is.EqualTo(5), "The two-energy boarding draw effect gains two cards at its cap.");
-            Assert.That(boarding.Id, Is.EqualTo(ship.Id));
+            Assert.That(boarding.UpgradeLevel, Is.Zero, "A new ship-only upgrade does not purchase the boarding upgrade.");
+            Assert.That(boarding.Draw, Is.EqualTo(3));
+            Assert.That(boarding.Id, Is.Not.EqualTo(ship.Id));
             Assert.That(session.GetBattleCard(index).Name,
                 Is.EqualTo(activeStage == NavalBattleStage.Boarding ? boarding.Name : ship.Name));
             Assert.That(session.Battle.Stage, Is.EqualTo(activeStage));
@@ -136,7 +136,8 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession();
             int index = CardIndex("card_tactical_draw");
             Assert.That(session.GetBattleCard(index).BoardingSpec, Is.Null);
-            Assert.That(session.GetBattleCard(index, NavalBattleStage.Boarding).BoardingSpec, Is.Not.Null);
+            Assert.That(session.GetBattleCard(index, NavalBattleStage.Boarding).IsAllowedInStage(NavalBattleStage.Boarding), Is.False);
+            Assert.That(session.GetBattleCard(CardIndex("card_boarding_basic_08"), NavalBattleStage.Boarding).BoardingSpec, Is.Not.Null);
             Assert.That(session.GetBattleCard(-1, NavalBattleStage.Naval), Is.Null);
             Assert.That(session.GetBattleCard(CoreVoyageSession.CardLibrary.Count, NavalBattleStage.Boarding), Is.Null);
         }
@@ -175,7 +176,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.ConfigureCrewCapabilities(withSources, withSources, withSources, withSources, withSources, withSources);
-            if (withSources) session.ConfigureComponentBattleCards(new[] { "bow", "sail", "cannon", "plating", "instrument" });
+            if (withSources) session.ConfigureSpecialCardSources(new[] { "crew_gray_gull_cook_pepe" }, new[] { "cannon_chain_repeater" });
             if (upgradedCard >= 0)
                 session.ConfigureCardUpgrades(new Dictionary<string, int> { { CoreVoyageSession.CardLibrary[upgradedCard].Id, 3 } });
             session.SetSeed("BATTLE-DECK-INSPECTION");

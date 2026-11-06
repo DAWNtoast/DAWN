@@ -153,14 +153,9 @@ namespace ShatteredSail.Presentation
                 retainedEnemyDefense.SetHull(hull, hull);
                 retainedEnemyDefense.SetGuard(battle.EnemyBlock);
             }
-            CoreBossKind bossKind = battle.Profile == null ? (battle.IsBoss ? CoreBossKind.Route : CoreBossKind.None) : battle.Profile.BossKind;
-            SetRetainedBattleText("Battle Badge", (bossKind == CoreBossKind.Legendary ? "传奇战舰挑战" : bossKind == CoreBossKind.Treasure ? "藏宝图首领战" : battle.IsBoss ? "区域首领战" : "航路遭遇战") + " · " + BattleEnvironmentArtCatalog.LabelFor(session.BattleTerrain) + " · 回合 " + (session.IsGuidedBossBattle ? battle.PhaseTurn : battle.Turn));
             SetRetainedBattleText("Battle Curse Status", CurseBattleStatus);
             SetRetainedBattleText("Battle Range", boarding ? "接舷交战" : session.NavalDistanceCells + " 格 / 炮击4格");
-            SetRetainedBattleText("Battle Alignment", boarding ? BoardingConnectionLabel(battle) : battle.Alignment == NavalBattleAlignment.HeadOn ? "→ 舰艏 ⇄ 舰艏 ←\n迎头相对" : battle.Alignment == NavalBattleAlignment.EnemyBroadside ? "→ 舰艏 ⊥ 侧舷\n我方对准敌舰侧面" : "舰艏 →    → 舰艏\n并排行船");
             SetRetainedBattleText("Battle Active Buffs", BattleActiveBuffText(battle));
-            SetRetainedBattleText("Player Battle Name", BattleCrewName(battle, true));
-            SetRetainedBattleText("Enemy Battle Name", BattleCrewName(battle, false));
             string intent = session.GetEnemyIntent();
             bool defending = !session.EnemyWillRam && (boarding ? session.EnemyBoardingAttackDamage == 0 :
                 intent.Contains("格挡设为") || battle.Stage == NavalBattleStage.Preparation);
@@ -183,9 +178,8 @@ namespace ShatteredSail.Presentation
             if (retainedBattleRetreat != null)
             {
                 bool emergency = session.CanRequestEmergencyTow();
-                retainedBattleRetreat.name = emergency ? "Emergency Battle Return" : "Retreat Battle";
-                retainedBattleRetreat.interactable = emergency || session.CanRetreatBattle;
-                retainedBattleRetreat.GetComponentInChildren<Text>().text = emergency ? "应急撤离 · 保留 35%" : session.CanRetreatBattle ? "脱离战斗 · 撤回港口" : session.IsGuidedBossBattle ? "完成首领战斗教学" : "接舷中无法撤退";
+                retainedBattleRetreat.gameObject.SetActive(emergency);
+                retainedBattleRetreat.interactable = emergency;
             }
             if (headerStatus != null) headerStatus.text = BuildHeaderStatus();
             ApplyBattleDecisionLayout(retainedBattleRoot, battle);
@@ -304,20 +298,14 @@ namespace ShatteredSail.Presentation
             if (retainedBattleLabels.TryGetValue(name, out Text label) && label != null) label.text = value;
         }
 
-        private void RetreatFromRetainedBattle(RectTransform root, CoreBattleState battle)
+        private void EmergencyReturnFromRetainedBattle(RectTransform root, CoreBattleState battle)
         {
             if (!isActiveAndEnabled || battleAnimationPlaying || BattleInspectionBlocksInput || session == null || root == null || !root.gameObject.activeInHierarchy ||
                 root != retainedBattleRoot || session.Phase != CoreDemoPhase.Battle || !ReferenceEquals(session.Battle, battle)) return;
             Button retreat = retainedBattleRetreat;
             if (retreat == null || retreat.transform.parent != root || !retreat.gameObject.activeInHierarchy || !retreat.IsInteractable() ||
                 tutorialActive && !GuidedTutorialAllowsControl(retreat.name)) return;
-            if (retreat.name == "Emergency Battle Return")
-            {
-                // Revalidate the displayed action: an obsolete tow callback must
-                // never fall through into an ordinary retreat.
-                if (session.CanRequestEmergencyTow() && session.RequestEmergencyTow()) Render();
-            }
-            else if (retreat.name == "Retreat Battle" && session.CanRetreatBattle) RetreatCurrentBattle();
+            if (session.CanRequestEmergencyTow() && session.RequestEmergencyTow()) Render();
         }
     }
 }

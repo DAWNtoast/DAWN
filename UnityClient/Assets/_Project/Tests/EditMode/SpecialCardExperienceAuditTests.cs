@@ -117,10 +117,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.AcquiredSpecialCardIds, Is.EquivalentTo(new[] { first.Card.Id, second.Card.Id }));
         }
 
-        [TestCase(480f, 120, 1)]
-        [TestCase(1440f, 360, 2)]
-        [TestCase(2000f, 500, 2)]
-        [TestCase(3360f, 840, 3)]
+        [TestCase(480f, 12, 0)]
+        [TestCase(4800f, 120, 1)]
+        [TestCase(14400f, 360, 2)]
+        [TestCase(20000f, 500, 2)]
+        [TestCase(33600f, 840, 3)]
         public void ActualSailingDistanceCanReachEveryRankWithinOneVoyage(float distance, int experience, int rank)
         {
             var session = new CoreVoyageSession();
@@ -161,7 +162,17 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(session.GetSpecialCardNextThreshold(original.Id), Is.EqualTo(nextThreshold), original.Id);
                 Assert.That(grown.Damage, Is.EqualTo((int)Math.Round(original.Damage * profile.Multiplier(effectiveLevel), 0, MidpointRounding.AwayFromZero)), original.Id);
                 Assert.That(grown.Block, Is.EqualTo((int)Math.Round(original.Block * profile.BlockMultiplier(effectiveLevel), 0, MidpointRounding.AwayFromZero)), original.Id);
-                Assert.That(grown.Repair, Is.EqualTo((int)Math.Round(original.Repair * profile.RepairMultiplier(effectiveLevel), 0, MidpointRounding.AwayFromZero)), original.Id);
+                // Sustained healing has its own authored growth: multiplying the
+                // initial layers would also multiply every later healing tick.
+                int[] sustainedHealing = original.BoardingSpec?.Key == "tide_12" ? new[] { 11, 13, 15, 18 }
+                    : original.BoardingSpec?.Key == "basic_07" ? new[] { 7, 8, 10, 12 } : null;
+                if (sustainedHealing != null)
+                {
+                    Assert.That(original.Repair, Is.EqualTo(sustainedHealing[0]), original.Id);
+                    Assert.That(grown.Repair, Is.EqualTo(sustainedHealing[effectiveLevel]), original.Id);
+                }
+                else
+                    Assert.That(grown.Repair, Is.EqualTo((int)Math.Round(original.Repair * profile.RepairMultiplier(effectiveLevel), 0, MidpointRounding.AwayFromZero)), original.Id);
                 Assert.That(grown.Energy, Is.EqualTo(original.Energy), original.Id);
                 int drawBonus = profile.DrawBonus(effectiveLevel);
                 Assert.That(grown.Draw, Is.EqualTo(original.Draw + (original.Draw > 0 ? drawBonus : 0)), original.Id);
@@ -183,8 +194,11 @@ namespace ShatteredSail.Core.Tests
             session.RestoreSpecialCardExperience(new Dictionary<string, int> { { definition.Card.Id, experience } });
             session.SetSeed("SPECIAL-XP-THRESHOLD-FEEDBACK-AUDIT");
             session.StartVoyage();
-            PrepareLegalSailing(session, CoreVoyageSession.MinimumDistanceNm);
+            // Grid/path float arithmetic can make a requested 40-mile leg
+            // fractionally shorter. Cross the threshold with actual distance.
+            PrepareLegalSailing(session, 41);
             Assert.That(session.Sail(), Is.True);
+            Assert.That(session.TotalDistanceNm, Is.GreaterThanOrEqualTo(40f));
             Assert.That(session.GetCardUpgradeLevel(definition.Card.Id), Is.EqualTo(level));
             PrepareLegalSailing(session, CoreVoyageSession.MinimumDistanceNm);
             Assert.That(session.Sail(), Is.True);

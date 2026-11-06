@@ -7,7 +7,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed class TreasureResultMotionTests
     {
         [Test]
-        public void SkipRestoresExistingTransparency_AndDoesNotAlterTheAuthoritativeMap()
+        public void ImmediateCompletionRestoresExistingTransparency_AndDoesNotAlterTheAuthoritativeMap()
         {
             var parent = new GameObject("Treasure Result Test", typeof(RectTransform));
             try
@@ -37,7 +37,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 RawImage target = Target(parent.transform);
                 var motion = TreasureResultMotion.PlayIdentification((RectTransform)parent.transform, target,
-                    TreasureChartDisplayLayout.For(0), 3, new Vector2(-400f, -220f), "残旧", false);
+                    TreasureChartDisplayLayout.For(0), 3, new Vector2(-400f, -220f), false);
                 Assert.That(target.GetComponent<CanvasGroup>(), Is.Null);
                 motion.CompleteImmediately();
                 Assert.That(target.color.a, Is.EqualTo(1f));

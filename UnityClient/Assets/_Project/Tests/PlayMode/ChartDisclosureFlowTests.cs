@@ -23,7 +23,7 @@ namespace ShatteredSail.Presentation.Tests
             controller.Session.SetSeed(internalSeed);
             ActiveButton("Port Hotspot Voyage").onClick.Invoke();
             yield return null;
-            Assert.That(controller.Session.CanDrawSeaChart, Is.False,
+            Assert.That(controller.Session.CanUseSeaCharts, Is.False,
                 "The departure panel must apply the actual selected crew before deciding whether to expose chart entry.");
             Assert.That(GameObject.Find("Seed Input"), Is.Null);
             NavalBattleVisualCapture.Capture(controller, "30_Chart_Seed_Locked_Departure.png",
@@ -76,7 +76,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             ActiveButton("Recruit Tavern Crew 0").onClick.Invoke();
             yield return null;
-            Assert.That(controller.Session.CanDrawSeaChart, Is.True);
+            Assert.That(controller.Session.CanUseSeaCharts, Is.True);
             // The first back action closes the crew dossier, retaining the tavern.
             ActiveButton("Return To Port Hub").onClick.Invoke();
             yield return null;

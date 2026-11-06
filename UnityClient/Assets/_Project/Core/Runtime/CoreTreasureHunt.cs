@@ -60,6 +60,8 @@ namespace ShatteredSail.Core.Gameplay
     public sealed partial class CoreVoyageSession
     {
         private static readonly int[] pirateThresholds = { 0, 100, 260, 520, 900, 1400, 2100, 3000, 4100, 5400 };
+        // Slow future free-voyage growth without lowering levels in existing saves.
+        public const double NormalVoyagePirateExperienceMultiplier = 0.25d;
         private readonly List<CoreTreasureMapRecord> treasureMaps = new List<CoreTreasureMapRecord>();
         private readonly List<CoreUsedTreasureMapRecord> usedTreasureMaps = new List<CoreUsedTreasureMapRecord>();
         private readonly List<string> completedTreasureSeeds = new List<string>();
@@ -468,12 +470,12 @@ namespace ShatteredSail.Core.Gameplay
             if (TreasureClues < choice.RequiredTreasureClues) return "线索不足，还缺 " + (choice.RequiredTreasureClues - TreasureClues) + " 条（" + TreasureClues + "/" + choice.RequiredTreasureClues + "）。";
             if (choice.Effect.TreasureComplete && Hull + choice.Effect.Hull <= 0) return "船体无法承受开启秘藏时的损伤。";
             int rations = RationCostFor(choice.Hours);
-            if (Cargo.Water < rations || Cargo.Food < rations) return "处理此事期间需要淡水、食物各 " + rations + "；当前口粮不足。";
+            if (Cargo.Water < rations || Cargo.Food < rations) return "物资不足";
             VoyageEffect applied = choice.StartsBattle ? SplitBattleEffect(choice.Effect, false) : EffectiveChoiceEffect(index);
             string rareShortage = RareResourceShortage(applied);
             if (rareShortage.Length > 0) return rareShortage;
-            if (!CanAfford(applied, rations)) return "物资不足，无法满足该选项的消耗（包括期间所需的口粮）。";
-            if (Cargo.UsedVolume - rations * .16f + CargoVolumeDelta(applied) > CargoCapacityValue + .001f) return "货舱空间不足，装不下这些奖励。";
+            if (!CanAfford(applied, rations)) return "物资不足";
+            if (Cargo.UsedVolume - rations * .16f + CargoVolumeDelta(applied) > CargoCapacityValue + .001f) return "货舱空间不足";
             return "当前条件下无法选择此项。";
         }
 
@@ -513,7 +515,7 @@ namespace ShatteredSail.Core.Gameplay
             int Receive(int current, int amount, string name, bool tangibleLoot = true)
             {
                 // Map fragments and clues do not occupy cargo space. Their authored
-                // quantities keep the existing rule; only cash/fame use the new x2.
+                // quantities keep the existing rule; cash/fame use the separate 1.25 capture multiplier.
                 long gain = captured && tangibleLoot && amount > 0 ? (long)Math.Ceiling(amount * 1.5d) : amount;
                 if (tangibleLoot) gain = ScaleSeaChartBattleReward(gain);
                 long total = (long)current + gain;
@@ -528,19 +530,20 @@ namespace ShatteredSail.Core.Gameplay
         }
         private static float TreasureCargoVolumeDelta(VoyageEffect effect) =>
             effect.Gem * 5f + effect.AncientMaterial * 1.5f + effect.Relic * 5f + effect.BlackPearl * 4f + effect.AncientCompass * 3f + effect.Lantern;
-        private void RetainTreasureCargo(VoyageCargo starting, float protection)
+        private void RetainTreasureCargo(VoyageCargo starting, int protectionPercent)
         {
             // Rare objects are indivisible: round losses down, so a 5% cargo loss
             // cannot erase a single gem/relic/pearl/compass/lantern. Cash and common materials
             // retain their existing floor(gain * protection) settlement rule.
-            int RareGain(int current, int initial) => (int)Math.Ceiling(Math.Max(0, current - initial) * (double)protection);
+            int RareGain(int current, int initial) =>
+                (int)((Math.Max(0L, (long)current - initial) * protectionPercent + 99L) / 100L);
             int RareRetained(int current, int initial) => Math.Min(current, initial) + RareGain(current, initial);
             Settlement.BankedGem = RareGain(Cargo.Gem, starting.Gem);
-            Settlement.BankedAncientMaterial = ProtectedGain(Cargo.AncientMaterial, starting.AncientMaterial, protection);
+            Settlement.BankedAncientMaterial = ProtectedGain(Cargo.AncientMaterial, starting.AncientMaterial, protectionPercent);
             Settlement.BankedRelic = RareGain(Cargo.Relic, starting.Relic);
             Settlement.BankedBlackPearl = RareGain(Cargo.BlackPearl, starting.BlackPearl);
             Cargo.Gem = RareRetained(Cargo.Gem, starting.Gem);
-            Cargo.AncientMaterial = RetainedResource(Cargo.AncientMaterial, starting.AncientMaterial, protection);
+            Cargo.AncientMaterial = RetainedResource(Cargo.AncientMaterial, starting.AncientMaterial, protectionPercent);
             Cargo.Relic = RareRetained(Cargo.Relic, starting.Relic);
             Cargo.BlackPearl = RareRetained(Cargo.BlackPearl, starting.BlackPearl);
             Cargo.AncientCompass = RareRetained(Cargo.AncientCompass, starting.AncientCompass);
@@ -561,8 +564,9 @@ namespace ShatteredSail.Core.Gameplay
             // measures chart exploration instead: the old per-mile coefficient
             // could promote a captain straight to level 6 after one ordinary trip.
             double chartDistance = TotalDistanceNm / (double)Map.Route.NauticalMilesPerMapUnit;
-            return (int)Math.Min(int.MaxValue, Math.Max(20d, Math.Round(15d + completed * 10d + chartDistance * 1.5d +
+            int baseExperience = (int)Math.Min(int.MaxValue, Math.Max(20d, Math.Round(15d + completed * 10d + chartDistance * 1.5d +
                 (outcome == VoyageOutcome.ArrivedAtPort || outcome == VoyageOutcome.TreasureRecovered ? 60d : 0d))));
+            return (int)Math.Round(baseExperience * NormalVoyagePirateExperienceMultiplier, MidpointRounding.AwayFromZero);
         }
         private void CommitTreasureVoyageSettlement()
         {

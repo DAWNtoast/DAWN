@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><title>接舷战 · 动作与特效</title>
+<style>
+:root{color-scheme:dark;--ink:#101c20;--panel:#19292c;--line:#39494a;--dim:#a9b5b3;--gold:#e7c78d;--text:#f0ece1;font-family:"Microsoft YaHei UI","Microsoft YaHei",system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;color:var(--text);background:var(--ink)}button,select,a{font:inherit}button,select{color:var(--text);cursor:pointer}a{color:var(--gold);text-decoration:none}a:hover{text-decoration:underline}button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid #ffdb98;outline-offset:4px}main,header>div,nav>div{max-width:1460px;margin:auto;padding-inline:clamp(18px,4vw,64px)}
+header{border-bottom:1px solid var(--line);background:linear-gradient(92deg,#122023fa 5%,#172428df 49%,#1724289c),url("review-deck.jpg") center 60%/cover}header>div{padding-top:32px;padding-bottom:29px;display:flex;align-items:baseline;justify-content:space-between;gap:22px}h1,h2,p,figure{margin:0}h1{font-family:Georgia,"Songti SC",SimSun,serif;font-weight:500;font-size:clamp(27px,4vw,45px);letter-spacing:.045em}header p{color:#cdd3c9;font-size:14px}
+nav{border-bottom:1px solid var(--line);background:#122024}nav>div{display:flex;gap:29px}.tab{color:var(--dim);padding:16px 1px 13px;border:0;border-bottom:3px solid transparent;background:none}.tab[aria-selected=true]{color:var(--gold);border-color:var(--gold)}main{padding-top:26px;padding-bottom:48px}.tools{display:flex;align-items:flex-end;flex-wrap:wrap;gap:14px 22px;margin-bottom:24px}.field{display:grid;gap:7px;color:var(--dim);font-size:13px}.field select{appearance:auto;padding:9px 32px 9px 12px;background:#1b2b2e;border:1px solid #526060;border-radius:4px;min-width:190px;max-width:100%;color:var(--text);font-size:15px}
+.actions{display:flex;gap:4px;flex-wrap:wrap;margin:0;padding:3px;border:1px solid #475657;border-radius:5px}.actions button{padding:6px 11px;border:0;border-radius:3px;background:transparent;color:#c4ceca}.actions button[aria-pressed=true]{background:#d6c197;color:#1c2926}.actors-title{margin-bottom:15px;display:flex;align-items:baseline;gap:10px 20px;flex-wrap:wrap}.actors-title h2,.scene-title{font:500 clamp(21px,2.5vw,30px) Georgia,"Songti SC",SimSun,serif;color:#f5e9ce}.detail{font-size:14px;color:#b8c6bf}.gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.gallery.single{grid-template-columns:minmax(240px,440px);justify-content:center}.gallery.compare{grid-template-columns:repeat(2,minmax(220px,1fr));max-width:1100px;margin:auto}
+.tile{min-width:0;background:#18292b;border:1px solid #394849;border-radius:4px;overflow:hidden}.stage{display:flex;align-items:flex-end;justify-content:center;height:clamp(178px,20.5vw,285px);background:linear-gradient(to bottom,#132225b8,#122125aa 56%,#101b1fc7),url("review-deck.jpg") center bottom/cover;overflow:hidden}.stage img{width:100%;height:100%;object-fit:contain;max-width:285px;display:block}.gallery.compare .stage,.gallery.single .stage{height:295px}.gallery.compare .stage img,.gallery.single .stage img{max-width:430px}.tile figcaption{display:flex;align-items:baseline;justify-content:space-between;gap:9px;border-top:1px solid #344443;padding:11px 12px;color:#f4e4c8}.tile figcaption span:last-child{color:var(--dim);font-size:12px}.tile a{display:block}.tile a:hover{text-decoration:none;background:#233438}.tile a:hover figcaption{color:#ffde95}
+.media{margin:16px 0 0;max-width:100%;display:block;border:1px solid var(--line);border-radius:4px;background:#102025}.scene-controls{display:flex;gap:20px;align-items:end;flex-wrap:wrap}.scene-controls select{min-width:240px}#movie{width:min(100%,1100px);max-height:73vh}.links{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}.links a{text-decoration:underline;text-underline-offset:4px}#fxReview{width:min(100%,736px);height:auto}.nojs{padding:16px;background:#3b2b21}[hidden]{display:none!important}
+@media(max-width:980px){.gallery{grid-template-columns:repeat(3,minmax(0,1fr))}.stage{height:220px}.tools{gap:12px}.field select{min-width:160px}}
+@media(max-width:640px){header>div{display:block}header p{margin-top:10px}.tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.field select{width:100%;min-width:0;padding-right:4px}.tools .action-field{grid-column:1/-1}.actions button{flex:1;padding-inline:4px}.gallery,.gallery.compare{grid-template-columns:repeat(2,minmax(0,1fr))}.stage,.gallery.compare .stage{height:175px}.tile figcaption{display:grid;gap:2px;padding:8px}.gallery.single{grid-template-columns:1fr}.gallery.single .stage{height:260px}nav>div{gap:22px}}
+</style></head><body>
+<header><div><h1>接舷战 · 动作与特效</h1><p id="inventory"></p></div></header>
+<nav aria-label="预览类别"><div role="tablist"><button id="tab-actors" class="tab" role="tab" aria-controls="actors" aria-selected="true" data-panel="actors">角色动作</button><button id="tab-fx" class="tab" role="tab" aria-controls="fx" aria-selected="false" data-panel="fx">接舷特效</button><button id="tab-scenes" class="tab" role="tab" aria-controls="scenes" aria-selected="false" data-panel="scenes">战斗实景</button></div></nav>
+<main>
+<noscript><p class="nojs">请启用 JavaScript 以切换本地角色与动画。</p></noscript>
+<section id="actors" role="tabpanel" aria-labelledby="tab-actors">
+<div class="tools"><label class="field">角色<select id="first"></select></label><label class="field">对照角色<select id="second"></select></label><div class="field action-field"><span id="action-label">动作</span><div id="actions" role="group" aria-labelledby="action-label" class="actions"></div></div></div>
+<div class="actors-title"><h2 id="actorTitle"></h2><p class="detail" id="actorDetail"></p></div><div class="gallery" id="gallery"></div></section>
+<section id="fx" role="tabpanel" aria-labelledby="tab-fx" hidden><h2 class="scene-title">接舷特效</h2><img id="fxReview" class="media" alt="刀光、闪身、格挡、破防、治疗、倒地扬尘和六流派特效的动画对照"><div class="links"><a href="effects/previews/boarding-effects.gif">打开原始 GIF</a><a href="effects/previews/all-frames.jpg">查看全部 96 帧</a></div></section>
+<section id="scenes" role="tabpanel" aria-labelledby="tab-scenes" hidden><div class="scene-controls"><label class="field">实景片段<select id="sceneSelect"></select></label></div><video controls playsinline preload="none" id="movie" class="media"></video><div class="links"><a id="videoLink">打开视频</a><a id="posterLink">查看关键帧</a></div></section>
+</main>
+<script type="application/json" id="manifest">__MANIFEST__</script>
+<script>
+"use strict";
+const byId = id => document.getElementById(id);
+const data = JSON.parse(byId("manifest").textContent);
+const actions = {all:"全部", Attack:"攻击", Cast:"施法", Hit:"受击", Guard:"格挡", Death:"死亡"};
+const actors = new Map(data.actors.map(actor => [actor.key, actor]));
+let activeAction = "all";
+let activePanel = "actors";
+
+function element(tag, value) {
+    const node = document.createElement(tag);
+    if (value !== undefined) node.textContent = value;
+    return node;
+}
+
+function option(key, label) {
+    const node = element("option", label);
+    node.value = key;
+    return node;
+}
+
+function fillRoleSelect(select, allowEmpty) {
+    const fragment = document.createDocumentFragment();
+    if (allowEmpty) fragment.append(option("", "单角色"));
+    const groups = new Map();
+    for (const actor of data.actors) {
+        if (!groups.has(actor.group)) {
+            const group = element("optgroup");
+            group.label = actor.group;
+            groups.set(actor.group, group);
+            fragment.append(group);
+        }
+        groups.get(actor.group).append(option(actor.key, actor.name));
+    }
+    select.replaceChildren(fragment);
+}
+
+function actionTile(actor, action, comparing) {
+    const figure = element("figure");
+    figure.className = "tile";
+    const stage = element("div");
+    stage.className = "stage";
+    const caption = element("figcaption");
+    caption.append(element("span", actions[action]), element("span", comparing ? actor.name : "GIF"));
+
+    const description = actor.name + " · " + actions[action];
+    const image = element("img");
+    image.src = actor.gifs[action];
+    image.alt = description;
+    image.decoding = "async";
+    stage.append(image);
+
+    const link = element("a");
+    link.href = actor.gifs[action];
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.setAttribute("aria-label", "打开 " + description + " 原始 GIF");
+    link.append(stage, caption);
+    figure.append(link);
+    return figure;
+}
+
+function appendDetail(container, actor) {
+    if (!actor.special) {
+        container.append(document.createTextNode(actor.detail));
+        return;
+    }
+    const link = element("a", actor.special.title + " ▶");
+    link.href = actor.gifs[actor.special.action];
+    link.setAttribute("aria-label", "播放" + actor.name + "的专属牌动作" + actor.special.title);
+    link.addEventListener("click", event => {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        activeAction = actor.special.action;
+        drawActors();
+    });
+    container.append(document.createTextNode("专属牌 · "), link);
+}
+
+function drawActors() {
+    if (activePanel !== "actors") return;
+    const first = actors.get(byId("first").value);
+    const compare = byId("second");
+    if (compare.value === first.key) compare.value = "";
+    for (const entry of compare.options) entry.disabled = entry.value === first.key;
+    const second = actors.get(compare.value);
+    const selected = activeAction === "all" ? Object.keys(actions).slice(1) : [activeAction];
+    const gallery = byId("gallery");
+    gallery.className = "gallery";
+    if (second) gallery.classList.add("compare");
+    else if (selected.length === 1) gallery.classList.add("single");
+    byId("actorTitle").textContent = second ? first.name + " / " + second.name : first.name;
+    const detail = byId("actorDetail");
+    detail.replaceChildren();
+    appendDetail(detail, first);
+    if (second) {
+        detail.append(document.createTextNode("　/　"));
+        appendDetail(detail, second);
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const action of selected) {
+        fragment.append(actionTile(first, action, Boolean(second)));
+        if (second) fragment.append(actionTile(second, action, true));
+    }
+    gallery.replaceChildren(fragment);
+    for (const button of byId("actions").children) {
+        button.setAttribute("aria-pressed", String(button.dataset.action === activeAction));
+    }
+}
+
+function clearMovie() {
+    const movie = byId("movie");
+    if (!movie.getAttribute("src")) return;
+    movie.pause();
+    movie.removeAttribute("src");
+    movie.removeAttribute("poster");
+    movie.load();
+}
+
+function drawScene() {
+    const clip = data.scenes[byId("sceneSelect").selectedIndex];
+    if (!clip) return;
+    const movie = byId("movie");
+    movie.src = clip.video;
+    movie.poster = clip.poster;
+    byId("videoLink").href = clip.video;
+    byId("posterLink").href = clip.poster;
+}
+
+const tabs = [...document.querySelectorAll(".tab")];
+function show(id) {
+    activePanel = id;
+    for (const button of tabs) {
+        const selected = button.dataset.panel === id;
+        button.setAttribute("aria-selected", String(selected));
+        button.tabIndex = selected ? 0 : -1;
+        byId(button.dataset.panel).hidden = !selected;
+    }
+    if (id === "actors") drawActors();
+    else byId("gallery").replaceChildren();
+    if (id === "fx") byId("fxReview").src = data.effects;
+    else byId("fxReview").removeAttribute("src");
+    if (id === "scenes") drawScene();
+    else clearMovie();
+}
+
+byId("inventory").textContent = data.actors.length + " 个角色与敌阵　·　" + data.actors.length * 5 + " 段角色动作";
+fillRoleSelect(byId("first"), false);
+fillRoleSelect(byId("second"), true);
+byId("first").value = "captain";
+byId("second").value = "";
+for (const [key, label] of Object.entries(actions)) {
+    const button = element("button", label);
+    button.dataset.action = key;
+    button.addEventListener("click", () => {
+        activeAction = key;
+        drawActors();
+    });
+    byId("actions").append(button);
+}
+for (const select of [byId("first"), byId("second")]) select.addEventListener("change", drawActors);
+data.scenes.forEach((scene, index) => byId("sceneSelect").append(option(String(index), scene.title)));
+byId("sceneSelect").addEventListener("change", drawScene);
+if (!data.scenes.length) byId("tab-scenes").hidden = true;
+
+tabs.forEach(button => {
+    button.addEventListener("click", () => show(button.dataset.panel));
+    button.addEventListener("keydown", event => {
+        if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+        event.preventDefault();
+        const visibleTabs = tabs.filter(tab => !tab.hidden);
+        const index = visibleTabs.indexOf(button);
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const next = visibleTabs[(index + direction + visibleTabs.length) % visibleTabs.length];
+        next.focus();
+        show(next.dataset.panel);
+    });
+});
+show("actors");
+</script></body></html>

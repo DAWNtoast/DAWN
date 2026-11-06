@@ -155,7 +155,14 @@ namespace ShatteredSail.Core.Gameplay
             new CoreBoardingEnemyTurn("蚀魂施印", Card("蚀魂施印", "curse_01", CoreBoardingEnemyMechanic.CurseMark, resource: 2, attack: 55)),
             new CoreBoardingEnemyTurn("咒卫结阵", Card("咒卫叠印", "curse_02", CoreBoardingEnemyMechanic.CurseMark, resource: 2, guard: 100)),
             new CoreBoardingEnemyTurn("月蚀刻痕", Card("月蚀刻痕", "curse_03", CoreBoardingEnemyMechanic.CurseMark, resource: 1, attack: 65)),
-            new CoreBoardingEnemyTurn("咒痕引爆", Card("咒痕引爆", "curse_04", CoreBoardingEnemyMechanic.CurseDetonate, resource: 6, attack: 45, bonus: 20)));
+            new CoreBoardingEnemyTurn("咒印引爆", Card("咒印引爆", "curse_04", CoreBoardingEnemyMechanic.CurseDetonate, resource: 6, attack: 45, bonus: 20)));
+
+        // Fixed vault encounter pressure; ordinary curse enemies keep their own script.
+        private static readonly CoreBoardingEnemyDeck vaultGuardian = new CoreBoardingEnemyDeck("curse",
+            new CoreBoardingEnemyTurn("蚀魂施印", Card("蚀魂施印", "vault_01", CoreBoardingEnemyMechanic.CurseMark, resource: 2, attack: 66)),
+            new CoreBoardingEnemyTurn("咒卫结阵", Card("咒卫叠印", "vault_02", CoreBoardingEnemyMechanic.CurseMark, resource: 2, guard: 100)),
+            new CoreBoardingEnemyTurn("月蚀刻痕", Card("月蚀刻痕", "vault_03", CoreBoardingEnemyMechanic.CurseMark, resource: 1, attack: 78)),
+            new CoreBoardingEnemyTurn("咒印引爆", Card("咒印引爆", "vault_04", CoreBoardingEnemyMechanic.CurseDetonate, resource: 6, attack: 54, bonus: 24)));
 
         public static CoreBoardingEnemyDeck ForSchool(string schoolId)
         {
@@ -172,7 +179,7 @@ namespace ShatteredSail.Core.Gameplay
         }
 
         public static CoreBoardingEnemyDeck ForEncounter(string encounterId) =>
-            CoreBoardingBossCatalog.ForEncounter(encounterId) ?? ForSchool(ResolveSchool(encounterId));
+            encounterId == CoreBattleBalance.TreasureBossId ? vaultGuardian : CoreBoardingBossCatalog.ForEncounter(encounterId) ?? ForSchool(ResolveSchool(encounterId));
 
         public static string ResolveSchool(string encounterId)
         {

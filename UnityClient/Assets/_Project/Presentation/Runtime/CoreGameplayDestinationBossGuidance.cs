@@ -10,44 +10,21 @@ namespace ShatteredSail.Presentation
         {
             CoreMapNode boss = session.DestinationBossGuidanceNode;
             if (tutorialActive || boss == null) return;
-            RectTransform panel = CreateFixedPanel("Destination Boss Guidance", mapPanel,
-                new Vector2(810f, 64f), new Vector2(0f, -244f), Html("#182C32"));
-            Image panelImage = panel.GetComponent<Image>();
-            panelImage.sprite = panelImage.overrideSprite = null;
-            panelImage.color = Html("#182C32");
-            panelImage.raycastTarget = false;
-            Text message = CreateText("Destination Boss Guidance Text", panel, new Vector2(484f, 52f),
-                new Vector2(-150f, 0f), 18, FontStyle.Bold, TextAnchor.MiddleLeft, Html("#F2D19A"));
-            message.text = "港口封锁中 · 前往击败首领，解除封锁\n" + boss.Encounter.Name;
-            message.raycastTarget = false;
-            message.horizontalOverflow = HorizontalWrapMode.Wrap;
-            message.verticalOverflow = VerticalWrapMode.Truncate;
-            Button locate = CreateButton("Locate Blocking Boss", panel, new Vector2(136f, 44f),
-                new Vector2(172f, 0f), PanelRaised, Ink, 19);
+            Button locate = CreateButton("Locate Blocking Boss", mapPanel, new Vector2(150f, 40f),
+                Vector2.zero, PanelRaised, Ink, 19);
             locate.GetComponentInChildren<Text>().text = "定位首领";
             locate.interactable = session.Phase == CoreDemoPhase.Sailing && !navigationMotionPlaying;
-            locate.onClick.AddListener(() => FocusDestinationBoss(false));
-            Button plot = CreateButton("Plot Blocking Boss Course", panel, new Vector2(136f, 44f),
-                new Vector2(322f, 0f), Gold, Ink, 19);
-            plot.GetComponentInChildren<Text>().text = "规划航线";
-            plot.interactable = locate.interactable;
-            plot.onClick.AddListener(() => FocusDestinationBoss(true));
+            locate.onClick.AddListener(FocusDestinationBoss);
         }
 
-        private void FocusDestinationBoss(bool plotCourse)
+        private void FocusDestinationBoss()
         {
             if (!isActiveAndEnabled || contentRoot == null || tutorialActive || navigationMotionPlaying ||
                 voyageCargoOverlay != null || portSettingsOverlay != null || session.Phase != CoreDemoPhase.Sailing) return;
             CoreMapNode boss = session.DestinationBossGuidanceNode;
             if (boss == null) return;
-            if (plotCourse)
-            {
-                session.SetCourseTo(boss.Position);
-                PlaySfx("course_plot", .44f);
-                Render();
-            }
             // The complete chart is already visible. Locating the highlighted
-            // boss keeps the same map bounds, including after a course refresh.
+            // boss keeps the same map bounds without selecting a course.
             Transform map = contentRoot.Find("Navigation Chart/Procedural Sea Chart Frame/Map Layer");
             map?.GetComponent<NavigationMapViewport>()?.EnsureVisible(MapPosition(boss.Position), 90f);
         }
@@ -95,7 +72,7 @@ namespace ShatteredSail.Presentation
             Text caption = CreateText("Destination Boss Guidance Caption", marker.transform, new Vector2(236f, 30f),
                 new Vector2(0f, -48f), 17, FontStyle.Bold, TextAnchor.MiddleCenter, Html("#FFE2A4"));
             caption.color = Html("#FFE2A4");
-            caption.text = "封锁首领 · 点击规划航线";
+            caption.text = "战胜首领后解锁目标港口";
             caption.raycastTarget = false;
             Shadow shadow = caption.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(.02f, .04f, .05f, .95f);

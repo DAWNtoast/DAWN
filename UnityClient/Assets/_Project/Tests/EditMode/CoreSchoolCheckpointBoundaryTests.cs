@@ -15,7 +15,7 @@ namespace ShatteredSail.Core.Tests
             var session = ReadyBattle();
             DirtySchoolState(session.Battle.Schools);
             Assert.That(session.Battle.Schools.Mana, Is.GreaterThan(0));
-            Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(14), "The read-only total must reflect both dirtied balances.");
+            Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(7), "Only the unified mana balance is spendable; the retired temporary field is ignored.");
             Assert.That(session.Battle.Schools.OverflowUsed, Is.True);
             Assert.That(session.CanCaptureVoyageCheckpoint, Is.False);
             Assert.Throws<InvalidOperationException>(() => session.CaptureVoyageCheckpoint());
@@ -31,6 +31,9 @@ namespace ShatteredSail.Core.Tests
             completed.DistanceMeters = 100f;
             completed.EnemyBlock = 0;
             completed.EnemyHull = 1;
+            // Keep the finishing shot legal: existing marks would now execute this
+            // one-health target before another card can be played.
+            typeof(CoreSchoolBattleState).GetProperty("CurseMarks").SetValue(completed.Schools, 0);
             int shot = Find("card_chain_shot");
             completed.Hand.Clear();
             completed.Hand.Add(shot);
@@ -100,9 +103,12 @@ namespace ShatteredSail.Core.Tests
             foreach (PropertyInfo property in typeof(CoreSchoolBattleState).GetProperties())
             {
                 object expected = property.PropertyType == typeof(bool) ? (object)false :
-                    property.Name == nameof(CoreSchoolBattleState.ManaLimit) ? 3 :
-                    property.Name == nameof(CoreSchoolBattleState.ThunderLimit) ? 6 :
-                    property.Name == nameof(CoreSchoolBattleState.TideLimit) ? 20 : 0;
+                    property.Name == nameof(CoreSchoolBattleState.ManaLimit) ||
+                    property.Name == nameof(CoreSchoolBattleState.Mana) ||
+                    property.Name == nameof(CoreSchoolBattleState.AvailableMana) ? 3 :
+                    property.Name == nameof(CoreSchoolBattleState.EnemyCurseExecutionThresholdPercent) ? CoreCurseRules.DefaultExecutionThresholdPercent :
+                    property.Name == nameof(CoreSchoolBattleState.ThunderLimit) ? int.MaxValue :
+                    property.Name == nameof(CoreSchoolBattleState.TideLimit) ? int.MaxValue : 0;
                 Assert.That(property.GetValue(state), Is.EqualTo(expected), property.Name);
             }
         }

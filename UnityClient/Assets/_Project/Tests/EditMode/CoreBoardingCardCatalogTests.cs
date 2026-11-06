@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
@@ -27,19 +27,19 @@ namespace ShatteredSail.Tests.EditMode
             }
         }
 
-        [TestCase("basic_01", 1, 8, 0, 0, 0)]
-        [TestCase("basic_02", 2, 20, 0, 0, 0)]
-        [TestCase("basic_03", 3, 35, 0, 0, 0)]
-        [TestCase("basic_04", 1, 0, 4, 0, 0)]
-        [TestCase("basic_05", 2, 0, 10, 0, 0)]
-        [TestCase("basic_06", 1, 0, 0, 6, 0)]
-        [TestCase("basic_07", 2, 0, 0, 5, 0)]
+        [TestCase("basic_01", 1, 16, 0, 0, 0)]
+        [TestCase("basic_02", 2, 40, 0, 0, 0)]
+        [TestCase("basic_03", 3, 70, 0, 0, 0)]
+        [TestCase("basic_04", 1, 0, 10, 0, 0)]
+        [TestCase("basic_05", 2, 0, 24, 0, 0)]
+        [TestCase("basic_06", 1, 0, 0, 12, 0)]
+        [TestCase("basic_07", 2, 0, 0, 7, 0)]
         [TestCase("basic_08", 2, 0, 0, 0, 3)]
         [TestCase("basic_09", 0, 0, 0, 0, 0)]
         [TestCase("basic_10", 2, 0, 0, 0, 0)]
-        [TestCase("basic_11", 1, 4, 0, 0, 1)]
-        [TestCase("basic_12", 1, 0, 2, 0, 1)]
-        [TestCase("basic_13", 1, 12, 0, 0, 0)]
+        [TestCase("basic_11", 1, 8, 0, 0, 1)]
+        [TestCase("basic_12", 1, 0, 4, 0, 1)]
+        [TestCase("basic_13", 1, 24, 0, 0, 0)]
         public void Baseline_UsesAgreedUnupgradedNumbers(string key, int energy, int damage, int block, int repair, int draw)
         {
             CoreBattleCard card = CoreBoardingCardCatalog.FindByKey(key);
@@ -66,13 +66,15 @@ namespace ShatteredSail.Tests.EditMode
         }
 
         [Test]
-        public void SharedSupport_ChangesOnlyItsBoardingQuote()
+        public void SplitSupport_NoLongerAliasesItsBoardingQuote()
         {
             CoreBattleCard shared = new CoreBattleCard("card_tactical_draw", "战术筹划", "策略", 1, 0, 0, 0, 2, 0,
-                "抽2", NavalBattleStages.All, artId: "card_full_sail_turn");
+                "抽2", NavalBattleStages.Ship, artId: "card_full_sail_turn");
             Assert.That(CoreBoardingCardCatalog.ReplaceLegacyBoarding(shared), Is.SameAs(shared));
-            CoreBattleCard boarding = CoreBoardingCardCatalog.ForBoarding(shared);
-            Assert.That(boarding.Id, Is.EqualTo(shared.Id));
+            Assert.That(CoreBoardingCardCatalog.ForBoarding(shared), Is.SameAs(shared));
+            Assert.That(CoreBoardingCardCatalog.IsLegacyAlias(shared), Is.False);
+            CoreBattleCard boarding = CoreBoardingCardCatalog.FindByKey("basic_08");
+            Assert.That(boarding.Id, Is.Not.EqualTo(shared.Id));
             Assert.That(boarding.Energy, Is.EqualTo(2));
             Assert.That(boarding.Draw, Is.EqualTo(3));
             Assert.That(shared.Energy, Is.EqualTo(1));
@@ -110,18 +112,18 @@ namespace ShatteredSail.Tests.EditMode
         [Test]
         public void FixedPaymentRevision_UsesCommittedHealGuardAndLifeCostValues()
         {
-            Assert.That(CoreBoardingCardCatalog.FindByKey("fire_05").Repair, Is.EqualTo(10));
-            Assert.That(CoreBoardingCardCatalog.FindByKey("arcane_05").Repair, Is.EqualTo(13));
-            Assert.That(CoreBoardingCardCatalog.FindByKey("curse_12").Repair, Is.EqualTo(13));
-            Assert.That(CoreBoardingCardCatalog.FindByKey("curse_15").Block, Is.EqualTo(10));
-            Assert.That(CoreBoardingCardCatalog.FindByKey("tide_11").Repair, Is.EqualTo(10));
-            Assert.That(CoreBoardingCardCatalog.FindByKey("tide_12").Repair, Is.EqualTo(8));
-            Assert.That(CoreBoardingCardCatalog.FindByKey("blood_02").Damage, Is.EqualTo(34));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("fire_05").Repair, Is.EqualTo(20));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("arcane_05").Repair, Is.EqualTo(26));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("curse_12").Repair, Is.EqualTo(26));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("curse_15").Block, Is.EqualTo(20));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("tide_11").Repair, Is.EqualTo(20));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("tide_12").Repair, Is.EqualTo(11));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("blood_02").Damage, Is.EqualTo(68));
             foreach (string key in new[] { "arcane_04", "arcane_06", "arcane_11", "tide_06", "tide_07" })
                 Assert.That(CoreBoardingCardCatalog.FindByKey(key).Description, Does.Contain("X").And.Not.Contain("X为").And.Not.Contain("消耗全部"), key);
-            Assert.That(CoreBoardingCardCatalog.FindByKey("fire_15").Description, Does.Contain("转移至多 4 层自燃"));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("fire_15").Description, Is.EqualTo("将自己的燃烧效果转移到敌方。"));
             Assert.That(CoreBoardingCardCatalog.FindByKey("arcane_15").Description, Is.EqualTo("立即结算一个延迟效果。"));
-            Assert.That(CoreBoardingCardCatalog.FindByKey("tide_05").Description, Does.Contain("获得 6 点潮势"));
+            Assert.That(CoreBoardingCardCatalog.FindByKey("tide_05").Description, Does.Contain("当前全部格挡及后续获得的格挡转换为等量蓄潮格挡"));
         }
     }
 }

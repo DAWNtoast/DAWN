@@ -236,7 +236,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(session.Cargo.BlackPearl, Is.EqualTo(Math.Ceiling((pearls + 2) * protection)));
                     Assert.That(session.Cargo.AncientCompass, Is.EqualTo(compass + 1));
                 }
-                ActiveButton("Skip Settlement Reveal").onClick.Invoke(); yield return null;
+                yield return SettlementChestTestActions.ShowOverview();
                 ActiveButton("Return To Port").onClick.Invoke(); yield return null;
                 Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                 Assert.That(session.CompletedTreasureSeeds, Does.Contain(seed));

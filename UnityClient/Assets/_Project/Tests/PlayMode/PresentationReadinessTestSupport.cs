@@ -8,21 +8,9 @@ namespace ShatteredSail.Presentation.Tests
     {
         private static IEnumerator DismissTreasureStoryIfPresent(CoreGameplayDemoController controller)
         {
-            if (GameObject.Find("Treasure Story Overlay") == null) yield break;
-            var session = controller.Session;
-            var phase = session.Phase;
-            var encounter = session.ActiveEncounter;
-            double hours = session.TotalHours;
-            int pages = CoreTreasureStoryCatalog.FindChapter(session.ActiveTreasureMap.RankId).ImageResources.Count;
-            for (int i = 0; i < pages && GameObject.Find("Treasure Story Overlay") != null; i++)
-            {
-                ClickAcceptanceButton("Treasure Story Advance");
-                yield return null;
-            }
-            Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null);
-            Assert.That(session.Phase, Is.EqualTo(phase), "Dismissing narrative must not resolve or skip the encounter.");
-            Assert.That(session.ActiveEncounter, Is.SameAs(encounter));
-            Assert.That(session.TotalHours, Is.EqualTo(hours), "Dismissing narrative must not advance encounter conditions.");
+            Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null,
+                "Entering a treasure voyage must proceed directly to navigation without an introductory comic.");
+            yield break;
         }
 
         private static IEnumerator WaitForEncounterDossierPresentationCompletion()

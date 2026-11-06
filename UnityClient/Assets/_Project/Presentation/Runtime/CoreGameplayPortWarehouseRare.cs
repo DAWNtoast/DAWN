@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,90 +12,19 @@ namespace ShatteredSail.Presentation
             InvalidateWarehouseCargoDialog();
             portWarehouseInventoryView = ledger;
             string port = CurrentWarehousePort;
-            BuildWarehouseCargoSummary(ledger, "Warehouse Rare Summary", port + " · 珍稀物品仓储");
-            BuildWarehouseCargoGrid(ledger, true);
-            string[] ids = { "Name", "Stored", "Carried", "Volume" };
-            string[] headers = { "珍稀物品", "本港库存", "船舱数量", "船舱占用" };
-            float[] x = WarehouseCargoColumnX;
-            float[] widths = WarehouseCargoColumnWidths;
-            for (int column = 0; column < ids.Length; column++)
-                BuildWarehouseSortHeader("Warehouse Rare Header " + ids[column], ledger, new Vector2(widths[column] - 2f, 40f),
-                    new Vector2(x[column], 190f), headers[column], column);
-            var snapshots = new WarehouseCargoQuote[CoreWarehouseItemCatalog.RareItems.Count];
-            bool hasCarriedRare = false;
-            int[] order = WarehouseCargoOrder(CoreWarehouseItemCatalog.RareItems.Count, index =>
+            BuildWarehouseCargoLocationSelector(ledger);
+            for (int rowIndex = 0; rowIndex < CoreWarehouseItemCatalog.RareItems.Count; rowIndex++)
             {
-                CoreWarehouseItemDefinition cargo = CoreWarehouseItemCatalog.RareItems[index];
-                if (warehouseCargoSortColumn == 1) return session.PortWarehouse.GetAmount(port, cargo.Key);
-                int amount = session.GetWarehouseCargoAmount(cargo.Key);
-                return warehouseCargoSortColumn == 2 ? amount : amount * cargo.UnitVolume;
-            });
-            for (int rowIndex = 0; rowIndex < order.Length; rowIndex++)
-            {
-                int index = order[rowIndex];
-                CoreWarehouseItemDefinition item = CoreWarehouseItemCatalog.RareItems[index];
+                CoreWarehouseItemDefinition item = CoreWarehouseItemCatalog.RareItems[rowIndex];
                 string key = item.Key;
                 int carried = session.GetWarehouseCargoAmount(key);
-                hasCarriedRare |= carried > 0;
                 int stored = session.PortWarehouse.GetAmount(port, key);
-                snapshots[index] = CreateWarehouseCargoQuote(key, editorPreviewBuilding || !Application.isPlaying);
-                Button row = WarehouseButton("Warehouse Rare Row " + key, ledger,
-                    new Vector2(WarehouseLedgerWidth, 68f), new Vector2(0f, 135f - rowIndex * 72f),
-                    WarehouseRoomTheme.Lining, WarehouseRoomTheme.Ink, 20);
-                row.GetComponentInChildren<Text>().text = string.Empty;
-                StyleWarehouseInventoryButton(row);
-                WarehouseItemIcon("Warehouse Rare Icon " + key, row.transform, ItemIconCatalog.ForCargo(key),
-                    new Vector2(-265f, 0f), 56f);
-                string[] values = { item.Name, stored.ToString(CultureInfo.InvariantCulture),
-                    carried.ToString(CultureInfo.InvariantCulture), WarehouseVolume(carried * item.UnitVolume) };
-                for (int column = 0; column < ids.Length; column++)
-                {
-                    Text label = WarehouseLabel("Warehouse Rare " + ids[column] + " " + key, row.transform,
-                        new Vector2(column == 0 ? 130f : widths[column] - 8f, 48f),
-                        new Vector2(column == 0 ? -169f : x[column], 0f), 20,
-                        values[column], column == 0 ? WarehouseRoomTheme.Brass : WarehouseRoomTheme.Ink);
-                    label.raycastTarget = false;
-                    label.resizeTextForBestFit = true;
-                    label.resizeTextMinSize = 13;
-                    label.resizeTextMaxSize = 20;
-                }
+                Button row = BuildWarehouseCargoTile(ledger, true, rowIndex, key, item.Name,
+                    stored, carried);
                 row.interactable = Application.isPlaying && !editorPreviewBuilding && WarehouseCargoActionsAllowed;
                 AddWarehouseAction(row, () => OpenWarehouseRareActions(key, carried, stored));
             }
-            bool consumed = false;
-            Button all = WarehouseAction("Warehouse Store All Rare", ledger, new Vector2(WarehouseLedgerWidth, 54f),
-                new Vector2(0f, -330f), "珍稀物品全部存入本港", () =>
-                {
-                    if (consumed || !CanUseWarehouseRareInventory() || activeWarehouseCargoQuote != null) return;
-                    foreach (WarehouseCargoQuote quote in snapshots)
-                    {
-                        if (!ReferenceEquals(quote.View, portWarehouseInventoryView) || !WarehouseQuoteInventoryUnchanged(quote))
-                        {
-                            portWarehouseNotice = "库存或货舱状态已变化，请重新确认存仓。";
-                            Render();
-                            return;
-                        }
-                    }
-                    consumed = true;
-                    if (!session.TryDepositAllRarePortCargo())
-                        portWarehouseNotice = "存仓未完成；请检查随船珍稀物品及本港库存上限。";
-                    else
-                    {
-                        // SaveProgress queues both port inventory and carried
-                        // treasure cargo before its final PlayerPrefs.Save.
-                        SaveProgress();
-                        portWarehouseNotice = "六类随船珍稀物品已全部存入" + port + "，船舱已腾出空间。";
-                    }
-                    Render();
-                });
-            if (!hasCarriedRare) all.GetComponentInChildren<Text>().text = "没有随船珍稀物品";
-            all.interactable = hasCarriedRare && Application.isPlaying && !editorPreviewBuilding && WarehouseCargoActionsAllowed &&
-                session.CanDepositAllRarePortCargo();
-            Text hint = WarehouseLabel("Warehouse Rare Hint", ledger, new Vector2(WarehouseLedgerWidth, 38f),
-                new Vector2(0f, -281f), 17, portWarehouseNotice, WarehouseRoomTheme.Muted);
-            hint.resizeTextForBestFit = true;
-            hint.resizeTextMinSize = 14;
-            hint.resizeTextMaxSize = 17;
+            BuildWarehouseStorageHint("Warehouse Rare Hint", ledger, portWarehouseNotice);
         }
 
         private bool CanUseWarehouseRareInventory() => Application.isPlaying && !editorPreviewBuilding &&

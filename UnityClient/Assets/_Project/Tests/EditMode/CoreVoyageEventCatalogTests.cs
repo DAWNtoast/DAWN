@@ -55,6 +55,7 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void MandatoryEvents_HaveAZeroSupplyFallbackAndChoicesUseImplementedCrew()
         {
+            var noEffect = new VoyageEffect();
             foreach (string route in Routes)
             foreach (CoreEncounter e in CoreVoyageEventCatalog.CreateExpandedFixedEncounters(route).Concat(
                 CoreVoyageEventCatalog.RandomEventIds(route).Select(id => CoreVoyageEventCatalog.CreateRandomEncounter(id, 100))))
@@ -64,7 +65,10 @@ namespace ShatteredSail.Core.Tests
                 {
                     Assert.That(SupportedCrew, Does.Contain(choice.RequiredCrew), e.Id);
                     Assert.That(choice.Hours, Is.GreaterThanOrEqualTo(0), e.Id);
-                    Assert.That(choice.Detail, Is.Not.Empty, e.Id);
+                    Assert.That(choice.Detail, Is.Not.Null, e.Id);
+                    if (choice.StartsBattle || typeof(VoyageEffect).GetProperties().Any(property =>
+                        !Equals(property.GetValue(choice.Effect), property.GetValue(noEffect))))
+                        Assert.That(choice.Detail, Is.Not.Empty, e.Id);
                     Assert.That(choice.Effect.SailingBoostHours, Is.InRange(0, 24), e.Id);
                     Assert.That(choice.Effect.SurveyBoostHours, Is.InRange(0, 24), e.Id);
                     if (!string.IsNullOrEmpty(choice.RequiredDiscovery))

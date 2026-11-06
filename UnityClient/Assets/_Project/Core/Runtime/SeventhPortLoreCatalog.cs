@@ -23,13 +23,15 @@ namespace ShatteredSail.Content
     /// </summary>
     public sealed class SeventhPortFormerLieutenant
     {
-        public SeventhPortFormerLieutenant(string id, string name, string fleetId, string fate, bool stillSearching)
+        public SeventhPortFormerLieutenant(string id, string name, string fleetId, string fate, bool stillSearching,
+            bool isSparring = false)
         {
             Id = id ?? string.Empty;
             Name = name ?? string.Empty;
             FleetId = fleetId ?? string.Empty;
             Fate = fate ?? string.Empty;
             StillSearching = stillSearching;
+            IsSparring = stillSearching || isSparring;
         }
 
         public string Id { get; }
@@ -37,6 +39,7 @@ namespace ShatteredSail.Content
         public string FleetId { get; }
         public string Fate { get; }
         public bool StillSearching { get; }
+        public bool IsSparring { get; }
     }
 
     public sealed class SeventhPortStoryLink
@@ -89,9 +92,9 @@ namespace ShatteredSail.Content
         public const string Premise =
             "年少离家的老船长曾把六港的逃亡者、渔民和工匠带上同一面无王徽的帆。他们跨过千山万水，与风暴、海神和收税的炮台争路，只为建一座没有贵族泊位的第七港口，让每个人都能带着自己的名字靠岸。";
         public const string CurrentIntroduction =
-            "胜利短暂地打开了潮门，老船长却发现有些部下已把自由旗换成了黑帆：有人收起港税，有人借神谕审判，有人把救援变成掠夺。他难过而不甘，留下罗盘、铜钟和一张未完成的海图，独自驶向无人灯塔。如今你寻找的不是一座现成的城，而是在收集部件、招募船员、探索海路和面对旧部的选择中，逐渐成为愿为天下留泊位的新船长。";
+            "潮门打开后，老船长与伙伴渡过大潮，初建第七港口。后来特权渐生，有人借整顿扩大追查。他承认失察与授权之害，救回误扣者，分别托付遗物，再从断锚港独自出海。帆影朝向无人灯塔，动机与归宿未明。许多个航季后，旧航线失散，你将循各方证言寻找未竟的约定。";
         public const string PlayerPromise =
-            "每件部件、船只、船员和收藏品都只保存一半答案：一半来自老船长亲历的航海档案，另一半只能从磨痕、歌声和失真的传闻中推断。你要击败忘记初心的旧部，与仍在寻找老船长的人切磋，并在建设第七港口的过程中把自由旗交给下一位后来者。";
+            "每件部件、船只、船员和收藏品都只保存一半答案：一半来自老船长亲历的航海档案，另一半只能从磨痕、歌声和失真的传闻中推断。你要击败忘记初心的旧部，与仍在寻找老船长的人和保持中立的探险者切磋，并在建设第七港口的过程中把自由旗交给下一位后来者。";
 
         private static readonly IReadOnlyList<string> formerCrewIds = Array.AsReadOnly(new[]
         {
@@ -109,6 +112,7 @@ namespace ShatteredSail.Content
             new SeventhPortFormerLieutenant("red_widow", "绯刃·玛拉", "legendary_pirate_red_widow", "把救援队变成收取保护费的登船队。", false),
             new SeventhPortFormerLieutenant("ember_ark", "余烬·伊诺", "legendary_pirate_ember_ark", "向火神换取永燃之火，烧毁了自由誓。", false),
             new SeventhPortFormerLieutenant("tide_requiem", "潮汐·塞勒涅", "legendary_pirate_tide_requiem", "仍沿旧航路寻找老船长，接受非致命的切磋。", true),
+            new SeventhPortFormerLieutenant("last_horizon", "终界观星者", "legendary_pirate_last_horizon", "虽不理解老船长的行为，却从未反叛；在老船长离开后保持中立，重新踏上探险航路，接受非致命的切磋。", false, isSparring: true),
         });
 
         private static readonly string[] formerCrewIdsArray =
@@ -146,7 +150,7 @@ namespace ShatteredSail.Content
             Lore("instrument_brass_compass", "黄铜齿轮的凹槽里积着细盐。老船长曾用同样的齿轮校过六港潮线。他留下的刻痕，记着一条规矩：这条路，不许任何港主独占。", true),
             Lore("plating_living_hull", "老船长的船匠用活龙骨的木料制成这层船壳。乘客走过甲板，木纹便记下他们的重量；人离船后，痕迹仍留在原处。", true),
             Lore("sail_last_free_wind", "离港那天，老船长剪下了这一角帆布。针脚指向海图上的空白处，可谁也没能在缝线尽头标出第七泊位。", true),
-            Lore("bow_last_horizon", "这是老船长独自驶入风暴前留下的船首像。他说，前头若有浪拦路，船首就该先替陌生人撞开。", true),
+            Lore("bow_last_horizon", "老船长最后离港前留下的船首像，额上有几道修补的钉痕。旧工匠记得他总说，船首该先替遇险者挡浪；至于那艘小船最后去了哪里，谁也没有确证。", true),
             Lore("bow_oak_ram", "断锚号的旧账上只记着“橡木五铆”，没有署名。铆钉的排法却和六港公共船坞惯用的一样，像是用同一把尺子量过。", false),
             Lore("cannon_chain_repeater", "连射停下后，总还多出一声回响。铜钟港老人说，那是第十三响的回声。至于是谁校过炮膛，却没人知道。", false),
             Lore("instrument_lunar_astrolabe", "月蚀时，指针偏向海图上没有的航线。潮汐镇魂号的日志也空着同一段，未写抵达，亦未写返航。", false),
@@ -156,7 +160,7 @@ namespace ShatteredSail.Content
 
         private static readonly IReadOnlyList<SeventhPortLoreEntry> shipLore = Array.AsReadOnly(new[]
         {
-            Lore("sloop", "老船长修好的第一艘船没有王徽，备用舱里添了几排吊床钩，留给六港逃亡者。断锚港旧账与洛恩的潮汐笔记，都记着穿过碎帆礁海、升起第一面自由旗的那一夜。", true),
+            Lore("sloop", "老船长修好的第一艘船先接回触礁者，后来载着六港逃亡者穿过断锚风暴，舱里添了几排吊床钩。洛恩的笔记还记着更晚的一次离港：在盐冠港护送佩佩与码头工时，他们才剪下旧帆，签名升起第一面自由旗。", true),
             Lore("patrol", "炮塔上留着第十三道校炮痕，槽里压满海盐。潮门之战中，老船长把巡防舰改作护航舰，让炮口守住撤离水道。刻痕记下的不是击沉数，而是伤员与难民船通过时的角度。", true),
             Lore("merchant", "舱壁刻着六个港名，税印早已刮净。金潮号的船员说，它从不错过集市，也总空出一格舱位给付不起船钱的归乡人。账页与木屑指向同一条旧航线，尚不能证明这与老船长有关。", false),
             Lore("relic", "无月夜里，月蚀号的龙骨自行转向北方。有人认出紫帆上那枚缺角星盘，说它记着老船长独自驶入无人灯塔的末次航迹。也有人只当这是寻宝者借来的故事；两种说法都无从证实。", false),
@@ -186,10 +190,10 @@ namespace ShatteredSail.Content
 
         private static readonly IReadOnlyList<SeventhPortLoreEntry> treasureLore = Array.AsReadOnly(new[]
         {
-            Lore("first_victory_compass", "老船长初次远航用过的黄铜罗盘，壳上留着盐斑。指针不追逐宝藏，始终偏向那些愿为旁人留下泊位的岸。", true),
+            Lore("first_victory_compass", "老船长初次远航用过的黄铜罗盘，壳上留着盐斑。洛恩的潮汐笔记记着他们怎样接回触礁者，又载着六港来客穿过风暴。指针仍在转，最后那次独行却没有留下完整航迹。", true),
             Lore("boatswain_bell", "钟沿已被盐风磨薄，第十三响仍听得清。老船长远征时用它召集六港船队；此后，只有护送与救援会再敲响它。", true),
-            Lore("sealed_chart", "离港前，老船长把这张封蜡海图交给六港。旧线条隐在蜡下，互助之后才浮出一段，像有人隔着海补上未写完的航程。", true),
-            Lore("old_captain_free_flag", "这是老船长第一次拒缴港税时升起的旗。颜色褪了，六港水手仍认得帆布上的旧针脚，知道旗下还有一处可以靠岸。", true),
+            Lore("sealed_chart", "老船长离开前，把这张封蜡海图与其他遗物分别托付。有人说救援归来后，蜡下多了一段线；也有人只见旧痕。图曾指向哪里、为何难再循行，各份航册仍有分歧。", true),
+            Lore("old_captain_free_flag", "这是老船长在盐冠港外拒缴逃籍者赎身罚金时升起的旗。颜色褪了，六港水手仍认得帆布上的名字与指印，记得大家曾共同许下靠岸的约定。", true),
             Lore("unfinished_seventh_berth_key", "六格钥齿已经锉好，第七格还留着粗坯。老船长把最后这道活，留给愿替天下过路人守住泊位的人。", true),
             Lore("moon_tide_astrolabe", "月蚀时，盘上多出一道海图未记的潮线。塞勒涅循线航行，却从不说明潮线的尽头，是否有人等她。", false),
             Lore("iron_oath_shackle", "税印曾被磨掉三次。最后一层锉痕斜向一旁，恰与六港公共码头的石阶同向；锁环没有留下动手者的名字。", false),

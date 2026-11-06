@@ -25,7 +25,7 @@ namespace ShatteredSail.Presentation.Tests
         // Query the next legal cells after each drag segment, rather than assuming
         // that an AP card moves the ship or that a turn can reverse its heading.
         private static IEnumerator AdvanceAcceptanceNavalRange(CoreGameplayDemoController controller,
-            Func<string, IEnumerator> click)
+            Func<string, IEnumerator> click, Func<int> selectArrivalHeading = null)
         {
             CoreVoyageSession session = controller.Session;
             Assert.That(AcceptanceNavalMovementNeeded(session), Is.True);
@@ -63,10 +63,11 @@ namespace ShatteredSail.Presentation.Tests
             {
                 var headings = session.GetNavalArrivalHeadings();
                 Assert.That(headings.Count, Is.GreaterThan(0));
-                int choice = Enumerable.Range(0, headings.Count)
+                int choice = selectArrivalHeading != null ? selectArrivalHeading() : Enumerable.Range(0, headings.Count)
                     .OrderBy(index => CoreVoyageSession.NavalGridDistance(
                         AcceptanceCourseForward(battle.PlayerPositionMeters, headings[index]), battle.EnemyPositionMeters))
                     .First();
+                Assert.That(choice, Is.InRange(0, headings.Count - 1));
                 string target = "Naval Arrival Heading " + choice;
                 yield return WaitTacticalHeadingPointerReady(target);
                 yield return click(target);

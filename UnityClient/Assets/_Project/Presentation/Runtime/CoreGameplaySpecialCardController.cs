@@ -18,13 +18,15 @@ namespace ShatteredSail.Presentation
 
         private void OpenWorkshopSpecialCardCollection(bool fromDeckBuilder)
         {
-            if (BlockIncompleteDeckBuilderNavigation()) return;
+            if (battleCardUpgradeOpen || BlockIncompleteDeckBuilderNavigation()) return;
+            workshopPacksOpen = false;
             if (!specialCardCollectionOpen || cardWorkshopDeckBuilderOpen != fromDeckBuilder)
             {
                 specialCardCollectionPage = 0;
                 selectedSpecialCardIndex = -1;
             }
             specialCardCollectionOpen = true;
+            workshopCollectionOpen = !fromDeckBuilder;
             cardWorkshopDeckBuilderOpen = fromDeckBuilder;
             battleCardUpgradeOpen = false;
             battleDeckOverviewOpen = false;

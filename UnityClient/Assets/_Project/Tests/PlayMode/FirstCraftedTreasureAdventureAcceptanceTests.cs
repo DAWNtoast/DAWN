@@ -141,6 +141,9 @@ namespace ShatteredSail.Presentation.Tests
             private string State() => JsonUtility.ToJson(new AdventureState {
                 phase = Session.Phase.ToString(), gold = (double)Session.ProfileGold, voyageGold = Session.Cargo.Gold,
                 water = Session.Cargo.Water, food = Session.Cargo.Food, hull = Session.Hull,
+                beer = Session.Cargo.Beer, medicine = Session.Cargo.Medicine, wood = Session.Cargo.Wood,
+                iron = Session.Cargo.Iron, cloth = Session.Cargo.Cloth,
+                powder = Session.Cargo.Powder, cannonballs = Session.Cargo.Cannonballs,
                 experience = Session.PirateExperience, level = Session.PirateLevel, fragments = Session.TreasureFragments,
                 weatheredFragments = Session.GetIdentifiedTreasureFragments("weathered"), gildedFragments = Session.GetIdentifiedTreasureFragments("gilded"),
                 moonlitFragments = Session.GetIdentifiedTreasureFragments("moonlit"),
@@ -242,12 +245,8 @@ namespace ShatteredSail.Presentation.Tests
                 yield return WaitForNavigationMotionCompletion(controller);
                 yield return null;
                 Record("Click: " + name, before);
-                if (GameObject.Find("Treasure Story Overlay") != null)
-                {
-                    string storyBefore = State();
-                    yield return DismissTreasureStoryIfPresent(controller);
-                    Record("Clicks: Treasure Story Advance through all comic pages", storyBefore);
-                }
+                Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null,
+                    "Treasure voyages proceed directly to exploration without an introductory comic.");
             }
             private IEnumerator EnsureGold(int required, string reason)
             {
@@ -332,13 +331,18 @@ namespace ShatteredSail.Presentation.Tests
                 yield return Click("Return To Port Hub");
                 yield return Click("Return To Port Hub");
                 yield return Click("Port Hotspot CardWorkshop");
-                yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
+                yield return Click("Workshop Entrance Collection");
+                yield return Click("Workshop Preview Stage Naval"); yield return Click("Workshop Page Upgrade");
                 foreach (int index in new[] { 0, 5, 6 }
                     .OrderBy(value => CoreBattleCardNumbering.Number(CoreVoyageSession.CardLibrary[value])))
                 {
-                    int pageCount = Math.Max(1, (Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count + 7) / 8);
-                    for (int page = 0; ActiveButton("Select Upgrade Card " + index) == null && page < pageCount; page++)
+                    int available = Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count;
+                    for (int page = 0; ActiveButton("Select Upgrade Card " + index) == null && page < available; page++)
+                    {
+                        Assert.That(ActiveButton("Next Upgrade Cards")?.IsInteractable(), Is.True,
+                            "The owned preparation card must be reachable through the current upgrade pager.");
                         yield return Click("Next Upgrade Cards");
+                    }
                     yield return Click("Select Upgrade Card " + index);
                     Shot("Upgrade_Preview_" + index, "Battle Card Upgrade Panel", "UICardWorkshop/UICardWorkshop_UpgradePreview");
                     int maximumLevel = Session.GetCardMaximumUpgradeLevel(index);
@@ -360,7 +364,9 @@ namespace ShatteredSail.Presentation.Tests
                         "The real forge disables payment at this card's authored maximum.");
                     Shot("Upgrade_Complete_" + index, "Battle Card Upgrade Panel", "UICardWorkshop/UICardWorkshop_UpgradeComplete");
                 }
-                yield return Click("Back From Card Upgrades");
+                yield return Click("Workshop Page Collection");
+                yield return Click("Return To Port Hub");
+                Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
                 yield return Click("Return To Port Hub");
             }
             public IEnumerator PrepareTreasureSupplies(CoreTreasureMapRecord crafted)
@@ -380,6 +386,8 @@ namespace ShatteredSail.Presentation.Tests
                 yield return PrepareSupplies(rationTarget, true);
                 Assert.That(Session.Cargo.Water, Is.GreaterThanOrEqualTo(rationTarget));
                 Assert.That(Session.Cargo.Food, Is.GreaterThanOrEqualTo(rationTarget));
+                Assert.That(Session.Cargo.Powder, Is.GreaterThanOrEqualTo(12));
+                Assert.That(Session.Cargo.Cannonballs, Is.GreaterThanOrEqualTo(20));
                 Assert.That(Session.Cargo.UsedVolume, Is.LessThanOrEqualTo(Session.CargoCapacityValue + .001f));
                 Assert.That(Session.TreasureMaps.Any(map => map.Id == crafted.Id), Is.True, "Provisioning must preserve the actual crafted map.");
                 Assert.That(Session.SelectedTreasureMap, Is.Null);
@@ -394,6 +402,11 @@ namespace ShatteredSail.Presentation.Tests
             public IEnumerator PrepareSupplies(int rationTarget, bool exactQuantities = false)
             {
                 bool marketShortage = false;
+                var purchases = new[] {
+                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Water, rationTarget),
+                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Food, rationTarget),
+                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Powder, 12),
+                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Cannonballs, 20) };
                 // The final treasure preparation uses the existing budget and
                 // fails explicitly if it cannot afford its actual market quote.
                 if (!exactQuantities) yield return EnsureGold(2500, "market_supplies");
@@ -409,11 +422,8 @@ namespace ShatteredSail.Presentation.Tests
                         yield return Click(sell.name);
                     }
                 }
-                foreach (var purchase in new[] {
-                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Water, rationTarget),
-                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Food, rationTarget),
-                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Powder, 12),
-                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Cannonballs, 20) })
+                if (exactQuantities) yield return MakeRoomForTreasureSupplies(purchases);
+                foreach (var purchase in purchases)
                 {
                     string key = PortMarketCatalog.Key(purchase.Key);
                     while (Session.GetMarketCargoAmount(key) < purchase.Value)
@@ -503,6 +513,58 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(GameObject.Find("Port Investment Panel"), Is.Not.Null);
                 }
                 yield return Click("Return To Port Hub");
+            }
+            private double PlannedSupplyVolume(IEnumerable<KeyValuePair<PortMarketItem,int>> purchases) =>
+                Session.Cargo.UsedVolume + purchases.Sum(purchase =>
+                    Math.Max(0, purchase.Value - Session.GetMarketCargoAmount(PortMarketCatalog.Key(purchase.Key))) *
+                    (double)PortMarketCatalog.CargoVolume(purchase.Key));
+
+            private IEnumerator MakeRoomForTreasureSupplies(KeyValuePair<PortMarketItem,int>[] purchases)
+            {
+                // Returning voyages leave variable amounts of trade goods and
+                // ammunition. Reserve the entire ration and ammunition order
+                // before purchasing any one item. Sell only the needed surplus,
+                // keeping all medicine and twelve planks for repairs.
+                int medicine = Session.Cargo.Medicine;
+                int repairWood = Math.Min(Session.Cargo.Wood, 12);
+                Record("Treasure load plan: projected=" + PlannedSupplyVolume(purchases).ToString("F3", CultureInfo.InvariantCulture) +
+                    "; capacity=" + Session.CargoCapacityValue + "; medicineReserve=" + medicine + "; woodReserve=" + repairWood, "");
+                foreach (var reserve in new[] {
+                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Beer, 0),
+                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Wood, repairWood),
+                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Powder, 12),
+                    new KeyValuePair<PortMarketItem,int>(PortMarketItem.Cannonballs, 20) })
+                {
+                    double excessVolume = PlannedSupplyVolume(purchases) - Session.CargoCapacityValue;
+                    if (excessVolume <= .001d) break;
+                    string key = PortMarketCatalog.Key(reserve.Key);
+                    int oldAmount = Session.GetMarketCargoAmount(key);
+                    int surplus = Math.Max(0, oldAmount - reserve.Value);
+                    if (surplus == 0) continue;
+                    int amount = Math.Min(surplus, (int)Math.Ceiling(excessVolume / PortMarketCatalog.CargoVolume(reserve.Key)));
+                    yield return OpenMarketTrade(key, false);
+                    yield return EnterMarketQuantity(key, amount.ToString(CultureInfo.InvariantCulture), purchase: false);
+                    Assert.That(Mathf.RoundToInt(MarketQuantityField(key).value), Is.EqualTo(amount),
+                        "The market must retain the exact surplus sale quantity: " + key);
+                    Button sell = RequireGuidedButton("Confirm Market Sell " + key);
+                    Assert.That(sell.IsInteractable(), Is.True, "The planned surplus must be sold through the market: " + key);
+                    decimal gold = Session.ProfileGold;
+                    double volume = Session.Cargo.UsedVolume;
+                    decimal revenue = PortMarketCatalog.CalculateSellRevenue(Session.CurrentPort, reserve.Key, Session.GameDateTime, amount);
+                    AssertMarketTradeTotal(revenue);
+                    yield return Click(sell.name);
+                    Assert.That(Session.GetMarketCargoAmount(key), Is.EqualTo(oldAmount - amount));
+                    Assert.That(Session.GetMarketCargoAmount(key), Is.GreaterThanOrEqualTo(reserve.Value));
+                    Assert.That(Session.ProfileGold, Is.EqualTo(gold + revenue));
+                    Assert.That((double)Session.Cargo.UsedVolume,
+                        Is.EqualTo(volume - amount * (double)PortMarketCatalog.CargoVolume(reserve.Key)).Within(.001d));
+                    Record("Treasure surplus sold: " + key + "=" + amount + "; projected=" +
+                        PlannedSupplyVolume(purchases).ToString("F3", CultureInfo.InvariantCulture), "");
+                }
+                Assert.That(Session.Cargo.Medicine, Is.EqualTo(medicine), "Medicine remains available for healing and expedition choices.");
+                Assert.That(Session.Cargo.Wood, Is.GreaterThanOrEqualTo(repairWood));
+                Assert.That(PlannedSupplyVolume(purchases), Is.LessThanOrEqualTo(Session.CargoCapacityValue + .001d),
+                    "The complete treasure ration and ammunition order must fit after legal surplus sales.");
             }
             public IEnumerator Explore(bool treasure)
             {
@@ -859,6 +921,7 @@ namespace ShatteredSail.Presentation.Tests
                 if (treasure) Assert.That(Session.Settlement.TreasureCompleted, Is.True);
                 Shot(treasure ? "Treasure_Completed_Settlement" : "Fragment_Settlement", "Settlement Card", "UI_Settlement");
                 yield return Click("Return To Port");
+                yield return ClickThroughAcceptanceArrivalComic(controller);
                 Assert.That(Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                 Assert.That(Session.TreasureFragments, Is.EqualTo(fragments + earned));
                 Assert.That(Session.PirateExperience, Is.EqualTo(experience + xp));
@@ -889,7 +952,7 @@ namespace ShatteredSail.Presentation.Tests
         [Serializable] private sealed class AdventureState
         { public string phase,encounter,seed,rank,expedition; public double gold,gameHours; // JSON display only; actual balance assertions remain decimal.
             public int voyageGold,water,food,hull,experience,level,fragments,weatheredFragments,gildedFragments,moonlitFragments,pendingFragments,maps,clues,requiredClues,crew;
-            public int credit,heat,resonance,curse;
+            public int credit,heat,resonance,curse,beer,medicine,wood,iron,cloth,powder,cannonballs;
             public float distance,x,y,capacity,usedVolume; }
     }
 }

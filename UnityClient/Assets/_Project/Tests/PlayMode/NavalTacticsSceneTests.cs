@@ -37,7 +37,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest, Timeout(360000)]
-        public IEnumerator NavalTactics_GuidedCourseAllowsAlternateHeadingsAndBothRealContacts()
+        public IEnumerator NavalTactics_GuidedCourseAllowsAlternateBasicHeadingsAndRequiresEastForRam()
         {
             using (var storage = new VoyageCargoStorageScope())
             {
@@ -45,12 +45,9 @@ namespace ShatteredSail.Presentation.Tests
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
                 yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseBasicsDone, true);
                 AssertTacticalPoint(controller.Session.Battle.PlayerPositionMeters, new VoyagePoint(-500f, 100f));
-                Assert.That(controller.Session.Battle.PlayerHeadingDegrees, Is.EqualTo(180f));
-                yield return PlayGuidedScriptAction(controller, false, null);
-                yield return PlayGuidedScriptAction(controller, false, null, true);
-                Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseManeuverDone));
-                AssertTacticalPoint(controller.Session.Battle.PlayerPositionMeters, new VoyagePoint(-500f, -100f));
-                Assert.That(controller.Session.Battle.PlayerHeadingDegrees, Is.EqualTo(180f));
+                Assert.That(controller.Session.Battle.PlayerHeadingDegrees, Is.EqualTo(0f));
+                Assert.That(controller.Session.Battle.NavalActionPoints, Is.Zero,
+                    "The two same-name approach cards fund a second completed trip before the lesson ends.");
                 yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseBoardContact, true);
                 Assert.That(controller.Session.Battle.DistanceMeters, Is.EqualTo(100f));
                 Assert.That(controller.Session.Battle.NavalActionPoints, Is.EqualTo(1));
@@ -60,24 +57,12 @@ namespace ShatteredSail.Presentation.Tests
                 yield return PlayGuidedScriptAction(controller, false, null);
                 Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseBoardDone));
                 yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseRamMove);
-                // Choose a legal but tactically wrong arrival heading, then fix
-                // it by actual movement and turns rather than resetting the lesson.
-                yield return ClickGuidedCourseRoute(controller, new[] { new VoyagePoint(-100f, 0f) }, 90f);
+                // The route helper verifies other headings stay disabled and
+                // cannot advance this lesson before explicitly choosing east.
+                yield return ClickGuidedCourseRoute(controller, new[] { new VoyagePoint(-100f, 0f) }, 0f);
                 Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseRamAction));
+                Assert.That(controller.Session.Battle.PlayerHeadingDegrees, Is.EqualTo(0f));
                 yield return PlayGuidedScriptAction(controller, false, null);
-                Assert.That(controller.Session.CanRam(out _), Is.False);
-                var recoveryRoute = new[] { new VoyagePoint(-100f, 100f), new VoyagePoint(0f, 100f),
-                    new VoyagePoint(100f, 100f), new VoyagePoint(100f, 0f) };
-                var recoveryHeadings = new[] { 0f, 0f, 270f, 180f };
-                for (int index = 0; index < recoveryRoute.Length; index++)
-                {
-                    yield return ClickGuidedCourseRoute(controller, new[] { recoveryRoute[index] }, recoveryHeadings[index]);
-                    ClickAcceptanceButton("End Battle Turn");
-                    yield return WaitGuidedBossAnimation(controller);
-                    Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseRamContact));
-                    Assert.That(controller.Session.Battle.NavalActionPoints, Is.EqualTo(1));
-                }
-
                 Assert.That(controller.Session.Battle.DistanceMeters, Is.EqualTo(100f));
                 Assert.That(controller.Session.Battle.NavalActionPoints, Is.EqualTo(1));
                 Assert.That(controller.Session.CanRam(out reason), Is.True, reason);
@@ -111,10 +96,25 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(enemy.x - player.x, Is.EqualTo(6f * cell).Within(1f));
             Assert.That(player.y, Is.EqualTo(enemy.y).Within(1f));
             AssertTacticalPlayerLeft(board);
+            Transform compassNorth = board.transform.Find("Tactical compass/Compass North");
+            Assert.That(compassNorth, Is.Not.Null, "The tactical compass must retain its north marker.");
+            Text northLabel = compassNorth.GetComponent<Text>();
+            Assert.That(northLabel, Is.Not.Null);
+            Assert.That(northLabel.text, Is.EqualTo("N"));
             foreach (Text text in board.GetComponentsInChildren<Text>(true))
+            {
+                if (text == northLabel) continue;
                 Assert.That(text.text, Does.Not.Match("^[A-X]$|^[0-9]{1,2}$"), "The tactical chart must not restore row/column labels.");
-            string allLabels = string.Join(" ", Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Select(text => text.text));
-            foreach (string direction in new[] { "东", "南", "西", "北" }) Assert.That(allLabels, Does.Contain(direction));
+            }
+            NavalTacticalCompassGraphic compass = compassNorth.parent.GetComponent<NavalTacticalCompassGraphic>();
+            Assert.That(compass, Is.Not.Null);
+            float worldRotation = TacticalProperty<float>(board, "CameraRotationDegrees");
+            Vector2 worldNorth = Quaternion.Euler(0f, 0f, worldRotation) * Vector2.up;
+            Assert.That(Mathf.Abs(Mathf.DeltaAngle(compass.WorldRotationDegrees, worldRotation)), Is.LessThan(.001f));
+            Assert.That(Vector2.Distance(compass.NorthDirection, worldNorth), Is.LessThan(.001f));
+            Assert.That(Vector2.Distance(northLabel.rectTransform.anchoredPosition.normalized, worldNorth), Is.LessThan(.001f));
+            Assert.That(northLabel.rectTransform.localRotation, Is.EqualTo(Quaternion.identity));
+            Assert.That(compass.raycastTarget, Is.False);
             NavalBattleVisualCapture.Capture(controller, "Tactics_01_Opening.png", "首次海战：六格600米、双方船头相对，网格无编号，罗盘标注方向");
             LogAssert.NoUnexpectedReceived();
         }
@@ -208,8 +208,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Battle.Hand.Count, Is.EqualTo(cards));
             Assert.That(session.Battle.Turn, Is.EqualTo(turn));
             NavalBattleVisualCapture.Capture(controller, "NavalAction_04_ArrivalChoice.png", "航行结束后只能选择东、北、西三个合法朝向；完成定向前禁止出牌与结束回合");
-            Button west = Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Single(item =>
-                item.name.StartsWith("Naval Arrival Heading ") && item.GetComponentInChildren<Text>().text == "朝西");
+            int westIndex = session.GetNavalArrivalHeadings().ToList().IndexOf(180f);
+            Button west = RequiredResponsive<Button>("Naval Arrival Heading " + westIndex);
             yield return WaitTacticalHeadingPointerReady(west.name);
             ClickAcceptanceButton(west.name);
             Assert.That(controller.IsBattleAnimationPlaying, Is.True);

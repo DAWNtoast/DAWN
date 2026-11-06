@@ -50,28 +50,48 @@ namespace ShatteredSail.Presentation
 
         public static bool Apply(Button button, Color originalFace)
         {
-            if (button == null || !IsControl(button.name, originalFace) || Face == null) return false;
-            Image image = button.GetComponent<Image>();
-            if (image == null) return false;
+            if (button == null || !IsControl(button.name, originalFace)) return false;
+            return ApplyFace(button, button.GetComponent<Image>(), null, false);
+        }
+
+        public static void ApplyAction(Button button, WoodButtonRole role, bool selected = false, Image face = null)
+        {
+            if (button == null || !IsControl(button.name, Color.white)) return;
+            ApplyFace(button, face != null ? face : button.GetComponent<Image>(), role, selected);
+        }
+
+        private static bool ApplyFace(Button button, Image image, WoodButtonRole? role, bool selected)
+        {
+            if (image == null || Face == null) return false;
+            Graphic previous = button.targetGraphic;
+            if (previous != null && previous != image)
+                previous.CrossFadeColor(Color.white, 0f, true, true);
+            image.overrideSprite = null;
             image.sprite = Face;
             image.type = Image.Type.Sliced;
             image.fillCenter = true;
             image.preserveAspect = false;
             image.color = Color.white; // ColorTint must not multiply the old blue/green fill twice.
-            Vector2 size = image.rectTransform.sizeDelta;
+            Vector2 size = image.rectTransform.rect.size;
             float corner = Mathf.Clamp(Mathf.Min(size.x, size.y) * 0.12f, 3f, 9f);
             image.pixelsPerUnitMultiplier = 112f / corner;
             button.targetGraphic = image;
             button.transition = Selectable.Transition.ColorTint;
-            WoodButtonRoleState state = State(button);
-            if (!state.HasExplicitRole) state.AssignRole(DefaultRoleFor(button.name), false);
+            WoodButtonRoleState state = State(image);
+            if (role.HasValue)
+            {
+                state.AssignRole(role.Value, true);
+                state.Select(selected);
+            }
+            else if (!state.HasExplicitRole) state.AssignRole(DefaultRoleFor(button.name), false);
             foreach (Transform child in button.transform)
             {
                 Text label = child.GetComponent<Text>();
                 if (label == null) continue;
-                label.color = child.name == "Detail" ? MutedInk : Ink;
+                if (child.name == "Detail") label.color = MutedInk;
                 label.raycastTarget = false;
-                if (child.name != "Label") continue; // Preserve authored two-line menu layouts.
+                // Explicit styling also runs after page layout and when retained views refresh.
+                if (role.HasValue || child.name != "Label") continue;
                 float insetX = Mathf.Clamp(size.x * 0.06f, 4f, 12f);
                 float insetY = Mathf.Clamp(size.y * 0.07f, 2f, 5f);
                 label.rectTransform.sizeDelta = size - new Vector2(insetX * 2f, insetY * 2f);
@@ -88,7 +108,7 @@ namespace ShatteredSail.Presentation
         public static void SetSelected(Button button, bool selected)
         {
             if (button == null || !(button.targetGraphic is Image image) || image.sprite == null || image.sprite != Face) return;
-            WoodButtonRoleState state = State(button);
+            WoodButtonRoleState state = BoundState(button, image);
             if (!state.HasExplicitRole) state.AssignRole(DefaultRoleFor(button.name), false);
             state.Select(selected);
             ApplyRoleAppearance(button, state);
@@ -98,7 +118,7 @@ namespace ShatteredSail.Presentation
         public static void SetRole(Button button, WoodButtonRole role)
         {
             if (button == null || !(button.targetGraphic is Image image) || image.sprite == null || image.sprite != Face) return;
-            WoodButtonRoleState state = State(button);
+            WoodButtonRoleState state = BoundState(button, image);
             state.AssignRole(role, true);
             ApplyRoleAppearance(button, state);
         }
@@ -107,7 +127,8 @@ namespace ShatteredSail.Presentation
         {
             if (string.IsNullOrEmpty(name)) return WoodButtonRole.Secondary;
             if (name == "Confirm New Game" || name == "Reset" || name == "Reset Tutorial" ||
-                name == "Retreat Battle" || name == "Emergency Battle Return")
+                name == "Retreat Battle" || name == "Emergency Battle Return" ||
+                name == "Confirm Voyage Cargo Discard" || name == "Confirm Component Sale")
                 return WoodButtonRole.Danger;
             // Navigation controls stay quiet even if their caller historically
             // supplied a gold color. The settlement's finish action is an exception.
@@ -126,10 +147,16 @@ namespace ShatteredSail.Presentation
             return WoodButtonRole.Secondary;
         }
 
-        private static WoodButtonRoleState State(Button button)
+        private static WoodButtonRoleState BoundState(Button button, Image image)
         {
-            WoodButtonRoleState state = button.GetComponent<WoodButtonRoleState>();
-            return state != null ? state : button.gameObject.AddComponent<WoodButtonRoleState>();
+            // A compass sector forwards tint to a child but reads selection from its original button.
+            return image.GetComponent<WoodButtonRoleState>() ?? State(button);
+        }
+
+        private static WoodButtonRoleState State(Component owner)
+        {
+            WoodButtonRoleState state = owner.GetComponent<WoodButtonRoleState>();
+            return state != null ? state : owner.gameObject.AddComponent<WoodButtonRoleState>();
         }
 
         private static void ApplyRoleAppearance(Button button, WoodButtonRoleState state)
@@ -147,7 +174,7 @@ namespace ShatteredSail.Presentation
             state.enabled = state.Role != WoodButtonRole.Secondary || state.IsSelected;
             // Builders may add cost/status labels with their own meaning after
             // Apply. Updating a role or selection must not recolor those labels.
-            Text label = button.GetComponentInChildren<Text>();
+            Text label = button.GetComponentInChildren<Text>(true);
             if (label != null) label.color = state.IsSelected ? new Color(1f, .85f, .46f, 1f) : Ink;
         }
 

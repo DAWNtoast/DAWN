@@ -108,6 +108,19 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
+        public void RamPaddingRetainsEverySourcePixelAndRepeatsOnlyExternalEdges()
+        {
+            var source = new Color32[15];
+            for (int i = 0; i < source.Length; i++) source[i] = new Color32((byte)i, (byte)(i * 7), (byte)(255 - i), 255);
+            var padded = (Color32[])Call("PadPixels", source, 3, 5, 4, 8);
+            for (int y = 0; y < 8; y++)
+                for (int x = 0; x < 4; x++)
+                    Assert.That(padded[y * 4 + x], Is.EqualTo(source[Math.Min(y, 4) * 3 + Math.Min(x, 2)]));
+            Assert.That(Call("UsesPixelPadding", Prefix + "BattleComics/HD/ram_player_head_on_page01.png"), Is.True);
+            Assert.That(Call("UsesPixelPadding", Prefix + "MainMenu/main_menu_background.png"), Is.False);
+        }
+
+        [Test]
         public void BilinearSamplingPreservesFullImageEdgesAndBlendsInteriorWithoutPadding()
         {
             var source = new[] { new Color32(0, 0, 0, 255), new Color32(200, 0, 0, 255),

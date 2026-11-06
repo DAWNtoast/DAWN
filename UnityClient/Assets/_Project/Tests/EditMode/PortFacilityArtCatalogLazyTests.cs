@@ -112,7 +112,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void ExplicitAvailabilityValidation_StillChecksAllThirtyNinePathsAndCachesThem()
+        public void ExplicitAvailabilityValidation_ChecksThirtyNineSlotsAcrossThirtyEightPathsAndCachesThem()
         {
             var requests = new List<string>();
             var texture = new Texture2D(2, 2);
@@ -126,7 +126,9 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(catalog.MissingRegionalBackgroundPaths(), Is.Empty);
                 Assert.That(catalog.IsAvailable, Is.True);
                 Assert.That(requests.Count, Is.EqualTo(39));
-                Assert.That(new HashSet<string>(requests, StringComparer.Ordinal).Count, Is.EqualTo(39));
+                Assert.That(new HashSet<string>(requests, StringComparer.Ordinal).Count, Is.EqualTo(38));
+                Assert.That(requests.FindAll(path => path == "ComponentShopV3/shipyard_hall").Count, Is.EqualTo(2),
+                    "The generic component shop and Broken Anchor intentionally share the same authored background.");
                 Assert.That(catalog.AreAllRegionalBackgroundsAvailable && catalog.IsAvailable, Is.True);
                 Assert.That(requests.Count, Is.EqualTo(39));
             }

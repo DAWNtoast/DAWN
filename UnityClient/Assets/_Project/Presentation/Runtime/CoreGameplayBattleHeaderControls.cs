@@ -24,15 +24,9 @@ namespace ShatteredSail.Presentation
         private Button CreateBattleHeaderIconButton(string name, RectTransform header,
             string caption, bool settings, Color accent)
         {
-            Button button = CreatePortHeaderButton(name, header, new Vector2(64f, 64f),
+            Button button = CreatePortHeaderButton(name, header, Vector2.one * NauticalHeaderSkin.IconSize,
                 Vector2.zero, caption, 12, accent);
-            Text label = button.GetComponentInChildren<Text>();
-            label.rectTransform.sizeDelta = new Vector2(52f, 17f);
-            label.rectTransform.anchoredPosition = new Vector2(0f, -20f);
-            label.resizeTextForBestFit = false;
-            RectTransform icon = CreateRect(name + " Icon", button.transform,
-                new Vector2(34f, 34f), new Vector2(0f, 8f));
-            icon.gameObject.AddComponent<BattleHeaderIconGraphic>().Configure(settings, accent);
+            NauticalHeaderSkin.ApplyIconButton(button, settings);
             return button;
         }
     }

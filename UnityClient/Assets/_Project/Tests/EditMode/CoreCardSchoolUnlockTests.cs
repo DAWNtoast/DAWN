@@ -35,8 +35,8 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("fire", 2)] [TestCase("arcane", 3)] [TestCase("curse", 4)]
-        [TestCase("tide", 5)] [TestCase("thunder", 7)] [TestCase("blood", 10)]
-        public void EachSchool_UnlocksHistoricAndExpandedShipCardsAndFifteenBoardingCardsAtItsLevel(string schoolId, int level)
+        [TestCase("tide", 5)] [TestCase("thunder", 6)] [TestCase("blood", 7)]
+        public void SchoolMilestoneLevelsDoNotGrantShipOrBoardingCards(string schoolId, int level)
         {
             CoreBattleCard[] basics = CoreVoyageSession.CardLibrary.Where(card => card.SchoolId == schoolId &&
                 card.RequiredCrew.Length == 0 && card.RequiredComponent.Length == 0 && !CoreBoardingCardCatalog.IsLegacyAlias(card)).ToArray();
@@ -49,13 +49,14 @@ namespace ShatteredSail.Core.Tests
             foreach (CoreBattleCard card in basics)
             {
                 Assert.That(locked.IsBattleCardUnlocked(card), Is.False, card.Id);
-                Assert.That(locked.GetBattleCardUnlockReason(card), Does.Contain(level.ToString()), card.Id);
-                Assert.That(unlocked.IsBattleCardUnlocked(card), Is.True, card.Id);
+                Assert.That(locked.GetBattleCardUnlockReason(card), Does.Contain("卡包"), card.Id);
+                Assert.That(unlocked.IsBattleCardUnlocked(card), Is.False, card.Id);
                 int index = Index(card.Id);
+                Assert.That(unlocked.GetBaseBattleCardOwnedCopies(index), Is.Zero, card.Id);
                 foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
                 {
                     Assert.That(locked.GetAvailableBattleCards(stage), Has.No.Member(index), card.Id);
-                    Assert.That(unlocked.GetAvailableBattleCards(stage).Contains(index), Is.EqualTo(card.IsAllowedInStage(stage)), card.Id);
+                    Assert.That(unlocked.GetAvailableBattleCards(stage), Has.No.Member(index), card.Id);
                 }
             }
         }
@@ -74,7 +75,7 @@ namespace ShatteredSail.Core.Tests
             proposed[0] = index;
             Assert.That(session.SetBattleDeck(stage, proposed), Is.False);
             CollectionAssert.AreEqual(before, session.GetBattleDeck(stage));
-            Assert.That(session.BattleCardUpgradeUnavailableReason(index), Does.Contain("等级"));
+            Assert.That(session.BattleCardUpgradeUnavailableReason(index), Does.Contain("卡包"));
         }
 
         [TestCase(1, 3)] [TestCase(2, 5)]

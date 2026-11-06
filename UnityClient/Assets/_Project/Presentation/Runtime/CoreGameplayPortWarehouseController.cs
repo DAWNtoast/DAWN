@@ -10,6 +10,7 @@ namespace ShatteredSail.Presentation
     {
         private bool warehouseCargoStorageOpen;
         private bool warehouseRareStorageOpen;
+        private bool warehouseViewingCarriedCargo;
         // Existing investment/tutorial entry points select basic cargo. A rare
         // page is selected explicitly only after opening the warehouse section.
         private bool warehouseStorageOpen
@@ -26,61 +27,21 @@ namespace ShatteredSail.Presentation
             InvalidateWarehouseCargoDialog();
             portWarehouseInventoryView = ledger;
             string port = CurrentWarehousePort;
-            BuildWarehouseCargoSummary(ledger, "Warehouse Storage Summary", port + " · 独立仓储");
-            BuildWarehouseCargoGrid(ledger, false);
-
-            string[] ids = { "Name", "Stored", "Carried", "Volume" };
-            string[] titles = { "物资", "本港库存", "船舱数量", "船舱占用" };
-            float[] positions = WarehouseCargoColumnX;
-            float[] widths = WarehouseCargoColumnWidths;
-            for (int column = 0; column < ids.Length; column++)
-                BuildWarehouseSortHeader("Warehouse Storage Header " + ids[column], ledger,
-                    new Vector2(widths[column] - 2f, 40f), new Vector2(positions[column], 190f), titles[column], column);
-
-            int[] order = WarehouseCargoOrder(PortMarketCatalog.AllItems.Count, index =>
+            BuildWarehouseCargoLocationSelector(ledger);
+            for (int rowIndex = 0; rowIndex < PortMarketCatalog.AllItems.Count; rowIndex++)
             {
-                PortMarketItem cargo = PortMarketCatalog.AllItems[index];
-                string cargoKey = PortMarketCatalog.Key(cargo);
-                if (warehouseCargoSortColumn == 1) return session.PortWarehouse.GetAmount(port, cargoKey);
-                int amount = session.GetMarketCargoAmount(cargoKey);
-                return warehouseCargoSortColumn == 2 ? amount : amount * (double)PortMarketCatalog.CargoVolume(cargo);
-            });
-            for (int rowIndex = 0; rowIndex < order.Length; rowIndex++)
-            {
-                PortMarketItem item = PortMarketCatalog.AllItems[order[rowIndex]];
+                PortMarketItem item = PortMarketCatalog.AllItems[rowIndex];
                 string key = PortMarketCatalog.Key(item);
                 int carried = session.GetMarketCargoAmount(key);
                 int stored = session.PortWarehouse.GetAmount(port, key);
-                Button row = WarehouseButton("Warehouse Storage Row " + key, ledger,
-                    new Vector2(WarehouseLedgerWidth, 50f), new Vector2(0f, 144f - rowIndex * 52f),
-                    WarehouseRoomTheme.Lining, WarehouseRoomTheme.Ink, 19);
-                row.GetComponentInChildren<Text>().text = string.Empty;
-                StyleWarehouseInventoryButton(row);
-                WarehouseItemIcon("Warehouse Storage Icon " + key, row.transform, ItemIconCatalog.ForCargo(key),
-                    new Vector2(-265f, 0f), 42f);
-                string[] values = { PortMarketCatalog.Name(item), stored.ToString(CultureInfo.InvariantCulture),
-                    carried.ToString(CultureInfo.InvariantCulture), WarehouseVolume(carried * (double)PortMarketCatalog.CargoVolume(item)) };
-                for (int column = 0; column < ids.Length; column++)
-                {
-                    Text label = WarehouseLabel("Warehouse Storage " + ids[column] + " " + key, row.transform,
-                        new Vector2(column == 0 ? 130f : widths[column] - 8f, 40f),
-                        new Vector2(column == 0 ? -169f : positions[column], 0f), 19,
-                        values[column], WarehouseRoomTheme.Ink);
-                    label.raycastTarget = false;
-                    label.resizeTextForBestFit = true;
-                    label.resizeTextMinSize = 12;
-                    label.resizeTextMaxSize = 19;
-                }
+                Button row = BuildWarehouseCargoTile(ledger, false, rowIndex, key, PortMarketCatalog.Name(item),
+                    stored, carried);
                 row.interactable = Application.isPlaying && !editorPreviewBuilding && WarehouseCargoActionsAllowed;
                 AddWarehouseAction(row, () => OpenWarehouseCargoActions(item, carried, stored));
             }
-            Text hint = WarehouseLabel("Warehouse Storage Hint", ledger, new Vector2(WarehouseLedgerWidth, 52f),
-                new Vector2(0f, -330f), 18, !WarehouseCargoActionsAllowed
+            BuildWarehouseStorageHint("Warehouse Storage Hint", ledger, !WarehouseCargoActionsAllowed
                     ? "教学期间仅可查看库存；结束后可存取或出售。"
-                    : portWarehouseNotice, WarehouseRoomTheme.Muted);
-            hint.resizeTextForBestFit = true;
-            hint.resizeTextMinSize = 14;
-            hint.resizeTextMaxSize = 18;
+                    : portWarehouseNotice);
         }
 
         private static string WarehouseVolume(double value) => value.ToString("0.00", CultureInfo.InvariantCulture);

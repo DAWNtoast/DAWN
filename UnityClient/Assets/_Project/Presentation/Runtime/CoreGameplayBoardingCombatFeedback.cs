@@ -12,6 +12,13 @@ namespace ShatteredSail.Presentation
             return target != null && target.GetComponent<BoardingPartyPresentation>() != null;
         }
 
+        private static Vector2 BoardingActionOrigin(RectTransform stage, RectTransform party)
+        {
+            BoardingActorGraphic performer = party.GetComponent<BoardingPartyPresentation>()?.Performer;
+            return performer == null ? BattleEffectPosition(stage, party) :
+                (Vector2)stage.InverseTransformPoint(performer.transform.position);
+        }
+
         private BoardingCombatFxGraphic CreateBoardingCombatFx(string name, RectTransform stage,
             RectTransform target, BoardingCombatFxKind kind, Color tint, float direction = 1f)
         {
@@ -43,11 +50,9 @@ namespace ShatteredSail.Presentation
         {
             if (party == null || !(party.parent is RectTransform stage)) yield break;
             PlaySfx("battle_melee", .82f);
-            Vector2 origin = party.anchoredPosition;
             BoardingCombatFxGraphic dash = CreateBoardingCombatFx(party.name + " Boarding Dash", stage,
                 party, BoardingCombatFxKind.Dash, Gold, direction);
-            // Streaks emerge behind the actual figures; their proportions and
-            // facing remain unchanged throughout the forward step.
+            // Streaks provide the windup while the formation remains grounded.
             dash.transform.SetSiblingIndex(party.GetSiblingIndex());
             const float duration = .25f;
             try
@@ -56,15 +61,13 @@ namespace ShatteredSail.Presentation
                 {
                     if (party == null || dash == null) yield break;
                     float t = Mathf.Clamp01(elapsed / duration);
-                    party.anchoredPosition = origin + BoardingPartyPresentation.LungeOffset(t, direction);
-                    dash.rectTransform.anchoredPosition = BattleEffectPosition(stage, party);
+                    dash.rectTransform.anchoredPosition = BoardingActionOrigin(stage, party);
                     dash.Progress = t;
                     yield return null;
                 }
             }
             finally
             {
-                if (party != null) party.anchoredPosition = origin;
                 if (dash != null) Destroy(dash.gameObject);
             }
         }
@@ -76,6 +79,8 @@ namespace ShatteredSail.Presentation
             Vector2 origin = target.anchoredPosition;
             bool blocked = label == "格挡";
             bool missed = label == "未命中";
+            target.GetComponent<BoardingPartyPresentation>()?.React(missed ? BattleSchoolAttackOutcome.Missed :
+                blocked ? BattleSchoolAttackOutcome.Guarded : BattleSchoolAttackOutcome.Hit);
             // A miss only shows air streaks; it must not recoil the target
             // or masquerade as an absorbed hit.
             BoardingCombatFxGraphic hit = CreateBoardingCombatFx(name + " Boarding Impact", stage, target,
@@ -90,28 +95,28 @@ namespace ShatteredSail.Presentation
                 {
                     if (target == null || hit == null) yield break;
                     float t = Mathf.Clamp01(elapsed / duration);
-                    float recoil = missed ? 0f : Mathf.Sin(t * 34f) * (1f - t) * (1f - t) * (blocked ? 4f : 8f);
-                    target.anchoredPosition = origin + Vector2.right * recoil;
                     hit.Progress = t;
                     yield return null;
                 }
             }
             finally
             {
-                if (target != null) target.anchoredPosition = origin;
                 if (hit != null) Destroy(hit.gameObject);
             }
             if (number != null) yield return number;
         }
 
         private IEnumerator AnimateBoardingAura(RectTransform stage, RectTransform target, Color accent,
-            string label, string name, float labelHeight)
+            string label, string name, float labelHeight, BoardingCombatFxKind kind)
         {
             if (stage == null || target == null) yield break;
-            bool heal = name.Contains("Repair");
-            PlaySfx(heal ? "battle_repair" : "battle_guard", .78f);
+            bool heal = kind == BoardingCombatFxKind.Heal;
+            if (kind == BoardingCombatFxKind.Curse || kind == BoardingCombatFxKind.LifeCost ||
+                kind == BoardingCombatFxKind.Slash)
+                target.GetComponent<BoardingPartyPresentation>()?.React(BattleSchoolAttackOutcome.Hit);
+            PlaySfx(heal ? "battle_repair" : kind == BoardingCombatFxKind.Guard ? "battle_guard" : "battle_melee_impact", .78f);
             BoardingCombatFxGraphic aura = CreateBoardingCombatFx(name + " Boarding Aura", stage, target,
-                heal ? BoardingCombatFxKind.Heal : BoardingCombatFxKind.Guard, heal ? Green : Color.white);
+                kind, heal ? Green : kind == BoardingCombatFxKind.Guard ? Color.white : accent);
             Coroutine number = StartCoroutine(AnimateFloatingText(stage,
                 BattleEffectPosition(stage, target) + Vector2.up * labelHeight, label, accent, name + " Float"));
             yield return PlayBoardingCombatFx(aura, heal ? .56f : .42f);

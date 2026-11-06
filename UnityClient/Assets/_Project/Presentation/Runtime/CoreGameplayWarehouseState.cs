@@ -59,7 +59,11 @@ namespace ShatteredSail.Presentation
                     PlayerPrefs.GetString(WarehouseDisplayPortKey(port), string.Empty));
             session.PortWarehouse.Restore(PlayerPrefs.GetString(PortWarehouseCargoKey, string.Empty));
 
-            if (PlayerPrefs.GetInt(WarehousePortMigrationKey, 0) != 0) return;
+            if (PlayerPrefs.GetInt(WarehousePortMigrationKey, 0) != 0)
+            {
+                CarryUndisplayedWarehouseTreasuresToCurrentPort();
+                return;
+            }
             // The legacy global ownership key becomes an achievement union after
             // migration. Never import that union into another port on later loads.
             var legacy = new CoreWarehouseCollection();
@@ -73,13 +77,31 @@ namespace ShatteredSail.Presentation
                 if (string.IsNullOrEmpty(id) || destination.IsDisplayed(id)) continue;
                 if (string.IsNullOrEmpty(destination.DisplayedAt(slot))) destination.TryDisplay(id, slot);
             }
-            // Persist the destination and migration marker together before a port
-            // change, including old saves that have not performed another action.
-            SaveWarehouseCollection();
-            PlayerPrefs.Save();
+            // Startup's income transaction commits the migrated ownership and
+            // marker together before the first render or player action.
+            CarryUndisplayedWarehouseTreasuresToCurrentPort();
+        }
+
+        private void CarryUndisplayedWarehouseTreasuresToCurrentPort()
+        {
+            if (session == null || session.Phase != CoreDemoPhase.Port) return;
+            CoreWarehouseCollection destination = warehouseCollection;
+            // Include old saves whose unexhibited keepsakes were stranded in a
+            // different port. Startup and SaveProgress commit both ports together
+            // under the existing profile journal, after this in-memory transfer.
+            foreach (CoreWarehouseCollection collection in warehouseCollections.Values)
+                collection.MoveUndisplayedTo(destination);
         }
 
         private void SaveWarehouseCollection()
+        {
+            if (!Application.isPlaying || editorPreviewBuilding || session == null) return;
+            SaveWarehouseKeepsakes();
+            PlayerPrefs.SetString(PortWarehouseCargoKey, session.PortWarehouse.Serialize());
+            SaveWarehouseIncome();
+        }
+
+        private void SaveWarehouseKeepsakes()
         {
             if (!Application.isPlaying || editorPreviewBuilding || session == null) return;
             CoreWarehouseCollection current = warehouseCollection;
@@ -101,9 +123,7 @@ namespace ShatteredSail.Presentation
                 displayedRecord = Math.Max(displayedRecord, displayed);
             }
             PlayerPrefs.SetInt(WarehouseDisplayRecordKey, displayedRecord);
-            PlayerPrefs.SetString(PortWarehouseCargoKey, session.PortWarehouse.Serialize());
             PlayerPrefs.SetInt(WarehousePortMigrationKey, 1);
-            SaveWarehouseIncome();
         }
 
         // Only the ordinary successful display action invokes this hook. Opening

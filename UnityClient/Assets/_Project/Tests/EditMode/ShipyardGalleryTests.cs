@@ -290,7 +290,7 @@ namespace ShatteredSail.Presentation.Tests
             Find<Button>("Shipyard Dossier Tab Equipment").onClick.Invoke();
             Canvas.ForceUpdateCanvases();
             AssertEquipmentWindow(index);
-            Find<Button>("Close Shipyard Equipment").onClick.Invoke();
+            Find<Button>("Return To Port Hub").onClick.Invoke();
             Canvas.ForceUpdateCanvases();
             AssertCurrentPage((int)ShipyardDossierTab.Performance);
             AssertRect(BoundsIn(Find<RectTransform>("Shipyard Detail"), Find<RectTransform>("Shipyard Dossier Ship Window")),
@@ -312,7 +312,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(flagship));
                 if (tabs[index] == "Equipment")
                 {
-                    Find<Button>("Close Shipyard Equipment").onClick.Invoke();
+                    Find<Button>("Return To Port Hub").onClick.Invoke();
                     AssertCurrentPage((int)ShipyardDossierTab.Background);
                 }
             }
@@ -338,8 +338,15 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(host.GetComponentsInChildren<Graphic>(true).Any(item => item.name == "Shipyard Dossier Frame"), Is.False,
                 "The equipment window must not reuse the parchment dossier.");
             Assert.That(detail.GetComponentsInChildren<Button>(true).Any(button => button.name.StartsWith("Shipyard Dossier Tab ")), Is.False);
-            Assert.That(Find<Text>("Shipyard Dossier Name").text, Is.EqualTo(CoreVoyageSession.Ships[index].Name));
-            Assert.That(Find<Button>("Close Shipyard Equipment").GetComponentInChildren<Text>().text, Does.Contain("返回船只档案"));
+            Assert.That(detail.GetComponentsInChildren<Text>(true).Any(text =>
+                text.name == "Shipyard Dossier Name" || text.name == "Shipyard Dossier Role"), Is.False,
+                "The equipment page leaves the ship illustration free of dossier headings.");
+            Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Does.Contain("返回船只档案"));
+            foreach (string removed in new[] { "Close Shipyard Equipment", "Shipyard Equipment Window Title", "Shipyard Equipment Header Rule" })
+                Assert.That(host.GetComponentsInChildren<RectTransform>(true).Any(item => item.name == removed), Is.False,
+                    "The shared header replaces the equipment title row.");
+            Assert.That(Find<RectTransform>("Shipyard Equipment Vessel Surface").GetComponentsInChildren<Graphic>(true), Is.Empty,
+                "The vessel area must not draw an inner paper frame.");
             RectTransform vessel = Find<RectTransform>("Shipyard Dossier Ship Window");
             Rect vesselBounds = BoundsIn(detail, vessel);
             RawImage[] paintings = vessel.GetComponentsInChildren<RawImage>(true);
@@ -375,7 +382,11 @@ namespace ShatteredSail.Presentation.Tests
             Preview(0, true, 2);
             foreach (ComponentSlot slot in System.Enum.GetValues(typeof(ComponentSlot)))
             {
+                Find<Button>("Shipyard Equipment Slot " + slot).onClick.Invoke();
                 Button unload = Find<Button>("Shipyard Unequip Component " + slot);
+                Assert.That(host.GetComponentsInChildren<Button>(true).Count(button =>
+                    button.name.StartsWith("Shipyard Unequip Component ")), Is.EqualTo(1),
+                    "Only the currently inspected slot exposes an unload action.");
                 Assert.That(unload.interactable, Is.False);
                 unload.onClick.Invoke();
                 Assert.That(controller.ShipComponent(0, slot), Is.Not.Null, "An editor inspection must not alter the sample loadout.");

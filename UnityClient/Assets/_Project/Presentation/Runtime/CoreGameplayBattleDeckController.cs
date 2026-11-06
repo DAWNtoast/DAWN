@@ -8,7 +8,7 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
-        private const int BattleCardCollectionPageSize = 8;
+        private const int BattleCardCollectionPageSize = 6;
         private static readonly NavalBattleStage[] WorkshopBattleStages =
         {
             NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding,
@@ -132,7 +132,8 @@ namespace ShatteredSail.Presentation
 
         private void BuildStageBattleDeckOverview()
         {
-            BuildCardWorkshopPreview();
+            battleDeckOverviewOpen = false;
+            BuildInteractiveDeckBuilder();
         }
 
         private void SelectWorkshopBattleStage(NavalBattleStage stage, int collectionPage = 0)
@@ -140,6 +141,7 @@ namespace ShatteredSail.Presentation
             if (BlockIncompleteDeckBuilderNavigation()) return;
             ResetDeckBuilderPresentation();
             selectedBattleDeckStage = stage;
+            workshopPacksOpen = false;
             cardWorkshopDeckBuilderOpen = true;
             battleCardUpgradeOpen = false;
             specialCardCollectionOpen = false;
@@ -158,8 +160,9 @@ namespace ShatteredSail.Presentation
             List<int> updated = new List<int>(CurrentDeckBuilderCards);
             if (delta > 0)
             {
-                if (BattleDeckCopies(updated, cardIndex) >= session.GetBaseBattleCardOwnedCopies(cardIndex))
-                { SetDeckBuilderNotice("同名卡牌最多加入 " + CoreVoyageSession.BaseBattleCardCopies + " 张"); return; }
+                int availableCopies = Mathf.Min(CoreVoyageSession.BaseBattleCardCopies, session.GetBaseBattleCardOwnedCopies(cardIndex));
+                if (BattleDeckCopies(updated, cardIndex) >= availableCopies)
+                { SetDeckBuilderNotice("同名卡牌最多加入 " + availableCopies + " 张"); return; }
                 if (updated.Count >= CoreVoyageSession.MaximumBaseBattleDeckSize) { SetDeckBuilderNotice("牌组已满，可先移除一张卡牌"); return; }
                 updated.Add(cardIndex);
             }

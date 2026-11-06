@@ -256,11 +256,17 @@ namespace ShatteredSail.Persistence
 
         private static byte[] Encode(string payload, string kind)
         {
-            string encoded = Convert.ToBase64String(Utf8.GetBytes(payload));
             string prefix = Identifier + "\n" + SchemaVersion.ToString(CultureInfo.InvariantCulture) + "\n" + kind + "\n";
-            byte[] bytes = Utf8.GetBytes(prefix + Digest(prefix + encoded) + "\n" + encoded);
-            if (bytes.Length > MaximumFileBytes) throw new InvalidDataException("航程存档超出支持的大小。");
-            return bytes;
+            const int digestHexLength = 64;
+            int availableBase64Bytes = MaximumFileBytes - Utf8.GetByteCount(prefix) - digestHexLength - 1;
+            int maximumPayloadBytes = availableBase64Bytes / 4 * 3;
+            // Each UTF-16 code unit needs at most three UTF-8 bytes. Only large
+            // strings need an exact count before allocating the encoded envelope.
+            if (payload.Length > maximumPayloadBytes / 3 && Utf8.GetByteCount(payload) > maximumPayloadBytes)
+                throw new IOException("航程存档超出支持的大小。");
+
+            string encoded = Convert.ToBase64String(Utf8.GetBytes(payload));
+            return Utf8.GetBytes(prefix + Digest(prefix + encoded) + "\n" + encoded);
         }
 
         private static string Digest(string text)

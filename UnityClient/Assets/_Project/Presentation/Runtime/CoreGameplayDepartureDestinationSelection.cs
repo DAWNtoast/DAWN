@@ -70,6 +70,19 @@ namespace ShatteredSail.Presentation
             return "选择目标港口，当前航线：" + session.CurrentPort + "——" + session.SelectedDestinationPort;
         }
 
+        private void ConfigureDepartureUnlockHint(Button button, string title, string reason)
+        {
+            BattleStatusHover hover = button.GetComponent<BattleStatusHover>();
+            if (string.IsNullOrEmpty(reason))
+            {
+                if (hover != null) hover.enabled = false;
+                return;
+            }
+            if (hover == null) hover = button.gameObject.AddComponent<BattleStatusHover>();
+            hover.enabled = true;
+            hover.Configure(null, BattleStatusTooltip.GetOrCreate(contentRoot, interfaceFont), title, reason);
+        }
+
         private void ApplyDepartureDestinationState(Button button, string port)
         {
             button.gameObject.SetActive(!DepartureChartModeActive);
@@ -77,7 +90,8 @@ namespace ShatteredSail.Presentation
             bool locked = DepartureChartModeActive || DepartureDockTreasureModeActive || session.SelectedTreasureMap != null;
             bool selected = !origin && !DepartureDockTreasureModeActive && session.SelectedTreasureMap == null && port == session.SelectedDestinationPort;
             WoodButtonSkin.SetSelected(button, selected);
-            button.interactable = !origin && !locked;
+            button.interactable = !locked && session.CanSelectDestinationPort(port, out _);
+            ConfigureDepartureUnlockHint(button, port, origin ? "这是当前出发港，请选择其他已解锁港口。" : session.PortUnlockReason(port));
             // Manual selection restores all six opaque plaques in their fixed
             // slots. A selected chart supplies its own endpoints instead.
             CanvasGroup group = button.GetComponent<CanvasGroup>();

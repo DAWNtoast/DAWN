@@ -405,13 +405,12 @@ namespace ShatteredSail.Core.Gameplay
             if (!string.IsNullOrEmpty(effect.GrantDiscovery)) exploration.Add("取得" + DiscoveryName(effect.GrantDiscovery) + "（本航次）");
             if (!string.IsNullOrEmpty(effect.RevealEncounterId)) exploration.Add("标出「" + DiscoveryTargetName(effect.RevealEncounterId) + "」");
             details.AddRange(exploration);
-            string detail = details.Count == 0 ? "无额外资源变动；补给按实际耗时结算" : string.Join("、", details);
+            string detail = string.Join("、", details);
             // Battle cargo is converted to cash before loading. The authored
             // detail must quote the same rounded payout as the live dossier.
             if (battle) detail = CoreBattleRewardDescriptions.Victory(false, effect) +
                 CoreBattleRewardDescriptions.AdditionalEffects(effect) +
                 (exploration.Count == 0 ? string.Empty : "；胜利后：" + string.Join("、", exploration));
-            if (effect.Curse > 0) detail += "（每层使战斗中受到的伤害增加 10%，可在港口净化；最多 10 层）";
             return new CoreEncounterChoice(label, detail, hours, effect, crew, battle, renewable: renewable,
                 minimumCurse: effect.Curse < 0 ? 1 : 0, maximumCurse: effect.Curse > 0 ? 9 : int.MaxValue,
                 requiredDiscovery: discovery);

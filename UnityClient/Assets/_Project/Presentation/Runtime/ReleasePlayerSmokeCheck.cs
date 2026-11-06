@@ -15,7 +15,7 @@ namespace ShatteredSail.Presentation
     /// Read-only, opt-in packaged-player acceptance check. Never starts a new game,
     /// applies settings, edits PlayerPrefs or enables GM. Normal launches do not create it.
     /// </summary>
-    public sealed class ReleasePlayerSmokeCheck : MonoBehaviour
+    public sealed partial class ReleasePlayerSmokeCheck : MonoBehaviour
     {
         private const string SmokeArgument = "-shatteredSailSmokeTest";
         private static string[] commandLineArguments = Environment.GetCommandLineArgs();
@@ -108,6 +108,8 @@ namespace ShatteredSail.Presentation
                 completedChecks.Add(packagedAudioClipCount + " verified packaged 48kHz audio clips");
                 CheckPackagedSchoolCards();
                 CheckPackagedCrewDossiers();
+                CheckPackagedIntegratedArt();
+                CheckPackagedComponentTuning();
             }
             catch (Exception error) { failures.Add(error.ToString()); }
             Finish();
@@ -192,17 +194,23 @@ namespace ShatteredSail.Presentation
             var expansion = ShatteredSail.Core.Gameplay.CoreNavalSchoolExpansionCatalog.All;
             var expansionIds = new HashSet<string>(expansion.Select(card => card.Id), StringComparer.Ordinal);
             var activeExpansion = cards.Where(card => expansionIds.Contains(card.Id)).ToArray();
-            Require(expansion.Count == 27 && expansionIds.Count == 27 && activeExpansion.Length == 27 &&
+            Require(expansion.Count == 36 && expansionIds.Count == 36 && activeExpansion.Length == 36 &&
                 expansionIds.SetEquals(activeExpansion.Select(card => card.Id)),
-                "Packaged catalog must include all 27 distinct naval expansion school cards.");
-            // Boarding and naval expansion cards reuse approved full illustrations.
-            // Preserve the original six-school catalog's 132 independent images.
+                "Packaged catalog must include all 36 distinct naval expansion school cards.");
+            // Preserve historical rule identities while card-specific Western
+            // paintings can replace the images displayed for those identities.
             var originalSchoolCards = cards.Where(card => !boardingIds.Contains(card.Id) && !expansionIds.Contains(card.Id)).ToArray();
             Require(originalSchoolCards.Length == 132 && originalSchoolCards.Select(card => card.ArtId).Distinct().Count() == 132,
                 "Original school catalog must include 132 distinct school-card illustrations.");
-            Require(cards.Length == 249 && new HashSet<string>(originalSchoolCards.Select(card => card.ArtId),
+            Require(cards.Length == 258 && new HashSet<string>(originalSchoolCards.Select(card => card.ArtId),
                 StringComparer.Ordinal).SetEquals(cards.Select(card => card.ArtId)),
-                "All 249 school cards must use the complete approved set of 132 school illustrations.");
+                "All 258 school cards must retain the complete approved set of 132 historical mechanical ArtIds.");
+            var newPaintingIds = new HashSet<string>(new[] {
+                "card_school_arcane_n04", "card_school_arcane_n05", "card_school_arcane_n06", "card_school_arcane_n07",
+                "card_school_fire_n07", "card_school_fire_n08",
+                "card_school_thunder_n07", "card_school_thunder_n08", "card_school_thunder_n09"
+            }, StringComparer.Ordinal);
+            Require(newPaintingIds.IsSubsetOf(expansionIds), "All nine newly illustrated cards must remain published naval expansion cards.");
             var lines = new List<string> { "cardId,school,artId,resourcePath,width,height,fullSourceUv,sourceAspectPreserved" };
             foreach (var card in ShatteredSail.Core.Gameplay.CoreVoyageSession.CardLibrary
                 .Where(card => card.AllowedStages != ShatteredSail.Core.Gameplay.NavalBattleStages.None))
@@ -212,6 +220,13 @@ namespace ShatteredSail.Presentation
                 string textureName = Path.GetFileName(resourcePath);
                 Require(CardSchoolArtCatalog.HasDedicatedArt(card) && texture != null && texture.name == textureName,
                     "Packaged individual card illustration missing: " + card.Id + " / " + resourcePath);
+                if (newPaintingIds.Contains(card.Id))
+                {
+                    string expectedPath = "CardArt/Western/" + card.Id;
+                    Require(resourcePath == expectedPath && texture != null &&
+                        texture == Resources.Load<Texture2D>(expectedPath) && texture.width == 1024 && texture.height == 1024,
+                        "Packaged new card must select its own complete 1024-pixel Western painting: " + card.Id);
+                }
                 Rect uv = CardSchoolArtCatalog.IllustrationUv(card, null);
                 Vector2 size = CardFaceLayout.IllustrationSize(texture, uv);
                 bool fullUv = uv == new Rect(0f, 0f, 1f, 1f);
@@ -271,11 +286,36 @@ namespace ShatteredSail.Presentation
                 " integrated card-frame variants (36 baseline plus actual card variants)");
         }
 
+        // Include the ten scene arrangements, their source theme, and shipped legacy cues.
+        // Exact names prevent a same-count replacement from hiding a missing track.
+        private static readonly IReadOnlyList<string> packagedMusicKeys = Array.AsReadOnly(new[]
+        {
+            "battle_legendary_ember_ark", "battle_legendary_iron_oath", "battle_legendary_red_widow",
+            "battle_legendary_thunder_crown", "battle_legendary_tide_requiem", "battle_nonboss",
+            "boss_route_golden_tide_trade", "boss_route_moon_tide_ruins", "boss_route_shattered_sail_reef",
+            "port_broken_anchor", "port_bronze_bell", "port_gray_gull", "port_salt_crown",
+            "port_twilight_tide", "port_white_shell",
+            "route_golden_tide_trade", "route_moon_tide_ruins", "route_shattered_sail_reef",
+            "the_captains_vow", "treasure_gilded", "treasure_moonlit", "treasure_weathered",
+            "captains_vow_main_menu", "captains_vow_broken_anchor", "captains_vow_white_shell",
+            "captains_vow_bronze_bell", "captains_vow_salt_crown", "captains_vow_twilight_tide",
+            "captains_vow_gray_gull", "captains_vow_sailing", "captains_vow_naval", "captains_vow_boarding",
+        });
+
+        private static void RequirePackagedAudioKeys(string group, IReadOnlyList<string> actualKeys,
+            IReadOnlyList<string> expectedKeys)
+        {
+            Require(actualKeys.Count == expectedKeys.Count, "Packaged audio count mismatch: " + group +
+                " (expected " + expectedKeys.Count + ", found " + actualKeys.Count + ").");
+            Require(new HashSet<string>(actualKeys, StringComparer.Ordinal).SetEquals(expectedKeys),
+                "Packaged audio names do not match the runtime catalog: " + group);
+        }
+
         private void CheckPackagedAudio()
         {
             string[] groups = { "Music", "BattleSfx", "WorldSfx", "InterfaceSfx", "Ambience" };
             IReadOnlyList<string>[] expectedKeys = {
-                null,
+                packagedMusicKeys,
                 CoreGameplayDemoController.BattleSoundEffectKeys,
                 CoreGameplayDemoController.WorldSoundEffectKeys,
                 CoreGameplayDemoController.InterfaceSoundEffectKeys,
@@ -286,12 +326,7 @@ namespace ShatteredSail.Presentation
             for (int index = 0; index < groups.Length; index++)
             {
                 AudioClip[] clips = Resources.LoadAll<AudioClip>("Audio/" + groups[index]);
-                int expectedCount = expectedKeys[index]?.Count ?? 21;
-                Require(clips.Length == expectedCount, "Packaged audio count mismatch: " + groups[index] +
-                    " (expected " + expectedCount + ", found " + clips.Length + ").");
-                if (expectedKeys[index] != null)
-                    Require(new HashSet<string>(clips.Select(clip => clip.name), StringComparer.Ordinal).SetEquals(expectedKeys[index]),
-                        "Packaged audio names do not match the runtime catalog: " + groups[index]);
+                RequirePackagedAudioKeys(groups[index], clips.Select(clip => clip.name).ToArray(), expectedKeys[index]);
                 foreach (AudioClip clip in clips)
                 {
                     Require(clip.frequency == 48000 && clip.samples > 0, "Invalid packaged audio: " + clip.name);

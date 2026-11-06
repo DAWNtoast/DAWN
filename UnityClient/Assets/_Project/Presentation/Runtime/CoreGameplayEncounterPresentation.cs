@@ -46,8 +46,6 @@ namespace ShatteredSail.Presentation
             RectTransform card = CreateRect(prefix + " Card", overlay, new Vector2(1660f, 930f), Vector2.zero);
             EncounterDossierRevealMotion reveal = card.gameObject.AddComponent<EncounterDossierRevealMotion>();
             reveal.Play(card, 0.34f);
-            Image shadow = CreateImage(prefix + " Paper Shadow", card, new Vector2(1600f, 868f), new Vector2(8f, -14f), new Color(0f, 0f, 0f, 0.4f));
-            shadow.raycastTarget = false;
             Image paper = CreateImage(prefix + " Parchment", card, new Vector2(1610f, 884f), Vector2.zero, Color.white);
             NauticalSurfaceSkin.ApplyReadingPanel(paper);
             paper.raycastTarget = false;
@@ -93,21 +91,22 @@ namespace ShatteredSail.Presentation
                 cursor -= height + 11f;
             }
             Text footnote = EncounterText(prefix + " Decision Footer", content, new Vector2(430f, 26f), new Vector2(415f, -299f), 14, muted, TextAnchor.MiddleLeft);
-            footnote.text = mandatory ? "处理此事件后方可继续航行。" : "略过不耗时；选择后结算相应结果。";
+            footnote.text = string.Empty;
         }
 
         private void BuildEncounterDecision(RectTransform parent, EncounterDossierChoice choice, int number, Vector2 position, float height, Color accent)
         {
             Button button = CreateButton(choice.ObjectName, parent, new Vector2(740f, height), position,
                 Color.white, MarketShopSkin.Ink, choice.IsSkip ? 19 : 22);
-            MarketShopSkin.ApplyLightButton(button);
+            MarketShopSkin.ApplyChoiceRow(button);
             // The entire row remains the hit target; decoration never intercepts clicks.
             button.interactable = choice.Available;
 
             Color light = choice.Available ? MarketShopSkin.Ink : MarketShopSkin.MutedInk;
             Text label = button.GetComponentInChildren<Text>();
             label.rectTransform.sizeDelta = new Vector2(514f, choice.IsSkip ? 25f : 32f);
-            label.rectTransform.anchoredPosition = new Vector2(-16f, choice.IsSkip ? 12f : 20f);
+            label.rectTransform.anchoredPosition = new Vector2(-16f,
+                choice.IsSkip ? string.IsNullOrEmpty(choice.Detail) ? 0f : 12f : 20f);
             label.alignment = TextAnchor.MiddleLeft;
             label.color = light;
             label.text = choice.Label;
@@ -117,7 +116,7 @@ namespace ShatteredSail.Presentation
             detail.text = choice.Detail;
             Text hours = EncounterText("Hours", button.transform, new Vector2(104f, height - 12f), new Vector2(307f, 0f),
                 15, choice.Available ? Html("#8F6C3E") : Html("#95523B"), TextAnchor.MiddleCenter);
-            hours.text = !choice.Available ? "不可选 · " + choice.Hours.ToString("0.#") + " 小时\n" + choice.LockedReason : choice.IsSkip ? "继续航行" :
+            hours.text = !choice.Available ? "不可选 · " + choice.Hours.ToString("0.#") + " 小时\n" + choice.LockedReason : choice.IsSkip ? string.Empty :
                 (choice.StartsBattle ? "进入海战\n" : "耗时\n") + choice.Hours.ToString("0.#") + " 小时";
             Image marker = CreateImage("Decision Seal", button.transform, new Vector2(38f, 38f), new Vector2(-332f, 0f),
                 choice.StartsBattle ? Html("#913E2E") : accent, circleSprite);

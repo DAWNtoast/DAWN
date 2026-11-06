@@ -218,7 +218,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void BlueFireGunner_KeepsHerAuthoredIdentityAndFireRoundMechanics()
+        public void BlueFireGunner_KeepsHerAuthoredIdentityAndNextAttackFireLayers()
         {
             CoreSpecialCardDefinition yilan = CoreSpecialCardCatalog.ForCrew("crew_twilight_tide_gunner_yilan");
             Assert.That(yilan.SourceName, Is.EqualTo("蓝火炮巫 伊岚"));
@@ -228,20 +228,21 @@ namespace ShatteredSail.Core.Tests
             Assert.That(yilan.Card, Is.SameAs(CoreSchoolCardCatalog.ForSource(yilan.SourceId)));
             Assert.That(yilan.Card.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.FireLoad));
             Assert.That(yilan.Card.SchoolEffect.Secondary, Is.EqualTo(3));
-            Assert.That(yilan.Card.SchoolEffect.Power, Is.EqualTo(6));
+            Assert.That(yilan.Card.SchoolEffect.Power, Is.Zero);
             Assert.That(yilan.Card.Draw, Is.EqualTo(1));
             Assert.That(yilan.Card.PowderCost, Is.EqualTo(1));
-            Assert.That(yilan.Card.SchoolEffect.Duration, Is.EqualTo(2));
+            Assert.That(yilan.Card.SchoolEffect.Duration, Is.Zero);
+            StringAssert.Contains("获得 3 层附火", yilan.Card.Description);
             Assert.That(yilan.LegacySourceKey, Is.EqualTo("gunner"));
             Assert.That(yilan.StoryId, Is.EqualTo("seventh_berth_05"));
             StringAssert.Contains("命中", yilan.Lore);
         }
 
-        [TestCase("crew_broken_anchor_doctor_hector", "blood_09", 2, 12, 0, 0)]
-        [TestCase("crew_white_shell_doctor_mirei", "tide_12", 3, 16, 0, 0)]
+        [TestCase("crew_broken_anchor_doctor_hector", "blood_09", 2, 24, 0, 0)]
+        [TestCase("crew_white_shell_doctor_mirei", "tide_12", 3, 18, 0, 0)]
         [TestCase("crew_bronze_bell_doctor_ada", "basic_06", 2, 12, 9, 0)]
         [TestCase("crew_salt_crown_doctor_naji", "basic_07", 3, 34, 8, 0)]
-        [TestCase("crew_twilight_tide_doctor_viya", "arcane_05", 1, 17, 0, 0)]
+        [TestCase("crew_twilight_tide_doctor_viya", "arcane_05", 1, 34, 0, 0)]
         [TestCase("crew_gray_gull_doctor_moer", "basic_06", 1, 10, 5, 1)]
         public void DoctorCards_AreCrewHealingOnlyAndUseAuthoredProgression(string crewId, string boardingKey,
             int maximum, int finalRepair, int finalBlock, int finalDraw)
@@ -306,7 +307,12 @@ namespace ShatteredSail.Core.Tests
                 StringAssert.Contains("获得持续恢复：2", compact);
                 StringAssert.Contains("额外获得持续恢复：" + (ranked.Repair - 2), compact);
             }
-            else if (boardingKey == "blood_09") StringAssert.Contains("恢复" + ranked.Repair, compact);
+            else if (boardingKey == "blood_09")
+            {
+                StringAssert.Contains("恢复2点生命值，绝境：改为恢复4点生命值", compact);
+                StringAssert.Contains("额外恢复" + (ranked.Repair - 2) + "点生命值", compact);
+                StringAssert.Contains("绝境：改为额外恢复51点生命值", compact);
+            }
             else
             {
                 StringAssert.Contains("恢复2点生命值", compact);
@@ -347,7 +353,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(card.Block, Is.EqualTo(6));
             Assert.That(card.BoardingBlock, Is.Null);
             Assert.That(card.Draw, Is.EqualTo(1));
-            Assert.That(card.Repair, Is.EqualTo(3));
+            Assert.That(card.Repair, Is.EqualTo(4));
             Assert.That(card.Damage + card.PowderCost + card.CannonballCost, Is.Zero);
             Assert.That(CoreSpecialCardCatalog.All.Count(value => value.SourceId.Contains("_cook_")), Is.EqualTo(6));
 
@@ -362,7 +368,7 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(ranked.Energy, Is.EqualTo(1));
                 Assert.That(ranked.Draw, Is.EqualTo(1));
                 Assert.That(ranked.Damage, Is.Zero);
-                Assert.That(ranked.Repair, Is.EqualTo(rank == 0 ? 3 : 4));
+                Assert.That(ranked.Repair, Is.EqualTo(rank == 0 ? 4 : 6));
                 StringAssert.Contains("获得 " + ranked.Block + " 点格挡", ranked.Description);
                 StringAssert.Contains("抽 " + ranked.Draw + " 张", ranked.Description);
             }

@@ -43,7 +43,7 @@ namespace ShatteredSail.Presentation.Tests
             ClickAcceptanceButton("Departure Basic Supplies Recommend"); yield return null;
             AssertRecommendedDepartureOrder(expected);
             Assert.That(DepartureBasicSupplyQuantity("water"), Is.EqualTo(target));
-            Assert.That(GameObject.Find("Departure Basic Supplies Hint").GetComponent<Text>().text, Does.Contain("已按航程"));
+            Assert.That(GameObject.Find("Departure Basic Supplies Hint"), Is.Null, "The supplies footer stays free of small-print notices.");
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             Assert.That(controller.Session.Cargo.Water, Is.Zero);
             LogAssert.NoUnexpectedReceived();
@@ -94,8 +94,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(DepartureBasicSupplyQuantity("water"), Is.Zero);
                 Assert.That(DepartureBasicSupplyQuantity("powder"), Is.Zero);
                 Assert.That(DepartureBasicSupplyQuantity("food"), Is.GreaterThan(0));
-                Assert.That(GameObject.Find("Departure Basic Supplies Hint").GetComponent<Text>().text,
-                    Does.Contain("未达到完整推荐储备"));
+                Assert.That(GameObject.Find("Departure Basic Supplies Hint"), Is.Null, "The supplies footer stays free of small-print notices.");
                 ClickAcceptanceButton("Departure Basic Supplies Close"); yield return null;
                 VoyageSupplyOrder maintenance = InvokeRecommendedMaintenanceOrder(controller);
                 Assert.That(maintenance[VoyageSupplyType.Water], Is.Zero);
@@ -127,8 +126,7 @@ namespace ShatteredSail.Presentation.Tests
                 volume += expected[type] * PortMarketCatalog.CargoVolume(RecommendedMarketItem(type));
             Assert.That(volume, Is.LessThanOrEqualTo(controller.Session.CargoCapacityValue + .001d));
             Assert.That(DepartureBasicSupplyQuantity("water"), Is.LessThan(controller.Session.RecommendedSupplyTarget(VoyageSupplyType.Water)));
-            Assert.That(GameObject.Find("Departure Basic Supplies Hint").GetComponent<Text>().text,
-                Does.Contain("未达到完整推荐储备"));
+            Assert.That(GameObject.Find("Departure Basic Supplies Hint"), Is.Null, "The supplies footer stays free of small-print notices.");
             ClickAcceptanceButton("Departure Basic Supplies Close"); yield return null;
             VoyageSupplyOrder maintenance = InvokeRecommendedMaintenanceOrder(controller);
             foreach (VoyageSupplyType type in CoreVoyageSession.PurchasableSupplies)

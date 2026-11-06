@@ -70,9 +70,11 @@ namespace ShatteredSail.Core.Tests
         public void PlayerBoardingAndRamResetPhaseCostAndKeepPlayerInitiative(bool ram)
         {
             CoreVoyageSession session = Start(true, cook: true);
-            SetHand(session, 23);
+            int support = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
+                .Single(i => CoreVoyageSession.CardLibrary[i].Id == "card_special_crew_gray_gull_cook_pepe");
+            SetHand(session, support);
             Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.GetBattleCardEnergyCost(23), Is.EqualTo(session.GetBattleCard(23).Energy + 1));
+            Assert.That(session.GetBattleCardEnergyCost(support), Is.EqualTo(session.GetBattleCard(support).Energy + 1));
             session.Battle.DistanceMeters = 100;
             typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(session.Battle, 90f);
             if (!ram) typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(session.Battle, 90f);
@@ -82,7 +84,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(ram ? session.TryRam() : session.TryBoard(), Is.True);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
             Assert.That(session.Battle.Turn, Is.EqualTo(turn));
-            Assert.That(session.GetBattleCardEnergyCost(23), Is.EqualTo(session.GetBattleCard(23).Energy));
+            Assert.That(session.GetBattleCardEnergyCost(support), Is.EqualTo(session.GetBattleCard(support).Energy));
             Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.False);
             int expectedHealth = ram ? BoardingHealthAfterNavalDamage(health, session.MaxHull, hull - session.Hull) : health;
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(expectedHealth), "Player connection grants the first card action, with no hidden enemy strike.");
@@ -238,13 +240,14 @@ namespace ShatteredSail.Core.Tests
                 "The ram and its one announced opening resolve before any end-of-turn burn.");
         }
 
-        [Test]
-        public void ShortStaffedShipUsesReducedEffectiveArmorForEnemyCannonDamage()
+        [TestCase(0)] [TestCase(4)] [TestCase(5)] [TestCase(10)]
+        public void OrdinaryCrewCountDoesNotReduceArmorOrIncreaseIncomingCannonDamage(int ordinaryCrew)
         {
             CoreVoyageSession staffed = Start(true, ordinary: 8, armorBonus: 10);
-            CoreVoyageSession shortStaffed = Start(true, ordinary: 0, armorBonus: 10);
+            CoreVoyageSession shortStaffed = Start(true, ordinary: ordinaryCrew, armorBonus: 10);
             Assert.That(shortStaffed.Armor, Is.EqualTo(staffed.Armor));
-            Assert.That(shortStaffed.EffectiveArmor, Is.LessThan(staffed.EffectiveArmor));
+            Assert.That(shortStaffed.EffectiveArmor, Is.EqualTo(staffed.EffectiveArmor));
+            Assert.That(new[] { staffed.EffectiveArmor, shortStaffed.EffectiveArmor }, Is.EqualTo(new[] { 12, 12 }));
             int[] damage = new int[2];
             CoreVoyageSession[] sessions = { staffed, shortStaffed };
             for (int i = 0; i < sessions.Length; i++)
@@ -256,9 +259,10 @@ namespace ShatteredSail.Core.Tests
                 int hull = session.Hull;
                 Assert.That(session.EndBattleTurn(), Is.True);
                 damage[i] = hull - session.Hull;
-                Assert.That(damage[i], Is.EqualTo(System.Math.Max(1, 20 - System.Math.Max(0, (session.EffectiveArmor - 4) / 2))));
+                // Raw 20 at armor 12: ceil(240/22)=11, regardless of ordinary crew count.
+                Assert.That(damage[i], Is.EqualTo(11));
             }
-            Assert.That(damage[1], Is.GreaterThan(damage[0]));
+            Assert.That(damage[1], Is.EqualTo(damage[0]));
         }
 
         [Test]
@@ -274,7 +278,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(small.Battle.PlayerMaxBoardingHealth, Is.EqualTo(CoreBattleBalance.BoardingHealthForOrdinaryCrew(4)));
             Assert.That(small.Battle.EnemyMaxBoardingHealth,
                 Is.EqualTo((int)Math.Round(CoreBattleBalance.BoardingHealthForOrdinaryCrew(small.Battle.EnemyOrdinaryCrew) *
-                    CoreBattleBalance.EnemyHealthMultiplier, MidpointRounding.AwayFromZero)));
+                    small.Battle.Profile.BoardingHealthMultiplier, MidpointRounding.AwayFromZero)));
         }
 
         private static CoreBattleProfile RamProfile(double chance, int melee = 7) =>
@@ -285,6 +289,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.ConfigureCrewCapabilities(false, false, false, false, cook, false);
+            if (cook) session.ConfigureSpecialCardSources(new[] { "crew_gray_gull_cook_pepe" }, null);
             session.ConfigureDepartureCrew(ordinary, specialists);
             if (armorBonus != 0) session.ConfigureComponentBonuses(0, armorBonus, 0, 0, 0);
             if (upgrades != null) session.ConfigureCardUpgrades(upgrades);

@@ -8,9 +8,9 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class CoreBoardingResolvedAttackTests
     {
-        [TestCase("arcane_11", "arcane", 36)]
-        [TestCase("thunder_05", "thunder", 14)]
-        [TestCase("blood_13", "blood", 12)]
+        [TestCase("arcane_11", "arcane", 72)]
+        [TestCase("thunder_05", "thunder", 28)]
+        [TestCase("blood_13", "blood", 24)]
         public void NextPlayerTurn_RecordsActualQueuedSourceAndSettlementOnce(string key, string school, int damage)
         {
             CoreVoyageSession session = Battle(key);
@@ -34,9 +34,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(battle.Boarding.ResolvedAttackSequence, Is.EqualTo(1), "An expired queue cannot settle twice.");
         }
 
-        [TestCase("thunder_05", "thunder", 14)]
-        [TestCase("blood_13", "blood", 12)]
-        [TestCase("basic_13", "", 12)]
+        [TestCase("thunder_05", "thunder", 28)]
+        [TestCase("blood_13", "blood", 24)]
+        [TestCase("basic_13", "", 24)]
         public void EarlyResolution_UsesOriginalSchoolAndRealGuardLoss_NotResolverSchool(string key, string school, int damage)
         {
             CoreVoyageSession session = Battle(key, "arcane_03", "arcane_15");
@@ -76,7 +76,7 @@ namespace ShatteredSail.Core.Tests
             var facts = battle.Boarding.ResolvedAttacks;
             Assert.That(facts.Select(a => a.SourceSchoolId), Is.EqualTo(new[] { "arcane", "thunder", "blood" }));
             Assert.That(facts.Select(a => a.Sequence), Is.EqualTo(new long[] { 1, 2, 3 }));
-            Assert.That(facts.Select(a => a.HealthLost + a.GuardAbsorbed), Is.EqualTo(new[] { 36, 14, 12 }));
+            Assert.That(facts.Select(a => a.HealthLost + a.GuardAbsorbed), Is.EqualTo(new[] { 72, 28, 24 }));
             for (int i = 1; i < facts.Count; i++)
             {
                 Assert.That(facts[i].HealthBefore, Is.EqualTo(facts[i - 1].HealthAfter));
@@ -138,6 +138,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             session.SetSeed("BOARDING-RESOLVED-ATTACKS");
             Assert.That(session.StartTrainingBattle(CoreTrainingTargets.All[0]), Is.True);
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, 1000);

@@ -9,6 +9,35 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class CoreSeaChartProgressTests
     {
+        [TestCase(-1, true, false, false)]
+        [TestCase(0, true, false, true)]
+        [TestCase(1, true, false, true)]
+        [TestCase(0, false, false, false)]
+        [TestCase(1, false, false, false)]
+        [TestCase(0, true, true, false)]
+        public void DrawingRequiresAtLeastHalfExplorationAndASuccessfulNavigatorVoyage(
+            int cellsFromHalf, bool navigator, bool failure, bool canDrawAtSettlement)
+        {
+            CoreVoyageSession session = ChartReady();
+            session.ConfigureCrewCapabilities(navigator, false, false, false, false, false);
+            Assert.That(session.CanUseSeaCharts, Is.EqualTo(navigator));
+            Assert.That(session.CanDrawSeaChart, Is.False, "A port has no current map to draw.");
+            session.StartVoyage();
+            int explored = session.Map.ExploredCells.Length / 2 + cellsFromHalf;
+            for (int cell = 0; cell < session.Map.ExploredCells.Length; cell++)
+                session.Map.ExploredCells[cell] = cell < explored;
+            Assert.That(session.CanDrawSeaChart, Is.EqualTo(navigator && cellsFromHalf >= 0),
+                "Exactly 50% qualifies; rounding a value below 50% must not unlock drawing.");
+            if (failure) session.Cargo.Water = session.Cargo.Food = 0;
+            Assert.That(session.SafeReturn(), Is.True);
+            Assert.That(session.Settlement.Outcome, Is.EqualTo(failure ? VoyageOutcome.Failure : VoyageOutcome.SafeReturn));
+            Assert.That(session.Settlement.ChartSaved, Is.EqualTo(canDrawAtSettlement));
+            session.ReturnToPortAfterSettlement();
+            Assert.That(session.CanDrawSeaChart, Is.False);
+            Assert.That(session.CanUseSeaCharts, Is.EqualTo(navigator),
+                "Returning with low exploration does not remove permission to use existing charts.");
+        }
+
         [TestCase(0)] [TestCase(1)] [TestCase(2)]
         public void StructuredSeedsCarryTheirRouteAndCanonicalPortsAcrossEveryPortPair(int route)
         {
@@ -116,6 +145,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = ChartReady();
             decimal gold = session.ProfileGold;
             int aboard = session.Cargo.Gold;
+            session.RecordCollectionPortVisit("白贝港");
             Assert.That(session.SelectDestinationPort("铜钟港"), Is.True);
             Assert.That(session.CanStartSelectedChart(out _), Is.False);
             Assert.Throws<InvalidOperationException>(() => session.StartVoyage("铜钟港"));
@@ -213,8 +243,8 @@ namespace ShatteredSail.Core.Tests
                 int before = session.Cargo.Gold;
                 Win(session, captured);
                 // 115, 57.5 and 28.75 all pay the positive minimum of 100;
-                // the fourth claim is zero before rounding. Capture doubles last.
-                int expected = visit < 3 ? (captured ? 200 : 100) : 0;
+                // the fourth claim is zero before rounding. Capture adds one quarter last.
+                int expected = visit < 3 ? (captured ? 125 : 100) : 0;
                 Assert.That(session.Cargo.Gold - before, Is.EqualTo(expected));
                 Assert.That(session.CaptureSeaChartProgress().charts.Single().events.Single(item => item.eventId == "gold_customs").count, Is.EqualTo(visit + 1));
                 Return(session);

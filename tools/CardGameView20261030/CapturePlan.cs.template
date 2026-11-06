@@ -1,0 +1,57 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Text;
+using System.Web.Script.Serialization;
+using ShatteredSail.Core.Gameplay;
+using ShatteredSail.Presentation;
+
+internal static class CapturePlan
+{
+    public sealed class BaseCard { public string Id; }
+    public sealed class BaseFile { public BaseCard[] Cards; public int StageCount; }
+    public sealed class ArtRow { public string Id,Stage,StageId,ResourcePath,SourcePath,SourceSha256; }
+    public sealed class ArtFile { public ArtRow[] Cards; }
+    public sealed class Row { public string Id,Name,Stage,StageId,ArtResourcePath,FrameResourcePath,DefaultFrameResourcePath,Effect; public int Level,Index; }
+    private static readonly string[] SchoolIds={"fire","arcane","curse","tide","thunder","blood"};
+/* CURRENT_FRAME_PATH_METHODS */
+    private static string StageName(NavalBattleStage s)=>s==NavalBattleStage.Preparation?"准备":s==NavalBattleStage.Naval?"海战":"接舷";
+    private static void Require(bool value,string message){if(!value)throw new InvalidOperationException(message);}
+    private static int Main(string[] args)
+    {
+        var json=new JavaScriptSerializer{MaxJsonLength=int.MaxValue};
+        var basis=json.Deserialize<BaseFile>(File.ReadAllText(args[0],Encoding.UTF8));
+        var art=json.Deserialize<ArtFile>(File.ReadAllText(args[1],Encoding.UTF8));
+        var session=new CoreVoyageSession();
+        var rows=new List<Row>();
+        foreach(var published in basis.Cards)
+        {
+            int index=Enumerable.Range(0,CoreVoyageSession.CardLibrary.Count).Single(i=>CoreVoyageSession.CardLibrary[i].Id==published.Id);
+            CoreBattleCard original=CoreVoyageSession.CardLibrary[index];
+            foreach(var stage in new[]{NavalBattleStage.Preparation,NavalBattleStage.Naval,NavalBattleStage.Boarding})
+            {
+                if(!original.IsAllowedInStage(stage))continue;
+                CoreBattleCard stageBase=stage==NavalBattleStage.Boarding?CoreBoardingCardCatalog.ForBoarding(original):original;
+                var image=art.Cards.Single(row=>row.Id==original.Id&&row.Stage==StageName(stage));
+                for(int level=0;level<=CoreBattleUpgradeBalance.MaximumLevelFor(stageBase);level++)
+                {
+                    CoreBattleCard card=session.GetBattleCardAtLevel(index,level);
+                    if(stage==NavalBattleStage.Boarding)card=CoreBoardingCardCatalog.ForBoarding(card);
+                    rows.Add(new Row{Id=original.Id,Name=card.Name,Index=index,Level=level,Stage=StageName(stage),StageId=stage.ToString(),
+                        ArtResourcePath=image.ResourcePath,FrameResourcePath=FrameResourcePath(card,stage),DefaultFrameResourcePath=FrameResourcePath(card),
+                        Effect=session.BattleCardFaceDescription(card,stage)});
+                }
+            }
+        }
+        Require(rows.Select(r=>r.Id+"/"+r.StageId).Distinct().Count()==basis.StageCount,"Stage count differs from base catalogue.");
+        var resources=rows.SelectMany(r=>new[]{r.ArtResourcePath+".png",r.FrameResourcePath+".png",r.DefaultFrameResourcePath+".png"})
+            .Concat(new[]{"CardSchools/Frames/Integrated/frame-layouts.json","Fonts/XiangcuiKesong.ttf","Fonts/HarborBody-Regular.otf",
+                "BattleIcons/battle_icons_v1.png","ItemIcons/items_small_v1.png","PortFacilities/Market/market_shop_panel_v3.png"})
+            .Distinct().OrderBy(s=>s,StringComparer.Ordinal).ToArray();
+        var report=new{CardCount=basis.Cards.Length,StageCount=basis.StageCount,RowCount=rows.Count,Resources=resources,Cards=rows};
+        File.WriteAllText(args[2],json.Serialize(report),new UTF8Encoding(false));
+        Console.WriteLine("Planned "+basis.Cards.Length+" cards, "+basis.StageCount+" stages, "+rows.Count+" ranks, "+resources.Length+" exact resources.");
+        return 0;
+    }
+}

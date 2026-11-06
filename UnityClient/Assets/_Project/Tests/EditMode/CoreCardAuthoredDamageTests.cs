@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -77,11 +77,13 @@ namespace ShatteredSail.Core.Tests
         public void CannonLoadFirepowerAndBurn_ResolveExactlyTheirQuotedAuthoredValues(int rank)
         {
             CoreVoyageSession session = Battle(rank);
-            Assert.That(session.EffectiveFirepower, Is.EqualTo(16), "The fixture contributes exactly four firepower damage.");
+            Assert.That(session.EffectiveFirepower, Is.EqualTo(16), "The fixture scales the authored cannon segment to 180%.");
             CoreBattleCard load = session.GetBattleCard(Index("card_load_shot"));
             int loadIncrease = Math.Min(load.StrategyAmount, load.StrategyLimit), loadLimit = load.StrategyLimit;
-            int burn = session.GetBattleCard(Index("card_special_crew_salt_crown_gunner_rokan")).BurnDamage;
-            int cannonDamage = session.GetBattleCard(Index("card_chain_shot")).Damage + loadIncrease + 4;
+            int burn = session.GetBattleCard(Index("card_special_crew_salt_crown_gunner_rokan")).StrategyAmount;
+            // Authored chain damage 10/12/15/19 at 180%, rounded away from zero.
+            // Loading stays a separate flat bonus instead of receiving firepower twice.
+            int cannonDamage = new[] { 18, 22, 27, 34 }[rank] + loadIncrease;
             Assert.That(session.GetBattleLoadedShotIncrease(load), Is.EqualTo(loadIncrease));
             Assert.That(session.GetBattleLoadedShotLimit(load), Is.EqualTo(loadLimit));
             int powder = session.Cargo.Powder;
@@ -91,7 +93,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Cargo.Powder, Is.EqualTo(powder - 1));
 
             Play(session, "card_special_crew_salt_crown_gunner_rokan");
-            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(burn));
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(burn));
             CoreBattleCard cannon = session.GetBattleCard(Index("card_chain_shot"));
             Assert.That(session.GetBattleCardDamage(cannon, NavalBattleStage.Naval), Is.EqualTo(cannonDamage));
             Assert.That(Regex.IsMatch(session.BattleCardFaceDescription(cannon, NavalBattleStage.Naval),
@@ -119,7 +121,7 @@ namespace ShatteredSail.Core.Tests
             typeof(CoreBattleState).GetProperty("PlayerOrdinaryCrew").SetValue(session.Battle, 14);
             session.Battle.EnemyBoardingHealth = session.Battle.EnemyMaxBoardingHealth = 1000;
             CoreBattleCard thrust = session.GetBattleCard(Index("card_crew_thrust"));
-            int damage = new[] { 8, 10, 12, 16 }[rank];
+            int damage = new[] { 16, 20, 24, 32 }[rank];
             Assert.That(thrust.Damage, Is.EqualTo(damage));
             Assert.That(session.GetBattleCardEffects(thrust, NavalBattleStage.Boarding).Damage, Is.EqualTo(damage));
             Assert.That(session.BattleCardEffectDescription(thrust, NavalBattleStage.Boarding), Does.Contain(damage + " 点伤害"));

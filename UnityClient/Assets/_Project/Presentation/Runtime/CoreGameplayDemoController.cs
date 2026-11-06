@@ -106,7 +106,7 @@ namespace ShatteredSail.Presentation
         private void Render()
         {
             if (profileSaveBlocked) return;
-            RestoreShipyardEquipmentViewport();
+            RestoreFullWindowFacilityViewport();
             CloseBattleDeckOverview(false);
             CloseBoardingCardChoice();
             CloseNavalCardChoice();
@@ -421,7 +421,7 @@ namespace ShatteredSail.Presentation
                 choices.Add(new EncounterDossierChoice
                 {
                     ObjectName = "Tutorial Skip Encounter", Label = "略过事件，继续航行",
-                    Detail = "略过不会耗时", Available = true, IsSkip = true,
+                    Detail = string.Empty, Available = true, IsSkip = true,
                     Resolve = () => { tutorial.SkipCurrentEncounter(); PlaySfx("encounter_choice", 0.42f); Render(); }
                 });
             art.EncounterArt(0, encounter.Id, out Texture2D tutorialArt, out Rect tutorialUv, legacyTutorial: true);
@@ -591,6 +591,7 @@ namespace ShatteredSail.Presentation
                     warehouseCollections.Keys.Any(port => !CoreVoyageSession.DestinationPorts.Contains(port)))
                     throw new ProfileSaveException("角色港口或仓库归属无法识别，已停止保存并保留原档案。");
                 if (!ProfileSaveJournal.TryBegin(out string notice)) throw new ProfileSaveException(notice);
+                CarryUndisplayedWarehouseTreasuresToCurrentPort();
                 RefreshCollectionRewards();
                 // The durable journal protects these writes even on platforms
                 // where Set reaches native storage before PlayerPrefs.Save.
@@ -610,6 +611,7 @@ namespace ShatteredSail.Presentation
                 SaveStageBattleDecks();
                 SaveSpecialCardProgress(false);
                 SaveBattleCardUpgrades();
+                SaveCardPacks();
                 PlayerPrefs.SetString(BattleDeckKey, string.Join(",", configuredBattleDeck));
                 SaveCargo();
                 if (pendingVoyageThreeEventsAchievement) AchievementCatalog.RecordVoyageThreeEvents();
@@ -695,7 +697,7 @@ namespace ShatteredSail.Presentation
                 }
                 if (!ProfileSaveJournal.TryRecover(out string notice)) { body.text = notice + "\n\n尚未恢复。修复存储问题后可再次点击重试。"; return; }
                 VoyageSuspensionPersistence.PendingNotice = notice;
-                SceneManager.LoadScene("MainMenu");
+                LoadMainMenuWithMusic();
             });
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(recover.gameObject);
         }
@@ -807,7 +809,7 @@ namespace ShatteredSail.Presentation
                 OpenFacilityFromDeparture(4, setupPanel);
                 selectedCardWorkshopChest = 3;
                 cardWorkshopDeckBuilderOpen = true;
-                battleDeckOverviewOpen = true;
+                battleDeckOverviewOpen = false;
                 portNotice = "配置备战、炮击、接舷牌组。随船专业船员自动加入专属牌。";
                 Render();
             });
@@ -1086,14 +1088,19 @@ namespace ShatteredSail.Presentation
 
         private void SelectCourseToEvent(int nodeIndex)
         {
-            if (navigationMotionPlaying || session.Phase != CoreDemoPhase.Sailing || session.Map == null || nodeIndex < 0 || nodeIndex >= session.Map.Nodes.Count)
+            if (navigationMotionPlaying || voyageCargoOverlay != null || portSettingsOverlay != null ||
+                session.Phase != CoreDemoPhase.Sailing || session.Map == null || nodeIndex < 0 || nodeIndex >= session.Map.Nodes.Count)
             {
                 return;
             }
 
             CoreMapNode node = session.Map.Nodes[nodeIndex];
             if (node.Visited || !node.IsChartVisible) return;
+            if (tutorialActive && (guidedTutorialNavigationInputStep != GuidedTutorialNavigationInputStep.Heading ||
+                node != GuidedTutorialCourseEvent || !GuidedTutorialAllowsControl("Event Node " + node.Id))) return;
             session.SetCourseTo(node.Position);
+            if (tutorialActive && session.HasDirectCourseTarget)
+                guidedTutorialNavigationInputStep = GuidedTutorialNavigationInputStep.Sail;
             PlaySfx("course_plot", 0.48f);
             Render();
         }
@@ -1173,14 +1180,14 @@ namespace ShatteredSail.Presentation
                     Detail = ChartEncounterChoiceDetail(index), Requirement = condition,
                     Hours = choice.Hours, Available = available, StartsBattle = choice.StartsBattle,
                     LockedReason = available ? string.Empty : session.ChoiceUnavailableReason(index),
-                    Resolve = () => { session.ResolveChoice(captured); PlaySfx("encounter_choice", 0.5f); Render(); }
+                    Resolve = EncounterFeedbackCallback(session, encounter, captured)
                 });
             }
             if (!encounter.Mandatory)
                 choices.Add(new EncounterDossierChoice
                 {
                     ObjectName = "Skip Encounter", Label = "略过事件，继续航行",
-                    Detail = "略过不会耗时，也不会获得事件奖励", Available = true, IsSkip = true,
+                    Detail = string.Empty, Available = true, IsSkip = true,
                     Resolve = () => { session.SkipEncounter(); PlaySfx("encounter_choice", 0.42f); Render(); }
                 });
             if (session.CanRequestEmergencyTow())
@@ -1293,23 +1300,6 @@ namespace ShatteredSail.Presentation
             enemyUv = new Rect(enemyUv.xMax, enemyUv.y, -enemyUv.width, enemyUv.height);
             BuildStagedBattleScene(card, battle, combatShipSheet, enemyUv);
 
-            Text badge = CreateText("Battle Badge", card, new Vector2(520f, 34f), new Vector2(0f, 410f), 18, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
-            UiLabelBacking.Apply(badge);
-            CoreBossKind bossKind = battle.Profile == null ? (battle.IsBoss ? CoreBossKind.Route : CoreBossKind.None) : battle.Profile.BossKind;
-            badge.text = (bossKind == CoreBossKind.Legendary ? "传奇战舰挑战" : bossKind == CoreBossKind.Treasure ? "藏宝图首领战" : battle.IsBoss ? "区域首领战" : "航路遭遇战") + " · " + BattleEnvironmentArtCatalog.LabelFor(session.BattleTerrain) + " · 回合 " + (session.IsGuidedBossBattle ? battle.PhaseTurn : battle.Turn);
-            // Keep the combatant labels in the upper corner callouts from the authored battle layout. Their wide separation leaves the central range/alignment readout unobstructed.
-            RectTransform playerNameBoard = CreateFixedPanel("Player Battle Name Board", card,
-                new Vector2(400f, 80f), new Vector2(-727f, 410f), PanelRaised);
-            ApplyRetreatBattleWoodBoard(playerNameBoard.GetComponent<Image>());
-            playerNameBoard.GetComponent<Image>().raycastTarget = false;
-            Text playerName = CreateText("Player Battle Name", card, new Vector2(400f, 80f), new Vector2(-727f, 410f), 23, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
-            playerName.text = BattleCrewName(battle, true);
-            RectTransform enemyNameBoard = CreateFixedPanel("Enemy Battle Name Board", card,
-                new Vector2(400f, 80f), new Vector2(727f, 410f), PanelRaised);
-            ApplyRetreatBattleWoodBoard(enemyNameBoard.GetComponent<Image>());
-            enemyNameBoard.GetComponent<Image>().raycastTarget = false;
-            Text enemyName = CreateText("Enemy Battle Name", card, new Vector2(400f, 80f), new Vector2(727f, 410f), 23, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
-            enemyName.text = BattleCrewName(battle, false);
             ConfigureBattleDefenses(card, battle);
             CreateEnemyIntentHud(card, battle);
 
@@ -1337,12 +1327,12 @@ namespace ShatteredSail.Presentation
                 BeginEnemyTurnAnimation();
             });
             bool emergencyReturn = session.CanRequestEmergencyTow();
-            Button retreat = CreateButton(emergencyReturn ? "Emergency Battle Return" : "Retreat Battle", card,
+            Button retreat = CreateButton("Emergency Battle Return", card,
                 new Vector2(230f, 44f), new Vector2(-735f, -277.6f), PanelRaised, Ink, 16);
-            retreat.GetComponentInChildren<Text>().text = emergencyReturn ? "应急撤离 · 保留 35%" :
-                session.CanRetreatBattle ? "脱离战斗 · 撤回港口" : session.IsGuidedBossBattle ? "完成首领战斗教学" : "接舷中无法撤退";
-            retreat.interactable = session.CanRetreatBattle || emergencyReturn;
-            retreat.onClick.AddListener(() => RetreatFromRetainedBattle(card, battle));
+            retreat.GetComponentInChildren<Text>().text = "应急撤离 · 保留 35%";
+            retreat.interactable = emergencyReturn;
+            retreat.gameObject.SetActive(emergencyReturn);
+            retreat.onClick.AddListener(() => EmergencyReturnFromRetainedBattle(card, battle));
             CacheRetainedBattleView(card, hand, battle, retreat, battleReadouts);
         }
 

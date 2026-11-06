@@ -22,6 +22,9 @@ namespace ShatteredSail.Presentation
         private readonly List<VoyagePoint> attackOrigins = new List<VoyagePoint>();
         private IReadOnlyList<VoyagePoint> visibleMovementCells;
         private int? previousSignature;
+        private int previewTurn, previewPhaseTurn;
+        private NavalBattleStage previewStage;
+        private bool turnContextInitialized;
 
         public bool ShipRangePinned { get; private set; }
         public string ShowingCardId { get; private set; }
@@ -41,12 +44,14 @@ namespace ShatteredSail.Presentation
         public void ToggleShipRange()
         {
             if (!CanPreview || Blocked) return;
+            SynchronizeTurnContext();
             SetShipRangePinned(!ShipRangePinned);
         }
 
         public void SetShipRangePinned(bool pinned)
         {
             if (pinned && (!CanPreview || Blocked)) return;
+            SynchronizeTurnContext();
             ShipRangePinned = pinned;
             RefreshNow();
         }
@@ -57,7 +62,8 @@ namespace ShatteredSail.Presentation
 
         public void BeginCardHover(Component owner, Func<CoreBattleCard> getCard)
         {
-            if (!CanPreview) return;
+            if (!CanPreview || Blocked) return;
+            SynchronizeTurnContext();
             hoverOwner = owner; hoveredCard = getCard;
             RefreshNow();
         }
@@ -73,6 +79,23 @@ namespace ShatteredSail.Presentation
         private bool CanPreview => session != null && board != null && session.Phase == CoreDemoPhase.Battle &&
             ReferenceEquals(session.Battle, battle) && battle.Stage != NavalBattleStage.Boarding;
         private bool Blocked => board == null || board.IsAnimating || (inputBlocked != null && inputBlocked());
+
+        private void SynchronizeTurnContext()
+        {
+            if (battle == null) return;
+            if (turnContextInitialized && (previewTurn != battle.Turn || previewPhaseTurn != battle.PhaseTurn || previewStage != battle.Stage))
+            {
+                // A fresh turn starts with a clear sea. Old ship selections and card
+                // hover callbacks must not reopen ranges when action points refill.
+                ShipRangePinned = false;
+                hoverOwner = null;
+                hoveredCard = null;
+            }
+            previewTurn = battle.Turn;
+            previewPhaseTurn = battle.PhaseTurn;
+            previewStage = battle.Stage;
+            turnContextInitialized = true;
+        }
 
         private void LateUpdate()
         {
@@ -122,6 +145,7 @@ namespace ShatteredSail.Presentation
         public void RefreshNow()
         {
             if (graphic == null) return;
+            SynchronizeTurnContext();
             previousSignature = null;
             cells.Clear(); ranges.Clear(); ShowingCardId = null;
             visibleMovementCells = null;

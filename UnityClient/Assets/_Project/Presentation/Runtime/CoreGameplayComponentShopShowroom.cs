@@ -42,11 +42,6 @@ namespace ShatteredSail.Presentation
                     "本月暂无" + ComponentArtCatalog.SlotName(slot) + "到货\n可浏览其他分类，或下月再来。", TextAnchor.MiddleCenter);
                 AddSceneLabelOutline(empty);
             }
-            Text rule = ShopText("Component Shop Regional Rule", panel, new Vector2(1200f, 46f),
-                new Vector2(0f, -452f), 17, WoodButtonSkin.Ink,
-                "本港主售 " + PortComponentShopCatalog.PreferredSlotLabel(session.CurrentPort) +
-                "　·　每游戏月补货　·　下次 " + PortComponentShopCatalog.NextRefreshLabel(now), TextAnchor.MiddleCenter);
-            AddSceneLabelOutline(rule);
         }
 
         private void BuildComponentShopCategories(RectTransform panel,

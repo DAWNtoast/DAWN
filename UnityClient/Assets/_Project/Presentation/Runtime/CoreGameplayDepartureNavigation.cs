@@ -13,10 +13,12 @@ namespace ShatteredSail.Presentation
             session != null && session.Phase == CoreDemoPhase.Port &&
             ReferenceEquals(departureReturnSession, session) && departureReturnPort == session.CurrentPort;
 
-        private string FacilityReturnCaption => HasInvestmentReturn ? "返回港口投资建设" :
+        private string FacilityReturnCaption => activePortFacility == 4 && CurrentWorkshopPage != WorkshopPage.Home
+            ? "返回工坊" : HasInvestmentReturn ? "返回港口投资建设" :
             activePortFacility == PortFacilityArtCatalog.MarketFacilityIndex ? (HasDepartureReturn ? "返回码头" : "返回港口") :
             HasWorkshopSpecialCardReturn ? "返回特殊卡牌" :
-            IsShipyardDossierOpen ? (shipyardReturnToDeparture ? "返回出航码头" : "返回船坞") :
+            IsShipyardDossierOpen ? (shipyardReturnToDeparture ? "返回出航码头" :
+                shipyardDossierTab == ShipyardDossierTab.Equipment ? "返回船只档案" : "返回船坞") :
             IsTavernDossierOpen ? "返回酒馆" :
             IsComponentDossierOpen ? (componentResaleOpen ? "返回出售列表" : "返回部件陈列") :
             HasDepartureReturn ? "返回出航界面" : "返回港口";

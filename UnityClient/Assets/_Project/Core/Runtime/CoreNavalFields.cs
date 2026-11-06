@@ -5,7 +5,7 @@ namespace ShatteredSail.Core.Gameplay
 {
     public enum CoreNavalFieldKind { Fire, Arcane, Curse, Tide, Thunder, Blood }
 
-    public enum CoreNavalFieldChangeKind { Placed, Overwritten, Removed, Expired, Triggered }
+    public enum CoreNavalFieldChangeKind { Placed, Overwritten, Removed, Expired, Triggered, Extended }
 
     /// <summary>A read-only runtime presentation fact; never serialized or used to decide battle rules.</summary>
     public readonly struct CoreNavalFieldPresentationEvent
@@ -27,6 +27,7 @@ namespace ShatteredSail.Core.Gameplay
     [Serializable]
     public sealed class CoreNavalFieldCell
     {
+        // ExpiresAtOwnerTurn retains its serialized name; expiry uses the opposing side's completed turns.
         public int X, Y, InstanceId, ExpiresAtOwnerTurn, DirectionX, DirectionY;
         public CoreNavalFieldKind Kind;
         public bool PlayerOwned;
@@ -37,10 +38,18 @@ namespace ShatteredSail.Core.Gameplay
     [Serializable]
     public sealed class CoreNavalFieldShipState
     {
-        public int ArcanePiercing, BloodAttackBonus, TemporaryMana;
+        // Retained serialized name; now protects only against negative field effects.
+        // Boss protection is scoped to the current enemy turn, separate from card protection.
+        public bool AllFieldEffectsImmune;
+        public int BossFieldImmunityMask;
+        public int Mana = 3, ManaLimit = 3;
+        public int ArcanePiercing, BloodAttackBonus, TemporaryMana, ThunderChain;
         public int FireImmunityCharges, FireImmunityUsed, FireImmunityExpires;
+        public int BurnPreventionExpiresAtOwnerTurn;
+        public bool BurnPreventionExpiresAtTurnEnd;
         public int FieldImmunityMask, FieldImmunityExpires;
-        public int AnchorCharges, AnchorExpires, MovementSlow, SlowExpires;
+        public int AnchorCharges, AnchorExpires, MovementSlow, SlowExpires, NextMovementMaxCells;
+        public int TideImmunityExpiresAfterPlayerTurnEnd;
         public CoreNavalFieldShipState Copy() => (CoreNavalFieldShipState)MemberwiseClone();
     }
 
@@ -48,11 +57,12 @@ namespace ShatteredSail.Core.Gameplay
     public sealed class CoreNavalFieldState
     {
         public List<CoreNavalFieldCell> Cells = new List<CoreNavalFieldCell>();
-        // Coordinate entries for fire; kind entries for every other field. This ledger survives replacement.
+        // Coordinate entries for fire; kind entries for once-per-turn fields. Thunder entry never uses this ledger.
         public List<string> TriggerLedger = new List<string>();
         public CoreNavalFieldShipState Player = new CoreNavalFieldShipState();
         public CoreNavalFieldShipState Enemy = new CoreNavalFieldShipState();
         public int PlayerTurn = 1, EnemyTurn, NextInstanceId = 1;
+        public int CompletedPlayerTurns, CompletedEnemyTurns, LastEndedPlayerTurn = -1, LastEndedEnemyTurn = -1;
         public bool PlayerActing = true, PlayerRefuseForcedMovement = true;
 
         public const int PresentationCapacity = 128;
@@ -82,6 +92,8 @@ namespace ShatteredSail.Core.Gameplay
             var result = new CoreNavalFieldState
             {
                 PlayerTurn = PlayerTurn, EnemyTurn = EnemyTurn, NextInstanceId = NextInstanceId,
+                CompletedPlayerTurns = CompletedPlayerTurns, CompletedEnemyTurns = CompletedEnemyTurns,
+                LastEndedPlayerTurn = LastEndedPlayerTurn, LastEndedEnemyTurn = LastEndedEnemyTurn,
                 PlayerActing = PlayerActing, PlayerRefuseForcedMovement = PlayerRefuseForcedMovement,
                 Player = (Player ?? new CoreNavalFieldShipState()).Copy(), Enemy = (Enemy ?? new CoreNavalFieldShipState()).Copy()
             };
@@ -102,11 +114,17 @@ namespace ShatteredSail.Core.Gameplay
         private static int FieldGrid(float meters) => (int)Math.Round(meters / NavalGridCellMeters);
         private CoreNavalFieldShipState FieldShip(bool player) => player ? Battle.NavalFields.Player : Battle.NavalFields.Enemy;
         private int FieldOwnerTurn(bool player) => player ? Battle.NavalFields.PlayerTurn : Battle.NavalFields.EnemyTurn;
+        public int GetNavalFieldRemainingTurns(CoreNavalFieldCell cell) => cell == null || Battle == null ? 0 :
+            Math.Max(0, cell.ExpiresAtOwnerTurn - FieldDurationClock(Battle.NavalFields, cell.PlayerOwned));
+        private static int FieldDurationClock(CoreNavalFieldState state, bool playerOwned) =>
+            playerOwned ? state.CompletedEnemyTurns : state.CompletedPlayerTurns;
         private static bool FieldDirectionValid(int dx, int dy) => Math.Abs((long)dx) + Math.Abs((long)dy) == 1;
         private static bool FieldCellValid(int x, int y) => Math.Abs((long)x) <= 100000 && Math.Abs((long)y) <= 100000;
         private const int NavalFieldProtectionMask = (1 << (int)CoreNavalFieldKind.Fire) | (1 << (int)CoreNavalFieldKind.Curse) |
-            (1 << (int)CoreNavalFieldKind.Tide) | (1 << (int)CoreNavalFieldKind.Thunder);
+            (1 << (int)CoreNavalFieldKind.Tide) | (1 << (int)CoreNavalFieldKind.Thunder) | (1 << (int)CoreNavalFieldKind.Blood);
         private static bool NavalFieldImmune(CoreNavalFieldShipState ship, CoreNavalFieldKind kind, int ownerTurn) =>
+            ship.AllFieldEffectsImmune || (ship.BossFieldImmunityMask & (1 << (int)kind)) != 0 ||
+            kind == CoreNavalFieldKind.Tide && ship.TideImmunityExpiresAfterPlayerTurnEnd > 0 ||
             ship.FieldImmunityExpires > ownerTurn && (ship.FieldImmunityMask & (1 << (int)kind)) != 0;
         private static string FieldTriggerKey(bool player, CoreNavalFieldCell cell) => (player ? "P:" : "E:") +
             (cell.Kind == CoreNavalFieldKind.Fire ? "F:" + cell.X + ":" + cell.Y : "K:" + (int)cell.Kind);
@@ -120,22 +138,32 @@ namespace ShatteredSail.Core.Gameplay
         public IReadOnlyList<VoyagePoint> GetNavalFieldShape(CoreNavalFieldKind kind, int x, int y, bool vertical)
         {
             var result = new List<VoyagePoint>();
-            int width = kind == CoreNavalFieldKind.Thunder ? (vertical ? 1 : 3) : 2;
-            int height = kind == CoreNavalFieldKind.Thunder ? (vertical ? 3 : 1) : 2;
+            int width = GetNavalFieldSize(kind), height = width;
             for (int ix = 0; ix < width; ix++) for (int iy = 0; iy < height; iy++)
                 result.Add(new VoyagePoint((x + ix) * NavalGridCellMeters, (y + iy) * NavalGridCellMeters));
             return result.AsReadOnly();
         }
 
-        public string CanPlaceNavalField(CoreNavalFieldKind kind, bool playerOwned, int x, int y, bool vertical, int dx, int dy)
+        public static int GetNavalFieldSize(CoreNavalFieldKind kind) =>
+            kind == CoreNavalFieldKind.Thunder ? 7 : kind == CoreNavalFieldKind.Tide ? 4 : kind == CoreNavalFieldKind.Fire ? 3 : 2;
+
+        public string CanPlaceNavalFieldAnchor(CoreNavalFieldKind kind, bool playerOwned, int x, int y, bool vertical = false)
         {
             if (!NavalFieldsActive) return "场地只能在炮战阶段放置";
             if (!Enum.IsDefined(typeof(CoreNavalFieldKind), kind) || !FieldCellValid(x, y)) return "场地格无效";
-            if (kind == CoreNavalFieldKind.Tide && !FieldDirectionValid(dx, dy)) return "请选择水流的上下左右方向";
             VoyagePoint caster = playerOwned ? Battle.PlayerPositionMeters : Battle.EnemyPositionMeters;
+            if (NavalGridDistance(caster, new VoyagePoint(x * NavalGridCellMeters, y * NavalGridCellMeters)) > NavalCannonRangeCells)
+                return "场地左下角须在 4 格曼哈顿范围内";
             foreach (VoyagePoint point in GetNavalFieldShape(kind, x, y, vertical))
-                if (!FieldCellValid(FieldGrid(point.X), FieldGrid(point.Y)) || NavalGridDistance(caster, point) > NavalCannonRangeCells)
-                    return "场地的每一格都须在 4 格曼哈顿范围内";
+                if (!FieldCellValid(FieldGrid(point.X), FieldGrid(point.Y))) return "场地范围包含无效海格";
+            return string.Empty;
+        }
+
+        public string CanPlaceNavalField(CoreNavalFieldKind kind, bool playerOwned, int x, int y, bool vertical, int dx, int dy)
+        {
+            string reason = CanPlaceNavalFieldAnchor(kind, playerOwned, x, y, vertical);
+            if (reason.Length > 0) return reason;
+            if (kind == CoreNavalFieldKind.Tide && !FieldDirectionValid(dx, dy)) return "请选择水流的上下左右方向";
             return string.Empty;
         }
 
@@ -154,7 +182,8 @@ namespace ShatteredSail.Core.Gameplay
                     return replaced;
                 });
                 var placed = new CoreNavalFieldCell { X = px, Y = py, Kind = kind, PlayerOwned = playerOwned,
-                    InstanceId = instance, ExpiresAtOwnerTurn = FieldOwnerTurn(playerOwned) + 2,
+                    InstanceId = instance, ExpiresAtOwnerTurn = SchoolSum(FieldDurationClock(state, playerOwned),
+                        kind == CoreNavalFieldKind.Arcane ? 3 : 5),
                     DirectionX = dx, DirectionY = dy };
                 state.Cells.Add(placed);
                 state.RecordPresentation(CoreNavalFieldChangeKind.Placed, placed);
@@ -203,10 +232,30 @@ namespace ShatteredSail.Core.Gameplay
 
         public void GrantNavalFireImmunity(bool player)
         {
+            GrantFireBurnPrevention(player, false);
+        }
+
+        private void GrantFireBurnPrevention(bool player, bool expiresAtTurnEnd)
+        {
             if (Battle == null) return;
             CoreNavalFieldShipState ship = FieldShip(player);
-            ship.FireImmunityCharges = SchoolSum(ship.FireImmunityCharges, 2);
-            ship.FireImmunityExpires = FieldOwnerTurn(player) + 1;
+            int expires = SchoolSum(FieldOwnerTurn(player), 1);
+            if (expires > ship.BurnPreventionExpiresAtOwnerTurn)
+            {
+                ship.BurnPreventionExpiresAtOwnerTurn = expires;
+                ship.BurnPreventionExpiresAtTurnEnd = expiresAtTurnEnd;
+            }
+            else if (expires == ship.BurnPreventionExpiresAtOwnerTurn)
+                ship.BurnPreventionExpiresAtTurnEnd |= expiresAtTurnEnd;
+        }
+
+        private bool IsFireBurnPrevented(bool player)
+        {
+            if (Battle == null) return false;
+            CoreNavalFieldShipState ship = FieldShip(player);
+            int turn = FieldOwnerTurn(player);
+            return ship.BurnPreventionExpiresAtOwnerTurn > turn ||
+                (ship.BurnPreventionExpiresAtTurnEnd && ship.BurnPreventionExpiresAtOwnerTurn == turn);
         }
         public void GrantNavalAnchor(bool player)
         {
@@ -220,20 +269,58 @@ namespace ShatteredSail.Core.Gameplay
             FieldShip(player).MovementSlow = SchoolSum(FieldShip(player).MovementSlow, 1);
             FieldShip(player).SlowExpires = int.MaxValue;
         }
-        private int NavalActiveMovementLimit(bool player, int normal) => Math.Max(0, normal - (Battle == null ? 0 : FieldShip(player).MovementSlow));
+        public void ApplyNavalMovementCap(bool player, int maximum = 1)
+        {
+            if (Battle == null || maximum <= 0) return;
+            CoreNavalFieldShipState ship = FieldShip(player);
+            ship.NextMovementMaxCells = ship.NextMovementMaxCells > 0 ? Math.Min(ship.NextMovementMaxCells, maximum) : maximum;
+        }
+
+        public void GrantNavalTideImmunity(bool player)
+        {
+            if (Battle == null) return;
+            CoreNavalFieldShipState ship = FieldShip(player);
+            if (ship.FieldImmunityExpires <= FieldOwnerTurn(player)) ship.FieldImmunityMask = 0;
+            ship.FieldImmunityMask |= 1 << (int)CoreNavalFieldKind.Tide;
+            ship.FieldImmunityExpires = SchoolSum(FieldOwnerTurn(player), 1);
+        }
+
+        // Retained for older callers/snapshots. Current cards use next-owner-start protection above.
+        public void GrantNavalTideImmunityThroughNextPlayerTurnEnd(bool player)
+        {
+            if (Battle == null) return;
+            FieldShip(player).TideImmunityExpiresAfterPlayerTurnEnd = SchoolSum(Battle.NavalFields.PlayerTurn, 1);
+        }
+
+        private static int NavalActiveMovementLimit(CoreNavalFieldShipState ship, int normal)
+        {
+            int available = Math.Max(0, normal - ship.MovementSlow);
+            return ship.NextMovementMaxCells > 0 ? Math.Min(available, ship.NextMovementMaxCells) : available;
+        }
+        private int NavalActiveMovementLimit(bool player, int normal) => Battle == null ? Math.Max(0, normal) : NavalActiveMovementLimit(FieldShip(player), normal);
+
+        private static bool NavalTideBlocksMovement(CoreNavalFieldState state, bool player, VoyagePoint from, VoyagePoint to)
+        {
+            CoreNavalFieldCell cell = state.Cells.Find(field => field.X == FieldGrid(from.X) && field.Y == FieldGrid(from.Y));
+            if (cell == null || cell.Kind != CoreNavalFieldKind.Tide ||
+                NavalFieldImmune(player ? state.Player : state.Enemy, cell.Kind, player ? state.PlayerTurn : state.EnemyTurn)) return false;
+            return (to.X - from.X) * cell.DirectionX + (to.Y - from.Y) * cell.DirectionY < -.01f;
+        }
 
         public CoreNavalFieldState CaptureNavalFields() => Battle?.NavalFields.Copy();
         public bool RestoreNavalFields(CoreNavalFieldState saved)
         {
             if (!NavalFieldsActive || saved == null || saved.Cells == null || saved.TriggerLedger == null ||
-                saved.Player == null || saved.Enemy == null || saved.PlayerTurn < 0 || saved.EnemyTurn < 0 || saved.NextInstanceId < 1 || saved.NextInstanceId == int.MaxValue || saved.PlayerTurn > int.MaxValue - 2 || saved.EnemyTurn > int.MaxValue - 2) return false;
+                saved.Player == null || saved.Enemy == null || saved.PlayerTurn < 0 || saved.EnemyTurn < 0 || saved.NextInstanceId < 1 || saved.NextInstanceId == int.MaxValue || saved.PlayerTurn > int.MaxValue - 2 || saved.EnemyTurn > int.MaxValue - 2 ||
+                saved.CompletedEnemyTurns < 0 || saved.CompletedEnemyTurns > int.MaxValue - 2 || saved.LastEndedEnemyTurn < -1 || saved.LastEndedEnemyTurn > saved.EnemyTurn ||
+                saved.CompletedPlayerTurns < 0 || saved.CompletedPlayerTurns > int.MaxValue - 2 || saved.LastEndedPlayerTurn < -1 || saved.LastEndedPlayerTurn > saved.PlayerTurn) return false;
             var coordinates = new HashSet<string>();
             var instances = new Dictionary<int, CoreNavalFieldCell>();
             foreach (CoreNavalFieldCell cell in saved.Cells)
             {
                 if (cell == null || !FieldCellValid(cell.X, cell.Y) || !Enum.IsDefined(typeof(CoreNavalFieldKind), cell.Kind) ||
                     cell.InstanceId < 1 || cell.InstanceId >= saved.NextInstanceId ||
-                    cell.ExpiresAtOwnerTurn <= (cell.PlayerOwned ? saved.PlayerTurn : saved.EnemyTurn) ||
+                    cell.ExpiresAtOwnerTurn <= FieldDurationClock(saved, cell.PlayerOwned) ||
                     (cell.Kind == CoreNavalFieldKind.Tide && !FieldDirectionValid(cell.DirectionX, cell.DirectionY)) ||
                     !coordinates.Add(cell.X + ":" + cell.Y)) return false;
                 if (instances.TryGetValue(cell.InstanceId, out CoreNavalFieldCell previous) &&
@@ -253,15 +340,28 @@ namespace ShatteredSail.Core.Gameplay
                 else if (pieces[1] != "K" || pieces.Length != 3 || !int.TryParse(pieces[2], out int kind) || kind < 1 || kind > 5) return false;
             }
             foreach (CoreNavalFieldShipState ship in new[] { saved.Player, saved.Enemy })
-                if (ship.ArcanePiercing < 0 || ship.ArcanePiercing > 4 || ship.BloodAttackBonus < 0 || ship.BloodAttackBonus > 4 ||
+                if (ship.Mana < 0 || ship.ManaLimit < 0 || ship.ThunderChain < 0 || ship.ArcanePiercing < 0 || ship.ArcanePiercing > 4 || ship.BloodAttackBonus < 0 || ship.BloodAttackBonus > 4 ||
                     ship.FireImmunityCharges < 0 || ship.FireImmunityUsed < 0 ||
+                    ship.BurnPreventionExpiresAtOwnerTurn < 0 ||
+                    (ship.BurnPreventionExpiresAtOwnerTurn == 0 && ship.BurnPreventionExpiresAtTurnEnd) ||
+                    (ship.BossFieldImmunityMask & ~NavalBossAllFieldImmunityMask) != 0 ||
+                    (ReferenceEquals(ship, saved.Player) && (ship.BossFieldImmunityMask != 0 || ship.AllFieldEffectsImmune)) ||
+                    (saved.PlayerActing && (ship.BossFieldImmunityMask != 0 || ship.AllFieldEffectsImmune)) ||
+                    (ship.BossFieldImmunityMask != 0 && (ship.BossFieldImmunityMask != EnemyNavalBossFieldImmunityMaskThisTurn ||
+                        ship.AllFieldEffectsImmune != (ship.BossFieldImmunityMask == NavalBossAllFieldImmunityMask))) ||
+                    (ship.AllFieldEffectsImmune && EnemyNavalBossFieldImmunityMaskThisTurn != NavalBossAllFieldImmunityMask) ||
                     (ship.FieldImmunityMask & ~NavalFieldProtectionMask) != 0 || ship.FieldImmunityExpires < 0 ||
                     (ship.FieldImmunityMask == 0 && ship.FieldImmunityExpires != 0) ||
                     (ship.FieldImmunityMask != 0 && ship.FieldImmunityExpires !=
                         (ReferenceEquals(ship, saved.Player) ? saved.PlayerTurn : saved.EnemyTurn) + 1) ||
-                    ship.AnchorCharges < 0 || ship.AnchorCharges > 1 || ship.MovementSlow < 0 ||
+                    ship.AnchorCharges < 0 || ship.AnchorCharges > 1 || ship.MovementSlow < 0 || ship.NextMovementMaxCells < 0 ||
+                    ship.TideImmunityExpiresAfterPlayerTurnEnd < 0 ||
                     ship.TemporaryMana < 0 || ship.FireImmunityExpires < 0 || ship.AnchorExpires < 0 || ship.SlowExpires < 0) return false;
             Battle.NavalFields = saved.Copy();
+            if (Battle.NavalFields.Enemy.AllFieldEffectsImmune)
+                Battle.NavalFields.Enemy.BossFieldImmunityMask = NavalBossAllFieldImmunityMask;
+            // The retired blood-field attack charge is retained only for save compatibility.
+            Battle.NavalFields.Player.BloodAttackBonus = Battle.NavalFields.Enemy.BloodAttackBonus = 0;
             return true;
         }
         public void ClearNavalFields()

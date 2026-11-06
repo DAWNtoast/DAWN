@@ -9,14 +9,14 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class BattleMixedBuffCardTests
     {
-        [TestCase("plating_suncoin_rampart", NavalBattleCardAction.Polish)]
-        [TestCase("card_gunner_precision", NavalBattleCardAction.PrecisionLoad)]
-        public void CappedMixedBuffAtFullHull_StillGrantsBlockWithoutIncreasingStrategy(string sourceId, NavalBattleCardAction action)
+        [TestCase("plating_suncoin_rampart", NavalBattleCardAction.Polish, 0)]
+        [TestCase("crew_gray_gull_gunner_leisa", NavalBattleCardAction.PrecisionLoad, 1)]
+        public void CappedMixedBuffAtFullHull_StillGrantsBlockWithoutIncreasingStrategy(string sourceId, NavalBattleCardAction action, int authoredDraw)
         {
             CoreVoyageSession session = CreateSpecialBattle(sourceId);
             CoreBattleCard card = session.GetBattleCard(session.Battle.Hand[0]);
             Assert.That(card.Action, Is.EqualTo(action));
-            Assert.That(card.Draw, Is.Zero, "This regression must not be masked by a draw effect.");
+            Assert.That(card.Draw, Is.EqualTo(authoredDraw), "The no-draw plating case isolates block; Leisa retains her real authored replacement draw.");
             Assert.That(card.Block, Is.GreaterThan(0));
             Assert.That(session.Hull, Is.EqualTo(session.MaxHull));
             SetStrategy(session, card.Action, card.StrategyLimit);
@@ -33,39 +33,40 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void RedesignedRokan_AtFullFireReserveKeepsItsAuthoredBlockAndDraw()
+        public void RedesignedRokan_AddsAttachedFireAlongsideItsAuthoredBlockAndDraw()
         {
             CoreVoyageSession session = CreateSpecialBattle("crew_salt_crown_gunner_rokan");
             CoreBattleCard card = session.GetBattleCard(session.Battle.Hand[0]);
             Assert.That(card.Action, Is.EqualTo(NavalBattleCardAction.FireRounds));
             Assert.That(card.Draw, Is.EqualTo(1));
-            session.Battle.PlayerFireRounds = card.StrategyLimit;
+            session.Battle.PlayerFireRounds = 8;
             int block = session.Battle.PlayerBlock;
             int energy = session.Battle.Energy;
             Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(card.StrategyLimit));
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(8 + card.StrategyAmount));
             Assert.That(session.Battle.PlayerBlock, Is.EqualTo(block + card.Block));
             Assert.That(session.Battle.Hand.Count, Is.EqualTo(1), "The redesigned source explicitly draws one replacement.");
             Assert.That(session.Battle.Energy, Is.EqualTo(energy - card.Energy));
         }
 
         [Test]
-        public void CappedSchoolFireReserve_WithDraw_RemainsPlayable()
+        public void SchoolAttachedFire_WithExistingStacksAndDraw_RemainsPlayable()
         {
             CoreVoyageSession session = CreateSpecialBattle("crew_twilight_tide_gunner_yilan");
             CoreBattleCard card = session.GetBattleCard(session.Battle.Hand[0]);
-            session.Battle.PlayerFireRounds = card.SchoolEffect.Limit;
+            session.Battle.PlayerFireRounds = 8;
             Assert.That(card.Draw, Is.EqualTo(1));
             Assert.That(session.CanPlayCard(0), Is.True, session.CardUnavailableReason(0));
             Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(card.SchoolEffect.Limit));
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(8 + card.SchoolEffect.Secondary));
         }
 
         [Test]
-        public void CappedMana_WithAuthoredDraw_PaysEnergyAndDrawsWithoutIncreasingMana()
+        public void FullMana_WithAuthoredDraw_PaysEnergyAndStillGainsManaAboveTheLimit()
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             EnterBattle(session, "card_school_arcane_b01");
             int manaLimit = session.Battle.Schools.ManaLimit;
             typeof(CoreSchoolBattleState).GetProperty("Mana").SetValue(session.Battle.Schools, manaLimit);
@@ -81,7 +82,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.Battle.Energy, Is.EqualTo(energy - card.Energy));
             Assert.That(session.Battle.Hand, Is.EqualTo(new[] { index }));
-            Assert.That(session.Battle.Schools.Mana, Is.EqualTo(manaLimit));
+            Assert.That(session.Battle.Schools.Mana, Is.EqualTo(manaLimit + card.SchoolEffect.Power));
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
         }
 
@@ -90,6 +91,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             EnterBattle(session, "card_school_arcane_b02");
             int capacity = session.Battle.Schools.ManaLimit;
             typeof(CoreSchoolBattleState).GetProperty("Mana").SetValue(session.Battle.Schools, capacity);
@@ -117,9 +119,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(GetStrategy(session, card.Action), Is.EqualTo(card.StrategyLimit));
         }
 
-        [TestCase("plating_suncoin_rampart", 1)]
-        [TestCase("card_gunner_precision", 2)]
-        public void MasteredMixedBuff_AtCapDoesNotInventDrawAndCopiesPayDynamicCosts(string sourceId, int maximum)
+        [TestCase("plating_suncoin_rampart", 1, 0)]
+        [TestCase("crew_gray_gull_gunner_leisa", 2, 1)]
+        public void MasteredMixedBuff_AtCapKeepsAuthoredDrawAndCopiesPayDynamicCosts(string sourceId, int maximum, int authoredDraw)
         {
             CoreVoyageSession session = CreateSpecialBattle(sourceId, 840);
             int index = session.Battle.Hand[0];
@@ -128,19 +130,23 @@ namespace ShatteredSail.Core.Tests
             Assert.That(card.UpgradeLevel, Is.EqualTo(maximum));
             Assert.That(session.GetSpecialCardExperience(card.Id), Is.EqualTo(840), "The lower effective ceiling preserves earned source experience.");
             Assert.That(card.Energy, Is.EqualTo(1));
-            Assert.That(card.Draw, Is.Zero);
+            Assert.That(card.Draw, Is.EqualTo(authoredDraw));
             SetStrategy(session, card.Action, card.StrategyLimit);
             session.Battle.DrawPile.Clear();
             session.Battle.DiscardPile.Clear();
             int energy = session.Battle.Energy = 6;
             session.Battle.Hand.Clear(); session.Battle.Hand.AddRange(new[] { index, index, index, index });
+            int filler = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count).Single(i => CoreVoyageSession.CardLibrary[i].Id == "card_brace");
+            session.Battle.DrawPile.AddRange(Enumerable.Repeat(filler, 3 * authoredDraw));
 
             for (int count = 1; count <= 3; count++)
             {
                 Assert.That(session.GetBattleCardEnergyCost(index), Is.EqualTo(count));
                 Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
                 energy -= count;
-                Assert.That(session.Battle.Hand, Is.EqualTo(Enumerable.Repeat(index, 4 - count)), "No unauthored draw can recycle the played copy.");
+                Assert.That(session.Battle.Hand, Is.EqualTo(Enumerable.Repeat(index, 4 - count).Concat(Enumerable.Repeat(filler, count * authoredDraw))),
+                    "Only the authored replacement draws occur; no played copy is recycled.");
+                Assert.That(session.Battle.DrawPile.Count, Is.EqualTo((3 - count) * authoredDraw));
                 Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(count));
                 Assert.That(session.Battle.Energy, Is.EqualTo(energy));
                 Assert.That(session.Hull, Is.EqualTo(session.MaxHull));
@@ -155,14 +161,6 @@ namespace ShatteredSail.Core.Tests
 
         private static CoreVoyageSession CreateSpecialBattle(string sourceId, int experience = 0)
         {
-            if (sourceId == "card_gunner_precision")
-            {
-                var legacy = new CoreVoyageSession();
-                legacy.ConfigureCrewCapabilities(false, false, false, true, false, false);
-                if (experience > 0) legacy.RestoreSpecialCardExperience(new Dictionary<string, int> { { sourceId, experience } });
-                EnterBattle(legacy, sourceId);
-                return legacy;
-            }
             CoreSpecialCardDefinition definition = CoreSpecialCardCatalog.ForCrew(sourceId) ?? CoreSpecialCardCatalog.ForComponent(sourceId);
             Assert.That(definition, Is.Not.Null, sourceId);
             CoreVoyageSession session = new CoreVoyageSession();

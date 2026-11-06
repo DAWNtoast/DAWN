@@ -17,13 +17,13 @@ namespace ShatteredSail.Presentation.Tests
             if (host != null) Object.DestroyImmediate(host);
         }
 
-        [TestCase("fire", "自燃")]
+        [TestCase("fire", "燃烧")]
         [TestCase("arcane", "魔力")]
         [TestCase("thunder", "连锁")]
         [TestCase("curse", "咒印")]
         [TestCase("tide", "潮势")]
         [TestCase("blood", "失血")]
-        public void SchoolIntentOpensReadableReadonlyDetailsAndRestoresBattleInput(string school, string resource)
+        public void SchoolIntentHasNoClickActionAndUnderlyingDetailsRemainReadonly(string school, string resource)
         {
             host = new GameObject("Boarding Enemy Presentation Test");
             host.SetActive(false);
@@ -40,19 +40,19 @@ namespace ShatteredSail.Presentation.Tests
             Canvas.ForceUpdateCanvases();
 
             RectTransform icons = Find<RectTransform>("Enemy Intent Icons");
-            Button intent = icons.GetComponentsInChildren<Button>(false).First();
-            Assert.That(intent, Is.Not.Null, "Every school plan must be discoverable from the visible intent.");
-            Assert.That(intent.interactable, Is.True);
+            Assert.That(icons.GetComponentsInChildren<Button>(true), Is.Empty,
+                "Enemy intent icons must not expose a click action.");
             Assert.That(icons.gameObject.activeInHierarchy, Is.True);
             foreach (CoreBattleIntent action in CoreBattleIntentPresentation.Build(session))
                 Assert.That(icons.Find("Intent " + action.Id + "/Amount").GetComponent<Text>().text, Is.EqualTo(action.Value));
             string before = Snapshot(session);
-            intent.onClick.Invoke();
+            typeof(CoreGameplayDemoController).GetMethod("OpenBoardingEnemyOverview", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
             Canvas.ForceUpdateCanvases();
 
             Text details = Find<Text>("Boarding Enemy Plan Details");
             Assert.That(details.text, Does.Contain("本轮行动预告").And.Contain("体系规则").And.Contain("固定循环"));
-            Assert.That(details.text, Does.Contain(resource), "School resource details remain discoverable from the compact intent icon.");
+            Assert.That(details.text, Does.Contain(resource), "The underlying details view still renders school resource information.");
             foreach (CoreBoardingEnemyTurn turn in battle.BoardingEnemy.Deck.Turns)
                 foreach (CoreBoardingEnemyCard card in turn.Cards)
                     Assert.That(details.text, Does.Contain(card.Name));

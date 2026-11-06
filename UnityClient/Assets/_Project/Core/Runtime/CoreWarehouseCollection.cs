@@ -41,7 +41,7 @@ namespace ShatteredSail.Core.Gameplay
                 TutorialTreasureId,
                 "破浪者的罗盘",
                 "一枚带着海盐与战痕的黄铜罗盘。它是老船长第一次远航留下的指针，也是你继承自由旗的第一件遗物。",
-                "你在近港试航中击败劫掠者首领，留下这枚罗盘。老船长曾用同样的铜壳为六港标出安全线；如今指针仍寻着愿为旁人留下泊位的岸。",
+                "你在近港试航中击败劫掠者首领，留下这枚罗盘。旧笔记记着它怎样随第一艘小船救人、避开追兵。它后来辗转于不同船上，中间还缺着几段记录。",
                 "教学航行 · 首次击败劫掠者首领",
                 "WarehouseV2/first_victory_compass_v1"),
             new CoreWarehouseTreasureDefinition(
@@ -54,13 +54,13 @@ namespace ShatteredSail.Core.Gameplay
             new CoreWarehouseTreasureDefinition(
                 SealedChartTreasureId,
                 "封蜡航线图",
-                "用深红封蜡锁住的旧海图，仍标着已经沉没的航标。六枚旧部蜡印叠在一起，坐标因此永远不会固定。",
-                "探索新海路、收集部件、与传说舰队交锋，都会让蜡下添一道线。老船长离港前交出的这张图，须等行动者愿意共享方向，才会显出第七港口。",
+                "用深红封蜡锁住的旧海图，旧线条与六枚蜡印层层叠着，几处航标已无法在新图上对应。",
+                "老船长离开前，这张图与罗盘、铜钟、六份钥匙分别交到了不同的人手里。有持图者说，互助之后蜡下浮出了新线；同行者却未必看见相同的痕迹。航册还在互相核对，没有哪一种说法足以解释港口为何难寻。",
                 "老船长离港前 · 第七港口航图",
                 "WarehouseV2/warehouse_sealed_chart_v1"),
-            new CoreWarehouseTreasureDefinition("old_captain_free_flag", "老船长的自由旗", "褪色却未破的自由旗，六港水手都能认出。", "第一次拒缴港税时，这面旗升过桅顶。后来它经过许多双手，旗下的船都记得那条约定：靠岸不必先报封号。", "无名海旧灯塔", "WarehouseV2/warehouse_sealed_chart_v1"),
+            new CoreWarehouseTreasureDefinition("old_captain_free_flag", "老船长的自由旗", "褪色却未破的自由旗，六港水手都能认出。", "盐冠港外，老船长拒绝按逃籍者人数缴纳赎身罚金，这面签着姓名、按着指印的旧帆升过桅顶。后来它经过许多双手，靠岸的约定也一次次受到考验。", "无名海旧灯塔", "WarehouseV2/warehouse_sealed_chart_v1"),
             new CoreWarehouseTreasureDefinition("six_port_anchor_seal", "六港锚印", "六枚港锚熔在一起，铜印上还能分辨不同的铸纹。", "六港许下互救的誓约时，老船长留下这枚印。每次落在纸上，六种锚纹便同时印出，少一枚都不完整。", "六港联席旧厅", "WarehouseV2/warehouse_boatswain_bell_v1"),
-            new CoreWarehouseTreasureDefinition("no_crown_logbook", "无冠航海日志", "盐霜结在书脊里，末尾十三页被撕去了，只剩参差的纸根。", "旧航线旁挤着各人的意见，粗笔细字都有。老船长并未抹去争论，平民水手决定去向的过程，就这样留在页边。", "灰鸥号失事舱柜", "WarehouseV2/warehouse_sealed_chart_v1"),
+            new CoreWarehouseTreasureDefinition("no_crown_logbook", "无冠航海日志", "盐霜结在书脊里，末尾十三页被撕去了，只剩参差的纸根。", "整顿令夹在旧航线之间：停止强征，公开账目，归还侵占的船货；不能因出身、亲属或异议定罪。有人指责老船长收权只为排除异己，也有人追问申诉为何久等。他公开授权记录，承认失察与迟疑，没有把质问者都当敌人。", "灰鸥号失事舱柜", "WarehouseV2/warehouse_sealed_chart_v1"),
             new CoreWarehouseTreasureDefinition("first_stormglass", "初渡风暴瓶", "细口瓶封着一汪蓝水，来自那次最早穿越的风暴。", "老船长穿过第一场风暴后留下这瓶水。如今舱灯映进去，瓶壁仍像下着雨，令人想起当年紧握同一根缆绳的手。", "风暴眼外缘打捞", "WarehouseV2/first_victory_compass_v1"),
             new CoreWarehouseTreasureDefinition("starboard_copper_scope", "右舷铜望远镜", "铜筒磨出暗亮的包浆，刻着“先看见需要帮助的人”。", "老船长曾从这片镜里找到被神潮围住的渔船。镜筒上那行字很小，举镜的人却总会将它握在掌心。", "旧观测台", "WarehouseV2/warehouse_sealed_chart_v1"),
             new CoreWarehouseTreasureDefinition("saltworn_quartermaster_key", "盐痕舵手钥匙", "六港仓门都曾被它打开，黄铜钥齿已磨得发圆。", "盐痕顺着掌纹留在柄上。这把钥匙交出去时，仓里的物资总先发给伤员和难民，装船清单排在后面。", "断锚仓库", "WarehouseV2/warehouse_boatswain_bell_v1"),
@@ -68,10 +68,10 @@ namespace ShatteredSail.Core.Gameplay
             new CoreWarehouseTreasureDefinition("godbreaker_oar", "弑神者短桨", "短桨的叶面纵着裂纹，是与海神巨像搏斗留下的伤。", "小船划过神明的封锁线时，老船长手里只剩这柄裂桨。后来的渔船顺着那道水迹，驶进了原先不准通过的水道。", "神潮祭坛残骸", "WarehouseV2/first_victory_compass_v1"),
             new CoreWarehouseTreasureDefinition("leviathan_bone_whistle", "海巨人骨哨", "白骨哨含在口中冰凉，吹过以后，远处会响起潮声。", "老船长曾与海巨人交换航路。这枚哨留在船上，提醒听见潮声的人，海上还有一种答话不必用言语。", "巨人背脊海沟", "WarehouseV2/warehouse_boatswain_bell_v1"),
             new CoreWarehouseTreasureDefinition("moon_tide_astrolabe", "月潮星盘", "以月蚀刻度校准潮汐方向。", "塞勒涅仍用它寻找老船长的旧航线，不肯以决斗换取答案。盐迹渐渐爬上盘缘，她将它擦净，继续核对那些没有抵达记录的线条。", "潮汐镇魂号航海室", "WarehouseV2/first_victory_compass_v1"),
-            new CoreWarehouseTreasureDefinition("iron_oath_shackle", "铁誓锁环", "从铁誓不沉号装甲上拆下的锁环。", "达恩曾以保护为名拦船收费。这只环曾锁住装甲，后来被拆下陈列，磨去的税印依旧摸得出来。", "挑战铁誓不沉号", "WarehouseV2/warehouse_boatswain_bell_v1"),
+            new CoreWarehouseTreasureDefinition("iron_oath_shackle", "铁誓锁环", "从铁誓不沉号装甲上拆下的锁环。", "达恩曾替撤离的工匠挡箭，后来以保护为名拦船收费。老船长来接误扣者时，他最后一次让开水道，却没有放弃自己的办法。他后来接受了帝国的支持。锁环拆下，税印仍在。", "挑战铁誓不沉号", "WarehouseV2/warehouse_boatswain_bell_v1"),
             new CoreWarehouseTreasureDefinition("thunder_crown_fuse", "雷冠炮引", "银芯在潮湿火药里仍能续燃，末端留着细白灰烬。", "索尔把救援炮改作审判炮，用的还是旧时的引线。火从一端走到另一端，受炮口指向的人却变了。", "挑战雷冠审判号", "WarehouseV2/warehouse_sealed_chart_v1"),
-            new CoreWarehouseTreasureDefinition("red_widow_grappling_hook", "绯刃钩索", "绯刃旧救援队使用过的双钩。", "同一根索救过落水者，也拦过付不起保护费的船。绯刃旧队究竟从哪一日改了用途，已没人说得准。", "挑战绯刃寡妇号", "WarehouseV2/warehouse_boatswain_bell_v1"),
-            new CoreWarehouseTreasureDefinition("ember_ark_fireseed", "余烬方舟火种", "火种从不熄灭，收存时也须有人守着，不能留它独燃。", "伊诺受火神赐火，将从前的自由誓付之一炬。纸早已成灰，这一点火却还在烧。", "挑战余烬方舟号", "WarehouseV2/first_victory_compass_v1"),
+            new CoreWarehouseTreasureDefinition("red_widow_grappling_hook", "绯刃钩索", "绯刃旧救援队使用过的双钩。", "玛拉起初向有能力的船主追讨救援费，后来却让穷船在风里等。同一根索仍能救人：老船长最后接回误扣者时，她派艇接走伤员，却没有答应撤掉所有收费。", "挑战绯刃寡妇号", "WarehouseV2/warehouse_boatswain_bell_v1"),
+            new CoreWarehouseTreasureDefinition("ember_ark_fireseed", "余烬方舟火种", "火种从不熄灭，收存时也须有人守着，不能留它独燃。", "伊诺曾为受寒的孩子守住炉火，后来为了永燃之火，亲手把自由誓投入炉中。公共炉房不再熄灭，想靠近火的人却先得接受新的誓约。火还在烧，旧誓已成灰。", "挑战余烬方舟号", "WarehouseV2/first_victory_compass_v1"),
             new CoreWarehouseTreasureDefinition("tide_requiem_gauge", "镇魂潮汐尺", "海巨人骨粉嵌进潮尺，白色月潮刻度沿尺身排开。", "塞勒涅沿旧航路寻找老船长，只接受不会夺命的切磋。尺上的刻度一再擦洗，最初的航向始终没有磨去。", "潮汐镇魂号切磋", "WarehouseV2/warehouse_sealed_chart_v1"),
             new CoreWarehouseTreasureDefinition("evelyn_six_port_ruler", "伊芙琳的六港测绘尺", "六港互助航线刻在折叠铜尺上，关节处留着长期开合的磨痕。", "伊芙琳曾用这把尺为远征测绘。交给继承者时，她展开六节尺身，旧线与尚待测量的空白便铺在同一张桌上。", "灰鸥港酒馆委托", "WarehouseV2/first_victory_compass_v1"),
             new CoreWarehouseTreasureDefinition("barlow_living_hull_plane", "巴洛的活龙骨刨", "刨口夹着新鲜木屑，放进匣里后仍会慢慢生长。", "巴洛曾用它与老船长修补不会沉的龙骨。刃磨短了，柄上的握痕却越来越深，活木至今认得这道刨口。", "灰鸥港船坞", "WarehouseV2/warehouse_sealed_chart_v1"),
@@ -86,14 +86,14 @@ namespace ShatteredSail.Core.Gameplay
             new CoreWarehouseTreasureDefinition("broken_anchor_sextant", "断锚六分仪", "仪针总偏向最近的避风港，铜架上满是水下留下的锈点。", "断锚号失事后，它仍在人们手里传递。船名已经沉下海去，针尖指的那处岸，却让难民找到了过夜的地方。", "断锚号沉船", "WarehouseV2/warehouse_sealed_chart_v1"),
             new CoreWarehouseTreasureDefinition("salt_crown_trade_weight", "盐冠商秤砝码", "砝码两面重量不同，上秤却从未短过一分一厘。", "盐冠商队将它带进贵族港口，与官秤并排放下。货物没有变重，少掉的只是那些藏在刻度里的盘剥。", "盐冠市场交换", "WarehouseV2/warehouse_boatswain_bell_v1"),
             new CoreWarehouseTreasureDefinition("twilight_tide_moon_shard", "暮潮月痕碎片", "平日黯淡的碎片，到了月蚀便显出一道隐流。", "暮潮船员循神明留下的月痕，找到了不必纳税的水道。那条线很细，只够小船依次通过。", "暮潮遗迹探索", "WarehouseV2/first_victory_compass_v1"),
-            new CoreWarehouseTreasureDefinition("empty_berth_registry", "空泊位登记册", "整本只写着留给下一个人。", "老船长离港后，六港仍拿它登记无条件的泊位。翻过一页，又是同一句话；谁先写下的，已无从查考。", "第六港公共码头", "WarehouseV2/warehouse_sealed_chart_v1"),
+            new CoreWarehouseTreasureDefinition("empty_berth_registry", "空泊位登记册", "整本只写着留给下一个人。", "老船长离港后，照看泊位的人仍把它放在桌边。归还的船重新系上缆绳，也有人再没回来。那句留给下一个人的话，没能抹去旧伤，却仍有人照着去做。", "第六港公共码头", "WarehouseV2/warehouse_sealed_chart_v1"),
             new CoreWarehouseTreasureDefinition("nameless_sailor_nameplate", "无名水手铭牌", "铭牌不刻姓名，只压着一枚帆旗凹痕，像尚未写完。", "远征里的普通水手往往没有姓名留在史书上。这块牌因此空着，替那些没被记下的人占住一行。", "无名海漂流木", "WarehouseV2/warehouse_boatswain_bell_v1"),
             new CoreWarehouseTreasureDefinition("storm_altar_fragment", "风暴神龛碎片", "半句祷词被凿去，石面剩下人的誓言和凿尖的白痕。", "老船长与神明谈价时打碎的祭坛，如今只余这一角。海水洗过断面，凿掉的字再没有回来。", "风暴神殿遗址", "WarehouseV2/first_victory_compass_v1"),
             new CoreWarehouseTreasureDefinition("unfinished_seventh_berth_key", "第七泊位未完钥", "钥齿只有六格，第七格留白。", "旧海图没有交出一座现成的港。钥匙末格也未完成，持有者得自己接着锉，替后来的人试一试门。", "封蜡海图隐藏夹层", "WarehouseV2/warehouse_sealed_chart_v1"),
             new CoreWarehouseTreasureDefinition("last_horizon_needle", "末日线针", "转动海图，细针仍指着最后那道地平线。", "老船长离港前，留下这最后的航向。后来海图换过许多张，针没有跟着改，也从未说明尽头有什么。", "老船长离开的无人灯塔", "WarehouseV2/warehouse_boatswain_bell_v1"),
             new CoreWarehouseTreasureDefinition("free_waters_mooring_ring", "自由海系泊环", "铁环没有锁孔，要几名船员合力才能将它固定。", "谁靠岸，谁便接过缆绳出一份力。环上没有领主的钥孔，港口也没有只为某个人留下的锁。", "第七港口传说海域", "WarehouseV2/first_victory_compass_v1"),
             new CoreWarehouseTreasureDefinition("sea_god_debt_token", "海神欠条", "神印压在欠条末尾，欠的是一条尚未交付的安全航路。", "老船长让神明认下普通人的通行权，才从石台前离开。印记仍在，欠下的路也仍写得清清楚楚。", "与海神谈判的石台", "WarehouseV2/warehouse_sealed_chart_v1"),
-            new CoreWarehouseTreasureDefinition("inheritance_oath_inkstone", "继承誓言砚", "海水落进砚池，干涸的墨痕便重新显出旧誓词。", "旧誓不是抄完便能收好的字。每次招募、远航、拾回遗物或面对旧部之后，持砚的人读它，都会停在不同的一行。", "继承者试航终点", "WarehouseV2/warehouse_boatswain_bell_v1"),
+            new CoreWarehouseTreasureDefinition("inheritance_oath_inkstone", "继承誓言砚", "海水落进砚池，干涸的墨痕便重新显出旧誓词。", "书记官曾拿旧誓要求人人表态，把商贩、旧厂工匠和提出疑问的人也列入名单，借机接管仓船。后来船长叫停扩大追查，撤销越界授权。那些被夺去生计的人，却不能靠重抄一遍誓词就回到从前。", "继承者试航终点", "WarehouseV2/warehouse_boatswain_bell_v1"),
             new CoreWarehouseTreasureDefinition("seventh_harbor_beacon_lantern", "第七港口引航灯", "灯芯未点燃，却映出所有曾被帮助过的船。", "关于它如何亮起，六港的传闻始终不同。只知道那些愿为别人留泊位的船，常在归途中看见一线没有标在图上的灯光。", "最终传说舰队线索", "WarehouseV2/first_victory_compass_v1")
         });
 
@@ -142,6 +142,21 @@ namespace ShatteredSail.Core.Gameplay
             if (!IsValidSlot(slotIndex) || string.IsNullOrEmpty(displayIds[slotIndex])) return false;
             displayIds[slotIndex] = null;
             return true;
+        }
+
+        /// <summary>Undisplayed keepsakes travel with the captain; exhibits stay at their port.</summary>
+        public int MoveUndisplayedTo(CoreWarehouseCollection destination)
+        {
+            if (destination == null || ReferenceEquals(this, destination)) return 0;
+            int moved = 0;
+            foreach (string id in OwnedIds)
+            {
+                if (IsDisplayed(id)) continue;
+                destination.Grant(id);
+                ownedIds.Remove(id);
+                moved++;
+            }
+            return moved;
         }
 
         /// <summary>

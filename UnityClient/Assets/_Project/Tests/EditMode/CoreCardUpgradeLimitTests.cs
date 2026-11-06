@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -26,7 +26,7 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
-        [TestCase(0, 4, 1)] [TestCase(1, 5, 1)] [TestCase(2, 7, 1)] [TestCase(3, 9, 2)]
+        [TestCase(0, 8, 1)] [TestCase(1, 10, 1)] [TestCase(2, 14, 1)] [TestCase(3, 18, 2)]
         public void MixedOneCostCard_GrowsDamageFirstAndAddsDrawAtItsLastRank(int rank, int damage, int draw)
         {
             CoreVoyageSession session = Boarding("basic_11", rank);
@@ -41,12 +41,12 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Hand.Count, Is.EqualTo(draw));
         }
 
-        [TestCase(0, 3, 0)] [TestCase(1, 4, 1)] [TestCase(2, 5, 2)] [TestCase(3, 5, 2)]
-        public void PureTwoCostDraw_AddsOnePerUpgradeThenStopsAtTwo(int requestedRank, int draw, int effectiveRank)
+        [TestCase(0, 3, 0)] [TestCase(1, 4, 1)] [TestCase(2, 6, 2)] [TestCase(3, 7, 3)]
+        public void BoardingTacticalDraw_UsesReviewedThreeRankCurve(int requestedRank, int draw, int effectiveRank)
         {
             CoreVoyageSession session = Boarding("basic_08", requestedRank);
             int index = Find("card_boarding_basic_08");
-            Assert.That(session.GetCardMaximumUpgradeLevel(index), Is.EqualTo(2));
+            Assert.That(session.GetCardMaximumUpgradeLevel(index), Is.EqualTo(3));
             Assert.That(session.GetBattleCard(index).UpgradeLevel, Is.EqualTo(effectiveRank));
             Assert.That(session.GetBattleCard(index).Draw, Is.EqualTo(draw));
             Assert.That(session.PlayCard(0), Is.True);
@@ -57,7 +57,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("basic_09", 0, 1, 0)] [TestCase("basic_09", 1, 2, 1)]
         [TestCase("basic_09", 2, 2, 1)] [TestCase("basic_09", 3, 2, 1)]
         [TestCase("basic_10", 0, 3, 0)] [TestCase("basic_10", 1, 4, 1)]
-        [TestCase("basic_10", 2, 5, 2)] [TestCase("basic_10", 3, 5, 2)]
+        [TestCase("basic_10", 2, 6, 2)] [TestCase("basic_10", 3, 6, 2)]
         public void EnergyRecovery_UsesItsOwnCappedValueAtActualPayment(string key, int requestedRank, int recovered, int effectiveRank)
         {
             CoreVoyageSession session = Boarding(key, requestedRank);
@@ -68,7 +68,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Energy, Is.EqualTo(10 - card.Energy + recovered));
         }
 
-        [TestCase(0, 1, 8)] [TestCase(1, 1, 10)] [TestCase(2, 1, 14)] [TestCase(3, 1, 14)]
+        [TestCase(0, 1, 16)] [TestCase(1, 1, 20)] [TestCase(2, 1, 28)] [TestCase(3, 1, 28)]
         public void ThunderConduit_KeepsDrawFixedAndGrowsItsHiddenAttackBonus(int rank, int draw, int bonus)
         {
             CoreVoyageSession session = Boarding("thunder_06", rank);
@@ -80,7 +80,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Boarding.ThunderReady, Is.EqualTo(bonus));
         }
 
-        [TestCase(0, 8)] [TestCase(1, 10)] [TestCase(2, 14)] [TestCase(3, 14)]
+        [TestCase(0, 6)] [TestCase(1, 7)] [TestCase(2, 9)] [TestCase(3, 9)]
         public void HiddenBurnDamage_HasTwoRealEffectRanksAndClampsTheThird(int rank, int burn)
         {
             CoreVoyageSession session = Boarding("fire_03", rank);
@@ -92,6 +92,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(burn));
         }
 
+        [TestCase("card_boarding_arcane_03", 2)]
+        [TestCase("card_boarding_curse_02", 2)]
         [TestCase("card_boarding_fire_04", 3)]
         [TestCase("card_boarding_fire_07", 2)]
         [TestCase("card_boarding_tide_09", 2)]
@@ -104,7 +106,6 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetBattleCardAtLevel(Find(id), 3).UpgradeLevel, Is.EqualTo(maximum));
         }
 
-        [TestCase("card_boarding_arcane_03")]
         [TestCase("card_boarding_arcane_12")]
         [TestCase("card_boarding_fire_10")]
         public void FixedEffects_HaveNoPurchasableOrEffectiveRank(string id)
@@ -146,7 +147,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase(0, 1, 1)] [TestCase(1, 1, 2)] [TestCase(2, 2, 2)] [TestCase(3, 2, 2)]
-        public void DesperateBloodUtility_GrowsDrawThenRecoveryWithoutChangingUseLimit(int rank, int recovery, int draw)
+        public void DesperateBloodUtility_GrowsDrawThenRecoveryAndExhaustsEachCopy(int rank, int recovery, int draw)
         {
             CoreVoyageSession session = Boarding("blood_14", rank);
             int index = Find("card_boarding_blood_14");
@@ -158,12 +159,15 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Hand.Count, Is.EqualTo(draw));
             session.Battle.Hand.Clear();
             session.Battle.Hand.Add(index);
-            Assert.That(session.PlayCard(0), Is.False, "The upgrade does not remove the once-per-battle condition.");
+            Assert.That(session.PlayCard(0), Is.True);
+            Assert.That(session.Battle.Boarding.ExhaustedCards.Count, Is.EqualTo(2));
         }
 
         [TestCase("card_boarding_basic_09", 1)]
-        [TestCase("card_boarding_basic_08", 2)]
+        [TestCase("card_boarding_basic_08", 3)]
         [TestCase("card_boarding_basic_11", 3)]
+        [TestCase("card_boarding_arcane_03", 2)]
+        [TestCase("card_boarding_curse_02", 2)]
         public void Purchases_StopAtThatCardsMaximumWithoutChargingAgain(string id, int maximum)
         {
             CoreVoyageSession session = RichPort();
@@ -185,8 +189,8 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("card_boarding_basic_09", 1)]
-        [TestCase("card_boarding_basic_08", 2)]
-        [TestCase("card_boarding_arcane_03", 0)]
+        [TestCase("card_boarding_basic_08", 3)]
+        [TestCase("card_boarding_arcane_03", 2)]
         [TestCase("card_approach", 1)]
         public void HistoricalPurchasedRank_IsRetainedWhileEffectiveRankIsCapped(string id, int effectiveRank)
         {
@@ -201,7 +205,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void SharedDrawAlias_UsesTheLargestStageMaximumAndCapsEachStagesEffect()
+        public void ShipAndBoardingDraw_HaveIndependentIdentitiesAndUpgradeCaps()
         {
             const string id = "card_tactical_draw";
             int index = Find(id);
@@ -210,19 +214,24 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetCardMaximumUpgradeLevel(id), Is.EqualTo(2));
             session.ConfigureCardUpgrades(new Dictionary<string, int> { { id, 2 } });
             CoreBattleCard naval = session.GetBattleCard(index, NavalBattleStage.Naval);
-            CoreBattleCard boarding = session.GetBattleCard(index, NavalBattleStage.Boarding);
+            CoreBattleCard boarding = session.GetBattleCard(Find("card_boarding_basic_08"), NavalBattleStage.Boarding);
             Assert.That(naval.Energy, Is.EqualTo(1));
             Assert.That(naval.Draw, Is.EqualTo(4));
             Assert.That(boarding.Energy, Is.EqualTo(2));
-            Assert.That(boarding.Draw, Is.EqualTo(5));
-            Assert.That(boarding.UpgradeLevel, Is.EqualTo(2));
+            Assert.That(boarding.Draw, Is.EqualTo(3));
+            Assert.That(boarding.UpgradeLevel, Is.Zero);
+            Assert.That(naval.IsAllowedInStage(NavalBattleStage.Boarding), Is.False);
+            Assert.That(session.GetCardMaximumUpgradeLevel(boarding.Id), Is.EqualTo(3));
             Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(2));
             Assert.That(session.CardUpgradeLevels[id], Is.EqualTo(2));
+            session.ConfigureCardUpgrades(new Dictionary<string, int> { { id, 2 }, { boarding.Id, 3 } });
+            Assert.That(session.GetBattleCard(index, NavalBattleStage.Naval).Draw, Is.EqualTo(4));
+            Assert.That(session.GetBattleCard(Find(boarding.Id), NavalBattleStage.Boarding).Draw, Is.EqualTo(7));
         }
 
-        [TestCase("card_energy_order", "basic_09", 1)]
-        [TestCase("card_crew_rally", "basic_12", 2)]
-        public void BoardingAliases_KeepStableIdentityAndUseCanonicalEffectCaps(string id, string key, int maximum)
+        [TestCase("card_boarding_basic_09", "basic_09", 1)]
+        [TestCase("card_boarding_basic_08", "basic_08", 3)]
+        public void BoardingSupportCards_KeepTheirOwnIdentityAndEffectCaps(string id, string key, int maximum)
         {
             var session = new CoreVoyageSession();
             session.ConfigureCardUpgrades(new Dictionary<string, int> { { id, 3 } });
@@ -272,6 +281,7 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession();
             session.RestoreProfile(10000, session.CurrentPort);
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             return session;
         }
 

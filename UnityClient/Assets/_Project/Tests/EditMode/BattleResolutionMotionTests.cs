@@ -60,7 +60,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase(true, false)]
         [TestCase(false, true)]
         [TestCase(true, true)]
-        public void BoardingDefeat_UsesDisplayedFormationAndKeepsLabelsFixed(bool player, bool componentMarker)
+        public void BoardingDefeat_FadesFiguresWithoutMovingRotatingOrScalingThem(bool player, bool componentMarker)
         {
             RectTransform target = Rect(player ? "Player Ship Art" : "Enemy Ship Art", stage,
                 new Vector2(player ? -400 : 400, 80), new Vector2(440, 260));
@@ -78,19 +78,59 @@ namespace ShatteredSail.Core.Tests
             RectTransform role = Rect("Role", target, new Vector2(0, -145), new Vector2(170, 18)); role.gameObject.AddComponent<Text>();
             RectTransform figure = Rect(target.name + " Sailor 0", target, new Vector2(0, -6), new Vector2(200, 240));
             figure.gameObject.AddComponent<RawImage>();
+            figure.localRotation = Quaternion.Euler(0f, 0f, 3f);
+            figure.localScale = new Vector3(.9f, .85f, 1f);
             Vector2 targetOrigin = target.anchoredPosition, figureOrigin = figure.anchoredPosition;
+            Quaternion figureRotation = figure.localRotation;
+            Vector3 figureScale = figure.localScale;
             Assert.That(BattleResolutionMotion.DisplayedKind(target), Is.EqualTo(BattleResolutionKind.BoardingDefeat));
             BattleResolutionMotion motion = CreateMotion(target);
-            motion.AdvancePresentation(motion.Duration * .6f);
+            for (int frame = 0; frame < 6; frame++)
+            {
+                motion.AdvancePresentation(motion.Duration * .1f);
+                Assert.That(figure.anchoredPosition, Is.EqualTo(figureOrigin), "Defeat must not make static crew art fall or slide.");
+                Assert.That(figure.localRotation, Is.EqualTo(figureRotation));
+                Assert.That(figure.localScale, Is.EqualTo(figureScale));
+            }
             Assert.That(target.anchoredPosition, Is.EqualTo(targetOrigin));
             if (label != null) Assert.That(label.anchoredPosition, Is.EqualTo(new Vector2(0, 150)));
             Assert.That(role.anchoredPosition.y, Is.EqualTo(-145));
-            Assert.That(figure.anchoredPosition.y, Is.LessThan(figureOrigin.y));
+            Assert.That(figure.anchoredPosition, Is.EqualTo(figureOrigin));
             Assert.That(figure.GetComponent<CanvasGroup>().alpha, Is.LessThan(1f));
             Assert.That(target.GetComponent<CanvasGroup>(), Is.Null, "Do not fade formation labels through a new group on the party root.");
             motion.CancelAndRestore();
             Assert.That(figure.anchoredPosition, Is.EqualTo(figureOrigin));
+            Assert.That(figure.localRotation, Is.EqualTo(figureRotation));
+            Assert.That(figure.localScale, Is.EqualTo(figureScale));
             Assert.That(figure.GetComponent<CanvasGroup>(), Is.Null, "Only the group's temporary component is removed.");
+        }
+
+        [Test]
+        public void BoardingDefeat_PreservesTheFrameAcrossFocusLossAndRestoresIdleOnCancel()
+        {
+            RectTransform target = Rect("Enemy Ship Art", stage, Vector2.zero, new Vector2(440, 260));
+            var party = target.gameObject.AddComponent<BoardingPartyPresentation>();
+            RectTransform figure = Rect("Sailor", target, Vector2.zero, new Vector2(200, 240));
+            var image = figure.gameObject.AddComponent<RawImage>();
+            var actor = figure.gameObject.AddComponent<BoardingActorGraphic>();
+            actor.Configure(false, -1f, 0f, .1f, "enemy_party_center", null, true);
+            party.Register(actor);
+            BattleResolutionMotion motion = CreateMotion(target);
+            motion.AdvancePresentation(motion.Duration * .25f);
+
+            Invoke(motion, "OnApplicationFocus", false);
+            Invoke(actor, "OnApplicationFocus", false);
+            motion.AdvancePresentation(motion.Duration * .4f);
+            Assert.That(actor.Action, Is.EqualTo(BoardingActorAction.Death));
+            Assert.That(image.uvRect, Is.EqualTo(BoardingActorGraphic.FrameUv(BoardingActorAction.Death, .25f)));
+
+            Invoke(motion, "OnApplicationFocus", true);
+            Invoke(actor, "OnApplicationFocus", true);
+            motion.AdvancePresentation(motion.Duration * .4f);
+            Assert.That(image.uvRect, Is.EqualTo(BoardingActorGraphic.FrameUv(BoardingActorAction.Death, .65f)));
+            motion.CancelAndRestore();
+            Assert.That(actor.Action, Is.EqualTo(BoardingActorAction.Idle));
+            Assert.That(image.uvRect, Is.EqualTo(BoardingActorGraphic.FrameUv(BoardingActorAction.Idle, 0f)));
         }
 
         [Test]
@@ -222,9 +262,9 @@ namespace ShatteredSail.Core.Tests
             RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
             rect.SetParent(parent, false); rect.anchoredPosition = position; rect.sizeDelta = size; return rect;
         }
-        private static void Invoke(BattleResolutionMotion motion, string name, params object[] arguments) =>
-            typeof(BattleResolutionMotion).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
-                .Invoke(motion, arguments);
+        private static void Invoke(MonoBehaviour component, string name, params object[] arguments) =>
+            component.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+                .Invoke(component, arguments);
         private static UIVertex[] Vertices(BattleResolutionGraphic graphic)
         {
             using (var helper = new VertexHelper())

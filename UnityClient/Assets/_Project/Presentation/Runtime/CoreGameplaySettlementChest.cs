@@ -15,7 +15,7 @@ namespace ShatteredSail.Presentation
             !settlementChestSequence.IsComplete;
 
         private void BuildSettlementChestIntro(VoyageSettlement result, SettlementChestRewardPlan plan,
-            RectTransform overview, Texture2D harbor, Button skip, bool play)
+            RectTransform overview, Texture2D harbor, bool play)
         {
             if (!plan.HasRewards) return;
             Texture2D chestArt = Resources.Load<Texture2D>("SettlementReveal/settlement_chest_v1");
@@ -30,21 +30,18 @@ namespace ShatteredSail.Presentation
             backdrop.raycastTarget = false;
             backdrop.color = new Color(.42f, .46f, .48f);
             // This full-screen input surface also keeps clicks off the hidden ledger.
-            CreateImage("Settlement Chest Shade", intro, intro.sizeDelta, Vector2.zero,
-                new Color(.018f, .035f, .045f, .82f)).raycastTarget = true;
+            Image inputSurface = CreateImage("Settlement Chest Shade", intro, intro.sizeDelta, Vector2.zero,
+                new Color(.018f, .035f, .045f, .82f));
+            inputSurface.raycastTarget = true;
             Image frame = CreateImage("Settlement Chest Timber Rim", intro, new Vector2(1840, 1000), Vector2.zero,
                 new Color(.65f, .53f, .34f, .75f), WoodButtonSkin.Face);
             frame.type = Image.Type.Sliced;
             frame.fillCenter = false;
             frame.pixelsPerUnitMultiplier = 17f;
             frame.raycastTarget = false;
-            SettlementText("Settlement Chest Chapter", intro, new Vector2(1300, 32), new Vector2(0, 458),
-                19, Html("#C8B896")).text = plan.IsFailure ? "返 航 · 抢 救 所 得" : "归 航 · 开 启 战 利 箱";
             Text title = SettlementText("Settlement Chest Title", intro, new Vector2(1440, 76), new Vector2(0, 374),
                 54, Html("#F5D88F"));
             GameTypography.Apply(title, 54, FontStyle.Bold);
-            Text status = SettlementText("Settlement Chest Status", intro, new Vector2(1580, 38), new Vector2(0, -471),
-                22, Html("#D5C5A7"));
 
             // A single shared chest and atlas icons; quantities never allocate one object per unit.
             RectTransform chest = CreateRect("Settlement Chest", intro, new Vector2(660, 440), new Vector2(-340, -45));
@@ -92,21 +89,18 @@ namespace ShatteredSail.Presentation
                 landing[i] = new Vector2((i - (count - 1) * .5f) * spacing, -335);
             }
 
-            // Keep the existing public skip control identity for keyboard input and tutorial fixtures.
-            RectTransform skipRect = (RectTransform)skip.transform;
-            skipRect.SetParent(intro, false);
-            skipRect.sizeDelta = new Vector2(196, 48);
-            skipRect.anchoredPosition = new Vector2(790, 450);
-            WoodButtonSkin.Apply(skip, Color.white);
-            Text skipText = skip.GetComponentInChildren<Text>();
-            skipText.rectTransform.sizeDelta = new Vector2(180, 40);
-            skipText.text = "跳过 · 查看战报";
-            skip.onClick.RemoveAllListeners();
-
             settlementChestSequence = overview.gameObject.AddComponent<SettlementChestSequenceController>();
             SettlementChestSequenceController sequence = settlementChestSequence;
+            // Handle the completed click on the overlay, so it cannot reach the ledger underneath.
+            var click = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
+            click.callback.AddListener(data =>
+            {
+                if (data is PointerEventData pointer && pointer.button == PointerEventData.InputButton.Left)
+                    sequence.AccelerateCurrentReward();
+            });
+            inputSurface.gameObject.AddComponent<EventTrigger>().triggers.Add(click);
             sequence.Configure(plan, introGroup, overviewGroup, chest, rewards, groups, amounts, landing,
-                title, status, fireworks, skip, PlaySfx, () =>
+                title, null, fireworks, null, PlaySfx, () =>
                 {
                     if (!play || session.Phase != CoreDemoPhase.Settlement || !ReferenceEquals(session.Settlement, result) ||
                         sequence == null || !sequence.gameObject.activeInHierarchy || settlementChestSequence != sequence) return;
@@ -122,7 +116,7 @@ namespace ShatteredSail.Presentation
                     }
                 }, play);
             if (play && EventSystem.current != null)
-                EventSystem.current.SetSelectedGameObject(skip.gameObject);
+                EventSystem.current.SetSelectedGameObject(null);
         }
 
         private static ItemIconArt SettlementChestIcon(string id)

@@ -91,6 +91,54 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
+        public IEnumerator ClickAcceleratesOnlyCurrentReward_ThenNextRewardReturnsToNormalSpeed()
+        {
+            Create(new VoyageSettlement { Outcome = VoyageOutcome.SafeReturn, BankedGold = 100, BankedWood = 42 });
+            Time.timeScale = 0f;
+            sequence.SetElapsed(SettlementChestSequenceController.OpeningDuration + .1f);
+            float start = sequence.Elapsed;
+            sequence.AccelerateCurrentReward();
+            sequence.AccelerateCurrentReward();
+            Assert.That(sequence.Elapsed, Is.EqualTo(start), "A click speeds playback rather than completing the whole sequence.");
+            yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(sequence.Elapsed - start, Is.GreaterThan(.35f));
+            Assert.That(sequence.IsComplete, Is.False);
+            // Two rewards each take 1.35 seconds. Acceleration must end at the first landing.
+            float firstEnd = SettlementChestSequenceController.OpeningDuration + 1.35f;
+            float deadline = Time.realtimeSinceStartup + 1f;
+            while (sequence.Elapsed < firstEnd && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(sequence.Elapsed, Is.EqualTo(firstEnd).Within(.001f));
+            Assert.That(amounts[0].text, Is.EqualTo("+100"));
+            Assert.That(amounts[1].text, Is.EqualTo("+0"));
+            Assert.That(completions, Is.Zero);
+            Assert.That(overview.interactable, Is.False);
+            start = sequence.Elapsed;
+            yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(sequence.Elapsed - start, Is.InRange(.08f, .35f), "The next reward must resume ordinary playback speed.");
+        }
+
+        [UnityTest]
+        public IEnumerator JackpotClickFinishesOnlyThePrize_AndLeavesClosingAtNormalSpeed()
+        {
+            Create(new VoyageSettlement { Outcome = VoyageOutcome.SafeReturn, BankedGold = 20000, BankedWood = 7 });
+            sequence.SetElapsed(sequence.JackpotStart);
+            sequence.AccelerateCurrentReward();
+            float prizeEnd = sequence.JackpotStart + (SettlementChestSequenceController.JackpotChargeDuration +
+                SettlementChestSequenceController.JackpotFlightDuration + SettlementChestSequenceController.JackpotCountDuration +
+                SettlementChestSequenceController.JackpotHoldDuration + SettlementChestSequenceController.JackpotLandDuration);
+            float deadline = Time.realtimeSinceStartup + 2f;
+            while (sequence.Elapsed < prizeEnd && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(sequence.Elapsed, Is.EqualTo(prizeEnd).Within(.001f));
+            Assert.That(sequence.Phase, Is.EqualTo(SettlementChestSequencePhase.Closing));
+            Assert.That(sequence.IsComplete, Is.False);
+            Assert.That(completions, Is.Zero);
+            Assert.That(amounts.Any(text => text.text == "+20,000"), Is.True);
+            float start = sequence.Elapsed;
+            yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(sequence.Elapsed - start, Is.InRange(.08f, .35f));
+        }
+
+        [UnityTest]
         public IEnumerator NoRewardsImmediatelyShowsOverviewWithoutPlayingAnEmptyChestSequence()
         {
             Create(new VoyageSettlement { Outcome = VoyageOutcome.SafeReturn });

@@ -134,7 +134,7 @@ namespace ShatteredSail.Core.Tests
 
         private static IEnumerable<TestCaseData> ApproachingCardCases()
         {
-            foreach (string id in new[] { "card_approach", "card_full_sail_turn", "card_circle_enemy", "card_parallel_course", "card_navigator_course" })
+            foreach (string id in new[] { "card_approach", "card_full_sail_turn", "card_circle_enemy", "card_parallel_course", "card_special_crew_salt_crown_navigator_ashir" })
                 foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval })
                     foreach (int upgrade in new[] { 0, 1 })
                         yield return new TestCaseData(id, stage, upgrade);
@@ -146,6 +146,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = StartBattle(configure: value =>
             {
                 value.ConfigureCrewCapabilities(true, false, false, false, false, false);
+                value.ConfigureSpecialCardSources(new[] { "crew_salt_crown_navigator_ashir" }, null);
                 value.ConfigureCardUpgrades(new Dictionary<string, int> { { id, upgrade } });
             });
             if (stage == NavalBattleStage.Naval) Assert.That(session.EndBattleTurn(), Is.True);
@@ -397,6 +398,30 @@ namespace ShatteredSail.Core.Tests
                 ExpectedBoardingHealth(session.Battle.EnemyMaxBoardingHealth, enemyMaxHull, enemyDamage)));
         }
 
+        [TestCase(50, 75)]
+        [TestCase(60, 80)]
+        public void BoardingEntryAtHalfOrThreeFifthsHullKeepsThreeQuartersOrFourFifthsCrew(
+            int hullRemainingPercent, int crewRemainingPercent)
+        {
+            var session = new CoreVoyageSession();
+            Assert.That(session.StartTrainingBattle(new CoreTrainingTarget(
+                "carryover_boundary", "接舷继承边界", 200, 200, 0, 0, 0, 0)), Is.True);
+            Assert.That(session.EndBattleTurn(), Is.True);
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
+            Assert.That(session.Battle.NavalStartEnemyHull, Is.EqualTo(200));
+            Assert.That(session.Battle.EnemyMaxBoardingHealth, Is.EqualTo(200));
+            session.Battle.EnemyHull = 200 * hullRemainingPercent / 100;
+            Pose(session, 0f, -100f, 0f, 0f, 0f, 0f);
+            session.Battle.Alignment = NavalBattleAlignment.Parallel;
+
+            Assert.That(session.CanBoard(out string reason), Is.True, reason);
+            Assert.That(session.TryBoard(), Is.True);
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(200 * hullRemainingPercent / 100));
+            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(200 * crewRemainingPercent / 100));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(session.Battle.PlayerMaxBoardingHealth));
+        }
+
         [Test]
         public void Boarding_MeleeAndEnemyRetaliationUseCrewHealthInsteadOfShipHull()
         {
@@ -453,9 +478,15 @@ namespace ShatteredSail.Core.Tests
             Assert.That(Stages.SelectMany(session.GetCrewBattleCards), Is.Empty);
             session.ConfigureCrewCapabilities(career == 0, career == 1, career == 2,
                 career == 3, career == 4, career == 5);
-            if (career == 6) session.ConfigureSpecialCardSources(new[] { "crew_twilight_tide_gunner_yilan" }, null);
+            string[] crew = { "crew_gray_gull_navigator_evelyn", "crew_gray_gull_carpenter_barlow",
+                "crew_gray_gull_doctor_moer", "crew_gray_gull_gunner_leisa", "crew_gray_gull_cook_pepe",
+                "crew_gray_gull_diver_noya", "crew_twilight_tide_gunner_yilan" };
+            session.ConfigureSpecialCardSources(new[] { crew[career] }, null);
             int[] contributed = Stages.SelectMany(session.GetCrewBattleCards).ToArray();
             Assert.That(contributed, Is.Not.Empty);
+            Assert.That(contributed.Select(index => CoreVoyageSession.CardLibrary[index].Id).Distinct(),
+                Is.EqualTo(new[] { CoreSpecialCardCatalog.ForCrew(crew[career]).Card.Id }),
+                "Only this carried identity contributes a card, never the retired profession slot.");
             foreach (NavalBattleStage stage in Stages)
             {
                 IReadOnlyList<int> crewCards = session.GetCrewBattleCards(stage);
@@ -550,8 +581,8 @@ namespace ShatteredSail.Core.Tests
             session.Battle.EnemyLoadedShot = 0;
             session.Battle.PlayerBlock = 20;
             int hullBefore = session.Hull;
-            int expectedDamage = Math.Max(1, session.Battle.Profile.CannonDamage + session.Battle.PhaseTurn / 4 +
-                session.Battle.EnemyLoadedShot - Math.Max(0, (session.EffectiveArmor - 4) / 2));
+            Assert.That(session.EffectiveArmor, Is.EqualTo(2), "Starter armor receives 100% of raw cannon damage.");
+            int expectedDamage = session.Battle.Profile.CannonDamage;
             Assert.That(expectedDamage, Is.LessThan(20), "This regression needs leftover guard that expires after absorbing the actual hit.");
             Assert.That(session.GetEnemyIntent(), Does.Contain("炮击：伤害 " + expectedDamage));
 
@@ -572,8 +603,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Hull, Is.EqualTo(hullBefore));
         }
 
-        [Test]
-        public void EnemyGuardAbsorption_ResetsOnGuardTurnBeforeLethalEndOfTurnBurn()
+        [TestCase(0)]
+        [TestCase(1)]
+        public void EnemyGuardAbsorption_ResetsOnGuardTurnBeforeEndOfTurnBurnPaysGuard(int survivingHull)
         {
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.DistanceMeters = 100f;
@@ -583,25 +615,38 @@ namespace ShatteredSail.Core.Tests
             session.Battle.PhaseTurn = 1;
             session.Battle.EnemyLoadedShot = 0;
             session.Battle.PlayerBlock = 20;
-            int expectedDamage = Math.Max(1, session.Battle.Profile.CannonDamage + session.Battle.PhaseTurn / 4 +
-                session.Battle.EnemyLoadedShot - Math.Max(0, (session.EffectiveArmor - 4) / 2));
+            Assert.That(session.EffectiveArmor, Is.EqualTo(2), "Starter armor receives 100% of raw cannon damage.");
+            int expectedDamage = session.Battle.Profile.CannonDamage;
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(session.Battle.LastEnemyGuardAbsorbed, Is.EqualTo(Math.Min(20, expectedDamage)));
 
             CoreBattleState battle = session.Battle;
             battle.EnemyHull = 5;
-            battle.EnemyBurnDamage = battle.EnemyBurnTurns = 5;
+            battle.EnemyBlock = 0;
+            int enemyGuard = battle.Profile.Guard;
+            Assert.That(enemyGuard, Is.GreaterThan(0), "This boundary must include guard before burn reaches hull.");
+            battle.EnemyBurnDamage = battle.EnemyBurnTurns = enemyGuard + battle.EnemyHull - survivingHull;
             battle.PlayerBlock = 12;
-            Assert.That(session.GetEnemyIntent(), Does.Contain("防御"));
+            Assert.That(session.GetEnemyIntent(), Does.Contain("防御：格挡设为 " + enemyGuard));
             int playerHullBefore = session.Hull;
             Assert.That(session.EndBattleTurn(), Is.True);
 
-            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
-            Assert.That(session.Battle, Is.Null);
-            Assert.That(battle.EnemyHull, Is.Zero);
+            Assert.That(battle.EnemyBlock, Is.Zero, "Burn consumes the guard granted by this enemy action before damaging hull.");
+            Assert.That(battle.EnemyHull, Is.EqualTo(survivingHull), "Exactly the post-guard burn reaches hull; the one-hull boundary must survive.");
             Assert.That(battle.LastEnemyGuardAbsorbed, Is.Zero,
                 "The final guard turn cannot retain the previous attack's absorption after burn settles.");
-            Assert.That(battle.LastAction, Is.EqualTo("敌舰沉没。"), "Victory replaces the action text with its terminal outcome.");
+            if (survivingHull == 0)
+            {
+                Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+                Assert.That(session.Battle, Is.Null);
+                Assert.That(battle.LastAction, Is.EqualTo("敌舰沉没。"), "Victory replaces the action text with its terminal outcome.");
+            }
+            else
+            {
+                Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
+                Assert.That(session.Battle, Is.SameAs(battle));
+                Assert.That(battle.LastAction, Does.Contain("防御").And.Not.Contain("敌舰沉没"));
+            }
             Assert.That(session.Hull, Is.EqualTo(playerHullBefore));
         }
 

@@ -13,6 +13,46 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
+        public IEnumerator EveryTreasureRank_EntersDirectlyIntoNavigationWithoutAComic()
+        {
+            foreach (string rank in new[] { "weathered", "gilded", "moonlit" })
+            {
+                yield return LoadProvisioningFixture();
+                var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                CoreVoyageSession voyage = controller.Session;
+                voyage.RestoreTreasureProgress(new CoreTreasureProgress {
+                    pirateExperience = CoreVoyageSession.PirateExperienceForLevel(5),
+                    identifiedWeatheredFragments = rank == "weathered" ? 4 : 0,
+                    identifiedGildedFragments = rank == "gilded" ? 4 : 0,
+                    identifiedMoonlitFragments = rank == "moonlit" ? 4 : 0
+                });
+                string seed = "TREASURE-DIRECT-NAVIGATION-20261103-" + rank;
+                Assert.That(voyage.TryCraftTreasureMapForRank(rank, seed, out string reason), Is.True, reason);
+                Assert.That(voyage.TrySelectTreasureSeed(seed, out reason), Is.True, reason);
+                Assert.That(voyage.SelectedTreasureMap.ContentVersion, Is.EqualTo(1));
+                voyage.Cargo.Water = 200; voyage.Cargo.Food = 200;
+                ActiveButton("Port Hotspot Voyage").onClick.Invoke();
+                yield return null;
+                ActiveButton("Start Voyage").onClick.Invoke();
+                yield return null;
+                Assert.That(voyage.ActiveTreasureMap.ContentVersion, Is.EqualTo(1));
+                Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null);
+                Assert.That(GameObject.Find("Treasure Story Comic Page"), Is.Null);
+                Assert.That(voyage.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
+                Assert.That(GameObject.Find("Navigation Chart"), Is.Not.Null);
+                Assert.That(ActiveButton("Heading North").IsInteractable(), Is.True);
+                double hours = voyage.TotalHours;
+                ClickAcceptanceButton("Heading North");
+                yield return null;
+                Assert.That(voyage.Heading, Is.EqualTo(SailingDirection.North));
+                Assert.That(voyage.TotalHours, Is.EqualTo(hours), "Selecting a heading does not spend travel time.");
+                Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null,
+                    "A navigation redraw cannot recreate the removed introduction.");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator TreasureCore_ContinueExploringLetsNearbyWaterEscapeAndMarkerRevisit()
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
@@ -30,7 +70,7 @@ namespace ShatteredSail.Presentation.Tests
             ActiveButton("Port Hotspot Voyage").onClick.Invoke();
             yield return null;
             ActiveButton("Start Voyage").onClick.Invoke();
-            yield return ExerciseTreasureStoryPageRetirement(controller);
+            yield return DismissTreasureStoryIfPresent(controller);
             CoreMapNode core = voyage.Map.Nodes.Single(n => n.Encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId);
             voyage.Map.Nodes.Clear(); voyage.Map.Nodes.Add(core);
             System.Array.Clear(voyage.Map.TerrainCells, 0, voyage.Map.CellCount);
@@ -110,97 +150,5 @@ namespace ShatteredSail.Presentation.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
-        private IEnumerator ExerciseTreasureStoryPageRetirement(CoreGameplayDemoController controller)
-        {
-            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-            System.Reflection.MethodInfo render = typeof(CoreGameplayDemoController).GetMethod("Render", flags);
-            System.Reflection.FieldInfo page = typeof(CoreGameplayDemoController).GetField("treasureStoryPage", flags);
-            render.Invoke(controller, null);
-            RawImage first = AssertTreasureStoryFullscreen();
-            Button.ButtonClickedEvent retiredAdvance = ActiveButton("Treasure Story Advance").onClick;
-            Assert.That(page.GetValue(controller), Is.EqualTo(0));
-            ComicAutoAdvance firstTimer = GameObject.Find("Treasure Story Overlay").GetComponent<ComicAutoAdvance>();
-            Assert.That(firstTimer, Is.Not.Null);
-            Assert.That(firstTimer.RemainingSeconds, Is.InRange(11f, 12f));
-            yield return new WaitForSecondsRealtime(0.5f);
-            Assert.That(page.GetValue(controller), Is.EqualTo(0), "A page stays open before its twelve-second reading interval expires.");
-            Assert.That(GameObject.Find("Treasure Story Comic Page").GetComponent<RawImage>(), Is.SameAs(first));
-
-            firstTimer.RestoreRemainingSeconds(.6f);
-            float beforeRender = firstTimer.RemainingSeconds;
-            render.Invoke(controller, null);
-
-            RawImage replacement = AssertTreasureStoryFullscreen();
-            ComicAutoAdvance replacementTimer = GameObject.Find("Treasure Story Overlay").GetComponent<ComicAutoAdvance>();
-            Assert.That(replacementTimer.RemainingSeconds, Is.EqualTo(beforeRender).Within(.01f),
-                "Rebuilding the same page must retain its remaining reading time.");
-            Assert.That(replacement, Is.Not.SameAs(first));
-            Assert.That(first.gameObject.activeInHierarchy, Is.False);
-            retiredAdvance.Invoke();
-            Assert.That(page.GetValue(controller), Is.EqualTo(0), "Retired callbacks cannot advance a replacement page.");
-            Assert.That(GameObject.Find("Treasure Story Comic Page").GetComponent<RawImage>(), Is.SameAs(replacement));
-            yield return null;
-
-            Button.ButtonClickedEvent firstPageAdvance = ActiveButton("Treasure Story Advance").onClick;
-            ClickAcceptanceButton("Treasure Story Advance");
-            RawImage final = AssertTreasureStoryFullscreen();
-            Assert.That(page.GetValue(controller), Is.EqualTo(1), "One click advances exactly one image.");
-            ComicAutoAdvance finalTimer = GameObject.Find("Treasure Story Overlay").GetComponent<ComicAutoAdvance>();
-            Assert.That(finalTimer.RemainingSeconds, Is.EqualTo(12f).Within(.01f), "A real page change starts a full reading interval.");
-            Assert.That(final.texture, Is.Not.SameAs(replacement.texture));
-            firstPageAdvance.Invoke(); firstPageAdvance.Invoke(); retiredAdvance.Invoke();
-            Assert.That(page.GetValue(controller), Is.EqualTo(1), "An old page callback cannot finish the current page.");
-            Assert.That(GameObject.Find("Treasure Story Comic Page").GetComponent<RawImage>(), Is.SameAs(final));
-            yield return new WaitForSecondsRealtime(0.5f);
-            Assert.That(page.GetValue(controller), Is.EqualTo(1), "The final page also remains open before its timeout.");
-
-            Button.ButtonClickedEvent finalPageAdvance = ActiveButton("Treasure Story Advance").onClick;
-            finalTimer.RestoreRemainingSeconds(.08f);
-            float deadline = Time.realtimeSinceStartup + 2f;
-            while (GameObject.Find("Treasure Story Overlay") != null && Time.realtimeSinceStartup < deadline)
-            {
-                // Even frequent unrelated UI renders must not restart the clock
-                // and prevent the last page from completing automatically.
-                render.Invoke(controller, null);
-                yield return null;
-            }
-            Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null);
-            finalPageAdvance.Invoke(); firstPageAdvance.Invoke(); retiredAdvance.Invoke();
-            Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null, "Retired callbacks must not reopen a completed story.");
-            yield return null;
-            LogAssert.NoUnexpectedReceived();
-        }
-
-        private static RawImage AssertTreasureStoryFullscreen()
-        {
-            GameObject overlay = GameObject.Find("Treasure Story Overlay");
-            Assert.That(overlay, Is.Not.Null);
-            Text[] dialogue = overlay.GetComponentsInChildren<Text>(true);
-            Assert.That(dialogue, Is.Not.Empty, "The authored comic dialogue boxes must contain their story text.");
-            foreach (Text label in dialogue)
-            {
-                Assert.That(label.name, Does.StartWith("Treasure Comic Dialogue "), "Full-screen comics only add text inside the authored dialogue boxes.");
-                Assert.That(string.IsNullOrWhiteSpace(label.text), Is.False, label.name);
-                Assert.That(label.font, Is.SameAs(GameTypography.InterfaceFont), label.name + " uses the embedded artistic face.");
-                Assert.That(label.raycastTarget, Is.False, label.name + " must not intercept click-to-advance.");
-            }
-            Button advance = overlay.GetComponentsInChildren<Button>(false).Single();
-            Assert.That(advance.name, Is.EqualTo("Treasure Story Advance"));
-            Assert.That(advance.targetGraphic.color.a, Is.EqualTo(0f));
-            RawImage image = overlay.GetComponentsInChildren<RawImage>(false).Single();
-            Assert.That(image.name, Is.EqualTo("Treasure Story Comic Page"));
-            Assert.That(image.texture, Is.Not.Null);
-            Canvas canvas = image.GetComponentInParent<Canvas>().rootCanvas;
-            Assert.That(overlay.transform.parent, Is.SameAs(FixedGameViewport.Bounds(canvas)),
-                "Comics cover the fixed game viewport, preserving the letterbox bars at other window ratios.");
-            Canvas.ForceUpdateCanvases();
-            foreach (RectTransform rect in new[] { overlay.GetComponent<RectTransform>(), image.rectTransform, (RectTransform)advance.transform })
-            {
-                AssertFullscreenComicRect(rect);
-            }
-            Assert.That(image.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)),
-                "Treasure pages retain the complete artwork so dialogue near an outer edge remains visible at every window ratio.");
-            return image;
-        }
     }
 }

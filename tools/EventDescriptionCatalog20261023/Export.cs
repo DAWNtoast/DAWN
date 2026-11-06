@@ -150,7 +150,7 @@ internal static class ExportEventDescriptions
         doc.AppendLine("- 现役事件：**" + current.Select(e => e.Id).Distinct().Count() + " 个事件 ID**，**" + current.Select(Key).Distinct().Count() + " 种名称／类型／描述组合**。");
         doc.AppendLine("- 按航域、档位与触发分支列示：**" + current.Count + " 条目录记录**；相同公共事件可能出现在多个航域，另有两条通用随机事件集中列示。");
         doc.AppendLine("- 旧版兼容定义：**" + legacy.Select(e => e.Id).Distinct().Count() + " 个事件 ID**，**" + legacy.Select(Key).Distinct().Count() + " 种文本组合**；相同文本跨档位合并列示。");
-        doc.AppendLine("- 另附 **3 个宝藏章节的叙述定义（6 段）**、**6 艘传奇战舰的实际战前文本（12 页）**。不计为新事件 ID；宝藏漫画实际字幕另由 TreasureComicDialogueCatalog 按内容版本提供，章节叙述定义不等同于屏幕字幕。").AppendLine();
+        doc.AppendLine("- 另附 **3 个宝藏航域概述**、**6 艘传奇战舰的叙述定义（12 段）**，不计为新事件 ID。传奇叙述定义供设定核对，实际战前漫画为无字画面。").AppendLine();
         doc.AppendLine("| 分类 | 适用记录数 | 本分类事件 ID 数 |");
         doc.AppendLine("| --- | ---: | ---: |");
         foreach (var section in current.GroupBy(e => e.Section))
@@ -159,24 +159,14 @@ internal static class ExportEventDescriptions
 
         doc.AppendLine("## 一、现役事件描述").AppendLine();
         WriteEntries(doc, current);
-        doc.AppendLine("## 二、宝藏航域概述与章节叙述定义").AppendLine();
-        doc.AppendLine("以下章节文字来自 CoreTreasureStoryCatalog.Chapters.Pages，供叙事设定核对。实际漫画叠加字幕使用 TreasureComicDialogueCatalog.GetPage(rankId, page, contentVersion)，存在新旧版本差异，不应把本节文字当作当前屏幕上的逐字字幕。").AppendLine();
+        doc.AppendLine("## 二、宝藏航域概述").AppendLine();
         foreach (var rank in CoreTreasureHuntCatalog.Ranks)
         {
             doc.AppendLine("### " + rank.Name + "：" + CoreTreasureExpeditionCatalog.ThemeName(rank.Id)).AppendLine();
             doc.AppendLine("档位 ID：`" + rank.Id + "`。航域概述：").AppendLine();
             Quote(doc, CoreTreasureExpeditionCatalog.Overview(rank.Id));
-            var chapter = CoreTreasureStoryCatalog.FindChapter(rank.Id);
-            if (chapter == null) throw new InvalidOperationException("Missing chapter: " + rank.Id);
-            doc.AppendLine("章节标题：**" + chapter.Title + "**。").AppendLine();
-            doc.AppendLine("关联事件：" + string.Join("、", chapter.LegendaryIds.Select(id => "`" + id + "`")) + "。").AppendLine();
-            for (int i = 0; i < chapter.Pages.Count; i++)
-            {
-                doc.AppendLine("**第 " + (i + 1) + " 页**").AppendLine();
-                Quote(doc, chapter.Pages[i]);
-            }
         }
-        doc.AppendLine("## 三、传奇战舰战前文本").AppendLine();
+        doc.AppendLine("## 三、传奇战舰叙述定义").AppendLine();
         foreach (var story in CoreTreasureStoryCatalog.Battles)
         {
             doc.AppendLine("### " + story.ShipName).AppendLine();

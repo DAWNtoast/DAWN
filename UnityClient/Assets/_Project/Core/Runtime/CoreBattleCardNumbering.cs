@@ -11,6 +11,11 @@ namespace ShatteredSail.Core.Gameplay
     /// </summary>
     public static class CoreBattleCardNumbering
     {
+        private static readonly string[] AppendedIds = {
+            "card_school_arcane_n04", "card_school_fire_n07", "card_school_fire_n08",
+            "card_school_arcane_n05", "card_school_arcane_n06", "card_school_arcane_n07",
+            "card_school_thunder_n07", "card_school_thunder_n08", "card_school_thunder_n09"
+        };
         private static readonly Dictionary<string, int> numbers = Build();
 
         public static int Number(CoreBattleCard card) => card == null ? 0 : Number(card.Id);
@@ -68,9 +73,16 @@ namespace ShatteredSail.Core.Gameplay
             var counts = new int[10];
             foreach (CoreBattleCard card in cards)
             {
-                int category = Category(card), sequence = ++counts[category];
-                if (sequence >= 1000) throw new InvalidOperationException("Battle card number range exhausted: " + category);
-                result.Add(card.Id, category * 1000 + sequence);
+                if (IsAppendedDesign(card)) continue;
+                int category = Category(card);
+                result.Add(card.Id, NextNumber(category, counts));
+            }
+            // Later additions use the next free school number without renumbering
+            // the already published catalogue that players use to edit their decks.
+            foreach (string id in AppendedIds)
+            {
+                CoreBattleCard card = cards.Find(candidate => candidate.Id == id);
+                if (card != null) result.Add(card.Id, NextNumber(Category(card), counts));
             }
             // Boarding aliases still occur in old decks. They share the current design's
             // number without occupying another position in the playable catalogue.
@@ -83,9 +95,24 @@ namespace ShatteredSail.Core.Gameplay
             return result;
         }
 
+        private static int NextNumber(int category, int[] counts)
+        {
+            int number;
+            do
+            {
+                int sequence = ++counts[category];
+                if (sequence >= 1000) throw new InvalidOperationException("Battle card number range exhausted: " + category);
+                number = category * 1000 + sequence;
+            }
+            while (CoreRetiredSourceCards.ReservesNumber(number));
+            return number;
+        }
+
         private static bool IsRetiredBoardingIdentity(CoreBattleCard card) =>
             card.AllowedStages == NavalBattleStages.Boarding && card.RequiredCrew.Length == 0 &&
             card.RequiredComponent.Length == 0 && card.BoardingSpec != null && CoreBoardingCardCatalog.IsLegacyAlias(card);
+
+        private static bool IsAppendedDesign(CoreBattleCard card) => Array.IndexOf(AppendedIds, card.Id) >= 0;
 
         private static int CompareDesigns(CoreBattleCard left, CoreBattleCard right)
         {

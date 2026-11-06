@@ -161,7 +161,7 @@ namespace ShatteredSail.Presentation
                 CardSchoolArtCatalog.CostPosition(data, CardSpecialCostPresentation.OrnamentKind(data)),
                 CardSpecialCostPresentation.OrnamentKind(data), data.Type, 0);
             number.text = CardSpecialCostPresentation.CostText(data, battle, battle == null ? (int?)null : session.Cargo.Wood,
-                battle == null ? (int?)null : session.Cargo.Medicine);
+                battle == null ? (int?)null : session.Cargo.Medicine, battle == null ? null : session);
             if (number.text.Length > 3) number.fontSize = 18;
             else if (number.text.Length > 2) number.fontSize = 21;
             return number;

@@ -110,29 +110,23 @@ namespace ShatteredSail.Presentation
             float headingY = size.y * .5f - padding - stripHeight * .5f;
             Box(Child(panel, "Navigation Map Title Strip"), new Vector2(size.x - padding * 2f, stripHeight), new Vector2(0, headingY));
             Box(Child(panel, "Navigation Map Title Compass"), new Vector2(34f, 34f), new Vector2(-size.x * .5f + 36f, headingY));
-            float titleWidth = Mathf.Clamp((size.x - 96f) * .42f, 330f, 560f);
+            RectTransform locateBoss = Child(panel, "Locate Blocking Boss");
+            const float locateWidth = 150f, locateGap = 16f;
+            float locateSpace = locateBoss == null ? 0f : locateWidth + locateGap;
+            float titleWidth = Mathf.Clamp((size.x - 96f - locateSpace) * .42f, 330f, 560f);
             ChartTextBox(Child(panel, "Map Title"), new Vector2(titleWidth, 34f),
                 new Vector2(-size.x * .5f + 64f + titleWidth * .5f, headingY), 23, panel.localScale.x);
-            float enduranceWidth = size.x - 104f - titleWidth;
+            float enduranceWidth = size.x - 104f - titleWidth - locateSpace;
             RectTransform endurance = Child(panel, "Voyage Supply Endurance");
-            Box(endurance, new Vector2(enduranceWidth, 34f), new Vector2(size.x * .5f - 24f - enduranceWidth * .5f, headingY));
+            Box(endurance, new Vector2(enduranceWidth, 34f),
+                new Vector2(size.x * .5f - 24f - locateSpace - enduranceWidth * .5f, headingY));
             ChartTextBox(Child(endurance, "Water Food Endurance"), new Vector2(enduranceWidth, 30f),
                 Vector2.zero, 17, panel.localScale.x);
+            ControlBox(locateBoss, new Vector2(locateWidth, 40f),
+                new Vector2(size.x * .5f - 24f - locateWidth * .5f, headingY));
             RectTransform hint = Child(panel, "Map Course Hint");
             ChartTextBox(hint, new Vector2(size.x - 48f, 32f),
                 new Vector2(0, -size.y * .5f + 28f), 14, panel.localScale.x);
-            RectTransform bossGuidance = Child(panel, "Destination Boss Guidance");
-            if (bossGuidance != null)
-            {
-                float guidanceWidth = size.x - 24f;
-                Box(bossGuidance, new Vector2(guidanceWidth, 64f), new Vector2(0f, -size.y * .5f + 38f));
-                ChartTextBox(Child(bossGuidance, "Destination Boss Guidance Text"), new Vector2(guidanceWidth - 336f, 52f),
-                    new Vector2(-152f, 0f), 18, panel.localScale.x);
-                ControlBox(Child(bossGuidance, "Locate Blocking Boss"), new Vector2(136f, 44f),
-                    new Vector2(guidanceWidth * .5f - 226f, 0f));
-                ControlBox(Child(bossGuidance, "Plot Blocking Boss Course"), new Vector2(136f, 44f),
-                    new Vector2(guidanceWidth * .5f - 76f, 0f));
-            }
             RectTransform frame = Child(panel, "Procedural Sea Chart Frame"), map = Child(frame, "Map Layer");
             if (map == null) return;
             // Match the old procedural backing to the surrounding fog surface,
@@ -149,7 +143,7 @@ namespace ShatteredSail.Presentation
             // Fit the plotted sea, not the larger logical root's empty margins.
             // Keep the established coordinates for routes, markers and input.
             float mapTop = headingY - stripHeight * .5f;
-            float mapBottom = -size.y * .5f + padding + (bossGuidance != null ? 72f : hint == null ? 0f : 40f);
+            float mapBottom = -size.y * .5f + padding + (hint == null ? 0f : 40f);
             Vector2 mapSize = new Vector2(size.x - padding * 2f, mapTop - mapBottom);
             RectTransform sea = Child(map, "Ocean Tile Layer");
             if (sea == null) return;
@@ -215,17 +209,24 @@ namespace ShatteredSail.Presentation
                 new Vector2(-70f,size.y*.5f-39f));
             NavigationCompassControl.Attach(panel);
             NavigationCompassControl.Layout(panel, new Vector2(compassCenter, top - compassDiameter * .5f), compassDiameter);
-            Box(Child(panel, "Distance Label"), new Vector2(forecastWidth,48), new Vector2(forecastCenter,top-38f));
+            Box(Child(panel, "Distance Label"), new Vector2(forecastWidth,48), new Vector2(forecastCenter,top-30f));
             ControlBox(Child(panel, "Forecast Details"), new Vector2(128,38), new Vector2(size.x*.5f-padding-64f,size.y*.5f-39f));
             RectTransform slider = Child(panel, "Distance Slider");
-            Box(slider, new Vector2(forecastWidth,34), new Vector2(forecastCenter,top-91f));
+            Box(slider, new Vector2(forecastWidth,44), new Vector2(forecastCenter,top-81f));
             Box(Child(slider, "Background"), new Vector2(forecastWidth,12), Vector2.zero);
-            Box(Child(slider, "Fill Area"), new Vector2(forecastWidth-18,10), new Vector2(-9,0));
-            Box(Child(slider, "Handle Slide Area"), new Vector2(forecastWidth-24,34), Vector2.zero);
-            Box(Child(panel, "Distance Limit"), new Vector2(forecastWidth,18), new Vector2(forecastCenter,top-119f));
-            float forecastTop = top - 130f;
-            float forecastHeight = Mathf.Max(132f, forecastTop - bodyBottom);
-            Box(Child(panel, "Forecast"), new Vector2(forecastWidth,forecastHeight), new Vector2(forecastCenter,forecastTop-forecastHeight*.5f));
+            NavigationHelmSlider.Attach(slider == null ? null : slider.GetComponent<Slider>());
+            Box(Child(panel, "Distance Limit"), new Vector2(forecastWidth,18), new Vector2(forecastCenter,top-115f));
+            float forecastTop = top - 143f;
+            const float forecastHeight = 150f;
+            RectTransform forecast = Child(panel, "Forecast");
+            Box(forecast, new Vector2(forecastWidth,forecastHeight), new Vector2(forecastCenter,forecastTop-forecastHeight*.5f));
+            // Two 40px metric rows, 8px between rows, then 8px before the
+            // reserved 54px notes area. Even three route notes clear the footer.
+            float metricWidth = (forecastWidth - 18f) * .5f;
+            LayoutForecastMetric(forecast, "Time", metricWidth, new Vector2(-(metricWidth+18f)*.5f,55f));
+            LayoutForecastMetric(forecast, "Speed", metricWidth, new Vector2((metricWidth+18f)*.5f,55f));
+            LayoutForecastMetric(forecast, "Water", metricWidth, new Vector2(-(metricWidth+18f)*.5f,7f));
+            LayoutForecastMetric(forecast, "Food", metricWidth, new Vector2((metricWidth+18f)*.5f,7f));
             float actionWidth = (usableWidth-gap)*.5f;
             ControlBox(Child(panel, "Execute Sail"), new Vector2(actionWidth,66), new Vector2((actionWidth+gap)*.5f,footerY));
             ControlBox(Child(panel, "Safe Return"), new Vector2(actionWidth,66), new Vector2(-(actionWidth+gap)*.5f,footerY));
@@ -234,6 +235,14 @@ namespace ShatteredSail.Presentation
             Box(disclosure as RectTransform, new Vector2(usableWidth,150), new Vector2(0,size.y*.5f+75));
             if (disclosure != null)
                 Box(disclosure.Find("Forecast Detail Text") as RectTransform, new Vector2(usableWidth-32,124), Vector2.zero);
+        }
+
+        private static void LayoutForecastMetric(RectTransform forecast, string key, float width, Vector2 position)
+        {
+            RectTransform metric = Child(forecast, "Forecast " + key);
+            Box(metric, new Vector2(width,40f), position);
+            Box(Child(metric, "Forecast " + key + " Label"), new Vector2(width,16f), new Vector2(0f,12f));
+            Box(Child(metric, "Forecast " + key + " Value"), new Vector2(width,24f), new Vector2(0f,-8f));
         }
 
         private static void LayoutLookout(RectTransform panel)

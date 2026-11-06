@@ -41,7 +41,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(injected, Is.EquivalentTo(expected));
             Assert.That(injected.Length, Is.EqualTo(7));
             Assert.That(injected.All(id => id.StartsWith("card_special_", StringComparison.Ordinal)), Is.True);
-            Assert.That(session.CardUpgradeLevels.Keys.All(id => !CoreVoyageSession.IsSpecialBattleCard(id)), Is.True);
+            Assert.That(session.CardUpgradeLevels.Keys.All(id => !CoreVoyageSession.IsSpecialBattleCard(id) &&
+                !CoreRetiredSourceCards.IsRetired(id)), Is.True);
         }
 
         [TestCase(0, 0)]
@@ -133,7 +134,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(result.MaxCombo, Is.LessThan(NavalBattleBalanceSimulator.ActionWatchdog));
             Assert.That(result.EnergySpent, Is.GreaterThan(0));
             Assert.That(result.ZeroCostCards, Is.LessThan(result.Cards));
-            Assert.That(result.InitialCrewHealth, Is.EqualTo(20 + 4 * result.OrdinaryCrew));
+            Assert.That(result.InitialCrewHealth, Is.EqualTo(40 + 8 * result.OrdinaryCrew));
             Assert.That(result.CannonballsUsed, Is.InRange(0, 40));
             Assert.That(result.PowderUsed, Is.InRange(0, 25));
         }

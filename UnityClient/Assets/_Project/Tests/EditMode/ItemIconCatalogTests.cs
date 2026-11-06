@@ -11,47 +11,79 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class ItemIconCatalogTests
     {
+        private static readonly HashSet<string> SharedSupplyKeys = new HashSet<string>
+        {
+            "wood", "medicine", "powder", "cannonballs",
+        };
+
         [Test]
-        public void EveryPhysicalCargoAndSpecialItem_HasUniqueCellInOneSharedAtlas()
+        public void EveryPhysicalCargoAndSpecialItem_HasUniqueCellInItsSharedAtlas()
         {
             Assert.That(CoreWarehouseItemCatalog.All.Count, Is.EqualTo(15));
-            Texture2D texture = Resources.Load<Texture2D>(ItemIconCatalog.AtlasResourcePath);
-            Assert.That(texture, Is.Not.Null, ItemIconCatalog.AtlasResourcePath);
-            var cells = new HashSet<Rect>();
+            Texture2D itemTexture = Resources.Load<Texture2D>(ItemIconCatalog.AtlasResourcePath);
+            Texture2D battleTexture = BattleIconArtCatalog.Texture;
+            Assert.That(itemTexture, Is.Not.Null, ItemIconCatalog.AtlasResourcePath);
+            Assert.That(battleTexture, Is.Not.Null, BattleIconArtCatalog.ResourcePath);
+            Assert.That(battleTexture, Is.Not.SameAs(itemTexture));
+            var itemCells = new HashSet<Rect>();
+            var battleCells = new HashSet<Rect>();
             foreach (CoreWarehouseItemDefinition item in CoreWarehouseItemCatalog.All)
-                AssertAtlasItem(ItemIconCatalog.ForCargo(item.Key), texture, cells, item.Key);
+            {
+                bool sharedSupply = SharedSupplyKeys.Contains(item.Key);
+                AssertAtlasItem(ItemIconCatalog.ForCargo(item.Key), sharedSupply ? battleTexture : itemTexture,
+                    sharedSupply ? battleCells : itemCells, item.Key);
+            }
             foreach (string key in new[] { "gold", "treasurefragment", "treasuremap_weathered", "treasuremap_gilded", "treasuremap_moonlit" })
-                AssertAtlasItem(ItemIconCatalog.ForSpecial(key), texture, cells, key);
-            Assert.That(cells.Count, Is.EqualTo(20));
+                AssertAtlasItem(ItemIconCatalog.ForSpecial(key), itemTexture, itemCells, key);
+            Assert.That(battleCells.Count, Is.EqualTo(4));
+            Assert.That(itemCells.Count, Is.EqualTo(16));
+            Assert.That(itemCells.Count + battleCells.Count, Is.EqualTo(20));
+        }
+
+        [TestCase("wood", BattleCommandIconKind.Planks)]
+        [TestCase("medicine", BattleCommandIconKind.Medicine)]
+        [TestCase("powder", BattleCommandIconKind.Powder)]
+        [TestCase("cannonballs", BattleCommandIconKind.Cannonball)]
+        public void SharedSupplies_UseTheSameTextureAndCellAsTheirBattleCommand(string key, BattleCommandIconKind command)
+        {
+            ItemIconArt art = ItemIconCatalog.ForCargo(key);
+            Assert.That(art.IsAvailable, Is.True, key);
+            Assert.That(art.Texture, Is.SameAs(BattleIconArtCatalog.Texture), key);
+            Assert.That(BattleIconArtCatalog.TryGetUv(BattleIconArtCatalog.CommandAssetId(command), out Rect expected), Is.True);
+            Assert.That(art.Uv, Is.EqualTo(expected), key);
+            ItemIconArt normalized = ItemIconCatalog.ForCargo(" " + key.ToUpperInvariant() + " ");
+            Assert.That(normalized.Texture, Is.SameAs(art.Texture), key);
+            Assert.That(normalized.Uv, Is.EqualTo(art.Uv), key);
         }
 
         [Test]
-        public void AtlasLayout_PreservesMeasuredPaddedBoundsWithoutOverlappingOtherSubjects()
+        public void UnchangedAtlasLayout_PreservesMeasuredPaddedBoundsWithoutOverlappingOtherSubjects()
         {
             string[] keys =
             {
-                "water", "food", "wood", "iron", "cloth",
-                "beer", "medicine", "powder", "cannonballs", "gold",
+                "water", "food", "iron", "cloth", "beer", "gold",
                 "gem", "ancientmaterial", "relic", "blackpearl", "ancientcompass",
                 "lantern", "treasurefragment", "treasuremap_weathered", "treasuremap_gilded", "treasuremap_moonlit",
             };
             Rect[] expectedBounds =
             {
                 new Rect(51, 30, 201, 254), new Rect(297, 62, 256, 223),
-                new Rect(576, 51, 250, 230), new Rect(839, 64, 277, 213), new Rect(1136, 58, 248, 223),
-                new Rect(65, 284, 163, 279), new Rect(292, 317, 251, 235),
-                new Rect(579, 306, 239, 244), new Rect(850, 322, 259, 234), new Rect(1146, 327, 227, 222),
+                new Rect(839, 64, 277, 213), new Rect(1136, 58, 248, 223),
+                new Rect(65, 284, 163, 279), new Rect(1146, 327, 227, 222),
                 new Rect(47, 583, 204, 218), new Rect(295, 570, 243, 244),
                 new Rect(574, 566, 240, 244), new Rect(846, 577, 258, 229), new Rect(1142, 563, 228, 248),
                 new Rect(59, 802, 177, 281), new Rect(322, 827, 207, 254),
                 new Rect(546, 813, 274, 260), new Rect(831, 816, 278, 264), new Rect(1119, 818, 266, 265),
             };
+            Texture2D texture = Resources.Load<Texture2D>(ItemIconCatalog.AtlasResourcePath);
+            Assert.That(texture, Is.Not.Null);
             var actualBounds = new List<Rect>();
             for (int cell = 0; cell < keys.Length; cell++)
             {
                 ItemIconArt art = ItemIconCatalog.ForCargo(keys[cell]);
                 if (!art.IsAvailable) art = ItemIconCatalog.ForSpecial(keys[cell]);
                 Assert.That(art.IsAvailable, Is.True, keys[cell]);
+                Assert.That(art.Texture, Is.SameAs(texture), keys[cell]);
                 // Source-pixel bounds are independent of platform import scaling.
                 Rect expected = expectedBounds[cell];
                 Assert.That(art.Uv.x * 1402f, Is.EqualTo(expected.x).Within(0.001f), keys[cell]);
@@ -62,6 +94,7 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(art.Uv.Overlaps(previous), Is.False, keys[cell] + " overlaps another icon.");
                 actualBounds.Add(art.Uv);
             }
+            Assert.That(actualBounds.Count, Is.EqualTo(16));
         }
 
         [Test]

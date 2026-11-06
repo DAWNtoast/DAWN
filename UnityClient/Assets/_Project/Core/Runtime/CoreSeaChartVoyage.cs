@@ -123,7 +123,7 @@ namespace ShatteredSail.Core.Gameplay
                 case "random_food_spoilage":
                     result = new CoreEncounter(id, "潮湿的粮袋", "随机航行事件", "潮气钻进了粮袋，需要及时处理。", true, false, 1, 0,
                         new CoreEncounterChoice("丢弃坏粮", "食物 -4", 0, new VoyageEffect { Food = -4 }),
-                        new CoreEncounterChoice("封闭漏水货格", "船体 -1，不消耗物资", 0, new VoyageEffect { Hull = -1 }));
+                        new CoreEncounterChoice("封闭漏水货格", "船体 -1", 0, new VoyageEffect { Hull = -1 }));
                     break;
                 case "random_ambush": result = CreateRandomAmbush(encounterRandom.NextDouble() < AmbushDetectionChance); break;
                 default:

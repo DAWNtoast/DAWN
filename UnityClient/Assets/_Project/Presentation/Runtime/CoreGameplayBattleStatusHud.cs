@@ -38,12 +38,15 @@ namespace ShatteredSail.Presentation
                         battle.Stage != NavalBattleStage.Boarding &&
                         (movement != null && movement.isActiveAndEnabled && movement.IsShipSelected ||
                          battle.NavalAwaitingHeadingSelection || board != null && board.IsAnimating),
-                        session.IsGuidedBossBattle && battle.Stage != NavalBattleStage.Boarding ? 90f : 140f);
+                        HasGuidedBossPresentation && battle.Stage != NavalBattleStage.Boarding ? 90f : 140f);
                     row.FollowHealthBar(track);
                 }
                 row.SetCellSize(board == null ? 0f : board.CellSizePixels);
                 row.SetOwner(this);
-                row.SetStatuses(CoreBattleStatusPresentation.Build(session, player), Application.isPlaying && !editorPreviewBuilding);
+                var statuses = CoreBattleStatusPresentation.Build(session, player);
+                row.SetStatuses(statuses, Application.isPlaying && !editorPreviewBuilding);
+                if (Application.isPlaying && !editorPreviewBuilding)
+                    ConfigureBattleAffliction(root, player, battle.Stage == NavalBattleStage.Boarding).Synchronize(statuses);
             }
             Transform oldBuffs = root.Find("Battle Buff Panel");
             if (oldBuffs != null) oldBuffs.gameObject.SetActive(false);
@@ -66,13 +69,6 @@ namespace ShatteredSail.Presentation
                     school.sizeDelta = new Vector2(190f, height);
                     school.anchoredPosition = new Vector2(-780f, 329f - height * .5f);
                     resources.rectTransform.sizeDelta = new Vector2(174f, height - 20f);
-                }
-                foreach (bool player in new[] { true, false })
-                {
-                    string side = player ? "Player" : "Enemy";
-                    Vector2 position = new Vector2(player ? -480f : 480f, 410f);
-                    SetNavalHudRect(root.Find(side + " Battle Name Board") as RectTransform, new Vector2(380f, 58f), position);
-                    SetNavalHudText(root, side + " Battle Name", new Vector2(368f, 52f), position, 20);
                 }
             }
         }

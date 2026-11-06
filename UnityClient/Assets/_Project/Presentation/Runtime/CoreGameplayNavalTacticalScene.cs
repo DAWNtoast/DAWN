@@ -11,8 +11,8 @@ namespace ShatteredSail.Presentation
         {
             RectTransform boardRect = CreateRect("Naval Tactical Board", root, new Vector2(1860f, 900f), Vector2.zero);
             NavalTacticalBoardView board = boardRect.gameObject.AddComponent<NavalTacticalBoardView>();
-            Image player = CreateImage("Player Ship Art", root, new Vector2(112f, 168f), Vector2.zero, Color.white);
-            Image enemy = CreateImage("Enemy Ship Art", root, new Vector2(112f, 168f), Vector2.zero, Color.white);
+            Image player = CreateImage("Player Ship Art", root, new Vector2(128f, 192f), Vector2.zero, Color.white);
+            Image enemy = CreateImage("Enemy Ship Art", root, new Vector2(128f, 192f), Vector2.zero, Color.white);
             foreach (Image ship in new[] { player, enemy })
             {
                 ship.raycastTarget = false;

@@ -253,35 +253,39 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.PortWarehouse.GetAmount(otherPort, "wood"), Is.EqualTo(1));
 
             var visitedPorts = new HashSet<string>(controller.Session.CaptureCollectionProgress().visitedPorts);
+            var carriedRewards = new List<string>();
             foreach (string port in CoreVoyageSession.DestinationPorts.Where(port => port != legacyPort))
             {
                 int previousVisits = visitedPorts.Count;
                 visitedPorts.Add(port);
-                var expectedNewRewards = new List<string>();
-                if (previousVisits < 3 && visitedPorts.Count >= 3) expectedNewRewards.Add("first_berth_drydock_nail");
-                if (previousVisits < 6 && visitedPorts.Count >= 6) expectedNewRewards.Add("six_port_anchor_seal");
+                if (previousVisits < 3 && visitedPorts.Count >= 3) carriedRewards.Add("first_berth_drydock_nail");
+                if (previousVisits < 6 && visitedPorts.Count >= 6) carriedRewards.Add("six_port_anchor_seal");
                 controller.Session.RestoreProfile(controller.Session.ProfileGold, port);
+                typeof(CoreGameplayDemoController).GetMethod("SaveProgress", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(controller, null);
                 ClickAcceptanceButton("Port Hotspot Warehouse"); yield return null;
-                // Visiting new ports legitimately earns voyage milestones. Only
-                // these new rewards may appear; the migrated compass stays unique.
-                CollectionAssert.AreEquivalent(expectedNewRewards, controller.WarehouseCollection.OwnedIds,
-                    "Only newly earned port-visit rewards may appear on first visit: " + port);
+                // Newly earned, unexhibited rewards travel onward. The migrated
+                // compass remains unique on its original exhibition slot.
+                CollectionAssert.AreEquivalent(carriedRewards, controller.WarehouseCollection.OwnedIds,
+                    "Unexhibited port-visit rewards must travel with the captain: " + port);
                 Assert.That(controller.WarehouseCollection.Owns(id), Is.False,
                     "Legacy ownership must not be copied on first visit: " + port);
                 Assert.That(controller.WarehouseCollection.IsDisplayed(id), Is.False);
                 ClickAcceptanceButton("Return To Port Hub"); yield return null;
             }
             controller.Session.RestoreProfile(controller.Session.ProfileGold, legacyPort);
+            typeof(CoreGameplayDemoController).GetMethod("SaveProgress", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(controller, null);
             controller.Session.Cargo.Wood = 1;
             yield return OpenPortStorage();
-            CollectionAssert.AreEqual(new[] { id }, controller.WarehouseCollection.OwnedIds);
+            CollectionAssert.AreEquivalent(carriedRewards.Concat(new[] { id }), controller.WarehouseCollection.OwnedIds);
             Assert.That(controller.WarehouseCollection.DisplayedAt(2), Is.EqualTo(id));
             yield return StoreAllVisibleCargo(controller, "wood");
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
             yield return null; yield return null;
             controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller.Session.CurrentPort, Is.EqualTo(legacyPort));
-            CollectionAssert.AreEqual(new[] { id }, controller.WarehouseCollection.OwnedIds);
+            CollectionAssert.AreEquivalent(carriedRewards.Concat(new[] { id }), controller.WarehouseCollection.OwnedIds);
             Assert.That(controller.WarehouseCollection.DisplayedAt(2), Is.EqualTo(id));
             Assert.That(controller.Session.PortWarehouse.GetAmount(legacyPort, "wood"), Is.EqualTo(1));
             Assert.That(controller.Session.PortWarehouse.GetAmount(otherPort, "wood"), Is.EqualTo(1));
@@ -300,8 +304,7 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator ShowPortStorageItem(string key)
         {
             Assert.That(ActiveButton("Warehouse Storage Row " + key), Is.Not.Null, "All nine materials must be visible without paging: " + key);
-            Assert.That(GameObject.Find("Warehouse Storage Stored " + key), Is.Not.Null);
-            Assert.That(GameObject.Find("Warehouse Storage Carried " + key), Is.Not.Null);
+            Assert.That(GameObject.Find("Warehouse Storage Quantity " + key), Is.Not.Null);
             yield break;
         }
 

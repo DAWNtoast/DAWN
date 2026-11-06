@@ -42,14 +42,19 @@ namespace ShatteredSail.Presentation.Tests
                 string key = PortMarketCatalog.Key(item);
                 Assert.That(ActiveButton("Warehouse Storage Row " + key), Is.Not.Null);
                 Assert.That(GameObject.Find("Warehouse Storage Name " + key).GetComponent<Text>().text, Does.Contain(PortMarketCatalog.Name(item)));
-                Assert.That(GameObject.Find("Warehouse Storage Stored " + key).GetComponent<Text>().text,
-                    Does.Contain(session.PortWarehouse.GetAmount(port, key).ToString(CultureInfo.InvariantCulture)));
-                Assert.That(GameObject.Find("Warehouse Storage Carried " + key).GetComponent<Text>().text,
-                    Does.Contain(session.GetMarketCargoAmount(key).ToString(CultureInfo.InvariantCulture)));
-                Assert.That(GameObject.Find("Warehouse Storage Volume " + key).GetComponent<Text>().text,
-                    Does.Contain((session.GetMarketCargoAmount(key) * PortMarketCatalog.CargoVolume(item)).ToString("0.00", CultureInfo.InvariantCulture)));
+                Assert.That(GameObject.Find("Warehouse Storage Quantity " + key).GetComponent<Text>().text,
+                    Is.EqualTo(session.PortWarehouse.GetAmount(port, key).ToString(CultureInfo.InvariantCulture)));
             }
-            CaptureWarehouseTrading(controller, "01_Nine_Inventory_Rows", "九种物资同时显示本港数量、随船数量和随船占用空间");
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            foreach (PortMarketItem item in PortMarketCatalog.AllItems)
+            {
+                string key = PortMarketCatalog.Key(item);
+                Assert.That(GameObject.Find("Warehouse Storage Quantity " + key).GetComponent<Text>().text,
+                    Is.EqualTo(session.GetMarketCargoAmount(key).ToString(CultureInfo.InvariantCulture)));
+                Assert.That(GameObject.Find("Warehouse Storage Volume " + key), Is.Null);
+            }
+            ClickAcceptanceButton("Warehouse Inventory Location Stored"); yield return null;
+            CaptureWarehouseTrading(controller, "01_Nine_Inventory_Rows", "九种物资仅显示当前所选位置的数量，可切换本港仓库与船舱");
             ClickAcceptanceButton("Warehouse Storage Row wood"); yield return null;
             Assert.That(GameObject.Find("Warehouse Item Actions"), Is.Not.Null);
             CaptureWarehouseTrading(controller, "02_Item_Actions", "点击物品后选择调整船舱或出售");

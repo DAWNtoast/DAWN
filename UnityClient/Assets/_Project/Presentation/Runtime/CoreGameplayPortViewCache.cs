@@ -80,7 +80,12 @@ namespace ShatteredSail.Presentation
             // invisible header/background retain a previous port's large art.
             // The binding methods restore these references before activation.
             if (view is RawImage backdrop) backdrop.texture = null;
-            if (view is PortHeaderView header && header.Frame != null) header.Frame.sprite = null;
+            if (view is PortHeaderView header)
+            {
+                if (header.Frame != null) header.Frame.sprite = null;
+                RawImage portIcon = header.transform.Find("Port Hub Port Icon")?.GetComponent<RawImage>();
+                if (portIcon != null) portIcon.texture = null;
+            }
             if (view.transform.parent != contentRoot) return;
             if (portViewCacheRoot == null)
             {
@@ -115,6 +120,7 @@ namespace ShatteredSail.Presentation
             backdrop.color = color;
             backdrop.raycastTarget = false;
             backdrop.gameObject.SetActive(true);
+            BindPortAmbient(backdrop, retain && name == "Port Hub Background");
             Image tint = retain ? cachedPortTint : null;
             if (tint == null) tint = CreateStretchPanel(tintName, contentRoot, tintColor).GetComponent<Image>();
             tint.name = tintName;
@@ -129,6 +135,21 @@ namespace ShatteredSail.Presentation
                 cachedPortTint = tint;
             }
             return backdrop;
+        }
+
+        private void BindPortAmbient(RawImage backdrop, bool hub)
+        {
+            PortAmbientGraphic ambient = backdrop.GetComponentInChildren<PortAmbientGraphic>(true);
+            if (ambient == null && hub)
+            {
+                RectTransform layer = CreateRect("Port Ambient Details", backdrop.transform, Vector2.zero, Vector2.zero);
+                layer.anchorMin = Vector2.zero; layer.anchorMax = Vector2.one;
+                layer.offsetMin = layer.offsetMax = Vector2.zero;
+                // Isolate the small 20 Hz mesh from the retained port chrome and facility body.
+                layer.gameObject.AddComponent<Canvas>();
+                ambient = layer.gameObject.AddComponent<PortAmbientGraphic>();
+            }
+            if (ambient != null) ambient.Bind(backdrop, hub, this);
         }
 
         private bool TryBuildPrefabPortHeader(bool hub, int facility = -1)
@@ -193,8 +214,8 @@ namespace ShatteredSail.Presentation
             portHeaderTime = view.Time;
             portHeaderPort = view.Port;
             portHeaderGold = view.Gold;
-            if (!hub) ApplyComponentShopHeaderLayout(view.transform, facility == PortFacilityArtCatalog.ComponentShopFacilityIndex);
-            else NauticalHeaderSkin.ApplyPort(rect, theme.Accent, true);
+            if (!hub) ApplyComponentShopHeaderLayout(view.transform, facility);
+            else NauticalHeaderSkin.ApplyPort(rect, theme.Accent, true, session.CurrentPort);
             UpdatePortHeaderReadouts(true);
             view.gameObject.SetActive(true);
             return true;
@@ -213,8 +234,21 @@ namespace ShatteredSail.Presentation
             if (BlockIncompleteDeckBuilderNavigation()) return;
             if (pendingMarketPurchase != null) return;
             if (TryReturnToWorkshopSpecialCards()) return;
+            if (activePortFacility == 4 && CurrentWorkshopPage != WorkshopPage.Home)
+            {
+                SelectWorkshopPage(WorkshopPage.Home);
+                return;
+            }
             if (IsShipyardDossierOpen)
             {
+                if (shipyardDossierTab == ShipyardDossierTab.Equipment && !shipyardReturnToDeparture)
+                {
+                    shipyardDossierTab = shipyardEquipmentReturnTab == ShipyardDossierTab.Background
+                        ? ShipyardDossierTab.Background : ShipyardDossierTab.Performance;
+                    ResetShipyardEquipmentSelection();
+                    RefreshShipyardDossierView();
+                    return;
+                }
                 shipyardDetailOpen = false;
                 ResetShipyardEquipmentSelection();
                 if (shipyardReturnToDeparture) ReturnFromDepartureDossier();

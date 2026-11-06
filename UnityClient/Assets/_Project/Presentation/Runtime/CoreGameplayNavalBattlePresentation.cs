@@ -319,66 +319,87 @@ namespace ShatteredSail.Presentation
             formationLabel.raycastTarget = false;
             AddSceneLabelOutline(formationLabel);
 
-            List<CrewVariantDefinition> roster = BuildBoardingCrewRoster(enemy);
-            int specialCount = 0;
-            if (!enemy)
-                foreach (CrewVariantDefinition crew in roster)
-                    if (crew != null) specialCount++;
-
-            // Ordinary crew are one complete transparent cast, never cropped
-            // into head cards or relabelled as recruited special characters.
-            if (specialCount == 0)
+            if (enemy)
             {
-                Texture2D texture = enemy ? BoardingBattleArtCatalog.ForEnemy(session.Battle, session.ActiveEncounter, session.SelectedRouteIndex)
-                    : BoardingBattleArtCatalog.ForParty(false);
-                if (texture != null)
-                    CreateBoardingFigure(name + " Party Illustration", party, texture, new Rect(0f, 0f, 1f, 1f), bounds, 0f);
+                string resource = BoardingBattleArtCatalog.EnemyResourcePath(session.Battle, session.ActiveEncounter, session.SelectedRouteIndex);
+                if (resource.EndsWith("/boarding_enemy_party_v1", System.StringComparison.Ordinal))
+                {
+                    string[] identities = { "enemy_party_left", "enemy_party_center", "enemy_party_right" };
+                    Texture2D[] sheets = System.Array.ConvertAll(identities, BoardingBattleArtCatalog.ForActorActions);
+                    if (System.Array.TrueForAll(sheets, sheet => sheet != null))
+                    {
+                        for (int i = 0; i < identities.Length; i++)
+                            CreateBoardingActor(name + " Sailor " + i, party, identities[i], null, sheets[i], null,
+                                default, (i - 1) * 184f, true);
+                        return;
+                    }
+                }
+                // The named captain and escorts share weapons and contours in one painting.
+                Texture2D texture = BoardingBattleArtCatalog.ForEnemy(session.Battle, session.ActiveEncounter, session.SelectedRouteIndex);
+                if (texture == null) return;
+                string identity = texture.name.Replace("boarding_", "").Replace("_v1", "");
+                CreateBoardingFigure(name + " Party Illustration", party, texture, new Rect(0f, 0f, 1f, 1f),
+                    bounds, 0f, identity, null, true, true, false);
                 return;
             }
 
-            // The existing voyage roster remains authoritative. A selected
-            // specialist uses its full-body art and name, not a generic portrait.
+            CreateBoardingActor(name + " Captain", party, "captain", null, BoardingBattleArtCatalog.ForActorActions("captain"),
+                null, default, 0f, false);
             int visibleIndex = 0;
-            foreach (CrewVariantDefinition crew in roster)
+            foreach (CrewVariantDefinition crew in BuildBoardingCrewRoster(false))
             {
-                if (crew == null) continue;
-                float localX = (visibleIndex - (specialCount - 1) * .5f) * 175f;
-                Texture2D texture = BoardingBattleArtCatalog.ForCrew(crew);
-                CreateBoardingFigure(name + " Sailor " + visibleIndex, party, texture, BoardingBattleArtCatalog.CrewUv(crew),
-                    new Vector2(230f, bounds.y), localX);
+                float localX = visibleIndex == 0 ? -184f : 184f;
+                Texture2D sheet = BoardingBattleArtCatalog.ForActorActions(crew.Id);
+                BoardingActorGraphic actor = CreateBoardingActor(name + " Sailor " + visibleIndex, party, crew.Id, CoreSpecialCardCatalog.ForCrew(crew.Id).Card.Id,
+                    sheet, sheet == null ? BoardingBattleArtCatalog.ForCrew(crew) : null,
+                    sheet == null ? BoardingBattleArtCatalog.CrewUv(crew) : default, localX, false);
                 Text role = CreateText(name + " Boarding Crew Role " + visibleIndex, party, new Vector2(170f, 18f),
                     new Vector2(localX, bounds.y * .5f + 12f), 13, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
                 role.text = crew.DisplayName;
+                if (actor != null) actor.NameLabel = role;
                 role.raycastTarget = false;
                 AddSceneLabelOutline(role);
                 visibleIndex++;
             }
         }
 
-        private RawImage CreateBoardingFigure(string name, RectTransform party, Texture2D texture, Rect uv, Vector2 bounds, float x)
+        private BoardingActorGraphic CreateBoardingActor(string name, RectTransform party, string identity, string cardId,
+            Texture2D sheet, Texture2D fallback, Rect fallbackUv, float localX, bool enemy)
+        {
+            bool authored = sheet != null;
+            return CreateBoardingFigure(name, party, authored ? sheet : fallback,
+                authored ? BoardingActorGraphic.FrameUv(BoardingActorAction.Idle, 0f) : fallbackUv,
+                authored ? Vector2.one * BoardingBattleLayout.PartySize.y : new Vector2(276f, BoardingBattleLayout.PartySize.y),
+                localX, identity, cardId, enemy, false, authored)?.GetComponent<BoardingActorGraphic>();
+        }
+
+        private RawImage CreateBoardingFigure(string name, RectTransform party, Texture2D texture, Rect uv, Vector2 bounds,
+            float x, string identity, string cardId, bool enemy, bool formation, bool authored)
         {
             if (texture == null) return null;
             Vector2 size = UiImageAspect.FitSize(texture, uv, bounds);
             RawImage figure = CreateRawImage(name, party, size,
                 new Vector2(x, 0f), texture, uv);
-            BoardingBattleLayout.GroundFigure(figure);
-            // Shadow and actor share the party transform so a forward step
-            // cannot leave its deck contact behind. No baked ground is needed.
-            bool formation = name.EndsWith("Party Illustration", System.StringComparison.Ordinal);
+            BoardingBattleLayout.GroundFigure(figure, authored ? .1f : (float?)null);
+            // The shadow uses each painted boot's contact, including differing sole heights.
             RectTransform shadow = CreateRect(name + " Deck Contact Shadow", party,
-                new Vector2(size.x * (formation ? .94f : .58f), formation ? 15f : 12f),
-                new Vector2(x, -BoardingBattleLayout.PartySize.y * .5f + 1f));
-            shadow.gameObject.AddComponent<BoardingContactShadowGraphic>().Configure(formation);
+                size, figure.rectTransform.anchoredPosition);
+            shadow.pivot = figure.rectTransform.pivot;
+            shadow.gameObject.AddComponent<BoardingContactShadowGraphic>().Configure(figure,formation);
             shadow.SetSiblingIndex(figure.transform.GetSiblingIndex());
             figure.raycastTarget = false;
             figure.color = Color.Lerp(Color.white, BoardingBattleArtCatalog.DeckLight(session.BattleTerrain,
                 NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours)), .35f);
+            float foot = (-BoardingBattleLayout.PartySize.y * .5f - figure.rectTransform.anchoredPosition.y -
+                figure.rectTransform.rect.yMin) / size.y;
+            figure.gameObject.AddComponent<BoardingActorGraphic>().Configure(formation, enemy ? -1f : 1f, 0f, foot,
+                identity, cardId, authored);
             return figure;
         }
 
         private List<CrewVariantDefinition> BuildBoardingCrewRoster(bool enemy)
         {
-            List<CrewVariantDefinition> roster = new List<CrewVariantDefinition>(3);
+            List<CrewVariantDefinition> roster = new List<CrewVariantDefinition>(2);
             if (!enemy)
             {
                 bool liveBattle = Application.isPlaying && session != null && session.Phase == CoreDemoPhase.Battle && session.Battle != null;
@@ -388,22 +409,28 @@ namespace ShatteredSail.Presentation
                     // The core's card availability is backed by the committed
                     // active crew IDs. Unlike the port selector, it remains
                     // valid after PersistCrewAtSea changes their location.
-                    foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
-                        foreach (int index in session.GetCrewBattleCards(stage))
-                            activeSources.Add(CoreVoyageSession.CardLibrary[index].RequiredCrew);
+                    foreach (int index in session.GetCrewBattleCards(NavalBattleStage.Boarding))
+                        activeSources.Add(CoreVoyageSession.CardLibrary[index].RequiredCrew);
                 }
 
                 bool Available(CrewVariantDefinition crew, bool selected)
                 {
-                    if (crew == null || !IsCrewRecruited(crew)) return false;
-                    if (!liveBattle) return IsCrewAvailableAtCurrentPort(crew) && IsCrewAvailableForVoyage(crew.ProfessionIndex);
+                    if (crew == null || CoreSpecialCardCatalog.ForCrew(crew.Id)?.Card.IsAllowedInStage(NavalBattleStage.Boarding) != true)
+                        return false;
+                    if (!liveBattle) return IsCrewRecruited(crew) && IsCrewAvailableAtCurrentPort(crew) && IsCrewAvailableForVoyage(crew.ProfessionIndex);
+                    // The voyage's explicit identity remains authoritative after reload
+                    // or after its port-selection and location records have changed.
                     if (activeSources.Contains(crew.Id)) return true;
+                    if (!IsCrewRecruited(crew)) return false;
                     // Offline/legacy sessions expose profession sources rather
                     // than IDs. Match only the selected or original identity,
                     // never every recruited person sharing that profession.
                     string profession = crew.ProfessionIndex == 0 ? "navigator" : crew.ProfessionIndex == 1 ? "carpenter" :
                         crew.ProfessionIndex == 2 ? "doctor" : crew.ProfessionIndex == 3 ? "gunner" :
                         crew.ProfessionIndex == 4 ? "cook" : "diver";
+                    if (!selected)
+                        foreach (CrewVariantDefinition shown in roster)
+                            if (shown != null && shown.ProfessionIndex == crew.ProfessionIndex) return false;
                     return (selected || crew.IsLegacy) && activeSources.Contains(profession);
                 }
 
@@ -411,23 +438,22 @@ namespace ShatteredSail.Presentation
                 {
                     CrewVariantDefinition crew = CrewNarrativeCatalog.FindById(id);
                     if (Available(crew, true) && !roster.Contains(crew)) roster.Add(crew);
-                    if (roster.Count == 3) break;
+                    if (roster.Count == 2) break;
                 }
 
                 // A saved voyage may predate the departure selector. Recover
                 // the currently active, recruited identities before falling
                 // back to ordinary sailors, never inventing a special crew.
-                if (roster.Count < 3 && (!liveBattle || selectedDepartureSpecialCrew.Count == 0))
+                if (roster.Count < 2)
                 {
                     foreach (CrewVariantDefinition crew in CrewNarrativeCatalog.AllCrew)
                     {
                         if (!Available(crew, false) || roster.Contains(crew)) continue;
                         roster.Add(crew);
-                        if (roster.Count == 3) break;
+                        if (roster.Count == 2) break;
                     }
                 }
             }
-            while (roster.Count < 3) roster.Add(null);
             return roster;
         }
 
@@ -499,8 +525,6 @@ namespace ShatteredSail.Presentation
             {
                 Text range = CreateText("Battle Range", readoutRoot, new Vector2(250f, 62f) / readoutRoot.localScale.x, new Vector2(-250f, 540f - PhaseSurfaceLayout.GetHeaderHeight(tutorialActive) * .5f) / readoutRoot.localScale.x, 29, FontStyle.Bold, TextAnchor.MiddleCenter, Gold);
                 range.text = "接舷交战";
-                Text alignment = CreateText("Battle Alignment", readoutRoot, new Vector2(250f, 62f) / readoutRoot.localScale.x, new Vector2(250f, 540f - PhaseSurfaceLayout.GetHeaderHeight(tutorialActive) * .5f) / readoutRoot.localScale.x, 17, FontStyle.Bold, TextAnchor.MiddleCenter, Ink);
-                alignment.text = BoardingConnectionLabel(battle);
             }
             RectTransform buffPanel = CreateFixedPanel("Battle Buff Panel", root, new Vector2(230f, 90f), new Vector2(-735f, -181f), PanelRaised);
             ApplyRetreatBattleWoodBoard(buffPanel.GetComponent<Image>());
@@ -545,6 +569,7 @@ namespace ShatteredSail.Presentation
                 string name = boarding ? "Battle Board" : "Battle Ram";
                 Button button = root.Find(name)?.GetComponent<Button>();
                 if (button == null) continue;
+                RemoveCompactBattleHover(button.gameObject);
                 string reason;
                 float arrivalHeading = 0f;
                 bool allowed = arrival ? session.CanNavalArrivalContact(boarding, out arrivalHeading, out reason) :
@@ -560,8 +585,6 @@ namespace ShatteredSail.Presentation
                     : boarding
                     ? "平行且舷侧相邻 · 同向或反向\n相邻两行/两列 · 不耗能量"
                     : "上下左右相邻 · 我舰船头朝敌\n可撞敌舰前后左右 · 不耗能量";
-                ConfigureCompactBattleHover(button.gameObject, root, boarding ? "接舷" : "冲撞并接舷",
-                    "消耗 1 行动点。\n" + hint.text);
             }
         }
 
@@ -586,20 +609,7 @@ namespace ShatteredSail.Presentation
             return new[] { "东", "北", "西", "南" }[quadrant];
         }
 
-        private static string BoardingConnectionLabel(CoreBattleState battle)
-        {
-            if (battle == null) return "船体 → 船员生命\n甲板近战视角";
-            string initiative = battle.BoardingInitiatedByEnemy ? "接舷先手：敌方" : "接舷先手：我方";
-            switch (battle.BoardingConnection)
-            {
-                case NavalBoardingConnection.RamBowToBow: return "角对角冲撞 · 横向接舷\n" + initiative;
-                case NavalBoardingConnection.RamBowToStern: return "舰艏撞船尾 · 横向接舷\n" + initiative;
-                case NavalBoardingConnection.RamBowToBroadside: return "角对侧舷冲撞 · 斜向接舷\n" + initiative;
-                default: return "船体 → 船员生命\n" + initiative;
-            }
-        }
-
-        private static string BoardingConnectionInstructions(CoreBattleState battle)
+        private string BoardingConnectionInstructions(CoreBattleState battle)
         {
             if (battle != null && battle.BoardingInitiatedByEnemy)
                 return (battle.BoardingConnection == NavalBoardingConnection.RamBowToBroadside
@@ -611,7 +621,9 @@ namespace ShatteredSail.Presentation
                 return "舰艏撞击敌舰船尾 · 横向跳板连接 · 白刃牌组已切换";
             if (battle != null && battle.BoardingConnection == NavalBoardingConnection.RamBowToBroadside)
                 return "角对侧舷冲撞已卡住敌舰 · 斜向钩索连接 · 白刃牌组已切换";
-            return "击败守备队即可夺船 · 金币与声望×2";
+            return CoreLegendaryWarships.IsSparringEncounter(session?.ActiveEncounter?.Id)
+                ? "接舷切磋获胜 · 金币与声望×1.25"
+                : "击败守备队即可夺船 · 金币与声望×1.25";
         }
 
         private void BeginNavalSpecialAction(bool boarding)

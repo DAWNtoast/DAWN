@@ -39,10 +39,14 @@ internal static class CatalogResourceCosts
             boostCosts.Insert(0, Resource(supply, stage) + " " + CardSupplyCostPresentation.BaseCost(card, stage));
         string resource = CardSpecialCostPresentation.ResourceType(card);
         string amount = CardSpecialCostPresentation.CostText(card);
+        bool optionalBlood = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodRisk ||
+            card.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodWard;
+        bool desperateBlood = CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.Mechanic == CoreNavalExpansionMechanic.DesperateCannon;
         if (resource.Length > 0)
         {
             if (string.IsNullOrEmpty(amount)) throw new InvalidOperationException("Missing resource cost for " + card.Id);
-            (linkedSupply ? boostCosts : fixedCosts).Add(Resource(resource, stage) + " " + amount);
+            if (desperateBlood) fixedCosts.Add("绝境消耗：" + Resource(resource, stage) + " " + amount);
+            else (linkedSupply || optionalBlood ? boostCosts : fixedCosts).Add(Resource(resource, stage) + " " + amount);
         }
 
         if (boostCosts.Count > 0) fixedCosts.Add("增效消耗：" + string.Join("＋", boostCosts));
@@ -57,7 +61,7 @@ internal static class CatalogResourceCosts
         switch (CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.Mechanic)
         {
             case CoreNavalExpansionMechanic.HarborExplosion: fixedCosts.Add("所选 2×2 区域内的己方火场"); break;
-            case CoreNavalExpansionMechanic.ThunderCollapse: fixedCosts.Add("所选己方雷栅的剩余格子"); break;
+            case CoreNavalExpansionMechanic.ThunderCollapse: fixedCosts.Add("所选 2×2 区域内的己方雷栅"); break;
         }
         return fixedCosts.Count == 0 ? "—" : string.Join("；", fixedCosts);
     }

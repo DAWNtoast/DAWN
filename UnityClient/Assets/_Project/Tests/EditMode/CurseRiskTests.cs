@@ -24,14 +24,15 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.CurseCount, Is.EqualTo(layers));
         }
 
-        [TestCase(0, 15, 8)]
-        [TestCase(1, 17, 10)]
-        [TestCase(3, 20, 13)]
-        [TestCase(10, 30, 23)]
+        [TestCase(0, 10, 3)]
+        [TestCase(1, 11, 4)]
+        [TestCase(3, 13, 6)]
+        [TestCase(10, 20, 13)]
         public void CannonAppliesCurseAfterArmorBeforeGuardAndForecastMatches(int layers, int attack, int loss)
         {
             CoreVoyageSession session = StartBattle(layers, armorBonus: 12);
             Assert.That(session.EffectiveArmor, Is.EqualTo(14));
+            // Raw 20 becomes ceil(20 × 12 / 24)=10, then curse, then guard 7.
             session.Battle.PlayerBlock = 7;
             session.Battle.DistanceMeters = 200;
             Assert.That(session.GetEnemyIntent(), Does.Contain("炮击：伤害 " + attack + "（装甲后、格挡前）"));
@@ -130,7 +131,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = StartTreasureWithEvent(encounterId);
             CoreMapNode node = session.Map.Nodes.Single(n => n.Encounter.Id == encounterId);
             Assert.That(session.CurseCount, Is.Zero);
-            Assert.That(node.Encounter.Choices[choice].Detail, Does.Contain("战斗承伤 +10%").And.Contain("30 金/层"));
+            Assert.That(node.Encounter.Choices[choice].Detail, Does.Contain("诅咒 +1"));
             // Jump to a generated node only; acquisition and settlement use real APIs.
             typeof(CoreVoyageSession).GetField("activeNode", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(session, node);
             typeof(CoreVoyageSession).GetProperty("ActiveEncounter").SetValue(session, node.Encounter);

@@ -13,7 +13,7 @@ namespace ShatteredSail.Presentation
     public static class ProfileSaveJournal
     {
         private const string Format = "ShatteredSail.ProfileSaveJournal";
-        private const int CurrentVersion = 6;
+        private const int CurrentVersion = 8;
         private const string VoyageThreeEventsKey = "ShatteredSail.Achievements.Unlocked.v1.voyage_three_events";
         private static readonly string[] VersionThreeAchievementKeys =
         {
@@ -31,7 +31,9 @@ namespace ShatteredSail.Presentation
             "ShatteredSail.Achievements.Unlocked.v1.dispatch_resolved",
         };
         private static readonly KeySpec[] Specs = BuildSpecs();
-        private static readonly KeySpec[] VersionFiveSpecs = Specs.Where(spec => !AchievementCatalog.ChallengeEvidenceKeys.Contains(spec.Key)).ToArray();
+        private static readonly KeySpec[] VersionSevenSpecs = Specs.Where(spec => spec.Key != CoreGameplayDemoController.CardPackProgressKey).ToArray();
+        private static readonly KeySpec[] VersionSixSpecs = VersionSevenSpecs.Where(spec => spec.Key != CoreGameplayDemoController.SplitSupportCardVersionKey).ToArray();
+        private static readonly KeySpec[] VersionFiveSpecs = VersionSixSpecs.Where(spec => !AchievementCatalog.ChallengeEvidenceKeys.Contains(spec.Key)).ToArray();
         private static readonly KeySpec[] VersionFourSpecs = VersionFiveSpecs.Where(spec => spec.Key != CoreGameplayDemoController.WarehouseIncomeKey).ToArray();
         private static readonly KeySpec[] VersionThreeSpecs = VersionFourSpecs.Where(spec => spec.Key != CoreGameplayDemoController.ShipPortProgressKey).ToArray();
         private static readonly KeySpec[] VersionTwoSpecs = VersionThreeSpecs.Where(spec => !VersionThreeAchievementKeys.Contains(spec.Key)).ToArray();
@@ -153,6 +155,10 @@ namespace ShatteredSail.Presentation
                 if (record.version < 5) PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
                 if (record.version < 6)
                     foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
+                if (record.version < 7) PlayerPrefs.DeleteKey(CoreGameplayDemoController.SplitSupportCardVersionKey);
+                // Pre-pack before-images cannot commit a partial new inventory,
+                // card-copy grant or RNG advance from the interrupted newer save.
+                if (record.version < 8) PlayerPrefs.DeleteKey(CoreGameplayDemoController.CardPackProgressKey);
                 PlayerPrefs.Save();
                 if (!store.TryClear(out notice)) return false;
                 ForgetActive();
@@ -193,7 +199,8 @@ namespace ShatteredSail.Presentation
             }
             KeySpec[] expected = candidate.version == 1 ? VersionOneSpecs : candidate.version == 2 ? VersionTwoSpecs :
                 candidate.version == 3 ? VersionThreeSpecs : candidate.version == 4 ? VersionFourSpecs :
-                candidate.version == 5 ? VersionFiveSpecs : Specs;
+                candidate.version == 5 ? VersionFiveSpecs : candidate.version == 6 ? VersionSixSpecs :
+                candidate.version == 7 ? VersionSevenSpecs : Specs;
             bool includesRetired = candidate.version == 1 &&
                 candidate.entries.Length == VersionOneSpecs.Length + RetiredAchievementKeys.Length;
             // Each version requires its exact manifest. Missing newer keys
@@ -294,6 +301,7 @@ namespace ShatteredSail.Presentation
                 CoreGameplayDemoController.ShipPortProgressKey,
                 CoreGameplayDemoController.LastVoyageExplorationCoverageKey,
                 CoreGameplayDemoController.BattleDeckKey, CoreGameplayDemoController.BattleCardUpgradeKey,
+                CoreGameplayDemoController.CardPackProgressKey,
                 CoreGameplayDemoController.SpecialCardExperienceKey, CoreGameplayDemoController.AcquiredSpecialCardsKey,
             }) specs.Add(new KeySpec(key, "string"));
             foreach (string port in CoreVoyageSession.DestinationPorts)
@@ -308,6 +316,7 @@ namespace ShatteredSail.Presentation
                 CoreGameplayDemoController.WarehouseDisplayRecordKey, CoreGameplayDemoController.WarehousePortMigrationKey,
                 CoreGameplayDemoController.ProfileGoldKey, CoreGameplayDemoController.SelectedShipKey,
                 CoreGameplayDemoController.BattleDeckEditedKey,
+                CoreGameplayDemoController.SplitSupportCardVersionKey,
             }) specs.Add(new KeySpec(key, "int"));
             foreach (string cargo in new[] { "Water", "Food", "Beer", "Medicine", "Wood", "Iron", "Cloth", "Powder", "Cannonballs", "Gold", "Fame" })
                 specs.Add(new KeySpec(CoreGameplayDemoController.CargoKey(cargo), "int"));

@@ -66,7 +66,7 @@ namespace ShatteredSail.Core.Gameplay
             var copies = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (int savedIndex in source)
             {
-                int index = CanonicalBattleCardIndex(savedIndex);
+                int index = RestoredBattleCardIndex(savedIndex, stage);
                 string identity = BattleDeckCopyIdentity(index, stage);
                 copies.TryGetValue(identity, out int count);
                 if (count >= BaseBattleCardCopies) continue;

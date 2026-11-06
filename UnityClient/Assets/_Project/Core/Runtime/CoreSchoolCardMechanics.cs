@@ -67,16 +67,18 @@ namespace ShatteredSail.Core.Gameplay
             CoreBattleUpgradeBalance.ScaleNumerical(value, level);
     }
 
-    /// <summary>Battle-only state. Target effects clear on boarding; mana is carried without refilling.</summary>
+    /// <summary>Battle-only state. Mana may exceed its refill limit within the current player turn.</summary>
     public sealed class CoreSchoolBattleState
     {
-        public int Mana { get; internal set; }
+        public int Mana { get; internal set; } = 3;
         public int ManaLimit { get; internal set; } = 3;
-        public int TemporaryMana { get; internal set; }
+        // Kept for older callers; all current mana gains use the single Mana pool.
+        public int TemporaryMana { get => 0; internal set { } }
         public int ArcaneNextAttackDamage { get; internal set; }
         public int ArcaneNextBlockBonus { get; internal set; }
-        public int AvailableMana => (int)Math.Min(int.MaxValue, (long)Mana + TemporaryMana);
+        public int AvailableMana => Math.Max(0, Mana);
         public int CurseMarks { get; internal set; }
+        public int EnemyCurseExecutionThresholdPercent { get; internal set; } = CoreCurseRules.DefaultExecutionThresholdPercent;
         public int CurseTurns { get; internal set; }
         public int CurseWeaknessPercent { get; internal set; }
         public int CurseDamagePerMark { get; internal set; }
@@ -84,11 +86,12 @@ namespace ShatteredSail.Core.Gameplay
         public int CurseTickBonus { get; internal set; }
         public int CurseGuard { get; internal set; }
         public int ThunderChain { get; internal set; }
-        public int ThunderLimit { get; internal set; } = 6;
+        public int ThunderLimit { get; internal set; } = int.MaxValue;
         public bool ThunderEchoUsed { get; internal set; }
         public int ThunderReadyDamage { get; internal set; }
         public int TidePower { get; internal set; }
-        public int TideLimit { get; internal set; } = 20;
+        // Retained for save/API compatibility. Tide has no gameplay accumulation cap.
+        public int TideLimit { get => int.MaxValue; internal set { } }
         public int TidePaidBlock { get; internal set; }
         public int TideCounter { get; internal set; }
         public int TideCounterMinimum { get; internal set; }
@@ -111,15 +114,16 @@ namespace ShatteredSail.Core.Gameplay
         public int OverflowContribution { get; internal set; }
         public bool OverflowUsed { get; internal set; }
         public bool ExtraFireTickUsed { get; internal set; }
-        internal void BeginWindow()
+        internal void BeginWindow(bool preserveThunder = false)
         {
-            ThunderChain = 0; ThunderEchoUsed = false; OverflowUsed = false; ExtraFireTickUsed = false;
+            if (!preserveThunder) ThunderChain = 0;
+            ThunderEchoUsed = false; OverflowUsed = false; ExtraFireTickUsed = false;
         }
         internal void ClearTarget()
         {
             CurseMarks = 0; CurseTurns = 0; CurseWeaknessPercent = 0;
             CurseDamagePerMark = 0; CurseNextTickBonus = 0; CurseTickBonus = 0; CurseGuard = 0;
-            TemporaryMana = 0; TidePower = 0; TidePaidBlock = 0;
+            TemporaryMana = 0; TidePaidBlock = 0;
             ArcaneNextAttackDamage = 0; ArcaneNextBlockBonus = 0;
             TideCounter = 0; TideCounterTurns = 0; TideStance = 0; TideStancePower = 0; TideStanceTurns = 0;
             LastGuardAbsorbed = 0; NaturalFireGuard = 0; NaturalFireGuardTurns = 0;

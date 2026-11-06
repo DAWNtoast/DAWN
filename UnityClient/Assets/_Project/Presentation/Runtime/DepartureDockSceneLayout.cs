@@ -80,8 +80,8 @@ namespace ShatteredSail.Presentation
             // Keep only the two independent arrows beside the vessel. The berth
             // retains its own inspection target without a caption bar below it.
             ArtPlace(setup, "Inspect Departure Vessel", 704, 70, 928, 478);
-            StandaloneButton(setup, "Departure Previous Vessel", 640, 344, 72, 72, 36, "←");
-            StandaloneButton(setup, "Departure Next Vessel", 1624, 344, 72, 72, 36, "→");
+            VesselButton(setup, "Departure Previous Vessel", 640, false);
+            VesselButton(setup, "Departure Next Vessel", 1624, true);
             HideText(setup, "Setup Title");
 
             CrewReadoutDesk(setup, "Departure Dock Crew Readout Panel", 1040, 912, 512, 240);
@@ -241,6 +241,17 @@ namespace ShatteredSail.Presentation
             face.color = Color.clear;
             face.raycastTarget = false;
             rect.gameObject.SetActive(true);
+            rect.SetAsLastSibling();
+        }
+
+        private static void VesselButton(Transform parent, string path, float x, bool forward)
+        {
+            RectTransform rect = ArtPlace(parent, path, x, 344, 72, 72);
+            Button button = rect == null ? null : rect.GetComponent<Button>();
+            if (button == null) return;
+            DeparturePaintedHotspot.RestoreAll(rect);
+            DepartureVesselButtonGraphic.Apply(button, forward);
+            // Keep the existing arrow hit area above the berth's inspection target.
             rect.SetAsLastSibling();
         }
 

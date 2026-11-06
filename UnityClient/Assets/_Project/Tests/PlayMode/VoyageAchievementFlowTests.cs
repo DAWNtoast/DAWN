@@ -158,8 +158,7 @@ namespace ShatteredSail.Presentation.Tests
                     PrepareVoyageAchievementSettlement(game, completed);
                     yield return null;
                     Assert.That(VoyageAchievementUnlocked(), Is.False, "Viewing the settlement is not confirmation.");
-                    if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-                        yield return ClickAchievementIconControl("Skip Settlement Reveal");
+                    yield return SettlementChestTestActions.ShowOverview();
                     yield return ClickAchievementIconControl("Return To Port");
                     yield return SchoolUnlockNoticeTestActions.ConfirmAll();
                     Assert.That(game.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
@@ -190,8 +189,7 @@ namespace ShatteredSail.Presentation.Tests
                     yield return null;
                     Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageHalfChartId), Is.False,
                         "Neither viewing settlement nor coverage from previous voyages grants this task.");
-                    if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-                        yield return ClickAchievementIconControl("Skip Settlement Reveal");
+                    yield return SettlementChestTestActions.ShowOverview();
                     yield return ClickAchievementIconControl("Return To Port");
                     Assert.That(game.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                     Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageHalfChartId), Is.EqualTo(coverage >= 50f));
@@ -241,8 +239,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(game.Session.Settlement.VoyageCoverage, Is.LessThan(50f));
                 InvokeGame(game, "Render");
                 yield return null;
-                if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-                    yield return ClickAchievementIconControl("Skip Settlement Reveal");
+                yield return SettlementChestTestActions.ShowOverview();
                 yield return ClickAchievementIconControl("Return To Port");
                 Assert.That(game.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                 Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageHalfChartId), Is.False,
@@ -274,11 +271,11 @@ namespace ShatteredSail.Presentation.Tests
                     yield return null;
                     Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageEventArrivalId), Is.False);
                     string destination = game.Session.Settlement.Destination;
-                    if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-                        yield return ClickAchievementIconControl("Skip Settlement Reveal");
+                    yield return SettlementChestTestActions.ShowOverview();
                     yield return ClickAchievementIconControl("Return To Port");
                     Assert.That(game.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                     Assert.That(game.Session.CurrentPort, Is.EqualTo(destination));
+                    yield return CoreGameplayDemoSceneTests.ClickThroughAcceptanceArrivalComic(game);
                     yield return SchoolUnlockNoticeTestActions.ConfirmAll();
                     Assert.That(VoyageAchievementUnlocked(), Is.True);
                     Assert.That(VoyageAchievementUnlocked(CoreAchievementCatalog.VoyageEventArrivalId), Is.EqualTo(completed >= 6 && arrive));
@@ -307,8 +304,7 @@ namespace ShatteredSail.Presentation.Tests
                 AchievementCatalog.RecordDeckEdited(NavalBattleStage.Preparation);
                 typeof(CoreVoyageSession).GetProperty("AchievementWonEditedDeckStages").SetValue(game.Session, 1);
                 yield return null;
-                if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-                    yield return ClickAchievementIconControl("Skip Settlement Reveal");
+                yield return SettlementChestTestActions.ShowOverview();
                 Directory.CreateDirectory(scope.DirectoryPath);
                 using (var held = new FileStream(scope.Store.PrimaryPath + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
                 {
@@ -456,9 +452,10 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator ConfirmAchievementSettlement()
         {
             yield return null;
-            if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-                yield return ClickAchievementIconControl("Skip Settlement Reveal");
+            yield return SettlementChestTestActions.ShowOverview();
             yield return ClickAchievementIconControl("Return To Port");
+            yield return CoreGameplayDemoSceneTests.ClickThroughAcceptanceArrivalComic(
+                Object.FindFirstObjectByType<CoreGameplayDemoController>());
             yield return SchoolUnlockNoticeTestActions.ConfirmAll();
         }
     }

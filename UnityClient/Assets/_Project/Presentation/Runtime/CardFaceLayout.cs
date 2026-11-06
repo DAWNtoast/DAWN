@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
 using UnityEngine.UI;
@@ -45,11 +44,6 @@ namespace ShatteredSail.Presentation
         public const string ReferenceName = "领航员 · 抢占航线+3";
         public const int EffectFontSize = 16;
         private static string referenceEffect;
-        private static readonly Regex UsageConditions = new Regex(
-            @"<b>[\s\S]*?</b>|(?:平行且)?距离不超过[ \u00a0]*[0-9]+(?:\.[0-9]+)?[ \u00a0]*(?:米|格)" +
-            @"|范围[ \u00a0]*[0-9]+(?:\.[0-9]+)?(?:[ \u00a0]*[-–—~～至][ \u00a0]*[0-9]+(?:\.[0-9]+)?)?[ \u00a0]*(?:米|格)" +
-            @"|[0-9]+(?:\.[0-9]+)?[ \u00a0]*(?:米|格)(?:以内|以外|内|外)" +
-            @"|两舰平行且舷侧相邻(?:（[ \u00a0]*[0-9]+(?:\.[0-9]+)?[ \u00a0]*米）)?(?=时)|须(?:再次推进|推进后)才能冲撞|再次推进后(?=可冲撞)", RegexOptions.CultureInvariant);
 
         public static string DisplayName(CoreBattleCard card) => card.Name +
             (card.UpgradeLevel > 0 ? "+" + card.UpgradeLevel : string.Empty);
@@ -129,10 +123,7 @@ namespace ShatteredSail.Presentation
         public static string FormatDescription(string value)
         {
             string description = CardDescriptionText.Compact(value);
-            // Emphasize prerequisites, not movement amounts or resulting damage.
-            // Existing bold spans are preserved so formatting remains idempotent.
-            return UsageConditions.Replace(description, match => match.Value.StartsWith("<b>", System.StringComparison.Ordinal)
-                ? match.Value : "<b>" + match.Value + "</b>");
+            return CoreBattleCardKeywordText.EmphasizeKeywords(description);
         }
 
         private static bool Fits(Text text, string content, int size, bool singleLine)

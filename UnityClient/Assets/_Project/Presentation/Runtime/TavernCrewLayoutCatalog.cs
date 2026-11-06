@@ -29,12 +29,12 @@ namespace ShatteredSail.Presentation
 
         private static readonly Vector2[][] NameCenters =
         {
-            new[] { new Vector2(260f, 270f), new Vector2(1220f, 205f), new Vector2(285f, 330f), new Vector2(822f, 98f), new Vector2(1505f, 342f), new Vector2(1030f, 355f) },
+            new[] { new Vector2(260f, 270f), new Vector2(1220f, 205f), new Vector2(285f, 330f), new Vector2(822f, 98f), new Vector2(1525f, 342f), new Vector2(1045f, 355f) },
             new[] { new Vector2(226f, 160f), new Vector2(1450f, 185f), new Vector2(1450f, 640f), new Vector2(760f, 152f), new Vector2(485f, 122f), new Vector2(1040f, 403f) },
-            new[] { new Vector2(1255f, 135f), new Vector2(200f, 190f), new Vector2(805f, 196f), new Vector2(1250f, 704f), new Vector2(1475f, 165f), new Vector2(574f, 135f) },
+            new[] { new Vector2(1255f, 135f), new Vector2(200f, 190f), new Vector2(828f, 196f), new Vector2(1250f, 704f), new Vector2(1505f, 165f), new Vector2(574f, 135f) },
             new[] { new Vector2(795f, 424f), new Vector2(1460f, 120f), new Vector2(235f, 145f), new Vector2(485f, 335f), new Vector2(1130f, 164f), new Vector2(1400f, 774f) },
             new[] { new Vector2(1310f, 235f), new Vector2(810f, 188f), new Vector2(430f, 360f), new Vector2(1210f, 549f), new Vector2(205f, 125f), new Vector2(1525f, 413f) },
-            new[] { new Vector2(1420f, 147f), new Vector2(445f, 310f), new Vector2(1035f, 134f), new Vector2(1180f, 340f), new Vector2(226f, 110f), new Vector2(685f, 269f) },
+            new[] { new Vector2(1420f, 147f), new Vector2(473f, 310f), new Vector2(1035f, 134f), new Vector2(1180f, 340f), new Vector2(226f, 110f), new Vector2(685f, 269f) },
         };
 
         public static Rect NormalizedBounds(string portName, int profession)

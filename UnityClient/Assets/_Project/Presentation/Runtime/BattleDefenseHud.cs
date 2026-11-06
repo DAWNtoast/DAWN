@@ -32,6 +32,7 @@ namespace ShatteredSail.Presentation
         private Image[] frame;
         private Text hullLabel, defenseLabel;
         private int guardCapacity;
+        private BattleDangerPulse dangerPulse;
 
         public void Configure(Image hull, Image chip, Image top, Image bottom,
             Image[] armorFrame, Text hp, Text defense, int current, int maximum, int guard, int armor)
@@ -39,6 +40,10 @@ namespace ShatteredSail.Presentation
             HullBar = hull; ChipBar = chip; topGuard = top; bottomGuard = bottom;
             frame = armorFrame; hullLabel = hp; defenseLabel = defense;
             MaximumHull = Mathf.Max(1, maximum); PermanentArmor = Mathf.Max(0, armor);
+            dangerPulse = GetComponent<BattleDangerPulse>();
+            if (dangerPulse == null) dangerPulse = gameObject.AddComponent<BattleDangerPulse>();
+            dangerPulse.Bind(GetComponentInParent<CoreGameplayDemoController>());
+            dangerPulse.SetBaseline(current, MaximumHull);
             ConfigureContinuousBar(hull, new Color(.91f, .12f, .17f, 1f));
             ConfigureContinuousBar(chip, new Color(1f, .49f, .3f, .95f));
             if (hullLabel != null)
@@ -73,6 +78,7 @@ namespace ShatteredSail.Presentation
             if (HullBar != null) HullBar.fillAmount = DisplayedHull / MaximumHull;
             if (ChipBar != null) ChipBar.fillAmount = Mathf.Clamp01(trailingValue / MaximumHull);
             if (hullLabel != null) hullLabel.text = Mathf.CeilToInt(DisplayedHull) + " / " + MaximumHull;
+            if (dangerPulse != null) dangerPulse.Observe(DisplayedHull, MaximumHull);
         }
 
         public void SetGuard(float value)

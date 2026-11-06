@@ -30,7 +30,7 @@ namespace ShatteredSail.Presentation.Tests
             string deckText = GameObject.Find("Workshop Card Description " + DepartureThrustCardIndex).GetComponent<Text>().text;
             Assert.That(ForgeVisibleText(deckText), Does.Not.Contain("实际").And.Not.Contain("当前7人"));
             Assert.That(ForgeVisibleText(deckText), Does.Contain("造成" + ExpectedDepartureThrust(controller.Session, 7) + "点伤害"));
-            yield return ClickShipyardControl("Return To Port Hub");
+            yield return ReturnCardCrewPreviewToPortHub();
             yield return ClickShipyardControl("Port Hotspot Voyage");
             yield return ClickShipyardControl("Start Voyage");
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
@@ -65,7 +65,7 @@ namespace ShatteredSail.Presentation.Tests
             foreach (NavalBattleStage stage in System.Enum.GetValues(typeof(NavalBattleStage)))
                 Assert.That(controller.Session.GetBonusBattleCards(stage).Any(index => controller.Session.GetBattleCard(index).RequiredCrew == navigator.Id), Is.False,
                     "A standby navigator cannot appear among the workshop's active " + stage + " source cards.");
-            yield return ClickShipyardControl("Return To Port Hub");
+            yield return ReturnCardCrewPreviewToPortHub();
             yield return ClickShipyardControl("Port Hotspot Voyage");
             yield return ClickShipyardControl("Configure Voyage Crew");
             Assert.That(DepartureCrewChoiceState(0), Is.EqualTo("待命"));
@@ -101,11 +101,25 @@ namespace ShatteredSail.Presentation.Tests
         private static IEnumerator OpenCardCrewPreviewThrust()
         {
             yield return ClickShipyardControl("Port Hotspot CardWorkshop");
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Null);
+            yield return ClickShipyardControl("Workshop Entrance Collection");
+            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
             yield return ClickShipyardControl("Workshop Preview Stage Boarding");
-            yield return ClickShipyardControl("Open Battle Card Upgrades");
+            yield return ClickShipyardControl("Workshop Page Upgrade");
             for (int page = 0; ActiveButton("Select Upgrade Card " + DepartureThrustCardIndex) == null && page < 16; page++)
                 yield return ClickShipyardControl("Next Upgrade Cards");
             yield return ClickShipyardControl("Select Upgrade Card " + DepartureThrustCardIndex);
+        }
+
+        private static IEnumerator ReturnCardCrewPreviewToPortHub()
+        {
+            yield return ClickShipyardControl("Return To Port Hub");
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Port Hub"), Is.Null);
+            yield return ClickShipyardControl("Return To Port Hub");
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Null);
+            Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
         }
 
         // Historic slot 14 remains a compatibility alias and is excluded from the
@@ -116,8 +130,8 @@ namespace ShatteredSail.Presentation.Tests
         private static int ExpectedDepartureThrust(CoreVoyageSession session, int ordinary)
         {
             Assert.That(session.SelectedOrdinaryCrew, Is.EqualTo(ordinary), "The roster still controls departure capacity and health.");
-            Assert.That(session.GetBattleCard(DepartureThrustCardIndex).Damage, Is.EqualTo(12), "The authored 8-point thrust at rank 2 retains its 1.5 upgrade multiplier.");
-            return 12;
+            Assert.That(session.GetBattleCard(DepartureThrustCardIndex).Damage, Is.EqualTo(24), "The authored 16-point boarding thrust at rank 2 retains its 1.5 upgrade multiplier.");
+            return 24;
         }
 
         private static void AssertCardCrewPreviewThrust(int ordinary)
@@ -135,7 +149,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(body.preferredHeight, Is.LessThanOrEqualTo(body.rectTransform.rect.height + .5f), side);
                 string expected = CardDescriptionText.Compact(session.BattleCardFaceDescription(card, NavalBattleStage.Boarding));
                 Assert.That(ForgeVisibleText(body.text), Is.EqualTo(ForgeVisibleText(expected)), side + " quotes the upgraded card independently of the departure roster");
-                int expectedDamage = side == "Current" ? 12 : 16;
+                int expectedDamage = side == "Current" ? 24 : 32;
                 Assert.That(session.GetBattleCardEffects(card, NavalBattleStage.Boarding).Damage, Is.EqualTo(expectedDamage));
                 Assert.That(ForgeVisibleText(body.text), Does.Contain("造成" + expectedDamage + "点伤害"));
                 Assert.That(body.text, Does.Not.Contain("实际").And.Not.Contain("当前" + ordinary + "人"));

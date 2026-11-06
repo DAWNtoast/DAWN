@@ -19,6 +19,7 @@ namespace ShatteredSail.Presentation.Tests
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
             SetResponsiveHand(session, "card_chain_shot", "card_brace");
+            SetResponsiveDrawPile(session, "card_chain_shot", "card_brace", "card_brace", "card_brace", "card_brace");
             SetRangePreviewActionPoints(session, 0);
             RenderResponsiveBattle(controller);
             yield return WaitResponsiveBattle(controller);
@@ -42,6 +43,38 @@ namespace ShatteredSail.Presentation.Tests
             ClickAttackRangeShip();
             Assert.That(preview.ShipRangePinned, Is.False);
             Assert.That(graphic.Cells, Is.Empty);
+
+            // Retained scenes must forget the previous turn's pin and hover before
+            // fresh action points arrive, otherwise both ranges reopen by themselves.
+            ClickAttackRangeShip();
+            HoverAttackCard(RequiredResponsive<Button>("Battle Card 0"), true);
+            Assert.That(preview.ShipRangePinned, Is.True);
+            Assert.That(preview.ShowingCardId, Is.EqualTo("card_chain_shot"));
+            int originalTurn = session.Battle.Turn;
+            RequiredResponsive<Button>("End Battle Turn").onClick.Invoke();
+            yield return WaitResponsiveBattle(controller);
+            yield return null;
+            NavalTacticalMovementInput movement = Object.FindFirstObjectByType<NavalTacticalMovementInput>();
+            Assert.That(session.Battle.Turn, Is.EqualTo(originalTurn + 1));
+            Assert.That(session.Battle.NavalActionPoints, Is.GreaterThan(0));
+            Assert.That(Object.FindFirstObjectByType<NavalAttackRangePreview>(), Is.SameAs(preview));
+            Assert.That(preview.ShipRangePinned, Is.False, "A new turn requires a fresh ship click to show ranges.");
+            Assert.That(preview.ShowingCardId, Is.Null, "Old card hover must not survive the turn change.");
+            Assert.That(graphic.Cells, Is.Empty);
+            Assert.That(movement.IsMovementRangeVisible, Is.False);
+            Assert.That(movement.ReachableCells, Is.Empty);
+            NavalBattleVisualCapture.Capture(controller, "AttackRange_05_NewTurnClear.png", "新回合默认收起移动与攻击范围，保留清晰海面");
+
+            HoverAttackCard(RequiredResponsive<Button>("Battle Card 0"), true);
+            Assert.That(preview.ShowingCardId, Is.EqualTo("card_chain_shot"));
+            Assert.That(graphic.Cells.Count, Is.EqualTo(40));
+            HoverAttackCard(RequiredResponsive<Button>("Battle Card 0"), false);
+            Assert.That(graphic.Cells, Is.Empty);
+            ClickAttackRangeShip();
+            Assert.That(preview.ShipRangePinned, Is.True);
+            Assert.That(movement.IsMovementRangeVisible, Is.True);
+            Assert.That(movement.ReachableCells, Is.Not.Empty);
+            Assert.That(graphic.Cells.Count, Is.GreaterThan(40));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -50,8 +83,12 @@ namespace ShatteredSail.Presentation.Tests
         {
             yield return LoadResponsiveBattleScene();
             CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
-            SetResponsiveHand(session, "card_chain_shot", "card_diver_sabotage", "card_load_shot", "card_brace");
+            const string sabotageId = "card_special_crew_broken_anchor_diver_udo";
+            CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval,
+                crewId: "crew_broken_anchor_diver_udo");
+            SetResponsiveHand(session, "card_chain_shot", sabotageId, "card_load_shot", "card_brace");
+            Assert.That(session.GetBattleCard(session.Battle.Hand[1]), Is.Not.Null,
+                "Range hover uses the current diver card from its actual equipped crew source.");
             SetRangePreviewActionPoints(session, 0);
             session.Battle.Energy = 0;
             session.Cargo.Powder = session.Cargo.Cannonballs = 0;
@@ -71,14 +108,14 @@ namespace ShatteredSail.Presentation.Tests
 
             ClickAttackRangeShip();
             HoverAttackCard(sabotage, true);
-            Assert.That(preview.ShowingCardId, Is.EqualTo("card_diver_sabotage"));
+            Assert.That(preview.ShowingCardId, Is.EqualTo(sabotageId));
             Assert.That(graphic.Cells.Count, Is.EqualTo(12));
             AssertAttackCell(graphic, session, 1, 1, true);
             AssertAttackCell(graphic, session, 2, 0, true);
             AssertAttackCell(graphic, session, 2, 1, false);
             AssertAttackCell(graphic, session, 0, 0, false);
             yield return new WaitForSecondsRealtime(.35f);
-            NavalBattleVisualCapture.Capture(controller, "AttackRange_02_Sabotage.png", "悬停水下破坏：显示曼哈顿距离1–2格的12个目标格，牌因资源不足不可用但仍可预览");
+            NavalBattleVisualCapture.Capture(controller, "AttackRange_02_Sabotage.png", "悬停锚墓凿击：显示曼哈顿距离1–2格的12个目标格，牌因资源不足不可用但仍可预览");
             // A delayed exit from another card cannot clear the current card's preview.
             HoverAttackCard(cannon, false);
             Assert.That(graphic.Cells.Count, Is.EqualTo(12));

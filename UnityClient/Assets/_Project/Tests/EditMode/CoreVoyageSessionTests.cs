@@ -452,7 +452,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(voyage.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
             Assert.That(voyage.Settlement.Outcome, Is.EqualTo(VoyageOutcome.SafeReturn));
             Assert.That(voyage.Settlement.ProtectionRatio, Is.EqualTo(0.85f));
-            Assert.That(voyage.Settlement.ChartSaved, Is.True);
+            Assert.That(voyage.ExplorationCoverage(), Is.LessThan(50f));
+            Assert.That(voyage.Settlement.ChartSaved, Is.False, "Immediate return has not explored enough to draw a chart.");
 
             voyage.ReturnToPortAfterSettlement();
             Assert.That(voyage.Phase, Is.EqualTo(CoreDemoPhase.Port));

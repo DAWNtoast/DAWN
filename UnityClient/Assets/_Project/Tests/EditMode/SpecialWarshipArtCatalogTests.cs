@@ -68,8 +68,6 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(story.Pages.Count, Is.EqualTo(2));
                 Assert.That(story.Pages.All(page => page.Length > 20), Is.True);
             }
-            foreach (TreasureStoryChapter chapter in CoreTreasureStoryCatalog.Chapters)
-                CollectionAssert.AreEquivalent(CoreLegendaryWarships.CreateTreasureEncounters(chapter.RankId).Select(item => item.Id), chapter.LegendaryIds);
         }
 
         [Test]

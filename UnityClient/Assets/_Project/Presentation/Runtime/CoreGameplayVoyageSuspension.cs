@@ -37,7 +37,7 @@ namespace ShatteredSail.Presentation
                     SaveProgress();
                 }
                 else if (!TrySaveVoyageSuspension(out reason)) return false;
-                SceneManager.LoadScene("MainMenu");
+                LoadMainMenuWithMusic();
                 reason = null;
                 return true;
             }
@@ -63,7 +63,7 @@ namespace ShatteredSail.Presentation
             // Flush already-earned component/collection records without writing
             // voyage cargo into the settled port profile.
             PlayerPrefs.Save();
-            return VoyageSuspensionPersistence.TrySave(new VoyageSuspensionRecord
+            var record = new VoyageSuspensionRecord
             {
                 format = VoyageSuspensionPersistence.Format, version = 1,
                 profileScope = PlayerPrefs.GetString(WorldEconomyScopeKey, string.Empty),
@@ -72,7 +72,9 @@ namespace ShatteredSail.Presentation
                 selectedOrdinaryCrew = selectedDepartureOrdinaryCrew, departureCrewShipIndex = departureCrewShipIndex,
                 departureCrewPort = departureCrewPort ?? string.Empty,
                 selectedSpecialCrew = selectedDepartureSpecialCrew.ToArray(), standbyCrew = departureStandbyCrew.ToArray(),
-            }, out reason);
+            };
+            CaptureTreasureStoryProgress(record);
+            return VoyageSuspensionPersistence.TrySave(record, out reason);
         }
 
         private bool TryRestoreSuspendedVoyage(VoyageSuspensionRecord record, out string reason)
@@ -114,6 +116,7 @@ namespace ShatteredSail.Presentation
             selectedDepartureSpecialCrew.AddRange(record.selectedSpecialCrew);
             departureStandbyCrew.Clear();
             foreach (string crew in record.standbyCrew) departureStandbyCrew.Add(crew);
+            RestoreTreasureStoryProgress(record);
             // Consume the parked snapshot before any gameplay/UI reward writer
             // can run. Otherwise an old snapshot could replay an already banked
             // encounter reward. The next explicit return writes a fresh snapshot.
@@ -124,7 +127,7 @@ namespace ShatteredSail.Presentation
         {
             VoyageSuspensionPersistence.PendingNotice = reason;
             enabled = false;
-            SceneManager.LoadScene("MainMenu");
+            LoadMainMenuWithMusic();
         }
     }
 }

@@ -35,7 +35,7 @@ namespace ShatteredSail.Core.Tests
                 AssertResourceCaps(session.Battle.BoardingEnemy, session.Battle.Profile.BoardingGuard);
                 foreach (CoreBoardingEnemyActionResult action in session.Battle.BoardingEnemy.LastActions)
                     AssertResourceCaps(action.ResourcesAfter, session.Battle.Profile.BoardingGuard);
-                Assert.That(session.Battle.BoardingEnemy.ThunderChain, Is.Zero, "Chain is limited to the enemy's current action window.");
+                Assert.That(session.Battle.BoardingEnemy.ThunderChain, Is.EqualTo(school == "thunder" ? 1 : 0), "A thunder finisher adds one chain after spending; only the next enemy turn resets it.");
             }
         }
 
@@ -86,9 +86,10 @@ namespace ShatteredSail.Core.Tests
             StartBattle(session, school);
             CoreBoardingEnemyState fresh = session.Battle.BoardingEnemy;
             Assert.That(fresh, Is.Not.SameAs(previous));
-            foreach (string property in new[] { "PlayerBurnDamage", "PlayerBurnTurns", "SelfBurnDamage", "SelfBurnTurns", "Mana",
+            foreach (string property in new[] { "PlayerBurnDamage", "PlayerBurnTurns", "SelfBurnDamage", "SelfBurnTurns",
                 "ThunderChain", "CurseMarks", "TidePower", "RetainedGuard", "BloodLoss", "LastAttackHealthLost", "LastBurnHealthLost" })
                 Assert.That(typeof(CoreBoardingEnemyState).GetProperty(property).GetValue(fresh), Is.EqualTo(0), property);
+            Assert.That(fresh.Mana, Is.EqualTo(CoreBoardingEnemyState.ManaLimit));
             Assert.That(fresh.LastAttackExecuted, Is.False);
             Assert.That(fresh.LastActions, Is.Empty);
         }
@@ -137,24 +138,24 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void ArcaneManaPersistsCapsAtThreeAndShortPaymentFallsBackWithoutOverdraft()
+        public void ArcaneManaCanExceedThreeButRefillsBeforeEachEnemyTurnWithoutOverdraft()
         {
             CoreVoyageSession session = Battle("arcane");
             CoreBoardingEnemyCard release = Effect(CoreBoardingEnemyMechanic.ArcaneSpend, resource: 5, attack: 50, bonus: 25);
             SetDeck(session, "arcane", Turn(Effect(CoreBoardingEnemyMechanic.ArcaneGain, resource: 9)), Turn(release), Turn(release));
             End(session);
-            Assert.That(session.Battle.BoardingEnemy.Mana, Is.EqualTo(3));
+            Assert.That(session.Battle.BoardingEnemy.Mana, Is.EqualTo(12));
             Assert.That(session.EnemyBoardingAttackDamage, Is.EqualTo(25)); // 20 * (50% + 3 * 25%).
             End(session);
             Assert.That(session.Battle.BoardingEnemy.Mana, Is.Zero);
-            Assert.That(session.EnemyBoardingAttackDamage, Is.EqualTo(10));
+            Assert.That(session.EnemyBoardingAttackDamage, Is.EqualTo(25));
             End(session);
             Assert.That(session.Battle.BoardingEnemy.Mana, Is.Zero);
-            Assert.That(session.Battle.BoardingEnemy.LastActions.Single().RawAttack, Is.EqualTo(10));
+            Assert.That(session.Battle.BoardingEnemy.LastActions.Single().RawAttack, Is.EqualTo(25));
         }
 
         [Test]
-        public void ThunderUsesActionOrderSpendsOnlyExistingChainAndResetsAtEnemyEnd()
+        public void ThunderUsesActionOrderWithoutSixCapAndResetsAtEnemyStart()
         {
             CoreVoyageSession session = Battle("thunder");
             var strikes = Enumerable.Range(0, 8).Select(i => new CoreBoardingEnemyCard("spark-" + i, "电火花", attackPercent: 5,
@@ -162,15 +163,15 @@ namespace ShatteredSail.Core.Tests
             strikes.Add(Effect(CoreBoardingEnemyMechanic.ThunderFinisher, resource: 9, bonus: 25));
             SetDeck(session, "thunder", Turn(strikes.ToArray()), Turn(Effect(CoreBoardingEnemyMechanic.ThunderFinisher, resource: 6, attack: 25, bonus: 25)));
             CoreBoardingEnemyPreview preview = session.GetBoardingEnemyPreview();
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4, 5, 6, 6, 6, 0 }, preview.Actions.Select(action => action.ResourcesAfter.ThunderChain));
-            Assert.That(preview.Actions.Last().AttackDamage, Is.EqualTo(30));
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 1 }, preview.Actions.Select(action => action.ResourcesAfter.ThunderChain));
+            Assert.That(preview.Actions.Last().AttackDamage, Is.EqualTo(40));
             AssertPreviewCommitsExactly(session, preview);
-            Assert.That(session.Battle.BoardingEnemy.ThunderChain, Is.Zero);
-            Assert.That(session.EnemyBoardingAttackDamage, Is.EqualTo(5), "Next turn cannot reuse the previous six chains.");
+            Assert.That(session.Battle.BoardingEnemy.ThunderChain, Is.EqualTo(1));
+            Assert.That(session.EnemyBoardingAttackDamage, Is.EqualTo(5), "The next enemy turn starts at zero before its finisher.");
         }
 
         [Test]
-        public void CurseLayersAddAndDamageAtPlayerEndWhileDetonationConsumesLayers()
+        public void CurseLayersPersistWithoutPeriodicDamageWhileDetonationConsumesLayers()
         {
             CoreVoyageSession session = Battle("curse");
             SetDeck(session, "curse", Turn(Effect(CoreBoardingEnemyMechanic.CurseMark, resource: 4)),
@@ -178,21 +179,21 @@ namespace ShatteredSail.Core.Tests
                 Turn(Effect(CoreBoardingEnemyMechanic.CurseDetonate, resource: 1, attack: 50, bonus: 20)));
             int health = session.Battle.PlayerBoardingHealth;
             End(session); Assert.That(session.Battle.BoardingEnemy.CurseMarks, Is.EqualTo(4));
-            End(session); Assert.That(session.Battle.BoardingEnemy.CurseMarks, Is.EqualTo(7));
-            End(session); Assert.That(session.Battle.BoardingEnemy.CurseMarks, Is.EqualTo(6));
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health - 11), "The owner's turn ends tick four and seven layers.");
+            End(session); Assert.That(session.Battle.BoardingEnemy.CurseMarks, Is.EqualTo(8));
+            End(session); Assert.That(session.Battle.BoardingEnemy.CurseMarks, Is.EqualTo(8));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health), "Marks do not deal damage below the execution threshold.");
             session.Battle.PlayerBlock = 100;
             CoreBoardingEnemyPreview preview = session.GetBoardingEnemyPreview();
             Assert.That(preview.Actions.Single().AttackDamage, Is.EqualTo(14));
             Assert.That(preview.Actions.Single().PiercingDamage, Is.EqualTo(14));
-            Assert.That(preview.Actions.Single().ResourcesAfter.CurseMarks, Is.EqualTo(4));
+            Assert.That(preview.Actions.Single().ResourcesAfter.CurseMarks, Is.EqualTo(7));
             AssertPreviewCommitsExactly(session, preview);
-            Assert.That(session.Battle.BoardingEnemy.CurseMarks, Is.EqualTo(4), "Enemy turn end does not age a status on the player.");
-            SetDeck(session, "curse", Turn(Effect(CoreBoardingEnemyMechanic.CurseDetonate, resource: 6, attack: 50, bonus: 20)));
+            Assert.That(session.Battle.BoardingEnemy.CurseMarks, Is.EqualTo(7), "Neither turn end reduces marks on the player.");
+            SetDeck(session, "curse", Turn(Effect(CoreBoardingEnemyMechanic.CurseDetonate, resource: 9, attack: 50, bonus: 20)));
             session.Battle.PlayerBlock = 100;
             preview = session.GetBoardingEnemyPreview();
-            Assert.That(preview.AttackDamage, Is.EqualTo(22));
-            Assert.That(preview.PiercingDamage, Is.EqualTo(22));
+            Assert.That(preview.AttackDamage, Is.EqualTo(38));
+            Assert.That(preview.PiercingDamage, Is.EqualTo(38));
             AssertPreviewCommitsExactly(session, preview);
             Assert.That(session.Battle.BoardingEnemy.CurseMarks, Is.Zero);
             session.Battle.PlayerBlock = 100;
@@ -211,7 +212,7 @@ namespace ShatteredSail.Core.Tests
             End(session);
             Assert.That(session.Battle.EnemyBlock, Is.EqualTo(12));
             Assert.That(session.Battle.BoardingEnemy.RetainedGuard, Is.EqualTo(10));
-            Play(session, "basic_01");
+            Play(session, "basic_11");
             Assert.That(session.Battle.EnemyBlock, Is.EqualTo(4));
             Assert.That(session.Battle.BoardingEnemy.TidePower, Is.EqualTo(8));
             Assert.That(session.Battle.BoardingEnemy.RetainedGuard, Is.EqualTo(4));
@@ -225,19 +226,20 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void TidePowerCountsOnlyBlockedDamageCapsAtTwelveAndExpiresIfUnused()
+        public void TidePowerCountsAllTidalBlockedDamageAndPersistsIfUnused()
         {
             CoreVoyageSession session = Battle("tide");
             session.Battle.EnemyBlock = 20;
+            SetProperty(session.Battle.BoardingEnemy, "TideGuard", 20);
             int enemy = session.Battle.EnemyBoardingHealth;
             Play(session, "basic_03");
-            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 15));
-            Assert.That(session.Battle.BoardingEnemy.TidePower, Is.EqualTo(12));
+            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 50));
+            Assert.That(session.Battle.BoardingEnemy.TidePower, Is.EqualTo(20));
             Play(session, "basic_01");
-            Assert.That(session.Battle.BoardingEnemy.TidePower, Is.EqualTo(12), "Unblocked health loss does not generate tide power.");
+            Assert.That(session.Battle.BoardingEnemy.TidePower, Is.EqualTo(20), "Unblocked health loss does not generate tide power.");
             SetDeck(session, "tide", Turn(Effect()));
             End(session);
-            Assert.That(session.Battle.BoardingEnemy.TidePower, Is.Zero);
+            Assert.That(session.Battle.BoardingEnemy.TidePower, Is.EqualTo(20));
         }
 
         [TestCase(0, 50, 0)] [TestCase(3, 50, 2)] [TestCase(6, 50, 5)] [TestCase(12, 98, 2)]
@@ -250,7 +252,7 @@ namespace ShatteredSail.Core.Tests
             End(session);
             Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(health + healed));
             Assert.That(session.Battle.BoardingEnemy.LastActions.Single().ResourcesAfter.TidePower, Is.EqualTo(Math.Max(0, power - 6)));
-            Assert.That(session.Battle.BoardingEnemy.TidePower, Is.Zero);
+            Assert.That(session.Battle.BoardingEnemy.TidePower, Is.EqualTo(Math.Max(0, power - 6)));
         }
 
         [Test]
@@ -286,7 +288,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.BoardingEnemy.BloodLoss, Is.Zero);
         }
 
-        [TestCase(17, 50, 0)] [TestCase(16, 50, 1)] [TestCase(0, 50, 4)] [TestCase(0, 99, 1)] [TestCase(0, 100, 0)]
+        [TestCase(17, 50, 0)] [TestCase(16, 50, 1)] [TestCase(0, 50, 17)] [TestCase(0, 99, 1)] [TestCase(0, 100, 0)]
         public void BloodHarvestCannotHealMoreThanActualPenetrationOrMissingHealth(int guard, int health, int healed)
         {
             CoreVoyageSession session = Battle("blood", 3);
@@ -314,7 +316,7 @@ namespace ShatteredSail.Core.Tests
             CoreBoardingEnemyPreview preview = session.GetBoardingEnemyPreview();
             CollectionAssert.AreEqual(new[] { 15, 20, 6 }, preview.Actions.Select(action => action.AttackDamage));
             AssertPreviewCommitsExactly(session, preview);
-            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 21), "Three six-point counters precede the three-point natural curse tick.");
+            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 18), "Three six-point counters cause damage without a natural curse tick.");
             Assert.That(session.Battle.Boarding.ThunderWeaknessTurns, Is.Zero);
         }
 
@@ -331,11 +333,11 @@ namespace ShatteredSail.Core.Tests
             int enemy = session.Battle.EnemyBoardingHealth, player = session.Battle.PlayerBoardingHealth;
             CoreBoardingEnemyPreview preview = session.GetBoardingEnemyPreview();
             Assert.That(preview.Actions.Count, Is.EqualTo(3));
-            CollectionAssert.AreEqual(new[] { enemy - 4, enemy - 8, enemy - 12 }, preview.Actions.Select(action => action.EnemyHealthAfter));
+            CollectionAssert.AreEqual(new[] { enemy - 2, enemy - 4, enemy - 6 }, preview.Actions.Select(action => action.EnemyHealthAfter));
             string expected = DescribeActions(preview.Actions);
             End(session);
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(player - 3));
-            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 12));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(player), "The shared burn pool spends guard before health.");
+            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemy - 6));
             Assert.That(DescribeActions(session.Battle.BoardingEnemy.LastActions), Is.EqualTo(expected));
         }
 
@@ -397,7 +399,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(preview.Actions[0].HealthLost, Is.EqualTo(counterKillsEnemy ? 0 : 3));
             End(session);
             Assert.That(state.LastActions.Count, Is.EqualTo(1));
-            Assert.That(state.Mana, Is.Zero, "The later setup action must not run after either combatant dies.");
+            Assert.That(state.Mana, Is.EqualTo(CoreBoardingEnemyState.ManaLimit), "Only the turn-start refill applies; the later gain must not run after either combatant dies.");
             Assert.That(DescribeActions(state.LastActions), Is.EqualTo(DescribeActions(preview.Actions)));
             Assert.That(session.Phase, Is.EqualTo(counterKillsEnemy ? CoreDemoPhase.Sailing : CoreDemoPhase.Settlement));
         }
@@ -419,10 +421,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(state.PlayerBurnTurns, Is.EqualTo(state.PlayerBurnDamage));
             Assert.That(state.SelfBurnDamage, Is.GreaterThanOrEqualTo(0));
             Assert.That(state.SelfBurnTurns, Is.EqualTo(state.SelfBurnDamage));
-            Assert.That(state.Mana, Is.InRange(0, 3));
-            Assert.That(state.ThunderChain, Is.InRange(0, 6));
+            Assert.That(state.Mana, Is.GreaterThanOrEqualTo(0));
+            Assert.That(state.ThunderChain, Is.InRange(0, int.MaxValue));
             Assert.That(state.CurseMarks, Is.GreaterThanOrEqualTo(0));
-            Assert.That(state.TidePower, Is.InRange(0, 12));
+            Assert.That(state.TidePower, Is.GreaterThanOrEqualTo(0));
             Assert.That(state.RetainedGuard, Is.InRange(0, guard));
             Assert.That(state.BloodLoss, Is.InRange(0, 12));
         }
@@ -451,6 +453,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             session.SetSeed("BOARDING-ENEMY-SCHOOL-TEST");
             session.StartVoyage();
             StartBattle(session, school);

@@ -24,15 +24,16 @@ namespace ShatteredSail.Core.Tests
         public void SchoolTrajectoriesAndContact_AreFiniteBoundedDeterministicAndNoninteractive(BattleSchoolAttackKind school)
         {
             foreach (BattleSchoolAttackOutcome outcome in Enum.GetValues(typeof(BattleSchoolAttackOutcome)))
+            foreach (bool boarding in new[] { false, true })
             {
-                BattleSchoolAttackGraphic graphic = Create(school, outcome);
+                BattleSchoolAttackGraphic graphic = Create(school, outcome, boarding);
                 Assert.That(graphic.raycastTarget, Is.False);
                 foreach (float progress in new[] { .15f, .45f, .7f, .98f })
                 {
                     graphic.SetProgress(progress);
                     UnityEngine.Random.State random = UnityEngine.Random.state;
                     Mesh mesh = Populate(graphic);
-                    Assert.That(mesh.vertexCount, Is.InRange(1, 1600));
+                    Assert.That(mesh.vertexCount, Is.InRange(1, boarding ? 3000 : 1600));
                     foreach (Vector3 point in mesh.vertices)
                     {
                         Assert.That(float.IsNaN(point.x) || float.IsInfinity(point.x) || float.IsNaN(point.y) || float.IsInfinity(point.y), Is.False);
@@ -119,6 +120,8 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True,
+                "This rendering fixture uses the migrated owned collection; level alone no longer grants school cards.");
             session.SetSeed("SCHOOL-ATTACK-DELAYED-RESOLUTION");
             Assert.That(session.StartTrainingBattle(CoreTrainingTargets.All[0]), Is.True);
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, 1000);
@@ -141,15 +144,15 @@ namespace ShatteredSail.Core.Tests
             typeof(CoreSchoolBattleState).GetProperty("Mana").SetValue(session.Battle.Schools, 0);
             typeof(CoreSchoolBattleState).GetProperty("TemporaryMana").SetValue(session.Battle.Schools, 0);
             int before = session.Battle.EnemyBoardingHealth;
-            Assert.That(session.PlayCard(0), Is.True); // Queue 36; no attack yet.
+            Assert.That(session.PlayCard(0), Is.True); // Queue 72 with zero mana; no attack yet.
             Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(before));
-            Assert.That(session.PlayCard(0), Is.True); // Actual gain of 3 mana.
+            Assert.That(session.PlayCard(0), Is.True); // Gain mana after the delayed damage was locked.
             CoreBattleCard resolve = session.GetBattleCard(session.Battle.Hand[0]);
             Assert.That(resolve.Damage, Is.Zero);
             Assert.That(BattleSchoolAttackPresentation.TryPlayer(resolve, true, 0, 0, out _, out _), Is.False);
             Assert.That(session.PlayCard(0), Is.True);
             int actual = before - session.Battle.EnemyBoardingHealth;
-            Assert.That(actual, Is.EqualTo(36));
+            Assert.That(actual, Is.EqualTo(72));
             Assert.That(BattleSchoolAttackPresentation.TryPlayer(resolve, true, actual, 0, out _, out _), Is.False,
                 "The resolver is not an additional Arcane attack; the queued source supplies the one contact.");
             Assert.That(session.Battle.Boarding.ResolvedAttacks.Count, Is.EqualTo(1));
@@ -160,12 +163,12 @@ namespace ShatteredSail.Core.Tests
         }
 
         private static IEnumerable<BattleSchoolAttackKind> Schools => (BattleSchoolAttackKind[])Enum.GetValues(typeof(BattleSchoolAttackKind));
-        private BattleSchoolAttackGraphic Create(BattleSchoolAttackKind school, BattleSchoolAttackOutcome outcome)
+        private BattleSchoolAttackGraphic Create(BattleSchoolAttackKind school, BattleSchoolAttackOutcome outcome, bool boarding = false)
         {
             GameObject go = Track(new GameObject("school graphic test", typeof(RectTransform), typeof(BattleSchoolAttackGraphic)));
             var graphic = go.GetComponent<BattleSchoolAttackGraphic>();
             graphic.rectTransform.sizeDelta = new Vector2(900f, 360f);
-            graphic.Configure(school, outcome, new Vector2(-270f, 0), new Vector2(270f, 0), false);
+            graphic.Configure(school, outcome, new Vector2(-270f, 0), new Vector2(270f, 0), boarding);
             return graphic;
         }
         private Mesh Populate(BattleSchoolAttackGraphic graphic)

@@ -138,6 +138,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             session.SetSeed("NAVAL-FOUR-CELL-RANGE");
             session.StartVoyage();
             var encounter = new CoreEncounter("cannon_range", "射程测试敌舰", "海战", "四格炮击测试", true, false, 1, 1000);

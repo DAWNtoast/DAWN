@@ -11,25 +11,28 @@ namespace ShatteredSail.Presentation
         private readonly List<Button> departureDockChartRows = new List<Button>();
         private readonly List<CoreSeaChartDefinition> departureDockCharts = new List<CoreSeaChartDefinition>();
         private Text departureDockChartEmpty;
+        private Text departureDockChartHeading;
 
         private void BuildDepartureDockChartRecords(RectTransform selection)
         {
             departureDockChartRows.Clear();
             departureDockCharts.Clear();
             var seeds = new HashSet<string>(StringComparer.Ordinal);
+            var unavailable = new List<CoreSeaChartDefinition>();
             foreach (DepartureChartRecord record in RecordedDepartureCharts)
             {
                 // Availability is a read-only check: browsing must never select a
                 // chart, unlock a route, or remove records usable at another port.
                 if (record == null || !CoreVoyageSession.TryParseChartSeed(record.seed, out CoreSeaChartDefinition chart) ||
-                    !chart.ContainsPort(session.CurrentPort) || !session.CanSelectRoute(chart.RouteIndex, out _) ||
+                    !chart.ContainsPort(session.CurrentPort) ||
                     !seeds.Add(chart.Seed)) continue;
-                departureDockCharts.Add(chart);
+                if (DepartureDockChartUnlockReason(chart).Length == 0) departureDockCharts.Add(chart);
+                else unavailable.Add(chart);
             }
-            Text heading = CreateText("Departure Dock Chart Records Heading", selection, Vector2.one, Vector2.zero,
+            departureDockCharts.AddRange(unavailable);
+            departureDockChartHeading = CreateText("Departure Dock Chart Records Heading", selection, Vector2.one, Vector2.zero,
                 16, FontStyle.Bold, TextAnchor.MiddleLeft, DepartureSkin.Ink);
-            heading.text = "可用海图 " + departureDockCharts.Count + " 张";
-            heading.raycastTarget = false;
+            departureDockChartHeading.raycastTarget = false;
             departureDockChartEmpty = CreateText("Departure Dock Chart Records Empty", selection, Vector2.one, Vector2.zero,
                 17, FontStyle.Normal, TextAnchor.MiddleCenter, DepartureSkin.Ink);
             departureDockChartEmpty.text = string.Empty;
@@ -107,25 +110,40 @@ namespace ShatteredSail.Presentation
             RefreshDepartureDockChartRecords();
         }
 
+        private string DepartureDockChartUnlockReason(CoreSeaChartDefinition chart)
+        {
+            if (!session.CanSelectRoute(chart.RouteIndex, out string reason)) return reason;
+            return session.CanSelectDestinationPort(chart.OtherPort(session.CurrentPort), out reason) ? string.Empty : reason;
+        }
+
         private void RefreshDepartureDockChartRecords()
         {
             if (departureChartSelection == null || !UsesDepartureDockScene) return;
             bool inline = DepartureChartModeActive && session.SelectedTreasureMap == null;
             if (departureDockChartEmpty != null)
                 departureDockChartEmpty.gameObject.SetActive(inline && departureDockCharts.Count == 0);
+            int available = 0;
             for (int index = 0; index < departureDockChartRows.Count; index++)
             {
                 Button row = departureDockChartRows[index];
                 if (row == null) continue;
                 CoreSeaChartDefinition chart = departureDockCharts[index];
-                bool selected = departureChartValid && session.SelectedChartDefinition?.Seed == chart.Seed;
+                string reason = DepartureDockChartUnlockReason(chart);
+                bool unlocked = reason.Length == 0;
+                if (unlocked) available++;
+                row.interactable = unlocked;
+                ConfigureDepartureUnlockHint(row, chart.OtherPort(session.CurrentPort) + " · 海图暂不可用", reason);
+                bool selected = unlocked && departureChartValid && session.SelectedChartDefinition?.Seed == chart.Seed;
                 row.GetComponent<Image>().color = selected ? new Color(.12f, .29f, .25f, .96f) : new Color(1f, .95f, .80f, .60f);
                 Text label = row.GetComponentInChildren<Text>();
-                label.color = selected ? new Color(1f, .95f, .79f) : DepartureSkin.Ink;
+                label.color = selected ? new Color(1f, .95f, .79f) : unlocked ? DepartureSkin.Ink : new Color(.42f, .37f, .30f);
                 string shortSeed = chart.Seed.Length > 38 ? chart.Seed.Substring(0, 38) + "…" : chart.Seed;
                 label.text = (selected ? "✓ " : "  ") + CoreVoyageSession.Routes[chart.RouteIndex].Name + " · " +
-                    session.CurrentPort + " → " + chart.OtherPort(session.CurrentPort) + "\n  <size=11>" + shortSeed + "</size>";
+                    session.CurrentPort + " → " + chart.OtherPort(session.CurrentPort) + "\n  <size=11>" +
+                    (unlocked ? shortSeed : reason) + "</size>";
             }
+            if (departureDockChartHeading != null)
+                departureDockChartHeading.text = "可用海图 " + available + " / " + departureDockCharts.Count + " 张";
             if (!inline) return;
             if (departureChartPreviewPorts != null && departureChartPreviewMap != null)
                 departureChartPreviewPorts.text = departureChartPreviewMap.DepartureName + " → " + departureChartPreviewMap.DestinationName;

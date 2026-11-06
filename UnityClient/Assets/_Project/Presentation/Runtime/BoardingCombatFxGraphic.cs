@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
-    public enum BoardingCombatFxKind { Dash, Slash, Guard, GuardBreak, Heal }
+    public enum BoardingCombatFxKind { Dash, Slash, Guard, GuardBreak, Heal, Curse, LifeCost }
 
     /// <summary>
     /// Deterministic deck-space effects. The owning animation advances normalized
@@ -26,6 +26,7 @@ namespace ShatteredSail.Presentation
         [SerializeField, Range(0f, 1f)] private float progress;
         private float direction = 1f;
         private Rect bounds;
+        private RawImage paintedAccent;
 
         public BoardingCombatFxKind Kind => kind;
         public float Progress
@@ -36,6 +37,7 @@ namespace ShatteredSail.Presentation
                 float next = float.IsNaN(value) || float.IsInfinity(value) ? 0f : Mathf.Clamp01(value);
                 if (Mathf.Approximately(progress, next)) return;
                 progress = next;
+                RefreshPaintedAccent();
                 SetVerticesDirty();
             }
         }
@@ -47,13 +49,85 @@ namespace ShatteredSail.Presentation
             direction = facing < 0f ? -1f : 1f;
             progress = 0f;
             raycastTarget = false;
+            ConfigurePaintedAccent();
+            RefreshPaintedAccent();
             SetVerticesDirty();
+        }
+
+        private void ConfigurePaintedAccent()
+        {
+            if (paintedAccent == null)
+                paintedAccent = BoardingRemasterFxArt.CreateLayer(rectTransform, "Boarding Painted Impact");
+        }
+
+        private void RefreshPaintedAccent()
+        {
+            if (paintedAccent == null) return;
+            Rect area = rectTransform.rect;
+            int row;
+            Vector2 proportion, offset = Vector2.zero;
+            switch (kind)
+            {
+                case BoardingCombatFxKind.Dash:
+                    row = BoardingRemasterFxArt.Dash;
+                    proportion = new Vector2(.88f, .44f);
+                    offset = new Vector2(direction * Mathf.Lerp(-.13f, .08f, progress), -.13f);
+                    break;
+                case BoardingCombatFxKind.Slash:
+                    row = BoardingRemasterFxArt.Slash;
+                    proportion = new Vector2(.77f, .68f);
+                    break;
+                case BoardingCombatFxKind.Guard:
+                    row = BoardingRemasterFxArt.Guard;
+                    proportion = new Vector2(.62f, .71f);
+                    break;
+                case BoardingCombatFxKind.GuardBreak:
+                    row = BoardingRemasterFxArt.GuardBreak;
+                    proportion = new Vector2(.69f, .71f);
+                    break;
+                case BoardingCombatFxKind.Curse:
+                    row = BoardingRemasterFxArt.Curse;
+                    proportion = new Vector2(.57f, .73f);
+                    break;
+                case BoardingCombatFxKind.LifeCost:
+                    row = BoardingRemasterFxArt.Blood;
+                    proportion = new Vector2(.48f, .58f);
+                    break;
+                default:
+                    row = BoardingRemasterFxArt.Heal;
+                    proportion = new Vector2(.56f, .82f);
+                    offset.y = -.04f;
+                    break;
+            }
+            float life = Mathf.Clamp01((1f - progress) * 8f) * tint.a * color.a;
+            BoardingRemasterFxArt.Pose(paintedAccent, row, progress,
+                area.center + Vector2.Scale(area.size, offset), Vector2.Scale(area.size, proportion),
+                life, direction < 0f);
+        }
+
+        protected override void OnRectTransformDimensionsChange()
+        {
+            base.OnRectTransformDimensionsChange();
+            RefreshPaintedAccent();
         }
 
         protected override void Awake()
         {
             base.Awake();
             raycastTarget = false;
+        }
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            if (paintedAccent != null) paintedAccent.enabled = true;
+            RefreshPaintedAccent();
+        }
+
+        protected override void OnDisable()
+        {
+            if (paintedAccent != null) paintedAccent.enabled = false;
+            base.OnDisable();
         }
 
         protected override void OnPopulateMesh(VertexHelper mesh)
@@ -68,6 +142,21 @@ namespace ShatteredSail.Presentation
                 case BoardingCombatFxKind.Guard: DrawGuard(mesh); break;
                 case BoardingCombatFxKind.GuardBreak: DrawGuardBreak(mesh); break;
                 case BoardingCombatFxKind.Heal: DrawHeal(mesh); break;
+                case BoardingCombatFxKind.Curse:
+                case BoardingCombatFxKind.LifeCost: DrawAffliction(mesh); break;
+            }
+        }
+
+        private void DrawAffliction(VertexHelper mesh)
+        {
+            bool blood = kind == BoardingCombatFxKind.LifeCost;
+            Color ink = blood ? new Color(.9f, .16f, .23f) : new Color(.57f, .71f, .24f);
+            float life = Mathf.Sin(progress * Mathf.PI);
+            for (int i = 0; i < 5; i++)
+            {
+                Vector2 at = new Vector2((i - 2) * .06f, -.18f + progress * .30f);
+                Vector2 drift = new Vector2((blood ? .06f : -.026f) * life, .07f);
+                Line(mesh, at, at + drift, .008f, Tone(ink, life * .55f), false);
             }
         }
 
@@ -130,7 +219,7 @@ namespace ShatteredSail.Presentation
                 Vector2 across = new Vector2(-along.y, along.x);
                 float size = .020f + (i % 3) * .008f;
                 Triangle(mesh, center + along * size, center - along * size + across * size * .5f,
-                    center - across * size, Tone(Color.white, life * .95f));
+                    center - across * size, Tone(i % 3 == 0 ? new Color(1f, .88f, .56f) : new Color(.67f, .40f, .18f), life * .95f));
             }
             Arc(mesh, Vector2.zero, Vector2.one * (.18f + progress * .22f), 0, CircleSteps,
                 .005f, Tone(new Color(.82f, .92f, 1f), life * .48f), 1f, false);
@@ -164,7 +253,7 @@ namespace ShatteredSail.Presentation
             // The effect's recognizable white/gold/green stays intact while the
             // caller's accent provides a restrained side/card tint.
             Color mixed = Color.Lerp(value, tint, .12f);
-            mixed.a = Mathf.Clamp01(alpha) * tint.a * color.a;
+            mixed.a = Mathf.Clamp01(alpha) * tint.a * color.a * (paintedAccent == null ? 1f : .19f);
             return mixed;
         }
 
@@ -176,7 +265,11 @@ namespace ShatteredSail.Presentation
             {
                 Vector2 a = center + Vector2.Scale(Circle[(first + i) % CircleSteps], radius);
                 Vector2 b = center + Vector2.Scale(Circle[(first + i + 1) % CircleSteps], radius);
-                Line(mesh, a, b, thickness, shade, mirror);
+                // A tapered blade stroke keeps the authored attack path but avoids a uniform wire arc.
+                float taper = mirror ? .22f + .78f * Mathf.Sin(Mathf.PI * (i + .5f) / steps) : 1f;
+                Color stroke = shade;
+                if (mirror) stroke.a *= .4f + .6f * taper;
+                Line(mesh, a, b, thickness * taper, stroke, mirror);
             }
         }
 

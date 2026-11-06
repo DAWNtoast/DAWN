@@ -22,6 +22,7 @@ namespace ShatteredSail.Presentation
             if (navigationMotionRoutine != null) StopCoroutine(navigationMotionRoutine);
             navigationMotionRoutine = null;
             navigationMotionPlaying = false;
+            pendingVoyageDiscovery = null;
             if (navigationLookoutMotion != null) navigationLookoutMotion.CompleteVoyage();
             ClearNavigationWake();
             if (navigationMotionInputGuard != null) navigationMotionInputGuard.gameObject.SetActive(false);
@@ -65,11 +66,13 @@ namespace ShatteredSail.Presentation
             RectTransform ship = FindNavigationVisual(mapRoot, "Player Ship");
             List<VoyagePoint> forecastPath = BuildNavigationMotionPath(forecast.PathPoints, start, forecast.Target);
 
+            CaptureVoyageDiscovery();
             navigationMotionPlaying = true;
             bool sailed = session.Sail();
             PlaySfx("sail_step", 0.44f);
             if (!sailed)
             {
+                pendingVoyageDiscovery = null;
                 navigationMotionPlaying = false;
                 Render();
                 return;

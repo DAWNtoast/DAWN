@@ -338,9 +338,21 @@ namespace ShatteredSail.Presentation
             }
             flagship.port = target;
             progress.ships = locations.ToArray();
-            PlayerPrefs.SetString(ShipPortProgressKey, JsonUtility.ToJson(progress));
-            PlayerPrefs.SetString(CurrentPortKey, target);
-            PlayerPrefs.Save();
+            try
+            {
+                if (!ProfileSaveJournal.TryBegin(out string notice)) throw new ProfileSaveException(notice);
+                CarryUndisplayedWarehouseTreasuresToCurrentPort();
+                SaveWarehouseKeepsakes();
+                PlayerPrefs.SetString(ShipPortProgressKey, JsonUtility.ToJson(progress));
+                PlayerPrefs.SetString(CurrentPortKey, target);
+                PlayerPrefs.Save();
+                if (!ProfileSaveJournal.TryComplete(out notice)) throw new ProfileSaveException(notice);
+            }
+            catch (Exception error)
+            {
+                BlockAfterProfileSaveFailure(error.Message);
+                return;
+            }
             pendingSupplyOrder.Clear();
             ResetCachedFacilityNavigation();
             BeginMarketPurchaseView();

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -150,6 +151,139 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.WarehouseCollection.IsDisplayed(id), Is.False);
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             CollectionAssert.AreEqual(cargo, WarehouseCargoSnapshot(controller));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator Warehouse_OldSaveRecoversUndisplayedKeepsakesAtCurrentPortAndPreservesRemoteDisplays()
+        {
+            const string sourcePort = "断锚港", otherPort = "灰鸥港", destinationPort = "白贝港";
+            string[] ids = CoreWarehouseCollection.Catalog.Take(5).Select(item => item.Id).ToArray();
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.WarehousePortMigrationKey, 1);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, destinationPort);
+            ProfileGoldPersistence.Save(0m);
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, string.Join(",", ids));
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedPortKey(sourcePort), string.Join(",", ids.Take(3)));
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseDisplayPortKey(sourcePort), ",," + ids[0] + ",,,");
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedPortKey(otherPort), string.Join(",", ids.Skip(3)));
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseDisplayPortKey(otherPort), ",,,,," + ids[3]);
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null; yield return null;
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CollectionAssert.AreEquivalent(new[] { ids[1], ids[2], ids[4] }, controller.WarehouseCollection.OwnedIds,
+                "An old save already stranded in another port must recover every undisplayed keepsake.");
+            Assert.That(controller.Session.ProfileGold, Is.Zero);
+            ClickWarehouseButton("Port Hotspot Warehouse"); yield return null;
+            ClickWarehouseButton("Warehouse Treasure " + ids[1]); yield return null;
+            ClickWarehouseButton("Warehouse Display Selected"); yield return null;
+            Assert.That(controller.WarehouseCollection.DisplayedAt(0), Is.EqualTo(ids[1]));
+            Assert.That(controller.Session.ProfileGold, Is.Zero, "Exhibiting a carried keepsake is free.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(sourcePort)), Is.EqualTo(ids[0]));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseDisplayPortKey(sourcePort)), Is.EqualTo(",," + ids[0] + ",,,"));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(otherPort)), Is.EqualTo(ids[3]));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseDisplayPortKey(otherPort)), Is.EqualTo(",,,,," + ids[3]));
+            CollectionAssert.AreEquivalent(ids, PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey).Split(','));
+            var income = new CoreWarehouseIncome();
+            Assert.That(income.Restore(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseIncomeKey)), Is.True);
+            Assert.That(income.CurrentDisplayedCount, Is.EqualTo(3), "Both remote exhibits and the new local exhibit earn income.");
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null; yield return null;
+            controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CollectionAssert.AreEquivalent(new[] { ids[1], ids[2], ids[4] }, controller.WarehouseCollection.OwnedIds);
+            Assert.That(controller.WarehouseCollection.DisplayedAt(0), Is.EqualTo(ids[1]));
+            CollectionAssert.AreEquivalent(ids, PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey).Split(','));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator Warehouse_RemovedKeepsakesFollowConfirmedArrivalAndCanRestartIncomeWithNoGold()
+        {
+            const string sourcePort = "断锚港", destinationPort = "白贝港";
+            string id = CoreWarehouseCollection.TutorialTreasureId;
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, sourcePort);
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, id);
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseDisplayKey, id + ",,,,,");
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null; yield return null;
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            ClickWarehouseButton("Port Hotspot Warehouse"); yield return null;
+            ClickWarehouseButton("Warehouse Treasure " + id); yield return null;
+            ClickWarehouseButton("Warehouse Remove Selected"); yield return null;
+            Assert.That(controller.WarehouseCollection.IsDisplayed(id), Is.False);
+            ClickWarehouseButton("Return To Port Hub"); yield return null;
+            var session = controller.Session;
+            Assert.That(session.TrySpendProfileGold(session.ProfileGold, "藏品到港零金币测试"), Is.True);
+            session.Cargo.Gold = 0;
+            session.StartVoyage(destinationPort);
+            CollectionAssert.AreEqual(new[] { id }, controller.WarehouseCollection.OwnedIds);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(destinationPort), string.Empty), Is.Empty,
+                "Choosing a destination must not move ownership before returning to port.");
+            // Arrange only the arrival boundary; confirmation uses the real settlement transaction.
+            typeof(CoreVoyageSession).GetMethod("FinishVoyage", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(session, new object[] { VoyageOutcome.ArrivedAtPort });
+            Assert.That(session.CurrentPort, Is.EqualTo(sourcePort));
+            typeof(CoreGameplayDemoController).GetMethod("ConfirmVoyageSettlement", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
+            yield return null;
+            Assert.That(session.CurrentPort, Is.EqualTo(destinationPort));
+            Assert.That(session.ProfileGold, Is.Zero);
+            string[] arrivalIds = { id, "saltworn_quartermaster_key" };
+            CollectionAssert.AreEquivalent(arrivalIds, controller.WarehouseCollection.OwnedIds,
+                "Carrying the old keepsake must coexist with the legitimate first-chart completion reward.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(sourcePort)), Is.Empty);
+            CollectionAssert.AreEquivalent(arrivalIds,
+                PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(destinationPort)).Split(','));
+            yield return ClickThroughAcceptanceArrivalComic(controller);
+            ClickWarehouseButton("Port Hotspot Warehouse"); yield return null;
+            ClickWarehouseButton("Warehouse Treasure " + id); yield return null;
+            ClickWarehouseButton("Warehouse Display Selected"); yield return null;
+            Assert.That(session.ProfileGold, Is.Zero);
+            var income = new CoreWarehouseIncome();
+            Assert.That(income.Restore(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseIncomeKey)), Is.True);
+            Assert.That(income.CurrentDisplayedCount, Is.EqualTo(1));
+            Assert.That(income.Claim(new System.DateTime(income.LastUtcTicks, System.DateTimeKind.Utc).AddHours(1)), Is.EqualTo(10),
+                "The newly exhibited keepsake restores the normal hourly income without requiring travel funds.");
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+            yield return null; yield return null;
+            controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            Assert.That(controller.Session.CurrentPort, Is.EqualTo(destinationPort));
+            Assert.That(controller.WarehouseCollection.DisplayedAt(0), Is.EqualTo(id));
+            CollectionAssert.AreEquivalent(arrivalIds, controller.WarehouseCollection.OwnedIds);
+            CollectionAssert.AreEquivalent(arrivalIds, PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey).Split(','));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator Warehouse_SafeAndFailedReturnKeepCarriedKeepsakesAtTheActualReturnPort()
+        {
+            const string sourcePort = "断锚港", destinationPort = "白贝港";
+            string id = CoreWarehouseCollection.TutorialTreasureId;
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, sourcePort);
+            PlayerPrefs.SetString(CoreGameplayDemoController.WarehouseOwnedKey, id);
+            foreach (bool failed in new[] { false, true })
+            {
+                SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single);
+                yield return null; yield return null;
+                var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                var session = controller.Session;
+                session.Cargo.Water = 20;
+                session.Cargo.Food = 20;
+                session.StartVoyage(destinationPort);
+                if (failed) { session.Cargo.Water = 0; session.Cargo.Food = 0; }
+                Assert.That(session.SafeReturn(), Is.True);
+                Assert.That(session.Settlement.Outcome, Is.EqualTo(failed ? VoyageOutcome.Failure : VoyageOutcome.SafeReturn));
+                typeof(CoreGameplayDemoController).GetMethod("ConfirmVoyageSettlement", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(controller, null);
+                yield return null;
+                Assert.That(session.CurrentPort, Is.EqualTo(sourcePort));
+                CollectionAssert.AreEqual(new[] { id }, controller.WarehouseCollection.OwnedIds);
+                Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(sourcePort)), Is.EqualTo(id));
+                Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(destinationPort), string.Empty), Is.Empty);
+                Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey), Is.EqualTo(id));
+            }
             LogAssert.NoUnexpectedReceived();
         }
 

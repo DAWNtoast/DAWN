@@ -22,8 +22,8 @@ $previewCompile = Join-Path $previewWorkspace 'Artifacts/EventIllustrations20261
 foreach ($previewDll in @('ShatteredSail.Core.dll','ShatteredSail.Content.dll','ShatteredSail.Persistence.dll','ShatteredSail.Presentation.dll')) {
     Copy-Item -LiteralPath (Join-Path $previewCompile $previewDll) -Destination $previewPlugins -Force
 }
-# Copy only existing resources needed for the voyage chrome, two focal scenes and typography.
-foreach ($previewFolder in @('Data','Fonts','NavigationUIV3','NavigationLookout','VoyageMapV2','ModularShip','Shaders','LegacyDemo','ShipArtV2','EncounterIllustrations')) {
+# Copy only existing resources needed for the voyage chrome, scene, legendary comic and typography.
+foreach ($previewFolder in @('Data','Fonts','NavigationUIV3','NavigationLookout','VoyageMapV2','ModularShip','Shaders','LegacyDemo','ShipArtV2','EncounterIllustrations','LegendaryFleetComics')) {
     $previewFrom = Join-Path $previewSource $previewFolder
     if (Test-Path -LiteralPath $previewFrom) { Copy-Item -LiteralPath $previewFrom -Destination $previewResources -Recurse -Force }
 }

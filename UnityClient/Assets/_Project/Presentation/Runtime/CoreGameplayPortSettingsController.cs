@@ -258,12 +258,7 @@ namespace ShatteredSail.Presentation
             Text label = button.GetComponentInChildren<Text>(true);
             StylePortSettingsText(label, size - new Vector2(24f, 8f), Vector2.zero, 22,
                 FontStyle.Normal, TextAnchor.MiddleCenter, MarketShopSkin.Ink);
-            if (primary)
-            {
-                WoodButtonSkin.Apply(button, Color.white);
-                WoodButtonSkin.SetRole(button, WoodButtonRole.Primary);
-            }
-            else MarketShopSkin.ApplyLightButton(button);
+            WoodButtonSkin.ApplyAction(button, primary ? WoodButtonRole.Primary : WoodButtonRole.Secondary);
         }
 
         private void StylePortSettingsRule(RectTransform sheet, string name, float y)

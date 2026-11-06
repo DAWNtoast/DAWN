@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -120,11 +121,36 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest]
+        public IEnumerator SupplySettlementOptimization_ChartBelowHalfExplorationCannotDrawButCanConfirm()
+        {
+            yield return LoadProvisioningFixture();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            yield return CreateWarehouseSettlementFixture(controller, VoyageOutcome.SafeReturn, 49f);
+            var session = controller.Session;
+            Assert.That(session.HasNavigator, Is.True);
+            Assert.That(session.Settlement.Coverage, Is.LessThan(50f));
+            Assert.That(session.CanDrawSeaChart, Is.False);
+            Assert.That(session.Settlement.ChartSaved, Is.False);
+            Assert.That(ActiveButton("Draw Sea Chart"), Is.Null);
+            Assert.That(GameObject.Find("Settlement Protection").GetComponent<Text>().text, Does.Contain("探索度达到 50%"));
+            string savedCharts = PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, string.Empty);
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            typeof(CoreGameplayDemoController).GetMethod("DrawCurrentSeaChart", flags).Invoke(controller, null);
+            Assert.That(typeof(CoreGameplayDemoController).GetField("pendingDrawnChart", flags).GetValue(controller), Is.Null,
+                "A direct or stale drawing callback must also obey the exploration threshold.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, string.Empty), Is.EqualTo(savedCharts));
+            ClickAcceptanceButton("Return To Port"); yield return null;
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, string.Empty), Is.EqualTo(savedCharts));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator SupplySettlementOptimization_DrawChartKeepsRevealAndWarehouseChoiceThenConfirmsOnce()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            yield return CreateWarehouseSettlementFixture(controller, VoyageOutcome.SafeReturn);
+            yield return CreateWarehouseSettlementFixture(controller, VoyageOutcome.SafeReturn, 50f);
             var session = controller.Session;
             Assert.That(session.CanDrawSeaChart, Is.True);
             SettlementRevealController reveal = Object.FindFirstObjectByType<SettlementRevealController>();

@@ -4,11 +4,10 @@ using System.Collections.Generic;
 namespace ShatteredSail.Core.Gameplay
 {
     /// <summary>
-    /// Twelve encounter-specific scripts. The first chart averages three equivalent
-    /// player energy for its unupgraded starter deck; later bosses average four.
-    /// Authored values use the player's unupgraded boarding scale (8 strike / 4 guard /
-    /// 6 healing for one energy), scaled to recommended player upgrades: first route
-    /// +0, second route +1, late route and legendary +2. Never follows player upgrades.
+    /// Twelve encounter-specific scripts built from authored move bundles.
+    /// The original three/four-energy references describe authored bundle budgets only.
+    /// Final health and fixed pressure are calibrated against shared existing assets
+    /// and equal incremental investment; they never follow actual player upgrades.
     /// Resource setup, conditional payoffs and self-damage are part of each card's budget.
     /// Energy is a design reference, not an enemy energy pool or a damage multiplier.
     /// </summary>
@@ -27,13 +26,13 @@ namespace ShatteredSail.Core.Gameplay
             Add(result, "boss_route_shattered_sail_reef",
                 T("引火登舷",
                     C("炉卫引火", 1, CoreBoardingEnemyMechanic.FireSelfBurn, resource: 2, guard: 4),
-                    C("焰刃破阵", 2, attack: 20, burn: 1)),
+                    C("焰刃破阵", 2, attack: 12, burn: 1)),
                 T("共燃整备",
                     C("共燃护卫", 1, CoreBoardingEnemyMechanic.FireSelfBurn, resource: 2, guard: 4),
                     C("甲板包扎", 1, heal: 6)),
                 T("移焰决击",
                     C("移焰", 1, CoreBoardingEnemyMechanic.FireTransfer, resource: 4),
-                    C("焚尽强攻", 2, CoreBoardingEnemyMechanic.FireConsume, resource: 4, attack: 18, bonus: 15),
+                    C("焚尽强攻", 2, CoreBoardingEnemyMechanic.FireConsume, resource: 4, attack: 26, bonus: 15),
                     C("火场救护", 1, heal: 6)));
 
             // 幽礁潜猎号：2 / 4 / 2 / 4。新手档：留盾诱攻与低压回合交替。
@@ -166,6 +165,27 @@ namespace ShatteredSail.Core.Gameplay
                 heal * 10, drain * 10, selfDamage * 10, mechanic: mechanic,
                 resourceAmount: resource, bonusPercent: bonus, energy: energy);
 
+        // Boarding attack pressure only: healing, guard, burn and life payments keep their authored budgets.
+        private static decimal EncounterAttackPressure(string id)
+        {
+            switch (id)
+            {
+                case "boss_route_shattered_sail_reef": return .70m;
+                case "boss_route_shattered_sail_reef_tide": return .65m;
+                // Level 3/5 guardians reward a prepared build after slower progression.
+                // Keep their budgets below the old endgame gate; legends are unchanged.
+                case "boss_route_golden_tide_trade": return .82m;
+                case "boss_route_golden_tide_trade_thunder": return .82m;
+                case "boss_route_moon_tide_ruins": return .70m;
+                case "boss_route_moon_tide_ruins_arcane": return .70m;
+                case "legendary_pirate_iron_oath": return 1.40m;
+                case "legendary_pirate_ember_ark": return 1.15m;
+                case "legendary_pirate_red_widow": return .92m;
+                case "legendary_pirate_thunder_crown": return .94m;
+                case "legendary_pirate_tide_requiem": return .80m;
+                default: return 1m;
+            }
+        }
         private static void Add(Dictionary<string, CoreBoardingEnemyDeck> result, string id,
             params CoreBoardingEnemyTurn[] authored)
         {
@@ -173,11 +193,12 @@ namespace ShatteredSail.Core.Gameplay
             CoreLegendaryWarship legendary = CoreLegendaryWarships.Find(id);
             CoreBattleProfile profile = route?.Profile ?? legendary?.Profile;
             if (profile == null) throw new ArgumentException("Unknown boarding boss: " + id);
-            int rank = legendary != null || route.RouteId == CoreBattleBalance.ThirdRouteId ? 2 :
+            int rank = legendary != null ? (id == "legendary_pirate_tide_requiem" || id == "legendary_pirate_last_horizon" ? 3 : 1) : route.RouteId == CoreBattleBalance.ThirdRouteId ? 2 :
                 route.RouteId == "route_golden_tide_trade" ? 1 : 0;
             decimal reference = 10m * CoreBattleUpgradeBalance.MultiplierForLevel(rank);
-            decimal attackScale = reference / Math.Max(1, profile.MeleeDamage);
-            decimal guardScale = reference / Math.Max(1, profile.BoardingGuard);
+            decimal statusScale = reference / Math.Max(1, profile.MeleeDamage); decimal attackScale = reference * 2m / Math.Max(1, profile.MeleeDamage);
+            decimal guardScale = reference * 2.5m / Math.Max(1, profile.BoardingGuard);
+            decimal outgoingScale = attackScale * EncounterAttackPressure(id);
             var turns = new CoreBoardingEnemyTurn[authored.Length];
             for (int t = 0; t < authored.Length; t++)
             {
@@ -187,12 +208,12 @@ namespace ShatteredSail.Core.Gameplay
                     CoreBoardingEnemyCard card = authored[t].Cards[c];
                     int guardPercent = CoreBattleBalance.ScaleBattleValue(card.GuardPercent, guardScale);
                     cards[c] = new CoreBoardingEnemyCard("enemy_boarding_" + id + "_" + (t + 1) + "_" + (c + 1),
-                        card.Name, CoreBattleBalance.ScaleBattleValue(card.AttackPercent, attackScale), guardPercent,
-                        CoreBattleBalance.ScaleBattleValue(card.BurnPercent, attackScale),
+                        card.Name, CoreBattleBalance.ScaleBattleValue(card.AttackPercent, outgoingScale), guardPercent,
+                        CoreBattleBalance.ScaleBattleValue(card.BurnPercent, statusScale),
                         CoreBattleBalance.ScaleBattleValue(card.HealPercent, attackScale),
                         CoreBattleBalance.ScaleBattleValue(card.DrainPercent, attackScale),
                         CoreBattleBalance.ScaleBattleValue(card.SelfDamagePercent, attackScale), card.PiercePercent,
-                        card.Mechanic, card.ResourceAmount, CoreBattleBalance.ScaleBattleValue(card.BonusPercent, attackScale), card.Energy);
+                        card.Mechanic, card.ResourceAmount, CoreBattleBalance.ScaleBattleValue(card.BonusPercent, outgoingScale), card.Energy);
                 }
                 turns[t] = new CoreBoardingEnemyTurn(authored[t].Name, cards);
             }

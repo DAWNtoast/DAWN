@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using ShatteredSail.Core.Gameplay;
 using ShatteredSail.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -31,6 +32,9 @@ namespace ShatteredSail.Editor
             public string state, variant, file, error;
             public int width, height;
             public bool verifiedScaler;
+            public bool clockPreview;
+            // Clock capture offset from the fresh preview's campaign start at 08:00.
+            public double elapsedGameHours;
             public Vector2 renderingDisplaySize, logicalCanvasSize;
             public Rect canvasPixelRect, cameraPixelRect;
             public float scaleFactor, expectedScaleFactor;
@@ -155,7 +159,7 @@ namespace ShatteredSail.Editor
                 new[] { "Market", "MarketSell" }, new[] { "Market", "MarketChoice" },
                 new[] { "Warehouse", "Actions" }, new[] { "Warehouse", "Adjustment" }, new[] { "Warehouse", "Sale" },
                 new[] { "Navigation", "Cargo" }, new[] { "PortHub", "ReturnMenu" },
-                new[] { "Navigation", "StoryFirst" }, new[] { "Navigation", "StorySecond" }
+                new[] { "Navigation", "TreasureNavigation" }
             });
             foreach (string[] state in states)
                 foreach (Vector2Int size in new[] { new Vector2Int(1920,1080), new Vector2Int(1280,720), new Vector2Int(1280,1024) })
@@ -189,6 +193,31 @@ namespace ShatteredSail.Editor
             }
             switch (frame.variant)
             {
+                case "HeaderTutorial":
+                {
+                    if (controller == null || frame.state != CoreGameplayPreviewScreen.Navigation.ToString())
+                        throw new InvalidOperationException("Tutorial header captures require the Navigation preview.");
+                    FieldInfo tutorialActive = typeof(CoreGameplayDemoController).GetField("tutorialActive", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (tutorialActive == null) throw new MissingFieldException("CoreGameplayDemoController.tutorialActive");
+                    tutorialActive.SetValue(controller, true);
+                    Invoke("Render");
+                    break;
+                }
+                case "HeaderBoarding":
+                {
+                    if (controller == null || frame.state != CoreGameplayPreviewScreen.Battle.ToString() || controller.Session.Battle == null)
+                        throw new InvalidOperationException("Boarding header captures require the Battle preview.");
+                    MethodInfo setStage = typeof(CoreBattleState).GetProperty(nameof(CoreBattleState.Stage))?.GetSetMethod(true);
+                    if (setStage == null) throw new MissingMethodException("CoreBattleState.Stage setter");
+                    // This is a disposable visual fixture, not a gameplay action or save mutation.
+                    setStage.Invoke(controller.Session.Battle, new object[] { NavalBattleStage.Boarding });
+                    Invoke("Render");
+                    Text range = host.GetComponentsInChildren<Text>(false).SingleOrDefault(text => text.name == "Battle Range");
+                    Text title = host.GetComponentsInChildren<Text>(false).SingleOrDefault(text => text.name == "Voyage Header Title");
+                    if (range == null || range.text != "接舷交战" || title == null || title.text != "海战")
+                        throw new InvalidOperationException("The boarding header was not rendered with its production title and boarding readout.");
+                    break;
+                }
                 case "MarketDetail": case "MarketInventory": case "MarketBuy": case "MarketSell": case "MarketChoice":
                     // Read-only fixture arrangement: no purchase/sale callbacks or player preferences.
                     controller.Session.Cargo.Water = 264;
@@ -250,10 +279,12 @@ namespace ShatteredSail.Editor
                     break;
                 case "Cargo": Invoke("OpenVoyageCargo"); break;
                 case "ReturnMenu": Invoke("OpenPortSettings"); Click("Return To Main Menu"); break;
-                case "StoryFirst": case "StorySecond":
+                case "TreasureNavigation":
                     controller.ConfigureEditorFlowState(GameplayFlowPreviewState.TreasureNavigation);
-                    Invoke("BuildTreasureStoryOverlayIfNeeded");
-                    if (frame.variant == "StorySecond") Click("Treasure Story Advance");
+                    if (host.GetComponentsInChildren<Transform>(false).Any(item => item.name == "Treasure Story Overlay"))
+                        throw new InvalidOperationException("Treasure navigation must not open an introductory comic.");
+                    if (!host.GetComponentsInChildren<Transform>(false).Any(item => item.name == "Navigation Chart"))
+                        throw new InvalidOperationException("Treasure navigation must display the sea chart directly.");
                     break;
                 default: throw new ArgumentException("Unknown audit variant: " + frame.variant);
             }
@@ -289,6 +320,72 @@ namespace ShatteredSail.Editor
             Debug.Log("NAVIGATION_HUD_CAPTURE_OK: " + report.frames.Count + " frames at " + output);
         }
 
+        public static void CaptureHeaderVariantsFromCommandLine()
+        {
+            RequireEditor();
+            string output = Output();
+            if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
+                throw new IOException("Output must be new/empty: " + output);
+            Directory.CreateDirectory(output);
+            var report = new MenuReport
+            {
+                capturedAtUtc = DateTime.UtcNow.ToString("O"),
+                scope = "Current Home, 148px tutorial navigation header and boarding battle header in disposable Editor PreviewScenes at 1920x1080 and 1280x720. Home has only its fixed settings gear, not a horizontal header surface. The production CanvasScaler is verified; tutorial and boarding changes apply only to temporary fixtures. No scenes, assets, saves or gameplay progression are written.",
+            };
+            foreach (string[] state in new[] {
+                new[] { "Home", "" },
+                new[] { CoreGameplayPreviewScreen.Navigation.ToString(), "HeaderTutorial" },
+                new[] { CoreGameplayPreviewScreen.Battle.ToString(), "HeaderBoarding" } })
+                foreach (Vector2Int size in new[] { new Vector2Int(1920, 1080), new Vector2Int(1280, 720) })
+                {
+                    var frame = new MenuFrame
+                    {
+                        state = state[0], variant = state[1], width = size.x, height = size.y,
+                        file = state[0] + (state[1].Length == 0 ? "" : "_" + state[1]) + "_" + size.x + "x" + size.y + ".png",
+                    };
+                    report.frames.Add(frame);
+                    try { CaptureMenu(output, frame); }
+                    catch (Exception e) { frame.error = e.ToString(); Debug.LogWarning(frame.file + ": " + e.Message); }
+                    File.WriteAllText(Path.Combine(output, "report.json"), JsonUtility.ToJson(report, true));
+                }
+            if (report.frames.Any(frame => !string.IsNullOrEmpty(frame.error)))
+                throw new InvalidOperationException("Header variant captures contain failures; inspect report.json.");
+            Debug.Log("HEADER_VARIANTS_CAPTURE_OK: " + report.frames.Count + " frames at " + output);
+        }
+
+        public static void CaptureClockFramesFromCommandLine()
+        {
+            RequireEditor();
+            string output = Output();
+            if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
+                throw new IOException("Output must be new/empty: " + output);
+            Directory.CreateDirectory(output);
+            var report = new MenuReport
+            {
+                capturedAtUtc = DateTime.UtcNow.ToString("O"),
+                scope = "Current navigation clock at 08:00, 17:00, 20:00, next-day 00:00 and 06:00 in disposable Editor PreviewScenes. elapsedGameHours is an offset from each fresh preview's campaign start, preserving its actual campaign date. Uses the enabled production CanvasScaler at 1920x1080 and 1280x720; display geometry and scale must match the target. Only the disposable session clock is restored, without advancing gameplay or saving scenes/assets.",
+            };
+            string[] names = { "Day", "Dusk", "Night", "Midnight", "Dawn" };
+            double[] hours = { 0d, 9d, 12d, 16d, 22d };
+            for (int i = 0; i < hours.Length; i++)
+                foreach (Vector2Int size in new[] { new Vector2Int(1920, 1080), new Vector2Int(1280, 720) })
+                {
+                    var frame = new MenuFrame
+                    {
+                        state = CoreGameplayPreviewScreen.Navigation.ToString(),
+                        clockPreview = true, elapsedGameHours = hours[i], width = size.x, height = size.y,
+                        file = "Clock_" + names[i] + "_" + size.x + "x" + size.y + ".png",
+                    };
+                    report.frames.Add(frame);
+                    try { CaptureMenu(output, frame); }
+                    catch (Exception e) { frame.error = e.ToString(); Debug.LogWarning(frame.file + ": " + e.Message); }
+                    File.WriteAllText(Path.Combine(output, "report.json"), JsonUtility.ToJson(report, true));
+                }
+            if (report.frames.Any(frame => !string.IsNullOrEmpty(frame.error)))
+                throw new InvalidOperationException("Clock captures contain failures; inspect report.json.");
+            Debug.Log("VOYAGE_CLOCK_CAPTURE_OK: " + report.frames.Count + " frames at " + output);
+        }
+
         private static void CaptureMenu(string output, MenuFrame frame)
         {
             Scene scene = default;
@@ -305,6 +402,30 @@ namespace ShatteredSail.Editor
                 if (shop) host.AddComponent<CoreGameplayDemoController>().ConfigureEditorPreview(screen, CoreGameplayPreviewPort.GrayGull, 0);
                 else host.AddComponent<MainMenuController>();
                 host.SetActive(true);
+                if (frame.clockPreview)
+                {
+                    if (!shop || screen != CoreGameplayPreviewScreen.Navigation)
+                        throw new InvalidOperationException("Clock captures require the Navigation preview.");
+                    var controller = host.GetComponent<CoreGameplayDemoController>();
+                    CoreVoyageSession session = controller.Session;
+                    double initialElapsed = session.ElapsedGameHours;
+                    CoreDemoPhase originalPhase = session.Phase;
+                    MethodInfo setPhase = typeof(CoreVoyageSession).GetProperty(nameof(CoreVoyageSession.Phase))?.GetSetMethod(true);
+                    if (setPhase == null) throw new MissingMethodException("CoreVoyageSession.Phase setter");
+                    // RestoreGameClock only accepts port sessions. Temporarily arrange this
+                    // disposable fixture, then restore its sailing state before rendering.
+                    try
+                    {
+                        setPhase.Invoke(session, new object[] { CoreDemoPhase.Port });
+                        if (!session.RestoreGameClock(initialElapsed + frame.elapsedGameHours))
+                            throw new ArgumentOutOfRangeException(nameof(frame.elapsedGameHours), "Invalid preview clock.");
+                    }
+                    finally { setPhase.Invoke(session, new object[] { originalPhase }); }
+                    MethodInfo render = typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (render == null) throw new MissingMethodException("CoreGameplayDemoController.Render");
+                    try { render.Invoke(controller, null); }
+                    catch (TargetInvocationException e) { throw e.InnerException ?? e; }
+                }
                 if (!shop && frame.state == "Achievements")
                     host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Achievements").onClick.Invoke();
                 ArrangeParchmentVariant(host, frame);

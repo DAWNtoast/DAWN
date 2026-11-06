@@ -250,10 +250,10 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(paper.sprite.border.x, Is.GreaterThan(0f));
 
             Text quote = GameObject.Find("Market Purchase Choice Quote").GetComponent<Text>();
-            Assert.That(quote.text.Split('\n'), Has.Length.EqualTo(2),
-                "The quote keeps only the item total and payment/cancellation explanation.");
+            Assert.That(quote.text.Split('\n'), Has.Length.EqualTo(1),
+                "The quote keeps only the item quantity and total price.");
             Assert.That(quote.text, Does.Contain(PortMarketCatalog.Name(item)).And.Contain("×" + quantity)
-                .And.Contain(PortMarketCatalog.FormatPrice(price)).And.Contain("取消不扣款"));
+                .And.Contain(PortMarketCatalog.FormatPrice(price)));
             Assert.That(quote.text, Does.Not.Contain(port));
             Assert.That(quote.text, Does.Not.Contain(now.ToString("yy-MM-dd")));
             Assert.That(quote.text, Does.Not.Match(@"\b\d{2,4}-\d{2}-\d{2}\b"),
@@ -268,7 +268,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(visible.Populate(quote.text, visibleSettings), Is.True);
                 Assert.That(complete.Populate(quote.text, completeSettings), Is.True);
                 Assert.That(visible.vertexCount, Is.GreaterThan(4), "The quote renders visible glyphs.");
-                Assert.That(visible.vertexCount, Is.EqualTo(complete.vertexCount), "Neither of the quote's lines is clipped.");
+                Assert.That(visible.vertexCount, Is.EqualTo(complete.vertexCount), "The quote is not clipped.");
             }
 
             foreach (string name in new[] { "Market Purchase Choice Title", "Market Purchase Choice Quote",

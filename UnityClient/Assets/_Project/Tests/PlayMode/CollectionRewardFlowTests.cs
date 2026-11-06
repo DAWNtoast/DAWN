@@ -15,6 +15,41 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
+        public IEnumerator CollectionRewards_LegacyPortEvidenceUnlocksDestinationsAndPersistsThroughCollectionHistory()
+        {
+            PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "铜钟港");
+            PlayerPrefs.SetInt("ShatteredSail.Achievements.Visited.v1.白贝港", 1);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.PortInvestmentKey("盐冠港"), 1);
+            PlayerPrefs.SetString(CoreGameplayDemoController.TreasureProgressKey, JsonUtility.ToJson(new CoreTreasureProgress
+            {
+                pirateExperience = CoreVoyageSession.PirateExperienceForLevel(3),
+            }));
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            Assert.That(controller.Session.PirateLevel, Is.EqualTo(3));
+            foreach (string port in new[] { "白贝港", "铜钟港", "盐冠港" })
+                Assert.That(controller.Session.HasVisitedPort(port), Is.True, port);
+            Assert.That(controller.Session.CanSelectDestinationPort("暮潮港", out string reason), Is.True, reason);
+            Assert.That(controller.Session.CanSelectDestinationPort("灰鸥港", out _), Is.False);
+            Assert.That(controller.Session.CanSelectDestinationPort(controller.Session.SelectedDestinationPort, out reason), Is.True, reason);
+            typeof(CoreGameplayDemoController).GetMethod("SaveProgress", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
+            CoreCollectionProgress saved = JsonUtility.FromJson<CoreCollectionProgress>(
+                PlayerPrefs.GetString(CoreGameplayDemoController.CollectionProgressKey));
+            Assert.That(saved.visitedPorts, Does.Contain("白贝港").And.Contain("铜钟港").And.Contain("盐冠港"));
+
+            // Once migrated, collection history is sufficient on its own.
+            foreach (string port in CoreVoyageSession.DestinationPorts)
+                PlayerPrefs.DeleteKey("ShatteredSail.Achievements.Visited.v1." + port);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.PortInvestmentKey("盐冠港"));
+            SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
+            controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            Assert.That(controller.Session.HasVisitedPort("盐冠港"), Is.True);
+            Assert.That(controller.Session.CanSelectDestinationPort("暮潮港", out reason), Is.True, reason);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator CollectionRewards_LegacyMilestonesBackfillWithoutTreatingRecruitmentAsCardTraining()
         {
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
@@ -120,9 +155,13 @@ namespace ShatteredSail.Presentation.Tests
                 CollectionAssert.AreEquivalent(new[] { treasureId }, controller.WarehouseCollection.OwnedIds);
             }
             controller.Session.RestoreProfile(controller.Session.ProfileGold, "白贝港");
+            typeof(CoreGameplayDemoController).GetMethod("SaveProgress", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
             RenderResponsiveBattle(controller); yield return null;
-            Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty, "A second port must not reissue the same character keepsake.");
-            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(crew.PortName)), Is.EqualTo(treasureId));
+            CollectionAssert.AreEquivalent(new[] { treasureId }, controller.WarehouseCollection.OwnedIds,
+                "The undisplayed keepsake follows the player without being granted twice.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(crew.PortName)), Is.Empty);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey("白贝港")), Is.EqualTo(treasureId));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey), Is.EqualTo(treasureId));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -172,16 +211,17 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty, "The reward is collected in port, not in battle.");
             Assert.That(session.SafeReturn(), Is.True);
             RenderResponsiveBattle(controller); yield return null;
-            Button skip = ActiveButton("Skip Settlement Reveal");
-            if (skip != null && skip.IsInteractable()) { ClickAcceptanceButton("Skip Settlement Reveal"); yield return null; }
+            yield return SettlementChestTestActions.ShowOverview();
             ClickAcceptanceButton("Return To Port"); yield return null;
             CollectionAssert.AreEquivalent(new[] { "first_victory_compass", "first_stormglass" }, controller.WarehouseCollection.OwnedIds);
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
             controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             Assert.That(controller.WarehouseCollection.OwnedIds.Count, Is.EqualTo(2));
             controller.Session.RestoreProfile(controller.Session.ProfileGold, "白贝港");
+            typeof(CoreGameplayDemoController).GetMethod("SaveProgress", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
             RenderResponsiveBattle(controller); yield return null;
-            Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty, "A different port must not reissue the same trophies.");
+            CollectionAssert.AreEquivalent(new[] { "first_victory_compass", "first_stormglass" }, controller.WarehouseCollection.OwnedIds,
+                "Undisplayed trophies follow the player without increasing global ownership.");
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey).Split(',').Length, Is.EqualTo(2));
             LogAssert.NoUnexpectedReceived();
         }
@@ -220,12 +260,12 @@ namespace ShatteredSail.Presentation.Tests
             controller.Session.RestoreProfile(controller.Session.ProfileGold, "白贝港");
             typeof(CoreGameplayDemoController).GetMethod("SaveProgress", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
             RenderResponsiveBattle(controller); yield return null;
-            Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty);
+            Assert.That(controller.WarehouseCollection.OwnedIds.Count, Is.EqualTo(34));
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.WarehouseDisplayRecordKey), Is.EqualTo(6));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedKey).Split(',').Distinct().Count(), Is.EqualTo(40));
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
             controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty);
+            Assert.That(controller.WarehouseCollection.OwnedIds.Count, Is.EqualTo(34));
             ClickWarehouseButton("Port Hotspot Warehouse"); yield return null;
             Dictionary<string, string> collectionBefore = CaptureCatalogWarehouseSave();
             decimal goldBefore = controller.Session.ProfileGold;
@@ -237,23 +277,27 @@ namespace ShatteredSail.Presentation.Tests
                 AssertCatalogListPage(controller, page, "40 / 40", receivingPort, seen);
                 if (page == 0)
                     NavalBattleVisualCapture.Capture(controller, "Collection_Catalog_All_Owned_Other_Port.png",
-                        "当前港没有本港藏品；全存档40件均保留获得港归属，图鉴直接列出解锁方式", "Warehouse Collection Catalog Panel");
+                        "6件展览藏品留在原港，34件未展览藏品随船到白贝港；图鉴保留40件唯一收藏与解锁方式", "Warehouse Collection Catalog Panel");
                 if (page < 4) { ClickWarehouseButton("Warehouse Catalog Page Next"); yield return null; }
             }
             CollectionAssert.AreEquivalent(CoreWarehouseCollection.Catalog.Select(item => item.Id), seen);
             AssertCatalogWarehouseSaveUnchanged(collectionBefore);
-            Assert.That(controller.WarehouseCollection.OwnedIds, Is.Empty);
+            Assert.That(controller.WarehouseCollection.OwnedIds.Count, Is.EqualTo(34));
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(goldBefore));
             CollectionAssert.AreEqual(cargoBefore, WarehouseCargoSnapshot(controller));
             ClickWarehouseButton("Warehouse Collection Catalog"); yield return null;
             Assert.That(GameObject.Find("Warehouse Collection Catalog Panel"), Is.Null);
             Assert.That(GameObject.Find("Warehouse Catalog Row first_victory_compass"), Is.Null);
-            Assert.That(GameObject.Find("Warehouse Collection Count").GetComponent<Text>().text, Does.Contain("白贝港珍藏 0 件"));
-            Assert.That(GameObject.Find("Warehouse Treasure Page").GetComponent<Text>().text, Is.EqualTo("1 / 1"));
+            Assert.That(GameObject.Find("Warehouse Collection Count").GetComponent<Text>().text, Does.Contain("白贝港珍藏 34 件"));
+            Assert.That(GameObject.Find("Warehouse Treasure Page").GetComponent<Text>().text, Is.EqualTo("1 / 12"));
             Assert.That(RequireWarehouseButton("Warehouse Display Selected").IsInteractable(), Is.False);
             Assert.That(RequireWarehouseButton("Warehouse Remove Selected").IsInteractable(), Is.False);
             Assert.That(ActiveButton("Warehouse Treasure first_victory_compass"), Is.Null);
-            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(receivingPort)).Split(',').Length, Is.EqualTo(40));
+            CollectionAssert.AreEqual(CoreWarehouseCollection.Catalog.Take(6).Select(item => item.Id),
+                PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseOwnedPortKey(receivingPort)).Split(','));
+            CollectionAssert.AreEqual(CoreWarehouseCollection.Catalog.Take(6).Select(item => item.Id),
+                PlayerPrefs.GetString(CoreGameplayDemoController.WarehouseDisplayPortKey(receivingPort)).Split(','));
+            CollectionAssert.AreEqual(CoreWarehouseCollection.Catalog.Skip(6).Select(item => item.Id), controller.WarehouseCollection.OwnedIds);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.WarehouseDisplayRecordKey), Is.EqualTo(6));
             AssertCatalogWarehouseSaveUnchanged(collectionBefore);
             LogAssert.NoUnexpectedReceived();
@@ -367,7 +411,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(sourceBounds.xMax, Is.LessThan(paper.rect.xMax));
                 Assert.That(sourceBounds.yMin, Is.GreaterThan(back.yMax), "The final requirement must clear the paging controls.");
                 if (ownerPort == null) Assert.That(state.text, Does.Contain("未获得"));
-                else Assert.That(state.text, Does.Contain(ownerPort), "An owned item must keep its receiving port: " + treasure.Id);
+                else Assert.That(state.text, Does.Contain(controller.WarehouseCollection.Owns(treasure.Id)
+                    ? controller.Session.CurrentPort : ownerPort), "The catalog must show the current owner port: " + treasure.Id);
                 RawImage icon = row.GetComponentsInChildren<RawImage>().Single(image => image.name == "Warehouse Catalog Icon " + treasure.Id);
                 ItemIconArt art = ItemIconCatalog.ForTreasure(treasure);
                 Assert.That(art.IsAvailable, Is.True, "Every keepsake must have an icon: " + treasure.Id);

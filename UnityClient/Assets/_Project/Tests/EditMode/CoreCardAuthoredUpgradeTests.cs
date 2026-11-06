@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -136,7 +136,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("tide")]
         [TestCase("thunder")]
         [TestCase("blood")]
-        public void LegendaryFieldMasteryGrowsItsReachWithoutReinstallingRetiredDoctrine(string school)
+        public void LegendaryFieldMasteryGrowsDrawWhileKeepingOneCellExpansionAndNoRetiredDoctrine(string school)
         {
             CoreBattleCard basis = CoreSpecialCardCatalog.All.Select(d => d.Card)
                 .Single(card => card.SchoolId == school && card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ComponentFieldMastery);
@@ -151,11 +151,10 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(current.Energy, Is.EqualTo(2));
                 Assert.That(current.Damage + current.Block + current.Repair + current.PowderCost + current.CannonballCost, Is.Zero);
                 Assert.That(current.SchoolEffect.Mechanic, Is.EqualTo(basis.SchoolEffect.Mechanic));
-                Assert.That(current.SchoolEffect.Power, Is.GreaterThanOrEqualTo(previous.SchoolEffect.Power));
-                Assert.That(current.SchoolEffect.Secondary, Is.GreaterThanOrEqualTo(previous.SchoolEffect.Secondary));
+                Assert.That(current.SchoolEffect.Power, Is.EqualTo(1), "All friendly fields expand exactly one cell in each cardinal direction.");
+                Assert.That(current.SchoolEffect.Secondary, Is.Zero, "Expansion no longer also extends field duration.");
                 if (rank > 0 && rank <= maximum)
-                    Assert.That(current.SchoolEffect.Power + current.SchoolEffect.Secondary,
-                        Is.GreaterThan(previous.SchoolEffect.Power + previous.SchoolEffect.Secondary));
+                    Assert.That(current.Draw, Is.GreaterThan(previous.Draw), "Purchasable mastery ranks improve draw, not expansion distance.");
                 Assert.That(CoreSpecialCardRules.IsDoctrine(current), Is.False);
                 previous = current;
             }
@@ -173,7 +172,8 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = Start(id, rank, true);
             CoreBattleCard card = session.GetBattleCard(Index(id));
-            int expected = CoreCardUpgradeDesign.ScaleEffect(card, 8, card.UpgradeLevel);
+            int expected = id.EndsWith("fire_03", StringComparison.Ordinal)
+                ? new[] { 6, 7, 9 }[card.UpgradeLevel] : new[] { 16, 20, 28 }[card.UpgradeLevel];
             Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
             Assert.That(id.EndsWith("fire_03", StringComparison.Ordinal) ? session.Battle.EnemyBurnDamage : session.Battle.Boarding.ThunderReady,
                 Is.EqualTo(expected), id);
@@ -201,7 +201,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("tide")]
         [TestCase("thunder")]
         [TestCase("blood")]
-        public void LegendaryComponentsPreserveTheirFieldRoleAndMeetEpicBenefitsAtEqualRanks(string school)
+        public void LegendaryComponentsPreserveTheirFieldRoleWithoutRegressingAtMatchingRanks(string school)
         {
             var session = new CoreVoyageSession();
             for (int slot = 1; slot <= 4; slot++)
@@ -240,6 +240,24 @@ namespace ShatteredSail.Core.Tests
             Assert.That(legendaryThunder.SchoolEffect.Power, Is.GreaterThan(epicThunder.SchoolEffect.Power));
         }
 
+        [TestCase("arcane_01", 0, 2)] [TestCase("arcane_01", 1, 2)] [TestCase("arcane_01", 2, 3)] [TestCase("arcane_01", 3, 4)]
+        [TestCase("arcane_02", 0, 2)] [TestCase("arcane_02", 1, 3)] [TestCase("arcane_02", 2, 4)] [TestCase("arcane_02", 3, 4)]
+        [TestCase("arcane_03", 0, 6)] [TestCase("arcane_03", 1, 7)] [TestCase("arcane_03", 2, 9)] [TestCase("arcane_03", 3, 9)]
+        [TestCase("curse_01", 0, 2)] [TestCase("curse_01", 1, 2)] [TestCase("curse_01", 2, 3)] [TestCase("curse_01", 3, 4)]
+        [TestCase("curse_02", 0, 6)] [TestCase("curse_02", 1, 8)] [TestCase("curse_02", 2, 10)] [TestCase("curse_02", 3, 10)]
+        [TestCase("curse_03", 0, 2)] [TestCase("curse_03", 1, 3)] [TestCase("curse_03", 2, 4)] [TestCase("curse_03", 3, 4)]
+        public void BoardingResourceRanksExecuteTheirAuthoredGain(string key, int rank, int expected)
+        {
+            CoreVoyageSession session = Start("card_boarding_" + key, rank, true);
+            int mana = session.Battle.Schools.Mana;
+            Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
+            int actual = key.StartsWith("arcane", StringComparison.Ordinal)
+                ? session.Battle.Schools.Mana - mana : session.Battle.Boarding.CurseMarks;
+            Assert.That(actual, Is.EqualTo(expected));
+            Assert.That(session.GetBattleCard(Index("card_boarding_" + key)).Description,
+                Does.Contain(expected + (key.StartsWith("arcane", StringComparison.Ordinal) ? " 点魔力" : " 层咒印")));
+        }
+
         private static IEnumerable<CoreBattleCard> LiveCards() => CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None);
 
         private static int[] Benefits(CoreBattleCard card)
@@ -252,6 +270,25 @@ namespace ShatteredSail.Core.Tests
             result.Add(card.Action == NavalBattleCardAction.FireRounds ? card.BurnDamage : 0);
             result.Add(card.SchoolEffect?.Power ?? 0);
             result.Add(card.SchoolEffect?.Secondary ?? 0);
+            // Naval expansion resources and thresholds execute outside the card's
+            // printed damage/block fields. Count only the values used by this ID.
+            result.Add(CoreNavalFireArcanePower.BurnLayers(card));
+            result.Add(CoreNavalFireArcanePower.ManaGain(card));
+            result.Add(CoreNavalFireArcanePower.CapacityGain(card));
+            result.Add(card.Id == CoreNavalThunderPower.CircuitId ? CoreNavalThunderPower.CircuitEnergy(card.UpgradeLevel) : 0);
+            result.Add(card.Id == CoreNavalThunderPower.PayoffId ? CoreNavalThunderPower.PayoffFive(card.UpgradeLevel) : 0);
+            result.Add(card.Id == CoreNavalThunderPower.PayoffId ? CoreNavalThunderPower.PayoffTen(card.UpgradeLevel) : 0);
+            result.Add(card.Id == "card_school_arcane_n04" ? CoreNavalExpansionBalance.ManaBurstDamageCoefficient(card.UpgradeLevel) : 0);
+            result.Add(card.Id == "card_school_tide_n02" ? CoreNavalExpansionBalance.TideStrikeDamageCoefficient(card.UpgradeLevel) : 0);
+            result.Add(card.Id == "card_school_thunder_n06" ? CoreNavalExpansionBalance.ThunderCollapseChainCoefficient(card.UpgradeLevel) : 0);
+            result.Add(card.Id == "card_school_blood_n03" ? CoreNavalExpansionBalance.DesperateCannonBonus(card.UpgradeLevel) : 0);
+            // Observe resources executed outside printed damage/guard channels. Exact values are
+            // separately checked by BoardingResourceRanksExecuteTheirAuthoredGain.
+            result.Add(CoreBoardingCardBalance.Mana(card.BoardingSpec?.Key, card.UpgradeLevel));
+            result.Add(CoreBoardingCardBalance.Marks(card.BoardingSpec?.Key, card.UpgradeLevel));
+            result.Add(CoreBoardingCardBalance.Burn(card.BoardingSpec?.Key, card.UpgradeLevel));
+            result.Add(card.BoardingSpec?.Key == "fire_06" ? CoreBoardingCardBalance.Burn("fire_06", card.UpgradeLevel, true) : 0);
+            result.Add(card.BoardingSpec?.Key == "fire_07" ? CoreBoardingCardBalance.BurnFuel(3, card.UpgradeLevel) : 0);
             // Only values consumed by real boarding rules qualify as hidden growth. Most cards expose their
             // direct result already; these cases additionally represent burns, reactions or conditional payoffs.
             foreach (int baseline in HiddenBoardingValues(card.BoardingSpec?.Key))
@@ -265,33 +302,28 @@ namespace ShatteredSail.Core.Tests
         {
             switch (key)
             {
-                case "fire_02": return new[] { 4 };
-                case "fire_03": return new[] { 8 };
-                case "fire_04": return new[] { 6 };
-                case "fire_06": return new[] { 3, 5 };
-                case "fire_07": return new[] { 7, 10, 13 };
-                case "fire_08": return new[] { 6, 10, 14 };
-                case "arcane_07": return new[] { 8 };
+                case "fire_08": return new[] { 12, 20, 28 };
+                case "arcane_07": return new[] { 16 };
                 // Arcane guard retention is already represented by card.Block. Echo scales the
                 // uncapped half-damage result: a 42-damage source yields 21 before its effect curve.
                 case "arcane_13": return new[] { 21 };
-                case "curse_07": return new[] { 3, 9 };
-                case "curse_08": return new[] { 4, 16, 2, 8 };
+                case "curse_07": return new[] { 6, 12 };
+                case "curse_08": return new[] { 8, 20, 4, 10 };
                 case "curse_09": return new[] { 2, 12 };
-                case "tide_04": return new[] { 4 };
-                case "tide_09": return new[] { 16 };
-                case "tide_10": return new[] { 3 };
-                case "thunder_04": return new[] { 6 };
-                case "thunder_06": return new[] { 8 };
-                case "thunder_10": return new[] { 4 };
-                case "thunder_12": return new[] { 2, 5 };
-                case "blood_06": return new[] { 2 };
-                case "blood_08": return new[] { 8 };
-                case "blood_09": return new[] { 7, 9 };
-                case "blood_11": return new[] { 14 };
-                case "blood_12": return new[] { 8 };
-                case "blood_13": return new[] { 18 };
-                case "blood_15": return new[] { 8 };
+                case "tide_04": return new[] { 8 };
+                case "tide_09": return new[] { 32 };
+                case "tide_10": return new[] { 6 };
+                case "thunder_04": return new[] { 12 };
+                case "thunder_06": return new[] { 16 };
+                case "thunder_10": return new[] { 8 };
+                case "thunder_12": return new[] { 10, 20 };
+                case "blood_06": return new int[0];
+                case "blood_08": return new[] { 16 };
+                case "blood_09": return new[] { 12, 26 };
+                case "blood_11": return new[] { 34 };
+                case "blood_12": return new[] { 24 };
+                case "blood_13": return new[] { 44 };
+                case "blood_15": return new[] { 16 };
                 default: return Array.Empty<int>();
             }
         }
@@ -301,6 +333,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             session.ConfigureSpecialCardSources(CoreSpecialCardCatalog.All.Where(c => c.SourceKind == CoreSpecialCardSourceKind.Crew).Select(c => c.SourceId).ToArray(),
                 CoreSpecialCardCatalog.All.Where(c => c.SourceKind == CoreSpecialCardSourceKind.Component).Select(c => c.SourceId).ToArray());
             session.ConfigureCardUpgrades(new Dictionary<string, int> { { id, rank } });

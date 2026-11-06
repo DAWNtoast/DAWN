@@ -49,7 +49,9 @@ namespace ShatteredSail.Core.Tests
             {
                 preview.Controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Navigation, CoreGameplayPreviewPort.GrayGull, 0);
                 Canvas.ForceUpdateCanvases();
-                string[] names = { "Map Title", "Navigation Title", "Lookout Heading", "Lookout Time Readout", "Lookout Time Legend" };
+                string[] names = { "Map Title", "Navigation Title", "Lookout Heading", "Lookout Time Readout", "Lookout Time Legend",
+                    "Lookout Time Phase", "Lookout Time Transition", "Lookout Time Caption", "Lookout Time Hour 0", "Lookout Time Hour 6",
+                    "Lookout Time Hour 12", "Lookout Time Hour 18", "Lookout Time Hour 24" };
                 foreach (string name in names)
                 {
                     Text label = preview.Host.GetComponentsInChildren<Text>().Single(t => t.name == name);
@@ -208,22 +210,23 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void CardFaceEmphasis_OnlyAllowsSharedUsageConditionsAndKeepsOtherTypographyGuards()
+        public void CardFaceEmphasis_OnlyAllowsSharedKeywordsAndKeepsOtherTypographyGuards()
         {
             using (PreviewFixture preview = new PreviewFixture())
             {
                 preview.Controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.TavernCrewDetail, CoreGameplayPreviewPort.BronzeBell, 0);
                 Text[] labels = preview.Host.GetComponentsInChildren<Text>(true);
                 Text effect = labels.Single(label => label.name == "Tavern Special Card Effect");
-                // The navigator now grants action points without a usage prerequisite.
-                // Exercise this card-face typography with the live cannon card instead.
-                effect.text = CardFaceLayout.FormatDescription(CoreVoyageSession.CardLibrary.Single(card => card.Id == "card_chain_shot").Description);
+                // Exercise this card-face typography with a real glossary keyword.
+                effect.text = CardFaceLayout.FormatDescription(CoreVoyageSession.CardLibrary.Single(card => card.Id == "card_load_shot").Description);
                 string valid = effect.text;
-                Assert.That(valid, Does.Contain("<b>"), "Exercise a real card with a usage condition.");
-                AssertAuthoredText(effect, "Shared card condition");
+                Assert.That(valid, Does.Contain("<b>额外装药</b>"), "Exercise a real card with a keyword.");
+                AssertAuthoredText(effect, "Shared card keyword");
 
                 effect.text = "<b>格挡 +4</b>。";
-                Assert.Throws<AssertionException>(() => AssertAuthoredText(effect, "Result must not receive condition emphasis"));
+                Assert.Throws<AssertionException>(() => AssertAuthoredText(effect, "Ordinary results must not receive keyword emphasis"));
+                effect.text = "<b>范围1-4格</b>：造成8点船体伤害";
+                Assert.Throws<AssertionException>(() => AssertAuthoredText(effect, "Ranges must not receive keyword emphasis"));
                 effect.text = valid;
                 effect.fontStyle = FontStyle.Bold;
                 Assert.Throws<AssertionException>(() => AssertAuthoredText(effect, "Card face still forbids whole-label synthetic bold"));
@@ -318,17 +321,16 @@ namespace ShatteredSail.Core.Tests
             Assert.That(label.fontStyle, Is.EqualTo(FontStyle.Normal), context + " / " + label.name);
             if (IsCardFaceEffect(label))
             {
-                // Shared card faces deliberately emphasize usage conditions. Strip
-                // every bold span and recreate it, so arbitrary emphasis cannot hide
-                // behind the exception or the formatter's preservation of existing tags.
+                // Shared card faces emphasize only glossary keywords. Strip and
+                // recreate their spans, rejecting arbitrary or missing emphasis.
                 Assert.That(label.font, Is.SameAs(GameTypography.BodyFont), context + " / " + label.name);
                 Assert.That(label.supportRichText, Is.True, context + " / " + label.name);
                 // The shared card renderer may insert additional line breaks
-                // inside one prerequisite and close/reopen its bold span on
+                // inside one keyword and close/reopen its bold span on
                 // each line. Recover the complete clause before matching it.
                 Assert.That(NormalizedCardEmphasis(label.text),
                     Is.EqualTo(ExpectedCardEmphasis(label.text)),
-                    context + " / " + label.name + " must emphasize only shared card usage conditions.");
+                    context + " / " + label.name + " must emphasize only shared card keywords.");
             }
             else Assert.That(label.text, Does.Not.Contain("<b>"), context + " / " + label.name + " must not reintroduce synthetic bold through rich text.");
             Assert.That(label.text, Does.Not.Contain("<i>"), context + " / " + label.name + " must not reintroduce synthetic italics through rich text.");
@@ -351,16 +353,22 @@ namespace ShatteredSail.Core.Tests
             return NormalizedCardEmphasis(CardFaceLayout.FormatDescription(plain));
         }
 
-        [TestCase("靠近60米并转为平行\n<b>平行且距离不超过</b>\n<b>60\u00a0米</b>可接舷", true)]
-        [TestCase("靠近60米并转为平行\n<b>平行且距离不超过60米</b>可接舷", true)]
+        [TestCase("靠近60米并转为平行\n<b>平行且距离不超过</b>\n<b>60\u00a0米</b>可接舷", false)]
+        [TestCase("靠近60米并转为平行\n<b>平行且距离不超过60米</b>可接舷", false)]
         [TestCase("<b>靠近60米</b>并转为平行\n<b>平行且距离不超过60米</b>可接舷", false)]
         [TestCase("靠近60米并转为平行\n平行且<b>距离不超过60米</b>可接舷", false)]
-        [TestCase("靠近60米并转为平行\n平行且距离不超过60米可接舷", false)]
+        [TestCase("靠近60米并转为平行\n平行且距离不超过60米可接舷", true)]
         [TestCase("<b>格挡6</b>", false)]
-        [TestCase("<b>范围1-4格</b>：造成28点船体伤害", true)]
+        [TestCase("<b>范围1-4格</b>：造成28点船体伤害", false)]
         [TestCase("<b>范围1-4格</b>：<b>造成28点船体伤害</b>", false)]
-        [TestCase("范围1-4格：造成28点船体伤害", false)]
-        public void CardEmphasisAudit_AcceptsWrappedPrerequisitesButRejectsAddedOrMissingEmphasis(string text, bool valid)
+        [TestCase("范围1-4格：造成28点船体伤害", true)]
+        [TestCase("范围1-4格：施加2层<b>燃烧</b>；<b>额外装药</b>：5", true)]
+        [TestCase("获得<b>蓄潮</b>\n<b>格挡</b>，再次获得<b>蓄潮格挡</b>", true)]
+        [TestCase("施加2层燃烧", false)]
+        [TestCase("施加<b>2层燃烧</b>", false)]
+        [TestCase("额外格挡：3；获得3点额外格挡", false)]
+        [TestCase("<b>额外格挡</b>：3；获得3点额外格挡", true)]
+        public void CardEmphasisAudit_AcceptsWrappedKeywordsButRejectsAddedOrMissingEmphasis(string text, bool valid)
         {
             Assert.That(NormalizedCardEmphasis(text) == ExpectedCardEmphasis(text), Is.EqualTo(valid));
         }
@@ -395,7 +403,7 @@ namespace ShatteredSail.Core.Tests
                 case "Tavern Crew Skill": return 1.3f;
                 case "Component Special Card Calculation":
                 case "Tavern Special Card Calculation": return 1.18f;
-                case "Forecast": return 1.16f;
+                case "Forecast": return 1.1f;
                 case "Lookout Report": return 1.08f;
                 case "Shipyard Dossier Story":
                 case "Warehouse Treasure Story":

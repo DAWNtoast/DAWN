@@ -15,8 +15,9 @@ namespace ShatteredSail.Core.Gameplay
         private double specialCardDistanceRemainder;
 
         // All locked source cards earn full distance XP; there is no separate per-voyage rank cap.
-        // Four nautical miles of real sailing contribute roughly one progression point.
-        public const double SpecialCardExperiencePerNauticalMile = 0.25d;
+        // Forty nautical miles of real sailing contribute one progression point.
+        // Keep cumulative thresholds and previously earned experience unchanged.
+        public const double SpecialCardExperiencePerNauticalMile = 0.025d;
 
         public IReadOnlyDictionary<string, int> SpecialCardExperience => new ReadOnlyDictionary<string, int>(specialCardExperience);
         public IReadOnlyList<string> AcquiredSpecialCardIds
@@ -63,8 +64,10 @@ namespace ShatteredSail.Core.Gameplay
 
         private void RestoreSpecialCardMinimumExperience(string cardId, int minimumExperience)
         {
-            if (!IsSpecialBattleCard(cardId)) return;
-            acquiredSpecialCards.Add(cardId);
+            bool retired = CoreRetiredSourceCards.IsRetired(cardId);
+            if (!IsSpecialBattleCard(cardId) && !retired) return;
+            // Historical XP remains a migration input, never an acquired playable card.
+            if (!retired) acquiredSpecialCards.Add(cardId);
             specialCardExperience[cardId] = Math.Max(GetSpecialCardExperience(cardId), Math.Max(0, minimumExperience));
         }
 
@@ -128,8 +131,8 @@ namespace ShatteredSail.Core.Gameplay
             for (int index = 0; index < Math.Min(LegacyBattleCardSlotCount, cardLibrary.Count); index++)
             {
                 CoreBattleCard old = cardLibrary[index];
-                string source = definition.SourceKind == CoreSpecialCardSourceKind.Crew ? old.RequiredCrew : old.RequiredComponent;
-                if (source == definition.LegacySourceKey) legacyExperience = Math.Max(legacyExperience, GetSpecialCardExperience(old.Id));
+                if (CoreRetiredSourceCards.MatchesLegacySource(old.Id, definition))
+                    legacyExperience = Math.Max(legacyExperience, GetSpecialCardExperience(old.Id));
             }
             if (legacyExperience > 0) RestoreSpecialCardMinimumExperience(definition.Card.Id, legacyExperience);
         }

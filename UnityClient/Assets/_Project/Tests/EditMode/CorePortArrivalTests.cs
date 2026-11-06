@@ -197,7 +197,7 @@ namespace ShatteredSail.Core.Tests
             AssertPoint(session.Position, start);
             Assert.That(session.TotalDistanceNm, Is.Zero);
             Assert.That(session.TotalHours, Is.Zero);
-            Assert.That(session.GetSpecialCardExperience("card_navigator_course"), Is.Zero);
+            Assert.That(session.GetSpecialCardExperience("card_special_crew_gray_gull_navigator_evelyn"), Is.Zero);
         }
 
         [Test]
@@ -286,8 +286,12 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void DockingSettlesOnlyOnce_AndPortTransitionUsesTheDestination()
         {
-            CoreVoyageSession session = Voyage(new VoyagePoint(49f, 32f));
+            // Sail 54 nautical miles so the current 40-mile XP rule grants a
+            // whole point; the old 27-mile fixture only earns fractional XP.
+            CoreVoyageSession session = Voyage(new VoyagePoint(48f, 32f));
             session.SetCourseTo(session.Map.Destination);
+            session.SetDistance(180);
+            Assert.That(session.GetForecast().ActualDistanceNm, Is.EqualTo(54f).Within(.001f));
             Assert.That(session.Sail(), Is.True);
             AssertArrived(session);
             VoyageSettlement settlement = session.Settlement;
@@ -295,9 +299,10 @@ namespace ShatteredSail.Core.Tests
             double hours = session.TotalHours;
             int water = session.Cargo.Water;
             int gold = session.Cargo.Gold;
-            int experience = session.GetSpecialCardExperience("card_navigator_course");
+            int experience = session.GetSpecialCardExperience("card_special_crew_gray_gull_navigator_evelyn");
             string destination = session.Map.DestinationName;
-            Assert.That(experience, Is.GreaterThan(0));
+            Assert.That(distance, Is.EqualTo(54f).Within(.001f));
+            Assert.That(experience, Is.EqualTo(1), "Docking must credit the completed 54-mile leg before settlement.");
 
             Assert.That(session.Sail(), Is.False);
 
@@ -306,7 +311,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.TotalHours, Is.EqualTo(hours));
             Assert.That(session.Cargo.Water, Is.EqualTo(water));
             Assert.That(session.Cargo.Gold, Is.EqualTo(gold));
-            Assert.That(session.GetSpecialCardExperience("card_navigator_course"), Is.EqualTo(experience));
+            Assert.That(session.GetSpecialCardExperience("card_special_crew_gray_gull_navigator_evelyn"), Is.EqualTo(experience));
             session.ReturnToPortAfterSettlement();
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
             Assert.That(session.CurrentPort, Is.EqualTo(destination));
@@ -315,6 +320,8 @@ namespace ShatteredSail.Core.Tests
         private static CoreVoyageSession Voyage(VoyagePoint position, int route = 0, bool bossDefeated = true)
         {
             var session = new CoreVoyageSession();
+            session.ConfigureCrewCapabilities(true, false, false, false, false, false);
+            session.ConfigureSpecialCardSources(new[] { "crew_gray_gull_navigator_evelyn" }, null);
             session.SelectRoute(route);
             session.SetSeed("PORT-ARRIVAL-REGRESSION");
             session.StartVoyage();

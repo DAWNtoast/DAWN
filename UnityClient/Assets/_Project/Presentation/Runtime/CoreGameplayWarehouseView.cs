@@ -32,6 +32,7 @@ namespace ShatteredSail.Presentation
                 warehouseViewedSession = session;
                 warehouseViewedPort = CurrentWarehousePort;
                 warehouseStorageOpen = false;
+                warehouseViewingCarriedCargo = false;
                 warehouseTreasurePage = 0;
                 warehouseCatalogOpen = false;
                 // A preview initializer can deliberately select a sample item in
@@ -77,9 +78,9 @@ namespace ShatteredSail.Presentation
                     Render();
                 });
             rare.interactable = WarehouseCargoActionsAllowed;
-            MarketShopSkin.SetMode(valuables, !warehouseStorageOpen);
-            MarketShopSkin.SetMode(storage, warehouseStorageOpen && !warehouseRareStorageOpen);
-            MarketShopSkin.SetMode(rare, warehouseStorageOpen && warehouseRareStorageOpen);
+            WoodButtonSkin.SetSelected(valuables, !warehouseStorageOpen);
+            WoodButtonSkin.SetSelected(storage, warehouseStorageOpen && !warehouseRareStorageOpen);
+            WoodButtonSkin.SetSelected(rare, warehouseStorageOpen && warehouseRareStorageOpen);
             if (warehouseStorageOpen && warehouseRareStorageOpen) BuildPortWarehouseRareStorage(ledger);
             else if (warehouseStorageOpen) BuildPortWarehouseStorage(ledger);
             else BuildWarehouseValuables(ledger);
@@ -225,7 +226,7 @@ namespace ShatteredSail.Presentation
                 WarehouseLabel("Warehouse Inventory State " + id, tile.transform, new Vector2(166f, 24f),
                     new Vector2(0f, -88f), 15, string.IsNullOrEmpty(ownerPort) ? "未获得" :
                         ownerPort != CurrentWarehousePort ? "已收藏 · " + ownerPort :
-                        warehouseCollection.IsDisplayed(id) ? "已陈列 · 唯一藏品" : "已入库 · 可陈列", WarehouseRoomTheme.Brass);
+                        warehouseCollection.IsDisplayed(id) ? "已陈列 · 留在本港" : "随船携带 · 可陈列", WarehouseRoomTheme.Brass);
                 AddWarehouseAction(tile, () => { selectedWarehouseTreasureId = id; Render(); });
                 BindWarehouseTreasureDrag(tile, id);
             }
@@ -233,7 +234,7 @@ namespace ShatteredSail.Presentation
             if (owned == 0)
             {
                 WarehouseLabel("Warehouse Empty Collection", ledger, new Vector2(578f, 158f),
-                    new Vector2(0f, 106f), 23, CurrentWarehousePort + "尚无藏品\n\n藏品存放在获得它的港口。", WarehouseRoomTheme.Ink);
+                    new Vector2(0f, 106f), 23, CurrentWarehousePort + "尚无藏品", WarehouseRoomTheme.Ink);
             }
             Button previousPage = WarehouseAction("Warehouse Treasure Page Previous", ledger, new Vector2(124f, 44f),
                 new Vector2(-236f, -338f), "上一页", () =>
@@ -291,7 +292,7 @@ namespace ShatteredSail.Presentation
                 });
             display.interactable = selected != null && warehouseCollection.Owns(selected.Id);
             Button remove = WarehouseAction("Warehouse Remove Selected", ledger, new Vector2(280f, 56f),
-                new Vector2(158f, -281f), "收回仓库", () =>
+                new Vector2(158f, -281f), "取下并随船携带", () =>
                 {
                     for (int slot = 0; slot < CoreWarehouseCollection.DisplaySlotCount; slot++)
                         if (warehouseCollection.DisplayedAt(slot) == selectedWarehouseTreasureId)
@@ -352,7 +353,7 @@ namespace ShatteredSail.Presentation
                 state.alignment = TextAnchor.MiddleLeft;
                 Text source = WarehouseLabel("Warehouse Catalog Source " + treasure.Id, row,
                     new Vector2(480f, 70f), new Vector2(268f, 0f), 18,
-                    treasure.Source.Replace("（非教学", "\n（非教学"), WarehouseInk);
+                    treasure.Source, WarehouseInk);
                 source.alignment = TextAnchor.MiddleLeft;
                 source.lineSpacing = 1f;
             }
@@ -408,13 +409,7 @@ namespace ShatteredSail.Presentation
         {
             Button button = WarehouseButton(name, parent, size, position, Gold, Ink, 21);
             button.GetComponentInChildren<Text>().text = label;
-            if (name == "Warehouse Display Selected" || name == "Warehouse Store All Rare")
-            {
-                WoodButtonSkin.Apply(button, Color.white);
-                WoodButtonSkin.SetSelected(button, false);
-                WoodButtonSkin.SetRole(button, WoodButtonRole.Primary);
-            }
-            else MarketShopSkin.ApplyLightButton(button);
+            WoodButtonSkin.ApplyAction(button, WoodButtonSkin.DefaultRoleFor(name));
             AddWarehouseAction(button, action);
             return button;
         }

@@ -28,8 +28,8 @@ namespace ShatteredSail.Presentation.Tests
             Button next = ActiveButton("Next Port Facility");
             Assert.That(header, Is.Not.Null);
             Assert.That(FindPortChromeBackdrop(controller), Is.SameAs(backdrop));
-            string[] expectedSections = { "船长收藏室", "皇家船坞", "灰鸥酒馆", "部件商店", "卡组工坊", "藏宝图桌", "港口投资建设", "出航码头", "港口市场" };
-            string[] expectedBackdropNames = { "Warehouse", "Shipyard", "Tavern", "ComponentShop", "CardWorkshop", "Treasure", "Maintenance", "Voyage", "Market" };
+            string[] expectedSections = { "船长收藏室", "皇家船坞", "灰鸥酒馆", "部件商店", "卡牌工坊", "藏宝图桌", "港口投资建设", "出航码头", "港口市场" };
+            string[] expectedBackdropNames = { "Warehouse", "Shipyard", "Tavern", "ComponentShop", "Workshop Home", "Treasure", "Maintenance", "Voyage", "Market" };
             for (int index = 0; index < expectedSections.Length; index++)
             {
                 Assert.That(ActiveButton("Next Port Facility"), Is.SameAs(next));
@@ -39,6 +39,12 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(GameObject.Find("Port Facility Header"), Is.SameAs(header));
                 Assert.That(FindPortChromeBackdrop(controller), Is.SameAs(backdrop));
                 Assert.That(backdrop.name, Is.EqualTo(expectedBackdropNames[index] + " Background"));
+                if (expectedBackdropNames[index] == "Workshop Home")
+                {
+                    Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
+                    Assert.That(backdrop.texture, Is.SameAs(Resources.Load<Texture2D>("CardWorkshopV2/workshop_home_v1")),
+                        "The retained backdrop must bind the current painted workshop entrance.");
+                }
                 Assert.That(header.activeInHierarchy, Is.True);
                 Assert.That(backdrop.raycastTarget, Is.False);
                 Assert.That(controller.GetComponentsInChildren<Transform>(true).Count(item => item.name == "Port Facility Header"), Is.EqualTo(1));
@@ -64,6 +70,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             GameObject hub = GameObject.Find("Port Hub");
+            RawImage hubPortIcon = GameObject.Find("Port Hub Port Icon").GetComponent<RawImage>();
+            Assert.That(hubPortIcon.texture, Is.SameAs(new PortMapIconCatalog().Get("断锚港")));
             ClickAcceptanceButton("Port Hotspot Market"); yield return null;
             GameObject header = GameObject.Find("Port Facility Header");
             RawImage backdrop = FindPortChromeBackdrop(controller);
@@ -84,6 +92,10 @@ namespace ShatteredSail.Presentation.Tests
             ClickAcceptanceButton("Return To Port Hub"); yield return null;
             Assert.That(GameObject.Find("Port Hub"), Is.SameAs(hub));
             Assert.That(GameObject.Find("Port Hub Port").GetComponent<Text>().text, Is.EqualTo("白贝港"));
+            Assert.That(GameObject.Find("Port Hub Port Icon").GetComponent<RawImage>(), Is.SameAs(hubPortIcon));
+            Assert.That(hubPortIcon.texture, Is.SameAs(new PortMapIconCatalog().Get("白贝港")),
+                "A retained hub must replace its old port icon when the session changes ports.");
+            Assert.That(hubPortIcon.raycastTarget, Is.False);
             Assert.That(GameObject.Find("Port Hub Gold").GetComponent<Text>().text,
                 Does.Contain(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
             ClickAcceptanceButton("Port Hotspot Market"); yield return null;
@@ -164,17 +176,20 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(backdrop, Is.Not.Null);
             Assert.That(header.activeInHierarchy, Is.False);
             Assert.That(hub.activeInHierarchy, Is.False);
+            Assert.That(hub.transform.Find("Port Hub Port Icon").GetComponent<RawImage>().texture, Is.Null,
+                "A parked header must release its port artwork until the view is rebound.");
             Assert.That(backdrop.gameObject.activeInHierarchy, Is.False);
             Assert.That(FindPortChromeBackdrop(controller), Is.Null);
             Assert.That(GameObject.Find("Voyage Header"), Is.Not.Null);
             ClickAcceptanceButton("Safe Return"); yield return null;
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
             Assert.That(backdrop.gameObject.activeInHierarchy, Is.False);
-            if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-            { ClickAcceptanceButton("Skip Settlement Reveal"); yield return null; }
+            yield return SettlementChestTestActions.ShowOverview();
             ClickAcceptanceButton("Return To Port"); yield return null;
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
             Assert.That(GameObject.Find("Port Hub"), Is.SameAs(hub));
+            Assert.That(hub.transform.Find("Port Hub Port Icon").GetComponent<RawImage>().texture,
+                Is.SameAs(new PortMapIconCatalog().Get(controller.Session.CurrentPort)));
             Assert.That(FindPortChromeBackdrop(controller), Is.SameAs(backdrop));
             Assert.That(backdrop.name, Is.EqualTo("Port Hub Background"));
             Assert.That(backdrop.texture, Is.Not.Null);

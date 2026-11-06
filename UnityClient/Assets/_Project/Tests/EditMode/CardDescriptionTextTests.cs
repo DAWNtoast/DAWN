@@ -66,7 +66,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("使用1药物恢复14，绝境时恢复18；无药物恢复2，绝境时恢复3。绝境：治疗前生命不高于最大生命40%。",
             "消耗1药物恢复14点生命（绝境18点），无药物恢复2点生命（绝境3点）\n绝境：治疗前生命≤40%上限")]
         [TestCase("新增2层自燃；获得 16 格挡。本回合首次实际用格挡吸收敌方攻击后，反伤当前自燃层数×2，最多8；反伤受格挡，不暴击。",
-            "新增2层自燃，获得16点格挡\n本回合首次格挡吸收敌方攻击后，反伤当前自燃层数×2，最多8\n反伤受格挡，不暴击")]
+            "新增2层自燃\n获得16点格挡\n本回合首次格挡吸收敌方攻击后，反伤当前自燃层数×2，最多8\n反伤受格挡，不暴击")]
         [TestCase("本回合接下来3张主动雷霆攻击各追加8伤害；不暴击、不产链，多段只追加一次。迟雷追加一起延迟；不叠加。",
             "本回合下3张主动雷霆攻击各追加8点伤害\n不暴击、不产链，多段只追加一次\n迟雷的追加伤害也会延迟，不叠加")]
         [TestCase("咒痕上限6，每批持续3次敌方回合结束，本身不造成伤害。",
@@ -74,7 +74,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("下一己方回合开始造成(36+8X)×1.5（结果四舍五入）伤害，施放时锁定；受格挡，不暴击。",
             "下个己方回合初造成(36+8X)×1.5（四舍五入）点伤害，施放时锁定\n受格挡，不暴击")]
         [TestCase("本回合和之后两个己方回合，每回合首次主动新增自燃时，为敌方附加相同层数的灼烧，单次最多3层。不叠加、不刷新。",
-            "本回合及随后两个己方回合，每回合首次主动新增自燃时，为敌方施加相同层数的灼烧，单次最多3层\n不叠加、不刷新")]
+            "本回合和之后两个己方回合，每回合首次主动新增自燃时，为敌方附加相同层数的灼烧，单次最多3层\n不叠加、不刷新")]
         [TestCase("格挡 +4；抽 2 张；每回合一次；恢复 18 点船员生命。",
             "获得4点格挡\n抽2张牌（每回合一次）\n恢复18点船员生命")]
         [TestCase("消耗 3 火药；消耗 1 炮弹；实际造成直伤后灼烧 14×2 回合；目标出牌前已燃烧时额外结算一次燃烧，每回合一次。",
@@ -150,14 +150,14 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("fire_01", "点伤害")]
-        [TestCase("fire_07", "4+3X")]
-        [TestCase("fire_08", "2+4X")]
-        [TestCase("fire_11", "出牌前")]
-        [TestCase("arcane_04", "24+6X")]
-        [TestCase("arcane_06", "2+X")]
-        [TestCase("arcane_11", "36+8X")]
-        [TestCase("curse_11", "20+8X")]
-        [TestCase("thunder_11", "3+出牌前连锁层数")]
+        [TestCase("fire_07", "3+2X|4+3X|5+4X")]
+        [TestCase("fire_08", "4+8X|6+12X|7+14X|9+18X")]
+        [TestCase("fire_11", "60+2×自身燃烧层数|75+3×自身燃烧层数|90+5×自身燃烧层数")]
+        [TestCase("arcane_04", "48+6X|60+8X|76+9X")]
+        [TestCase("arcane_06", "4+X")]
+        [TestCase("arcane_11", "72+8X|84+9X|104+12X")]
+        [TestCase("curse_11", "40+8X|48+10X|60+12X")]
+        [TestCase("thunder_11", "6+3×出牌前连锁层数|8+4×出牌前连锁层数|10+5×出牌前连锁层数|12+6×出牌前连锁层数")]
         [TestCase("blood_07", "第二击")]
         public void FormulaOnlyCards_KeepTheirFormulaNumbersAndTimingThroughRealTextLayout(string key, string formula)
         {
@@ -173,15 +173,24 @@ namespace ShatteredSail.Core.Tests
                     CardFaceLayout.FitEffect(effect);
                     string visible = Regex.Replace(StripTags(effect.text), @"\s+", string.Empty);
                     string context = card.Id + " rank " + rank;
-                    Assert.That(visible, Does.Contain(formula).And.Not.Contain("总计").And.Not.Contain("分别造成")
+                    string[] formulas = formula.Split('|');
+                    string expectedFormula = formulas[Math.Min(card.UpgradeLevel, formulas.Length - 1)];
+                    if (key == "thunder_11" && card.UpgradeLevel == 0)
+                        expectedFormula = "造成6点伤害2次，出牌前每有一层连锁，每次伤害提高3点";
+                    Assert.That(visible, Does.Contain(expectedFormula).And.Not.Contain("总计").And.Not.Contain("分别造成")
                         .And.Not.Match(@"即\d|\d/\d"), context);
                     CollectionAssert.AreEqual(NumericTokens(quote), NumericTokens(effect.text),
-                        context + " retains every coefficient, upgrade multiplier, limit and duration after examples are removed");
+                        context + " retains every fixed amount, coefficient, limit and duration after examples are removed");
                     CollectionAssert.AreEqual(Regex.Matches(quote, @"[X×÷]").Cast<Match>().Select(match => match.Value).ToArray(),
                         Regex.Matches(effect.text, @"[X×÷]").Cast<Match>().Select(match => match.Value).ToArray(), context);
-                    if (quote.Contains("四舍五入")) Assert.That(visible, Does.Contain("四舍五入"), context);
+                    Assert.That(visible, Does.Not.Contain("四舍五入").And.Not.Match(@"\)×\d"), context);
                     if (key == "arcane_11") Assert.That(visible, Does.Contain("延迟："), context);
-                    if (key == "fire_11") Assert.That(visible, Does.Contain("自燃"), context);
+                    if (key == "fire_11")
+                    {
+                        Assert.That(visible, Does.Contain("对自身施加3层燃烧"), context);
+                        Assert.That(visible.IndexOf("对自身施加3层燃烧", StringComparison.Ordinal),
+                            Is.LessThan(visible.IndexOf("造成", StringComparison.Ordinal)), context + " applies burn before damage");
+                    }
                     AssertVisibleWordsAndClauseBoundaries(source, effect.text, context);
                     Assert.That(effect.preferredHeight, Is.LessThanOrEqualTo(94.01f), context);
                     AssertLinesFitAndHaveContent(effect, context);
@@ -251,15 +260,27 @@ namespace ShatteredSail.Core.Tests
                     auditedIds.Add(card.Id);
                 }
                 Assert.That(CoreBoardingCardCatalog.All.Count, Is.EqualTo(103), "The new canonical boarding catalog is included.");
-                Assert.That(CoreNavalSchoolExpansionCatalog.All.Count, Is.EqualTo(27), "The six-school naval expansion adds 27 cards; its nine reused cards retain their existing identities.");
+                Assert.That(CoreNavalSchoolExpansionCatalog.All.Count, Is.EqualTo(36), "The naval expansion includes the nine newly added cards without replacing earlier identities.");
                 int publishedCards = CoreVoyageSession.CardLibrary.Count(card => card.AllowedStages != NavalBattleStages.None);
-                Assert.That(publishedCards, Is.EqualTo(216 + 103 + 27), "Existing naval/legacy cards, 103 canonical boarding cards and 27 appended naval expansion cards; retired aliases are excluded.");
+                string[] retiredSourceIds = {
+                    "card_navigator_course", "card_carpenter_shoring", "card_doctor_sutures", "card_gunner_precision",
+                    "card_cook_rations", "card_diver_sabotage", "card_component_bow", "card_component_sail",
+                    "card_component_cannon", "card_component_plating", "card_component_instrument"
+                };
+                foreach (string retiredId in retiredSourceIds)
+                {
+                    Assert.That(CoreVoyageSession.CardLibrary.Single(card => card.Id == retiredId).AllowedStages,
+                        Is.EqualTo(NavalBattleStages.None), retiredId + " retains only its retired save slot");
+                    Assert.That(auditedIds, Has.No.Member(retiredId), retiredId + " cannot replace a published card in the audit");
+                }
+                Assert.That(publishedCards, Is.EqualTo(216 - 11 + 103 + 36),
+                    "The eleven retired generic crew/component cards are excluded; all 344 remaining naval/legacy, canonical boarding and naval expansion identities stay covered.");
                 Assert.That(checkedCards, Is.EqualTo(publishedCards), "Retired slots are excluded, all published cards included.");
                 Assert.That(auditedIds.Distinct().Count(), Is.EqualTo(publishedCards), "Each published identity is audited once.");
                 CollectionAssert.IsSubsetOf(CoreBoardingCardCatalog.All.Select(card => card.Id).ToArray(), auditedIds,
                     "All 103 new canonical boarding cards pass the same actual text checks.");
                 CollectionAssert.IsSubsetOf(CoreNavalSchoolExpansionCatalog.All.Select(card => card.Id).ToArray(), auditedIds,
-                    "All 27 naval expansion cards pass the same actual text checks.");
+                    "All 36 naval expansion cards pass the same actual text checks.");
                 TestContext.WriteLine("Rank " + level + ": " + sharedSizeCards + "/" + checkedCards + " cards at shared font size " + CardFaceLayout.EffectFontSize);
                 Assert.That(sharedSizeCards, Is.GreaterThan(checkedCards * .9),
                     "Each rank independently needs more than 90% of " + publishedCards + " cards at the shared size. Reduced: " +

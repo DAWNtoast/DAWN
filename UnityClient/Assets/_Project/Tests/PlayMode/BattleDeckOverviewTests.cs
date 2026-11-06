@@ -47,6 +47,12 @@ namespace ShatteredSail.Presentation.Tests
                 RequiredResponsive<Button>("Battle Deck Tab " + stage).onClick.Invoke();
                 yield return null;
                 Canvas.ForceUpdateCanvases();
+                foreach (Button tab in RequiredResponsive<RectTransform>("Battle Deck Sheet").GetComponentsInChildren<Button>()
+                             .Where(button => button.name.StartsWith("Battle Deck Tab ")))
+                {
+                    Assert.That(tab.image.sprite, Is.SameAs(WoodButtonSkin.Face));
+                    Assert.That(tab.GetComponent<WoodButtonRoleState>().IsSelected, Is.EqualTo(tab.name == "Battle Deck Tab " + stage));
+                }
                 AssertBattleDeckGroup("Undrawn", battle.GetDrawPile(stage).Count);
                 AssertBattleDeckGroup("Discard", battle.GetDiscardPile(stage).Count);
                 Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Preparation), "Browsing a tab cannot change combat stage.");

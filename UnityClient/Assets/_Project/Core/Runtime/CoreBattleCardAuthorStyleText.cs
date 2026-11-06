@@ -19,16 +19,9 @@ namespace ShatteredSail.Core.Gameplay
             }
             if (field?.Mechanic == CoreNavalExpansionMechanic.OilMark)
                 return "范围 1-4 格：施加浸油。";
-            if (card?.SchoolEffect?.Mechanic == CoreSchoolMechanic.FireLoad)
-            {
-                // Four burn stacks are the shared base attached-fire rule. Upgraded or
-                // special payloads remain explicit so their numerical benefit is visible.
-                text = Regex.Replace(text, @"获得\s*(\d+)\s*发附火，最多储备\s*\d+\s*发[；。](?:命中后)?施加\s*(\d+)\s*层燃烧",
-                    match => "获得 " + match.Groups[1].Value + " 发附火" +
-                        (match.Groups[2].Value == "4" ? string.Empty : "（燃烧 " + match.Groups[2].Value + " 层）"));
-            }
             text = text.Replace("咒痕", "咒印").Replace("烧掉", "焚烧").Replace("燃尽本牌", "焚烧本卡牌")
-                .Replace("普通格挡", "格挡");
+                .Replace("烈焰强化", "附火").Replace("灼烧", "燃烧").Replace("自燃", "燃烧").Replace("燃尽", "焚烧");
+            if (card?.Id != "card_school_curse_b06") text = text.Replace("普通格挡", "格挡");
             text = Regex.Replace(text, @"恢复\s*(\d+)\s*点(能量|魔力|法力)", "获得 $1 点$2");
             text = Regex.Replace(text,
                 @"(?:(?:额外装药|校准火控)：)?下次炮击伤害提高\s*(\d+)\s*点(?:，加成最多叠加至\s*\d+\s*点)?",

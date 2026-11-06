@@ -86,7 +86,9 @@ namespace ShatteredSail.Presentation.Tests
             AssertRareWarehouseSavedSplit(session);
 
             yield return OpenRareWarehouse();
-            ClickAcceptanceButton("Warehouse Store All Rare"); yield return null;
+            yield return OpenRareWarehouseAdjustment("lantern");
+            yield return DragWarehouseSlider(RareWarehouseSlider(), RareWarehouseSlider().minValue);
+            ClickAcceptanceButton("Confirm Warehouse Cargo Adjustment"); yield return null;
             Assert.That(session.Cargo.Lantern, Is.Zero);
             Assert.That(session.PortWarehouse.GetAmount(port, "lantern"), Is.EqualTo(1));
             AssertRareWarehouseSavedSplit(session);

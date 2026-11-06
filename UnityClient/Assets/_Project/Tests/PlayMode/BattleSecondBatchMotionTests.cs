@@ -80,17 +80,22 @@ namespace ShatteredSail.Presentation.Tests
                 RenderResponsiveBattle(controller);
                 yield return null;
                 int health = battle.EnemyHull, energy = battle.Energy;
+                int powder = session.Cargo.Powder, cannonballs = session.Cargo.Cannonballs;
+                CoreBattleCard card = session.GetBattleCard(battle.Hand[0]);
                 int cost = session.GetBattleCardEnergyCost(battle.Hand[0]);
                 Assert.That(session.CanPlayCard(0), Is.True, school + ": " + session.CardUnavailableReason(0));
                 RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
-                yield return ObserveSecondBatchAttacks(controller, SecondBatchKind(school), BattleSchoolAttackOutcome.Hit,
+                yield return ObserveSecondBatchNavalAttacks(controller, SecondBatchKind(school), BattleSchoolAttackOutcome.Hit,
+                    school == "arcane" ? NavalVfxRole.Strike : NavalVfxRole.Cannon,
                     () => 1, "BattleSecondBatch_Player_Naval_" + school + ".png",
                     "真实海战出牌：" + school + "攻击辨识；余额与生命条保持权威结果",
-                    attack => Assert.That(SecondBatchResult(attack), Is.EqualTo("-" + (health - battle.EnemyHull))),
+                    attack => Assert.That(SecondBatchNavalResult(attack), Is.EqualTo("-" + (health - battle.EnemyHull))),
                     school == "fire" ? "BattleSecondBatch_Player_Naval_fire_Trajectory.png" : null);
                 Assert.That(battle.CardsPlayedThisTurn, Is.EqualTo(1));
                 Assert.That(battle.Energy, Is.EqualTo(energy - cost));
                 Assert.That(battle.EnemyHull, Is.LessThan(health));
+                Assert.That(session.Cargo.Powder, Is.EqualTo(powder - card.PowderCost));
+                Assert.That(session.Cargo.Cannonballs, Is.EqualTo(cannonballs - card.CannonballCost));
                 Assert.That(RequiredResponsive<BattleResourceChangeTracker>("Resource Energy").LastDelta, Is.EqualTo(-cost));
                 AssertResponsiveHandMatchesCore(session);
             }
@@ -175,6 +180,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.Cargo.Powder, Is.EqualTo(powder));
             Assert.That(ActiveSecondBatchAttacks(), Is.Empty,
                 "Current rules reject out-of-range attacks; they do not produce a fake missed projectile.");
+            Assert.That(ActiveSecondBatchNavalAttacks(), Is.Empty,
+                "Rejected naval input must not create a new naval attack graphic either.");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -335,7 +342,9 @@ namespace ShatteredSail.Presentation.Tests
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             CoreVoyageSession session = CreateFieldStatusMotionBattle(controller);
             SetNavalFieldTestPose(session, false, 4, 0);
-            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 1, 0, false, 0, 0), Is.True);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Thunder, true, 1, 0, false, 0, 0), Is.True);
+            typeof(CoreSchoolBattleState).GetProperty("ThunderChain").SetValue(session.Battle.Schools, 45);
+            Assert.That(session.GetNavalFieldRemainingTurns(session.GetNavalFieldAt(1, 0)), Is.EqualTo(5));
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, 1);
             typeof(CoreBattleState).GetProperty("NavalActionPoints").SetValue(session.Battle, 2);
             SetResponsiveHand(session, "card_brace");
@@ -346,6 +355,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return DragTacticalRoute(controller, new[] { new VoyagePoint(100f, 0f), new VoyagePoint(200f, 0f) });
             Assert.That(session.NavalMovementPlannedSteps, Is.EqualTo(2));
             Assert.That(session.NavalMovementFieldPreview.Sinks, Is.True);
+            Assert.That(session.NavalMovementFieldPreview.FinalThunderChain, Is.EqualTo(50),
+                "The first landing adds five chain and triggers the current 1000-damage overload.");
             UnityEvent stale = RequiredResponsive<Button>("Commit Naval Movement").onClick;
             stale.Invoke(); stale.Invoke();
             BattleResolutionMotion resolution = null;
@@ -361,7 +372,7 @@ namespace ShatteredSail.Presentation.Tests
             string committed = SecondBatchOutcomeFingerprint(session);
             AdvanceSecondBatchResolutionTo(resolution, .65f);
             NavalBattleVisualCapture.Capture(controller, "BattleSecondBatch_LethalField_Sinking.png",
-                "真实两格路线在第一格火场致死：显示舰位停在规则落点，只结算一次失败");
+                "真实两格路线在第一格雷栅达到50连锁致死：显示舰位停在规则落点，只结算一次失败");
             yield return WaitResponsiveBattle(controller);
             stale.Invoke();
             yield return null;
@@ -469,12 +480,79 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
         }
 
+        private static NavalCombatFxGraphic[] ActiveSecondBatchNavalAttacks() =>
+            Object.FindObjectsByType<NavalCombatFxGraphic>(FindObjectsSortMode.None)
+                .Where(effect => effect.IsPlaying && effect.gameObject.activeInHierarchy &&
+                    (effect.Role == NavalVfxRole.Cannon || effect.Role == NavalVfxRole.Strike || effect.Role == NavalVfxRole.Area)).ToArray();
+
+        private static string SecondBatchNavalResult(NavalCombatFxGraphic attack)
+        {
+            // Naval damage is a stage-level floating label; self-damage has its own named text prefix.
+            Text[] results = attack.transform.parent.GetComponentsInChildren<Text>()
+                .Where(text => text.name == "Naval VFX Result" && !text.text.StartsWith("船体 ", StringComparison.Ordinal)).ToArray();
+            Assert.That(results, Has.Length.EqualTo(1), "One committed enemy hit exposes one real damage result.");
+            Assert.That(results[0].raycastTarget, Is.False);
+            return results[0].text;
+        }
+
+        private static IEnumerator ObserveSecondBatchNavalAttacks(CoreGameplayDemoController controller,
+            BattleSchoolAttackKind kind, BattleSchoolAttackOutcome outcome, NavalVfxRole role, Func<int> expectedCount,
+            string file, string caption, Action<NavalCombatFxGraphic> onFirst = null, string trajectoryFile = null)
+        {
+            var seen = new HashSet<int>();
+            NavalCombatFxGraphic firstAttack = null;
+            bool capturedTrajectory = false;
+            bool capturedHit = false;
+            float deadline = Time.realtimeSinceStartup + 20f;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                Assert.That(ActiveSecondBatchAttacks(), Is.Empty, "Naval attacks must not also replay the boarding presentation.");
+                foreach (NavalCombatFxGraphic attack in ActiveSecondBatchNavalAttacks())
+                {
+                    if (!seen.Add(attack.GetInstanceID())) continue;
+                    Assert.That(attack.Role, Is.EqualTo(role));
+                    Assert.That(attack.HasSchool, Is.True);
+                    Assert.That(attack.School, Is.EqualTo(kind));
+                    Assert.That(attack.Outcome, Is.EqualTo(outcome));
+                    Assert.That(attack.GetComponentsInChildren<Graphic>(true).All(graphic => !graphic.raycastTarget), Is.True);
+                    if (seen.Count == 1) firstAttack = attack;
+                }
+                if (firstAttack != null && firstAttack.IsPlaying)
+                {
+                    if (trajectoryFile != null && !capturedTrajectory && firstAttack.Progress >= .18f &&
+                        firstAttack.Progress < firstAttack.ContactAt)
+                    {
+                        NavalBattleVisualCapture.Capture(controller, trajectoryFile, "真实出牌自然行进关键帧：轨迹尚未到达目标");
+                        capturedTrajectory = true;
+                    }
+                    if (!capturedHit && firstAttack.Progress >= Mathf.Max(.6f, firstAttack.ContactAt + .08f))
+                    {
+                        onFirst?.Invoke(firstAttack);
+                        NavalBattleVisualCapture.Capture(controller, file, caption);
+                        capturedHit = true;
+                    }
+                }
+                if (!controller.IsBattleAnimationPlaying && ActiveSecondBatchNavalAttacks().Length == 0) break;
+                yield return null;
+            }
+            Assert.That(controller.IsBattleAnimationPlaying, Is.False, "Real naval feedback must finish and unlock the battlefield.");
+            Assert.That(ActiveSecondBatchNavalAttacks(), Is.Empty);
+            Assert.That(seen.Count, Is.EqualTo(expectedCount()), "Each committed attack must own one naval school presentation.");
+            Assert.That(seen.Count, Is.GreaterThan(0));
+            Assert.That(capturedHit, Is.True, "The first real naval attack must reach its natural hit capture phase.");
+            if (trajectoryFile != null)
+                Assert.That(capturedTrajectory, Is.True, "The requested trajectory frame must be captured naturally before contact.");
+            yield return null;
+        }
+
         private static IEnumerator AssertNoSecondBatchAttackDuringAction(CoreGameplayDemoController controller)
         {
             float deadline = Time.realtimeSinceStartup + 20f;
             do
             {
                 Assert.That(ActiveSecondBatchAttacks(), Is.Empty, "Setup, rejected input or an already consumed delayed result must not impersonate an attack.");
+                Assert.That(ActiveSecondBatchNavalAttacks(), Is.Empty,
+                    "Naval affliction/setup feedback must not be presented as cannon, strike or area damage.");
                 if (!controller.IsBattleAnimationPlaying) break;
                 yield return null;
             } while (Time.realtimeSinceStartup < deadline);

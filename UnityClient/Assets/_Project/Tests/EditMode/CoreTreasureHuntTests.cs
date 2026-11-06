@@ -385,11 +385,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Settlement.ProtectionRatio, Is.EqualTo(.95f));
             Assert.That(session.Settlement.ChartSaved, Is.False);
             Assert.That(session.TreasureAdventureCompleted && session.Settlement.TreasureCompleted, Is.True);
-            Assert.That(session.Settlement.BankedGold, Is.EqualTo((int)Math.Floor(core.Encounter.Choices[choice].Effect.Gold * .95f)));
+            Assert.That(session.Settlement.BankedGold, Is.EqualTo((int)((long)core.Encounter.Choices[choice].Effect.Gold * 95 / 100)));
             Assert.That(session.Settlement.BankedGem, Is.EqualTo(core.Encounter.Choices[choice].Effect.Gem), "A 5% cargo loss must not erase the sole gem.");
             Assert.That(session.Settlement.BankedRelic, Is.EqualTo(core.Encounter.Choices[choice].Effect.Relic));
             Assert.That(session.Settlement.BankedBlackPearl, Is.EqualTo(core.Encounter.Choices[choice].Effect.BlackPearl));
-            Assert.That(session.Settlement.BankedAncientMaterial, Is.EqualTo((int)Math.Floor(core.Encounter.Choices[choice].Effect.AncientMaterial * .95f)), "Common material rounding is unchanged.");
+            Assert.That(session.Settlement.BankedAncientMaterial, Is.EqualTo((int)((long)core.Encounter.Choices[choice].Effect.AncientMaterial * 95 / 100)), "Common material rounding is unchanged.");
             if (choice == 1) { Assert.That(session.Cargo.Powder, Is.EqualTo(powder - 3)); Assert.That(session.Hull, Is.EqualTo(hull - 12)); }
             Assert.That(session.ResolveChoice(choice), Is.False);
             Assert.That(session.BossDefeated, Is.False);
@@ -448,7 +448,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void ReturningFromTreasure_RestoresNormalChartingAndAllowsAnotherTreasureVoyage()
+        public void ReturningFromTreasure_RestoresNormalChartReuseAndAllowsAnotherTreasureVoyage()
         {
             var session = Ready("weathered", "FIRST");
             Assert.That(session.TryStartTreasureVoyage(out _), Is.True);
@@ -457,11 +457,11 @@ namespace ShatteredSail.Core.Tests
             session.ReturnToPortAfterSettlement();
             Assert.That(session.Map, Is.Null);
             Assert.That(session.IsTreasureVoyage, Is.False);
-            Assert.That(session.CanDrawSeaChart, Is.True);
+            Assert.That(session.CanUseSeaCharts, Is.True);
             session.SelectRoute(0); session.StartVoyage();
             Assert.That(session.IsTreasureVoyage, Is.False);
             Assert.That(session.ActiveTreasureMap, Is.Null);
-            Assert.That(session.CanDrawSeaChart, Is.True);
+            Assert.That(session.CanUseSeaCharts, Is.True);
             Assert.That(session.SafeReturn(), Is.True); session.ReturnToPortAfterSettlement();
             var progress = session.CaptureTreasureProgress(); progress.identifiedWeatheredFragments = 4;
             session.RestoreTreasureProgress(progress);
@@ -561,9 +561,9 @@ namespace ShatteredSail.Core.Tests
         [TestCase(19.99f, false, false, 0)]
         [TestCase(20f, false, false, 0)]
         [TestCase(2700f, false, false, 0)]
-        [TestCase(0f, true, false, 25)]
+        [TestCase(0f, true, false, 6)]
         [TestCase(0f, true, true, 0)]
-        [TestCase(20f, true, false, 26)]
+        [TestCase(20f, true, false, 7)]
         [TestCase(2700f, true, true, 0)]
         public void OrdinarySafeReturn_RequiresCompletedEventsAndExcludesSkippedEvents(float distanceNm, bool visited, bool skipped, int expected)
         {
@@ -585,7 +585,7 @@ namespace ShatteredSail.Core.Tests
             session.Map.Nodes[0].Visited = true; // Settlement math fixture: one completed event keeps an ordinary return eligible.
             Assert.That(session.CompletedEventCount(), Is.EqualTo(1));
             Assert.That(session.SafeReturn(), Is.True);
-            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(175));
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(44));
             Assert.That(session.Settlement.DistanceNm, Is.EqualTo(distanceNm), "The voyage report retains actual nautical miles.");
         }
 
@@ -597,7 +597,7 @@ namespace ShatteredSail.Core.Tests
             var session = Ready(rankId, "XP-SCALE"); Assert.That(session.TryStartTreasureVoyage(out _), Is.True);
             Set(session, "TotalDistanceNm", distanceNm);
             Assert.That(session.SafeReturn(), Is.True);
-            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(165));
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(41));
         }
 
         [Test]
@@ -609,24 +609,24 @@ namespace ShatteredSail.Core.Tests
             Set(session, "TotalDistanceNm", 6503f);
             foreach (CoreMapNode node in session.Map.Nodes.Take(5)) node.Visited = true;
             Assert.That(session.SafeReturn(), Is.True);
-            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(426), "The first route now covers 27 nautical miles per chart unit.");
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(107), "Free-voyage experience is quartered after normalization to the chart's physical scale.");
             Assert.That(session.PirateExperience, Is.EqualTo(120), "The pending settlement has not been confirmed.");
             session.ReturnToPortAfterSettlement();
-            Assert.That(session.PirateExperience, Is.EqualTo(546));
-            Assert.That(session.PirateLevel, Is.EqualTo(4));
+            Assert.That(session.PirateExperience, Is.EqualTo(227));
+            Assert.That(session.PirateLevel, Is.EqualTo(2));
             session.ReturnToPortAfterSettlement();
-            Assert.That(session.PirateExperience, Is.EqualTo(546));
+            Assert.That(session.PirateExperience, Is.EqualTo(227));
         }
 
         [TestCase(VoyageOutcome.ArrivedAtPort)]
         [TestCase(VoyageOutcome.TreasureRecovered)]
-        public void ExperienceNormalization_PreservesTheSixtyPointCompletionBonus(VoyageOutcome outcome)
+        public void ExperienceNormalization_ScalesTheExistingCompletionBonusWithTheVoyage(VoyageOutcome outcome)
         {
             var session = new CoreVoyageSession(); session.StartVoyage();
             Set(session, "TotalDistanceNm", 100f * session.Map.Route.NauticalMilesPerMapUnit);
             typeof(CoreVoyageSession).GetMethod("FinishVoyage", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(session, new object[] { outcome });
-            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(225));
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(56));
         }
 
         [Test]

@@ -191,6 +191,94 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void MoveUndisplayedTo_PreservesBothPortsExhibitsAndMovesEveryOtherKeepsake()
+        {
+            var source = new CoreWarehouseCollection();
+            var destination = new CoreWarehouseCollection();
+            foreach (CoreWarehouseTreasureDefinition treasure in CoreWarehouseCollection.Catalog)
+                source.Grant(treasure.Id);
+            source.TryDisplay(Compass, 4);
+            destination.Grant(Bell);
+            destination.TryDisplay(Bell, 2);
+
+            Assert.That(source.MoveUndisplayedTo(destination), Is.EqualTo(39));
+            CollectionAssert.AreEqual(new[] { Compass }, source.OwnedIds);
+            Assert.That(source.ExportDisplay(), Is.EqualTo(",,,," + Compass + ","));
+            Assert.That(destination.OwnedIds.Count, Is.EqualTo(39), "Carried keepsakes are not limited by six exhibition slots.");
+            Assert.That(destination.ExportDisplay(), Is.EqualTo(",," + Bell + ",,,"));
+            Assert.That(destination.Owns(Compass), Is.False);
+            Assert.That(destination.IsDisplayed(Chart), Is.False, "Carrying never automatically exhibits a keepsake.");
+            Assert.That(source.MoveUndisplayedTo(destination), Is.Zero, "Repeated arrival must not duplicate ownership.");
+        }
+
+        [Test]
+        public void MoveUndisplayedTo_RemovedAndReplacedExhibitsTravelOnTheNextArrival()
+        {
+            var source = new CoreWarehouseCollection();
+            var destination = new CoreWarehouseCollection();
+            source.Grant(Compass);
+            source.Grant(Bell);
+            source.Grant(Chart);
+            source.TryDisplay(Compass, 0);
+            source.TryDisplay(Bell, 1);
+            source.TryRemoveDisplay(0);
+            source.TryDisplay(Chart, 1);
+
+            Assert.That(source.MoveUndisplayedTo(destination), Is.EqualTo(2));
+            CollectionAssert.AreEqual(new[] { Compass, Bell }, destination.OwnedIds);
+            CollectionAssert.AreEqual(new[] { Chart }, source.OwnedIds);
+            Assert.That(source.DisplayedAt(1), Is.EqualTo(Chart));
+            Assert.That(destination.ExportDisplay(), Is.EqualTo(",,,,,"));
+        }
+
+        [Test]
+        public void MoveUndisplayedTo_EmptyOrFullyExhibitedCollectionDoesNotMove()
+        {
+            var source = new CoreWarehouseCollection();
+            var destination = new CoreWarehouseCollection();
+            Assert.That(source.MoveUndisplayedTo(destination), Is.Zero);
+            source.Grant(Compass);
+            source.TryDisplay(Compass, 5);
+            Assert.That(source.MoveUndisplayedTo(destination), Is.Zero);
+            Assert.That(destination.OwnedIds, Is.Empty);
+            Assert.That(source.DisplayedAt(5), Is.EqualTo(Compass));
+        }
+
+        [Test]
+        public void MoveUndisplayedTo_NullOrSameDestinationCannotLoseOwnership()
+        {
+            var collection = new CoreWarehouseCollection();
+            collection.Grant(Compass);
+            Assert.That(collection.MoveUndisplayedTo(null), Is.Zero);
+            Assert.That(collection.MoveUndisplayedTo(collection), Is.Zero);
+            CollectionAssert.AreEqual(new[] { Compass }, collection.OwnedIds);
+        }
+
+        [Test]
+        public void MoveUndisplayedTo_ReloadAndNextPortKeepOneCopyAndAllowFreeExhibition()
+        {
+            var origin = new CoreWarehouseCollection();
+            var arrival = new CoreWarehouseCollection();
+            origin.Grant(Compass);
+            origin.Grant(Bell);
+            origin.TryDisplay(Bell, 3);
+            origin.MoveUndisplayedTo(arrival);
+            var reloadedOrigin = new CoreWarehouseCollection();
+            var reloadedArrival = new CoreWarehouseCollection();
+            reloadedOrigin.Import(origin.ExportOwned(), origin.ExportDisplay());
+            reloadedArrival.Import(arrival.ExportOwned(), arrival.ExportDisplay());
+
+            Assert.That(reloadedOrigin.MoveUndisplayedTo(reloadedArrival), Is.Zero);
+            CollectionAssert.AreEqual(new[] { Bell }, reloadedOrigin.OwnedIds);
+            CollectionAssert.AreEqual(new[] { Compass }, reloadedArrival.OwnedIds);
+            var nextPort = new CoreWarehouseCollection();
+            Assert.That(reloadedArrival.MoveUndisplayedTo(nextPort), Is.EqualTo(1));
+            Assert.That(reloadedArrival.OwnedIds, Is.Empty);
+            Assert.That(nextPort.TryDisplay(Compass, 0), Is.True);
+            Assert.That(reloadedOrigin.DisplayedAt(3), Is.EqualTo(Bell));
+        }
+
+        [Test]
         public void Import_TrimsKnownIdsAndDiscardsDuplicatesUnknownIdsAndUnownedDisplays()
         {
             var collection = new CoreWarehouseCollection();

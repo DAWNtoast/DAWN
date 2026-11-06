@@ -3,6 +3,7 @@ using System.Linq;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -26,28 +27,111 @@ namespace ShatteredSail.Presentation.Tests
             string tavernCaption = "← " + controller.Session.CurrentPort.Replace("港", "酒馆");
             Assert.That(title.GetComponent<Text>().text, Is.EqualTo("部件商店"));
             Assert.That(ActiveButton("Previous Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo(tavernCaption));
-            Assert.That(ActiveButton("Next Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("卡组工坊 →"));
-            Assert.That(gold.text, Does.Contain("总金币").And.EndsWith(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
-            ActiveButton("Next Port Facility").onClick.Invoke();
+            Assert.That(ActiveButton("Next Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("卡牌工坊 →"));
+            PortHeaderIconGraphic previousIcon = AssertFacilityHeaderDestinationIcon("Previous Port Facility", PortHeaderIconKind.Tavern);
+            PortHeaderIconGraphic nextIcon = AssertFacilityHeaderDestinationIcon("Next Port Facility", PortHeaderIconKind.CardWorkshop);
+            PortHeaderIconGraphic currentIcon = AssertCurrentFacilityHeaderIdentity(PortHeaderIconKind.ComponentShop);
+            Texture shopTexture = currentIcon.texture;
+            Texture tavernTexture = previousIcon.texture;
+            AssertFacilityHeaderDestinationIcon("Return To Port Hub", PortHeaderIconKind.Back);
+            Assert.That(gold.text, Is.EqualTo(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
+            ClickFacilityNavigationArrow("Next Port Facility");
             yield return null;
             Assert.That(GameObject.Find("Port Facility Header"), Is.SameAs(header));
             Assert.That(GameObject.Find("Port Facility Title").GetComponent<RectTransform>(), Is.SameAs(title));
             Assert.That(title.anchoredPosition, Is.EqualTo(shopPosition), "Every facility uses the same retained header layout.");
             Assert.That(title.sizeDelta, Is.EqualTo(titleSize));
-            Assert.That(title.GetComponent<Text>().text, Is.EqualTo("卡组工坊"));
+            Assert.That(title.GetComponent<Text>().text, Is.EqualTo("卡牌工坊"));
+            Assert.That(AssertCurrentFacilityHeaderIdentity(PortHeaderIconKind.CardWorkshop), Is.SameAs(currentIcon));
+            Assert.That(currentIcon.texture, Is.Not.SameAs(shopTexture), "The retained current-page identity must update with its name.");
             Assert.That(GameObject.Find("Port Facility Gold").GetComponent<Text>(), Is.SameAs(gold));
-            Assert.That(gold.text, Does.Contain("总金币").And.EndsWith(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
+            Assert.That(gold.text, Is.EqualTo(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
             Assert.That(ActiveButton("Previous Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("← 部件商店"));
-            ActiveButton("Previous Port Facility").onClick.Invoke();
+            Assert.That(AssertFacilityHeaderDestinationIcon("Previous Port Facility", PortHeaderIconKind.ComponentShop), Is.SameAs(previousIcon));
+            Assert.That(AssertFacilityHeaderDestinationIcon("Next Port Facility", PortHeaderIconKind.TreasureMap), Is.SameAs(nextIcon));
+            Assert.That(previousIcon.texture, Is.Not.SameAs(tavernTexture), "A retained icon must refresh to the new destination artwork.");
+            AssertFacilityHeaderDestinationIcon("Return To Port Hub", PortHeaderIconKind.Back);
+            ClickFacilityNavigationArrow("Previous Port Facility");
             yield return null;
             Assert.That(GameObject.Find("Port Facility Header"), Is.SameAs(header));
             Assert.That(title.anchoredPosition, Is.EqualTo(shopPosition));
             Assert.That(title.sizeDelta, Is.EqualTo(titleSize));
             Assert.That(title.GetComponent<Text>().text, Is.EqualTo("部件商店"));
             Assert.That(ActiveButton("Previous Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo(tavernCaption));
-            Assert.That(ActiveButton("Next Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("卡组工坊 →"));
-            Assert.That(gold.text, Does.Contain("总金币").And.EndsWith(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
+            Assert.That(ActiveButton("Next Port Facility").GetComponentInChildren<Text>().text, Is.EqualTo("卡牌工坊 →"));
+            Assert.That(gold.text, Is.EqualTo(PortMarketCatalog.FormatPrice(controller.Session.ProfileGold)));
+            Assert.That(AssertFacilityHeaderDestinationIcon("Previous Port Facility", PortHeaderIconKind.Tavern), Is.SameAs(previousIcon));
+            Assert.That(AssertFacilityHeaderDestinationIcon("Next Port Facility", PortHeaderIconKind.CardWorkshop), Is.SameAs(nextIcon));
+            Assert.That(previousIcon.texture, Is.SameAs(tavernTexture));
+            AssertFacilityHeaderDestinationIcon("Return To Port Hub", PortHeaderIconKind.Back);
+            Assert.That(AssertCurrentFacilityHeaderIdentity(PortHeaderIconKind.ComponentShop), Is.SameAs(currentIcon));
+            Assert.That(currentIcon.texture, Is.SameAs(shopTexture));
+            header.SetActive(false);
+            yield return null;
+            header.SetActive(true);
+            yield return null;
+            Assert.That(AssertCurrentFacilityHeaderIdentity(PortHeaderIconKind.ComponentShop), Is.SameAs(currentIcon),
+                "Reactivating a cached header must preserve its noninteractive current-page identity.");
+            Assert.That(AssertFacilityHeaderDestinationIcon("Previous Port Facility", PortHeaderIconKind.Tavern), Is.SameAs(previousIcon));
+            Assert.That(AssertFacilityHeaderDestinationIcon("Next Port Facility", PortHeaderIconKind.CardWorkshop), Is.SameAs(nextIcon));
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void ClickFacilityNavigationArrow(string buttonName)
+        {
+            Canvas.ForceUpdateCanvases();
+            Button button = ActiveButton(buttonName);
+            var arrow = button.transform.Find("Navigation Arrow").GetComponent<HeaderNavigationArrowGraphic>();
+            Canvas canvas = arrow.canvas.rootCanvas;
+            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = RectTransformUtility.WorldToScreenPoint(camera,
+                    arrow.rectTransform.TransformPoint(arrow.rectTransform.rect.center))
+            };
+            var hits = new System.Collections.Generic.List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits, Is.Not.Empty, "The arrow outside the shared header icon must have a pointer target.");
+            Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(hits[0].gameObject), Is.SameAs(button.gameObject));
+            ExecuteEvents.ExecuteHierarchy(hits[0].gameObject, pointer, ExecuteEvents.pointerClickHandler);
+        }
+
+        private static PortHeaderIconGraphic AssertCurrentFacilityHeaderIdentity(PortHeaderIconKind expected)
+        {
+            var icon = GameObject.Find("Port Facility Icon").GetComponent<PortHeaderIconGraphic>();
+            Assert.That(icon.Kind, Is.EqualTo(expected));
+            Assert.That(icon.texture, Is.Not.Null);
+            Assert.That(icon.isActiveAndEnabled, Is.True);
+            Assert.That(icon.raycastTarget, Is.False, "The current page image is decorative even after cache reactivation.");
+            Assert.That(icon.rectTransform.rect.width, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
+            Assert.That(icon.rectTransform.rect.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f));
+            return icon;
+        }
+
+        private static PortHeaderIconGraphic AssertFacilityHeaderDestinationIcon(string buttonName, PortHeaderIconKind expected)
+        {
+            Button button = ActiveButton(buttonName);
+            Assert.That(button.targetGraphic, Is.TypeOf<PortHeaderIconGraphic>(), buttonName);
+            var icon = (PortHeaderIconGraphic)button.targetGraphic;
+            Assert.That(icon.Kind, Is.EqualTo(expected), buttonName);
+            Assert.That(icon.texture, Is.Not.Null, buttonName);
+            Assert.That(icon.isActiveAndEnabled && icon.raycastTarget, Is.True, buttonName);
+            Assert.That(icon.rectTransform.rect.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+            Assert.That(((RectTransform)button.transform).rect.size, Is.EqualTo(Vector2.one * NauticalHeaderSkin.IconSize));
+            Assert.That(button.GetComponent<Image>().color.a, Is.Zero, buttonName);
+            Assert.That(button.GetComponentsInChildren<Text>(true).Any(label => label.isActiveAndEnabled), Is.False, buttonName);
+            Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(icon.gameObject), Is.SameAs(button.gameObject));
+            if (expected != PortHeaderIconKind.Back)
+            {
+                HeaderNavigationArrowGraphic arrow = button.transform.Find("Navigation Arrow")?.GetComponent<HeaderNavigationArrowGraphic>();
+                Assert.That(arrow, Is.Not.Null, buttonName);
+                Assert.That(arrow.PointsRight, Is.EqualTo(buttonName == "Next Port Facility"));
+                Assert.That(arrow.isActiveAndEnabled && arrow.raycastTarget, Is.True,
+                    "The retained navigation arrow must remain visible and clickable.");
+                Assert.That(ExecuteEvents.GetEventHandler<IPointerClickHandler>(arrow.gameObject), Is.SameAs(button.gameObject));
+            }
+            return icon;
         }
 
         [UnityTest]

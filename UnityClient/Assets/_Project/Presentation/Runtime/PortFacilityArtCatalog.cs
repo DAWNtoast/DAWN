@@ -63,7 +63,7 @@ namespace ShatteredSail.Presentation
             "PortFacilities/warehouse_background",
             "PortFacilities/shipyard_water_gallery_v3",
             "PortFacilities/tavern_background_seated_v2",
-            "PortFacilities/component_shop_background_v2",
+            "ComponentShopV3/shipyard_hall",
             "PortFacilities/card_workshop_background",
             "PortFacilities/treasure_worktable_background_v3",
             "PortFacilities/port_investment_scene_internal_v1",
@@ -245,7 +245,9 @@ namespace ShatteredSail.Presentation
                 case TavernFacilityIndex:
                     return "PortFacilities/Regional/Tavern/tavern_" + portSlug + "_v1";
                 case ComponentShopFacilityIndex:
-                    return "PortFacilities/Regional/ComponentShop/component_shop_" + portSlug + "_v1";
+                    return portSlug == "broken_anchor"
+                        ? "ComponentShopV3/shipyard_hall"
+                        : "ComponentShopV3/Regional/shipyard_hall_" + portSlug + "_v1";
                 case MaintenanceFacilityIndex:
                     return "PortFacilities/Regional/Maintenance/maintenance_" + portSlug + "_side_v2";
                 case VoyageFacilityIndex:

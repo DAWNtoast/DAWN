@@ -103,6 +103,10 @@ namespace ShatteredSail.Presentation
             BoardingBattleArtCatalog.ReleaseLoadedTextures();
             SpecialWarshipArtCatalog.ReleaseLoadedTextures();
             NavigationLookoutArtCatalog.ReleaseLoadedTextures();
+            NavalFieldArtCatalog.ReleaseLoadedTextures();
+            NavalCombatFxGraphic.ReleaseLoadedTextures();
+            BattleSchoolAttackGraphic.ReleaseLoadedTextures();
+            ComponentRarityWoodSkin.ReleaseGameplayReferences();
             ReleaseAudioClipReferences();
             RegionalShopFurniture.ReleaseUnusedGeneratedResources(session.Phase == CoreDemoPhase.Port &&
                 activePortFacility == PortFacilityArtCatalog.ComponentShopFacilityIndex ? session.CurrentPort : null);
@@ -120,6 +124,11 @@ namespace ShatteredSail.Presentation
             NavigationLookoutArtCatalog.ReleaseLoadedTextures();
             CardSchoolArtCatalog.ReleaseLoadedTextures();
             DeckListArtCatalog.ReleaseLoadedTextures();
+            NavalFieldArtCatalog.ReleaseLoadedTextures();
+            NavalCombatFxGraphic.ReleaseLoadedTextures();
+            BattleSchoolAttackGraphic.ReleaseLoadedTextures();
+            ComponentRarityWoodSkin.ReleaseGameplayReferences();
+            BattleIconArtCatalog.ReleaseLoadedTextures();
             // The previous gameplay scene is gone. Release generated furniture
             // materials and references to the imported atlas/coverage textures.
             RegionalShopFurniture.ReleaseGeneratedResources();

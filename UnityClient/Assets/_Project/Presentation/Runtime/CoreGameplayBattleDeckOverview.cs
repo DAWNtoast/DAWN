@@ -21,7 +21,7 @@ namespace ShatteredSail.Presentation
         private bool inspectingBoardingEnemy;
         private string battleInformationTopic;
 
-        private bool BattleInspectionBlocksInput => battleDeckOverlay != null || portSettingsOverlay != null;
+        private bool BattleInspectionBlocksInput => battleDeckOverlay != null || portSettingsOverlay != null || treasureStoryOverlay != null;
 
         private void OpenBattleDeckOverview() => OpenBattleOverview(false);
 
@@ -68,8 +68,9 @@ namespace ShatteredSail.Presentation
             // Share the authored paper, carved frame and brass corners with Settings and Ship Hold.
             sheet.color = Html("#F0E6CF");
             MarketShopSkin.ApplyPanel(sheet);
-            BattleDeckLabel("Battle Deck Eyebrow", battleDeckSheet, new Vector2(700f, 20f), new Vector2(0f, 398f),
-                15, enemy ? "ENEMY BOARDING PLAN" : information ? "BATTLE INFORMATION" : "BATTLE DECK", MarketShopSkin.MutedInk, TextAnchor.MiddleCenter);
+            if (enemy || information)
+                BattleDeckLabel("Battle Deck Eyebrow", battleDeckSheet, new Vector2(700f, 20f), new Vector2(0f, 398f),
+                    15, enemy ? "ENEMY BOARDING PLAN" : "BATTLE INFORMATION", MarketShopSkin.MutedInk, TextAnchor.MiddleCenter);
             Text title = BattleDeckLabel("Battle Deck Title", battleDeckSheet, new Vector2(700f, 44f), new Vector2(0f, 362f),
                 34, enemy ? inspectedBattle.EnemyName + " · 接舷战术" : information
                     ? informationTopic == "enemy" ? "敌舰与当前意图" : "行动点、能量与补给"
@@ -78,7 +79,7 @@ namespace ShatteredSail.Presentation
             Button close = CreateButton("Close Battle Deck", battleDeckSheet, new Vector2(100f, 44f),
                 new Vector2(598f, 374f), PanelRaised, MarketShopSkin.Ink, 20);
             close.GetComponentInChildren<Text>().text = "关闭";
-            MarketShopSkin.ApplyTextButton(close);
+            WoodButtonSkin.ApplyAction(close, WoodButtonRole.Secondary);
             GameTypography.Apply(close.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             close.onClick.AddListener(() => { if (revision == battleDeckRevision) CloseBattleDeckOverview(); });
             BindBattleDeckCancel(close, revision);
@@ -195,7 +196,7 @@ namespace ShatteredSail.Presentation
                 bool selected = WorkshopBattleStages[index] == battleDeckStage;
                 Text label = battleDeckTabs[index].GetComponentInChildren<Text>();
                 label.text = WorkshopStageName(WorkshopBattleStages[index]);
-                MarketShopSkin.SetMode(battleDeckTabs[index], selected);
+                WoodButtonSkin.SetSelected(battleDeckTabs[index], selected);
             }
             string hand = battleDeckStage == inspectedBattle.Stage
                 ? "  ·  手牌 " + inspectedBattle.Hand.Count + " 张（战场显示）" : string.Empty;

@@ -18,8 +18,8 @@ namespace ShatteredSail.Presentation.Tests
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            yield return CreateWarehouseSettlementFixture(controller, VoyageOutcome.SafeReturn);
-            // Existing transaction fixture ends after clicking skip. Replay only its presentation
+            yield return CreateWarehouseSettlementFixture(controller, VoyageOutcome.SafeReturn, chartCoverage: 50f);
+            // Existing transaction fixture ends on the overview. Replay only its presentation
             // to audit the intro against the exact real Core settlement/cargo it created.
             RestartChestPresentation(controller);
             yield return null; yield return null;
@@ -69,7 +69,7 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest, Timeout(120000)]
-        public IEnumerator SettlementChestFlow_TutorialWaitsUntilChestCompletes_AndSkipPreservesSettlement()
+        public IEnumerator SettlementChestFlow_TutorialWaitsUntilChestCompletes_AndCurrentRewardAccelerationPreservesSettlement()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -81,11 +81,17 @@ namespace ShatteredSail.Presentation.Tests
             var sequence = controller.GetComponentsInChildren<SettlementChestSequenceController>(true).Single();
             Assert.That(sequence.IsComplete, Is.False);
             var snapshots = (ICollection)typeof(CoreGameplayDemoController).GetField("guidedControlSnapshots", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
-            Assert.That(snapshots.Count, Is.Zero, "Tutorial blockers must not cover or lock the chest skip control.");
-            Button skip = controller.GetComponentsInChildren<Button>(true).Single(button => button.name == "Skip Settlement Reveal");
-            Assert.That(skip.IsInteractable(), Is.True);
+            Assert.That(snapshots.Count, Is.Zero, "Tutorial blockers must not cover or lock the chest input surface.");
+            Assert.That(controller.GetComponentsInChildren<Button>(true).Any(button => button.name == "Skip Settlement Reveal"), Is.False);
             decimal gold = controller.Session.ProfileGold;
-            skip.onClick.Invoke(); skip.onClick.Invoke(); yield return null;
+            sequence.SetElapsed(SettlementChestSequenceController.OpeningDuration + .01f);
+            SettlementChestTestActions.ClickCurrentReward();
+            SettlementChestTestActions.ClickCurrentReward();
+            yield return null;
+            Assert.That(sequence.IsComplete, Is.False, "Repeated clicks accelerate the current reward without skipping the whole sequence.");
+            Assert.That(snapshots.Count, Is.Zero, "Tutorial guidance must wait for every reward to finish.");
+            Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+            yield return SettlementChestTestActions.ShowOverview();
             Assert.That(sequence.IsComplete, Is.True);
             Assert.That(snapshots.Count, Is.GreaterThan(0), "Tutorial input guidance must resume on the final overview.");
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
@@ -93,7 +99,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject, Is.Not.Null);
             Assert.That(UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject.GetComponent<Selectable>().IsInteractable(), Is.True);
             NavalBattleVisualCapture.Capture(controller, "SettlementChest_TutorialOverview.png",
-                "教学结算夹具；宝箱期间无教学遮挡，跳过后教学指引恢复且未确认结算", "Settlement Card");
+                "教学结算夹具；左键仅加速当前奖励，全部展示后教学指引恢复且未确认结算", "Settlement Card");
             LogAssert.NoUnexpectedReceived();
         }
 

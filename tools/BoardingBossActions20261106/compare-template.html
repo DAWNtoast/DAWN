@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>接舷 Boss 动作对照</title>
+<style>
+:root{color-scheme:dark;background:#0b171e;color:#efe7d4;font-family:"Microsoft YaHei",sans-serif}
+body{max-width:1100px;margin:0 auto;padding:clamp(18px,5vw,62px) 22px}h1{font-family:Georgia,"SimSun",serif;font-size:clamp(28px,5vw,45px);font-weight:550;letter-spacing:.03em;margin:0 0 24px}
+nav{display:flex;gap:14px;flex-wrap:wrap;align-items:center}select,button{font:inherit;min-height:42px;padding:8px 14px;color:#e8dfcf;background:#172831;border:1px solid #41606a;border-radius:6px;cursor:pointer}select{max-width:100%}
+.actions{display:flex;gap:5px}.actions button[aria-pressed=true]{background:#e3c68d;color:#20252a;border-color:#e3c68d}
+.pairs{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:14px}figure{margin:0;background:#0d2028;border:1px solid #29414a;border-radius:8px;overflow:hidden}
+figcaption{padding:12px 16px;font-size:16px;border-bottom:1px solid #29414a;color:#c5d0ce}figure:first-child figcaption{color:#f0d69d}
+img{display:block;width:100%;height:auto;aspect-ratio:400/272;object-fit:contain}.links{margin-top:17px;font-size:14px}a{color:#d8c797}
+.footage{margin:24px 0}.footage h2{font-size:18px;color:#d9d5c5;margin:0 0 8px}.footage nav{gap:9px 22px}
+@media(max-width:650px){.pairs{grid-template-columns:1fr;gap:10px}.actions button{padding-inline:10px}nav{gap:10px}body{padding-inline:14px}.pairs{margin-top:16px}}
+</style>
+<main><h1>接舷 Boss 动作对照</h1>
+<nav aria-label="选择演出"><select id="who" aria-label="选择 Boss"></select><div class="actions" id="actions" aria-label="动作"></div><button type="button" id="again">同步重播</button></nav>
+<div class="pairs"><figure><figcaption>重制后</figcaption><img id="after" alt="重制动作"></figure><figure><figcaption>重制前</figcaption><img id="before" alt="旧版动作"></figure></div>
+<section class="footage"><h2>实战录像</h2><nav aria-label="实战录像"><a href="../validation/gameplay/widow_attack.mp4">绯刃寡妇 · 攻击</a><a href="../validation/gameplay/iron_hit.mp4">铁誓 · 受击</a><a href="../validation/gameplay/moon_cast.mp4">月织 · 施法</a><a href="../validation/gameplay/treasure_guard.mp4">宝藏守卫 · 格挡</a></nav></section>
+<p class="links"><a href="../../boarding-remaster-20261106/index.html">打开完整接舷战预览</a></p></main>
+<script>
+const data=/* DATA */;
+const labels={Attack:"攻击",Hit:"受击",Cast:"施法",Guard:"格挡"};
+const who=document.querySelector("#who"),actions=document.querySelector("#actions");
+let current="Attack",replay=0;
+for(const [id,party] of Object.entries(data)){const option=new Option(party.name,id);who.add(option);}
+if(data.enemy_iron_oath)who.value="enemy_iron_oath";
+for(const [id,title] of Object.entries(labels)){const b=document.createElement("button");b.type="button";b.textContent=title;b.dataset.id=id;b.addEventListener("click",()=>{current=id;draw();});actions.append(b);}
+function draw(){const item=data[who.value];const pair=item.motions[current];for(const b of actions.children)b.setAttribute("aria-pressed",String(b.dataset.id===current));
+  const n=++replay;for(const [i,selector] of ["#after","#before"].entries()){const image=document.querySelector(selector);
+    image.alt=item.name+" · "+labels[current]+(i?" · 原版":" · 新版");image.src=pair[i]+"?replay="+n;}}
+who.addEventListener("change",draw);document.querySelector("#again").addEventListener("click",draw);draw();
+</script></html>

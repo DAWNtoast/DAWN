@@ -28,7 +28,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void AllCardSurfacesUseSingleStackStatusWordingAndKeepZeroEffects()
+        public void AllCardSurfacesUseSingleStackStatusWording()
         {
             var session = new CoreVoyageSession();
             for (int index = 0; index < CoreVoyageSession.CardLibrary.Count; index++)
@@ -48,8 +48,24 @@ namespace ShatteredSail.Core.Tests
                     }
                 }
             }
-            CoreBattleCard zero = CoreVoyageSession.CardLibrary.Single(card => card.Id == "card_full_sail_turn");
-            Assert.That(Compact(zero.Description), Does.Contain("获得0点格挡"));
+        }
+
+        [Test]
+        public void FullSailTurnNeverDisplaysZeroGuardAtAnyUpgrade()
+        {
+            var session = new CoreVoyageSession();
+            int index = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
+                .Single(i => CoreVoyageSession.CardLibrary[i].Id == "card_full_sail_turn");
+            for (int rank = 0; rank <= session.GetCardMaximumUpgradeLevel(index); rank++)
+            {
+                CoreBattleCard card = session.GetBattleCardAtLevel(index, rank);
+                foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
+                {
+                    if (!card.IsAllowedInStage(stage)) continue;
+                    foreach (string text in new[] { card.Description, session.BattleCardFaceDescription(card, stage), session.BattleCardEffectDescription(card, stage) })
+                        Assert.That(Compact(text), Does.Not.Contain("获得0点格挡"), card.Id + " +" + rank + " " + stage);
+                }
+            }
         }
 
         private static string Compact(string text) => Regex.Replace(text, @"\s+", string.Empty);

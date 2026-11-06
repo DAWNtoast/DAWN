@@ -215,7 +215,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void ThunderInterruptsMovementBeforeThePlannedRam()
+        public void SafeThunderEntryDoesNotInterruptThePlannedRam()
         {
             CoreVoyageSession session = NewBattle();
             Pose(session, -200f, 0f, 0f, 0f, 0f, 90f);
@@ -223,18 +223,18 @@ namespace ShatteredSail.Core.Tests
             Place(session, CoreNavalFieldKind.Thunder, -1, 0);
             Append(session, -100f, 0f);
             Append(session, 0f, 0f);
-            Assert.That(session.NavalMovementFieldPreview.StopsAtThunder, Is.True);
+            Assert.That(session.NavalMovementFieldPreview.StopsAtThunder, Is.False);
             int enemyHull = session.Battle.EnemyHull;
             Assert.That(session.CommitNavalMovement(out string reason, out NavalBoardingConnection connection), Is.True, reason);
-            Assert.That(connection, Is.EqualTo(NavalBoardingConnection.Planned));
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHull));
-            Assert.That(At(session.Battle.PlayerPositionMeters, -100f, 0f), Is.True);
-            Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.True);
-            Assert.That(session.Battle.NavalArrivalActionPoints, Is.EqualTo(1));
+            Assert.That(connection, Is.EqualTo(NavalBoardingConnection.RamBowToBroadside));
+            Assert.That(session.Battle.EnemyHull, Is.LessThan(enemyHull));
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.False);
+            Assert.That(session.Battle.NavalArrivalActionPoints, Is.Zero);
         }
 
         [Test]
-        public void TurningRamCanceledByTideKeepsTheLastSailedHeading()
+        public void CurrentDoesNotPushEarlyOrCancelATurningRam()
         {
             CoreVoyageSession session = NewBattle();
             Pose(session, -100f, 0f, 0f, 0f, 100f, 0f);
@@ -242,16 +242,13 @@ namespace ShatteredSail.Core.Tests
             Place(session, CoreNavalFieldKind.Tide, 0, 0, 1, 0);
             Append(session, 0f, 0f);
             Append(session, 0f, 100f);
-            Assert.That(At(session.NavalMovementFieldPreview.FinalPositionMeters, 100f, 0f), Is.True);
+            Assert.That(At(session.NavalMovementFieldPreview.FinalPositionMeters, 0f, 0f), Is.True);
             int enemyHull = session.Battle.EnemyHull;
             Assert.That(session.CommitNavalMovement(out string reason, out NavalBoardingConnection connection), Is.True, reason);
-            Assert.That(connection, Is.EqualTo(NavalBoardingConnection.Planned));
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHull));
-            Assert.That(At(session.Battle.PlayerPositionMeters, 100f, 0f), Is.True);
-            Assert.That(session.Battle.PlayerHeadingDegrees, Is.EqualTo(0f).Within(.01f));
-            Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.True);
-            Assert.That(session.ConfirmNavalArrivalHeading(180f, out _), Is.False);
-            Assert.That(session.ConfirmNavalArrivalHeading(0f, out _), Is.True);
+            Assert.That(connection, Is.EqualTo(NavalBoardingConnection.RamBowToBroadside));
+            Assert.That(session.Battle.EnemyHull, Is.LessThan(enemyHull));
+            Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.False);
         }
 
         [Test]
@@ -276,7 +273,8 @@ namespace ShatteredSail.Core.Tests
             Pose(session, -200f, 0f, 0f, 0f, 0f, 90f);
             Points(session, 2);
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, 1);
-            Place(session, CoreNavalFieldKind.Fire, -1, 0);
+            session.Battle.Schools.ThunderChain = 45;
+            Place(session, CoreNavalFieldKind.Thunder, -1, 0);
             Append(session, -100f, 0f);
             Append(session, 0f, 0f);
             Assert.That(session.NavalMovementFieldPreview.Sinks, Is.True);

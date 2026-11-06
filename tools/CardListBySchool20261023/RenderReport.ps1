@@ -9,17 +9,50 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Full atlas when matching art and upgraded runtime keyword data are available.
+$illustratedInputRoot = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($DataPath))
+$illustratedArtPath = Join-Path $illustratedInputRoot 'card-art-data.json'
+$illustratedUpgradePath = Join-Path $illustratedInputRoot 'card-upgrade-data.json'
+if ((Test-Path -LiteralPath $illustratedArtPath -PathType Leaf) -and (Test-Path -LiteralPath $illustratedUpgradePath -PathType Leaf)) {
+    $illustratedUpgrade = Get-Content -LiteralPath $illustratedUpgradePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $illustratedMissingKeywords = @($illustratedUpgrade.Cards | ForEach-Object { $_.Stages } | ForEach-Object { $_.Levels } | Where-Object { $null -eq $_.PSObject.Properties['Keywords'] })
+    if ($illustratedMissingKeywords.Count -eq 0) {
+        & (Join-Path $PSScriptRoot 'RenderIllustratedReport.ps1') -DataPath $DataPath -OutputPath $OutputPath
+        return
+    }
+    Write-Warning 'Upgrade data predates runtime keywords. Rendering the legacy base catalogue; rerun ExportCardList.ps1 to refresh the complete illustrated catalogue.'
+}
+
 $reportInputPath = [IO.Path]::GetFullPath($DataPath)
 $reportOutputPath = [IO.Path]::GetFullPath($OutputPath)
 $reportData = Get-Content -LiteralPath $reportInputPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $reportCards = @($reportData.Cards)
 $reportGlossary = @($reportData.Glossary)
-if ($reportCards.Count -eq 0 -or $reportGlossary.Count -eq 0) {
-    throw 'The report requires Cards and Glossary entries.'
+$reportRules = @($reportData.Rules)
+$reportSchoolUnlocks = @($reportData.SchoolUnlocks)
+$reportUnlockBySchool = @{}
+foreach ($reportUnlock in $reportSchoolUnlocks) {
+    if ([string]::IsNullOrWhiteSpace([string]$reportUnlock.SchoolId) -or [int]$reportUnlock.RequiredLevel -lt 1 -or $reportUnlockBySchool.ContainsKey([string]$reportUnlock.SchoolId)) {
+        throw 'Missing or duplicate school unlock definition.'
+    }
+    $reportUnlockBySchool[[string]$reportUnlock.SchoolId] = $reportUnlock
+}
+if ($reportSchoolUnlocks.Count -ne 6 -or [string]::IsNullOrWhiteSpace([string]$reportData.SourceCardUnlockRule)) {
+    throw 'Export current CoreSchoolUnlockCatalog and source-card unlock rules before rendering.'
+}
+if ($reportCards.Count -eq 0 -or $reportGlossary.Count -eq 0 -or $reportRules.Count -eq 0) {
+    throw 'The report requires Cards, Glossary and Rules entries.'
 }
 
 function ConvertTo-ReportHtml([object]$Value) {
     return [Net.WebUtility]::HtmlEncode([string]$Value)
+}
+
+function ConvertTo-ReportEffectHtml([object]$Variant) {
+    if ($null -eq $Variant.PSObject.Properties['EffectRichText']) { throw 'Export current runtime keyword emphasis before rendering.' }
+    $richText = [string]$Variant.EffectRichText
+    if ($richText.Replace('<b>', '').Replace('</b>', '') -cne [string]$Variant.Effect) { throw 'Keyword emphasis changed effect text.' }
+    return (ConvertTo-ReportHtml $richText).Replace('&lt;b&gt;', '<strong class="effect-keyword">').Replace('&lt;/b&gt;', '</strong>')
 }
 
 $reportHtml = [Text.StringBuilder]::new(256000)
@@ -81,6 +114,9 @@ thead th { background:#f2f7f8; color:#415a67; font-size:13px; font-weight:700; }
 .glossary-table td { font-size:15px; }
 .glossary-table tr:target { background:#fff1cd; outline:2px solid #d69a2d; outline-offset:-2px; }
 .glossary-table tbody tr { scroll-margin-top:20px; }
+.rules-panel { margin-top:24px; scroll-margin-top:20px; }
+.rules-list { margin:0; padding:0 24px 24px 46px; font-size:15px; }
+.rules-list li + li { margin-top:10px; }
 .toolbar { margin:32px 0 18px; padding:20px 24px; }
 .controls { display:grid; grid-template-columns:minmax(240px,1fr) 180px auto auto; gap:14px; align-items:end; }
 label { display:block; font-size:13px; font-weight:700; }
@@ -158,7 +194,12 @@ footer { margin-top:30px; color:var(--muted); font-size:13px; }
 Add-ReportHtml ('<p class="eyebrow">CARD CATALOG · ' + (ConvertTo-ReportHtml $reportData.Date) + '</p>')
 Add-ReportHtml '<h1>全卡牌清单 · 按系别</h1>'
 Add-ReportHtml ('<p class="lead">共 <strong>' + $reportCards.Count + '</strong> 张现役卡牌，按普通、火焰、秘术、诅咒、潮汐、雷霆、血契分组；包含基础牌、船员牌和部件牌。下列数值均为 <strong>+0 基础等级</strong>，不含装备加成；不同阶段的效果或消耗分别列出。</p>')
+$reportUnlockSummary = ($reportSchoolUnlocks | ForEach-Object { [string]$_.School + ' ' + [string]$_.RequiredLevel + ' 级' }) -join '、'
+Add-ReportHtml ('<p id="school-unlocks" class="notes"><strong>基础流派牌解锁：</strong>' + (ConvertTo-ReportHtml $reportUnlockSummary) + '。普通常规牌无流派等级门槛。' + (ConvertTo-ReportHtml $reportData.SourceCardUnlockRule) + '</p>')
 Add-ReportHtml '<p class="notes">先列出全部字段及其说明，再列卡牌信息。字段释义仅解释含义，不包含计算流程。字段列仅列出效果中的悬浮释义关键词；“—”表示没有这类关键词或其他资源消耗。消耗中的资源 X 表示全部对应资源；焚烧 X 表示选择 1～3 张其他手牌。增效消耗用于额外效果，缺少耗材时按卡面使用基础效果；治疗实际支付还受缺失生命影响。实战临时加价、减免和战斗状态变化不计入本表。</p>'
+if (Test-Path -LiteralPath (Join-Path ([IO.Path]::GetDirectoryName($reportOutputPath)) '全部卡牌强化清单.html')) {
+    Add-ReportHtml '<p><a href="全部卡牌强化清单.html">查看强化成长：基础、+1、+2、+3 的完整效果与消耗</a></p>'
+}
 Add-ReportHtml '</header>'
 Add-ReportHtml '<section id="glossary" class="panel" aria-labelledby="glossary-title">'
 Add-ReportHtml ('<div class="section-heading"><h2 id="glossary-title">字段名称与说明</h2><p>' + $reportGlossary.Count + ' 组字段 · 同义名称合并列出</p></div>')
@@ -167,6 +208,12 @@ foreach ($reportTerm in $reportGlossary) {
     Add-ReportHtml ('<tr id="keyword-' + (ConvertTo-ReportHtml $reportTerm.Id) + '"><th scope="row">' + (ConvertTo-ReportHtml (@($reportTerm.Names) -join '／')) + '</th><td>' + (ConvertTo-ReportHtml $reportTerm.Meaning) + '</td></tr>')
 }
 Add-ReportHtml '</tbody></table></section>'
+Add-ReportHtml '<section id="boarding-field-rules" class="rules-panel panel" aria-labelledby="boarding-field-rules-title">'
+Add-ReportHtml '<div class="section-heading"><h2 id="boarding-field-rules-title">接舷场地继承规则</h2></div><ul class="rules-list">'
+foreach ($reportRule in $reportRules) {
+    Add-ReportHtml ('<li>' + (ConvertTo-ReportHtml $reportRule) + '</li>')
+}
+Add-ReportHtml '</ul></section>'
 Add-ReportHtml @'
 <section class="toolbar panel" aria-label="筛选卡牌">
 <div class="controls">
@@ -190,8 +237,9 @@ $reportSchoolColors = @{ ordinary = '#687c86'; fire = '#c55936'; arcane = '#7960
 foreach ($reportSchool in $reportSchoolOrder) {
     $reportSchoolKey = if ($reportSchool.Id.Length -eq 0) { 'ordinary' } else { $reportSchool.Id }
     $reportSchoolCards = @($reportCards | Where-Object { [string]$_.SchoolId -eq $reportSchool.Id } | Sort-Object { [int]$_.Number }, Id)
+    $reportGroupUnlock = if ($reportSchool.Id.Length -eq 0) { '常规牌无流派等级门槛' } else { '基础牌 ' + $reportUnlockBySchool[$reportSchool.Id].RequiredLevel + ' 级解锁' }
     Add-ReportHtml ('<section id="school-' + $reportSchoolKey + '" class="school-section panel" data-school="' + $reportSchoolKey + '" style="--school-color:' + $reportSchoolColors[$reportSchoolKey] + '" aria-labelledby="heading-' + $reportSchoolKey + '">')
-    Add-ReportHtml ('<div class="section-heading"><h2 id="heading-' + $reportSchoolKey + '">' + $reportSchool.Name + '</h2><p><span class="school-count">' + $reportSchoolCards.Count + '</span> 张卡牌 · <a class="back-top" href="#glossary">返回字段说明</a></p></div>')
+    Add-ReportHtml ('<div class="section-heading"><h2 id="heading-' + $reportSchoolKey + '">' + $reportSchool.Name + '</h2><p><span class="school-count">' + $reportSchoolCards.Count + '</span> 张卡牌 · ' + (ConvertTo-ReportHtml $reportGroupUnlock) + ' · <a class="back-top" href="#glossary">返回字段说明</a></p></div>')
     Add-ReportHtml '<table class="card-table"><colgroup><col><col><col><col><col></colgroup><thead><tr><th scope="col">名称</th><th scope="col">阶段</th><th scope="col">消耗</th><th scope="col">效果</th><th scope="col">字段</th></tr></thead>'
     foreach ($reportCard in $reportSchoolCards) {
         $reportVariants = @($reportCard.StageVariants)
@@ -225,9 +273,9 @@ foreach ($reportSchool in $reportSchoolOrder) {
             if ([string]$reportVariant.Name -ne [string]$reportCard.Name) {
                 Add-ReportHtml ('<span class="variant-name">' + (ConvertTo-ReportHtml $reportVariant.Name) + '</span>')
             }
-            Add-ReportHtml ('<div class="effect">' + (ConvertTo-ReportHtml $reportVariant.Effect) + '</div></td><td class="keywords">')
+            Add-ReportHtml ('<div class="effect">' + (ConvertTo-ReportEffectHtml $reportVariant) + '</div></td><td class="keywords">')
             $reportKeywordLinks = @($reportVariant.Keywords | ForEach-Object {
-                '<a href="#keyword-' + (ConvertTo-ReportHtml $_.Id) + '" title="' + (ConvertTo-ReportHtml $_.Meaning) + '">' + (ConvertTo-ReportHtml $_.Name) + '</a>'
+                '<a href="#keyword-' + (ConvertTo-ReportHtml $_.Id) + '" title="' + (ConvertTo-ReportHtml $_.Meaning) + '"><strong>' + (ConvertTo-ReportHtml $_.Name) + '</strong></a>'
             })
             if ($reportKeywordLinks.Count -eq 0) { Add-ReportHtml '<span class="empty">—</span>' }
             else { Add-ReportHtml ($reportKeywordLinks -join '、') }

@@ -13,19 +13,22 @@ namespace ShatteredSail.Core.Tests
         public void ReviewPreservesEveryPublishedIdentityAndTheSixSchoolSizes()
         {
             CoreBattleCard[] cards = CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None).ToArray();
-            Assert.That(CoreNavalSchoolExpansionCatalog.All.Count, Is.EqualTo(27));
-            Assert.That(cards.Length, Is.EqualTo(346));
-            Assert.That(cards.Select(card => card.Id).Distinct().Count(), Is.EqualTo(346));
-            Assert.That(cards.Count(card => card.SchoolId.Length == 0), Is.EqualTo(97));
+            Assert.That(CoreNavalSchoolExpansionCatalog.All.Count, Is.EqualTo(36));
+            Assert.That(cards.Length, Is.EqualTo(344));
+            Assert.That(cards.Select(card => card.Id).Distinct().Count(), Is.EqualTo(344));
+            Assert.That(cards.Count(card => card.SchoolId.Length == 0), Is.EqualTo(86));
             Assert.That(CoreVoyageSession.CardLibrary[219].Id, Is.EqualTo("card_energy_order"));
             Assert.That(CoreVoyageSession.CardLibrary[220].Id, Is.EqualTo("card_tactical_draw"));
-            Assert.That(cards.Count(card => card.SchoolId.Length > 0), Is.EqualTo(249));
-            Assert.That(CoreSchoolCardCatalog.All.Count, Is.EqualTo(159));
+            Assert.That(cards.Count(card => card.SchoolId.Length > 0), Is.EqualTo(258));
+            Assert.That(CoreSchoolCardCatalog.All.Count, Is.EqualTo(168));
             Assert.That(cards.Where(card => card.SchoolId.Length > 0).Select(card => card.SchoolId).Distinct(),
                 Is.EquivalentTo(new[] { "fire", "arcane", "curse", "tide", "thunder", "blood" }));
-            foreach (string school in new[] { "fire", "arcane", "curse", "tide", "thunder", "blood" })
-                Assert.That(cards.Count(card => card.SchoolId == school),
-                    Is.EqualTo(37 + (school == "fire" || school == "tide" || school == "thunder" ? 6 : 3)), school);
+            var expectedSchoolSizes = new Dictionary<string, int> {
+                { "fire", 45 }, { "arcane", 44 }, { "curse", 40 },
+                { "tide", 43 }, { "thunder", 46 }, { "blood", 40 }
+            };
+            foreach (var school in expectedSchoolSizes)
+                Assert.That(cards.Count(card => card.SchoolId == school.Key), Is.EqualTo(school.Value), school.Key);
             Assert.That(cards.Single(card => card.Id == "card_chain_shot").Damage, Is.EqualTo(10));
         }
 
@@ -49,10 +52,13 @@ namespace ShatteredSail.Core.Tests
             session.Battle.PlayerBoardingHealth = 1000 - missing;
             session.Cargo.Medicine = medicine ? 5 : 0;
             bool desperate = 1000 - missing <= 400;
-            // All three blood_09 identities share their authored two-rank curve.
-            // Keep independent values here so a wrong interpreter multiplier cannot validate itself.
-            int expected = Math.Min(missing, medicine ?
-                AtRank(rank, desperate ? new[] { 9, 12, 15, 15 } : new[] { 7, 9, 12, 12 }) : desperate ? 3 : 2);
+            // The doctor retains its stronger authored healing; both curves are
+            // independent of crew count and clamp at the second upgrade.
+            bool doctor = id == "card_special_crew_broken_anchor_doctor_hector";
+            int expected = Math.Min(missing, medicine ? AtRank(rank,
+                doctor ? (desperate ? new[] { 32, 41, 55, 55 } : new[] { 14, 18, 24, 24 }) :
+                    (desperate ? new[] { 26, 34, 44, 44 } : new[] { 12, 15, 21, 21 })) :
+                desperate ? (doctor ? 4 : 5) : 2);
             Assert.That(card.UpgradeLevel, Is.EqualTo(Math.Min(rank, 2)), "The requested third rank clamps without increasing healing.");
             CoreBattleCardEffects quote = session.GetBattleCardEffects(card, NavalBattleStage.Boarding);
             Assert.That(quote.ActualRepair, Is.EqualTo(expected));
@@ -73,7 +79,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCaseSource(nameof(BloodPaymentCases))]
-        public void BloodContracts_KeepLifeCostAndScaleDirectBenefit_RejectLethalPaymentAtomically(string id, int rank)
+        public void BloodContracts_KeepLifeCostAndScaleDirectBenefit_UseBaseEffectWhenPaymentWouldBeLethal(string id, int rank)
         {
             CoreBattleCard original = CoreVoyageSession.CardLibrary[Index(id)];
             NavalBattleStage stage = original.IsAllowedInStage(NavalBattleStage.Preparation) ? NavalBattleStage.Preparation :
@@ -89,10 +95,25 @@ namespace ShatteredSail.Core.Tests
             SetHealth(session, cost);
             Put(session, id);
             string before = Snapshot(session);
-            Assert.That(session.CardUnavailableReason(0), Is.EqualTo("支付生命后须至少剩余 1 点"));
-            Assert.That(session.PlayCard(0), Is.False);
+            Assert.That(session.CardUnavailableReason(0), Is.Empty);
+            Assert.That(session.GetBattleCardHealthCost(card), Is.Zero);
+            CoreBattleCardEffects fallback = session.GetBattleCardEffects(card, stage);
+            Assert.That(fallback.Block, Is.EqualTo(card.Block), "Unaffordable life costs cannot award paid guard.");
             Assert.That(Snapshot(session), Is.EqualTo(before));
+            Assert.That(session.PlayCard(0), Is.True);
+            Assert.That(stage == NavalBattleStage.Boarding ? session.Battle.PlayerBoardingHealth : session.Hull, Is.EqualTo(cost));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(fallback.Block));
+            Assert.That(1000 - (stage == NavalBattleStage.Boarding ? session.Battle.EnemyBoardingHealth : session.Battle.EnemyHull),
+                Is.EqualTo(fallback.Damage), "The unaffordable branch still resolves the base attack.");
+
+            session = Battle(id, rank, stage, 7);
+            card = session.GetBattleCard(Index(id));
             SetHealth(session, cost + 1);
+            Put(session, id);
+            Assert.That(session.GetBattleCardHealthCost(card), Is.EqualTo(cost));
+            CoreBattleCardEffects paid = session.GetBattleCardEffects(card, stage);
+            Assert.That(paid.Damage - fallback.Damage, Is.EqualTo(card.SchoolEffect.Mechanic == CoreSchoolMechanic.BloodRisk ? ExpectedBloodBenefit(id, rank) : 0));
+            Assert.That(paid.Block - fallback.Block, Is.EqualTo(card.SchoolEffect.Mechanic == CoreSchoolMechanic.BloodWard ? ExpectedBloodBenefit(id, rank) : 0));
             int energy = session.Battle.Energy, powder = session.Cargo.Powder, cannonballs = session.Cargo.Cannonballs;
             Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
             Assert.That(stage == NavalBattleStage.Boarding ? session.Battle.PlayerBoardingHealth : session.Hull, Is.EqualTo(1),
@@ -109,7 +130,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCaseSource(nameof(FireLoadCases))]
-        public void FireLoad_UpgradesLayersOnly_KeepsReserveSizeAndAppliesOneLayerBatchPerShot(string id, int rank)
+        public void FireLoad_UpgradesAttachedLayersAndConsumesTheWholeReserveOnTheNextAttack(string id, int rank)
         {
             CoreBattleCard original = CoreVoyageSession.CardLibrary[Index(id)];
             NavalBattleStage stage = original.IsAllowedInStage(NavalBattleStage.Preparation)
@@ -119,27 +140,24 @@ namespace ShatteredSail.Core.Tests
             if (card.RequiredComponent.Length > 0)
                 Assert.That(card.AllowedStages, Is.EqualTo(NavalBattleStages.Naval));
             CoreSchoolCardEffect initial = original.SchoolEffect, effect = card.SchoolEffect;
-            Assert.That(initial.Upgrades, Is.EqualTo(CoreSchoolUpgradeFields.Power));
+            Assert.That(initial.Upgrades, Is.EqualTo(CoreSchoolUpgradeFields.Secondary));
             int expectedBurn = ExpectedLoadedBurn(id, rank);
-            Assert.That(effect.Power, Is.EqualTo(expectedBurn));
-            Assert.That(effect.Secondary, Is.EqualTo(initial.Secondary));
+            Assert.That(effect.Power, Is.Zero);
+            Assert.That(effect.Secondary, Is.EqualTo(expectedBurn));
             Assert.That(effect.Limit, Is.EqualTo(initial.Limit));
-            Assert.That(effect.Duration, Is.EqualTo(2));
-            Assert.That(effect.Power * effect.Secondary,
-                Is.EqualTo(expectedBurn * initial.Secondary), "Only applied layers scale; ammunition reserve quantity stays fixed.");
             Play(session, id);
-            int reserve = Math.Min(initial.Secondary, initial.Limit);
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(reserve));
-            Assert.That(session.Battle.PlayerFireRoundDamage, Is.EqualTo(expectedBurn));
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(expectedBurn));
             Assert.That(session.EndBattleTurn(), Is.True);
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(reserve));
+            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(expectedBurn));
             session.Battle.DistanceMeters = 200;
             session.Battle.EnemyBlock = 0;
             Play(session, "card_chain_shot");
-            Assert.That(session.Battle.PlayerFireRounds, Is.EqualTo(reserve - 1));
+            Assert.That(session.Battle.PlayerFireRounds, Is.Zero);
             Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(expectedBurn));
             Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(expectedBurn));
+            Play(session, "card_chain_shot");
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(expectedBurn), "A second attack cannot reuse spent attached fire.");
         }
 
         private static int AtRank(int rank, params int[] values) => values[Math.Max(0, Math.Min(values.Length - 1, rank))];
@@ -149,8 +167,8 @@ namespace ShatteredSail.Core.Tests
             switch (id)
             {
                 case "card_school_blood_b01": return AtRank(rank, 8, 10, 13, 13);
-                case "card_school_blood_b02": return AtRank(rank, 8, 10, 14, 14);
-                case "card_school_blood_b03": return AtRank(rank, 5, 7, 9, 12);
+                case "card_school_blood_b02": return 0;
+                case "card_school_blood_b03": return AtRank(rank, 14, 18, 70, 90);
                 case "card_school_blood_b05": return AtRank(rank, 8, 10, 12, 15);
                 case "card_special_sail_fogshroud_wing": return AtRank(rank, 9, 12, 15, 15);
                 case "card_special_sail_thunderreef_wing": return AtRank(rank, 12, 16, 21, 27);
@@ -164,9 +182,8 @@ namespace ShatteredSail.Core.Tests
         {
             switch (id)
             {
-                case "card_school_fire_b01": return AtRank(rank, 4, 5, 6, 8);
-                case "card_special_crew_twilight_tide_gunner_yilan": return AtRank(rank, 6, 7, 8, 10);
-                case "card_special_instrument_whalestar_receiver": return AtRank(rank, 5, 7, 9, 9);
+                case "card_school_fire_b01": return AtRank(rank, 2, 3, 4, 5);
+                case "card_special_crew_twilight_tide_gunner_yilan": return AtRank(rank, 3, 4, 4, 5);
                 default: Assert.Fail("Add an independently reviewed fire-load curve for " + id); return 0;
             }
         }
@@ -175,6 +192,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             session.ConfigureSpecialCardSources(CoreSchoolCardCatalog.All.Select(card => card.RequiredCrew).Where(value => value.Length > 0).ToArray(),
                 CoreSchoolCardCatalog.All.Select(card => card.RequiredComponent).Where(value => value.Length > 0).ToArray());
             session.ConfigureCardUpgrades(new Dictionary<string, int> { { id, rank } });

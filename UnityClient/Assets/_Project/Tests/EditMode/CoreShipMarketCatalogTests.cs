@@ -44,16 +44,16 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase(0, new[] { 0, 4 })]
-        [TestCase(1, new[] { 5, 6 })]
+        [TestCase(1, new[] { 1, 5, 6 })]
         [TestCase(2, new[] { 2, 7 })]
         [TestCase(3, new[] { 8, 9 })]
         [TestCase(4, new[] { 3, 10 })]
-        [TestCase(5, new[] { 1, 11 })]
-        public void EachPortHasExactlyTwoHullsExclusiveToThatPort(int port, int[] expected)
+        [TestCase(5, new[] { 11 })]
+        public void EachPortHasItsAuthoredHullsExclusiveToThatPort(int port, int[] expected)
         {
             IReadOnlyList<int> stock = CoreShipMarketCatalog.ShipsForPort(port);
             CollectionAssert.AreEqual(expected, stock);
-            Assert.That(stock.Count, Is.EqualTo(2));
+            Assert.That(stock.Count, Is.EqualTo(expected.Length));
             Assert.That(stock.Distinct().Count(), Is.EqualTo(stock.Count));
             Assert.That(stock.All(ship => Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count)
                 .Count(other => CoreShipMarketCatalog.IsSoldAtPort(other, ship)) == 1), Is.True);
@@ -162,7 +162,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void SpecialistCapacityRequiresATradeoffOnLightHullsButNotLargerShips()
+        public void SpecialistCapacityAffectsLightHullSailingSpeedWithoutChangingCombatStats()
         {
             foreach (int index in Enumerable.Range(0, CoreVoyageSession.Ships.Count))
             {
@@ -173,10 +173,11 @@ namespace ShatteredSail.Core.Tests
                 bool lightHull = index == 0 || index == 5;
                 Assert.That(session.IsShortStaffed, Is.EqualTo(lightHull), session.SelectedShip.Id);
                 Assert.That(session.EffectiveCrewCount, Is.EqualTo(session.CrewCountValue));
+                Assert.That(session.EffectiveFirepower, Is.EqualTo(session.Firepower));
+                Assert.That(session.EffectiveArmor, Is.EqualTo(session.Armor));
                 if (lightHull)
                 {
                     Assert.That(session.EffectiveSpeedKnots, Is.LessThan(session.SpeedKnots));
-                    Assert.That(session.EffectiveFirepower, Is.LessThan(session.Firepower));
                     session.ConfigureDepartureCrew(session.CrewCountValue - 5, 5);
                     Assert.That(session.IsShortStaffed, Is.False, "One specialist can stand by to retain an effective sailing crew.");
                 }

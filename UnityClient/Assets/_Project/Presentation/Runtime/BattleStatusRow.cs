@@ -11,6 +11,11 @@ namespace ShatteredSail.Presentation
     /// <summary>Retained, wrapping status icons directly below a combatant's health.</summary>
     public sealed class BattleStatusRow : MonoBehaviour
     {
+        public const float DefaultIconSize = 34f;
+
+        public static float IconSizeForCell(float size) =>
+            size > 0f ? Mathf.Clamp(size, 50f, 75f) * (2f / 3f) : DefaultIconSize;
+
         private sealed class Slot
         {
             public RectTransform Rect;
@@ -125,7 +130,7 @@ namespace ShatteredSail.Presentation
 
         public void SetCellSize(float size)
         {
-            float next = size > 0f ? Mathf.Clamp(size, 50f, 75f) * (2f / 3f) : 0f;
+            float next = size > 0f ? IconSizeForCell(size) : 0f;
             if (Mathf.Approximately(cellSize, next)) return;
             cellSize = next;
             foreach (Slot slot in slots.Values) SizeSlot(slot);
@@ -298,7 +303,7 @@ namespace ShatteredSail.Presentation
             bool naval = cellSize > 0f;
             float scale = naval ? cellSize / 75f : 1f;
             slot.Rect.sizeDelta = naval ? Vector2.one * cellSize : new Vector2(50f, 46f);
-            slot.Icon.rectTransform.sizeDelta = Vector2.one * (naval ? cellSize : 34f);
+            slot.Icon.rectTransform.sizeDelta = Vector2.one * (naval ? cellSize : DefaultIconSize);
             slot.Icon.rectTransform.anchoredPosition = new Vector2(naval ? -4f : -5f, 4f) * scale;
             slot.Value.rectTransform.sizeDelta = naval ? new Vector2(cellSize - 4f, 28f * scale) : new Vector2(48f, 24f);
             slot.Value.rectTransform.anchoredPosition = naval ? new Vector2(0f, -23f) * scale : new Vector2(1f, -11f);
@@ -313,11 +318,12 @@ namespace ShatteredSail.Presentation
             rect.SetParent(transform, false);
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1f);
             rect.sizeDelta = new Vector2(50f, 46f);
-            root.GetComponent<Image>().color = new Color(.025f, .045f, .065f, .28f);
+            // Keep the full slot available for hover without covering the sea below it.
+            root.GetComponent<Image>().color = Color.clear;
             var symbol = new GameObject("Icon", typeof(RectTransform), typeof(BattleStatusIconGraphic));
             var symbolRect = (RectTransform)symbol.transform;
             symbolRect.SetParent(rect, false);
-            symbolRect.sizeDelta = new Vector2(34f, 34f);
+            symbolRect.sizeDelta = Vector2.one * DefaultIconSize;
             symbolRect.anchoredPosition = new Vector2(-5f, 4f);
             var label = new GameObject("Amount", typeof(RectTransform), typeof(Text), typeof(Outline));
             Text value = label.GetComponent<Text>();

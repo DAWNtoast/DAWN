@@ -131,10 +131,15 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(RequiredResponsive<RectTransform>("Battle Compact Resources").GetInstanceID(), Is.EqualTo(originalResources));
                 Assert.That(RequiredResponsive<RectTransform>("Resource Mana").Find("Amount").GetComponent<Text>().text,
                     Is.EqualTo(session.Battle.Schools.Mana + "/" + session.Battle.Schools.ManaLimit));
-                Assert.That(RequiredResponsive<RectTransform>("Resource ThunderChain").Find("Amount").GetComponent<Text>().text,
-                    Is.EqualTo(session.Battle.Schools.ThunderChain + "/" + session.Battle.Schools.ThunderLimit));
-                Assert.That(RequiredResponsive<RectTransform>("Resource CurseMark").Find("Amount").GetComponent<Text>().text,
-                    Is.EqualTo(session.Battle.Schools.CurseMarks.ToString()));
+                foreach (var status in new[] {
+                    new { Id = "thunder_chain", Side = "Player", Amount = session.Battle.Schools.ThunderChain },
+                    new { Id = "curse_marks", Side = "Enemy", Amount = session.Battle.Schools.CurseMarks } })
+                {
+                    Transform slot = RequiredResponsive<BattleStatusRow>(status.Side + " Battle Status Row").transform.Find("Status " + status.Id);
+                    if (status.Amount > 0)
+                        Assert.That(slot.Find("Amount").GetComponent<Text>().text, Is.EqualTo(status.Amount.ToString()));
+                    else Assert.That(slot, Is.Null);
+                }
                 CoreBattleStatus burn = CoreBattleStatusPresentation.Build(session, false).Single(item => item.Id == "burn");
                 Assert.That(RequiredResponsive<BattleStatusRow>("Enemy Battle Status Row").transform
                     .Find("Status burn/Amount").GetComponent<Text>().text, Is.EqualTo(burn.Value));
@@ -149,6 +154,8 @@ namespace ShatteredSail.Presentation.Tests
 
             CoreBattleCard blood = session.GetBattleCard(session.Battle.Hand.Single());
             typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, blood.SchoolEffect.Threshold);
+            int availablePowder = session.Cargo.Powder;
+            session.Cargo.Powder = 0;
             RenderResponsiveBattle(controller);
             yield return WaitResponsiveBattle(controller);
             Button blocked = RequiredResponsive<Button>("Battle Card 0");
@@ -166,9 +173,30 @@ namespace ShatteredSail.Presentation.Tests
             CollectionAssert.AreEqual(hand, session.Battle.Hand);
             ExecuteEvents.Execute(blocked.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerEnterHandler);
             yield return new WaitForSecondsRealtime(.3f);
-            string explanation = AssertKeywordOnlyCardHover(blocked, 0, session, blood, "unaffordable blood card");
+            string explanation = AssertKeywordOnlyCardHover(blocked, 0, session, blood, "blood card without required gunpowder");
             Assert.That(explanation, Does.Not.Contain("生命支付预告").And.Not.Contain("生命不足，不能出牌")
                 .And.Not.Contain("当前不能使用"));
+
+            // The life payment is optional; restoring mandatory ammunition permits the base shot.
+            session.Cargo.Powder = availablePowder;
+            typeof(CoreVoyageSession).GetProperty("Morale").SetValue(session, 0);
+            RenderResponsiveBattle(controller);
+            yield return WaitResponsiveBattle(controller);
+            Button fallback = RequiredResponsive<Button>("Battle Card 0");
+            Assert.That(fallback.interactable, Is.True, session.CardUnavailableReason(0));
+            Assert.That(session.HasBloodPaidBenefit(blood), Is.False, "The base shot has no paid-life damage bonus.");
+            int enemyHull = session.Battle.EnemyHull;
+            int baseDamage = session.GetBattleCardDamage(blood, NavalBattleStage.Naval);
+            int absorbed = System.Math.Min(session.Battle.EnemyBlock, baseDamage);
+            int energyCost = session.GetBattleCardEnergyCost(session.Battle.Hand[0]);
+            fallback.onClick.Invoke();
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(session.Hull, Is.EqualTo(health), "Unaffordable optional life payment is skipped.");
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHull - baseDamage + absorbed));
+            Assert.That(session.Battle.Energy, Is.EqualTo(energy - energyCost));
+            Assert.That(session.Cargo.Powder, Is.EqualTo(availablePowder - blood.PowderCost));
+            Assert.That(session.Cargo.Cannonballs, Is.EqualTo(ammunition - blood.CannonballCost));
+            Assert.That(session.Battle.Hand, Is.Empty);
             LogAssert.NoUnexpectedReceived();
         }
     }

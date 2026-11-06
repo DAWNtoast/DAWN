@@ -30,19 +30,9 @@ namespace ShatteredSail.Presentation
             RefreshCardCost(view.Energy, energy.ToString(), card.Energy.ToString());
             RefreshCardCost(view.Powder, session.GetBattleCardPowderCost(view.CardId).ToString(), card.PowderCost.ToString());
             RefreshCardCost(view.Cannonballs, card.CannonballCost.ToString(), card.CannonballCost.ToString());
-            RefreshCardCost(view.SpecialCost, CardSpecialCostPresentation.CostText(card, view.Battle, session.Cargo.Wood, session.Cargo.Medicine),
+            RefreshCardCost(view.SpecialCost, CardSpecialCostPresentation.CostText(card, view.Battle, session.Cargo.Wood, session.Cargo.Medicine, session),
                 CardSpecialCostPresentation.CostText(card));
             RefreshCardSupplyCost(view.Button.transform, card, view.Battle);
-        }
-
-        private string BattleCrewName(CoreBattleState battle, bool player)
-        {
-            string name = player ? session.SelectedShip.Name : battle.EnemyName;
-            int ordinary = player ? battle.PlayerOrdinaryCrew : battle.EnemyOrdinaryCrew;
-            int maximum = player ? battle.PlayerMaxBoardingHealth : battle.EnemyMaxBoardingHealth;
-            bool attacking = player != battle.BoardingInitiatedByEnemy;
-            string role = battle.Stage == NavalBattleStage.Boarding ? (attacking ? " · 登船队" : " · 守备队") : string.Empty;
-            return name + role + "\n<size=15>普通水手 " + ordinary + " 人 · 接舷生命上限 " + maximum + "</size>";
         }
 
         private string BattleActiveBuffText(CoreBattleState battle)
@@ -53,7 +43,7 @@ namespace ShatteredSail.Presentation
                     "\n当前船员格挡 " + battle.PlayerBlock
                 : "甲板强化 +" + battle.PlayerDeckBuff +
                     "\n装填加伤 +" + session.PlayerLoadedShotDamageBonus +
-                    "\n烈焰炮弹 " + battle.PlayerFireRounds + " 发";
+                    "\n附火 " + battle.PlayerFireRounds + " 层";
             return status + "\n牌堆 " + battle.DrawPile.Count + " · 弃牌 " + battle.DiscardPile.Count;
         }
 

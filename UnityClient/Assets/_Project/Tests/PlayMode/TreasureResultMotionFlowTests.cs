@@ -106,7 +106,7 @@ namespace ShatteredSail.Presentation.Tests
             identified.SetElapsed(.27f);
             Canvas.ForceUpdateCanvases();
             NavalBattleVisualCapture.Capture(controller, "TreasureMotion_01_Identify.png",
-                "鉴定结果已入账，碎片短暂揭示并显示所属等级，可立即继续或跳过。", "Treasure Panel");
+                "鉴定结果已入账，碎片短暂揭示后自动归位，可立即继续操作。", "Treasure Panel");
             identified.SetElapsed(.8f);
             Canvas.ForceUpdateCanvases();
             NavalBattleVisualCapture.Capture(controller, "TreasureMotion_02_Landing.png",
@@ -137,7 +137,7 @@ namespace ShatteredSail.Presentation.Tests
             RawImage map = GameObject.Find("Treasure Map Preview 0").GetComponent<RawImage>();
             Assert.That(map.GetComponent<CanvasGroup>(), Is.Null);
             NavalBattleVisualCapture.Capture(controller, "TreasureMotion_05_Complete.png",
-                "跳过演出立即恢复完整海图，不再次合成、不重复扣除碎片。", "Treasure Folio");
+                "演出收尾恢复完整海图，不再次合成、不重复扣除碎片。", "Treasure Folio");
             ClickAcceptanceButton("Treasure Close Folio");
             yield return null;
             ActiveButton("Treasure Identify Fragment").onClick.Invoke();

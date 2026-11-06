@@ -231,6 +231,7 @@ namespace ShatteredSail.Core.Tests
             CoreTreasureProgress progress = session.CaptureTreasureProgress();
             progress.pirateExperience = 5400;
             session.RestoreTreasureProgress(progress);
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             int[] boarding = session.GetAvailableBattleCards(NavalBattleStage.Boarding)
                 .Where(index => session.GetBattleCard(index, NavalBattleStage.Boarding).SchoolId == school).ToArray();
             Assert.That(boarding.Length, Is.EqualTo(15));

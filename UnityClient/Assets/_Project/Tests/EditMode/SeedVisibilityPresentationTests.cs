@@ -68,6 +68,11 @@ namespace ShatteredSail.Core.Tests
         public void Departure_OffersDestinationPickerAndUsesItForTheMapEndpoint()
         {
             CreatePortPreview();
+            CoreTreasureProgress progress = controller.Session.CaptureTreasureProgress();
+            progress.pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10);
+            controller.Session.RestoreTreasureProgress(progress);
+            Assert.That(controller.Session.PirateLevel, Is.EqualTo(10));
+            foreach (string port in CoreVoyageSession.DestinationPorts) controller.Session.RecordCollectionPortVisit(port);
             WriteField(controller, "activePortFacility", 7);
             Rebuild("BuildPort");
 
@@ -443,7 +448,7 @@ namespace ShatteredSail.Core.Tests
         private void SetNavigator(bool available)
         {
             controller.Session.ConfigureCrewCapabilities(available, false, false, false, false, false);
-            Assert.That(controller.Session.CanDrawSeaChart, Is.EqualTo(available));
+            Assert.That(controller.Session.CanUseSeaCharts, Is.EqualTo(available));
         }
 
         private void Rebuild(string builder)

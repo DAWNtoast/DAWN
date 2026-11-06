@@ -122,6 +122,10 @@ namespace ShatteredSail.Presentation.Tests
             AssertDeparturePortRowVisibility(controller, false);
             ClickAcceptanceButton("Start Voyage"); yield return null;
             CoreVoyageMap first = session.Map;
+            // This persistence fixture supplies the drawing prerequisite; the
+            // separate exploration tests verify how sailing earns coverage.
+            for (int cell = 0; cell < first.ExploredCells.Length / 2; cell++) first.ExploredCells[cell] = true;
+            first.RestoreChartExploration(null);
             var terrain = first.TerrainCells.ToArray();
             var explored = first.ExploredCells.ToArray();
             var nodeLayout = SeaChartNodeLayout(first);
@@ -213,13 +217,13 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [UnityTest, Timeout(360000)]
-        public IEnumerator SeaChartLoading_RealTutorialChartReloadsAsOrdinaryShortWatersWithoutRepeatingBossOrRewards()
+        public IEnumerator SeaChartLoading_RealTutorialSeedReloadsWithoutDrawingOrRepeatingBossOrRewards()
         {
             yield return LoadGuidedTutorialScene();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-            yield return DriveGuidedTutorial(controller, "DrawChart", new HashSet<string>(), false);
+            yield return DriveGuidedTutorial(controller, "ThirdSettlement", new HashSet<string>(), false);
             // The settled voyage map is released on return to port. Capture its
-            // actual geography while the chart can still be drawn.
+            // actual geography before confirming the settlement.
             string seed = controller.Session.CurrentChartSeed;
             Assert.That(CoreVoyageSession.TryParseChartSeed(seed, out var chart), Is.True);
             Assert.That(chart.TutorialWaters, Is.True);
@@ -233,12 +237,14 @@ namespace ShatteredSail.Presentation.Tests
                 Does.Contain(CoreGuidedTutorialContent.BossEventId), "Actual boss completion is saved before reloading the chart.");
             yield return DriveGuidedTutorial(controller, "Complete", new HashSet<string>(), false);
             Assert.That(controller.IsTutorialActive, Is.False);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, ""), Does.Not.Contain(seed),
+                "The guide must finish without requiring or automatically archiving a chart.");
             string[] components = controller.OwnedComponents.Select(item => item.InstanceId).OrderBy(id => id).ToArray();
             int fragments = controller.Session.TreasureFragments;
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
             controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
-            yield return SelectRecordedChartSeed(seed);
+            yield return EnterDepartureChartSeed(seed);
             ClickAcceptanceButton("Start Voyage"); yield return null;
             Assert.That(controller.Session.GuidedTutorialLeg, Is.Zero, "Loading the chart must not restart tutorial progression.");
             Assert.That(controller.IsTutorialActive, Is.False);
@@ -247,13 +253,13 @@ namespace ShatteredSail.Presentation.Tests
             CollectionAssert.AreEqual(terrain, controller.Session.Map.TerrainCells);
             Assert.That(controller.Session.BossDefeated, Is.True, "The saved real boss victory must open the port on a revisit.");
             Assert.That(controller.Session.Map.Nodes.Any(node => node.IsBoss && !node.Visited), Is.False);
-            CaptureSeaChartFlow(controller, "06_Tutorial_Chart_Reused", "实际三航次教学绘图后重载，保留近港短程地形与首领完成记录", "Navigation Chart");
+            CaptureSeaChartFlow(controller, "06_Tutorial_Chart_Reused", "完成教学后输入同一海图种子，保留近港短程地形与首领完成记录", "Navigation Chart");
             yield return FinishChartFlowVoyage(false);
             // As above, this public port fixture isolates the second endpoint
             // loader; the tutorial victory and its saved record were played.
             RestoreChartEndpointWithNavigatorFixture(controller, oppositePort);
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
-            yield return SelectRecordedChartSeed(seed, "load tutorial chart from opposite endpoint");
+            yield return EnterDepartureChartSeed(seed);
             ClickAcceptanceButton("Start Voyage"); yield return null;
             Assert.That(controller.Session.GuidedTutorialLeg, Is.Zero);
             Assert.That(controller.IsTutorialActive, Is.False);
@@ -277,7 +283,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return LoadGuidedTutorialScene();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             var firstRun = new HashSet<string>();
-            yield return DriveGuidedTutorial(controller, "DrawChart", firstRun, false);
+            yield return DriveGuidedTutorial(controller, "ThirdSettlement", firstRun, false);
             Assert.That(firstRun, Does.Contain("TutorialBoss"), "The first victory must be played with the real battle UI.");
             AssertGuidedCourseCoverage(firstRun);
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
@@ -289,12 +295,12 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, ""), Does.Not.Contain(seed));
             var savedVictory = JsonUtility.FromJson<CoreSeaChartProgress>(PlayerPrefs.GetString(CoreGameplayDemoController.SeaChartProgressKey));
             Assert.That(savedVictory.charts.Single(chart => chart.seed == seed).pendingTutorialFragments, Is.EqualTo(1));
-            CaptureSeaChartFlow(controller, "08_Tutorial_Victory_Unconfirmed", "真实首胜后未绘图、未确认结算，立即重载场景", "Settlement Card");
+            CaptureSeaChartFlow(controller, "08_Tutorial_Victory_Unconfirmed", "真实首胜后未确认结算，立即重载场景", "Settlement Card");
 
             SceneManager.LoadScene("CoreGameplayDemo", LoadSceneMode.Single); yield return null; yield return null;
             controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
             var resumedSteps = new HashSet<string>();
-            yield return DriveGuidedTutorial(controller, "DrawChart", resumedSteps, false);
+            yield return DriveGuidedTutorial(controller, "ThirdSettlement", resumedSteps, false);
             Assert.That(resumedSteps, Does.Not.Contain("TutorialBoss"), "A saved victory must never require fighting the tutorial boss again.");
             Assert.That(controller.Session.CurrentChartSeed, Is.EqualTo(seed));
             Assert.That(controller.Session.Map.Nodes.Any(node => node.IsBoss), Is.False);
@@ -303,6 +309,8 @@ namespace ShatteredSail.Presentation.Tests
             CaptureSeaChartFlow(controller, "09_Tutorial_Victory_Recovered", "重载后首领保持消失，真实返航结算恢复待领取碎片与经验", "Settlement Card");
             yield return DriveGuidedTutorial(controller, "Complete", resumedSteps, false);
             Assert.That(resumedSteps, Does.Not.Contain("TutorialBoss"));
+            Assert.That(resumedSteps, Does.Not.Contain("DrawChart"));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.RecordedSeaChartsKey, ""), Does.Not.Contain(seed));
             Assert.That(controller.Session.TreasureFragments, Is.EqualTo(1));
             Assert.That(controller.Session.PirateExperience, Is.EqualTo(100));
             Assert.That(controller.Session.PirateLevel, Is.EqualTo(2));
@@ -316,7 +324,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.TreasureFragments, Is.EqualTo(1));
             Assert.That(controller.Session.PirateExperience, Is.EqualTo(100));
             ClickAcceptanceButton("Port Hotspot Voyage"); yield return null;
-            yield return SelectRecordedChartSeed(seed);
+            yield return EnterDepartureChartSeed(seed);
             ClickAcceptanceButton("Start Voyage"); yield return null;
             Assert.That(controller.Session.GuidedTutorialLeg, Is.Zero);
             Assert.That(controller.Session.Map.Nodes.Any(node => node.IsBoss), Is.False);
@@ -347,7 +355,7 @@ namespace ShatteredSail.Presentation.Tests
             if (useChart)
             {
                 CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                Assert.That(controller.Session.CanDrawSeaChart, Is.True,
+                Assert.That(controller.Session.CanUseSeaCharts, Is.True,
                     stage + " at " + controller.Session.CurrentPort + ": the fixture must have an available navigator before loading a chart.");
                 Assert.That(toggle.IsInteractable(), Is.True, "Chart selection must be available outside the guided tutorial.");
             }
@@ -368,8 +376,8 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(button.gameObject.activeInHierarchy, Is.EqualTo(visible || inlineDock),
                     "Painted dock destinations stay visible; paper destinations hide during chart selection.");
                 Assert.That(button.IsInteractable(),
-                    Is.EqualTo(visible && CoreVoyageSession.DestinationPorts[index] != controller.Session.CurrentPort),
-                    "Restoring manual selection must keep the current port unavailable.");
+                    Is.EqualTo(visible && controller.Session.CanSelectDestinationPort(CoreVoyageSession.DestinationPorts[index], out _)),
+                    "Restoring manual selection must retain the current-port and progression restrictions.");
             }
         }
 

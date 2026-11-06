@@ -45,18 +45,25 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void CardWorkshopOpensThePreviewWithoutChestOrRoomArt()
+        public void CardWorkshopOpensPaintedHomeWithFourInteractiveFurnitureEntrances()
         {
             Transform preview = Preview(CoreGameplayPreviewScreen.CardWorkshop);
-            Find<RectTransform>(preview, "Card Workshop Preview Panel");
-            Find<RectTransform>(preview, "Workshop Preview Collection");
-            RawImage background = Find<RawImage>(preview, "CardWorkshop Background");
-            Assert.That(background.texture, Is.Null, "The workshop room illustration is no longer displayed.");
+            Find<RectTransform>(preview, "Workshop Home Panel");
+            RawImage background = Find<RawImage>(preview, "Workshop Home Background");
+            Assert.That(background.texture, Is.Not.Null);
+            Assert.That(background.texture.name, Is.EqualTo("workshop_home_v1"));
+            Assert.That(background.raycastTarget, Is.False);
+            Assert.That(preview.GetComponentsInChildren<CardSchoolFrameGraphic>(true), Is.Empty,
+                "Cards are shown only after choosing a furniture entrance.");
             Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item =>
                 item.name.StartsWith("Card Workshop Chest") || item.name.StartsWith("Open Deck Chest")), Is.False);
-            Assert.That(Find<Button>(preview, "Open Battle Card Upgrades").interactable, Is.True);
-            foreach (NavalBattleStage stage in new[] { NavalBattleStage.Preparation, NavalBattleStage.Naval, NavalBattleStage.Boarding })
-                Assert.That(Find<Button>(preview, "Edit Stage Deck " + stage).interactable, Is.True);
+            foreach (string page in new[] { "Collection", "DeckBuilder", "Packs", "Upgrade" })
+            {
+                Button entrance = Find<Button>(preview, "Workshop Entrance " + page);
+                Assert.That(entrance.interactable, Is.True);
+                Assert.That(entrance.targetGraphic, Is.TypeOf<WorkshopSceneHotspot>());
+                Assert.That(entrance.targetGraphic.raycastTarget, Is.True);
+            }
         }
 
         [Test]
@@ -104,12 +111,14 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
-        public void WorkshopCollectionHasEightCardsWithCompleteUniformlyScaledFrames()
+        public void WorkshopCollectionHasSixCardsWithCompleteUniformlyScaledFrames()
         {
             Transform preview = Preview(CoreGameplayPreviewScreen.CardWorkshop);
+            Find<Button>(preview, "Workshop Entrance Collection").onClick.Invoke();
+            preview = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName);
             Button[] choices = Find<RectTransform>(preview, "Workshop Preview Collection").GetComponentsInChildren<Button>()
                 .Where(button => button.name.StartsWith("Select Upgrade Card ")).ToArray();
-            Assert.That(choices, Has.Length.EqualTo(8));
+            Assert.That(choices, Has.Length.EqualTo(6), "The collection uses two rows of three full card faces.");
             foreach (Button choice in choices)
             {
                 CardSchoolFrameGraphic frame = choice.GetComponentInChildren<CardSchoolFrameGraphic>();
@@ -133,15 +142,16 @@ namespace ShatteredSail.Presentation.Tests
         public void WorkshopUpgradeMergesBothRightSectionsAndCanReturnToEntrances()
         {
             Transform preview = Preview(CoreGameplayPreviewScreen.CardWorkshop);
-            Find<Button>(preview, "Open Battle Card Upgrades").onClick.Invoke();
+            Find<Button>(preview, "Workshop Entrance Upgrade").onClick.Invoke();
             preview = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName);
             Find<RectTransform>(preview, "Battle Card Upgrade Panel");
-            Assert.That(Find<Text>(preview, "Card Upgrade Heading").text, Is.EqualTo("卡牌强化"));
+            Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Card Upgrade Heading"), Is.False);
             Assert.That(preview.GetComponentsInChildren<Button>(true).Any(button => button.name.StartsWith("Edit Stage Deck ")), Is.False);
-            Find<Button>(preview, "Back From Card Upgrades").onClick.Invoke();
+            Find<Button>(preview, "Workshop Page Collection").onClick.Invoke();
             preview = host.transform.Find(CoreGameplayDemoController.EditorPreviewCanvasName);
-            Find<Button>(preview, "Open Battle Card Upgrades");
-            Find<Button>(preview, "Edit Stage Deck Preparation");
+            Find<Button>(preview, "Workshop Page Upgrade");
+            Find<Button>(preview, "Workshop Page DeckBuilder");
+            Find<RectTransform>(preview, "Workshop Collection Detail");
             Assert.That(preview.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Battle Card Upgrade Panel"), Is.False);
         }
 

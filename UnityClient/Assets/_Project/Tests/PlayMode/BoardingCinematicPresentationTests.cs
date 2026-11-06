@@ -43,11 +43,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitResponsiveBattle(controller);
 
             Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
-            RawImage figure = RequiredResponsive<RawImage>("Player Ship Art Sailor 0");
-            Assert.That(figure.texture, Is.SameAs(BoardingBattleArtCatalog.ForCrew(doctor)));
-            Assert.That(figure.uvRect, Is.EqualTo(BoardingBattleArtCatalog.CrewUv(doctor)));
-            Assert.That(GameObject.Find("Player Ship Art Party Illustration"), Is.Null,
-                "A retired assignment must not replace the committed doctor with ordinary sailors.");
+            AssertActorCrewIdentity(session, new[] { doctor });
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -55,7 +51,7 @@ namespace ShatteredSail.Presentation.Tests
         public void BoardingCinematic_AllEnemyLegacyAndThirtySixCrewBodiesCompensateTheirOwnTransparentFootMargins()
         {
             var enemyNames = new[] { "party", "imperial", "ghost", "route_reef", "route_gold", "route_moon", "treasure",
-                "iron_oath", "thunder_crown", "red_widow", "ember_ark", "tide_requiem" };
+                "iron_oath", "thunder_crown", "red_widow", "ember_ark", "tide_requiem", "last_horizon", "moon_weave" };
             var legacyNames = new[] { "navigator_evelyn", "carpenter_barlow", "doctor_moer", "gunner_leisa", "cook_pepe", "diver_noya" };
             IEnumerable<string> paths = enemyNames.Select(name => "BoardingBattle/Characters/boarding_enemy_" + name + "_v1")
                 .Concat(legacyNames.Select(name => "PortArt/CrewFullBody/crew_" + name + "_fullbody"));
@@ -131,10 +127,9 @@ namespace ShatteredSail.Presentation.Tests
                         if (environment == 2 && time == 2)
                             NavalBattleVisualCapture.Capture(controller, "Boarding_Grounded_StraitNight.png", "海峡夜晚：双队脚底位于栏杆前的甲板区域");
 
-                        // Cooks do not provide combat cards and are not selected
-                        // by the live boarding roster. The direct grounding test
-                        // above still covers their complete authored atlas cells.
-                        var crew = (time == 0 ? new[] { 0, 1, 2 } : new[] { 3, 5, 0 })
+                        // All professions enter the voyage fixture. Only owners of
+                        // boarding-legal cards may appear alongside the captain.
+                        var crew = (time == 0 ? new[] { 0, 1, 2 } : time == 1 ? new[] { 3, 4, 5 } : new[] { 2, 4, 1 })
                             .Select(profession => CrewNarrativeCatalog.ForPortAndProfession(ports[environment], profession)).ToArray();
                         CoreVoyageSession specialists = CreateResponsiveBattle(controller, NavalBattleStage.Preparation,
                             crewIds: crew.Select(member => member.Id).ToArray(), gameHours: hours[time]);
@@ -154,20 +149,12 @@ namespace ShatteredSail.Presentation.Tests
                         RenderResponsiveBattle(controller);
                         yield return WaitResponsiveBattle(controller);
                         BoardingCinematicAssertions.AssertScene(specialists, false);
-                        Assert.That(GameObject.Find("Player Ship Art Party Illustration"), Is.Null);
-                        Assert.That(RequiredResponsive<RectTransform>("Player Ship Art").GetComponentsInChildren<RawImage>(), Has.Length.EqualTo(3),
-                            ports[environment] + " / " + times[time] + " / " + string.Join(", ", crew.Select(member => member.Id)));
-                        for (int index = 0; index < crew.Length; index++)
-                        {
-                            RawImage figure = RequiredResponsive<RawImage>("Player Ship Art Sailor " + index);
-                            Assert.That(figure.texture, Is.SameAs(BoardingBattleArtCatalog.ForCrew(crew[index])));
-                            BoardingCinematicAssertions.AssertFullBody(figure, BoardingBattleArtCatalog.CrewUv(crew[index]));
-                        }
+                        AssertActorCrewIdentity(specialists, crew);
                         if (environment == 2 && time == 2)
-                            NavalBattleVisualCapture.Capture(controller, "Boarding_Grounded_LowerAtlasCrew.png", "海峡夜晚：图集下排炮手、潜水员与领航员按不透明脚底落地");
+                            NavalBattleVisualCapture.Capture(controller, "Boarding_Grounded_LowerAtlasCrew.png", "海峡夜晚：船长与接舷阶段可用的特殊船员");
                     }
                 Assert.That(backgrounds.Count, Is.EqualTo(18));
-                Assert.That(identities.Count, Is.EqualTo(30));
+                Assert.That(identities.Count, Is.EqualTo(36));
                 LogAssert.NoUnexpectedReceived();
             }
         }
@@ -207,15 +194,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(NavigationTimeOfDayUtility.FromVoyageHours(session.TotalHours), Is.EqualTo(NavigationTimeOfDay.Day),
                     "The scene must use the persistent campaign clock, not a new voyage's reset timer.");
                 BoardingCinematicAssertions.AssertScene(session, false);
-                Assert.That(GameObject.Find("Player Ship Art Party Illustration"), Is.Null, "Recruited specialists must not be replaced by unnamed ordinary sailors.");
-                Assert.That(RequiredResponsive<RectTransform>("Player Ship Art").GetComponentsInChildren<RawImage>(), Has.Length.EqualTo(3));
-                for (int index = 0; index < crew.Length; index++)
-                {
-                    RawImage figure = RequiredResponsive<RawImage>("Player Ship Art Sailor " + index);
-                    Assert.That(figure.texture, Is.SameAs(BoardingBattleArtCatalog.ForCrew(crew[index])));
-                    BoardingCinematicAssertions.AssertFullBody(figure, BoardingBattleArtCatalog.CrewUv(crew[index]));
-                    Assert.That(RequiredResponsive<Text>("Player Ship Art Boarding Crew Role " + index).text, Is.EqualTo(crew[index].DisplayName));
-                }
+                AssertActorCrewIdentity(session, crew);
 
                 session.Battle.PlayerBoardingHealth = System.Math.Min(27, session.Battle.PlayerMaxBoardingHealth - 1);
                 session.Battle.EnemyBoardingHealth = System.Math.Min(37, session.Battle.EnemyMaxBoardingHealth - 1);
@@ -227,7 +206,7 @@ namespace ShatteredSail.Presentation.Tests
                 RenderResponsiveBattle(controller);
                 yield return WaitResponsiveBattle(controller);
                 BoardingCinematicAssertions.AssertScene(session, false);
-                NavalBattleVisualCapture.Capture(controller, "Boarding_SpecialCrew.png", "真实海上三名已招募船员：全身身份、非十倍生命值与白色格挡外壳");
+                NavalBattleVisualCapture.Capture(controller, "Boarding_SpecialCrew.png", "海上接舷阵容、生命值与格挡");
 
                 int enemyHealth = session.Battle.EnemyBoardingHealth;
                 int damage = session.GetBattleCardEffects(session.Battle.Hand[0], NavalBattleStage.Boarding).Damage;
@@ -456,18 +435,26 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(party.rect.height, Is.EqualTo(BoardingBattleLayout.PartySize.y).Within(.01f),
                     "Full-body actors follow the shared layout while reserving room for health and status icons.");
                 Assert.That(party.GetComponent<CanvasGroup>().blocksRaycasts, Is.False);
-                string role = enemy == session.Battle.BoardingInitiatedByEnemy ? "登船队" : "守备队";
-                Assert.That(Required<Text>(side + " Battle Name").text, Does.Contain(role),
-                    "The compact name board carries the formation role without duplicating a label over the actors.");
+                Assert.That(GameObject.Find(side + " Battle Name"), Is.Null);
+                Assert.That(GameObject.Find(side + " Battle Name Board"), Is.Null);
                 Assert.That(GameObject.Find(side + " Ship Art Formation Label"), Is.Null);
-                if (enemy || ordinaryPlayer)
+                var actors = party.GetComponentsInChildren<BoardingActorGraphic>();
+                Assert.That(actors.Length, Is.InRange(1, 3));
+                if (enemy)
                 {
-                    RawImage image = Required<RawImage>(side + " Ship Art Party Illustration");
-                    Assert.That(image.texture, Is.SameAs(enemy
-                        ? BoardingBattleArtCatalog.ForEnemy(session.Battle, session.ActiveEncounter, session.SelectedRouteIndex)
-                        : BoardingBattleArtCatalog.ForParty(false)));
-                    AssertFullBody(image);
-                    Assert.That(party.GetComponentsInChildren<RawImage>(), Has.Length.EqualTo(1));
+                    Texture2D expectedArt = BoardingBattleArtCatalog.ForEnemy(session.Battle, session.ActiveEncounter, session.SelectedRouteIndex);
+                    if (expectedArt.name == "boarding_enemy_party_v1")
+                        CollectionAssert.AreEquivalent(new[] { "enemy_party_left", "enemy_party_center", "enemy_party_right" }, actors.Select(a => a.Identity).ToArray());
+                    else
+                    {
+                        Assert.That(actors, Has.Length.EqualTo(1));
+                        Assert.That(actors[0].GetComponent<RawImage>().texture, Is.SameAs(expectedArt));
+                    }
+                }
+                else
+                {
+                    Assert.That(actors.Count(a => a.Identity == "captain"), Is.EqualTo(1));
+                    if (ordinaryPlayer) Assert.That(actors, Has.Length.EqualTo(1));
                 }
                 foreach (RawImage figure in party.GetComponentsInChildren<RawImage>())
                 {

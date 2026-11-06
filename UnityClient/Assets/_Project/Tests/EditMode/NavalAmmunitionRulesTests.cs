@@ -21,9 +21,9 @@ namespace ShatteredSail.Core.Tests
                 if (card.Action == NavalBattleCardAction.Cannon)
                 {
                     cannons++;
-                    // The naval expansion's cannons each cost one powder; their reused school art is not a cost rule.
-                    bool expansion = CoreNavalSchoolExpansionCatalog.FindSpec(card.Id) != null;
-                    int expectedPowder = expansion || CoreComponentFieldCards.IsFieldCard(card) ? 1 : card.SchoolId == "fire" ? card.ArtId == "card_school_fire_l03" ? 3 : 2 : 1;
+                    // Only the authored finishing volley costs two powder. Reused
+                    // school illustrations never determine ammunition costs.
+                    int expectedPowder = card.Id == "card_school_fire_b04" ? 2 : 1;
                     Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
                     Assert.That(card.CannonballCost, Is.EqualTo(1), card.Id);
                     Assert.That(card.Description, Does.Not.Contain("消耗 " + expectedPowder + " 火药").And.Not.Contain("消耗 1 炮弹"),
@@ -32,7 +32,7 @@ namespace ShatteredSail.Core.Tests
                 else if (card.Action == NavalBattleCardAction.Load || card.Action == NavalBattleCardAction.PrecisionLoad)
                 {
                     loading++;
-                    int expectedPowder = card.Id == "card_component_instrument" ? 0 : 1;
+                    int expectedPowder = 1;
                     Assert.That(card.PowderCost, Is.EqualTo(expectedPowder), card.Id);
                     Assert.That(card.CannonballCost, Is.Zero, card.Id);
                     Assert.That(card.Description, Does.Not.Contain("消耗 1 火药"), card.Id + " loading cost belongs to its icon quote.");
@@ -45,7 +45,10 @@ namespace ShatteredSail.Core.Tests
                 }
             }
             Assert.That(cannons, Is.GreaterThan(3), "Include special cannons, not just the base deck.");
-            Assert.That(loading, Is.GreaterThan(3), "Include crew and component loading effects.");
+            Assert.That(loading, Is.EqualTo(3), "Exactly the base loading card, Leisa and the echo-chamber cannon remain active loaders.");
+            CollectionAssert.AreEquivalent(new[] { "card_load_shot", "card_special_crew_gray_gull_gunner_leisa", "card_special_cannon_echochamber" },
+                CoreVoyageSession.CardLibrary.Where(card => card.AllowedStages != NavalBattleStages.None &&
+                    (card.Action == NavalBattleCardAction.Load || card.Action == NavalBattleCardAction.PrecisionLoad)).Select(card => card.Id));
             Assert.That(magic, Is.GreaterThan(0));
         }
 
@@ -69,7 +72,7 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase("card_chain_shot")]
         [TestCase("card_cannon_barrage")]
-        [TestCase("card_component_cannon")]
+        [TestCase("card_special_cannon_chain_repeater")]
         [TestCase("card_special_cannon_anchorbreaker")]
         public void SuccessfulCannon_SpendsExactlyOnePowderAndOneBall(string id)
         {
@@ -115,7 +118,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("card_load_shot")]
-        [TestCase("card_gunner_precision")]
+        [TestCase("card_special_crew_gray_gull_gunner_leisa")]
         public void LoadingWithoutPowder_IsAtomicAndCannotCreateABuff(string id)
         {
             CoreVoyageSession session = Battle(id, 0, 1);
@@ -140,9 +143,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
         }
 
-        [TestCase("card_component_instrument")]
+        [TestCase("card_special_bow_gilded_mermaid")]
         [TestCase("card_special_crew_salt_crown_gunner_rokan")]
-        public void CalibrationAndMagicRemainFreeButCannotMakeAnUnfundedCannonShot(string id)
+        public void CrewAndComponentMagicRemainFreeButCannotMakeAnUnfundedCannonShot(string id)
         {
             CoreVoyageSession session = Battle(id, 0, 0);
             session.Battle.Hand.Add(Find("card_chain_shot"));
@@ -194,3 +197,4 @@ namespace ShatteredSail.Core.Tests
         }
     }
 }
+

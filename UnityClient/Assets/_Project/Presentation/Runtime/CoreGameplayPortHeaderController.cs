@@ -15,6 +15,11 @@ namespace ShatteredSail.Presentation
         private decimal displayedPortGold = -1m;
         private string displayedHeaderPort;
 
+        // A voyage keeps the departure harbour's timber even after arrival changes CurrentPort.
+        private string VoyageHeaderPort => !string.IsNullOrEmpty(session?.Map?.DepartureName)
+            ? session.Map.DepartureName
+            : session?.CurrentPort;
+
         private void EnsurePortHeaderArt()
         {
             if (portHeaderArt == null) portHeaderArt = new PortHeaderArtCatalog();
@@ -27,7 +32,7 @@ namespace ShatteredSail.Presentation
             // There is no facility to return from or cycle while on this page.
             RectTransform header = CreateRegionalPortHeader("Port Hub", "Port Hub Frame", out PortHeaderTheme theme);
             BuildPortHeaderReadouts(header, theme, true);
-            NauticalHeaderSkin.ApplyPort(header, theme.Accent, true);
+            NauticalHeaderSkin.ApplyPort(header, theme.Accent, true, session.CurrentPort);
         }
 
         /// <summary>
@@ -41,10 +46,7 @@ namespace ShatteredSail.Presentation
             HideLegacyVoyageHeaderVisuals();
 
             EnsurePortHeaderArt();
-            string departurePort = session != null && session.Map != null &&
-                !string.IsNullOrEmpty(session.Map.DepartureName)
-                ? session.Map.DepartureName
-                : session == null ? string.Empty : session.CurrentPort;
+            string departurePort = VoyageHeaderPort;
             bool navigation = session != null && (session.Phase == CoreDemoPhase.Sailing || session.Phase == CoreDemoPhase.Encounter);
             theme = portHeaderArt.ForPort(departurePort, navigation ? NavigationHeaderSkin.HeaderFrame : null);
 
@@ -106,7 +108,8 @@ namespace ShatteredSail.Presentation
             if (session != null && session.Phase == CoreDemoPhase.Battle)
             {
                 BuildBattleHeaderControls(header, theme.Accent);
-                NauticalHeaderSkin.ApplyVoyage(header, theme.Accent, true);
+                NauticalHeaderSkin.ApplyVoyage(header, theme.Accent, true,
+                    session.Battle != null && session.Battle.Stage == NavalBattleStage.Boarding, VoyageHeaderPort);
                 return;
             }
             if (session == null || (session.Phase != ShatteredSail.Core.Gameplay.CoreDemoPhase.Sailing &&
@@ -120,9 +123,9 @@ namespace ShatteredSail.Presentation
             Button settings = CreatePortHeaderButton("Voyage Settings", header, new Vector2(128f, 64f),
                 Vector2.zero, "设置", 22, theme.Accent);
             settings.onClick.AddListener(OpenPortSettings);
-            // Only sailing and encounters use the new navigation dashboard skin.
-            // Battle still shares CreateVoyageHeader and keeps its regional frame.
-            NavigationHeaderSkin.Apply(header);
+            // Navigation adds its dashboard controls; naval and boarding battles
+            // use the same departure-port timber through ApplyVoyage above.
+            NavigationHeaderSkin.Apply(header, VoyageHeaderPort);
         }
 
         private void BringVoyageHeaderToFront()
@@ -216,17 +219,23 @@ namespace ShatteredSail.Presentation
             long minute = now.Ticks / TimeSpan.TicksPerMinute;
             if (force || minute != displayedPortMinute)
             {
-                portHeaderTime.text = "<size=13><color=#B8AF98>游戏日期</color></size>\n" + CoreVoyageSession.FormatGameDate(now, true);
+                portHeaderTime.text = CoreVoyageSession.FormatGameDate(now, true);
                 displayedPortMinute = minute;
             }
             if (force || displayedHeaderPort != session.CurrentPort)
             {
                 portHeaderPort.text = session.CurrentPort;
+                if (portHeaderPort.name == "Port Hub Port")
+                {
+                    if (portMapIcons == null) portMapIcons = new PortMapIconCatalog();
+                    NauticalHeaderSkin.ApplyPortHubTitleIcon((RectTransform)portHeaderPort.transform.parent,
+                        portMapIcons.Get(session.CurrentPort));
+                }
                 displayedHeaderPort = session.CurrentPort;
             }
             if (force || displayedPortGold != session.ProfileGold)
             {
-                portHeaderGold.text = "<size=13><color=#B8AF98>总金币</color></size>\n" + PortMarketCatalog.FormatPrice(session.ProfileGold);
+                portHeaderGold.text = PortMarketCatalog.FormatPrice(session.ProfileGold);
                 displayedPortGold = session.ProfileGold;
             }
         }

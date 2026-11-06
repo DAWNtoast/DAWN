@@ -8,10 +8,10 @@ namespace ShatteredSail.Presentation
         Cannon, Melee, Ram, Guard, Repair, Empower, Curse, Move, Wait, Fire,
         Energy, ActionPoint, Mana, TidePower, ThunderChain, CurseMark, Blood,
         Powder, Cannonball, Planks, Medicine, Gold, Food, DrawPile, DiscardPile,
-        Load, Morale, Supplies
+        Load, Morale, Supplies, Immunity
     }
 
-    /// <summary>Outlined nautical command, resource and deck symbols without font dependencies.</summary>
+    /// <summary>Authored nautical command, resource and deck symbols with a geometric fallback.</summary>
     [RequireComponent(typeof(CanvasRenderer)), DisallowMultipleComponent]
     public sealed class BattleCommandIconGraphic : MaskableGraphic
     {
@@ -19,6 +19,7 @@ namespace ShatteredSail.Presentation
         private Vector2 center;
         private float scale;
         public BattleCommandIconKind Kind => kind;
+        public override Texture mainTexture => BattleIconArtCatalog.Texture != null ? BattleIconArtCatalog.Texture : base.mainTexture;
         private static Color Ink => Rgb(18, 27, 35);
         private static Color Ivory => Rgb(255, 242, 204);
         private static Color Steel => Rgb(169, 214, 231);
@@ -43,6 +44,7 @@ namespace ShatteredSail.Presentation
             mesh.Clear();
             Rect rect = GetPixelAdjustedRect();
             if (rect.width <= 0f || rect.height <= 0f) return;
+            if (BattleIconArtCatalog.Draw(mesh, rect, BattleIconArtCatalog.CommandAssetId(kind), color)) return;
             center = rect.center;
             scale = Mathf.Min(rect.width, rect.height) * .46f;
             switch (kind)
@@ -65,6 +67,7 @@ namespace ShatteredSail.Presentation
                     Stroke(mesh, Aqua, .12f, V(-.92f,-.78f), V(.04f,-.78f));
                     break;
                 case BattleCommandIconKind.Guard: Shield(mesh, Aqua); break;
+                case BattleCommandIconKind.Immunity: Shield(mesh, Gold); break;
                 case BattleCommandIconKind.Repair:
                     Plank(mesh, V(0f,-.36f), .15f);
                     Stroke(mesh, Timber, .23f, V(-.49f,-.66f), V(.31f,.55f));

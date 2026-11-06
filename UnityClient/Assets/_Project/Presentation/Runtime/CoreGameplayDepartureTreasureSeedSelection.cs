@@ -90,7 +90,7 @@ namespace ShatteredSail.Presentation
                 bool selected = session.SelectedTreasureMap?.Id == map.Id;
                 Button option = CreateButton("Departure Treasure Seed Option " + index, card,
                     new Vector2(1060f, 72f), new Vector2(0f, 168f - index * 80f), PanelRaised, MarketShopSkin.Ink, 20);
-                MarketShopSkin.ApplyLightButton(option, selected);
+                MarketShopSkin.ApplyChoiceRow(option, selected);
                 Text caption = option.GetComponentInChildren<Text>();
                 GameTypography.Apply(caption, 20, FontStyle.Normal);
                 caption.alignment = TextAnchor.MiddleLeft;
@@ -127,7 +127,7 @@ namespace ShatteredSail.Presentation
             Button ordinary = CreateButton("Departure Clear Treasure Seed", card, new Vector2(330f, 52f),
                 new Vector2(-356f, -333f), PanelRaised, MarketShopSkin.Ink, 20);
             ordinary.GetComponentInChildren<Text>().text = "不使用种子 · 普通航线";
-            MarketShopSkin.ApplyLightButton(ordinary);
+            WoodButtonSkin.ApplyAction(ordinary, WoodButtonRole.Secondary);
             GameTypography.Apply(ordinary.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             ordinary.onClick.AddListener(() =>
             {
@@ -153,7 +153,7 @@ namespace ShatteredSail.Presentation
             Button close = CreateButton("Close Departure Treasure Seed Selection", card, new Vector2(330f, 52f),
                 new Vector2(356f, -333f), PanelRaised, MarketShopSkin.Ink, 20);
             close.GetComponentInChildren<Text>().text = "返回出航配置";
-            MarketShopSkin.ApplyTextButton(close);
+            WoodButtonSkin.ApplyAction(close, WoodButtonRole.Secondary);
             GameTypography.Apply(close.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             close.onClick.AddListener(() =>
             {

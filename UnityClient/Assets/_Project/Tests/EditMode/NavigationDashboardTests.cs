@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -197,7 +198,10 @@ namespace ShatteredSail.Core.Tests
             Button toggle = Find<Button>("Forecast Details");
             RectTransform details = Find<RectTransform>("Forecast Details Panel");
             Assert.That(details.gameObject.activeSelf, Is.False);
-            Assert.That(Find<Text>("Forecast").text, Does.Contain("预计").And.Contain("航速").And.Contain("淡水").And.Contain("食物"));
+            Assert.That(Find<Text>("Forecast Time Label").text, Is.EqualTo("预计时间"));
+            Assert.That(Find<Text>("Forecast Speed Label").text, Does.StartWith("航速"));
+            Assert.That(Find<Text>("Forecast Water Label").text, Is.EqualTo("淡水消耗"));
+            Assert.That(Find<Text>("Forecast Food Label").text, Is.EqualTo("食物消耗"));
             Assert.That(Find<Text>("Forecast").text, Does.Not.Contain("洋流").And.Not.Contain("海风"));
             var position = controller.Session.Position;
             double hours = controller.Session.ElapsedGameHours;
@@ -213,7 +217,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(controller.Session.PlannedDistanceNm, Is.EqualTo(planned));
             Find<Slider>("Distance Slider").value = 170;
             Assert.That(Find<RectTransform>("Forecast Details Panel"), Is.SameAs(details));
-            Assert.That(Find<Text>("Forecast").text, Does.Contain(controller.Session.GetForecast().Hours.ToString("0.0")));
+            Assert.That(Find<Text>("Forecast Time Value").text, Is.EqualTo(controller.Session.GetForecast().Hours.ToString("0.0") + " 小时"));
             toggle.onClick.Invoke();
             Assert.That(details.gameObject.activeSelf, Is.False);
             Assert.That(controller.Session.Position.X, Is.EqualTo(position.X));
@@ -499,8 +503,14 @@ namespace ShatteredSail.Core.Tests
                 Rect bounds = controls[index];
                 Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(header.rect.xMin), context + " " + name);
                 Assert.That(bounds.xMax, Is.LessThanOrEqualTo(header.rect.xMax), context + " " + name);
-                Assert.That(bounds.yMin, Is.GreaterThan(-37f), context + " reserve the tutorial instruction band");
-                Assert.That(bounds.yMax, Is.LessThan(39f), context + " reserve the tutorial objective band");
+                if (name == "Voyage Cargo" || name == "Voyage Settings")
+                    Assert.That(bounds.center.y, Is.EqualTo(header.rect.yMax - 54f).Within(.01f),
+                        context + " actions keep the same screen position with a taller tutorial header");
+                else
+                {
+                    Assert.That(bounds.yMin, Is.GreaterThan(-37f), context + " reserve the tutorial instruction band");
+                    Assert.That(bounds.yMax, Is.LessThan(39f), context + " reserve the tutorial objective band");
+                }
                 for (int other = index + 1; other < controls.Length; other++)
                     Assert.That(bounds.Overlaps(controls[other]), Is.False, context + " " + name + " / " + names[other]);
             }
@@ -514,17 +524,20 @@ namespace ShatteredSail.Core.Tests
             Assert.That(clock.center.x, Is.EqualTo((title.xMax + cargo.xMin) * .5f).Within(.01f),
                 context + " time centers in the space between information and actions");
             Assert.That(settings.xMin - cargo.xMax, Is.EqualTo(16f).Within(.01f), context + " neighboring cargo/settings actions");
-            Assert.That(cargo.yMin, Is.EqualTo(settings.yMin).Within(.01f), context + " action bottom alignment");
-            Assert.That(cargo.yMax, Is.EqualTo(settings.yMax).Within(.01f), context + " action top alignment");
-            Assert.That(header.rect.xMax - settings.xMax, Is.EqualTo(30f).Within(.01f), context + " right settings margin");
+            Assert.That(cargo.center.y, Is.EqualTo(settings.center.y).Within(.01f), context + " action center alignment");
+            Assert.That(cargo.width, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f), context + " shared cabin icon width");
+            Assert.That(cargo.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f), context + " shared cabin icon height");
+            Assert.That(settings.width, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f), context + " shared header icon width");
+            Assert.That(settings.height, Is.EqualTo(NauticalHeaderSkin.IconSize).Within(.01f), context + " shared header icon height");
+            Assert.That(header.rect.xMax - settings.xMax, Is.EqualTo(NauticalHeaderSkin.SettingsRightMargin).Within(.01f), context + " right settings margin");
             RectTransform ribbon = Find<RectTransform>("Lookout Time Ribbon");
             Assert.That(Find<RectTransform>("Forward Viewport").GetComponentsInChildren<VoyageTimeRibbonGraphic>(), Is.Empty,
                 context + " time belongs only in the header, including during encounters");
             foreach (Graphic graphic in ribbon.GetComponentsInChildren<Graphic>())
                 Assert.That(graphic.raycastTarget, Is.False, context + " time must not intercept header input");
-            foreach (string name in new[] { "Lookout Time Readout", "Lookout Time Legend" })
+            foreach (Text label in ribbon.GetComponentsInChildren<Text>())
             {
-                Text label = Find<Text>(name);
+                string name = label.name;
                 Rect bounds = RectIn(ribbon, label.rectTransform);
                 Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(ribbon.rect.xMin - .01f), context + name);
                 Assert.That(bounds.xMax, Is.LessThanOrEqualTo(ribbon.rect.xMax + .01f), context + name);
@@ -533,7 +546,12 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height + .1f), context + name);
                 Assert.That(label.cachedTextGenerator.characterCountVisible, Is.GreaterThanOrEqualTo(label.text.Length), context + name);
             }
-            Assert.That(Find<Text>("Lookout Time Readout").text, Does.Contain(CoreVoyageSession.FormatGameDate(controller.Session.GameDateTime, true)), context);
+            Assert.That(Find<Text>("Lookout Time Readout").text,
+                Is.EqualTo(controller.Session.GameDateTime.ToString("HH:mm", CultureInfo.InvariantCulture)), context);
+            Assert.That(Find<Text>("Lookout Time Legend").text,
+                Does.Contain(CoreVoyageSession.FormatGameDate(controller.Session.GameDateTime, false)), context);
+            Assert.That(Find<Text>("Lookout Time Phase").text,
+                Is.EqualTo(NavigationTimeOfDayUtility.Label(NavigationTimeOfDayUtility.FromVoyageHours(controller.Session.ElapsedGameHours))), context);
             Assert.That(Find<VoyageTimeRibbonGraphic>("Lookout Time Track").LocalHour,
                 Is.EqualTo(NavigationTimeOfDayUtility.LocalHour(controller.Session.ElapsedGameHours)).Within(.001d), context);
         }
@@ -560,7 +578,7 @@ namespace ShatteredSail.Core.Tests
                     RectTransform header = Find<RectTransform>("Voyage Header");
                     var panels = new[] { "Navigation Chart", "Navigation Controls", "Forward View Panel" }
                         .Select(Find<RectTransform>).ToArray();
-                    AssertDashboardCoverage(viewport.GameRoot, panels, header, context, 148f);
+                    AssertDashboardCoverage(viewport.GameRoot, panels, header, context);
                     AssertVoyageHeaderControlsAndTime(context);
                     Image paper = Find<Image>("Guided Tutorial Banner");
                     Assert.That(paper.transform.parent, Is.SameAs(header.parent), context + " independent tutorial paper");
@@ -675,7 +693,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(chart.Find("Voyage Exploration Status"), Is.Null, context + " exploration strip removed");
             Assert.That(chart.GetComponentsInChildren<Text>(true).Any(text => text.name == "Voyage Exploration Status Text"),
                 Is.False, context + " exploration summary removed");
-            bool hasBossGuidance = chart.Find("Destination Boss Guidance") != null;
+            Assert.That(chart.Find("Destination Boss Guidance"), Is.Null, context + " port discovery must not add a footer");
             Assert.That(strip.xMin, Is.EqualTo(chart.rect.xMin + 4f).Within(.01f), context + " title meets the gold frame");
             Assert.That(strip.xMax, Is.EqualTo(chart.rect.xMax - 4f).Within(.01f), context + " title meets the gold frame");
             Assert.That(Find<RectTransform>("Procedural Sea Chart Frame").GetComponent<RectMask2D>(), Is.Not.Null,
@@ -684,7 +702,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(frame.xMin, Is.EqualTo(strip.xMin).Within(.01f), context + " frame left edge");
             Assert.That(frame.xMax, Is.EqualTo(strip.xMax).Within(.01f), context + " frame right edge");
             Assert.That(frame.yMax, Is.EqualTo(strip.yMin).Within(.01f), context + " chart directly meets title strip");
-            Assert.That(frame.yMin, Is.EqualTo(chart.rect.yMin + 4f + (hasBossGuidance ? 72f : hasCourseHint ? 40f : 0f)).Within(.01f),
+            Assert.That(frame.yMin, Is.EqualTo(chart.rect.yMin + 4f + (hasCourseHint ? 40f : 0f)).Within(.01f),
                 context + " frame bottom edge");
             if (hasCourseHint)
                 Assert.That(RectIn(chart, Find<RectTransform>("Map Course Hint")).yMax,
@@ -1059,7 +1077,9 @@ namespace ShatteredSail.Core.Tests
         public void Lookout_UsesPersistentGameTimeForDayDuskNight()
         {
             Create();
-            Assert.That(Find<Text>("Lookout Time Readout").text, Does.Contain("白天"));
+            var departureDate = controller.Session.GameDateTime.Date;
+            double initialElapsed = controller.Session.ElapsedGameHours;
+            AssertVoyageClockReading("08:00", "白天", "距黄昏 9小时");
             Assert.That(Find<Text>("Lookout Heading").text, Does.Not.Contain("白天"));
             Assert.That(Find<RectTransform>("Lookout Time Ribbon").parent.name, Is.EqualTo("Voyage Header"));
             AssertLookoutPanoramas(NavigationTimeOfDay.Day, NavigationTimeOfDay.Day, 0f);
@@ -1068,24 +1088,44 @@ namespace ShatteredSail.Core.Tests
             Assert.That(track.GetComponent<CanvasRenderer>(), Is.Not.Null,
                 "The day/night timeline needs a renderer, not just its overlaid text.");
             Assert.That(track, Is.InstanceOf<MaskableGraphic>());
-            Assert.That(Find<Text>("Lookout Time Readout").text, Does.Contain("08:00"));
 
-            Set(controller.Session, "ElapsedGameHours", 9d);
+            // Campaign time includes the date's offset from the permanent save
+            // epoch. Advance from this preview's date rather than resetting it.
+            Set(controller.Session, "ElapsedGameHours", initialElapsed + 9d);
             Render();
-            Assert.That(Find<Text>("Lookout Time Readout").text, Does.Contain("黄昏"));
+            AssertVoyageClockReading("17:00", "黄昏", "距夜晚 3小时");
             Assert.That(Find<Text>("Lookout Heading").text, Does.Not.Contain("黄昏"));
             AssertLookoutPanoramas(NavigationTimeOfDay.Day, NavigationTimeOfDay.Dusk, 1f / 3f);
             Assert.That(Find<VoyageTimeRibbonGraphic>("Lookout Time Track").LocalHour, Is.EqualTo(17d).Within(0.001d));
-            Assert.That(Find<Text>("Lookout Time Readout").text, Does.Contain("17:00"));
 
-            Set(controller.Session, "ElapsedGameHours", 12d);
+            Set(controller.Session, "ElapsedGameHours", initialElapsed + 12d);
             Render();
-            Assert.That(Find<Text>("Lookout Time Readout").text, Does.Contain("夜晚"));
+            AssertVoyageClockReading("20:00", "夜晚", "距白天 10小时");
             Assert.That(Find<Text>("Lookout Heading").text, Does.Not.Contain("夜晚"));
             AssertLookoutPanoramas(NavigationTimeOfDay.Dusk, NavigationTimeOfDay.Night, 2f / 3f);
             Assert.That(Find<VoyageTimeRibbonGraphic>("Lookout Time Track").LocalHour, Is.EqualTo(20d).Within(0.001d));
-            Assert.That(Find<Text>("Lookout Time Readout").text, Does.Contain("20:00"));
             Assert.That(host.GetComponentsInChildren<Image>(true).Any(image => image.name.StartsWith("Lookout Night Star ")), Is.False);
+
+            Set(controller.Session, "ElapsedGameHours", initialElapsed + 16d);
+            Render();
+            Assert.That(controller.Session.GameDateTime.Date, Is.EqualTo(departureDate.AddDays(1)), "midnight advances the calendar date");
+            AssertVoyageClockReading("00:00", "夜晚", "距白天 6小时");
+            Assert.That(Find<VoyageTimeRibbonGraphic>("Lookout Time Track").LocalHour, Is.EqualTo(0d).Within(.001d));
+
+            Set(controller.Session, "ElapsedGameHours", initialElapsed + 22d);
+            Render();
+            Assert.That(controller.Session.GameDateTime.Date, Is.EqualTo(departureDate.AddDays(1)));
+            AssertVoyageClockReading("06:00", "白天", "距黄昏 11小时");
+            Assert.That(Find<VoyageTimeRibbonGraphic>("Lookout Time Track").LocalHour, Is.EqualTo(6d).Within(.001d));
+        }
+
+        private void AssertVoyageClockReading(string clock, string phase, string transition)
+        {
+            Assert.That(Find<Text>("Lookout Time Readout").text, Is.EqualTo(clock));
+            Assert.That(Find<Text>("Lookout Time Legend").text,
+                Does.Contain(CoreVoyageSession.FormatGameDate(controller.Session.GameDateTime, false)));
+            Assert.That(Find<Text>("Lookout Time Phase").text, Is.EqualTo(phase));
+            Assert.That(Find<Text>("Lookout Time Transition").text, Is.EqualTo(transition));
         }
 
         private void AssertLookoutPanoramas(NavigationTimeOfDay from, NavigationTimeOfDay to, float amount)
@@ -1153,15 +1193,16 @@ namespace ShatteredSail.Core.Tests
         public void Encounter_KeepsHeaderClockAndBothActionsVisibleAcrossDateRollover()
         {
             Create(CoreGameplayPreviewScreen.Encounter);
-            foreach (double hours in new[] { 0d, 9d, 36d })
+            foreach (double hours in new[] { 0d, 9d, 16d, 22d, 36d })
             {
                 Set(controller.Session, "ElapsedGameHours", hours);
                 Render();
                 Canvas.ForceUpdateCanvases();
                 Assert.That(Find<RectTransform>("Encounter Card"), Is.Not.Null);
                 Text time = Find<Text>("Lookout Time Readout");
-                Assert.That(time.text, Does.Contain(CoreVoyageSession.FormatGameDate(controller.Session.GameDateTime, true)));
-                Assert.That(time.text, Does.Contain(NavigationTimeOfDayUtility.Label(NavigationTimeOfDayUtility.FromVoyageHours(hours))));
+                Assert.That(time.text, Is.EqualTo(controller.Session.GameDateTime.ToString("HH:mm", CultureInfo.InvariantCulture)));
+                Assert.That(Find<Text>("Lookout Time Legend").text, Does.Contain(CoreVoyageSession.FormatGameDate(controller.Session.GameDateTime, false)));
+                Assert.That(Find<Text>("Lookout Time Phase").text, Is.EqualTo(NavigationTimeOfDayUtility.Label(NavigationTimeOfDayUtility.FromVoyageHours(hours))));
                 Assert.That(Find<VoyageTimeRibbonGraphic>("Lookout Time Track").LocalHour,
                     Is.EqualTo(NavigationTimeOfDayUtility.LocalHour(hours)).Within(.001d));
                 Assert.That(time.transform.parent.parent.name, Is.EqualTo("Voyage Header"));

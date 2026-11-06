@@ -95,13 +95,6 @@ namespace ShatteredSail.Core.Gameplay
                     ? Battle.PlayerBoardingHealth < Battle.PlayerMaxBoardingHealth : Hull < MaxHull));
             if (!hasImmediateBenefit && card.Action == NavalBattleCardAction.Polish && Battle.PlayerDeckBuff >= card.StrategyLimit) return "甲板强化已达 +" + card.StrategyLimit;
             if (!hasImmediateBenefit && (card.Action == NavalBattleCardAction.Load || card.Action == NavalBattleCardAction.PrecisionLoad) && GetBattleLoadedShotIncrease(card) <= 0) return "装填增益已达 +" + GetBattleLoadedShotLimit(card);
-            if (!hasImmediateBenefit && card.Action == NavalBattleCardAction.FireRounds && Battle.PlayerFireRounds >= card.StrategyLimit) return "烈焰强化已达 " + card.StrategyLimit + " 发";
-            if (!hasImmediateBenefit && card.SchoolEffect != null)
-            {
-                CoreSchoolCardEffect school = card.SchoolEffect;
-                if (school.Mechanic == CoreSchoolMechanic.FireLoad && Battle.PlayerFireRounds >= SchoolDefault(school.Limit, 4)) return "附火储备已达上限";
-                if (school.Mechanic == CoreSchoolMechanic.ArcaneCharge && Battle.Schools.Mana >= Battle.Schools.ManaLimit) return "法力已满";
-            }
             return string.Empty;
         }
 
@@ -120,7 +113,8 @@ namespace ShatteredSail.Core.Gameplay
             if (card.Action == NavalBattleCardAction.Cannon)
             {
                 description += " 当前炮击 " + GetBattleCardDamage(card, stage) + "。";
-                if (Battle != null && Battle.PlayerFireRounds > 0) description += " 命中点燃敌舰。";
+                if (Battle != null && Battle.PlayerFireRounds > 0)
+                    description += " 本次攻击向目标施加 " + Battle.PlayerFireRounds + " 层燃烧。";
             }
             if (Battle != null && stage != NavalBattleStage.Boarding &&
                 (card.Action == NavalBattleCardAction.Load || card.Action == NavalBattleCardAction.PrecisionLoad))
@@ -132,6 +126,7 @@ namespace ShatteredSail.Core.Gameplay
 
         public bool PlayCard(int handIndex)
         {
+            if (Phase == CoreDemoPhase.Battle && ResolveBattleOutcome()) return false;
             if (Battle != null && handIndex >= 0 && handIndex < Battle.Hand.Count &&
                 CoreNavalSchoolExpansionCatalog.FindSpec(GetBattleCard(Battle.Hand[handIndex])?.Id) != null)
                 return PlayNavalCard(handIndex, null);
@@ -140,6 +135,9 @@ namespace ShatteredSail.Core.Gameplay
             if (!CanPlayCard(handIndex)) return false;
             int cardIndex = Battle.Hand[handIndex];
             CoreBattleCard card = GetBattleCard(cardIndex);
+            bool retainedThunderAtPlay = CoreThunderRules.IsInThunderField(Battle, true);
+            try
+            {
             CoreBattleCardEffects effects = GetBattleCardEffects(card, Battle.Stage);
             bool preBurn = HasSchoolFire;
             int previousEnemyHealth = SchoolEnemyHealth;
@@ -151,6 +149,7 @@ namespace ShatteredSail.Core.Gameplay
             int woodCost = effects.WoodCost + tideWoodCost;
             int energyRecovery = GetBattleCardEnergyRecovery(cardIndex);
             bool fireFallback = UsesFireFallback(card);
+            int cardsToDraw = card.Id == "card_school_blood_b02" && !HasBloodPaidBenefit(card) ? 0 : card.Draw;
             Battle.Hand.RemoveAt(handIndex);
             Battle.Energy -= energyCost;
             Battle.RecordSuccessfulCardUse(BattleCardUseIdentity(card));
@@ -160,14 +159,13 @@ namespace ShatteredSail.Core.Gameplay
             Cargo.Wood -= woodCost;
 
             PaySchoolCardCost(card);
+            if (CheckCardCurseExecution()) return FinishCardCurseExecution(card, cardIndex, false);
             bool cannon = card.Action == NavalBattleCardAction.Cannon;
             bool critical = false;
-            bool fireRound = cannon && Battle.PlayerFireRounds > 0;
             if (cannon)
             {
                 Battle.PlayerLoadedShot = 0;
                 Battle.Schools.OverflowContribution = 0;
-                if (fireRound) Battle.PlayerFireRounds -= 1;
             }
             if (Battle.Stage == NavalBattleStage.Boarding && damage > 0 && RollBoardingCritical())
             {
@@ -178,6 +176,7 @@ namespace ShatteredSail.Core.Gameplay
             int piercing = Math.Min(damage, NavalExpansionFirstPiercing(card, consume: true));
             int blocked = Math.Min(Battle.EnemyBlock, damage - piercing);
             Battle.EnemyBlock -= blocked;
+            RecordEnemyTidalAbsorption(blocked);
             damage -= blocked;
             if (damage <= 0) critical = false;
             if (Battle.Stage == NavalBattleStage.Boarding)
@@ -185,13 +184,19 @@ namespace ShatteredSail.Core.Gameplay
             else
                 Battle.EnemyHull = Math.Max(0, Battle.EnemyHull - damage);
             int effectiveDirectDamage = Math.Min(previousEnemyHealth, damage);
-            NavalExpansionOnDirectHit(card, effectiveDirectDamage, targetOnThunder);
+            int lifeStealRestored = 0;
+            if (card.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodDrain)
+            {
+                int beforeHealing = SchoolPlayerHealth;
+                CoreSchoolCardEffect drain = card.SchoolEffect;
+                HealSchoolPlayer((int)Math.Min(SchoolDefault(drain.Limit, int.MaxValue),
+                    (long)effectiveDirectDamage * Math.Min(100, drain.Power) / 100));
+                lifeStealRestored = SchoolPlayerHealth - beforeHealing;
+            }
+            if (CheckCardCurseExecution()) return FinishCardCurseExecution(card, cardIndex, false, effectiveDirectDamage);
+            NavalExpansionOnDirectHit(card, SchoolSum(effectiveDirectDamage, blocked), targetOnThunder);
             if (Battle.Stage == NavalBattleStage.Boarding)
                 OnBoardingEnemyDamaged(blocked, effectiveDirectDamage);
-            if (fireRound && damage > 0)
-            {
-                ApplySchoolBurn(Battle.PlayerFireRoundDamage, 2);
-            }
             int moraleDelta = 0;
             if (cannon && damage > 0)
             {
@@ -204,27 +209,43 @@ namespace ShatteredSail.Core.Gameplay
             int previousBlock = Battle.PlayerBlock;
             Battle.PlayerBlock = (int)Math.Min(int.MaxValue, (long)previousBlock + block);
             block = Battle.PlayerBlock - previousBlock;
-            if (tideWoodCost > 0) Battle.Schools.TidePaidBlock = SchoolSum(Battle.Schools.TidePaidBlock, block);
-            if (card.SchoolEffect?.Mechanic == CoreSchoolMechanic.CurseWard)
+            if (tideWoodCost > 0) Battle.Schools.TidePaidBlock = Battle.PlayerBlock;
+            if (BActive && (tideWoodCost > 0 || BState.TideGuardConversionActive))
+            {
+                BState.TideGuard = Battle.PlayerBlock;
+                CTBSyncResources();
+            }
+            if (card.SchoolEffect?.Mechanic == CoreSchoolMechanic.CurseWard && card.Id != "card_school_curse_b06")
                 Battle.Schools.CurseGuard = SchoolSum(Battle.Schools.CurseGuard, block);
             int previousHealth = Battle.Stage == NavalBattleStage.Boarding ? Battle.PlayerBoardingHealth : Hull;
             if (Battle.Stage == NavalBattleStage.Boarding)
             {
-                Battle.PlayerBoardingHealth = (int)Math.Min(Battle.PlayerMaxBoardingHealth, (long)Battle.PlayerBoardingHealth + effects.ActualRepair);
-                if (effects.ActualRepair > 0) Cargo.Medicine -= effects.MedicineCost;
+                if (!IsBattleHealingBlocked(true))
+                {
+                    Battle.PlayerBoardingHealth = (int)Math.Min(Battle.PlayerMaxBoardingHealth, (long)Battle.PlayerBoardingHealth + effects.ActualRepair);
+                    if (effects.ActualRepair > 0) Cargo.Medicine -= effects.MedicineCost;
+                }
             }
             else
                 Hull = (int)Math.Min(MaxHull, (long)Hull + NavalExpansionHealing(true, effects.Repair));
             int repaired = (Battle.Stage == NavalBattleStage.Boarding ? Battle.PlayerBoardingHealth : Hull) - previousHealth;
             ApplyBattleCardStrategy(card);
-            ApplySchoolCardEffect(card, preBurn, effectiveDirectDamage, fireFallback);
-            if (!fireFallback) ApplySchoolScorch(preBurn, effectiveDirectDamage);
+            int schoolEffectDamage = ApplySchoolCardEffect(card, preBurn, effectiveDirectDamage, fireFallback);
+            if (Phase != CoreDemoPhase.Battle) return true;
+            int actualDamageSoFar = SchoolSum(effectiveDirectDamage, schoolEffectDamage);
+            if (CheckCardCurseExecution()) return FinishCardCurseExecution(card, cardIndex, false, actualDamageSoFar);
+            int attachedFire = ApplyAttachedFireAfterAttack(card);
+            int scorchDamage = fireFallback ? 0 : ApplySchoolScorch(preBurn, effectiveDirectDamage);
+            if (CheckCardCurseExecution()) return FinishCardCurseExecution(card, cardIndex, false, SchoolSum(actualDamageSoFar, scorchDamage));
             CompleteSchoolCard(card);
+            if (Phase != CoreDemoPhase.Battle) return true;
+            if (CheckCardCurseExecution()) return FinishCardCurseExecution(card, cardIndex, false, SchoolSum(actualDamageSoFar, scorchDamage));
             NavalExpansionCompleteAttack(card);
+            if (Phase != CoreDemoPhase.Battle) return true;
             Battle.Energy = SchoolSum(Battle.Energy, energyRecovery);
             int derivedDamage = Math.Max(0, previousEnemyHealth - SchoolEnemyHealth - effectiveDirectDamage);
             block = Math.Max(0, Battle.PlayerBlock - previousBlock);
-            repaired = (Battle.Stage == NavalBattleStage.Boarding ? Battle.PlayerBoardingHealth : Hull) - previousHealth;
+            repaired = SchoolSum(lifeStealRestored, (Battle.Stage == NavalBattleStage.Boarding ? Battle.PlayerBoardingHealth : Hull) - previousHealth);
             Battle.LastAction = "打出「" + card.Name + "」" +
                 (damage > 0 ? "：" + (Battle.Stage == NavalBattleStage.Boarding ? "船员" : "船体") + "伤害 " + damage : string.Empty) +
                 (critical ? "（暴击）" : string.Empty) +
@@ -237,15 +258,17 @@ namespace ShatteredSail.Core.Gameplay
                 (card.CannonballCost > 0 ? "；炮弹 -" + card.CannonballCost : string.Empty) +
                 (woodCost > 0 ? "；木板 -" + woodCost : string.Empty) +
                 (effects.MedicineCost > 0 && repaired > 0 ? "；药品 -1" : string.Empty) +
-                (fireRound && damage > 0 ? "；施加 " + Battle.PlayerFireRoundDamage + " 层燃烧" : string.Empty) +
+                (attachedFire > 0 ? "；附火施加 " + attachedFire + " 层燃烧" : string.Empty) +
                 (moraleDelta > 0 ? "；士气 +" + moraleDelta : string.Empty) + "。";
             // A resolved card may be redrawn, but its next play uses the incremented
             // ID-based cost. Failed attempts never enter the discard pile or count.
             Battle.DiscardPile.Add(cardIndex);
-            DrawCards(card.Draw);
+            DrawCards(cardsToDraw);
             AdvanceGuidedBossCard();
             ResolveBattleOutcome();
             return true;
+            }
+            finally { CompleteNavalThunderFinisher(card, retainedThunderAtPlay); }
         }
 
         private void ApplyBattleCardStrategy(CoreBattleCard card)
@@ -263,12 +286,7 @@ namespace ShatteredSail.Core.Gameplay
                     ApplyLegacyLoadedShot(card);
                     break;
                 case NavalBattleCardAction.FireRounds:
-                    // The reserve shares the strongest currently loaded flame.
-                    // Emptying it ends that bonus; a new reserve uses its source card.
-                    Battle.PlayerFireRoundDamage = Battle.PlayerFireRounds > 0
-                        ? Math.Max(Battle.PlayerFireRoundDamage, card.BurnDamage)
-                        : card.BurnDamage;
-                    Battle.PlayerFireRounds = Math.Max(Battle.PlayerFireRounds, Math.Min(card.StrategyLimit, Battle.PlayerFireRounds + card.StrategyAmount));
+                    Battle.PlayerFireRounds = SchoolSum(Battle.PlayerFireRounds, card.StrategyAmount);
                     break;
             }
         }
@@ -305,6 +323,7 @@ namespace ShatteredSail.Core.Gameplay
         // Called only after the direct or arrival entry point has validated and paid.
         private bool ExecutePlayerRam()
         {
+            CoreBoardingFieldState inheritedFields = CaptureBoardingFields(false, true);
             NavalBoardingConnection connection = NavalRamConnection(true);
             string target = connection == NavalBoardingConnection.RamBowToBow ? "敌舰舰艏" :
                 connection == NavalBoardingConnection.RamBowToStern ? "敌舰舰尾" : "敌舰侧舷";
@@ -312,6 +331,7 @@ namespace ShatteredSail.Core.Gameplay
             float targetQuality = NavalRamTargetQuality(true);
             RamDamage(Battle.PlayerBowQuality, targetQuality, out int enemyDamage, out int selfDamage);
             enemyDamage = CoreBattleBalance.ScaleBattleValue(enemyDamage, CoreBattleBalance.PlayerRamDamageMultiplier);
+            enemyDamage = NavalFieldAttackDamage(enemyDamage, true, false);
             selfDamage = ApplyCurseBattleDamage(selfDamage);
             Battle.EnemyHull = Math.Max(0, Battle.EnemyHull - enemyDamage);
             Hull = Math.Max(0, Hull - selfDamage);
@@ -327,14 +347,16 @@ namespace ShatteredSail.Core.Gameplay
                 ? NavalBoardingApproach.Quarter : NavalBoardingApproach.Alongside;
             Battle.BoardingConnection = connection;
             Battle.BoardingInitiatedByEnemy = false;
-            EnterBattleStage(NavalBattleStage.Boarding);
+            EnterBattleStageWithFields(NavalBattleStage.Boarding, inheritedFields);
             if (Phase != CoreDemoPhase.Battle) return true;
             Battle.PlayerBlock = 0;
             Battle.EnemyBlock = 0;
+            Battle.PlayerBurnStacks = 0;
             Battle.EnemyBurnTurns = 0;
             Battle.EnemyBurnDamage = 0;
             ApplySchoolBoardingEntry();
             BInitialize();
+            BBoardingFieldsBeginTurn(true);
             Battle.PlayerMovingTowardEnemy = false;
             Battle.EnemyMovingTowardPlayer = false;
             Battle.LastAction = (connection == NavalBoardingConnection.RamBowToBow
@@ -379,17 +401,20 @@ namespace ShatteredSail.Core.Gameplay
 
         private bool ExecutePlayerBoarding()
         {
+            CoreBoardingFieldState inheritedFields = CaptureBoardingFields(true, true);
             Battle.BoardingApproach = Battle.PlannedBoardingApproach;
             Battle.BoardingConnection = NavalBoardingConnection.Planned;
             Battle.BoardingInitiatedByEnemy = false;
-            EnterBattleStage(NavalBattleStage.Boarding);
+            EnterBattleStageWithFields(NavalBattleStage.Boarding, inheritedFields);
             if (Phase != CoreDemoPhase.Battle) return true;
             Battle.PlayerBlock = 0;
             Battle.EnemyBlock = 0;
+            Battle.PlayerBurnStacks = 0;
             Battle.EnemyBurnTurns = 0;
             Battle.EnemyBurnDamage = 0;
             ApplySchoolBoardingEntry();
             BInitialize();
+            BBoardingFieldsBeginTurn(true);
             Battle.PlayerMovingTowardEnemy = false;
             Battle.EnemyMovingTowardPlayer = false;
             Battle.LastAction = "两舰接舷！更换为白刃战牌组；击败敌方船员即可夺船。";
@@ -403,6 +428,8 @@ namespace ShatteredSail.Core.Gameplay
             if (Phase != CoreDemoPhase.Battle || Battle == null) return false;
             if (NavalActionMovementActive && Battle.NavalAwaitingHeadingSelection) return false;
             if (IsGuidedBossBattle && !GuidedBossAllowsEndTurn) return ResolveBattleOutcome();
+            Battle.LastNavalAttack = null;
+            Battle.SettlementWindow = CoreBattleSettlementWindow.PlayerEnd;
             Battle.LastEnemyGuardAbsorbed = 0;
             Battle.BoardingEnemy.ResetTurnResults();
             Battle.Schools.LastGuardAbsorbed = 0;
@@ -415,23 +442,33 @@ namespace ShatteredSail.Core.Gameplay
             if (boardingRules)
             {
                 if (BPlayerEnd()) return true;
+                if (!HasBoardingEnemyScript)
+                {
+                    ResetNavalThunderChain(false);
+                    Battle.BoardingEnemy.Mana = CoreBoardingEnemyState.ManaLimit;
+                    BBoardingFieldsBeginTurn(false);
+                }
             }
             else
             {
+                if (!preparing && ApplyNavalPlayerBurn()) return true;
                 if (!preparing && NavalFieldsEndTurn(true)) return true;
                 NavalExpansionEndPlayerTurn();
                 EndSchoolPlayerWindow();
                 if (!preparing)
                 {
                     Battle.EnemyBlock = 0;
+                    Battle.EnemyTidalGuard = 0;
                     NavalFieldsBeginTurn(false);
                 }
                 if (ResolveBattleOutcome()) return true;
             }
             // Damage-over-time resolves at the affected side's turn end, after its actions.
             if (enemyIntent == null) enemyIntent = GetEnemyIntent();
+            Battle.SettlementWindow = CoreBattleSettlementWindow.EnemyAction;
             ExecuteEnemyPlan(BuildEnemyPlan(), enemyIntent);
             if (ResolveBattleOutcome()) return true;
+            Battle.SettlementWindow = CoreBattleSettlementWindow.EnemyEnd;
             if (!preparing && Battle.Stage == previousStage)
             {
                 if (boardingRules)
@@ -440,14 +477,17 @@ namespace ShatteredSail.Core.Gameplay
                 }
                 else
                 {
-                    if (NavalFieldsEndTurn(false)) return true;
                     if (ApplySchoolNaturalBurn()) return true;
                     if (ApplySchoolCurseTick()) return true;
+                    if (NavalFieldsEndTurn(false)) return true;
                     CompleteSchoolEnemyTurn();
                     NavalExpansionEndEnemyTurn();
                 }
             }
             Battle.Turn += 1;
+            // Preparing and entering a new stage carry the current pool. Only a
+            // subsequent player turn refills mana, discarding any excess first.
+            if (!preparing) Battle.Schools.Mana = Math.Max(0, Battle.Schools.ManaLimit);
             Battle.BeginNewCardTurn();
             if (preparing)
             {
@@ -504,6 +544,8 @@ namespace ShatteredSail.Core.Gameplay
             public int Load;
             public int Repair;
             public CoreBoardingEnemyTurn BoardingTurn;
+            public CoreNavalBossMove BossMove;
+            public bool BossRush;
         }
 
         public bool EnemyWillRam => Phase == CoreDemoPhase.Battle && Battle != null &&
@@ -513,7 +555,7 @@ namespace ShatteredSail.Core.Gameplay
 
         private bool EnemyChoosesRam()
         {
-            if (Battle.Stage != NavalBattleStage.Naval || !NavalRamGeometryIsLegal(false)) return false;
+            if (Battle.Stage != NavalBattleStage.Naval || !EnemyPlannedRamGeometryIsLegal) return false;
             double chance = Battle.Profile?.RamChance ?? 0d;
             if (chance <= 0d) return false;
             // Pure per-battle/per-turn roll, independent of deck/loot RNG. Reading
@@ -555,6 +597,20 @@ namespace ShatteredSail.Core.Gameplay
         // update the public intent immediately, before the player chooses to end their turn.
         private EnemyBattlePlan BuildEnemyPlan()
         {
+            EnemyBattlePlan plan = BuildEnemyBasePlan();
+            if (EnemyNavalBossRushThisTurn)
+            {
+                plan.BossRush = true;
+                plan.Move = NavalBossRushMaxCells * NavalGridCellMeters;
+            }
+            return plan;
+        }
+
+        private EnemyBattlePlan BuildEnemyBasePlan()
+        {
+            VoyagePoint enemyTarget = NavalPlayerPositionForEnemyPlan;
+            bool cannonInRange = NavalCannonInRange(enemyTarget, Battle.EnemyPositionMeters);
+            float distance = NavalPointDistance(enemyTarget, Battle.EnemyPositionMeters);
             CoreTrainingTarget target = Battle.Profile?.TrainingTarget;
             if (target != null)
             {
@@ -563,8 +619,8 @@ namespace ShatteredSail.Core.Gameplay
                 return new EnemyBattlePlan
                 {
                     Action = preparing ? EnemyBattleAction.Prepare : boarding ? EnemyBattleAction.Melee :
-                        NavalCannonTargetInRange ? EnemyBattleAction.Cannon : EnemyBattleAction.Guard,
-                    Attack = preparing ? 0 : boarding ? target.MeleeDamage : NavalCannonTargetInRange ? target.CannonDamage : 0,
+                        cannonInRange ? EnemyBattleAction.Cannon : EnemyBattleAction.Guard,
+                    Attack = preparing ? 0 : boarding ? target.MeleeDamage : cannonInRange ? target.CannonDamage : 0,
                     Guard = target.Guard,
                     Repair = preparing ? 0 : target.Repair,
                 };
@@ -572,7 +628,7 @@ namespace ShatteredSail.Core.Gameplay
             if (IsGuidedBossBattle && GuidedBossLesson != GuidedBossLesson.FinalBattle)
             {
                 if (Battle.Stage == NavalBattleStage.Boarding) return BuildBoardingEnemyPlan();
-                if (Battle.Stage == NavalBattleStage.Naval && GuidedBossLesson == GuidedBossLesson.Gunnery && NavalCannonTargetInRange)
+                if (Battle.Stage == NavalBattleStage.Naval && GuidedBossLesson == GuidedBossLesson.Gunnery && cannonInRange)
                     return new EnemyBattlePlan { Action = EnemyBattleAction.Cannon, Attack = 12 };
                 return new EnemyBattlePlan { Action = EnemyBattleAction.Prepare };
             }
@@ -586,16 +642,24 @@ namespace ShatteredSail.Core.Gameplay
                 return new EnemyBattlePlan { Action = EnemyBattleAction.Prepare, Move = 0f, Guard = Math.Max(4, profile?.InitialGuard ?? 0), Load = Math.Max(0, Math.Min(4, 12 - Battle.EnemyLoadedShot)) };
             if (Battle.Stage == NavalBattleStage.Boarding)
                 return BuildBoardingEnemyPlan();
-            if (!NavalCannonTargetInRange)
-                return new EnemyBattlePlan { Action = EnemyBattleAction.Advance, Move = NavalApproachMovement(Battle.DistanceMeters, archetype == CoreBattleArchetype.Tempest ? 240f : 180f), Guard = 2, Load = Math.Max(0, Math.Min(2, 12 - Battle.EnemyLoadedShot)) };
-            if (EnemyChoosesRam())
+            if (!cannonInRange)
+                return new EnemyBattlePlan { Action = EnemyBattleAction.Advance, Move = NavalApproachMovement(distance, archetype == CoreBattleArchetype.Tempest ? 240f : 180f), Guard = 2, Load = Math.Max(0, Math.Min(2, 12 - Battle.EnemyLoadedShot)) };
+            if (TryBuildNavalBossPlan(distance, out EnemyBattlePlan bossPlan))
+            {
+                // Let the setup and telegraphed burst finish. Only the recovery
+                // action may choose a legal ram; movement never forces boarding.
+                if (bossPlan.BossMove.AllowRam && !EnemyNavalBossRushThisTurn && EnemyChoosesRam())
+                    return new EnemyBattlePlan { Action = EnemyBattleAction.Ram, Attack = meleeDamage };
+                return bossPlan;
+            }
+            if (!EnemyNavalBossRushThisTurn && EnemyChoosesRam())
                 return new EnemyBattlePlan { Action = EnemyBattleAction.Ram, Attack = meleeDamage };
             if (guardTurn)
-                return new EnemyBattlePlan { Action = EnemyBattleAction.Guard, Move = NavalApproachMovement(Battle.DistanceMeters, 90f), Guard = guard, Load = Math.Max(0, Math.Min(4, 12 - Battle.EnemyLoadedShot)) };
+                return new EnemyBattlePlan { Action = EnemyBattleAction.Guard, Move = NavalApproachMovement(distance, 90f), Guard = guard, Load = Math.Max(0, Math.Min(4, 12 - Battle.EnemyLoadedShot)) };
             return new EnemyBattlePlan
             {
                 Action = EnemyBattleAction.Cannon,
-                Move = Battle.DistanceMeters > 60f ? NavalApproachMovement(Battle.DistanceMeters, archetype == CoreBattleArchetype.Artillery ? 60f : archetype == CoreBattleArchetype.Raider ? 150f : 100f) : 0f,
+                Move = distance > 60f ? NavalApproachMovement(distance, archetype == CoreBattleArchetype.Artillery ? 60f : archetype == CoreBattleArchetype.Raider ? 150f : 100f) : 0f,
                 Attack = cannonDamage + Battle.PhaseTurn / 4 + Battle.EnemyLoadedShot,
             };
         }
@@ -603,6 +667,9 @@ namespace ShatteredSail.Core.Gameplay
         public string GetEnemyIntent()
         {
             string intent = GetEnemyBaseIntent();
+            if (EnemyNavalBossRushThisTurn) intent = NavalBossRushDescription + "\n" + intent;
+            else if (EnemyNavalBossFieldImmunityMaskThisTurn != 0)
+                intent = EnemyNavalBossFieldImmunityDescription + "\n" + intent;
             if (Phase != CoreDemoPhase.Battle || Battle == null || Battle.Stage != NavalBattleStage.Naval)
                 return intent;
             string fields = GetEnemyNavalFieldIntent();
@@ -614,25 +681,28 @@ namespace ShatteredSail.Core.Gameplay
             if (Battle == null || Phase != CoreDemoPhase.Battle) return string.Empty;
             EnemyBattlePlan plan = BuildEnemyPlan();
             CoreNavalMovementFieldPreview fieldPreview = NavalFieldsActive ? GetEnemyNavalFieldPreview(plan.Move) : null;
-            int quotedGuard = BActive ? CTBEnemyBlockGain(plan.Guard, false) : fieldPreview == null
-                ? NavalExpansionEnemyBlockGain(plan.Guard)
-                : SchoolSum(fieldPreview.FinalBlock, fieldPreview.RuneClampConsumed
-                    ? Math.Max(0, plan.Guard) : NavalExpansionEnemyBlockGain(plan.Guard));
-            string burn = Battle.Stage != NavalBattleStage.Preparation && HasSchoolFire
-                ? "回合结束灼烧 " + Battle.EnemyBurnDamage + "；" : string.Empty;
+            int quotedGuard = BActive ? CTBEnemyBlockGain(plan.Guard, false) : NavalEnemyActionGuard(plan, fieldPreview);
+            string burn = Battle.Stage != NavalBattleStage.Preparation && HasSchoolFire && fieldPreview?.EntersBoarding != true
+                ? "回合结束燃烧 " + Battle.EnemyBurnDamage + "；" : string.Empty;
+            if (plan.BossMove != null) burn += NavalBossMoveDescription(plan, fieldPreview) + "\n";
+            if (NavalBossPaymentExecutesActor(plan, fieldPreview)) return burn;
             if (plan.BoardingTurn != null) return BoardingEnemyIntent(plan, burn);
             if (Battle.Profile?.TrainingTarget != null)
             {
                 if (Battle.Stage == NavalBattleStage.Preparation)
                     return "木桩准备：静止；格挡设为 " + plan.Guard + "（本轮不攻击、不回复）";
                 int damage = Battle.Stage == NavalBattleStage.Boarding
-                    ? ApplyCurseBattleDamage(SchoolEnemyRawAttack(plan.Attack)) : EnemyCannonDamage(plan.Attack, false, fieldPreview?.AttackBonus);
+                    ? ApplyCurseBattleDamage(SchoolEnemyRawAttack(plan.Attack)) : EnemyCannonDamage(plan.Attack, false, fieldPreview);
                 if (BActive) damage = BEnemyAttack(damage, false);
-                return burn + "木桩：格挡设为 " + quotedGuard + "；回复 " + plan.Repair + "；" +
-                    (Battle.Stage == NavalBattleStage.Naval && !NavalCannonTargetInRange ? "目标超出4格炮击范围，本轮不攻击" :
+                int healing = IsBattleHealingBlocked(false) ? 0 : Math.Min(plan.Repair,
+                    Battle.Stage == NavalBattleStage.Boarding ? Battle.EnemyMaxBoardingHealth - Battle.EnemyBoardingHealth : Battle.EnemyMaxHull - Battle.EnemyHull);
+                return burn + "木桩：格挡设为 " + quotedGuard + "；回复 " + Math.Max(0, healing) + "；" +
+                    (Battle.Stage == NavalBattleStage.Naval && !NavalCannonInRange(NavalPlayerPositionForEnemyPlan, Battle.EnemyPositionMeters) ? "目标超出4格炮击范围，本轮不攻击" :
                     (Battle.Stage == NavalBattleStage.Boarding ? "白刃伤害 " : "炮击伤害 ") + damage + "（格挡前）");
             }
-            string move = plan.Move > 0f ? (IsGuidedBossBattle ? "靠近 " : "整格机动，最多 ") + QuantizeNavalEnemyTravel(plan.Move).ToString("0") + " 米；" : string.Empty;
+            float travel = QuantizeNavalEnemyTravel(plan.Move);
+            if (NavalFieldsActive && !plan.BossRush) travel = NavalActiveMovementLimit(false, (int)Math.Round(travel / NavalGridCellMeters)) * NavalGridCellMeters;
+            string move = plan.Move > 0f ? (IsGuidedBossBattle ? "靠近 " : "整格机动，最多 ") + travel.ToString("0") + " 米；" : string.Empty;
             switch (plan.Action)
             {
                 case EnemyBattleAction.Prepare:
@@ -642,9 +712,9 @@ namespace ShatteredSail.Core.Gameplay
                 case EnemyBattleAction.Guard:
                     return burn + move + "防御：格挡设为 " + quotedGuard + (plan.Load > 0 ? "；装填 +" + NavalExpansionEnemyLoadGain(plan.Load) : string.Empty);
                 case EnemyBattleAction.Ram:
-                    RamDamage(Battle.EnemyBowQuality, NavalRamTargetQuality(false),
+                    RamDamage(Battle.EnemyBowQuality, EnemyPlannedRamTargetQuality,
                         out int damage, out int recoil);
-                    damage = ApplyCurseBattleDamage(SchoolEnemyRawAttack(damage));
+                    damage = EnemyNavalFieldAttackDamage(ApplyCurseBattleDamage(SchoolEnemyRawAttack(damage)), false, fieldPreview);
                     damage = NavalExpansionEnemyAttackDamage(damage);
                     return burn + "冲撞→接舷：己舰 -" + damage + " / 敌舰 -" + recoil + "（穿透格挡）\n" +
                         "敌方先手：船员伤害 " + ApplyCurseBattleDamage(plan.Attack) + "\n避让：航行离开敌舰船头正前方的相邻格";
@@ -652,8 +722,9 @@ namespace ShatteredSail.Core.Gameplay
                     int melee = ApplyCurseBattleDamage(SchoolEnemyRawAttack(plan.Attack));
                     return burn + "白刃突击：船员伤害 " + (BActive ? BEnemyAttack(melee, false) : melee) + "（格挡前）";
                 default:
-                    return burn + move + "炮击：伤害 " + EnemyCannonDamage(plan.Attack, false, fieldPreview?.AttackBonus) + "（装甲后、格挡前）" +
-                        (plan.Move > 0f ? "；机动后仍在4格内时开炮" : string.Empty);
+                    return burn + move + "炮击：伤害 " + EnemyCannonDamage(NavalBossAttack(plan, fieldPreview), false, fieldPreview) + "（装甲后、格挡前）" +
+                        (plan.Move > 0f ? "；机动后仍在4格内时开炮" : string.Empty) +
+                        (quotedGuard > 0 ? "；行动后格挡 " + quotedGuard : string.Empty);
             }
         }
 
@@ -664,7 +735,10 @@ namespace ShatteredSail.Core.Gameplay
                 ExecuteBoardingEnemyPlan(plan, intent);
                 return;
             }
-            float movement = NavalApproachMovement(Battle.DistanceMeters, plan.Move);
+            // Authored boss movement can sidestep a dangerous field even at adjacent range.
+            // Its shared path planner already rejects occupied/invalid destinations.
+            float movement = plan.BossRush || plan.BossMove != null
+                ? plan.Move : NavalApproachMovement(Battle.DistanceMeters, plan.Move);
             if (movement > 0f) AdvanceTacticalEnemy(movement);
             if (ResolveBattleOutcome()) return;
             // Enemy guard lasts until their next action; it does not accumulate forever.
@@ -678,7 +752,7 @@ namespace ShatteredSail.Core.Gameplay
                 // Only a living target reaches its action. Heal the active pool
                 // before attack/guard reactions, capped at its maximum.
                 if (Battle.Stage == NavalBattleStage.Boarding)
-                    Battle.EnemyBoardingHealth = (int)Math.Min(Battle.EnemyMaxBoardingHealth, (long)Battle.EnemyBoardingHealth + plan.Repair);
+                    Battle.EnemyBoardingHealth = (int)Math.Min(Battle.EnemyMaxBoardingHealth, (long)Battle.EnemyBoardingHealth + (IsBattleHealingBlocked(false) ? 0 : plan.Repair));
                 else if (Battle.Stage == NavalBattleStage.Naval)
                     Battle.EnemyHull = (int)Math.Min(Battle.EnemyMaxHull, (long)Battle.EnemyHull + NavalExpansionHealing(false, plan.Repair));
             }
@@ -689,13 +763,17 @@ namespace ShatteredSail.Core.Gameplay
                 Battle.LastAction = Battle.EnemyName + "：目标超出4格炮击范围，本次未开炮。";
                 return;
             }
+            int bossRawAttack = NavalBossAttack(plan);
+            if (BeginNavalBossMove(plan)) return;
             if (plan.Action == EnemyBattleAction.Cannon || plan.Action == EnemyBattleAction.Melee)
             {
-                int attack = plan.Action == EnemyBattleAction.Cannon ? EnemyCannonDamage(plan.Attack, true) : ApplyCurseBattleDamage(SchoolEnemyRawAttack(plan.Attack));
+                int attack = plan.Action == EnemyBattleAction.Cannon ? EnemyCannonDamage(bossRawAttack, true) : ApplyCurseBattleDamage(SchoolEnemyRawAttack(plan.Attack));
                 if (BActive) attack = BEnemyAttack(attack, true);
-                int absorbed = Math.Min(Battle.PlayerBlock, attack);
+                int absorbed = Math.Min(Battle.PlayerBlock, attack - NavalBossPiercing(plan, attack));
                 Battle.LastEnemyGuardAbsorbed = absorbed;
                 int damage = Math.Max(0, attack - absorbed);
+                int actualHealthLost = Math.Min(Math.Max(0, Hull), damage);
+                int navalHealthBefore = Hull, navalGuardBefore = Battle.PlayerBlock;
                 Battle.PlayerBlock -= absorbed;
                 if (plan.Action == EnemyBattleAction.Melee)
                 {
@@ -706,24 +784,32 @@ namespace ShatteredSail.Core.Gameplay
                 {
                     Battle.EnemyLoadedShot = 0;
                     Hull = Math.Max(0, Hull - damage);
+                    Battle.LastNavalAttack = new CoreNavalResolvedAttack(navalHealthBefore, Hull, navalGuardBefore, Battle.PlayerBlock);
                     if (damage > 0)
                         Morale = ClampMorale((long)Morale - 1);
                 }
                 Battle.LastAction = Battle.EnemyName + "：" + intent + "；格挡吸收 " + absorbed + "，实际损失 " + damage + "。";
+                HealNavalBossAttack(plan, actualHealthLost);
+                if (Battle.Stage == NavalBattleStage.Boarding ? BResolveCurseExecutions() : CheckNavalCurseExecution())
+                { ResolveBattleOutcome(); return; }
                 if (Hull > 0 && (Battle.Stage != NavalBattleStage.Boarding || Battle.PlayerBoardingHealth > 0))
                 {
                     if (BActive) BAfterEnemyAttack(absorbed, damage);
                     else ApplySchoolGuardReaction(absorbed);
                 }
+                CompleteNavalBossMove(plan, actualHealthLost);
             }
             else if (plan.Action == EnemyBattleAction.Ram)
             {
+                CoreBoardingFieldState inheritedFields = CaptureBoardingFields(true, false);
                 NavalBoardingConnection connection = NavalRamConnection(false);
                 RamDamage(Battle.EnemyBowQuality, NavalRamTargetQuality(false), out int damage, out int recoil);
-                damage = ApplyCurseBattleDamage(SchoolEnemyRawAttack(damage));
+                damage = EnemyNavalFieldAttackDamage(ApplyCurseBattleDamage(SchoolEnemyRawAttack(damage)), true);
                 damage = NavalExpansionEnemyAttackDamage(damage, true);
                 Hull = Math.Max(0, Hull - damage);
                 Battle.EnemyHull = Math.Max(0, Battle.EnemyHull - recoil);
+                // The hull collision has committed even when it is lethal and boarding never starts.
+                Battle.RecordEnemyRam(connection);
                 Morale = ClampMorale((long)Morale - 5);
                 Battle.EnemyMovingTowardPlayer = false;
                 Battle.DistanceMeters = 30f;
@@ -733,40 +819,53 @@ namespace ShatteredSail.Core.Gameplay
                     ? NavalBoardingApproach.Quarter : NavalBoardingApproach.Alongside;
                 Battle.BoardingConnection = connection;
                 Battle.BoardingInitiatedByEnemy = true;
-                EnterBattleStage(NavalBattleStage.Boarding);
+                EnterBattleStageWithFields(NavalBattleStage.Boarding, inheritedFields);
                 if (Phase != CoreDemoPhase.Battle) return;
                 // Ship guard does not become crew guard when either side boards.
                 Battle.PlayerBlock = 0;
                 Battle.EnemyBlock = 0;
-                Battle.EnemyBurnTurns = 0;
+                Battle.PlayerBurnStacks = 0;
+            Battle.EnemyBurnTurns = 0;
                 Battle.EnemyBurnDamage = 0;
                 ApplySchoolBoardingEntry();
                 BInitialize();
+                BBoardingFieldsBeginTurn(false);
                 Battle.PlayerMovingTowardEnemy = false;
                 Battle.EnemyMovingTowardPlayer = false;
                 int rawFirstStrike = ApplyCurseBattleDamage(plan.Attack);
                 if (BActive) rawFirstStrike = BEnemyAttack(rawFirstStrike, true);
                 int firstStrike = AbsorbSchoolBoardingFirstStrike(rawFirstStrike);
                 Battle.PlayerBoardingHealth = Math.Max(0, Battle.PlayerBoardingHealth - firstStrike);
+                if (BResolveCurseExecutions()) { ResolveBattleOutcome(); return; }
                 if (BActive && Battle.PlayerBoardingHealth > 0) BAfterEnemyAttack(rawFirstStrike - firstStrike, firstStrike);
                 Battle.LastAction = Battle.EnemyName + "冲撞连接成功：己舰船体 -" + damage + "，敌舰反伤 " + recoil +
                     "；士气 -5；进入接舷，敌方先手造成船员伤害 " + firstStrike + "。";
                 AddLog(Battle.LastAction);
+                // This transition skips the usual enemy-end branch in EndBattleTurn.
+                // Settle the inherited arena once, before the first player start.
+                if (Battle.BoardingFields.Fields.Count > 0) BEnemyEnd();
             }
-            else Battle.LastAction = Battle.EnemyName + "：" + intent + "。";
+            else
+            {
+                Battle.LastAction = Battle.EnemyName + "：" + intent + "。";
+                CompleteNavalBossMove(plan, 0);
+            }
         }
 
-        private int EnemyCannonDamage(int rawAttack, bool consume = false, int? fieldBonus = null)
+        private int EnemyCannonDamage(int rawAttack, bool consume = false, CoreNavalMovementFieldPreview fieldPreview = null)
         {
-            int bonus = Battle.Stage == NavalBattleStage.Naval ? fieldBonus ?? Battle.NavalFields.Enemy.BloodAttackBonus : 0;
+            int bonus = 0;
             if (consume) Battle.NavalFields.Enemy.BloodAttackBonus = 0;
-            return NavalExpansionEnemyAttackDamage(ApplyCurseBattleDamage(Math.Max(1,
-                SchoolEnemyRawAttack(SchoolSum(rawAttack, bonus)) - Math.Max(0, (EffectiveArmor - 4) / 2))), consume);
+            int armored = CoreNavalStatRules.ReduceIncomingCannonDamage(
+                EnemyNavalFieldAttackDamage(SchoolEnemyRawAttack(SchoolSum(rawAttack, bonus)), consume, fieldPreview), EffectiveArmor);
+            return NavalCurseCannonReduction(NavalExpansionEnemyAttackDamage(ApplyCurseBattleDamage(armored), consume), consume);
         }
 
         private bool ResolveBattleOutcome()
         {
             if (Battle == null) return true;
+            if (Battle.Stage == NavalBattleStage.Boarding) BResolveCurseExecutions();
+            else CheckNavalCurseExecution();
             if (InterceptGuidedBossExerciseOutcome()) return true;
             if (Battle.Profile?.TrainingTarget != null)
             {
@@ -775,6 +874,7 @@ namespace ShatteredSail.Core.Gameplay
                 bool defeated = Hull <= 0 || (Battle.Stage == NavalBattleStage.Boarding && Battle.PlayerBoardingHealth <= 0);
                 bool victorious = Battle.EnemyHull <= 0 || (Battle.Stage == NavalBattleStage.Boarding && Battle.EnemyBoardingHealth <= 0);
                 if (!defeated && !victorious) return false;
+                Battle.BoardingFields = new CoreBoardingFieldState();
                 ClearNavalFields();
                 NavalExpansionClear();
                 ClearNavalArrivalContactState();
@@ -788,14 +888,18 @@ namespace ShatteredSail.Core.Gameplay
             // Resolve the player's loss first so mutual sinking cannot award a victory payout.
             if (Hull <= 0 || (Battle.Stage == NavalBattleStage.Boarding && Battle.PlayerBoardingHealth <= 0))
             {
+                Battle.BoardingFields = new CoreBoardingFieldState();
                 ClearNavalFields();
                 NavalExpansionClear();
-                AddLog(Hull <= 0 ? "己方旗舰沉没，航行失败。" : "己方接舷队失去战斗能力，航行失败。");
+                AddLog(CoreLegendaryWarships.IsSparringEncounter(ActiveEncounter?.Id)
+                    ? "己方在切磋中认输，双方停止交手，本次航行按失败保护结算。"
+                    : Hull <= 0 ? "己方旗舰沉没，航行失败。" : "己方接舷队失去战斗能力，航行失败。");
                 FinishVoyage(VoyageOutcome.Failure);
                 return true;
             }
             if (Battle.EnemyHull <= 0 || (Battle.Stage == NavalBattleStage.Boarding && Battle.EnemyBoardingHealth <= 0))
             {
+                Battle.BoardingFields = new CoreBoardingFieldState();
                 ClearNavalFields();
                 NavalExpansionClear();
                 WinBattle();
@@ -897,11 +1001,16 @@ namespace ShatteredSail.Core.Gameplay
             AddLog("与「" + encounter.Name + "」进入三阶段卡牌海战：策略准备 → 舰船炮战 → 接舷白刃战。");
         }
 
-        private void EnterBattleStage(NavalBattleStage stage)
+        private void EnterBattleStage(NavalBattleStage stage) => EnterBattleStageWithFields(stage, null);
+
+        private void EnterBattleStageWithFields(NavalBattleStage stage, CoreBoardingFieldState inheritedFields)
         {
             NavalBattleStage previousStage = Battle.Stage;
             if (stage == NavalBattleStage.Boarding)
             {
+                Battle.BoardingFields = inheritedFields ?? new CoreBoardingFieldState();
+                if (Battle.BoardingFields.Contains(CoreNavalFieldKind.Thunder))
+                    Battle.BoardingEnemy.ThunderChain = Battle.NavalFields.Enemy.ThunderChain;
                 ClearNavalFields();
                 NavalExpansionClear();
             }

@@ -18,7 +18,7 @@ namespace ShatteredSail.Presentation
             }
             Button store = CreateButton("Settlement Store All Cargo", card,
                 new Vector2(600f, 38f), new Vector2(-510f, -374f), PanelRaised, Ink, 20);
-            MarketShopSkin.ApplyTextButton(store);
+            MarketShopSkin.ApplyCheckboxRow(store);
             Text caption = store.GetComponentInChildren<Text>();
             caption.rectTransform.anchoredPosition = new Vector2(18f, 0f);
             caption.rectTransform.sizeDelta = new Vector2(530f, 36f);

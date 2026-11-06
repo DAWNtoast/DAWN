@@ -1,0 +1,11 @@
+school,cards
+ordinary,basic_01;basic_01;basic_02;basic_02;basic_03;basic_04;basic_05;basic_06;basic_08;basic_09;basic_09;basic_10;basic_11;basic_12
+fire,basic_04;basic_05;basic_06;basic_09;fire_01;fire_02;fire_02;fire_03;fire_03;fire_04;fire_05;fire_11;fire_14;fire_15
+arcane,basic_04;basic_05;basic_06;basic_09;arcane_01;arcane_01;arcane_02;arcane_03;arcane_03;arcane_04;arcane_05;arcane_06;arcane_10;arcane_11
+curse,basic_04;basic_05;basic_06;basic_09;curse_01;curse_02;curse_02;curse_03;curse_06;curse_07;curse_09;curse_10;curse_11;curse_14
+tide,basic_04;basic_05;basic_06;basic_09;tide_01;tide_02;tide_02;tide_03;tide_05;tide_06;tide_07;tide_08;tide_11;tide_14
+thunder,basic_04;basic_05;basic_06;basic_09;thunder_01;thunder_01;thunder_02;thunder_03;thunder_03;thunder_06;thunder_07;thunder_09;thunder_11;thunder_13
+blood,basic_04;basic_05;basic_06;basic_09;blood_01;blood_02;blood_03;blood_04;blood_05;blood_06;blood_06;blood_08;blood_09;blood_11
+field-only,basic_04;basic_04;basic_05;basic_05;basic_06;basic_06;basic_07;basic_07;basic_08;basic_08;basic_09;basic_09;basic_12;basic_12
+single-burn,fire_03;fire_03;basic_04;basic_04;basic_05;basic_05;basic_06;basic_06;basic_07;basic_07;basic_09;basic_09;basic_12;basic_12
+single-pot,fire_04;fire_04;basic_04;basic_04;basic_05;basic_05;basic_06;basic_06;basic_07;basic_07;basic_09;basic_09;basic_12;basic_12

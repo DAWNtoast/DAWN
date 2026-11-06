@@ -10,6 +10,29 @@ namespace ShatteredSail.Core.Tests
     {
         private const string ShortChart = "SS2.0.0.1.0.2.72533DBC.00000000.4858B60F";
 
+        [TestCase(0, 1)]
+        [TestCase(100, 2)]
+        [TestCase(260, 3)]
+        [TestCase(520, 4)]
+        [TestCase(900, 5)]
+        [TestCase(1400, 6)]
+        [TestCase(2100, 7)]
+        [TestCase(3000, 8)]
+        [TestCase(4100, 9)]
+        [TestCase(5400, 10)]
+        public void ReducedFutureGain_PreservesHistoricalCaptainExperienceAndLevelThresholds(int experience, int level)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = experience });
+            Assert.That(session.PirateExperience, Is.EqualTo(experience));
+            Assert.That(session.PirateLevel, Is.EqualTo(level));
+            Assert.That(CoreVoyageSession.PirateExperienceForLevel(level), Is.EqualTo(experience));
+            var restored = new CoreVoyageSession();
+            restored.RestoreTreasureProgress(session.CaptureTreasureProgress());
+            Assert.That(restored.PirateExperience, Is.EqualTo(experience));
+            Assert.That(restored.PirateLevel, Is.EqualTo(level));
+        }
+
         [Test]
         public void FortyFivePaidStarvationReturns_FromFreshCampaign_DoNotEarnExperience()
         {
@@ -105,14 +128,14 @@ namespace ShatteredSail.Core.Tests
             int initialXp = session.PirateExperience;
             Assert.That(session.SafeReturn(), Is.True);
             Assert.That(session.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
-            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(175));
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(44));
             session.ReturnToPortAfterSettlement();
             session.ReturnToPortAfterSettlement();
-            Assert.That(session.PirateExperience, Is.EqualTo(initialXp + 175));
+            Assert.That(session.PirateExperience, Is.EqualTo(initialXp + 44));
         }
 
         [TestCase(false, 0)]
-        [TestCase(true, 165)]
+        [TestCase(true, 41)]
         public void EmptySafeReturn_PreservesExistingOrdinaryAndTreasureRules(bool treasure, int expected)
         {
             var session = treasure ? TreasureProfile("weathered") : new CoreVoyageSession();
@@ -130,7 +153,7 @@ namespace ShatteredSail.Core.Tests
             Set(session, "TotalDistanceNm", 100f * session.Map.Route.NauticalMilesPerMapUnit);
             typeof(CoreVoyageSession).GetMethod("FinishVoyage", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(session, new object[] { outcome });
-            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(225));
+            Assert.That(session.Settlement.BankedPirateExperience, Is.EqualTo(56));
         }
 
         [TestCase(1, false, 20)]

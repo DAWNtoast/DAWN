@@ -17,13 +17,22 @@ namespace ShatteredSail.Presentation.Tests
                 .SingleOrDefault(item => item.gameObject.activeInHierarchy && !item.IsComplete);
             if (sequence == null) yield break;
             yield return null;
-            if (sequence.IsComplete) yield break;
-            Button skip = Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
-                .Single(item => item.name == "Skip Settlement Reveal" && item.gameObject.activeInHierarchy);
-            Assert.That(skip.IsInteractable(), Is.True, "The chest must offer its normal skip action.");
+            float deadline = Time.realtimeSinceStartup + sequence.Duration + 2f;
+            while (!sequence.IsComplete && Time.realtimeSinceStartup < deadline)
+            {
+                ClickCurrentReward();
+                yield return new WaitForSecondsRealtime(.12f);
+            }
+            Assert.That(sequence.IsComplete, Is.True, "Accelerating each reward must eventually reveal the normal settlement overview.");
+        }
+
+        internal static void ClickCurrentReward()
+        {
+            Image surface = Object.FindObjectsByType<Image>(FindObjectsSortMode.None)
+                .Single(item => item.name == "Settlement Chest Shade" && item.gameObject.activeInHierarchy);
             Canvas.ForceUpdateCanvases();
-            Canvas canvas = skip.GetComponentInParent<Canvas>().rootCanvas;
-            RectTransform rect = (RectTransform)skip.transform;
+            Canvas canvas = surface.GetComponentInParent<Canvas>().rootCanvas;
+            RectTransform rect = surface.rectTransform;
             var pointer = new PointerEventData(EventSystem.current) {
                 position = RectTransformUtility.WorldToScreenPoint(
                     canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera,
@@ -33,13 +42,12 @@ namespace ShatteredSail.Presentation.Tests
             var hits = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointer, hits);
             Assert.That(hits, Is.Not.Empty);
-            Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(skip),
-                "The visible chest skip action must receive the pointer.");
-            ExecuteEvents.Execute(skip.gameObject, pointer, ExecuteEvents.pointerDownHandler);
-            ExecuteEvents.Execute(skip.gameObject, pointer, ExecuteEvents.pointerUpHandler);
-            ExecuteEvents.Execute(skip.gameObject, pointer, ExecuteEvents.pointerClickHandler);
-            yield return null;
-            Assert.That(sequence.IsComplete, Is.True, "Skipping must reveal the normal settlement overview.");
+            Assert.That(hits[0].gameObject, Is.SameAs(surface.gameObject),
+                "The chest input surface must receive the click instead of the hidden settlement actions.");
+            ExecuteEvents.Execute(hits[0].gameObject, pointer, ExecuteEvents.pointerDownHandler);
+            ExecuteEvents.Execute(hits[0].gameObject, pointer, ExecuteEvents.pointerUpHandler);
+            Assert.That(ExecuteEvents.Execute(hits[0].gameObject, pointer, ExecuteEvents.pointerClickHandler), Is.True,
+                "The full-screen chest surface must handle left clicks.");
         }
     }
 }

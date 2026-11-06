@@ -14,9 +14,10 @@ namespace ShatteredSail.Presentation
         private static readonly bool[] BackgroundLoaded = new bool[18];
         private static readonly Texture2D[] Parties = new Texture2D[2];
         private static readonly bool[] PartyLoaded = new bool[2];
+        public const string FixedPlayerPartyResourcePath = "BoardingBattle/Characters/boarding_player_fixed_party_v2";
         private static Texture2D joinedDeck;
         private static bool joinedDeckLoaded;
-        public const string JoinedDeckResourcePath = "BoardingBattle/Backgrounds/boarding_joined_deck_v2";
+        public const string JoinedDeckResourcePath = "BoardingBattle/Backgrounds/boarding_joined_deck_v3";
         private static readonly Dictionary<string, Texture2D> Cast = new Dictionary<string, Texture2D>(System.StringComparer.Ordinal);
         private const string CharacterRoot = "BoardingBattle/Characters/";
         private static readonly string[] LegacyCrew = { "crew_navigator_evelyn_fullbody", "crew_carpenter_barlow_fullbody",
@@ -56,7 +57,9 @@ namespace ShatteredSail.Presentation
             int index = enemy ? 1 : 0;
             if (!PartyLoaded[index])
             {
-                Parties[index] = Load("BoardingBattle/Characters/boarding_" + (enemy ? "enemy" : "player") + "_party_v1");
+                // This ordinary formation is used only when no special crew are represented.
+                Parties[index] = Load(enemy ? "BoardingBattle/Characters/boarding_enemy_party_v1" :
+                    "BoardingBattle/Characters/boarding_player_party_v1");
                 PartyLoaded[index] = true;
             }
             return Parties[index];
@@ -88,26 +91,40 @@ namespace ShatteredSail.Presentation
             return texture != null ? texture : ForParty(true);
         }
 
+        public static Texture2D ForActorActions(string identity) =>
+            string.IsNullOrEmpty(identity) ? null : LoadCast("BoardingBattle/Actions/" + identity);
+
+        internal static bool IsNamedEnemy(string identity) =>
+            identity != null && identity.StartsWith("enemy_", System.StringComparison.Ordinal) &&
+            !identity.StartsWith("enemy_party", System.StringComparison.Ordinal);
+
+        public static Texture2D ForBossActions(string identity) =>
+            IsNamedEnemy(identity) ? LoadCast("BoardingBattle/BossActions/" + identity) : null;
+
+        public static Texture2D ForEnemyDefeat(string identity) =>
+            IsNamedEnemy(identity) ? LoadCast("BoardingBattle/Defeats/" + identity) : null;
+
         public static string EnemyResourcePath(CoreBattleState battle, CoreEncounter encounter, int routeIndex)
         {
             string identity = encounter == null ? string.Empty : encounter.Id;
             switch (identity)
             {
                 case "gold_customs": return EnemyPath("imperial");
-                case "moon_ghost": return EnemyPath("ghost");
+                case "moon_ghost":
+                case "treasure_ghost_fleet": return EnemyPath("ghost");
                 case "boss_route_shattered_sail_reef": return EnemyPath("route_reef");
                 case "boss_route_golden_tide_trade": return EnemyPath("route_gold");
                 case "boss_route_moon_tide_ruins": return EnemyPath("route_moon");
                 case "boss_route_shattered_sail_reef_tide": return EnemyPath("ghost");
                 case "boss_route_golden_tide_trade_thunder": return EnemyPath("imperial");
-                case "boss_route_moon_tide_ruins_arcane": return EnemyPath("treasure");
+                case "boss_route_moon_tide_ruins_arcane": return EnemyPath("moon_weave");
                 case CoreBattleBalance.TreasureBossId: return EnemyPath("treasure");
                 case "legendary_pirate_iron_oath": return EnemyPath("iron_oath");
                 case "legendary_pirate_thunder_crown": return EnemyPath("thunder_crown");
                 case "legendary_pirate_red_widow": return EnemyPath("red_widow");
                 case "legendary_pirate_ember_ark": return EnemyPath("ember_ark");
                 case "legendary_pirate_tide_requiem": return EnemyPath("tide_requiem");
-                case "legendary_pirate_last_horizon": return EnemyPath("treasure");
+                case "legendary_pirate_last_horizon": return EnemyPath("last_horizon");
                 case CoreGuidedTutorialContent.BossEventId: return EnemyPath(null);
             }
             CoreBattleProfile profile = battle == null ? null : battle.Profile;
@@ -119,7 +136,9 @@ namespace ShatteredSail.Presentation
                 if (ReferenceEquals(profile, CoreGuidedTutorialContent.BossProfile)) return EnemyPath(null);
                 foreach (CoreLegendaryWarship ship in CoreLegendaryWarships.All)
                     if (ReferenceEquals(profile, ship.Profile))
-                        return EnemyPath(ship.Id == "legendary_pirate_last_horizon" ? "treasure" : ship.Id.Substring("legendary_pirate_".Length));
+                        return EnemyPath(ship.Id.Substring("legendary_pirate_".Length));
+                if (ReferenceEquals(profile, CoreRouteBossCatalog.Find("boss_route_moon_tide_ruins_arcane").Profile))
+                    return EnemyPath("moon_weave");
                 if (profile.BossKind == CoreBossKind.Treasure) return EnemyPath("treasure");
                 if (profile.BossKind == CoreBossKind.Route)
                     return EnemyPath(routeIndex <= 0 ? "route_reef" : routeIndex == 1 ? "route_gold" : "route_moon");

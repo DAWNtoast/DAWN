@@ -174,6 +174,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(specialCard.Draw, Is.EqualTo(1));
             Assert.That(specialCard.Repair, Is.EqualTo(9));
             Assert.That(specialCard.Block, Is.EqualTo(8));
+            NavalCardVfxPlan supportPlan = NavalCardVfxPlan.For(specialCard);
+            Assert.That(supportPlan.Role, Is.EqualTo(NavalVfxRole.Heal));
+            Assert.That(supportPlan.IsAttack || supportPlan.TargetsEnemy, Is.False);
+            Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetComponentsInChildren<Text>()
+                .Where(text => text.name == "Naval VFX Support Result"), Is.Empty);
             Assert.That(session.CanPlayCard(0), Is.True, session.CardUnavailableReason(0));
             int hullBefore = session.Hull;
             int energyBefore = session.Battle.Energy;
@@ -182,23 +187,42 @@ namespace ShatteredSail.Presentation.Tests
             int retainedId = RequiredResponsive<Button>("Battle Card 1").GetInstanceID();
             FieldInfo blockingAnimation = typeof(CoreGameplayDemoController).GetField("battleAnimationPlaying", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(blockingAnimation, Is.Not.Null);
+            Button playedCard = RequiredResponsive<Button>("Battle Card 0");
             float started = Time.realtimeSinceStartup;
             RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
             Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.False);
-            bool sawSeparatedFeedback = false;
+            bool sawSeparatedFeedback = false, capturedSeparatedFeedback = false;
+            bool sawClearSupportWindow = false;
+            int firstShieldFrame = -1, firstRepairFrame = -1;
             float deadline = started + 12f;
             while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
             {
                 bool blocking = (bool)blockingAnimation.GetValue(controller);
                 Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.EqualTo(!blocking),
                     "Input stays locked for the real action; later card-deal visuals do not extend that lock.");
-                Text shield = GameObject.Find("Player Shield Float")?.GetComponent<Text>();
-                Text repair = GameObject.Find("Player Repair Float")?.GetComponent<Text>();
+                // Naval support feedback now uses shared VFX labels; select its real role text,
+                // retaining the original simultaneous, separated-number requirement.
+                Text[] support = RequiredResponsive<RectTransform>("Battle Card").GetComponentsInChildren<Text>()
+                    .Where(text => text.name == "Naval VFX Support Result").ToArray();
+                Text shield = support.SingleOrDefault(text => text.text == "格挡 +" + specialCard.Block);
+                Text repair = support.SingleOrDefault(text => text.text == "船体 +" + specialCard.Repair);
+                AssertResponsiveSupportStartsTogether(shield, repair, ref firstShieldFrame, ref firstRepairFrame);
                 if (blocking && shield != null && repair != null && shield.color.a > .01f && repair.color.a > .01f)
                 {
                     Assert.That(Mathf.Abs(shield.rectTransform.anchoredPosition.y - repair.rectTransform.anchoredPosition.y),
                         Is.GreaterThanOrEqualTo(45f), "Concurrent shield and repair numbers must occupy separate readable lines.");
                     sawSeparatedFeedback = true;
+                    if ((playedCard == null || !playedCard.gameObject.activeInHierarchy) &&
+                        shield.color.a > .5f && repair.color.a > .5f)
+                    {
+                        sawClearSupportWindow = true;
+                        if (!capturedSeparatedFeedback)
+                        {
+                            NavalBattleVisualCapture.Capture(controller, "NavalSupport_GuardAndRepair_Separated.png",
+                                "真实复合支援：已验证两浮字同帧同阶段开始；出牌卡收起后，格挡与修复仍清晰且间距至少45设计单位");
+                            capturedSeparatedFeedback = true;
+                        }
+                    }
                 }
                 yield return null;
             }
@@ -209,6 +233,10 @@ namespace ShatteredSail.Presentation.Tests
                 "s; same battlefield=" + (RequiredResponsive<RectTransform>("Battle Card").GetInstanceID() == stageId));
             Assert.That(elapsed, Is.LessThan(2f));
             Assert.That(sawSeparatedFeedback, Is.True, "Compound component effects should be shown together without overlapping their numbers.");
+            Assert.That(sawClearSupportWindow, Is.True,
+                "Both support labels must remain clearly visible after the played card has fully disappeared.");
+            Assert.That(firstShieldFrame, Is.GreaterThanOrEqualTo(0));
+            Assert.That(firstRepairFrame, Is.EqualTo(firstShieldFrame));
             Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.True);
             Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetInstanceID(), Is.EqualTo(stageId));
             Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(retainedId));
@@ -231,6 +259,127 @@ namespace ShatteredSail.Presentation.Tests
                     "Retained and newly drawn cards must both keep hover presentation enabled.");
             }
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator BattleResponsive_BloodFieldShelterStartsGuardAndRepairTogetherWithoutSpendingPlanks()
+        {
+            yield return LoadResponsiveBattleScene();
+            CoreGameplayDemoController controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreSpecialCardDefinition special = CoreSpecialCardCatalog.ForComponent("plating_fogiron_carapace");
+            Assert.That(special, Is.Not.Null);
+            CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval,
+                pirateLevel: 10, componentIds: new[] { special.SourceId });
+            SetNavalFieldTestPose(session, true, 0, 0);
+            SetNavalFieldTestPose(session, false, 3, 0);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Blood, true, 0, 0, false, 0, 0), Is.True);
+            typeof(CoreVoyageSession).GetProperty("Hull").SetValue(session, session.MaxHull - 25);
+            session.Cargo.Wood = 0;
+            SetResponsiveHand(session, special.Card.Id, "card_brace");
+            SetResponsiveDrawPile(session, "card_chain_shot");
+            RenderResponsiveBattle(controller);
+            yield return WaitResponsiveBattle(controller);
+
+            CoreBattleCard card = session.GetBattleCard(session.Battle.Hand[0]);
+            Assert.That(card.Id, Is.EqualTo("card_special_plating_fogiron_carapace"));
+            Assert.That(card.UpgradeLevel, Is.Zero);
+            Assert.That(card.SchoolId, Is.EqualTo("blood"));
+            Assert.That(card.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.ComponentFieldShelter));
+            NavalCardVfxPlan plan = NavalCardVfxPlan.For(card);
+            Assert.That(plan.Role, Is.EqualTo(NavalVfxRole.Guard));
+            Assert.That(plan.IsAttack || plan.TargetsEnemy, Is.False);
+            CoreBattleCardEffects quote = session.GetBattleCardEffects(card, NavalBattleStage.Naval);
+            Assert.That(quote.Block, Is.EqualTo(12));
+            Assert.That(quote.FullRepair, Is.EqualTo(4));
+            Assert.That(quote.Repair, Is.EqualTo(4));
+            Assert.That(quote.WoodCost, Is.Zero);
+            Assert.That(session.GetBattleCardEnergyCost(session.Battle.Hand[0]), Is.EqualTo(1));
+            Assert.That(session.CanPlayCard(0), Is.True, session.CardUnavailableReason(0));
+            Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetComponentsInChildren<Text>()
+                .Where(text => text.name == "Naval VFX Support Result"), Is.Empty);
+            int hullBefore = session.Hull, energyBefore = session.Battle.Energy, enemyHullBefore = session.Battle.EnemyHull;
+            int stageId = RequiredResponsive<RectTransform>("Battle Card").GetInstanceID();
+            int retainedId = RequiredResponsive<Button>("Battle Card 1").GetInstanceID();
+            FieldInfo blockingAnimation = typeof(CoreGameplayDemoController).GetField("battleAnimationPlaying", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(blockingAnimation, Is.Not.Null);
+            int firstShieldFrame = -1, firstRepairFrame = -1;
+            bool sawSeparatedFeedback = false, capturedSeparatedFeedback = false;
+            bool sawClearSupportWindow = false;
+            Button playedCard = RequiredResponsive<Button>("Battle Card 0");
+            float started = Time.realtimeSinceStartup;
+            RequiredResponsive<Button>("Battle Card 0").onClick.Invoke();
+            Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.False);
+            float deadline = started + 12f;
+            while (controller.IsBattleAnimationPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                bool blocking = (bool)blockingAnimation.GetValue(controller);
+                Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.EqualTo(!blocking));
+                Text[] support = RequiredResponsive<RectTransform>("Battle Card").GetComponentsInChildren<Text>()
+                    .Where(text => text.name == "Naval VFX Support Result").ToArray();
+                Text shield = support.SingleOrDefault(text => text.text == "格挡 +12");
+                Text repair = support.SingleOrDefault(text => text.text == "船体 +4");
+                AssertResponsiveSupportStartsTogether(shield, repair, ref firstShieldFrame, ref firstRepairFrame);
+                if (blocking && shield != null && repair != null && shield.color.a > .01f && repair.color.a > .01f)
+                {
+                    Assert.That(Mathf.Abs(shield.rectTransform.anchoredPosition.y - repair.rectTransform.anchoredPosition.y),
+                        Is.GreaterThanOrEqualTo(45f), "Field shelter guard and repair need separate readable lines.");
+                    sawSeparatedFeedback = true;
+                    if ((playedCard == null || !playedCard.gameObject.activeInHierarchy) &&
+                        shield.color.a > .5f && repair.color.a > .5f)
+                    {
+                        sawClearSupportWindow = true;
+                        if (!capturedSeparatedFeedback)
+                        {
+                            NavalBattleVisualCapture.Capture(controller, "NavalSupport_BloodFieldShelter_SameFrame.png",
+                                "真实血池庇护：已验证格挡12与修复4同帧同阶段开始；出牌卡收起后双字仍清晰，未消耗木板");
+                            capturedSeparatedFeedback = true;
+                        }
+                    }
+                }
+                yield return null;
+            }
+            Assert.That(controller.IsBattleAnimationPlaying, Is.False);
+            yield return null;
+            Assert.That(Time.realtimeSinceStartup - started, Is.LessThan(2f));
+            Assert.That(sawSeparatedFeedback, Is.True);
+            Assert.That(sawClearSupportWindow, Is.True,
+                "Both field-shelter labels must remain clearly visible after the played card has fully disappeared.");
+            Assert.That(firstShieldFrame, Is.GreaterThanOrEqualTo(0));
+            Assert.That(firstRepairFrame, Is.EqualTo(firstShieldFrame));
+            Assert.That(RequiredResponsive<Button>("End Battle Turn").interactable, Is.True);
+            Assert.That(RequiredResponsive<RectTransform>("Battle Card").GetInstanceID(), Is.EqualTo(stageId));
+            Assert.That(RequiredResponsive<Button>("Battle Card 0").GetInstanceID(), Is.EqualTo(retainedId));
+            Assert.That(session.Hull, Is.EqualTo(hullBefore + 4));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(12));
+            Assert.That(session.Battle.Energy, Is.EqualTo(energyBefore - 1));
+            Assert.That(session.Cargo.Wood, Is.Zero);
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(enemyHullBefore));
+            Assert.That(session.Battle.CardsPlayedThisTurn, Is.EqualTo(1));
+            CollectionAssert.AreEqual(new[] { "card_brace" },
+                session.Battle.Hand.Select(index => session.GetBattleCard(index).Id).ToArray());
+            BattleDefenseHud hud = RequiredResponsive<BattleDefenseHud>("Player Battle Hull Bar Track");
+            Assert.That(hud.DisplayedHull, Is.EqualTo(session.Hull));
+            Assert.That(hud.DisplayedGuard, Is.EqualTo(12));
+            AssertResponsiveHandMatchesCore(session);
+            Behaviour hover = RequiredResponsive<Button>("Battle Card 0").GetComponent("BattleCardHoverFeedback") as Behaviour;
+            Assert.That(hover, Is.Not.Null);
+            Assert.That(hover.enabled, Is.True);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void AssertResponsiveSupportStartsTogether(Text shield, Text repair,
+            ref int firstShieldFrame, ref int firstRepairFrame)
+        {
+            if (shield != null && shield.color.a > .01f && firstShieldFrame < 0) firstShieldFrame = Time.frameCount;
+            if (repair != null && repair.color.a > .01f && firstRepairFrame < 0) firstRepairFrame = Time.frameCount;
+            if (firstShieldFrame < 0 && firstRepairFrame < 0) return;
+            // Check at the very first visible label, before a later overlap or pending Destroy can hide the delay.
+            Assert.That(firstShieldFrame, Is.EqualTo(firstRepairFrame),
+                "Independent self-support guard and repair must both be visible on the first support frame.");
+            if (Time.frameCount == firstShieldFrame)
+                // Equal rise phase preserves the 55-unit row offset; observation does not prove creation time.
+                Assert.That(shield.rectTransform.anchoredPosition.y - repair.rectTransform.anchoredPosition.y,
+                    Is.EqualTo(55f).Within(1f), "Self-support labels must begin at the same visual rise phase.");
         }
 
         [UnityTest]
@@ -317,8 +466,13 @@ namespace ShatteredSail.Presentation.Tests
             else if (crewId != null) session.ConfigureSpecialCardSources(new[] { crewId }, Array.Empty<string>());
             if (upgrades != null) session.ConfigureCardUpgrades(upgrades);
             if (gameHours.HasValue) Assert.That(session.RestoreGameClock(gameHours.Value), Is.True);
-            if (pirateLevel > 1) session.RestoreTreasureProgress(new CoreTreasureProgress {
-                pirateExperience = CoreVoyageSession.PirateExperienceForLevel(pirateLevel) });
+            if (pirateLevel > 1)
+            {
+                session.RestoreTreasureProgress(new CoreTreasureProgress {
+                    pirateExperience = CoreVoyageSession.PirateExperienceForLevel(pirateLevel) });
+                Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True,
+                    "The responsive-battle fixture models owned legacy school cards before departure.");
+            }
             session.SetSeed("BATTLE-RESPONSIVENESS-REGRESSION");
             session.StartVoyage();
             Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));

@@ -6,6 +6,8 @@ namespace ShatteredSail.Core.Gameplay
     /// Quotes and settlement share fixed prices, hundred-gold rounding and capture bonuses.</summary>
     public static class CoreBattleRewardBalance
     {
+        public const decimal CaptureRewardMultiplier = 1.25m;
+
         public static decimal MaterialGoldValue(VoyageEffect reward, bool doctor = false, bool diver = false)
         {
             if (reward == null) return 0m;
@@ -29,17 +31,18 @@ namespace ShatteredSail.Core.Gameplay
                 (decimal)Math.Max(0, reward?.Gold ?? 0) + MaterialGoldValue(reward, doctor, diver);
             amount *= RewardMultiplier(rewardMultiplier);
             if (amount <= 0m) return 0L;
-            // Round once, after repeat-encounter reductions, so every cash payout
-            // is a whole hundred and capturing always doubles the same naval quote.
+            // Round the naval quote once, after repeat-encounter reductions.
+            // Apply capture afterwards so it remains exactly 1.25 times that quote.
             decimal rounded = Math.Max(100m, decimal.Round(amount / 100m, 0, MidpointRounding.AwayFromZero) * 100m);
-            return (long)Math.Min(long.MaxValue, captured ? rounded * 2m : rounded);
+            return (long)Math.Min(long.MaxValue, captured ? rounded * CaptureRewardMultiplier : rounded);
         }
 
         public static long FameReward(bool boss, VoyageEffect reward, bool captured, double rewardMultiplier = 1d)
         {
             long amount = (boss ? CoreBattleBalance.BossVictoryFame : 6) + (long)Math.Max(0, reward?.Fame ?? 0);
-            if (captured) amount *= 2;
-            return (long)decimal.Floor(amount * RewardMultiplier(rewardMultiplier));
+            decimal naval = decimal.Floor(amount * RewardMultiplier(rewardMultiplier));
+            // Fame remains an integer; the bonus uses the same displayed naval quote.
+            return (long)decimal.Floor(captured ? naval * CaptureRewardMultiplier : naval);
         }
 
         private static decimal RewardMultiplier(double multiplier) => double.IsNaN(multiplier) ? 0m :

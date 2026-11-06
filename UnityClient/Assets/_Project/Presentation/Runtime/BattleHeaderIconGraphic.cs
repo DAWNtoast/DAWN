@@ -3,12 +3,13 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
-    /// <summary>Brass silhouettes for the battle header, independent of font glyph support.</summary>
+    /// <summary>Authored brass icons for the battle header with a geometric fallback.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class BattleHeaderIconGraphic : MaskableGraphic
     {
         [SerializeField] private bool settings;
+        public override Texture mainTexture => BattleIconArtCatalog.Texture != null ? BattleIconArtCatalog.Texture : base.mainTexture;
 
         public void Configure(bool settingsIcon, Color accent)
         {
@@ -23,6 +24,7 @@ namespace ShatteredSail.Presentation
             mesh.Clear();
             Rect rect = GetPixelAdjustedRect();
             if (rect.width <= 0f || rect.height <= 0f) return;
+            if (BattleIconArtCatalog.Draw(mesh, rect, BattleIconArtCatalog.HeaderAssetId(settings), new Color(1f, 1f, 1f, color.a))) return;
             float scale = Mathf.Min(rect.width, rect.height) / 34f;
             Vector2 center = rect.center;
             if (settings) Gear(mesh, center, scale);

@@ -119,6 +119,7 @@ namespace ShatteredSail.Presentation
 
         private void OnEnable()
         {
+            if (Application.isPlaying) InitializeMenuAudio(transform);
             if (!Application.isPlaying)
             {
                 BuildEditorPreview();
@@ -127,6 +128,7 @@ namespace ShatteredSail.Presentation
 
         private void OnDisable()
         {
+            if (Application.isPlaying) StopMenuAudio();
             if (!Application.isPlaying)
             {
                 RemoveEditorPreview();
@@ -135,6 +137,7 @@ namespace ShatteredSail.Presentation
 
         private void Update()
         {
+            if (Application.isPlaying) UpdateMenuAudio();
             if (!Application.isPlaying || !UiEscapeInput.IsPressed || !UiEscapeInput.TryConsume())
             {
                 return;
@@ -495,7 +498,7 @@ namespace ShatteredSail.Presentation
             {
                 Text label = achievementStateButtons[index].GetComponentInChildren<Text>();
                 label.text = (index == achievementStateFilter ? "● " : string.Empty) + new[] { "全部", "未解锁", "已解锁" }[index];
-                MarketShopSkin.SetMode(achievementStateButtons[index], index == achievementStateFilter);
+                WoodButtonSkin.SetSelected(achievementStateButtons[index], index == achievementStateFilter);
             }
             SetAchievementPage(resetPage ? 0 : achievementPage);
         }
@@ -637,6 +640,8 @@ namespace ShatteredSail.Presentation
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleDeckKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleDeckEditedKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.BattleCardUpgradeKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.CardPackProgressKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.SplitSupportCardVersionKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.SpecialCardExperienceKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.AcquiredSpecialCardsKey);
             foreach (NavalBattleStage stage in Enum.GetValues(typeof(NavalBattleStage)))
@@ -687,8 +692,9 @@ namespace ShatteredSail.Presentation
                 PlayerPrefs.DeleteKey(CoreGameplayDemoController.CargoKey(cargoResources[index]));
             }
             PlayerPrefs.Save();
+            OpeningPortComicProgress.ForCurrentProfile()?.TryQueue(OpeningPortComicProgress.OpeningKey);
             OpeningComicCatalog.RequestPlayback();
-            SceneManager.LoadScene(MainSceneName);
+            LoadGameplayWithMusic();
         }
 
         private static void ContinueGame()
@@ -707,7 +713,7 @@ namespace ShatteredSail.Presentation
                 return;
             }
             OpeningComicCatalog.ClearPlaybackRequest();
-            SceneManager.LoadScene(MainSceneName);
+            LoadGameplayWithMusic();
         }
 
         private void ShowSaveNotice(string notice)
@@ -884,8 +890,7 @@ namespace ShatteredSail.Presentation
             string title, Color textColor)
         {
             RectTransform rect = CreateRect(name, parent, size, position);
-            // Invisible hit area keeps the entire row clickable while the title
-            // itself carries pointer, keyboard selection and disabled feedback.
+            // The full row handles clicks while the title shows focus and pointer feedback.
             Image hitArea = rect.gameObject.AddComponent<Image>();
             hitArea.color = Color.clear;
             Button button = rect.gameObject.AddComponent<Button>();
@@ -902,7 +907,6 @@ namespace ShatteredSail.Presentation
             colors.disabledColor = new Color(0.56f, 0.60f, 0.65f, 1f);
             colors.fadeDuration = 0.12f;
             button.colors = colors;
-
             return button;
         }
 

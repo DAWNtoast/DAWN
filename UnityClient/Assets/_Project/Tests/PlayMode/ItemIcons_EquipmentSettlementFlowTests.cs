@@ -32,19 +32,25 @@ namespace ShatteredSail.Presentation.Tests
             {
                 ComponentSlot slot = (ComponentSlot)i;
                 RawImage icon = AssertItemIcon("Shipyard Installed Art " + slot,
-                    ItemIconCatalog.ForComponent(controller.ShipComponent(0, slot)), 64f);
+                    ItemIconCatalog.ForComponent(controller.ShipComponent(0, slot)), 108f);
+                Assert.That(Mathf.Max(icon.rectTransform.rect.width, icon.rectTransform.rect.height),
+                    Is.EqualTo(108f).Within(.01f), "Installed artwork must use the enlarged display area.");
                 AssertIconDoesNotCoverRowText(icon);
                 AssertIconPointerReachesButton(icon, "Shipyard Equipment Slot " + slot, false);
             }
             for (int i = 0; i < inventory.Length; i++)
             {
+                RectTransform row = ActiveButton("Shipyard Equipment Owned " + inventory[i].InstanceId).GetComponent<RectTransform>();
+                Vector2 artBounds = new Vector2(row.rect.width - 28f, row.rect.height - 62f);
                 RawImage icon = AssertItemIcon("Shipyard Inventory Art " + inventory[i].InstanceId,
-                    ItemIconCatalog.ForComponent(samples[i]), 68f);
+                    ItemIconCatalog.ForComponent(samples[i]), artBounds);
+                Assert.That(Mathf.Max(icon.rectTransform.rect.width / artBounds.x, icon.rectTransform.rect.height / artBounds.y),
+                    Is.EqualTo(1f).Within(.001f), "Inventory artwork fills the available area above its name without stretching.");
                 AssertIconDoesNotCoverRowText(icon);
                 AssertIconPointerReachesButton(icon, "Shipyard Equipment Owned " + inventory[i].InstanceId, false);
             }
             NavalBattleVisualCapture.Capture(controller, "ItemIcons_11_Equipment_Inventory.png",
-                "隔离部件库存夹具；五个已装槽位图标适配64像素区域，两件闲置部件图标适配68像素区域，均保留原始比例", "Shipyard Detail");
+                "隔离部件库存夹具；已装槽位图标适配108像素区域，库存图标放大并置于名称上方，保持原始比例且不遮挡文字", "Shipyard Detail");
 
             // Use the real Core settlement boundary and production renderer.
             // Reward values below are explicitly a visual fixture, not earned loot.
@@ -61,10 +67,7 @@ namespace ShatteredSail.Presentation.Tests
             typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(controller, null);
             yield return null;
             yield return WaitForItemIconView(controller);
-            if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true)
-            {
-                ClickAcceptanceButton("Skip Settlement Reveal"); yield return null;
-            }
+            yield return SettlementChestTestActions.ShowOverview();
             Assert.That(Object.FindFirstObjectByType<SettlementRevealController>().IsComplete, Is.True);
             RawImage gold = AssertItemIcon("Settlement Featured Icon Gold", ItemIconCatalog.ForSpecial("gold"), 104f);
             AssertIconDoesNotCoverRowText(gold);

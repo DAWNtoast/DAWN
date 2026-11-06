@@ -3,27 +3,6 @@ using System.Collections.Generic;
 
 namespace ShatteredSail.Presentation
 {
-    public sealed class TreasureStoryChapter
-    {
-        internal TreasureStoryChapter(string rankId, string rankName, string title,
-            string[] pages, string[] imageResources, string[] legendaryIds)
-        {
-            RankId = rankId;
-            RankName = rankName;
-            Title = title;
-            Pages = Array.AsReadOnly(pages ?? Array.Empty<string>());
-            ImageResources = Array.AsReadOnly(imageResources ?? Array.Empty<string>());
-            LegendaryIds = Array.AsReadOnly(legendaryIds ?? Array.Empty<string>());
-        }
-
-        public string RankId { get; }
-        public string RankName { get; }
-        public string Title { get; }
-        public IReadOnlyList<string> Pages { get; }
-        public IReadOnlyList<string> ImageResources { get; }
-        public IReadOnlyList<string> LegendaryIds { get; }
-    }
-
     public sealed class TreasureBattleStory
     {
         internal TreasureBattleStory(string encounterId, string shipName, string[] pages)
@@ -39,52 +18,11 @@ namespace ShatteredSail.Presentation
     }
 
     /// <summary>
-    /// The three two-page treasure chapters and the six ship-specific pre-battle
-    /// readings share stable ids with the core encounter catalog.
+    /// The six ship-specific pre-battle readings
+    /// share stable ids with the core encounter catalog.
     /// </summary>
     public static class CoreTreasureStoryCatalog
     {
-        private static readonly IReadOnlyList<TreasureStoryChapter> chapters =
-            Array.AsReadOnly(new[]
-            {
-                new TreasureStoryChapter("weathered", "残旧", "盐封旧誓",
-                    new[]
-                    {
-                        "盐封地图在舱灯下展开，纸角簌簌落盐。旧日志还剩两行能读：铁甲守沉门，红帆守归途。",
-                        "雾里，两面旧帆一前一后擦过。炮口没有亮，一枚缺了指针的罗盘却被推到你的船头，铜壳仍湿着。"
-                    },
-                    new[]
-                    {
-                        "TreasureHunt/Comics/weathered_page01",
-                        "TreasureHunt/Comics/weathered_page02"
-                    },
-                    new[] { "legendary_pirate_iron_oath", "legendary_pirate_red_widow" }),
-                new TreasureStoryChapter("gilded", "鎏金", "王庭账簿",
-                    new[]
-                    {
-                        "鎏金账簿有一笔税始终未销：雷冠收港，余烬焚证。宝库的那一栏没有坐标，只留一道伸出潮线的笔痕。",
-                        "闪电照出两艘旧部战舰，它们正争夺同一枚王庭印记。谁先沉下去，线索便会跟谁一起入海。"
-                    },
-                    new[]
-                    {
-                        "TreasureHunt/Comics/gilded_page01",
-                        "TreasureHunt/Comics/gilded_page02"
-                    },
-                    new[] { "legendary_pirate_thunder_crown", "legendary_pirate_ember_ark" }),
-                new TreasureStoryChapter("moonlit", "月蚀", "月潮偿还",
-                    new[]
-                    {
-                        "月蚀图的潮线正慢慢合拢。沉月王庭外，潮汐镇魂号仍替旧船长偿还未尽的归途；终界观星号则在塔影之后测读失落的星轨。",
-                        "潮汐镇魂号转过最后一座残塔，终界观星号的透镜照亮了沉门。海上传来问话：宝库找到以后，谁还会替海浪记着死者的名字？"
-                    },
-                    new[]
-                    {
-                        "TreasureHunt/Comics/moonlit_page01",
-                        "TreasureHunt/Comics/moonlit_page02"
-                    },
-                    new[] { "legendary_pirate_tide_requiem", "legendary_pirate_last_horizon" })
-            });
-
         private static readonly IReadOnlyList<TreasureBattleStory> battles =
             Array.AsReadOnly(new[]
             {
@@ -115,20 +53,12 @@ namespace ShatteredSail.Presentation
                 }),
                 new TreasureBattleStory("legendary_pirate_last_horizon", "终界观星号", new[]
                 {
-                    "终界观星号的学者曾在沉月王庭找到一幅没有终点的星图。末风帆展开时，世界树皮甲板上的每一道年轮都指向不同的海。",
-                    "观测舱传来最后一次校准。终界炮沿透镜投下的星轨转向，学者只问：若地平线真的有尽头，你们准备带谁一起抵达？"
+                    "终界观星者不理解老船长最后的行为，却从未反叛。老船长离开后，他与学者们再次踏上探险之路，在沉月王庭找到一幅没有终点的星图，始终保持中立。",
+                    "观测舱传来切磋邀请，双方约定一方认输便收炮，不夺船、不索贡。星轨校准完毕，观星者问：若地平线真的有尽头，你们准备带谁一起抵达？"
                 })
             });
 
-        public static IReadOnlyList<TreasureStoryChapter> Chapters => chapters;
         public static IReadOnlyList<TreasureBattleStory> Battles => battles;
-
-        public static TreasureStoryChapter FindChapter(string rankId)
-        {
-            for (int index = 0; index < chapters.Count; index++)
-                if (chapters[index].RankId == rankId) return chapters[index];
-            return null;
-        }
 
         public static TreasureBattleStory FindBattle(string encounterId)
         {

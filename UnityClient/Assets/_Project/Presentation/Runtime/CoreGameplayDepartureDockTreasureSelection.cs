@@ -82,7 +82,7 @@ namespace ShatteredSail.Presentation
             Text detail = DepartureTreasureSeedText("Departure Dock Treasure Detail", panel, new Vector2(width, 47),
                 new Vector2(176, 2), 16, FontStyle.Normal, TextAnchor.UpperLeft, DepartureSkin.Ink,
                 selected == null ? string.Empty :
-                TreasureMapTheme(selected) + " · " + session.CurrentPort + "\n" + TreasureDepartureObjective(selected));
+                TreasureMapTheme(selected) + " · " + session.CurrentPort);
             detail.resizeTextForBestFit = true;
             detail.resizeTextMinSize = 14;
             detail.resizeTextMaxSize = 16;
@@ -97,7 +97,7 @@ namespace ShatteredSail.Presentation
             Button table = CreateButton("Departure Treasure Seed Table", panel, new Vector2(152, 26),
                 new Vector2(300, -69), PanelRaised, DepartureSkin.Ink, 15);
             table.GetComponentInChildren<Text>().text = "前往藏宝图桌";
-            MarketShopSkin.ApplyLightButton(table);
+            WoodButtonSkin.ApplyAction(table, WoodButtonRole.Secondary);
             bool Current() => panel != null && panel.gameObject.activeInHierarchy &&
                 DepartureDockTreasureModeActive && DepartureChartViewCurrent(view, owner, revision);
             dropdown.onValueChanged.AddListener(index =>
@@ -124,16 +124,6 @@ namespace ShatteredSail.Presentation
                 OpenFacilityFromDeparture(PortFacilityArtCatalog.TreasureFacilityIndex, view);
                 Render();
             });
-        }
-
-        private static string TreasureDepartureObjective(CoreTreasureMapRecord map)
-        {
-            switch (map.RankId)
-            {
-                case "weathered": return "修复绞盘与潜钟 · 获取古代材料与航海器具";
-                case "gilded": return "经营信用、控制通缉 · 换取商会珍宝";
-                default: return "按时观星、净化诅咒 · 获取遗物与黑珍珠";
-            }
         }
 
         private void BuildDepartureDockTreasureDropdownTemplate(Dropdown dropdown, float width)
@@ -201,7 +191,7 @@ namespace ShatteredSail.Presentation
                 .Find("Departure Dock Treasure Selection/Departure Dock Treasure Status")?.GetComponent<Text>();
             if (status == null) return;
             bool ready = session.CanStartTreasureVoyage(out string reason);
-            status.text = session.SelectedTreasureMap == null ? string.Empty : ready ? "整备完成 · 无需航海士" : reason;
+            status.text = session.SelectedTreasureMap == null || ready ? string.Empty : reason;
         }
     }
 }

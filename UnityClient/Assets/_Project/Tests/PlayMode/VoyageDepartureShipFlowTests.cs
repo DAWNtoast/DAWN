@@ -77,7 +77,8 @@ namespace ShatteredSail.Presentation.Tests
             for (int ship = 1; ship < CoreVoyageSession.Ships.Count; ship++)
                 Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.ShipOwnedKey(ship), 0), Is.Zero);
             yield return ClickShipyardControl("Inspect Departure Vessel");
-            Assert.That(GameObject.Find("Shipyard Dossier Name").GetComponent<Text>().text, Is.EqualTo(CoreVoyageSession.Ships[0].Name));
+            Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null);
+            Assert.That(GameObject.Find("Shipyard Dossier Name"), Is.Null, "Equipment uses the ship art without a repeated dossier heading.");
             yield return ClickShipyardControl("Return To Port Hub");
             Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
             Assert.That(ActiveButton("Departure Previous Vessel").interactable, Is.False);
@@ -195,10 +196,10 @@ namespace ShatteredSail.Presentation.Tests
             yield return EnterDepartureChartSeed(seed, false);
             yield return ClickShipyardControl("Inspect Departure Vessel");
             Assert.That(GameObject.Find("Voyage Setup"), Is.Null);
-            Assert.That(GameObject.Find("Shipyard Dossier Name").GetComponent<Text>().text, Is.EqualTo(CoreVoyageSession.Ships[1].Name));
+            Assert.That(GameObject.Find("Shipyard Dossier Name"), Is.Null, "Equipment uses the ship art without a repeated dossier heading.");
             Assert.That(GameObject.Find("Shipyard Equipment Page"), Is.Not.Null, "Departure opens the selected vessel's fittings directly.");
             Assert.That(controller.Session.SelectedSeed, Is.EqualTo(seed));
-            Assert.That(ActiveButton("Close Shipyard Equipment").GetComponentInChildren<Text>().text, Does.Contain("返回出航码头"));
+            Assert.That(ActiveButton("Return To Port Hub").GetComponentInChildren<Text>().text, Does.Contain("返回出航码头"));
             Assert.That(GameObject.Find("Shipyard Dossier Tab Performance"), Is.Null, "The departure shortcut opens the separate equipment window.");
             Assert.That(ActiveButton("Shipyard Equip Component").interactable, Is.False);
             yield return ClickShipyardControl("Shipyard Equipment Owned " + replacement.InstanceId);
@@ -207,7 +208,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.OwnedComponents.Single(item => item.InstanceId == originalBow).ShipIndex, Is.EqualTo(-1));
             AssertShipyardTactic(controller, rareBow, true);
             NavalBattleVisualCapture.Capture(controller, "86_Departure_Vessel_Equipment.png", "从出航打开当前旗舰档案并更换船角，左上角可直接返回出航码头", "Shipyard Detail");
-            yield return ClickShipyardControl("Close Shipyard Equipment");
+            yield return ClickShipyardControl("Return To Port Hub");
             Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null);
             Assert.That(FindRenderedShipLayer("Voyage Setup", rareBow.ShipLayer), Is.Null,
                 "Non-initial flagships retain their original artwork after refitting, without component overlays.");
@@ -225,7 +226,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.MaxHull, Is.EqualTo(CoreVoyageSession.Ships[1].MaxHull),
                 "An empty slot leaves the selected hull at its authored base value.");
             AssertShipyardTactic(controller, rareBow, false);
-            yield return ClickShipyardControl("Close Shipyard Equipment");
+            yield return ClickShipyardControl("Return To Port Hub");
             Assert.That(controller.InstalledShipComponent(1, ComponentSlot.Bow), Is.Null);
             Assert.That(GameObject.Find("Upgrade Name 0"), Is.Null);
             Assert.That(GameObject.Find("Upgrade Part 0"), Is.Null, "The departure summary no longer shows equipment slots.");
@@ -234,7 +235,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Shipyard Equip Component");
             int expectedHull = CoreVoyageSession.Ships[1].MaxHull + rareBow.HullBonus - catalog.Get(0).HullBonus;
             Assert.That(controller.Session.MaxHull, Is.EqualTo(expectedHull));
-            yield return ClickShipyardControl("Close Shipyard Equipment");
+            yield return ClickShipyardControl("Return To Port Hub");
 
             // The shared header first returns to this dossier's departure
             // origin; the next header click leaves departure for the port.

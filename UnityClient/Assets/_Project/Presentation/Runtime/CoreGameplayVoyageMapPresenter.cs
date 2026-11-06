@@ -129,6 +129,7 @@ namespace ShatteredSail.Presentation
             BuildEventFootprintArtwork(terrainArtLayer, cellWidth, cellHeight);
             BuildChartGrid(gridLayer, chartCellWidth, chartCellHeight);
             BuildVisibilityFrontier(visibilityLayer, chartCellWidth, chartCellHeight);
+            BuildPendingVoyageDiscovery(visibilityLayer);
         }
 
         private void BuildOceanChartBase(RectTransform waterLayer, CoreVoyageMap map)

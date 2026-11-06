@@ -351,7 +351,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void RaisePirateLevelToTen_UsesNormalRouteAndBloodSchoolUnlocksAndSurvivesRestore()
+        public void RaisePirateLevelToTen_OpensRoutesWithoutGrantingSchoolCardsAndSurvivesRestore()
         {
             var session = new CoreVoyageSession();
             var blood = CoreBoardingCardCatalog.All.First(card => card.SchoolId == "blood");
@@ -362,7 +362,8 @@ namespace ShatteredSail.Core.Tests
             restored.RestoreTreasureProgress(session.CaptureTreasureProgress());
 
             Assert.That(restored.PirateLevel, Is.EqualTo(10));
-            Assert.That(restored.IsBattleCardUnlocked(blood), Is.True);
+            Assert.That(restored.IsBattleCardUnlocked(blood), Is.False);
+            Assert.That(restored.CaptureCardPackProgress().cards, Is.Empty);
             for (int route = 0; route < CoreVoyageSession.Routes.Count; route++)
                 Assert.That(restored.CanSelectRoute(route, out string reason), Is.True, reason);
         }

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using ShatteredSail.Core.Gameplay;
 
 namespace ShatteredSail.Presentation
@@ -22,22 +24,20 @@ namespace ShatteredSail.Presentation
                         "／夺船 +" + CoreBattleRewardBalance.GoldReward(true, choice.Effect, true, multiplier, session.HasDoctor, session.HasDiver) +
                         "；碎片×1\n返港领白色部件与「破浪者的罗盘」";
                 else
-                    details = CoreBattleRewardDescriptions.Victory(boss, choice.Effect, multiplier, session.HasDoctor, session.HasDiver)
+                    details = CoreBattleRewardDescriptions.Victory(boss, choice.Effect, multiplier, session.HasDoctor, session.HasDiver,
+                        sparring: CoreLegendaryWarships.IsSparringEncounter(session.ActiveEncounter.Id))
                         .Replace("；", "\n");
                 details += CoreBattleRewardDescriptions.AdditionalEffects(choice.Effect, multiplier, session.HasDoctor);
                 var exploration = new List<string>();
                 AppendExplorationChoiceDetails(exploration, session.EffectiveChoiceEffect(index));
                 if (exploration.Count > 0) details += "\n胜利：" + string.Join(" · ", exploration);
                 if (session.ActiveEncounter.BossKind == CoreBossKind.Route) details += "\n胜利后开放新港航道";
-                if (choice.RequiredTreasureClues > 0) details += "\n需要藏宝线索 ≥" + choice.RequiredTreasureClues;
                 return details;
             }
             if (!ShowingReusableChartEncounter || choice.Renewable || session.ActiveEncounterRewardMultiplier >= 1d)
             {
                 if (!session.IsTreasureVoyage || session.ActiveTreasureMap.ContentVersion == 0) return choice.Detail;
-                string expedition = CoreVoyageSession.TreasureExpeditionEffectSummary(session.EffectiveChoiceEffect(index));
-                return string.IsNullOrEmpty(expedition) || choice.Detail.Contains(expedition)
-                    ? choice.Detail : choice.Detail + "\n" + expedition;
+                return AppendMissingTreasureExpeditionEffects(choice.Detail, session.EffectiveChoiceEffect(index));
             }
             VoyageEffect effect = session.EffectiveChoiceEffect(index);
             var values = new List<string>();
@@ -55,7 +55,45 @@ namespace ShatteredSail.Presentation
             Add("诅咒", effect.Curse);
             AppendExplorationChoiceDetails(values, effect);
             if (effect.ForceReturn) values.Add("返航");
-            return values.Count == 0 ? "此处已无收益，仍需照常耗时" : string.Join(" · ", values);
+            return string.Join(" · ", values);
+        }
+
+        private static string AppendMissingTreasureExpeditionEffects(string detail, VoyageEffect effect)
+        {
+            string authored = detail ?? string.Empty;
+            if (effect == null) return authored;
+            string compact = Regex.Replace(authored, @"\s+", string.Empty);
+            var missing = new List<string>();
+            if (!string.IsNullOrEmpty(effect.TreasureMark))
+            {
+                string label = CoreVoyageSession.TreasureMarkLabel(effect.TreasureMark);
+                bool namedGrant = Regex.IsMatch(compact,
+                    @"(?:取得|获得|建立)(?:了)?[「“]?" + Regex.Escape(label));
+                bool phase = effect.TreasureMark == "moonlit_dawn" || effect.TreasureMark == "moonlit_dusk" ||
+                    effect.TreasureMark == "moonlit_midnight";
+                bool phaseGrant = phase && (compact.Contains("点亮此相") || Regex.IsMatch(compact,
+                    @"点亮[「“]?" + Regex.Escape(label)));
+                if (!namedGrant && !phaseGrant) missing.Add("取得" + label);
+            }
+            void AddNumber(string label, int value)
+            {
+                if (value == 0) return;
+                string signed = (value > 0 ? "+" : string.Empty) + value.ToString(CultureInfo.InvariantCulture);
+                bool present = Regex.IsMatch(compact, Regex.Escape(label + signed) + @"(?![\d.])");
+                if (!present && label == "通缉" && value < 0)
+                {
+                    string amount = (-(long)value).ToString(CultureInfo.InvariantCulture);
+                    present = Regex.IsMatch(compact, @"清除(?:至多|最多)?" + amount + @"点通缉");
+                }
+                if (!present) missing.Add(label + " " + signed);
+            }
+            // Compare individual effects, so prose aliases and a different effect order
+            // cannot cause an otherwise complete authored description to be repeated.
+            AddNumber("信用", effect.TreasureCredit);
+            AddNumber("通缉", effect.TreasureHeat);
+            AddNumber("共鸣", effect.TreasureResonance);
+            if (missing.Count == 0) return authored;
+            return (string.IsNullOrWhiteSpace(authored) ? string.Empty : authored + "\n") + string.Join("、", missing);
         }
 
     }

@@ -175,6 +175,7 @@ namespace ShatteredSail.Presentation
                 saveNoticeView = InstantiateMenuPrefab(MainMenuPrefabKind.SaveNotice, menuCanvas);
                 if (saveNoticeView == null) return false;
                 saveNoticePanel = (RectTransform)saveNoticeView.transform;
+                WoodButtonSkin.ApplyAction(saveNoticeView.Primary, WoodButtonRole.Secondary);
                 saveNoticeView.Primary.onClick.AddListener(CloseSaveNotice);
                 if (menuCanvasIsEditorPreview) SetEditorPreviewFlags(saveNoticePanel);
             }

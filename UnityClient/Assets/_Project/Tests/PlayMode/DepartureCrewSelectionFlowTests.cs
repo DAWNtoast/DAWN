@@ -68,8 +68,9 @@ namespace ShatteredSail.Presentation.Tests
                 forecast.CurrentSpeedModifier + forecast.WindSpeedModifier);
             Assert.That(forecast.EffectiveSpeedKnots, Is.EqualTo(expectedActualSpeed).Within(.001f),
                 "The ordinary-crew bonus and navigator's one knot must feed sailing speed before wind and currents.");
-            Assert.That(GameObject.Find("Forecast").GetComponent<Text>().text,
-                Does.Contain("航速 " + forecast.EffectiveSpeedKnots.ToString("0.0") + " 节"));
+            Assert.That(GameObject.Find("Forecast Speed Label").GetComponent<Text>().text, Does.StartWith("航速"));
+            Assert.That(GameObject.Find("Forecast Speed Value").GetComponent<Text>().text,
+                Is.EqualTo(forecast.EffectiveSpeedKnots.ToString("0.0") + " 节"));
             double hours = session.TotalHours;
             float distance = session.TotalDistanceNm;
             yield return ClickShipyardControl("Execute Sail");
@@ -94,7 +95,8 @@ namespace ShatteredSail.Presentation.Tests
             increase.onClick.Invoke(); yield return null;
             Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(4));
             yield return WaitForInvestmentAndCrewScreenToSettle("Voyage Setup");
-            NavalBattleVisualCapture.Capture(controller, "DepartureCrew_04_SpecialCrewOccupancy.png", "6名特殊船员占位后最多4名普通水手；满总人数仍有普通水手不足减益", "Voyage Setup");
+            Assert.That(GameObject.Find("DepartureCrewSpeedPreview").GetComponent<Text>().text, Does.Not.Contain("战斗"));
+            NavalBattleVisualCapture.Capture(controller, "DepartureCrew_04_SpecialCrewOccupancy.png", "6名特殊船员占位后最多4名普通水手；航速降低但火力与装甲不受影响", "Voyage Setup");
             yield return ClickShipyardControl("DepartureOrdinaryCrewDecreaseButton");
             AssertOrdinaryDepartureSpeed(controller, 3, Mathf.Max(2.5f, baseSpeed - 1.6f));
             yield return ClickShipyardControl("DepartureOrdinaryCrewIncreaseButton");
@@ -132,7 +134,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Configure Voyage Crew");
             AssertDepartureCrewOverlayRemovedContent(controller);
             Assert.That(DepartureCrewChoiceButtons(), Is.Empty, "Unrecruited crew must not appear as disabled portrait slots.");
-            Assert.That(GameObject.Find("Departure Special Crew Empty"), Is.Not.Null);
+            Assert.That(GameObject.Find("Departure Special Crew Empty"), Is.Null);
             Assert.That(controller.Session.SelectedOrdinaryCrew, Is.EqualTo(4));
             Button.ButtonClickedEvent oldConfirm = ActiveButton("Confirm Departure Crew").onClick;
             yield return WaitForInvestmentAndCrewScreenToSettle("Departure Crew Configuration");

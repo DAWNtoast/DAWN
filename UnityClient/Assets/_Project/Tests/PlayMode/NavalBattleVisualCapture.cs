@@ -28,7 +28,7 @@ namespace ShatteredSail.Presentation.Tests
         [Serializable]
         private sealed class CaptureReport
         {
-            public string scope = "Actual Unity PlayMode battle UI captured during the visual-feedback regression tests. Only isolated in-memory fixtures are arranged; each action uses the real UI callback and combat rules.";
+            public string scope = "Actual Unity PlayMode UI captured in isolated test fixtures. Frame captions and the associated tests distinguish real input sequences from arranged lighting and fixed-progress effect samples.";
             public int width = Width;
             public int height = Height;
             public List<Frame> frames = new List<Frame>();
@@ -39,6 +39,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             public string file;
             public string caption;
+            public int pixelWidth, pixelHeight;
             public string capturedAtUtc;
             public bool animationPlaying;
             public string stage;
@@ -64,8 +65,10 @@ namespace ShatteredSail.Presentation.Tests
             public bool fits;
         }
 
-        public static void Capture(CoreGameplayDemoController controller, string fileName, string caption, string rootName = "Battle Card")
+        public static void Capture(CoreGameplayDemoController controller, string fileName, string caption, string rootName = "Battle Card", int resolutionScale = 1)
         {
+            if (resolutionScale < 1 || resolutionScale > 2) throw new ArgumentOutOfRangeException(nameof(resolutionScale));
+            int pixelWidth = Width * resolutionScale, pixelHeight = Height * resolutionScale;
             ResolveDirectory();
             if (directory == null) return;
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
@@ -110,7 +113,7 @@ namespace ShatteredSail.Presentation.Tests
                 camera.cullingMask = 1 << CaptureLayer;
                 camera.allowHDR = false;
                 camera.allowMSAA = false;
-                target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+                target = new RenderTexture(pixelWidth, pixelHeight, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
                 target.Create();
                 camera.targetTexture = target;
                 canvas.renderMode = RenderMode.WorldSpace;
@@ -130,8 +133,8 @@ namespace ShatteredSail.Presentation.Tests
                     else camera.Render();
                 }
                 RenderTexture.active = target;
-                pixels = new Texture2D(Width, Height, TextureFormat.RGB24, false, false);
-                pixels.ReadPixels(new Rect(0f, 0f, Width, Height), 0, 0);
+                pixels = new Texture2D(pixelWidth, pixelHeight, TextureFormat.RGB24, false, false);
+                pixels.ReadPixels(new Rect(0f, 0f, pixelWidth, pixelHeight), 0, 0);
                 pixels.Apply(false, false);
                 Color32[] samples = pixels.GetPixels32();
                 int minimum = 255, maximum = 0;
@@ -154,6 +157,7 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     file = fileName,
                     caption = caption,
+                    pixelWidth = pixelWidth, pixelHeight = pixelHeight,
                     capturedAtUtc = DateTime.UtcNow.ToString("O"),
                     animationPlaying = controller != null && controller.IsBattleAnimationPlaying,
                     stage = battle == null ? (controller == null ? "MainMenu" : controller.Session.Phase.ToString()) : battle.Stage.ToString(),
@@ -276,12 +280,12 @@ namespace ShatteredSail.Presentation.Tests
         private static void WriteReport()
         {
             File.WriteAllText(Path.Combine(directory, "report.json"), JsonUtility.ToJson(Report, true), new UTF8Encoding(false));
-            StringBuilder html = new StringBuilder("<!doctype html><html lang=\"zh-CN\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>海战动态反馈验收</title><style>body{margin:28px;background:#10212b;color:#f3e4c5;font:16px system-ui}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr));gap:22px}figure{margin:0;padding:12px;background:#263941;border:1px solid #705c3e}img{width:100%;display:block}figcaption,p{line-height:1.7}small{display:block;color:#c9c0ad}a{color:#f1c471}</style><h1>海战动态反馈验收</h1><p>实际 Unity PlayMode 截帧 · 1920 × 1080<br>运行中的出牌、炮击、护盾与镜头动画；所有数据均来自隔离测试，不修改玩家存档。<br><a href=\"report.json\">结构化报告</a></p><main>");
+            StringBuilder html = new StringBuilder("<!doctype html><html lang=\"zh-CN\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>海战动态反馈验收</title><style>body{margin:28px;background:#10212b;color:#f3e4c5;font:16px system-ui}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr));gap:22px}figure{margin:0;padding:12px;background:#263941;border:1px solid #705c3e}img{width:100%;display:block}figcaption,p{line-height:1.7}small{display:block;color:#c9c0ad}a{color:#f1c471}</style><h1>海战动态反馈验收</h1><p>实际 Unity PlayMode 截帧 · 各帧像素尺寸见下方<br>运行中的出牌、炮击、护盾与镜头动画；所有数据均来自隔离测试，不修改玩家存档。<br><a href=\"report.json\">结构化报告</a></p><main>");
             foreach (Frame frame in Report.frames.OrderBy(item => item.file, StringComparer.Ordinal))
             {
                 html.Append("<figure><a href=\"").Append(Escape(frame.file)).Append("\"><img loading=\"lazy\" src=\"")
                     .Append(Escape(frame.file)).Append("\" alt=\"").Append(Escape(frame.caption)).Append("\"></a><figcaption>")
-                    .Append(Escape(frame.caption)).Append("<small>").Append(Escape(frame.stage)).Append(" · ")
+                    .Append(Escape(frame.caption)).Append("<small>").Append(frame.pixelWidth).Append(" × ").Append(frame.pixelHeight).Append(" · ").Append(Escape(frame.stage)).Append(" · ")
                     .Append(frame.distanceMeters.ToString("0")).Append(" 米 · ").Append(frame.animationPlaying ? "动画中" : "动作完成")
                     .Append(" · 敌舰船体 ").Append(frame.enemyHull).Append(" · 格挡 ").Append(frame.enemyBlock)
                     .Append("</small></figcaption></figure>");

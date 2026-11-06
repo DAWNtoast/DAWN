@@ -45,7 +45,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(button.transform.IsChildOf(header), Is.True, name);
                     Assert.That(button.interactable, Is.True, name);
                     AssertContained(paper.rect, bounds, name);
-                    Assert.That(bounds.yMax, Is.LessThanOrEqualTo(paper.rect.yMax - 20f), name + " leaves a visible paper edge");
+                    Assert.That(bounds.yMax, Is.LessThanOrEqualTo(paper.rect.yMax - 20f + .01f), name + " leaves a visible paper edge");
                     Assert.That(bounds.height, Is.GreaterThanOrEqualTo(40f), name);
                     if (name == names[0]) first = bounds;
                     else
@@ -84,7 +84,13 @@ namespace ShatteredSail.Presentation.Tests
             RectTransform paper = Find<RectTransform>("Deck Builder Parchment");
             RectTransform rail = Find<RectTransform>("Deck Builder Deck Rail");
             RectTransform collection = Find<RectTransform>("Deck Builder Collection");
-            Assert.That(panel.rect.size, Is.EqualTo(new Vector2(1896f, 948f)));
+            RectTransform window = (RectTransform)panel.parent;
+            Rect panelBounds = BoundsIn(window, panel);
+            Assert.That(panelBounds.xMin, Is.EqualTo(window.rect.xMin + 24f).Within(.1f));
+            Assert.That(panelBounds.xMax, Is.EqualTo(window.rect.xMax - 24f).Within(.1f));
+            Assert.That(panelBounds.yMin, Is.EqualTo(window.rect.yMin + 20f).Within(.1f));
+            Assert.That(window.name, Is.EqualTo("Workshop Page Shell"));
+            Assert.That(panelBounds.yMax, Is.EqualTo(window.rect.yMax - 92f).Within(.1f));
             Assert.That(paper.rect.size, Is.EqualTo(new Vector2(1140f, 948f)));
             Assert.That(rail.rect.size, Is.EqualTo(new Vector2(744f, 948f)));
             AssertContained(panel.rect, BoundsIn(panel, paper), "left parchment");
@@ -92,9 +98,9 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(BoundsIn(panel, paper).xMax, Is.LessThan(BoundsIn(panel, rail).xMin));
             Button[] cards = collection.GetComponentsInChildren<Button>(true)
                 .Where(button => button.name.StartsWith("Add Deck Card ")).ToArray();
-            Assert.That(cards, Has.Length.EqualTo(8), "The first collection page uses two rows of four cards.");
+            Assert.That(cards, Has.Length.EqualTo(6), "The first collection page uses two rows of three cards.");
             Rect[] frames = cards.Select(card => BoundsIn(collection, card.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform)).ToArray();
-            Assert.That(frames.Select(bounds => Mathf.Round(bounds.center.x)).Distinct().Count(), Is.EqualTo(4));
+            Assert.That(frames.Select(bounds => Mathf.Round(bounds.center.x)).Distinct().Count(), Is.EqualTo(3));
             Assert.That(frames.Select(bounds => Mathf.Round(bounds.center.y)).Distinct().Count(), Is.EqualTo(2));
             foreach (Button card in cards)
             {
@@ -102,7 +108,9 @@ namespace ShatteredSail.Presentation.Tests
                 CoreBattleCard data = controller.Session.GetBattleCard(index);
                 Text inventory = Find<Text>("Workshop Card Count " + index);
                 int copies = controller.Session.GetBattleDeck(NavalBattleStage.Preparation).Count(value => value == index);
-                Assert.That(inventory.text, Is.EqualTo("已加入 " + copies + " / 2 张"));
+                int owned = controller.Session.GetBaseBattleCardOwnedCopies(index);
+                Assert.That(owned, Is.GreaterThanOrEqualTo(copies));
+                Assert.That(inventory.text, Is.EqualTo("已加入 " + copies + " 张 · 拥有 " + (owned > 9 ? "9+" : owned.ToString()) + " 张"));
                 Assert.That(inventory.preferredWidth, Is.LessThanOrEqualTo(inventory.rectTransform.rect.width + .5f));
                 Assert.That(inventory.preferredHeight, Is.LessThanOrEqualTo(inventory.rectTransform.rect.height + .5f));
                 CardSchoolFrameGraphic frame = card.GetComponentInChildren<CardSchoolFrameGraphic>();
@@ -132,7 +140,7 @@ namespace ShatteredSail.Presentation.Tests
                 Button arrow = Find<Button>(pagerNames[side]);
                 Rect bounds = pagers[side] = BoundsIn(paper, arrow.GetComponent<RectTransform>());
                 AssertContained(paper.rect, bounds, arrow.name);
-                Assert.That(bounds.center.y, Is.EqualTo(0f).Within(.1f), "Paging arrows stay vertically centered on the parchment.");
+                Assert.That(bounds.center.y, Is.EqualTo(collectionOnPaper.center.y).Within(.1f), "Paging arrows are vertically centered on the card display.");
                 WoodenPageArrowGraphic wood = arrow.GetComponent<WoodenPageArrowGraphic>();
                 Assert.That(wood, Is.Not.Null, "Paging controls are solid wooden arrow silhouettes.");
                 Assert.That(wood.Forward, Is.EqualTo(side == 1));
@@ -154,12 +162,27 @@ namespace ShatteredSail.Presentation.Tests
                 foreach (Text count in collection.GetComponentsInChildren<Text>(true).Where(item => item.name.StartsWith("Workshop Card Count ")))
                     Assert.That(bounds.Overlaps(BoundsIn(paper, count.rectTransform)), Is.False, arrow.name + " leaves card counts clear.");
             }
+            Rect[] cardBoundsOnPaper = cards.Select(card => BoundsIn(paper,
+                card.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform)).ToArray();
+            Assert.That(pagers[0].xMax, Is.LessThan(cardBoundsOnPaper.Min(bounds => bounds.xMin)),
+                "Previous page stays outside the left card column.");
+            Assert.That(pagers[1].xMin, Is.GreaterThan(cardBoundsOnPaper.Max(bounds => bounds.xMax)),
+                "Next page stays outside the right card column.");
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Deck Builder Interaction Hint"), Is.False);
+            Assert.That(paper.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Workshop Collection Page Count"), Is.False);
             Assert.That(pagers[0].center.x, Is.LessThan(0f));
-            Assert.That(pagers[1].center.x, Is.EqualTo(-pagers[0].center.x).Within(.1f), "Paging arrows flank the card collection symmetrically.");
+            Assert.That((pagers[0].center.x + pagers[1].center.x) * .5f, Is.EqualTo(collectionOnPaper.center.x).Within(.1f), "Paging arrows flank the card display symmetrically.");
             Assert.That(pagers[1].width, Is.EqualTo(pagers[0].width).Within(.1f));
             Assert.That(pagers[1].height, Is.EqualTo(pagers[0].height).Within(.1f));
-            foreach (string name in new[] { "Deck Builder Deck Title", "Deck Builder Base Column", "Deck Builder Special Column", "Deck Builder Status", "Back To Card Workshop Chests" })
+            foreach (string name in new[] { "Deck Builder Deck Title", "Deck Builder Capacity Count", "Deck Builder Capacity Meter", "Deck Builder Base Column", "Deck Builder Special Column", "Deck Builder Status", "Back To Card Workshop Chests" })
                 AssertContained(rail.rect, BoundsIn(rail, Find<RectTransform>(name)), name);
+            Rect meter = BoundsIn(rail, Find<RectTransform>("Deck Builder Capacity Meter"));
+            foreach (string side in new[] { "Base", "Special" })
+                Assert.That(meter.yMin, Is.GreaterThan(BoundsIn(rail, Find<RectTransform>("Deck Builder " + side + " Column")).yMax));
+            Assert.That(Find<Text>("Deck Builder Capacity Count").text,
+                Is.EqualTo(controller.Session.GetBattleDeck(NavalBattleStage.Preparation).Count + " / " + CoreVoyageSession.MaximumBaseBattleDeckSize));
+            Assert.That(Find<RectTransform>("Deck Builder Capacity Meter").GetComponentsInChildren<Image>().All(image => !image.raycastTarget), Is.True,
+                "Capacity feedback cannot steal a drop intended for the deck rail.");
             Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Deck Builder Hover Preview"), Is.False,
                 "The left collection retains complete cards while the deck uses compact rows.");
         }

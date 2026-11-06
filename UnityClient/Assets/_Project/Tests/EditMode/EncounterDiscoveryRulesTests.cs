@@ -147,16 +147,16 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void NavigatorEnablesChartDrawing_ButDepartureLogsNeverExposeTheSeed()
+        public void NavigatorEnablesChartReuse_ButDepartureLogsNeverExposeTheSeed()
         {
             foreach (bool navigator in new[] { false, true })
             {
                 var voyage = new CoreVoyageSession();
                 voyage.ConfigureCrewCapabilities(navigator, false, false, false, false, false);
                 voyage.SetSeed("PRIVATE-CHART-SEED");
-                Assert.That(voyage.CanDrawSeaChart, Is.EqualTo(navigator));
+                Assert.That(voyage.CanUseSeaCharts, Is.EqualTo(navigator));
                 voyage.StartVoyage();
-                Assert.That(voyage.CanDrawSeaChart, Is.EqualTo(navigator));
+                Assert.That(voyage.CanUseSeaCharts, Is.EqualTo(navigator));
                 Assert.That(voyage.LogEntries.Any(x => x.Contains("PRIVATE-CHART-SEED")), Is.False);
                 Assert.That(voyage.Map.Seed, Is.EqualTo("PRIVATE-CHART-SEED"), "Disclosure rules do not alter generation input.");
             }

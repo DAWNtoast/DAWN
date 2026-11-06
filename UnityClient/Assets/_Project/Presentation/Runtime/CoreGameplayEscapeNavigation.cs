@@ -47,13 +47,16 @@ namespace ShatteredSail.Presentation
             if (UiEscapeInput.TryCloseDropdown(contentRoot)) return;
 
             if (BlockIncompleteDeckBuilderNavigation()) return;
+            // The room is the parent of every workshop function, including the collection.
+            if (activePortFacility == 4 && CurrentWorkshopPage != WorkshopPage.Home &&
+                TryInvokeEscapeButton(contentRoot, "Return To Port Hub")) return;
 
             // These are cancellation/navigation controls only. Invoke the live
             // button so tutorial locks, quote identities and return contexts all
             // use exactly the same validation as a pointer click.
-            if (TryInvokeEscapeButton(contentRoot, "Close Shipyard Equipment", "Cancel Component Sale", "Cancel Market Purchase",
+            if (TryInvokeEscapeButton(contentRoot, "Cancel Component Sale", "Cancel Market Purchase",
                     "Close Market Shop", "Treasure Folio Back", "Treasure Close Folio",
-                    "Back To Card Workshop Chests", "Back From Card Upgrades",
+                    "Back To Card Workshop Chests",
                     "Back To Component Shop Sales", "Back To Voyage Setup", "Return To Port Investment")) return;
             if (warehouseCatalogOpen && TryInvokeEscapeButton(contentRoot, "Warehouse Collection Catalog")) return;
             TryInvokeEscapeButton(contentRoot, "Return To Port Hub");

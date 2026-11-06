@@ -130,13 +130,13 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(health - attack));
             if (turn == 1)
             {
-                Assert.That(attack, Is.EqualTo(10));
+                Assert.That(attack, Is.EqualTo(8)); // Curse weakness now removes four per mark; thunder weakness remains five.
                 Assert.That(state.ThunderWeaknessTurns, Is.Zero);
                 Assert.That(ReadField(state, "CurseWeakTurns"), Is.EqualTo(0));
             }
             else
             {
-                Assert.That(session.Battle.EnemyBlock, Is.EqualTo(7));
+                Assert.That(session.Battle.EnemyBlock, Is.EqualTo(5)); // Four armor reduction leaves five after the authored guard sequence.
                 Assert.That(ReadField(state, "CurseArmorTurns"), Is.EqualTo(0));
             }
         }
@@ -171,7 +171,7 @@ namespace ShatteredSail.Core.Tests
 
         [TestCase(21, 50, 0)]
         [TestCase(19, 50, 2)]
-        [TestCase(0, 50, 4)]
+        [TestCase(0, 50, 21)]
         [TestCase(0, 99, 1)]
         [TestCase(0, 100, 0)]
         public void BloodDrain_UsesActualHealthLostAndNeverExceedsMaximum(int guard, int enemyHealth, int healed)
@@ -211,19 +211,19 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 14), "Ignition must not tick on the application turn.");
             Assert.That(session.Battle.BoardingEnemy.PlayerBurnDamage, Is.EqualTo(3));
             Assert.That(session.Battle.BoardingEnemy.PlayerBurnTurns, Is.EqualTo(3));
-            Assert.That(session.Battle.Boarding.SelfBurn, Is.Empty, "Hostile ignition is separate from voluntary self-burn.");
+            Assert.That(session.Battle.Boarding.SelfBurnStacks, Is.EqualTo(3), "Every source adds to the target's single burn pool.");
             session.Battle.PlayerBlock = 1000;
             End(session);
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 17));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 14));
             Assert.That(session.Battle.BoardingEnemy.PlayerBurnTurns, Is.EqualTo(2));
             session.Battle.PlayerBlock = 1000;
             End(session);
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 19), "The second tick deals the two remaining layers through guard.");
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 14), "Burn is absorbed by guard and still loses one layer.");
             Assert.That(session.Battle.BoardingEnemy.PlayerBurnDamage, Is.EqualTo(1));
             Assert.That(session.Battle.BoardingEnemy.PlayerBurnTurns, Is.EqualTo(1));
             session.Battle.PlayerBlock = 1000;
             End(session);
-            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 20));
+            Assert.That(session.Battle.PlayerBoardingHealth, Is.EqualTo(initial - 14));
             Assert.That(session.Battle.BoardingEnemy.PlayerBurnDamage, Is.Zero);
         }
 
@@ -344,7 +344,7 @@ namespace ShatteredSail.Core.Tests
             session.Battle.PlayerBlock = 100;
             int enemyHealth = session.Battle.EnemyBoardingHealth;
             End(session);
-            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemyHealth - 6));
+            Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(enemyHealth - 4));
             Assert.That(session.Battle.LastEnemyGuardAbsorbed, Is.EqualTo(15));
         }
 

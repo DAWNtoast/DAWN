@@ -1,0 +1,33 @@
+{
+  "Result": "PASS",
+  "RecordedUtc": "2026-11-05T12:39:30.4233712Z",
+  "SuccessfulTargetedSummary": true,
+  "Passed": 3,
+  "Skipped": 1,
+  "SkippedNotCountedAsPassed": true,
+  "FullPlayModeRun": false,
+  "GuardsPassed": [
+    "filter_mismatch",
+    "missing_selector",
+    "outside_scope",
+    "xml_tamper",
+    "input_mismatch",
+    "failed_case",
+    "zero_cases",
+    "bad_counts",
+    "full_playmode",
+    "scope_hash_mismatch"
+  ],
+  "RejectedCasesChangedNoFiles": true,
+  "RealEvidenceTouched": false,
+  "UnityStarted": false,
+  "VerifierSHA256": "990763CAE4AE5476338053580DAA42B33E015FB777FF520E45C8A3C55697760D",
+  "WrapperSHA256": "1BA57B43EA728E1556C64AFEAEA90DA79D9C773A0B50380BDD9D73F83EA52BF7",
+  "SyntheticFixtureRemoved": true,
+  "SyntheticFixtureBytesRemoved": 214439.0,
+  "GuardedVerifierSHA256": "E8B22C59228EF0FDBE32DBC044A75BC2862E04FD03471A2F85D6A490D0B4FB17",
+  "MultiRunDuplicatesAllowed": true,
+  "MultiRunPassed": 3,
+  "MultiRunUniquePassed": 2,
+  "MultiRunRepeatedPassedExecutions": 1
+}

@@ -121,7 +121,7 @@ namespace ShatteredSail.Presentation
             warehouseDragFeedback.text = target >= 0
                 ? "松手陈列到展位 " + (target + 1) +
                     (string.IsNullOrEmpty(warehouseCollection.DisplayedAt(target)) ? string.Empty : " · 替换原藏品")
-                : target == -1 ? "松手收回仓库" : "拖入展位陈列 · Esc 取消";
+                : target == -1 ? "松手取下，随船携带" : "拖入展位陈列 · Esc 取消";
         }
     }
 }

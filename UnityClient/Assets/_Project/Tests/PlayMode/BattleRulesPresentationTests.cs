@@ -112,24 +112,24 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.EnemyWillRam, Is.True);
             Assert.That(CoreBattleIntentPresentation.Build(session).Any(intent => intent.Kind == CoreBattleIntentKind.Ram), Is.True);
             Assert.That(AssertBattleRuleIntents(session), Does.Contain("先手"));
-            Assert.That(RequiredResponsive<Text>("Player Battle Name").text,
-                Does.Contain("普通水手 " + battle.PlayerOrdinaryCrew + " 人").And.Contain("接舷生命上限 " + battle.PlayerMaxBoardingHealth));
             AssertBattleRuleLayout(true);
             NavalBattleVisualCapture.Capture(controller, "BattleRules_04_Enemy_Ram_Intent.png",
-                "近距离敌舰明确预告冲撞、接舷与先手伤害，双方显示普通水手及接舷生命上限", "Battle Card");
+                "近距离敌舰明确预告冲撞、接舷与先手伤害，双方名称木板和说明文字已移除", "Battle Card");
             battle.EnemyBurnTurns = 10;
             battle.EnemyBurnDamage = 10;
             RenderResponsiveBattle(controller);
             yield return WaitResponsiveBattle(controller);
             Assert.That(session.EnemyWillRam, Is.True);
-            Assert.That(session.GetEnemyIntent(), Does.Contain("灼烧"));
+            Assert.That(session.GetEnemyIntent(), Does.Contain("冲撞→接舷").And.Contain("先手"));
             BattleStatusRow enemyStatuses = RequiredResponsive<BattleStatusRow>("Enemy Battle Status Row");
+            Assert.That(enemyStatuses.transform.Find("Status burn/Amount").GetComponent<Text>().text, Is.EqualTo("10"),
+                "Burn remains visible in its status row while the ram preview describes the boarding transition.");
             foreach (CoreBattleStatus status in CoreBattleStatusPresentation.Build(session, false))
                 Assert.That(enemyStatuses.transform.Find("Status " + status.Id + "/Amount").GetComponent<Text>().text,
                     Is.EqualTo(status.Value), "The active burning state remains visible beneath enemy health.");
             AssertBattleRuleLayout(true);
             NavalBattleVisualCapture.Capture(controller, "BattleRules_04a_Burning_Ram_Intent.png",
-                "回合末灼烧与撞击、先手及避让距离同时显示且保持可读字号", "Battle Card");
+                "燃烧状态与撞击、先手及避让提示同时显示且保持可读字号", "Battle Card");
             battle.EnemyBurnTurns = 0;
             battle.EnemyBurnDamage = 0;
             RenderResponsiveBattle(controller);
@@ -180,16 +180,14 @@ namespace ShatteredSail.Presentation.Tests
             int expectedBoardingHealth = (int)System.Math.Ceiling(crewBefore *
                 (1d - System.Math.Max(0, hullBefore - session.Hull) / (2d * session.MaxHull)));
             Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(expectedBoardingHealth - firstStrike));
-            Assert.That(RequiredResponsive<Text>("Battle Alignment").text, Does.Contain("接舷先手：敌方"));
-            Assert.That(RequiredResponsive<Text>("Player Battle Name").text, Does.Contain("守备队"));
-            Assert.That(RequiredResponsive<Text>("Enemy Battle Name").text, Does.Contain("登船队"));
+            Assert.That(GameObject.Find("Battle Alignment"), Is.Null);
             foreach (string side in new[] { "Player", "Enemy" })
-                Assert.That(controller.GetComponentsInChildren<Transform>(true)
-                    .Single(item => item.name == side + " Ship Art Formation Label").gameObject.activeInHierarchy, Is.False,
-                    "The name board now carries the formation without duplicate text over the crew art.");
-            Assert.That(RequiredResponsive<Text>("Player Battle Name").text,
-                Does.Contain("普通水手 " + battle.PlayerOrdinaryCrew + " 人")
-                    .And.Not.Contain("人数系数"));
+            {
+                Assert.That(GameObject.Find(side + " Battle Name"), Is.Null);
+                Assert.That(GameObject.Find(side + " Battle Name Board"), Is.Null);
+                Assert.That(GameObject.Find(side + " Ship Art Formation Label"), Is.Null,
+                    "Formation labels stay hidden after removing the name boards.");
+            }
             Assert.That(RequiredResponsive<Text>("Player Hull Numeric").text.Replace(" ", string.Empty),
                 Is.EqualTo(battle.PlayerBoardingHealth + "/" + battle.PlayerMaxBoardingHealth));
             Assert.That(RequiredResponsive<BattleDefenseHud>("Player Battle Hull Bar Track").DisplayedHull,
@@ -443,22 +441,34 @@ namespace ShatteredSail.Presentation.Tests
         {
             Canvas.ForceUpdateCanvases();
             CoreVoyageSession session = Object.FindFirstObjectByType<CoreGameplayDemoController>().Session;
-            foreach (string name in new[] { "Battle Card Cost Rule Panel", "Battle Card Cost Rule", "Battle Status", "Battle Collision Quality" })
+            foreach (string name in new[] { "Battle Card Cost Rule Panel", "Battle Card Cost Rule", "Battle Status", "Battle Collision Quality",
+                "Battle Alignment", "Player Battle Name", "Enemy Battle Name", "Player Battle Name Board", "Enemy Battle Name Board" })
                 Assert.That(GameObject.Find(name), Is.Null, name + " stays removed during card and turn actions");
             RectTransform intent = RequiredResponsive<RectTransform>("Enemy Intent Icons");
-            AssertBattleRuleDisjoint(intent, RequiredResponsive<RectTransform>("Enemy Battle Name Board"),
-                "Enemy intent icons must not cover the enemy name board.");
             string[] leftNames = { "Battle Compact Resources", "Battle Draw Pile" };
             string[] rightNames = { "Battle Discard Pile", "End Battle Turn" };
             foreach (string name in leftNames)
                 Assert.That(RequiredResponsive<RectTransform>(name).anchoredPosition.x, Is.LessThan(0f), name);
             foreach (string name in rightNames)
                 Assert.That(RequiredResponsive<RectTransform>(name).anchoredPosition.x, Is.GreaterThan(0f), name);
-            for (int line = 1; line <= 3; line++)
+            BattleCommandIconKind[][] expectedResources =
             {
-                Rect row = BattleRuleWorldRect(RequiredResponsive<RectTransform>("Battle Resource Line " + line));
-                Rect next = BattleRuleWorldRect(RequiredResponsive<RectTransform>(line < 3 ? "Battle Resource Line " + (line + 1) : "Battle Draw Pile"));
-                Assert.That(row.yMin, Is.GreaterThan(next.yMax), "Three distinct resource rows stay above the draw pile.");
+                new[] { BattleCommandIconKind.Energy, BattleCommandIconKind.ActionPoint, BattleCommandIconKind.Mana },
+                new[] { BattleCommandIconKind.Powder, BattleCommandIconKind.Cannonball, BattleCommandIconKind.Planks, BattleCommandIconKind.Medicine }
+            };
+            RectTransform resources = RequiredResponsive<RectTransform>("Battle Compact Resources");
+            Assert.That(resources.childCount, Is.EqualTo(2));
+            Assert.That(resources.GetComponentsInChildren<BattleStatusHover>(true), Is.Empty,
+                "Resource readouts do not regain hover tooltips during card or turn actions.");
+            for (int line = 1; line <= expectedResources.Length; line++)
+            {
+                RectTransform resourceRow = RequiredResponsive<RectTransform>("Battle Resource Line " + line);
+                CollectionAssert.AreEqual(expectedResources[line - 1],
+                    resourceRow.GetComponentsInChildren<BattleCommandIconGraphic>(false).Select(icon => icon.Kind));
+                Rect row = BattleRuleWorldRect(resourceRow);
+                Rect next = BattleRuleWorldRect(RequiredResponsive<RectTransform>(line < expectedResources.Length
+                    ? "Battle Resource Line " + (line + 1) : "Battle Draw Pile"));
+                Assert.That(row.yMin, Is.GreaterThan(next.yMax), "Two distinct resource rows stay above the draw pile.");
             }
             RectTransform handRect = RequiredResponsive<RectTransform>("Battle Hand");
             Rect hand = BattleRuleWorldRect(handRect);
@@ -511,7 +521,11 @@ namespace ShatteredSail.Presentation.Tests
         {
             RectTransform row = RequiredResponsive<RectTransform>("Enemy Intent Icons");
             var intents = CoreBattleIntentPresentation.Build(session);
-            Assert.That(row.GetComponentsInChildren<Button>(false).Length, Is.EqualTo(intents.Count));
+            Assert.That(row.GetComponentsInChildren<Button>(false), Is.Empty,
+                "Enemy intents expose their explanation on hover and do not open the enemy overview on click.");
+            CollectionAssert.AreEquivalent(intents.Select(intent => "Intent " + intent.Id),
+                row.GetComponentsInChildren<BattleStatusHover>(false).Select(hover => hover.name),
+                "Every current enemy intent must have its own visible hover target.");
             foreach (CoreBattleIntent intent in intents)
             {
                 Transform badge = row.Find("Intent " + intent.Id);

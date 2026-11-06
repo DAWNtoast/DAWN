@@ -204,7 +204,7 @@ namespace ShatteredSail.Presentation.Tests
             quantities[PortMarketItem.Water] = Math.Max(0, target - controller.Session.Cargo.Water);
             quantities[PortMarketItem.Food] = Math.Max(0, target - controller.Session.Cargo.Food);
             typeof(CoreGameplayDemoController).GetMethod("RefreshDepartureBasicSupplies", BindingFlags.Instance | BindingFlags.NonPublic)
-                .Invoke(controller, new object[] { string.Empty });
+                .Invoke(controller, null);
             yield return null;
         }
         private static decimal ProvisionCost(CoreGameplayDemoController controller, DateTime date, int water, int food) =>

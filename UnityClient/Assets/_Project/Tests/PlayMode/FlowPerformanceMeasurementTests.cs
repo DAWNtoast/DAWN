@@ -81,7 +81,12 @@ namespace ShatteredSail.Presentation.Tests
                     session.ConfigureCardUpgrades(CoreVoyageSession.CardLibrary.Where(c => !CoreVoyageSession.IsSpecialBattleCard(c.Id))
                         .ToDictionary(c => c.Id, c => 2));
                     session.StartVoyage();
-                    if (scenario == "settlement_draw_chart") Assert.That(session.SafeReturn(), Is.True);
+                    if (scenario == "settlement_draw_chart")
+                    {
+                        for (int cell = 0; cell < session.Map.ExploredCells.Length; cell++)
+                            session.Map.ExploredCells[cell] = cell < session.Map.ExploredCells.Length / 2;
+                        Assert.That(session.SafeReturn(), Is.True);
+                    }
                     if (scenario == "battle_rebuild")
                     {
                         CoreMapNode boss = session.Map.Nodes.First(n => n.IsBoss);

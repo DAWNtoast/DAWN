@@ -15,11 +15,11 @@ namespace ShatteredSail.Presentation.Tests
             yield return Pump(.8f);
             // Prime genuinely unused imported clips as well as the live beds.
             foreach (string key in CoreGameplayDemoController.AmbienceSoundEffectKeys) Invoke("LoadAmbience", key);
-            Invoke("LoadMusic", "port_gray_gull");
+            Invoke("LoadMusic", "captains_vow_gray_gull");
             Invoke("LoadBattleSfx", "battle_card_play");
             Invoke("LoadWorldSfx", "sail_step");
             Invoke("LoadInterfaceSfx", "course_plot");
-            Invoke("SetMusic", "route_golden_tide_trade", false);
+            Invoke("SetMusic", "captains_vow_sailing", false);
             SetField("activePortFacility", 2);
             yield return Pump(.2f);
             AudioSource[] live = { Field<AudioSource>("activeMusicSource"), Field<AudioSource>("incomingMusicSource"),

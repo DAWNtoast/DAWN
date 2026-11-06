@@ -11,6 +11,7 @@ namespace ShatteredSail.Presentation
     {
         private void BuildGuidedTutorialFocus()
         {
+            if (IsGuidedBossFreeBattle) return;
             if (HasGuidedBossPresentation) { BuildGuidedBattleCourseFocus(); return; }
             var targets = new List<Selectable>();
             CollectGuidedTutorialFocusTargets(targets);
@@ -61,7 +62,7 @@ namespace ShatteredSail.Presentation
         private RectTransform[] GuidedTutorialReadingContext()
         {
             string[] names = session.Phase == CoreDemoPhase.Battle
-                ? new[] { "Voyage Header", "Player Battle Name", "Enemy Battle Name", "Player Ship Art", "Enemy Ship Art",
+                ? new[] { "Voyage Header", "Player Ship Art", "Enemy Ship Art",
                     "Player Battle Hull Bar Track", "Enemy Battle Hull Bar Track", "Player Resource HUD", "Enemy Intent HUD",
                     "Battle Buff Panel", "Enemy Resource HUD" }
                 : session.Phase == CoreDemoPhase.Encounter
@@ -180,12 +181,11 @@ namespace ShatteredSail.Presentation
 
                 case GuidedTutorialStep.FirstReturn:
                 case GuidedTutorialStep.ThirdReturn: FocusGuidedControl(targets, "Safe Return"); break;
-                case GuidedTutorialStep.SecondRetreat: FocusGuidedControl(targets, "Retreat Battle"); break;
 
                 case GuidedTutorialStep.FirstSettlement:
                 case GuidedTutorialStep.SecondSettlement:
+                case GuidedTutorialStep.DrawChart: // Retired step: older progress continues with settlement.
                 case GuidedTutorialStep.ThirdSettlement: FocusGuidedControl(targets, "Return To Port"); break;
-                case GuidedTutorialStep.DrawChart: FocusGuidedControl(targets, "Draw Sea Chart"); break;
                 case GuidedTutorialStep.Tavern: FocusGuidedPortDestination(targets, "Tavern"); break;
                 case GuidedTutorialStep.SecondPier:
                 case GuidedTutorialStep.ThirdPier: FocusGuidedPortDestination(targets, "Voyage"); break;

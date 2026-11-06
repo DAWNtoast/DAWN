@@ -129,7 +129,7 @@ namespace ShatteredSail.Core.Gameplay
 
             C(cards, "crew_gray_gull_navigator_evelyn", "星盘手 伊芙琳", "也许的归航线", 6, "伊芙琳抹去星位旁那个过分肯定的箭头，改画一条并行航线。巨人星图教会她留住另一种可能，敌舰擦肩而过时，她已经备好下一手。", A.Parallel, block: 2, draw: 1);
             C(cards, "crew_gray_gull_carpenter_barlow", "船匠 巴洛", "归家龙骨", 7, "巴洛在炮火里听见木材叫出自己的乳名。他把旧绳圈拴紧断梁，一锤一锤敲回原位；这回轮到他答应，谁也不能把这艘船留在海里。", A.Standard, repair: 5, block: 4);
-            C(cards, "crew_gray_gull_gunner_leisa", "炮术官 雷萨", "潮门火线", 9, "雷萨将六段装药表压在炮架旁，认出了教官明令禁用的射法。她接下第二门炮的位置，用一条不肯偏移的火线补上第一炮后的空隙。", A.PrecisionLoad, draw: 1, block: 2);
+            C(cards, "crew_gray_gull_gunner_leisa", "炮术官 雷萨", "潮门火线", 9, "雷萨把装药表压在旧重炮旁，亲自校准潮门巨链的受力处。求救艇驶入炮路，她按住引信，等最后一艘通过才下令点火；赫莲带炮组依照她的口令完成装填。", A.PrecisionLoad, draw: 1, block: 2);
             C(cards, "crew_gray_gull_diver_noya", "潜水员 诺雅", "碎帆递旗", 15, "诺雅从船尾翻上甲板，把铜牌和碎帆旗一并递给身后的伙伴。她仍说这只是一次散步，手中钩索却已经拦住追来的敌兵。", A.Standard, S.Boarding, damage: 5, block: 1, draw: 1);
 
             // Only rare / epic / legendary equipment grants cards: five of each per slot.
@@ -140,21 +140,21 @@ namespace ShatteredSail.Core.Gameplay
             P(cards, "bow_amber_albatross", "琥珀信天翁首", "归羽追风", 15, "晨曦照亮琥珀时，里面的羽毛偏离藏宝海沟，指向旧水手的故乡。掌舵者顺着倒影提前转舷，把新的归航线记在手边。", A.Turn, block: 2, draw: 1);
             P(cards, "bow_abyssal_fang", "深渊鲸牙", "活骨破舱", 7, "琪娅把鲸牙与活龙骨的纤维接在一起，低鸣便沿着舰艏传来。贴近敌船后，牙尖在坚木里找出最薄的一缝，己舰却被新生骨纹护住。", A.Sabotage, S.Naval, damage: 14, block: 5);
             P(cards, "bow_nightkraken_tusk", "夜海妖巨齿", "断腕余焰", 5, "炮长终于承认，当夜救他的蓝焰比巨齿更锋利。工匠把焦痕留在齿根，让船员在近距凿击时记住从腕足之间活着回来的走位。", A.Sabotage, S.Naval, energy: 2, damage: 23);
-            P(cards, "bow_gravecurrent_spur", "墓潮骨刺", "沉舰点名", 12, "第七港口升起时，骨刺上的失落舰名逐一亮起。船长照着名字重排海图，在浓雾里拉开航距，留出认清每一艘旧船的时间。", A.Retreat, block: 5, draw: 1);
-            P(cards, "bow_blackreef_hammer", "黑礁碎舰槌", "松铆重击", 9, "槌首先敲松封港外链，赫莲才有机会打断主链。此后每次贴近敌舰，持有人都会先找铆钉，把海堡工事的拆法重新用上一遍。", A.Sabotage, S.Naval, energy: 2, damage: 20, block: 6);
+            P(cards, "bow_gravecurrent_spur", "墓潮骨刺", "沉舰点名", 12, "有人说曾在雾后的港影旁看见骨刺上的失落舰名发亮，却没能留下可靠坐标。后来者照着拓本重排海图，在浓雾里拉开航距，留出辨认旧船的时间。", A.Retreat, block: 5, draw: 1);
+            P(cards, "bow_blackreef_hammer", "黑礁碎舰槌", "松铆重击", 9, "船员用槌首敲松封港外链，赫莲带炮组备好装药，雷萨校准主链并等求救艇通过后下令点火。后来持槌者贴近敌舰，仍会先找连接处的铆钉。", A.Sabotage, S.Naval, energy: 2, damage: 20, block: 6);
             P(cards, "bow_voidray_edge", "虚空鳐翼首", "巨掌侧切", 6, "海巨人曾用手掌托住试航的鳐翼首。掌舵者记下那次转弯时的倾角，从此敢沿着最陡的浪面切入敌舰侧方，而不丢失下一步航线。", A.Turn, block: 6, draw: 1);
             P(cards, "bow_leviathan_ram", "海兽王冲角", "碎阵救生路", 14, "船员把避战旗撕成六份系上救生艇，海兽王冲角则留在最前面。它向敌舰推进，船身承受的第一阵震动替身后的小艇争得一条路。", A.Approach, block: 13);
             P(cards, "bow_crownless_colossus", "无冠巨像首", "无冠破锁", 6, "巨人说古像的王冠是一副枷锁。铸匠于是磨锐冠下的断口，让船首在贴近王舰时专找连接处下手，再不替任何主人把旧锁补上。", A.Sabotage, S.Naval, energy: 2, damage: 25, block: 6);
             P(cards, "bow_worldsplitter", "裂海天楔", "晨曦白浪", 15, "天楔劈开的白浪通向晨曦海。水手记得浪线合拢前必须留下救生艇的宽度，因此每次抢入尾舷，都会顺手标出另一条离开的线。", A.Navigator, block: 7, draw: 1);
             P(cards, "bow_dragonwake_ram", "龙醒赤角", "三鼓赤角", 9, "三记鼓点唤亮龙角焦痕，撞击在船身前方被接住。装弹手借鼓点间的空隙重排炮位，等第三声落下，旧炮已多了一份装药。", A.Load, block: 10);
-            P(cards, "bow_last_horizon", "终界航标首", "迟归者航标", 15, "第七港口隐去后，航标仍朝着东方。船长依照它的指引绕开追兵，一边确认新海，一边给那名迟到水手留下可以追随的船影。", A.Circle, block: 6, draw: 2, energy: 2);
+            P(cards, "bow_last_horizon", "终界航标首", "迟归者航标", 15, "通往第七港口的旧航线失散后，航标仍朝着东方，却没人能凭它确认港口所在。后来者沿途测量新海、绕开追兵，也给迟到的水手留下可以追随的船影。", A.Circle, block: 6, draw: 2, energy: 2);
 
             P(cards, "sail_guild_silk", "商会金丝帆", "共享金丝码", 14, "金丝识别码不再向六港收费。掌舵者把它展在高处，失散护航船便顺着同一条航线靠拢，彼此交出尚未用完的战术。", A.Parallel, block: 2, draw: 1);
             P(cards, "sail_emerald_trade_wing", "翡翠商翼帆", "第十三港徽", 10, "新缝的无名港徽里藏着青柑汤配方。船员循着绿色帆缘重整队形，腾出的甲板足够把松脱的舱板补好，再准备下一次交锋。", A.Standard, block: 5, repair: 4);
             P(cards, "sail_sunthread_spinnaker", "日线追风帆", "借最后的日光", 15, "日线把黄昏最后的风收紧。归潮水手曾靠它赶在黎明前追上同伴，此后每次追敌，船长都会把这短暂暖光留给最需要推进的一刻。", A.Approach, block: 2, draw: 1);
             P(cards, "sail_redroute_broadsail", "红航路阔帆", "赤线炮位", 9, "赫莲在阔帆红线上依次点出六支舰队的位置。舵手转到侧舷，炮手便有空收回一根松索，把敌舰重新放回自己的瞄线上。", A.Circle, block: 5);
             P(cards, "sail_whisperveil", "低语雾帆", "掌纹下的静航", 6, "赛娜认出海兽头顶的掌纹后，船员再没有把沉默当作安全。帆布吸走绳索声，舵手向后撤出一段距离，给瞭望员留下一次确认。", A.Retreat, draw: 1, block: 2);
-            P(cards, "sail_moonweave", "月织静风帆", "石港月潮", 12, "第七港口没有风，月织帆却始终向出港处微动。掌舵者把那道牵引记在手上，纵使炮烟遮天，也能把己舰带到敌舰旁边。", A.Navigator, block: 6);
+            P(cards, "sail_moonweave", "月织静风帆", "石港月潮", 12, "一名舵手说，雾中的石泊位没有风，月织帆却仍被潮水轻轻牵动。他无法确认那是否就是第七港口，只记住了牵引的方向；炮烟遮天时，他仍凭这份经验稳住航向。", A.Navigator, block: 6);
             P(cards, "sail_eclipse_shroud", "蚀月影帆", "月影无声切入", 13, "弥赛拉藏在帆心的暗光只照亮最近的浪尖。黑帆贴着那道边界切向侧舷，敌方看清月环时，己舰已经准备好下一次动作。", A.Turn, block: 7, draw: 1);
             P(cards, "sail_starshear_rig", "裁星索帆", "五结抢风", 6, "五颗航星与石盘刻线一一重合。赛娜按星位拉紧索结，帆便把高空风送到船首，船员在推进间隙重新分好手中的航令。", A.Approach, draw: 2, energy: 2);
             P(cards, "sail_ghostcurrent_canvas", "幽流逆帆", "逆流拒葬", 1, "无名船的旧帆记得吞没主人的潮水。浪向再次相同时，它反向鼓起，催掌舵者离开旧航线；船上连最紧张的水手也来得及抓稳护栏。", A.Retreat, block: 9);
@@ -171,7 +171,7 @@ namespace ShatteredSail.Core.Gameplay
             P(cards, "cannon_stormnail_array", "风暴钉炮组", "钉住风眼", 15, "钉炮曾把翻覆的桅板稳在风眼边缘。此后炮手宁可少装一把药，也要让弹丸顶住侧风落向同一位置，为下一艘船争得安全的舷面。", A.Cannon, S.Naval, damage: 10, block: 2);
             P(cards, "cannon_echochamber", "回声膛炮", "看不见的射表", 5, "伊岚把海妖歌声送进测距筒，画出一张没有舰影的射表。炮手闭眼听完回声再装药，每一次校准都替真正开火留下更清楚的落点。", A.PrecisionLoad, draw: 1, block: 2);
             P(cards, "cannon_starfire_battery", "星火炮列", "巨背星河齐射", 6, "试炮纸上的星河与巨人旧伤重合。炮手没有拆散古代导轨，而是让所有引线同刻燃起，顺便把敌舰的下一次偏转记回星图。", A.Cannon, S.Naval, energy: 2, damage: 21, draw: 1, powder: 1);
-            P(cards, "cannon_cometfall_battery", "彗落重炮列", "旧港流星雨", 12, "石港守军认出了二十年前请求关门的白焰信号。炮长这次装入实弹，让弧线重返那片天空，直到最坚硬的舷板也露出裂口。", A.Cannon, S.Naval, energy: 2, damage: 25, powder: 1);
+            P(cards, "cannon_cometfall_battery", "彗落重炮列", "旧港流星雨", 12, "旧炮册里记着一串请求闭港的白焰信号，年份与舰名都已模糊。炮长对照弹道重新校炮，却不敢凭这份残页认定那就是归潮舰队失散的经过。", A.Cannon, S.Naval, energy: 2, damage: 25, powder: 1);
             P(cards, "cannon_blueflare_organ", "蓝焰风琴炮", "十二管驱歌", 5, "十二根炮管分别收好一段回音咒。伊岚依次封住蓝火，不许它在船上散开；只有射中敌舰的炮弹才会把驱歌余焰留在海面。", A.FireRounds, draw: 1, block: 3);
             P(cards, "cannon_voidbell_mortar", "虚钟曲射炮", "迟来的第十三响", 3, "虚钟开火时甲板听不见爆音。炮手要等远处钟鸣传回才记录落点，赫莲便从那声迟来的第十三响中知道，封存的武器又一次醒了。", A.Cannon, S.Naval, energy: 2, damage: 20, block: 6, powder: 1);
             P(cards, "cannon_sunforge_salvo", "日炉齐射炮", "三夜铜套", 9, "奥瑟守炉三夜铸齐铜套，炮手因此敢在余温未散时准备下一次装填。他们没有白费这份手艺，把刚才的弹痕也一同送上射表。", A.Load, block: 5, draw: 1);
@@ -187,7 +187,7 @@ namespace ShatteredSail.Core.Gameplay
             P(cards, "plating_redbanner_wall", "赤旗舷垒", "透光旧战旗", 8, "旧水手从透明护板里认出自己的舰名。接舷号响起，他把盾举向旗上熟悉的方向，几名原本散开的同伴也随之站回队列。", A.Standard, S.Boarding, block: 3, draw: 1);
             P(cards, "plating_merchants_oath", "商誓护甲", "背面的六港誓", 14, "三家商会把另外三港写在誓约背面。轻合金护板不再只是保货的工具，水手顶住第一轮震动后，把腾出的空隙让给传令员。", A.Standard, block: 5, draw: 1);
             P(cards, "plating_moonsilver_skin", "月银覆板", "记住归途的裂缝", 7, "守夜人的纸条压在月银下方，板缝仍在涨潮时轻响。船匠顺着声音收拢松脱的碎片，让会记路的那部分船身先完整起来。", A.Standard, repair: 11, block: 6);
-            P(cards, "plating_eclipse_mail", "蚀影链甲壳", "锁时黑银环", 13, "弥赛拉认出锁住舰队时间的黑银，便让船匠别再把它铆死。环片留出呼吸的余量，遇上链弹时收紧一瞬，又给甲板送回安静。", A.Standard, block: 17);
+            P(cards, "plating_eclipse_mail", "蚀影链甲壳", "锁时黑银环", 13, "弥赛拉猜测，黑银或许使某些失散船只停在同一段潮时；船匠却还找不到能验证的记录。他们只按试炮结果调整环片，留出活动余量，让链弹沿甲滑开。", A.Standard, block: 17);
             P(cards, "plating_starseal_panels", "星印封舱板", "循星补漏", 6, "伊芙琳把巨人旧伤刻成封板星图。补漏工不必再猜水声从哪里传来，沿最亮的刻痕敲下木楔，还能把下一道裂口告诉船长。", A.Standard, repair: 10, draw: 1);
             P(cards, "plating_ghostreef_carapace", "幽礁甲壳", "巨肩护舷", 6, "巨人轻触旧肩甲，船员才明白幽礁为何会移动。装上舰身后，他们按那次触碰的力道重排支撑，让每一块护板都能共同承力。", A.Polish, block: 6);
             P(cards, "plating_aurora_laminate", "极光叠层甲", "未来炮痕", 12, "旧港船身的光带指向尚未留下的炮痕。船匠不愿把预兆当命运，先在那一侧加好木楔，并把最薄的两处记在备用封板背面。", A.Standard, block: 11, repair: 4, draw: 1, energy: 2);
@@ -203,7 +203,7 @@ namespace ShatteredSail.Core.Gameplay
             P(cards, "instrument_deepwater_abacus", "深水算珠仪", "不动的蓝珠", 8, "无名伤员上船时算珠没有动，艾达由此发现时间的异常。补给官学会同时核对重量与人名，腾出的物资被及时送往受损舱壁。", A.Standard, repair: 5, draw: 1, block: 2);
             P(cards, "instrument_trade_wind_oracle", "信风谕盘", "第八阵新风", 15, "七片薄叶在晨曦海一同竖起，旧商路从未见过这样的风。舵手顺着最先颤动的一片转舷，把陌生季风变成近在眼前的机动。", A.Turn, draw: 1, block: 2);
             P(cards, "instrument_lunar_astrolabe", "月潮星盘", "伤痕与星潮", 6, "伊芙琳将石盘旧伤与真实天空重叠，两种周期终于指向同一条路。船长照着月轮移船，在敌舰尾侧找到一次安稳的并行。", A.Navigator, draw: 1, block: 5);
-            P(cards, "instrument_eclipse_orrery", "蚀月天仪", "月影先行", 13, "微型月轮先于天空投下阴影，弥赛拉便说出了舰队锁住时间的秘密。船长不与暗潮争辩，提前拉开距离，把影子留在炮击之外。", A.Retreat, block: 8, draw: 1);
+            P(cards, "instrument_eclipse_orrery", "蚀月天仪", "月影先行", 13, "微型月轮先于天空投下阴影，弥赛拉将它与旧船的潮时异常联系起来，另一些领航员并不赞同。船长把两种说法都记下，先借提前出现的月影避开暗流。", A.Retreat, block: 8, draw: 1);
             P(cards, "instrument_whalestar_receiver", "鲸歌星讯仪", "鲸歌与驱歌谱", 5, "伊岚将鲸歌与海妖回声并列录入，星针指向同一道门。炮手循着重合的音节精密装药，不再把听不懂的提醒当成噪声。", A.PrecisionLoad, block: 4, draw: 1);
             P(cards, "instrument_ghostmap_projector", "幽图投影仪", "黑玻璃港图", 12, "薄雾穿过黑玻璃，沉没海岸一点点重合。船长从完整港图里挑出两条备用计划，又用镜组指出己舰最需要避开的受击方向。", A.Standard, draw: 2, block: 6, energy: 2);
             P(cards, "instrument_aurora_calculator", "极光航算机", "巨人记忆中的北", 6, "碎晶落入机轮，北方不再只是磁针方向。航海士借巨人记忆的颜色修正舵角，船影掠向敌舰侧方，手中仍留着另一次选择。", A.Circle, draw: 1, block: 7);
@@ -323,7 +323,7 @@ namespace ShatteredSail.Core.Gameplay
                 case A.Polish: parts.Add("本场船体防御牌额外格挡 +{strategyAmount}，最多 +{strategyLimit}"); break;
                 case A.Load:
                 case A.PrecisionLoad: parts.Add("额外装药：下次炮击 +{strategyAmount}，最多 +{strategyLimit}；开炮另付弹药并清空增益"); break;
-                case A.FireRounds: parts.Add("获得 {strategyAmount} 发烈焰强化，最多 {strategyLimit} 发；炮击穿过格挡造成伤害后点燃敌舰，连续 {burnDuration} 回合灼烧 {burnDamage} 船体"); break;
+                case A.FireRounds: parts.Add("获得 {strategyAmount} 层附火"); break;
             }
             if (damage > 0) parts.Add((action == A.Cannon ? "4 格内炮击：" : action == A.Sabotage ? "150 米内近距破坏：" : string.Empty) +
                 "造成 {damage} 点" + (stages == S.Boarding ? "船员" : "船体") + "伤害");

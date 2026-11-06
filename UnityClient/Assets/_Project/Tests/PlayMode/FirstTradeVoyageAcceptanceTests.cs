@@ -162,7 +162,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.SelectedDestinationPort, Is.Not.EqualTo(session.CurrentPort));
             audit.Record("First trade uses unlocked " + CoreVoyageSession.Routes[RealTradeAudit.StarterTradeRoute].Name +
                 " at pirate level " + session.PirateLevel + "; no progression granted by the driver", null);
-            string tradeSeed = CoreVoyageSession.CreateChartSeed(RealTradeAudit.StarterTradeRoute, audit.originPort, audit.destinationPort);
+            string tradeSeed = RealTradeAudit.ChartSeed(audit.originPort, audit.destinationPort);
             yield return audit.SelectSeed(tradeSeed);
             // Inspect the purchase-only basket, then buy the missing route water
             // and food only when their joint quote fits money, hold and quota.
@@ -215,6 +215,7 @@ namespace ShatteredSail.Presentation.Tests
             audit.Shot("Trade_Actual_Settlement", "Settlement Card");
             bool arrived = session.Settlement.Outcome == VoyageOutcome.ArrivedAtPort && session.Settlement.Destination == audit.destinationPort;
             yield return audit.Click("Return To Port");
+            yield return ClickThroughAcceptanceArrivalComic(controller);
             audit.Shot("Trade_Returned_Port", "Phase Content");
             Assert.That(arrived && session.CurrentPort == audit.destinationPort, Is.True,
                 "The attempt did not reach " + audit.destinationPort + ". Its real outcome and costs are preserved; no success state was injected.\n" +
@@ -298,6 +299,173 @@ namespace ShatteredSail.Presentation.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest]
+        public IEnumerator FirstTradeBattleScoring_UsesScriptedBoardingDamageAndExcludesPiercing()
+        {
+            yield return LoadResponsiveBattleScene();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreVoyageSession session = CreateSecondBatchBattle(controller, true);
+            var audit = new RealTradeAudit { controller = controller };
+            int guardCard = ResponsiveCardIndex("card_crew_guard");
+            typeof(CoreBoardingEnemyState).GetProperty("Deck").SetValue(session.Battle.BoardingEnemy,
+                CoreBoardingBossCatalog.ForEncounter("boss_route_shattered_sail_reef_tide"));
+            session.Battle.PhaseTurn = 2;
+            Assert.That(session.EnemyBoardingAttackDamage, Is.GreaterThan(0));
+            Assert.That(session.EnemyBoardingPiercingDamage, Is.Zero);
+            Assert.That(session.GetEnemyIntent(), Does.Contain("耗潮伏击：船员伤害"));
+            Assert.That(audit.TradeBattleCardScore(guardCard), Is.GreaterThan(0d),
+                "A pure guard card must protect against the real multi-action boss script.");
+            session.Battle.PlayerBlock = session.EnemyBoardingAttackDamage;
+            Assert.That(audit.TradeBattleCardScore(guardCard), Is.Zero,
+                "Existing guard already covers the scripted attack.");
+
+            foreach (int piercingPercent in new[] { 50, 100 })
+            {
+                typeof(CoreBoardingEnemyState).GetProperty("Deck").SetValue(session.Battle.BoardingEnemy,
+                    new CoreBoardingEnemyDeck("curse", new CoreBoardingEnemyTurn("穿盾评分边界",
+                        new CoreBoardingEnemyCard("trade_piercing_probe", "穿盾攻击", attackPercent: 100,
+                            piercePercent: piercingPercent))));
+                session.Battle.PlayerBlock = 0;
+                int incoming = session.EnemyBoardingAttackDamage;
+                int piercing = session.EnemyBoardingPiercingDamage;
+                Assert.That(piercing, Is.GreaterThan(0), "This case must include real piercing damage.");
+                if (piercingPercent == 50)
+                    Assert.That(audit.TradeBattleCardScore(guardCard), Is.GreaterThan(0d),
+                        "The remaining ordinary damage can still be blocked.");
+                else Assert.That(piercing, Is.EqualTo(incoming));
+                session.Battle.PlayerBlock = incoming - piercing;
+                Assert.That(audit.TradeBattleCardScore(guardCard), Is.Zero,
+                    "Do not spend energy on extra guard against the unpreventable piercing share.");
+            }
+            foreach (string id in new[] { "card_boarding_basic_09", "card_boarding_basic_10" })
+            {
+                SetResponsiveHand(session, id, "card_crew_guard");
+                int index = session.Battle.Hand[0];
+                int cost = session.GetBattleCardEnergyCost(index);
+                int recovery = CoreBattleUpgradeBalance.EnergyRecovery(
+                    CoreBoardingCardCatalog.ForBoarding(session.GetBattleCard(index)));
+                session.Battle.Energy = cost;
+                Assert.That(recovery - cost, Is.GreaterThan(0));
+                Assert.That(audit.TradeBattleCardScore(index), Is.GreaterThan(0d),
+                    "A legal net-positive recovery card must not be ignored: " + id);
+                if (cost == 0) Assert.That(session.CanPlayCard(1), Is.False,
+                    "The guard card is unaffordable before the zero-cost energy recovery.");
+                RenderResponsiveBattle(controller);
+                yield return WaitResponsiveBattle(controller);
+                ClickAcceptanceButton("Battle Card 0");
+                yield return WaitResponsiveBattle(controller);
+                Assert.That(session.Battle.Energy, Is.EqualTo(recovery),
+                    "The real action pays its cost before recovering energy: " + id);
+                Assert.That(session.Battle.Hand.Count, Is.EqualTo(1));
+                Assert.That(session.CanPlayCard(0), Is.True,
+                    "The actual recovery must leave energy to play the remaining guard.");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator FirstTradeNavigation_KeepsAnEscapeHeadingAndEvadesRamThroughRealPointerMovement()
+        {
+            yield return LoadResponsiveBattleScene();
+            var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+            CoreVoyageSession session = CreateResponsiveBattle(controller, NavalBattleStage.Naval);
+            CoreBattleState battle = session.Battle;
+            SetNavalFieldTestPose(session, true, 0, 0);
+            SetNavalFieldTestPose(session, false, 5, 0);
+            typeof(CoreBattleState).GetProperty("PlayerHeadingDegrees").SetValue(battle, 0f);
+            SetResponsiveHand(session, "card_approach", "card_chain_shot");
+            RenderResponsiveBattle(controller);
+            yield return WaitResponsiveBattle(controller);
+            yield return AdvanceAcceptanceNavalRange(controller, name => AcceptanceNavigationTestClick(controller, name),
+                () => TradeArrivalHeading(session));
+            AssertTacticalPoint(battle.PlayerPositionMeters, new VoyagePoint(100f, 0f));
+            Assert.That(session.NavalCannonTargetInRange, Is.True);
+            Assert.That(battle.PlayerHeadingDegrees, Is.EqualTo(90f),
+                "Enter cannon range with a legal sideways heading instead of locking the next step into the enemy bow.");
+
+            // Establish the visible next-turn threat without changing the heading
+            // selected through the real arrival UI. Fund the escape with a card.
+            SetNavalFieldTestPose(session, false, 2, 0);
+            typeof(CoreBattleState).GetProperty("EnemyHeadingDegrees").SetValue(battle, 180f);
+            typeof(CoreBattleState).GetProperty("Profile").SetValue(battle,
+                new CoreBattleProfile(CoreBossKind.None, CoreBattleArchetype.Raider,
+                    battle.EnemyMaxHull, 8, 11, 0, 0, battle.EnemyOrdinaryCrew, 1f, 1f, 1d, 120f));
+            Assert.That(session.EnemyWillRam, Is.True);
+            RenderResponsiveBattle(controller);
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(battle.NavalActionPoints, Is.Zero, "Entering range already spent the turn's initial AP.");
+            ClickAcceptanceButton("Battle Card 0");
+            yield return WaitResponsiveBattle(controller);
+            Assert.That(battle.NavalActionPoints, Is.EqualTo(1), "The unupgraded approach card adds one AP after arrival.");
+            int hull = session.Hull, crew = battle.PlayerBoardingHealth, cards = battle.CardsPlayedThisTurn;
+            yield return EvadeTradeRam(controller, name => AcceptanceNavigationTestClick(controller, name));
+            AssertTacticalPoint(battle.PlayerPositionMeters, new VoyagePoint(100f, 100f));
+            Assert.That(battle.NavalActionPoints, Is.Zero, "The one-cell escape spends the card's one AP.");
+            Assert.That(battle.CardsPlayedThisTurn, Is.EqualTo(cards));
+            Assert.That(session.Hull, Is.EqualTo(hull));
+            Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(crew));
+            Assert.That(session.EnemyWillRam, Is.False);
+            Assert.That(CoreBattleIntentPresentation.Build(session).Any(intent => intent.Kind == CoreBattleIntentKind.Ram), Is.False);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static int TradeArrivalHeading(CoreVoyageSession session)
+        {
+            CoreBattleState battle = session.Battle;
+            var headings = session.GetNavalArrivalHeadings();
+            if (!session.NavalCannonTargetInRange)
+                return Enumerable.Range(0, headings.Count).OrderBy(index => CoreVoyageSession.NavalGridDistance(
+                    AcceptanceCourseForward(battle.PlayerPositionMeters, headings[index]), battle.EnemyPositionMeters)).First();
+            // Once in range, the smallest dot product selects the available
+            // heading most perpendicular to the enemy bearing. The next legal
+            // forward step can then leave a telegraphed bow-to-ship contact.
+            return Enumerable.Range(0, headings.Count).OrderBy(index => {
+                VoyagePoint forward = AcceptanceCourseForward(battle.PlayerPositionMeters, headings[index]);
+                return Math.Abs((forward.X - battle.PlayerPositionMeters.X) * (battle.EnemyPositionMeters.X - battle.PlayerPositionMeters.X) +
+                    (forward.Y - battle.PlayerPositionMeters.Y) * (battle.EnemyPositionMeters.Y - battle.PlayerPositionMeters.Y));
+            }).ThenByDescending(index => CoreVoyageSession.NavalGridDistance(
+                AcceptanceCourseForward(battle.PlayerPositionMeters, headings[index]), battle.EnemyPositionMeters)).First();
+        }
+
+        private static bool TradeCanEvadeVisibleRam(CoreVoyageSession session) => session.EnemyWillRam &&
+            session.Battle.NavalActionPoints > 0 && !session.Battle.NavalAwaitingHeadingSelection &&
+            session.GetNavalLegalNextSteps().Any(point => CoreVoyageSession.NavalGridDistance(point, session.Battle.EnemyPositionMeters) > 1);
+
+        private static IEnumerator EvadeTradeRam(CoreGameplayDemoController controller, Func<string, IEnumerator> click)
+        {
+            CoreVoyageSession session = controller.Session;
+            Assert.That(TradeCanEvadeVisibleRam(session), Is.True);
+            yield return WaitResponsiveBattle(controller);
+            CoreBattleState battle = session.Battle;
+            Assert.That(session.NavalMovementPlannedSteps, Is.Zero);
+            VoyagePoint start = battle.PlayerPositionMeters;
+            int points = battle.NavalActionPoints, energy = battle.Energy;
+            VoyagePoint target = session.GetNavalLegalNextSteps()
+                .Where(point => CoreVoyageSession.NavalGridDistance(point, battle.EnemyPositionMeters) > 1)
+                .OrderBy(point => CoreVoyageSession.NavalGridDistance(point, battle.EnemyPositionMeters)).First();
+            var input = Object.FindFirstObjectByType<NavalTacticalMovementInput>();
+            Assert.That(input, Is.Not.Null);
+            var drag = new TacticalDragPointer(input);
+            drag.DragTo(target);
+            yield return null;
+            Assert.That(session.NavalMovementPlannedSteps, Is.EqualTo(1));
+            AssertTacticalPoint(battle.PlayerPositionMeters, start);
+            Assert.That(battle.NavalActionPoints, Is.EqualTo(points), "Planning must not move the ship or spend AP.");
+            drag.Release();
+            yield return null;
+            yield return click("Commit Naval Movement");
+            Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Battle));
+            Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Naval), "An evasive route must not enter a ram or boarding.");
+            AssertTacticalPoint(battle.PlayerPositionMeters, target);
+            Assert.That(battle.NavalArrivalActionPoints, Is.EqualTo(points - 1), "The actual route spends exactly one AP.");
+            Assert.That(battle.NavalAwaitingHeadingSelection, Is.True);
+            string heading = "Naval Arrival Heading " + TradeArrivalHeading(session);
+            yield return WaitTacticalHeadingPointerReady(heading);
+            yield return click(heading);
+            Assert.That(battle.Energy, Is.EqualTo(energy), "Evasion spends AP, not card energy.");
+            Assert.That(session.EnemyWillRam, Is.False, "The public intent must update after the committed evasive move.");
+        }
+
         [Serializable]
         private sealed class RealTradeAudit
         {
@@ -321,6 +489,20 @@ namespace ShatteredSail.Presentation.Tests
             private CoreVoyageSession Session => controller.Session;
             public const int StarterTradeRoute = 0;
             public const int CannonballTarget = 16;
+
+            public static string ChartSeed(string origin, string destination)
+            {
+                string[] args = Environment.GetCommandLineArgs();
+                int flag = Array.IndexOf(args, "-tradeAcceptanceSeed");
+                if (flag < 0) return CoreVoyageSession.CreateChartSeed(StarterTradeRoute, origin, destination);
+                Assert.That(flag + 1, Is.LessThan(args.Length), "-tradeAcceptanceSeed requires a complete chart seed.");
+                Assert.That(CoreVoyageSession.TryParseChartSeed(args[flag + 1], out CoreSeaChartDefinition chart), Is.True);
+                Assert.That(chart.TutorialWaters, Is.False);
+                Assert.That(chart.RouteIndex, Is.EqualTo(StarterTradeRoute));
+                Assert.That(chart.ContainsPort(origin) && chart.OtherPort(origin) == destination, Is.True,
+                    "Replay keeps the actual tutorial port and first-trade destination.");
+                return chart.Seed;
+            }
 
             public static decimal RequiredCannonUpgradeCost(CoreVoyageSession session)
             {
@@ -351,6 +533,10 @@ namespace ShatteredSail.Presentation.Tests
                     cargoVolume = s.Cargo.UsedVolume, capacity = s.CargoCapacityValue, hours = s.TotalHours,
                     distance = s.TotalDistanceNm, x = s.Position.X, y = s.Position.Y, bossDefeated = s.BossDefeated,
                     battleStage = s.Battle?.Stage.ToString() ?? "", battleTurn = s.Battle?.Turn ?? 0,
+                    battleEnergy = s.Battle?.Energy ?? 0, navalActionPoints = s.Battle?.NavalActionPoints ?? 0,
+                    playerBlock = s.Battle?.PlayerBlock ?? 0, enemyWillRam = s.EnemyWillRam,
+                    battlePlayerX = s.Battle?.PlayerPositionMeters.X ?? 0f, battlePlayerY = s.Battle?.PlayerPositionMeters.Y ?? 0f,
+                    playerHeading = s.Battle?.PlayerHeadingDegrees ?? 0f,
                     enemyHull = s.Battle?.EnemyHull ?? 0, enemyCrew = s.Battle?.EnemyBoardingHealth ?? 0,
                     playerCrewHealth = s.Battle?.PlayerBoardingHealth ?? 0, battleDistance = s.Battle?.DistanceMeters ?? 0,
                     gameLog = string.Join("\n", s.LogEntries.Skip(Math.Max(0, s.LogEntries.Count - 8))),
@@ -490,7 +676,8 @@ namespace ShatteredSail.Presentation.Tests
                 // The small starter crew has weak boarding effects. Spend only
                 // earned money, then configure a legal ranged/repair deck via UI.
                 yield return Click("Port Hotspot CardWorkshop");
-                yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
+                yield return Click("Workshop Entrance Collection");
+                yield return Click("Workshop Preview Stage Naval"); yield return Click("Workshop Page Upgrade");
                 // The numbered catalog can place the cannon beyond the first
                 // page; reach it through the same visible pager as a player.
                 int available = Session.GetAvailableBattleCards(NavalBattleStage.Naval).Count;
@@ -512,10 +699,15 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(Session.ProfileGold, Is.EqualTo(gold - price));
                     cardPreparationCost += price;
                 }
-                yield return Click("Back From Card Upgrades"); yield return Click("Edit Stage Deck Naval");
-                yield return ConfigureDeck(NavalBattleStage.Preparation, new[] { 8, 8, 9, 9, 7, 7, 1, 1, 11, 11 });
-                yield return ConfigureDeck(NavalBattleStage.Naval, new[] { 0, 0, 11, 11, 5, 5, 6, 6, 9, 9 });
+                yield return Click("Workshop Page Collection"); yield return Click("Workshop Page DeckBuilder"); yield return Click("Battle Deck Stage Tab Naval");
+                // The retired parallel-course slot now migrates to the owned
+                // approach card. Build the same legal two-copy maneuver pair.
+                int approach = ResponsiveCardIndex("card_approach");
+                yield return ConfigureDeck(NavalBattleStage.Preparation, new[] { 8, 8, 9, 9, 7, 7, 1, 1, approach, approach });
+                yield return ConfigureDeck(NavalBattleStage.Naval, new[] { 0, 0, approach, approach, 5, 5, 6, 6, 9, 9 });
                 yield return Click("Back To Card Workshop Chests");
+                yield return Click("Return To Port Hub");
+                Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
                 yield return Click("Return To Port Hub");
                 Assert.That(Session.ProfileGold, Is.GreaterThanOrEqualTo(60m), "Keep the ordinary departure cash reserve after preparation.");
                 Record("Paid cannon preparation complete; ammunition and upgrades accounted separately", null);
@@ -645,8 +837,10 @@ namespace ShatteredSail.Presentation.Tests
                     CoreBattleState battle = Session.Battle;
                     string turn = battle.Stage + ":" + battle.Turn;
                     if (turn != lastTurn) { lastTurn = turn; playedInTurn = 0; Shot("Battle_" + turn.Replace(':', '_'), "Phase Content"); }
+                    if (TradeCanEvadeVisibleRam(Session))
+                    { yield return EvadeTradeRam(controller, Click); continue; }
                     if (AcceptanceNavalMovementNeeded(Session))
-                    { yield return AdvanceAcceptanceNavalRange(controller, Click); continue; }
+                    { yield return AdvanceAcceptanceNavalRange(controller, Click, () => TradeArrivalHeading(Session)); continue; }
                     int selected = -1; double best = 0;
                     if (playedInTurn++ < 24)
                         for (int hand = 0; hand < battle.Hand.Count; hand++)
@@ -672,17 +866,34 @@ namespace ShatteredSail.Presentation.Tests
                 int health = boarding ? battle.PlayerBoardingHealth : Session.Hull;
                 int maxHealth = boarding ? battle.PlayerMaxBoardingHealth : Session.MaxHull;
                 int enemyHealth = boarding ? battle.EnemyBoardingHealth : battle.EnemyHull;
-                Match intent = Regex.Match(Session.GetEnemyIntent() ?? "", "(?:炮击：伤害 |白刃突击：船员伤害 )(\\d+)");
-                int incoming = intent.Success ? int.Parse(intent.Groups[1].Value) : 0;
-                int defenseNeed = Math.Max(0, (preparing ? 14 : incoming) - battle.PlayerBlock);
+                int incoming, blockable;
+                if (boarding)
+                {
+                    // Scripted boarding intents have one named line per action.
+                    // Use the same read-only preview as the UI, including every
+                    // attack, and never value guard against its piercing share.
+                    incoming = Session.EnemyBoardingAttackDamage;
+                    blockable = Math.Max(0, incoming - Session.EnemyBoardingPiercingDamage);
+                }
+                else
+                {
+                    Match intent = Regex.Match(Session.GetEnemyIntent() ?? "", "炮击：伤害 (\\d+)");
+                    incoming = intent.Success ? int.Parse(intent.Groups[1].Value) : 0;
+                    blockable = incoming;
+                }
+                int defenseNeed = Math.Max(0, (preparing ? 14 : blockable) - battle.PlayerBlock);
                 int repair = Math.Min(maxHealth - health, effects.Repair);
                 int block = Math.Min(defenseNeed, effects.Block + (effects.Block > 0 && !boarding ? battle.PlayerDeckBuff : 0));
                 double score = repair * (health < maxHealth * .55 ? 2.5 : .65) + block * (health <= incoming * 2 ? 2 : .9);
-                double divisor = Session.GetBattleCardEnergyCost(cardIndex) + .65;
+                int energyCost = Session.GetBattleCardEnergyCost(cardIndex);
+                double divisor = energyCost + .65;
                 int damage = Session.GetBattleCardDamage(card, battle.Stage);
                 if (damage >= enemyHealth + battle.EnemyBlock) return 10000 / divisor;
                 if (!preparing) score += damage * 1.7;
                 if (card.Draw > 0 && battle.Hand.Count < 7) score += card.Draw * (battle.Hand.Count < 4 ? 6 : 2);
+                CoreBattleCard boardingCard = boarding ? CoreBoardingCardCatalog.ForBoarding(card) : null;
+                if (boardingCard?.BoardingSpec?.Key == "basic_09" || boardingCard?.BoardingSpec?.Key == "basic_10")
+                    score += Math.Max(0, CoreBattleUpgradeBalance.EnergyRecovery(boardingCard) - energyCost) * 30d;
                 score += AcceptanceNavalActionPointScore(Session, card);
                 switch (card.Action)
                 {
@@ -714,10 +925,10 @@ namespace ShatteredSail.Presentation.Tests
             // Display-only JSON field; gameplay balances retain decimal precision.
             public double profileGold;
             public int voyageGold, water, food, wood, beer, medicine, powder, cannonballs, iron, cloth,
-                hull, maxHull, ship, route, crew, battleTurn, enemyHull, enemyCrew, playerCrewHealth;
-            public float cargoVolume, capacity, distance, x, y, battleDistance;
+                hull, maxHull, ship, route, crew, battleTurn, enemyHull, enemyCrew, playerCrewHealth, battleEnergy, navalActionPoints, playerBlock;
+            public float cargoVolume, capacity, distance, x, y, battleDistance, battlePlayerX, battlePlayerY, playerHeading;
             public double hours;
-            public bool bossDefeated;
+            public bool bossDefeated, enemyWillRam;
         }
     }
 }

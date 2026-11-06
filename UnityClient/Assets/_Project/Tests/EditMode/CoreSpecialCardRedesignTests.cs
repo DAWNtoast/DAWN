@@ -65,7 +65,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Hand.Count, Is.EqualTo(1), "A field mastery card still draws when no matching field exists.");
             Assert.That(new[] { session.Battle.EnemyBurnTurns, session.Battle.Schools.Mana,
                 session.Battle.Schools.CurseMarks, session.Battle.Schools.TidePower, session.Battle.Schools.ThunderChain },
-                Is.EqualTo(new[] { 0, 0, 0, 0, 0 }), "The retired first-card rewards are not installed.");
+                Is.EqualTo(new[] { 0, 3, 0, 0, 0 }), "The normal three starting mana remain; no retired first-card rewards are installed.");
             Assert.That(session.Battle.NavalFields.Cells, Is.Empty, "Field mastery expands existing fields instead of creating one from nothing.");
         }
 
@@ -87,7 +87,7 @@ namespace ShatteredSail.Core.Tests
                 "Legacy movement action names cannot count as distinct when their current effect is the same +1 action point.");
         }
 
-        [TestCase("card_school_blood_b03", 3)]
+        [TestCase("card_school_blood_b03", 5)]
         [TestCase("card_school_blood_b05", 5)]
         [TestCase("card_school_blood_n01", 4)]
         [TestCase("card_school_blood_n02", 3)]
@@ -103,9 +103,19 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Hull, Is.EqualTo(1));
             Assert.That(session.Battle.SpecialCards.HasPlayed("blood"), Is.True);
             Assert.That(CoreSpecialCardRules.HealthCost(card, session.Battle), Is.EqualTo(originalCost));
-            Put(session, "card_school_blood_b05");
-            Assert.That(session.PlayCard(0), Is.False, "The second Blood card must pay life and cannot be played at one hull.");
+            CoreBattleCard guard = session.GetBattleCard(Index("card_school_blood_b05"));
+            int block = session.Battle.PlayerBlock;
+            Play(session, guard.Id);
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(block + guard.Block),
+                "After the free-card budget is spent, an unaffordable optional life payment grants only base guard.");
+            Assert.That(session.Battle.Hand, Is.Empty);
+            Assert.That(session.Hull, Is.EqualTo(1));
+            Put(session, "card_school_blood_n02");
+            int energy = session.Battle.Energy;
+            Assert.That(session.PlayNavalCard(0, null), Is.False,
+                "A mandatory life payment still fails at one hull after the legacy privilege was consumed.");
             Assert.That(session.Battle.Hand.Count, Is.EqualTo(1));
+            Assert.That(session.Battle.Energy, Is.EqualTo(energy));
             Assert.That(session.Hull, Is.EqualTo(1));
         }
 
@@ -225,9 +235,10 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void Legacy_ArcaneDoctrineRefundsOnePermanentManaOnlyAfterSuccessfulPayment()
+        public void Legacy_ArcaneDoctrineRefundsOnceAfterSuccessfulPlayAndMayExceedManaCapacity()
         {
             CoreVoyageSession session = Start(); InstallLegacyDoctrine(session, "arcane");
+            SetSchool(session, "Mana", 0);
             Put(session, "card_school_arcane_b03");
             Assert.That(session.PlayCard(0), Is.False);
             Assert.That(session.Battle.SpecialCards.HasPlayed("arcane"), Is.False);
@@ -236,9 +247,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Schools.Mana, Is.EqualTo(2));
             Play(session, "card_school_arcane_b03");
             Assert.That(session.Battle.Schools.Mana, Is.EqualTo(1));
-            CoreVoyageSession capped = Start(); InstallLegacyDoctrine(capped, "arcane"); SetSchool(capped, "Mana", 3);
-            Play(capped, "card_school_arcane_n01", FieldOptions());
-            Assert.That(capped.Battle.Schools.Mana, Is.EqualTo(3), "The refund respects the existing mana capacity.");
+            CoreVoyageSession overflow = Start(); InstallLegacyDoctrine(overflow, "arcane"); SetSchool(overflow, "Mana", 3);
+            Play(overflow, "card_school_arcane_n01", FieldOptions());
+            Assert.That(overflow.Battle.Schools.Mana, Is.EqualTo(4), "Mana gained during a turn may exceed the normal capacity.");
+            Play(overflow, "card_school_arcane_n01", FieldOptions());
+            Assert.That(overflow.Battle.Schools.Mana, Is.EqualTo(4), "A second successful card does not repeat the legacy refund.");
         }
 
         [Test]
@@ -261,7 +274,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void Legacy_TideDoctrineGrantsThreeTideOnlyOnceAndClampsToTwenty()
+        public void Legacy_TideDoctrineGrantsThreeTideOnlyOnceWithoutCapping()
         {
             CoreVoyageSession session = Start(); InstallLegacyDoctrine(session, "tide");
             Play(session, "card_school_tide_b04");
@@ -270,7 +283,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Schools.TidePower, Is.EqualTo(3));
             CoreVoyageSession capped = Start(); InstallLegacyDoctrine(capped, "tide"); SetSchool(capped, "TidePower", 19);
             Play(capped, "card_school_tide_b04");
-            Assert.That(capped.Battle.Schools.TidePower, Is.EqualTo(20));
+            Assert.That(capped.Battle.Schools.TidePower, Is.EqualTo(22));
         }
 
         [Test]
@@ -284,9 +297,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Schools.ThunderChain, Is.EqualTo(2));
             Play(session, "card_school_thunder_n02");
             Assert.That(session.Battle.Schools.ThunderChain, Is.EqualTo(3));
-            CoreVoyageSession capped = Start(); InstallLegacyDoctrine(capped, "thunder"); SetSchool(capped, "ThunderChain", 5);
-            Play(capped, "card_school_thunder_b03");
-            Assert.That(capped.Battle.Schools.ThunderChain, Is.EqualTo(6));
+            CoreVoyageSession uncapped = Start(); InstallLegacyDoctrine(uncapped, "thunder"); SetSchool(uncapped, "ThunderChain", 5);
+            Play(uncapped, "card_school_thunder_b03");
+            Assert.That(uncapped.Battle.Schools.ThunderChain, Is.EqualTo(7), "The attack and one-time reward each add one; there is no six-chain cap.");
+            Play(uncapped, "card_school_thunder_b03");
+            Assert.That(uncapped.Battle.Schools.ThunderChain, Is.EqualTo(8), "Subsequent attacks retain the threshold resource and receive only their normal one chain.");
         }
 
         [Test]
@@ -329,6 +344,7 @@ namespace ShatteredSail.Core.Tests
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             session.ConfigureSpecialCardSources(CoreSpecialCardCatalog.All.Where(c => c.SourceKind == CoreSpecialCardSourceKind.Crew).Select(c => c.SourceId).ToArray(),
                 CoreSpecialCardCatalog.All.Where(c => c.SourceKind == CoreSpecialCardSourceKind.Component).Select(c => c.SourceId).ToArray());
             session.SetSeed("SPECIAL-CARD-REDESIGN");

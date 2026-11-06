@@ -110,6 +110,16 @@ namespace ShatteredSail.Presentation
 
         private static Color Gray(float brightness) => new Color(brightness, brightness, brightness, 1f);
 
+        /// <summary>Let the engine collect retired boards while live Images keep their authored faces.</summary>
+        public static void ReleaseGameplayReferences()
+        {
+            for (int index = 0; index < Faces.Length; index++)
+            {
+                if (Faces[index] != null) Faces[index].hideFlags &= ~HideFlags.DontUnloadUnusedAsset;
+                Faces[index] = null;
+            }
+        }
+
         private static void Release()
         {
             for (int index = 0; index < Faces.Length; index++)

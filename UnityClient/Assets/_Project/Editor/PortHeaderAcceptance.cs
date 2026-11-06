@@ -279,7 +279,8 @@ namespace ShatteredSail.Editor
                 throw new InvalidOperationException("The regional header/frame is inactive or incorrectly parented.");
             if (frame.sprite == null || frame.sprite.texture == null || frame.type != Image.Type.Sliced || frame.raycastTarget)
                 throw new InvalidOperationException("The regional frame must be a textured nine-sliced Image with raycasts disabled.");
-            if (Require<RectTransform>(host, "Header").gameObject.activeSelf)
+            Transform legacyHeader = Find(host, "Header");
+            if (legacyHeader != null && legacyHeader.gameObject.activeSelf)
                 throw new InvalidOperationException("The generic blue HUD still duplicates the regional port header.");
             if (Find(host, "Facility Profile Status") != null)
                 throw new InvalidOperationException("The obsolete combined status readout is still present.");
@@ -299,9 +300,11 @@ namespace ShatteredSail.Editor
             {
                 RectTransform control = Require<RectTransform>(host, name);
                 if (control.parent != header) throw new InvalidOperationException(name + " does not belong to the regional port header.");
-                float x = control.anchoredPosition.x;
-                float left = x - control.rect.width * control.pivot.x;
-                float right = x + control.rect.width * (1f - control.pivot.x);
+                var corners = new Vector3[4];
+                control.GetWorldCorners(corners);
+                float left = corners.Min(point => header.InverseTransformPoint(point).x);
+                float right = corners.Max(point => header.InverseTransformPoint(point).x);
+                float x = (left + right) * .5f;
                 if (left <= previousRight) throw new InvalidOperationException(name + " overlaps or precedes the previous header control.");
                 previousRight = right;
                 record.orderedObjects.Add(name);

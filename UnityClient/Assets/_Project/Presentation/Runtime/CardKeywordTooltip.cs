@@ -126,7 +126,13 @@ namespace ShatteredSail.Presentation
         public void RefreshPosition()
         {
             if (rect == null || card == null) return;
-            if (viewport == null) viewport = FixedGameViewport.Bounds(card.GetComponentInParent<Canvas>());
+            Canvas owner = card.GetComponentInParent<Canvas>();
+            viewport = FixedGameViewport.Bounds(owner);
+            // Full-window facilities place their cards outside the fixed 16:9
+            // surface. Use the same visible canvas as those cards, including
+            // when an existing hierarchy is moved back to a normal facility.
+            if (owner != null && viewport != null && !card.IsChildOf(viewport))
+                viewport = owner.rootCanvas.transform as RectTransform;
             if (viewport == null) return;
             float fit = Mathf.Min(1f, (viewport.rect.height - 32f) / Mathf.Max(1f, contentHeight));
             // Cancel card enlargement/rotation so glossary text stays upright and readable.

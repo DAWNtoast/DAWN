@@ -10,7 +10,7 @@ namespace ShatteredSail.Core.Tests
     public sealed class CoreNavalSixSchoolIntegrationTests
     {
         [Test]
-        public void LegacyArcaneMissile_CombinesBloodFirstDamageWithRefractionWithoutDeletingPiercedGuard()
+        public void ArcaneMissileGetsNoRetiredBloodBonusOrRefractionEntryBenefit()
         {
             CoreVoyageSession session = NewBattle();
             SetPose(session, false, 300, 0, 180);
@@ -22,16 +22,18 @@ namespace ShatteredSail.Core.Tests
             session.Battle.EnemyBlock = 15;
             int hp = session.Battle.EnemyHull;
             CoreBattleCard missile = session.GetBattleCard(CardIndex("card_school_arcane_b03"));
-            Assert.That(session.GetBattleCardDamage(missile, NavalBattleStage.Naval), Is.EqualTo(9));
-            Assert.That(session.Battle.NavalFields.Player.BloodAttackBonus, Is.EqualTo(4), "Quotes cannot spend the next-attack buff.");
+            Assert.That(session.GetNavalFieldAt(3, 0).Kind, Is.EqualTo(CoreNavalFieldKind.Arcane));
+            Assert.That(session.GetBattleCardDamage(missile, NavalBattleStage.Naval), Is.EqualTo(13),
+                "The target's refraction vulnerability scales ten damage by 25%; entering either field still grants no attack reserve.");
+            Assert.That(session.Battle.NavalFields.Player.BloodAttackBonus, Is.Zero);
             Play(session, missile.Id);
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 4));
-            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(10), "Only the five non-piercing points consume guard.");
-            Assert.That(session.Battle.Schools.ArcaneNextAttackDamage, Is.EqualTo(5));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp));
+            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(2), "All thirteen damage remains blockable; refraction entry grants no piercing.");
+            Assert.That(session.Battle.Schools.ArcaneNextAttackDamage, Is.Zero);
             Assert.That(session.Battle.NavalFields.Player.ArcanePiercing, Is.Zero);
             Assert.That(session.Battle.NavalFields.Player.BloodAttackBonus, Is.Zero);
-            Assert.That(session.Battle.Schools.Mana, Is.EqualTo(1));
-            Assert.That(session.Battle.Schools.TemporaryMana, Is.Zero, "The field's temporary mana pays before permanent mana.");
+            Assert.That(session.Battle.Schools.Mana, Is.Zero, "Entering refraction grants no mana, so the card spends the existing point.");
+            Assert.That(session.Battle.Schools.TemporaryMana, Is.Zero);
         }
 
         [Test]
@@ -43,15 +45,15 @@ namespace ShatteredSail.Core.Tests
             session.Battle.NavalFields.Player.ArcanePiercing = 4;
             int hp = session.Battle.EnemyHull;
             Play(session, "card_school_arcane_b05");
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(5));
-            Assert.That(session.Battle.Schools.ArcaneNextBlockBonus, Is.EqualTo(5));
+            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(12));
+            Assert.That(session.Battle.Schools.ArcaneNextBlockBonus, Is.Zero);
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp));
             Assert.That(session.Battle.NavalFields.Player.BloodAttackBonus, Is.EqualTo(4));
-            Assert.That(session.Battle.NavalFields.Player.ArcanePiercing, Is.EqualTo(4));
+            Assert.That(session.Battle.NavalFields.Player.ArcanePiercing, Is.Zero, "Retired refraction charges cannot affect new cards.");
         }
 
         [Test]
-        public void LegacyFireAttack_OilWaitsForHullDamageAndTriggersExactlyOnce()
+        public void FireAttackConsumesOilForNewBurnEvenWhenFullyBlocked()
         {
             CoreVoyageSession session = NewBattle();
             session.Battle.NavalExpansion.OilPlayerEndsRemaining = 2;
@@ -59,32 +61,33 @@ namespace ShatteredSail.Core.Tests
             int hp = session.Battle.EnemyHull;
             Play(session, "card_school_fire_b03");
             Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp));
-            Assert.That(session.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.EqualTo(2));
-            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(2), "The authored fire layers do not require hull damage.");
+            Assert.That(session.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.Zero);
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(12), "Oil doubles the new burn regardless of hull damage.");
             session.Battle.EnemyBlock = 0;
             int quote = session.GetBattleCardDamage(session.GetBattleCard(CardIndex("card_school_fire_b03")), NavalBattleStage.Naval);
             Play(session, "card_school_fire_b03");
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - quote - 4));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - quote));
             Assert.That(session.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.Zero);
-            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(6));
-            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(6));
+            Assert.That(session.Battle.EnemyBurnDamage, Is.EqualTo(18));
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(18));
             Play(session, "card_school_fire_b03");
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - quote * 2 - 4));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - quote * 2));
         }
 
         [Test]
-        public void PassiveFireAndNaturalBurn_DoNotConsumeOilOrCreateActiveHitRewards()
+        public void ExistingBurnSettlesBeforeFieldAddsOilDoubledBurnWithoutActiveHitRewards()
         {
             CoreVoyageSession session = NewBattle();
             session.Battle.NavalExpansion.OilPlayerEndsRemaining = 2;
             session.Battle.EnemyBurnDamage = 2;
             session.Battle.EnemyBurnTurns = 2;
-            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 2, 0, false, 0, 0), Is.True);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 1, -1, false, 0, 0), Is.True);
             int hp = session.Battle.EnemyHull;
             session.EndBattleTurn();
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 2), "The target's two ordinary guard absorb the passive fire; two burn layers tick after its action.");
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp), "The two ordinary guard absorb existing burn before the field adds any new stacks.");
             Assert.That(session.Battle.EnemyBlock, Is.Zero);
-            Assert.That(session.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.EqualTo(1));
+            Assert.That(session.Battle.NavalExpansion.OilPlayerEndsRemaining, Is.Zero);
+            Assert.That(session.Battle.EnemyBurnTurns, Is.EqualTo(11), "Existing burn decays to one, then the five-round field adds ten stacks through oil.");
             Assert.That(session.Battle.Schools.ThunderChain, Is.Zero);
         }
 
@@ -111,7 +114,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void DomainAndLegacyDetonation_AddAtEnemyEndWithoutImmediateDamageOrGuardConsumption()
+        public void DomainAddsMarksAtEndWhileDetonationDealsImmediateOrdinaryDamage()
         {
             CoreVoyageSession session = NewBattle();
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Curse, true, 2, 0, false, 0, 0), Is.True);
@@ -119,24 +122,25 @@ namespace ShatteredSail.Core.Tests
             Play(session, "card_school_curse_b03");
             Play(session, "card_school_curse_b03");
             Play(session, "card_school_curse_b05");
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp));
-            Assert.That(session.Battle.Schools.CurseMarks, Is.EqualTo(2));
-            Assert.That(session.Battle.Schools.CurseTickBonus, Is.EqualTo(2));
-            session.EndBattleTurn();
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 6), "Two layers plus separate flat two-point detonation and domain bonuses.");
-            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(2), "The existing curse tick bypasses guard, including the domain's addition.");
-            Assert.That(session.Battle.Schools.CurseNextTickBonus, Is.Zero);
-            Assert.That(session.Battle.Schools.CurseTickBonus, Is.EqualTo(2));
-            Assert.That(session.Battle.Schools.CurseMarks, Is.EqualTo(1));
-            Assert.That(session.Battle.Schools.CurseTurns, Is.EqualTo(1));
-            session.EndBattleTurn();
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 11));
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 5), "The defender's forbidden domain reduces the six-point active detonation by 25%, rounded up.");
+            Assert.That(session.Battle.Schools.CurseMarks, Is.EqualTo(6));
             Assert.That(session.Battle.Schools.CurseTickBonus, Is.Zero);
-            Assert.That(session.Battle.NavalFields.Cells, Is.Empty);
+            session.EndBattleTurn();
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 5), "Marks no longer cause turn-end damage.");
+            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(2), "The field grants marks without consuming guard.");
+            Assert.That(session.Battle.Schools.CurseNextTickBonus, Is.Zero);
+            Assert.That(session.Battle.Schools.CurseTickBonus, Is.Zero);
+            Assert.That(session.Battle.Schools.CurseMarks, Is.EqualTo(11));
+            Assert.That(session.Battle.Schools.CurseTurns, Is.EqualTo(11));
+            session.EndBattleTurn();
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(hp - 5));
+            Assert.That(session.Battle.Schools.CurseTickBonus, Is.Zero);
+            Assert.That(session.Battle.Schools.CurseMarks, Is.EqualTo(15));
+            Assert.That(session.GetNavalFieldRemainingTurns(session.GetNavalFieldAt(2, 0)), Is.EqualTo(3));
         }
 
         [Test]
-        public void EnemyBloodField_PreservesSixNewGuardAndStrengthensItsActualCannonOnce()
+        public void EnemyBloodPool_DoesNotGrantGuardOrStrengthenCannonAtTurnStart()
         {
             CoreVoyageSession baseline = NewBattle();
             int baselineHull = baseline.Hull;
@@ -146,23 +150,23 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Blood, false, 2, 0, false, 0, 0), Is.True);
             int hp = session.Hull;
             session.EndBattleTurn();
-            Assert.That(session.Hull, Is.EqualTo(hp - baselineDamage - 4));
-            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(8), "Six field guard survive the enemy's normal two-guard action.");
+            Assert.That(session.Hull, Is.EqualTo(hp - baselineDamage));
+            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(2));
             Assert.That(session.Battle.NavalFields.Enemy.BloodAttackBonus, Is.Zero);
             hp = session.Hull;
             session.EndBattleTurn();
-            Assert.That(session.Hull, Is.EqualTo(hp - baselineDamage), "The owner's second subsequent turn removes the field before granting new bonuses.");
+            Assert.That(session.Hull, Is.EqualTo(hp - baselineDamage));
             Assert.That(session.Battle.EnemyBlock, Is.EqualTo(2));
         }
 
         [Test]
-        public void RuneClamp_IsConsumedByEnemyStartBloodGuardBeforeNormalActionGuard()
+        public void RuneClamp_IsNotConsumedByStandingBloodPoolAndStopsNormalActionGuard()
         {
             CoreVoyageSession session = NewBattle();
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Blood, false, 2, 0, false, 0, 0), Is.True);
             session.Battle.NavalExpansion.RuneClamp = true;
             session.EndBattleTurn();
-            Assert.That(session.Battle.EnemyBlock, Is.EqualTo(2), "Clamp reduces the first +6 to zero; the later +2 is a distinct gain.");
+            Assert.That(session.Battle.EnemyBlock, Is.Zero);
             Assert.That(session.Battle.NavalExpansion.RuneClamp, Is.False);
         }
 
@@ -176,8 +180,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Blood, true, 0, 0, false, 0, 0), Is.True);
             session.EndBattleTurn();
             Assert.That(session.Battle.NavalFields.Cells.Count, Is.EqualTo(4));
-            Assert.That(session.Battle.PlayerBlock, Is.EqualTo(6));
-            session.EndBattleTurn();
+            Assert.That(session.Battle.PlayerBlock, Is.Zero);
+            for (int round = 1; round < 5; round++) session.EndBattleTurn();
             Assert.That(session.Battle.NavalFields.Cells, Is.Empty);
         }
 
@@ -185,7 +189,7 @@ namespace ShatteredSail.Core.Tests
         public void BoardingEntry_ClearsFieldsLedgerAndExpansionStatuses()
         {
             CoreVoyageSession session = NewBattle();
-            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 1, 0, false, 0, 0), Is.True);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 0, 0, false, 0, 0), Is.True);
             session.PushNavalShip(true, 1, 0);
             session.Battle.NavalExpansion.OilPlayerEndsRemaining = 2;
             session.Battle.NavalExpansion.GroundingReady = true;
@@ -204,7 +208,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = NewBattle();
             CoreBattleState battle = session.Battle;
-            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 2, 0, false, 0, 0), Is.True);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 1, -1, false, 0, 0), Is.True);
             battle.EnemyHull = 1;
             battle.NavalExpansion.OilPlayerEndsRemaining = 2;
             Play(session, "card_school_fire_b03");
@@ -215,72 +219,74 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void EnemyIntent_IncludesBloodAttackGrantedAtUpcomingTurnStart()
+        public void EnemyIntent_DoesNotIncludeRetiredBloodAttackBonus()
         {
             CoreVoyageSession session = NewBattle();
             int ordinary = int.Parse(Regex.Match(session.GetEnemyIntent(), @"炮击伤害 (\d+)").Groups[1].Value);
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Blood, false, 2, 0, false, 0, 0), Is.True);
             string intent = session.GetEnemyIntent();
-            Assert.That(int.Parse(Regex.Match(intent, @"炮击伤害 (\d+)").Groups[1].Value), Is.EqualTo(ordinary + 4), intent);
+            Assert.That(int.Parse(Regex.Match(intent, @"炮击伤害 (\d+)").Groups[1].Value), Is.EqualTo(ordinary), intent);
             Assert.That(session.Battle.NavalFields.Enemy.BloodAttackBonus, Is.Zero, "A visible intent is read-only.");
             Assert.That(session.Battle.NavalFields.TriggerLedger, Is.Empty);
         }
         [Test]
-        public void ZeroStepEnemyPreview_ReturnsStartBloodGuardAndClampConsumptionWithoutMutation()
+        public void ZeroStepEnemyPreview_ReturnsNoBloodBenefitOrClampConsumption()
         {
             CoreVoyageSession session = NewBattle();
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Blood, false, 2, 0, false, 0, 0), Is.True);
             CoreNavalMovementFieldPreview ordinary = session.GetEnemyNavalFieldPreview(0);
-            Assert.That(ordinary.FinalBlock, Is.EqualTo(6));
-            Assert.That(ordinary.AttackBonus, Is.EqualTo(4));
+            Assert.That(ordinary.FinalBlock, Is.Zero);
+            Assert.That(ordinary.AttackBonus, Is.Zero);
             Assert.That(ordinary.RuneClampConsumed, Is.False);
             session.Battle.NavalExpansion.RuneClamp = true;
             CoreNavalMovementFieldPreview clamped = session.GetEnemyNavalFieldPreview(0);
             Assert.That(clamped.FinalBlock, Is.Zero);
-            Assert.That(clamped.AttackBonus, Is.EqualTo(4));
-            Assert.That(clamped.RuneClampConsumed, Is.True);
+            Assert.That(clamped.AttackBonus, Is.Zero);
+            Assert.That(clamped.RuneClampConsumed, Is.False);
             Assert.That(session.Battle.NavalExpansion.RuneClamp, Is.True);
             Assert.That(session.Battle.EnemyBlock, Is.Zero);
             Assert.That(session.Battle.NavalFields.TriggerLedger, Is.Empty);
         }
 
         [Test]
-        public void EnemyPreview_AccountsForBloodEnteredMidRouteAndLaterFireAbsorption()
+        public void EnemyPreviewCrossesBloodAndFireWithoutEntryBenefitsOrDamage()
         {
             CoreVoyageSession session = NewBattle();
             SetPose(session, false, 500, 0, 180);
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Blood, false, 3, 0, false, 0, 0), Is.True);
-            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 2, 0, false, 0, 0), Is.True);
+            Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Fire, true, 1, -1, false, 0, 0), Is.True);
             CoreNavalMovementFieldPreview preview = session.GetEnemyNavalFieldPreview(300);
             Assert.That(preview.ActiveSteps, Is.EqualTo(3));
             Assert.That(preview.FinalPositionMeters.X, Is.EqualTo(200));
-            Assert.That(preview.Damage, Is.EqualTo(4));
+            Assert.That(preview.Damage, Is.Zero);
             Assert.That(preview.HullDamage, Is.Zero);
-            Assert.That(preview.FinalBlock, Is.EqualTo(2));
-            Assert.That(preview.AttackBonus, Is.EqualTo(4));
+            Assert.That(preview.FinalBlock, Is.Zero);
+            Assert.That(preview.AttackBonus, Is.Zero);
             Assert.That(preview.RuneClampConsumed, Is.False);
             Assert.That(session.Battle.EnemyBlock, Is.Zero);
             Assert.That(session.Battle.NavalFields.Enemy.BloodAttackBonus, Is.Zero);
         }
 
         [Test]
-        public void EnemyPreview_MidRouteBloodConsumesClampBeforeLaterActionGuard()
+        public void EnemyPreviewAvoidsEndingInBloodAndPreservesClamp()
         {
             CoreVoyageSession session = NewBattle();
             SetPose(session, false, 500, 0, 180);
             Assert.That(session.PlaceNavalField(CoreNavalFieldKind.Blood, false, 3, 0, false, 0, 0), Is.True);
             session.Battle.NavalExpansion.RuneClamp = true;
             CoreNavalMovementFieldPreview preview = session.GetEnemyNavalFieldPreview(100);
-            Assert.That(preview.FinalPositionMeters.X, Is.EqualTo(400));
+            Assert.That(preview.FinalPositionMeters, Is.EqualTo(new VoyagePoint(500, 0)), "A one-cell approach would end in the blood pool and lose hull, so the safe wait wins.");
+            Assert.That(preview.ActiveSteps, Is.Zero);
             Assert.That(preview.FinalBlock, Is.Zero);
-            Assert.That(preview.AttackBonus, Is.EqualTo(4));
-            Assert.That(preview.RuneClampConsumed, Is.True);
+            Assert.That(preview.AttackBonus, Is.Zero);
+            Assert.That(preview.RuneClampConsumed, Is.False);
             Assert.That(session.Battle.NavalExpansion.RuneClamp, Is.True);
         }
         private static CoreVoyageSession NewBattle(bool naval = true)
         {
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             Assert.That(session.StartTrainingBattle(CoreTrainingTargets.All[0]), Is.True);
             if (naval) session.Battle.Stage = NavalBattleStage.Naval;
             session.Battle.PlayerBlock = session.Battle.EnemyBlock = 0;

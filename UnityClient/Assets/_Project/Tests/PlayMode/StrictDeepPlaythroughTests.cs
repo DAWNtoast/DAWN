@@ -219,11 +219,8 @@ namespace ShatteredSail.Presentation.Tests
                 if (NoGmFirstTreasure)
                 {
                     yield return WaitForNavigationMotionCompletion(controller);
-                    if (GameObject.Find("Treasure Story Overlay") != null)
-                    {
-                        yield return DismissTreasureStoryIfPresent(controller);
-                        Record("After ordinary Treasure Story Advance clicks through all pages; no encounter resolved or game time advanced.");
-                    }
+                    Assert.That(GameObject.Find("Treasure Story Overlay"), Is.Null,
+                        "Treasure voyages proceed directly to exploration without an introductory comic.");
                 }
                 yield return null;
                 Record("After click " + name);
@@ -256,7 +253,7 @@ namespace ShatteredSail.Presentation.Tests
             public IEnumerator Settle()
             {
                 Record("SETTLEMENT outcome=" + Session.Settlement.Outcome + "; fragments=" + Session.Settlement.BankedFragments + "; XP=" + Session.Settlement.BankedPirateExperience + "; protection=" + Session.Settlement.ProtectionRatio + "; treasure=" + Session.Settlement.TreasureCompleted);
-                if (ActiveButton("Skip Settlement Reveal")?.IsInteractable() == true) yield return Click("Skip Settlement Reveal");
+                yield return SettlementChestTestActions.ShowOverview();
                 if (Session.IsTreasureVoyage && Session.Settlement.TreasureCompleted)
                 {
                     string rank = Session.ActiveTreasureMap.RankId;
@@ -272,7 +269,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return EnsureHub();
                 if (Session.ProfileGold < 450 || AuditUpgradeCards.All(i => Session.GetBattleCard(i).UpgradeLevel == 3)) yield break;
                 int targetUpgrade = AuditUpgradeCards.All(i => Session.GetBattleCard(i).UpgradeLevel >= 2) ? 3 : 2;
-                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
+                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Workshop Preview Stage Naval"); yield return Click("Workshop Page Upgrade");
                 foreach (int index in AuditUpgradeCards)
                 {
                     var card = Session.GetBattleCard(index);
@@ -288,13 +285,13 @@ namespace ShatteredSail.Presentation.Tests
                 Shot("Paid_Card_Upgrades", "Battle Card Upgrade Panel");
                 if (Session.GetBattleCard(16).UpgradeLevel >= 1)
                 {
-                    yield return Click("Workshop Preview Stage Boarding"); yield return Click("Back From Card Upgrades"); yield return Click("Edit Stage Deck Boarding");
+                    yield return Click("Workshop Preview Stage Boarding"); yield return Click("Workshop Page Collection"); yield return Click("Workshop Page DeckBuilder"); yield return Click("Battle Deck Stage Tab Boarding");
                     yield return SetDeck(NavalBattleStage.Boarding, new[] { 14, 14, 15, 15, 16, 16, 17, 17, 3, 3 });
                     yield return SetDeck(NavalBattleStage.Preparation, new[] { 1, 1, 13, 13, 7, 7, 10, 10, 12, 12 });
                     yield return SetDeck(NavalBattleStage.Naval, new[] { 1, 1, 13, 13, 7, 7, 10, 10, 12, 12 });
                     yield return Click("Back To Card Workshop Chests");
                 }
-                else yield return Click("Back From Card Upgrades");
+                else yield return Click("Workshop Page Collection");
                 yield return EnsureHub();
             }
             public IEnumerator RecruitTreasureCrew()

@@ -247,7 +247,7 @@ namespace ShatteredSail.Presentation.Tests
                     "; repair supplies=" + repairSupplies + "; departure cash reserve=60; actual gold=" + Session.ProfileGold);
                 Assert.That(Session.ProfileGold, Is.GreaterThanOrEqualTo(upgrades + ammunition + repairSupplies + 60m),
                     "Earned funds cannot cover the starter's legal ranged build and ordinary departure reserve.");
-                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Workshop Preview Stage Naval"); yield return Click("Open Battle Card Upgrades");
+                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Workshop Preview Stage Naval"); yield return Click("Workshop Page Upgrade");
                 yield return Click("Select Upgrade Card 0");
                 while (Session.GetBattleCard(0).UpgradeLevel < 2)
                 {
@@ -258,7 +258,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(Session.GetBattleCard(0).UpgradeLevel, Is.EqualTo(level + 1));
                     Assert.That(Session.ProfileGold, Is.EqualTo(before - cost));
                 }
-                yield return Click("Back From Card Upgrades"); yield return Click("Edit Stage Deck Naval");
+                yield return Click("Workshop Page Collection"); yield return Click("Workshop Page DeckBuilder"); yield return Click("Battle Deck Stage Tab Naval");
                 yield return SetDeck(NavalBattleStage.Preparation, preparation);
                 yield return SetDeck(NavalBattleStage.Naval, naval);
                 CollectionAssert.AreEquivalent(preparation, Session.GetBattleDeck(NavalBattleStage.Preparation));

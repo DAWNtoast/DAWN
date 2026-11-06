@@ -9,12 +9,12 @@ namespace ShatteredSail.Presentation.Tests
         private const float UvTolerance = 0.000002f;
 
         [Test]
-        public void CompactHeader_ReclaimsFortyPixelsWhileTutorialKeepsItsReservedHeaderHeight()
+        public void CompactHeader_UsesTheSameHeightForOrdinaryPlayAndTutorial()
         {
             Assert.That(PhaseSurfaceLayout.HeaderHeight, Is.EqualTo(108f));
-            Assert.That(PhaseSurfaceLayout.TutorialHeaderHeight, Is.EqualTo(148f));
+            Assert.That(PhaseSurfaceLayout.TutorialHeaderHeight, Is.EqualTo(108f));
             Assert.That(PhaseSurfaceLayout.GetHeaderHeight(false), Is.EqualTo(108f));
-            Assert.That(PhaseSurfaceLayout.GetHeaderHeight(true), Is.EqualTo(148f));
+            Assert.That(PhaseSurfaceLayout.GetHeaderHeight(true), Is.EqualTo(108f));
             AssertVector(PhaseSurfaceLayout.ContentSize, new Vector2(1920f, 1080f), "reference surface");
             AssertVector(PhaseSurfaceLayout.BackgroundSize, new Vector2(1920f, 972f), "extended background");
             AssertVector(PhaseSurfaceLayout.BackgroundPosition, new Vector2(0f, -54f), "background center");
@@ -25,8 +25,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(backgroundBottom, Is.EqualTo(-540f).Within(GeometryTolerance));
             Assert.That(backgroundTop, Is.EqualTo(540f - PhaseSurfaceLayout.GetHeaderHeight(false)).Within(GeometryTolerance));
             float tutorialBottom = 540f - PhaseSurfaceLayout.GetHeaderHeight(true);
-            Assert.That(backgroundTop - tutorialBottom, Is.EqualTo(40f).Within(GeometryTolerance),
-                "The taller teaching header covers the newly exposed band without moving the stage.");
+            Assert.That(backgroundTop, Is.EqualTo(tutorialBottom).Within(GeometryTolerance),
+                "Tutorial and ordinary headers meet the same background edge without moving the stage.");
         }
 
         [TestCase(1672f, 940f)]

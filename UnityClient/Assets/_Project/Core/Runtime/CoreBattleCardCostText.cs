@@ -25,6 +25,9 @@ namespace ShatteredSail.Core.Gameplay
                 // SupplyText describes a true optional payment and the difference it purchases.
                 // The payment is essential to that effect even though its current quote also has an icon.
                 if (Regex.IsMatch(following, @"^额外(?:恢复|修复|获得)")) return match.Value;
+                bool optionalBlood = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodRisk ||
+                    card.SchoolEffect?.Mechanic == CoreSchoolMechanic.BloodWard || card.Id == "card_school_blood_n03";
+                if (optionalBlood && Regex.IsMatch(following, @"^[，\s]*(?:额外(?:恢复|修复|获得|造成)|抽)")) return match.Value;
                 return match.Groups["prefix"].Value;
             });
             text = Regex.Replace(text, @"(^|[，；。\r\n：])\s*强化(?:伤害|格挡|恢复)\s*(?=[，；。\r\n]|$)", "$1");

@@ -196,8 +196,6 @@ namespace ShatteredSail.Presentation
         {
             Button button = CreateButton(name, parent, size, position, Gold, DeepSea, 22);
             button.GetComponentInChildren<Text>().text = caption;
-            if (name.StartsWith("Confirm ", StringComparison.Ordinal)) MarketShopSkin.SetMode(button, true);
-            else MarketShopSkin.ApplyLightButton(button);
             button.onClick.AddListener(() => action());
             return button;
         }

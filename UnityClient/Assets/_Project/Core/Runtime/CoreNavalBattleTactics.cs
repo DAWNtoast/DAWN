@@ -133,7 +133,7 @@ namespace ShatteredSail.Core.Gameplay
 
         private void AdvanceTacticalEnemy(float meters, float? arrivalHeading = null)
         {
-            if (NavalFieldsActive && (Battle.NavalFields.Cells.Count > 0 || FieldShip(false).MovementSlow > 0))
+            if (NavalFieldsActive && (NavalBossFieldCycleActive || Battle.NavalFields.Cells.Count > 0 || FieldShip(false).MovementSlow > 0 || FieldShip(false).NextMovementMaxCells > 0))
             {
                 AdvanceNavalEnemyThroughFields(meters, arrivalHeading);
                 return;

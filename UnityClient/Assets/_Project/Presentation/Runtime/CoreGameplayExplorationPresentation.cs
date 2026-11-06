@@ -14,8 +14,8 @@ namespace ShatteredSail.Presentation
                 values.Add("航速 +25% / " + effect.SailingBoostHours.ToString("0.#") + " 小时");
             if (effect.SurveyBoostHours > 0)
                 values.Add("瞭望范围 +35% / " + effect.SurveyBoostHours.ToString("0.#") + " 小时");
-            if (!string.IsNullOrEmpty(effect.GrantDiscovery))
-                values.Add((session.HasDiscovery(effect.GrantDiscovery) ? "已掌握" : "取得") +
+            if (!string.IsNullOrEmpty(effect.GrantDiscovery) && !session.HasDiscovery(effect.GrantDiscovery))
+                values.Add("取得" +
                     CoreVoyageEventCatalog.DiscoveryName(effect.GrantDiscovery) + "（本航次）");
             if (!string.IsNullOrEmpty(effect.RevealEncounterId))
             {
@@ -31,8 +31,8 @@ namespace ShatteredSail.Presentation
                         if (distance < nearest || (distance == nearest && (target == null || node.Id < target.Id)))
                         { target = node; nearest = distance; }
                     }
-                string prefix = target == null ? "已无未访问的「" : target.IsChartVisible ? "已标出「" : "标出「";
-                values.Add(prefix + CoreVoyageEventCatalog.DiscoveryTargetName(effect.RevealEncounterId) + "」");
+                if (target != null && !target.IsChartVisible)
+                    values.Add("标出「" + CoreVoyageEventCatalog.DiscoveryTargetName(effect.RevealEncounterId) + "」");
             }
         }
     }

@@ -172,6 +172,8 @@ namespace ShatteredSail.Presentation.Tests
                 Canvas.ForceUpdateCanvases();
                 int index = CoreVoyageSession.CardLibrary.ToList().FindIndex(card => card.Id == definition.Card.Id);
                 CoreBattleCard card = controller.Session.GetBattleCard(index);
+                Assert.That(Find<Text>("Audit Special Card Growth").text,
+                    Does.Contain("实航每40海里获1经验").And.Contain("不可金币强化"));
                 string effectText = Find<Text>("Audit Special Card Effect").text;
                 ShatteredSail.Core.Tests.CardDescriptionTextTests.AssertVisibleWordsAndClauseBoundaries(
                     ExpectedDossierEffectText(card), effectText,

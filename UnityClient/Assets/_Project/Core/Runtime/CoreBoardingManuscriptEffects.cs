@@ -38,23 +38,26 @@ namespace ShatteredSail.Core.Gameplay
         private int BWindowAmount(List<CoreBoardingEffectWindow> windows, int basis)
         { int amount = 0; foreach (var effect in windows) amount = SchoolSum(amount, BValue(effect.Card, basis)); return amount; }
 
-        private int BCurseContractAmount => BState.CurseContracts.Count > 0 ? SchoolProduct(BState.CurseContracts.Count, 2) : BState.CurseContractTurns > 0 ? 2 : 0;
+        private int BWindowFormula(List<CoreBoardingEffectWindow> windows, int constant, decimal coefficient, int value)
+        { int amount = 0; foreach (var effect in windows) amount = SchoolSum(amount, BFormula(effect.Card, constant, coefficient, value)); return amount; }
+
+        private int BCurseContractAmount => BState.CurseContracts.Count > 0 ? SchoolProduct(BState.CurseContracts.Count, 4) : BState.CurseContractTurns > 0 ? 4 : 0;
         private int BCurseCounterAmount(int marks) => BState.CurseCounters.Count > 0
-            ? BWindowAmount(BState.CurseCounters, SchoolProduct(2, marks))
-            : BState.CurseCounterTurns > 0 ? BValue(BState.CurseCounterCard, SchoolProduct(2, marks)) : 0;
+            ? BWindowFormula(BState.CurseCounters, 0, 2, marks)
+            : BState.CurseCounterTurns > 0 ? BFormula(BState.CurseCounterCard, 0, 2, marks) : 0;
         private int BCurseArmorAmount(int marks) => BState.CurseArmors.Count > 0
-            ? BWindowAmount(BState.CurseArmors, SchoolSum(2, marks))
-            : BState.CurseArmorTurns > 0 ? BValue(BState.CurseArmorCard, SchoolSum(2, marks)) : 0;
+            ? BWindowFormula(BState.CurseArmors, 4, 1, marks)
+            : BState.CurseArmorTurns > 0 ? BFormula(BState.CurseArmorCard, 4, 1, marks) : 0;
         private int BContinuousAttackReduction(int marks)
         {
-            int curse = BState.CurseWeaknesses.Count > 0 ? BWindowAmount(BState.CurseWeaknesses, SchoolSum(3, marks))
-                : BState.CurseWeakTurns > 0 ? BValue(BState.CurseWeakCard, SchoolSum(3, marks)) : 0;
-            int tide = BState.TideWeaknesses.Count > 0 ? BWindowAmount(BState.TideWeaknesses, 3)
-                : BState.TideWeakTurns > 0 ? BValue(BState.TideWeakCard, 3) : 0;
+            int curse = BState.CurseWeaknesses.Count > 0 ? BWindowFormula(BState.CurseWeaknesses, 6, 1, marks)
+                : BState.CurseWeakTurns > 0 ? BFormula(BState.CurseWeakCard, 6, 1, marks) : 0;
+            int tide = BState.TideWeaknesses.Count > 0 ? BWindowAmount(BState.TideWeaknesses, 6)
+                : BState.TideWeakTurns > 0 ? BValue(BState.TideWeakCard, 6) : 0;
             return SchoolSum(curse, tide);
         }
-        private int BTideAmbushAmount => BState.TideAmbushes.Count > 0 ? BWindowAmount(BState.TideAmbushes, 16)
-            : BState.TideAmbushTurns > 0 ? BValue(BState.TideAmbushCard, 16) : 0;
+        private int BTideAmbushAmount => BState.TideAmbushes.Count > 0 ? BWindowAmount(BState.TideAmbushes, 32)
+            : BState.TideAmbushTurns > 0 ? BValue(BState.TideAmbushCard, 32) : 0;
 
         private void BAdvanceManuscriptEnemyWindows()
         {

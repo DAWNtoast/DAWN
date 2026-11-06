@@ -67,8 +67,7 @@ namespace ShatteredSail.Presentation.Tests
                 // coroutine has rebuilt the voyage and released its UI lock.
                 yield return null;
                 ClickAcceptanceButton("Safe Return"); yield return null;
-                Button reveal = ActiveButton("Skip Settlement Reveal");
-                if (reveal != null && reveal.IsInteractable()) { ClickAcceptanceButton("Skip Settlement Reveal"); yield return null; }
+                yield return SettlementChestTestActions.ShowOverview();
                 Assert.That(session.Settlement.BankedFragments, Is.EqualTo(expected));
                 string rewards = string.Join("\n", controller.GetComponentsInChildren<Text>().Select(label => label.text));
                 Assert.That(rewards.Contains("藏宝图碎片 +1"), Is.EqualTo(expected == 1));

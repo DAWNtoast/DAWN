@@ -96,7 +96,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.HasEnoughOrdinaryCrewForDeparture, Is.True);
             Assert.That(session.IsShortStaffed, Is.True);
             Assert.That(session.CrewSpeedPenalty, Is.EqualTo(.8f));
-            Assert.That(session.CrewCombatPenalty, Is.EqualTo(2));
+            Assert.That(session.EffectiveFirepower, Is.EqualTo(session.Firepower));
+            Assert.That(session.EffectiveArmor, Is.EqualTo(session.Armor));
             session.ConfigureDepartureCrew(8, 2);
             Assert.That(session.CrewSpeedBonus, Is.Zero);
             session.ConfigureDepartureCrew(9, 1);

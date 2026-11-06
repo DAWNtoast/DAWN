@@ -1,0 +1,22 @@
+{
+  "Result": "PASS",
+  "ScriptSHA256": "F52D37239B7E1B4A5ED12A1EE452013BFAE8093124CCCBF81B562672C89933C2",
+  "IndependentReconstructedFiles": 10,
+  "ExactOriginalDifferenceFiles": 4,
+  "SharedFinalSourceFiles": 6,
+  "GuardsPassed": [
+    "active lease",
+    "unknown old source file",
+    "changed old source bytes",
+    "existing reconstruction dependency",
+    "unfinished borrowed-input restoration"
+  ],
+  "GuardRejectionsChangedNoFiles": true,
+  "MainUnchangedInSyntheticRun": true,
+  "AllOriginalManifestsRetained": true,
+  "FinalFrozenSourceRetained": true,
+  "RealReleaseSnapshotsTouched": false,
+  "UnityStarted": false,
+  "SyntheticFixtureBytesRemoved": 1834728.0,
+  "SyntheticFixtureRemoved": true
+}

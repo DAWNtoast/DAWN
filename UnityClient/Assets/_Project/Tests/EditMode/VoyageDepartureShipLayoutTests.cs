@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -107,11 +108,11 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase(CoreGameplayPreviewPort.SaltCrown)]
         [TestCase(CoreGameplayPreviewPort.TwilightTide)]
         [TestCase(CoreGameplayPreviewPort.GrayGull)]
-        public void DeparturePreviewOpensEquipmentAndBothReturnControlsRestoreTheSamePortsDeparture(CoreGameplayPreviewPort port)
+        public void DeparturePreviewOpensEquipmentAndHeaderReturnRestoresTheSamePortsDeparture(CoreGameplayPreviewPort port)
         {
             Preview(port);
             string portName = controller.Session.CurrentPort;
-            foreach (string close in new[] { "Close Shipyard Equipment", "Return To Port Hub" })
+            for (int visit = 0; visit < 2; visit++)
             {
                 Find<Button>("Inspect Departure Vessel").onClick.Invoke();
                 Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.ShipyardDetail));
@@ -121,11 +122,11 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航码头"));
                 Assert.That(Has("Shipyard Dossier Tab Equipment"), Is.False,
                     "The current departure shortcut opens the independent equipment window.");
-                Assert.That(Find<Button>("Close Shipyard Equipment").GetComponentInChildren<Text>().text, Does.Contain("返回出航码头"));
+                Assert.That(Has("Close Shipyard Equipment"), Is.False);
                 controller.RefreshEditorPreview();
                 Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航码头"),
                     "Refreshing the equipment window must retain its departure return target.");
-                Find<Button>(close).onClick.Invoke();
+                Find<Button>("Return To Port Hub").onClick.Invoke();
                 Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.VoyageDeparture));
                 Assert.That(controller.HasCompleteEditorPreview, Is.True);
                 Assert.That(controller.Session.CurrentPort, Is.EqualTo(portName));
@@ -473,6 +474,7 @@ namespace ShatteredSail.Presentation.Tests
         public void DepartureOffersSixNamedPortsDisablesOriginAndDirectlySelectsEveryOtherPort(CoreGameplayPreviewPort port)
         {
             Preview(port);
+            UnlockAllDestinationPortsForLayout();
             string origin = controller.Session.CurrentPort;
             int originIndex = Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count)
                 .Single(index => CoreVoyageSession.DestinationPorts[index] == origin);
@@ -562,7 +564,7 @@ namespace ShatteredSail.Presentation.Tests
                 Is.EqualTo(ExpectedRouteSummary(origin, controller.Session.SelectedDestinationPort)));
             for (int index = 0; index < CoreVoyageSession.DestinationPorts.Count; index++)
                 Assert.That(Find<Button>("Departure Destination " + index).IsInteractable(),
-                    Is.EqualTo(CoreVoyageSession.DestinationPorts[index] != origin));
+                    Is.EqualTo(controller.Session.CanSelectDestinationPort(CoreVoyageSession.DestinationPorts[index], out _)));
         }
 
         [TestCase(CoreGameplayPreviewPort.BrokenAnchor)]
@@ -606,7 +608,14 @@ namespace ShatteredSail.Presentation.Tests
             Find<Button>("Inspect Departure Vessel").onClick.Invoke();
             Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回出航码头"));
             if (configureDossier)
+            {
                 controller.ConfigureEditorShipyard(0, true, 2);
+                Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回船只档案"),
+                    "An explicitly configured equipment preview returns to its dossier instead of the previous departure.");
+                Find<Button>("Return To Port Hub").onClick.Invoke();
+                Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.ShipyardDetail));
+                Assert.That(Has("Shipyard Equipment Page"), Is.False);
+            }
             else
             {
                 controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Shipyard, CoreGameplayPreviewPort.GrayGull, 0);
@@ -742,11 +751,46 @@ namespace ShatteredSail.Presentation.Tests
         {
             Image image = button.GetComponent<Image>();
             Assert.That(image.enabled && image.raycastTarget, Is.True, button.name);
-            Assert.That(image.color.a, Is.GreaterThan(0f), button.name + " draws its own button face.");
-            Assert.That(button.targetGraphic, Is.SameAs(image));
             Assert.That(button.GetComponentsInChildren<DeparturePaintedHotspot>(true).All(item => !item.enabled), Is.True,
                 button.name + " must not rely on a painted hotspot.");
-            Assert.That(button.GetComponentInChildren<Text>().enabled, Is.True, button.name);
+            if (button.name == "Departure Previous Vessel" || button.name == "Departure Next Vessel")
+            {
+                Assert.That(image.color.a, Is.Zero, button.name + " keeps only a transparent hit area.");
+                Assert.That(image.sprite, Is.Null, button.name);
+                DepartureVesselButtonGraphic face = button.GetComponentInChildren<DepartureVesselButtonGraphic>();
+                Assert.That(face, Is.Not.Null, button.name);
+                Assert.That(face.transform.parent, Is.SameAs(button.transform), button.name);
+                Assert.That(face.enabled && face.gameObject.activeInHierarchy, Is.True, button.name);
+                Assert.That(face.raycastTarget, Is.False, button.name);
+                Assert.That(button.targetGraphic, Is.SameAs(face), button.name + " tints the complete nautical face.");
+                HeaderNavigationArrowGraphic chevron = face.GetComponentInChildren<HeaderNavigationArrowGraphic>();
+                Assert.That(chevron, Is.Not.Null, button.name);
+                Assert.That(chevron.enabled && chevron.gameObject.activeInHierarchy, Is.True, button.name);
+                Assert.That(chevron.raycastTarget, Is.False, button.name);
+                Assert.That(chevron.PointsRight, Is.EqualTo(button.name == "Departure Next Vessel"), button.name);
+                foreach (Text label in button.GetComponentsInChildren<Text>(true))
+                {
+                    Assert.That(label.enabled, Is.False, button.name + " uses a graphical arrow.");
+                    Assert.That(label.raycastTarget, Is.False, button.name);
+                }
+            }
+            else
+            {
+                Assert.That(image.color.a, Is.GreaterThan(0f), button.name + " draws its own button face.");
+                Assert.That(button.targetGraphic, Is.SameAs(image));
+                Assert.That(button.GetComponentInChildren<Text>().enabled, Is.True, button.name);
+            }
+        }
+
+        private void UnlockAllDestinationPortsForLayout()
+        {
+            // This fixture verifies selection geometry for an established captain.
+            CoreTreasureProgress progress = controller.Session.CaptureTreasureProgress();
+            progress.pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10);
+            controller.Session.RestoreTreasureProgress(progress);
+            foreach (string port in CoreVoyageSession.DestinationPorts) controller.Session.RecordCollectionPortVisit(port);
+            typeof(CoreGameplayDemoController).GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
         }
 
         private void Preview(CoreGameplayPreviewPort port)
@@ -838,6 +882,12 @@ namespace ShatteredSail.Presentation.Tests
             Find<Button>("Shipyard Ship 0").onClick.Invoke();
             Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回船坞"));
             Find<Button>("Shipyard Dossier Tab Equipment").onClick.Invoke();
+            Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回船只档案"));
+            Find<Button>("Return To Port Hub").onClick.Invoke();
+            Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.ShipyardDetail));
+            Assert.That(Has("Shipyard Equipment Page"), Is.False);
+            Assert.That(Has("Shipyard Dossier Stat 0"), Is.True, "The first return restores the original performance dossier.");
+            Assert.That(Find<Button>("Return To Port Hub").GetComponentInChildren<Text>().text, Is.EqualTo("返回船坞"));
             Find<Button>("Return To Port Hub").onClick.Invoke();
             Assert.That(controller.EditorPreviewScreen, Is.EqualTo(CoreGameplayPreviewScreen.Shipyard));
             Assert.That(Find<Button>("Shipyard Ship 0"), Is.Not.Null);

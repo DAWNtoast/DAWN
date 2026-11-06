@@ -101,8 +101,8 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void ProtectedManifestCoversEveryCurrentSaveProgressWriterAndNoEarlierIndependentWrites()
         {
-            Assert.That(expectedTypes.Count, Is.EqualTo(106), "32 string and 74 integer keys including the two combat evidence masks.");
-            Assert.That(expectedTypes.Values.Count(value => value), Is.EqualTo(32));
+            Assert.That(expectedTypes.Count, Is.EqualTo(108), "33 string and 75 integer keys including atomic card-pack progress.");
+            Assert.That(expectedTypes.Values.Count(value => value), Is.EqualTo(33));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Is.EquivalentTo(expectedTypes.Keys));
             Assert.That(ProfileSaveJournal.ProtectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(expectedTypes.Count));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Does.Not.Contain(CoreGameplayDemoController.WorldEconomyScopeKey));
@@ -111,13 +111,15 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void NewJournalUsesVersionSixAndIncludesAllAchievementEvidence()
+        public void NewJournalUsesVersionEightAndIncludesCardPackProgress()
         {
             Begin();
             Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
             JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
-            Assert.That(record.version, Is.EqualTo(6));
-            Assert.That(record.entries.Length, Is.EqualTo(106));
+            Assert.That(record.version, Is.EqualTo(8));
+            Assert.That(record.entries.Length, Is.EqualTo(108));
+            Assert.That(record.entries.Single(entry => entry.key == CoreGameplayDemoController.CardPackProgressKey).type, Is.EqualTo("string"));
+            Assert.That(record.entries.Single(entry => entry.key == CoreGameplayDemoController.SplitSupportCardVersionKey).type, Is.EqualTo("int"));
             foreach (string key in AchievementCatalog.ChallengeEvidenceKeys)
                 Assert.That(record.entries.Single(entry => entry.key == key).type, Is.EqualTo("int"));
             Assert.That(record.entries.Single(entry => entry.key == CoreGameplayDemoController.WarehouseIncomeKey).type, Is.EqualTo("string"));
@@ -137,6 +139,8 @@ namespace ShatteredSail.Core.Tests
         [TestCase(true, AchievementCatalog.EditedDeckStagesKey)]
         [TestCase(false, AchievementCatalog.WonDeckStagesKey)]
         [TestCase(true, AchievementCatalog.WonDeckStagesKey)]
+        [TestCase(false, CoreGameplayDemoController.SplitSupportCardVersionKey)]
+        [TestCase(true, CoreGameplayDemoController.SplitSupportCardVersionKey)]
         public void CurrentJournalRestoresEachVoyageMilestoneBeforeImage(bool existed, string key)
         {
             if (existed) PlayerPrefs.SetInt(key, 1);
@@ -205,10 +209,74 @@ namespace ShatteredSail.Core.Tests
             AssertSlotEmpty();
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CurrentJournalRestoresCardPackInventoryCopiesAndDrawStateTogether(bool packsExisted)
+        {
+            const string beforePacks = "{\"version\":1,\"packs\":[{\"id\":\"fire\",\"count\":2}],\"cards\":[{\"id\":\"card_chain_shot\",\"count\":1}],\"randomState\":1234567}";
+            const string afterPacks = "{\"version\":1,\"packs\":[{\"id\":\"fire\",\"count\":1}],\"cards\":[{\"id\":\"card_chain_shot\",\"count\":4}],\"randomState\":9876543}";
+            if (packsExisted) PlayerPrefs.SetString(CoreGameplayDemoController.CardPackProgressKey, beforePacks);
+            string deckKey = CoreGameplayDemoController.StageBattleDeckKey(NavalBattleStage.Naval);
+            PlayerPrefs.SetString(deckKey, "0,0,1,1,2,2,3,3,4,4");
+            Begin();
+            PlayerPrefs.SetString(CoreGameplayDemoController.CardPackProgressKey, afterPacks);
+            PlayerPrefs.SetString(deckKey, "interrupted deck containing newly opened cards");
+            ForgetActiveTransactionForRestartSimulation();
+
+            Assert.That(ProfileSaveJournal.TryRecover(out string notice), Is.True, notice);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CardPackProgressKey), Is.EqualTo(packsExisted));
+            if (packsExisted) Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CardPackProgressKey), Is.EqualTo(beforePacks));
+            Assert.That(PlayerPrefs.GetString(deckKey), Is.EqualTo("0,0,1,1,2,2,3,3,4,4"));
+            AssertSlotEmpty();
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(4)]
+        [TestCase(5)]
+        [TestCase(6)]
+        [TestCase(7)]
+        public void PrePackJournalRecoveryDiscardsNewPackProgressAndPreservesItsOriginalManifest(int version)
+        {
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "白贝港");
+            PlayerPrefs.SetString(CoreGameplayDemoController.BattleDeckKey, "old confirmed deck");
+            Begin();
+            JournalRecord record;
+            switch (version)
+            {
+                case 1: record = ReadLegacyRecord(false); break;
+                case 2: record = ReadVersionTwoRecord(); break;
+                case 3: record = ReadVersionThreeRecord(); break;
+                case 4: record = ReadVersionFourRecord(); break;
+                case 5: record = ReadVersionFiveRecord(); break;
+                case 6: record = ReadVersionSixRecord(); break;
+                default: record = ReadVersionSevenRecord(); break;
+            }
+            ReplaceJournalPayload(JsonUtility.ToJson(record));
+            PlayerPrefs.SetString(CoreGameplayDemoController.CardPackProgressKey, "partly written pack inventory, copies and random state");
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "铜钟港");
+            PlayerPrefs.SetString(CoreGameplayDemoController.BattleDeckKey, "interrupted new deck");
+            ForgetActiveTransactionForRestartSimulation();
+
+            Assert.That(ProfileSaveJournal.TryRecover(out string notice), Is.True, notice);
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CardPackProgressKey), Is.False);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey), Is.EqualTo("白贝港"));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.BattleDeckKey), Is.EqualTo("old confirmed deck"));
+            AssertSlotEmpty();
+            Begin();
+            Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
+            JournalRecord upgraded = JsonUtility.FromJson<JournalRecord>(json);
+            Assert.That(upgraded.version, Is.EqualTo(8));
+            Assert.That(upgraded.entries.Select(entry => entry.key), Is.EquivalentTo(expectedTypes.Keys));
+        }
+
         [Test]
         public void VersionFourJournalRestoresItsManifestAndRemovesInterruptedCollectionIncomeMigration()
         {
             SeedValues("before", 1100, true);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.CardPackProgressKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.SplitSupportCardVersionKey);
             foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             Dictionary<string, SavedPreference> before = ReadPreferences(expectedTypes);
@@ -224,7 +292,7 @@ namespace ShatteredSail.Core.Tests
             Begin();
             Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
             JournalRecord upgraded = JsonUtility.FromJson<JournalRecord>(json);
-            Assert.That(upgraded.version, Is.EqualTo(6));
+            Assert.That(upgraded.version, Is.EqualTo(8));
             Assert.That(upgraded.entries.Select(entry => entry.key), Is.EquivalentTo(expectedTypes.Keys));
         }
 
@@ -233,6 +301,8 @@ namespace ShatteredSail.Core.Tests
         public void LegacyJournalRestoresItsKeysAndRemovesNewMilestonesWithoutRestoringRetiredAchievements(bool includesRetired)
         {
             SeedValues("before", 1100, true);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.CardPackProgressKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.SplitSupportCardVersionKey);
             foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             PlayerPrefs.DeleteKey(VoyageThreeEventsKey);
@@ -252,7 +322,7 @@ namespace ShatteredSail.Core.Tests
             Begin();
             Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
             JournalRecord upgraded = JsonUtility.FromJson<JournalRecord>(json);
-            Assert.That(upgraded.version, Is.EqualTo(6));
+            Assert.That(upgraded.version, Is.EqualTo(8));
             Assert.That(upgraded.entries.Select(entry => entry.key), Is.EquivalentTo(expectedTypes.Keys));
         }
 
@@ -261,6 +331,8 @@ namespace ShatteredSail.Core.Tests
         public void VersionTwoJournalRestoresExistingMilestoneAndRemovesOnlyTheTwoLaterMilestones(bool milestoneExisted)
         {
             SeedValues("before", 1100, true);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.CardPackProgressKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.SplitSupportCardVersionKey);
             foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             if (milestoneExisted) PlayerPrefs.SetInt(VoyageThreeEventsKey, 1);
@@ -280,13 +352,15 @@ namespace ShatteredSail.Core.Tests
             AssertSlotEmpty();
             Begin();
             Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
-            Assert.That(JsonUtility.FromJson<JournalRecord>(json).version, Is.EqualTo(6));
+            Assert.That(JsonUtility.FromJson<JournalRecord>(json).version, Is.EqualTo(8));
         }
 
         [Test]
         public void VersionThreeJournalRestoresItsManifestAndRemovesInterruptedShipLocationMigration()
         {
             SeedValues("before", 1100, true);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.CardPackProgressKey);
+            PlayerPrefs.DeleteKey(CoreGameplayDemoController.SplitSupportCardVersionKey);
             foreach (string key in AchievementCatalog.ChallengeEvidenceKeys) PlayerPrefs.DeleteKey(key);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.WarehouseIncomeKey);
             PlayerPrefs.DeleteKey(CoreGameplayDemoController.ShipPortProgressKey);
@@ -303,7 +377,7 @@ namespace ShatteredSail.Core.Tests
             Begin();
             Assert.That(store.TryLoad(out string json, out notice), Is.True, notice);
             JournalRecord upgraded = JsonUtility.FromJson<JournalRecord>(json);
-            Assert.That(upgraded.version, Is.EqualTo(6));
+            Assert.That(upgraded.version, Is.EqualTo(8));
             Assert.That(upgraded.entries.Select(entry => entry.key), Is.EquivalentTo(expectedTypes.Keys));
         }
 
@@ -353,6 +427,10 @@ namespace ShatteredSail.Core.Tests
         [TestCase("missing-ship-port-key")]
         [TestCase("missing-income-key")]
         [TestCase("income-key-type")]
+        [TestCase("missing-pack-key")]
+        [TestCase("pack-key-type")]
+        [TestCase("version-seven-current-keys")]
+        [TestCase("version-eight-version-seven-keys")]
         [TestCase("version-four-current-keys")]
         [TestCase("version-five-version-four-keys")]
         [TestCase("version-four-version-three-keys")]
@@ -376,6 +454,10 @@ namespace ShatteredSail.Core.Tests
                 case "missing-ship-port-key": record.entries = record.entries.Where(entry => entry.key != CoreGameplayDemoController.ShipPortProgressKey).ToArray(); break;
                 case "missing-income-key": record.entries = record.entries.Where(entry => entry.key != CoreGameplayDemoController.WarehouseIncomeKey).ToArray(); break;
                 case "income-key-type": record.entries.Single(entry => entry.key == CoreGameplayDemoController.WarehouseIncomeKey).type = "int"; break;
+                case "missing-pack-key": record.entries = record.entries.Where(entry => entry.key != CoreGameplayDemoController.CardPackProgressKey).ToArray(); break;
+                case "pack-key-type": record.entries.Single(entry => entry.key == CoreGameplayDemoController.CardPackProgressKey).type = "int"; break;
+                case "version-seven-current-keys": record.version = 7; break;
+                case "version-eight-version-seven-keys": record = ReadVersionSevenRecord(); record.version = 8; break;
                 case "version-four-current-keys": record.version = 4; break;
                 case "version-five-version-four-keys": record = ReadVersionFourRecord(); record.version = 5; break;
                 case "version-four-version-three-keys": record = ReadVersionThreeRecord(); record.version = 4; break;
@@ -447,6 +529,7 @@ namespace ShatteredSail.Core.Tests
                 CoreGameplayDemoController.TreasureProgressKey, CoreGameplayDemoController.SeaChartProgressKey,
                 CoreGameplayDemoController.ShipPortProgressKey,
                 CoreGameplayDemoController.WarehouseIncomeKey,
+                CoreGameplayDemoController.CardPackProgressKey,
             };
             const string malformed = " {invalid-json:\"旧档⚓\"}\r\n\t preserved trailing spaces  ";
             foreach (string key in keys) PlayerPrefs.SetString(key, malformed + key);
@@ -681,10 +764,12 @@ namespace ShatteredSail.Core.Tests
         [TestCase("integer-as-string")]
         [TestCase("string-as-integer")]
         [TestCase("integer-as-float")]
+        [TestCase("pack-string-as-integer")]
         public void UnexpectedNativePreferenceTypeRejectsBeginWithoutReplacingItWithADefault(string damage)
         {
             if (damage == "integer-as-string") PlayerPrefs.SetString(CoreGameplayDemoController.ProfileGoldKey, "corrupt-native-int");
             else if (damage == "string-as-integer") PlayerPrefs.SetInt(CoreGameplayDemoController.ComponentInventoryKey, 7301);
+            else if (damage == "pack-string-as-integer") PlayerPrefs.SetInt(CoreGameplayDemoController.CardPackProgressKey, 3);
             else PlayerPrefs.SetFloat(CoreGameplayDemoController.ProfileGoldKey, 123.75f);
             Dictionary<string, SavedPreference> before = ReadPreferences(expectedTypes);
             Assert.That(ProfileSaveJournal.TryBegin(out string notice), Is.False);
@@ -780,12 +865,46 @@ namespace ShatteredSail.Core.Tests
 
         private JournalRecord ReadVersionFiveRecord()
         {
-            Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
-            JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
+            JournalRecord record = ReadVersionSixRecord();
             record.version = 5;
             record.entries = record.entries.Where(entry => !AchievementCatalog.ChallengeEvidenceKeys.Contains(entry.key)).ToArray();
             Assert.That(record.entries.Length, Is.EqualTo(104));
             return record;
+        }
+
+        private JournalRecord ReadVersionSixRecord()
+        {
+            JournalRecord record = ReadVersionSevenRecord();
+            record.version = 6;
+            record.entries = record.entries.Where(entry => entry.key != CoreGameplayDemoController.SplitSupportCardVersionKey).ToArray();
+            Assert.That(record.entries.Length, Is.EqualTo(106));
+            return record;
+        }
+
+        private JournalRecord ReadVersionSevenRecord()
+        {
+            Assert.That(store.TryLoad(out string json, out string notice), Is.True, notice);
+            JournalRecord record = JsonUtility.FromJson<JournalRecord>(json);
+            record.version = 7;
+            record.entries = record.entries.Where(entry => entry.key != CoreGameplayDemoController.CardPackProgressKey).ToArray();
+            Assert.That(record.entries.Length, Is.EqualTo(107));
+            return record;
+        }
+
+        [Test]
+        public void VersionSixRecovery_RollsBackUpgradeLevelsAndInterruptedSplitMigrationTogether()
+        {
+            const string oldUpgrades = "card_tactical_draw=2";
+            PlayerPrefs.SetString(CoreGameplayDemoController.BattleCardUpgradeKey, oldUpgrades);
+            Begin();
+            ReplaceJournalPayload(JsonUtility.ToJson(ReadVersionSixRecord()));
+            PlayerPrefs.SetString(CoreGameplayDemoController.BattleCardUpgradeKey, oldUpgrades + ";card_boarding_basic_08=2");
+            PlayerPrefs.SetInt(CoreGameplayDemoController.SplitSupportCardVersionKey, 1);
+            ForgetActiveTransactionForRestartSimulation();
+            Assert.That(ProfileSaveJournal.TryRecover(out string notice), Is.True, notice);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey), Is.EqualTo(oldUpgrades));
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.SplitSupportCardVersionKey), Is.False);
+            AssertSlotEmpty();
         }
 
         [Test]
@@ -928,6 +1047,7 @@ namespace ShatteredSail.Core.Tests
                 "ShatteredSail.ProfileGold.Decimal.v2", "ShatteredSail.CurrentPort.v1", "ShatteredSail.LastVoyageExplorationCoverage.v1", "ShatteredSail.BattleDeck.v1",
                 "ShatteredSail.ShipPortProgress.v1",
                 "ShatteredSail.BattleCardUpgrades.v1", "ShatteredSail.SpecialCards.Experience.v1", "ShatteredSail.SpecialCards.Acquired.v1",
+                "ShatteredSail.CardPacks.v1",
                 "ShatteredSail.BattleDeck.v2.Preparation", "ShatteredSail.BattleDeck.v2.Naval", "ShatteredSail.BattleDeck.v2.Boarding",
             }) result.Add(key, true);
             foreach (string port in new[] { "断锚港", "白贝港", "铜钟港", "盐冠港", "暮潮港", "灰鸥港" })
@@ -939,6 +1059,7 @@ namespace ShatteredSail.Core.Tests
             {
                 "ShatteredSail.Warehouse.DisplayRecord.v1", "ShatteredSail.Warehouse.PortMigration.v1",
                 "ShatteredSail.ProfileGold.v1", "ShatteredSail.SelectedShip.v1", "ShatteredSail.BattleDeck.Edited.v1",
+                "ShatteredSail.SplitSupportCards.Version",
             }) result.Add(key, false);
             foreach (string cargo in new[] { "Water", "Food", "Beer", "Medicine", "Wood", "Iron", "Cloth", "Powder", "Cannonballs", "Gold", "Fame" })
                 result.Add("ShatteredSail.Cargo.v1." + cargo, false);

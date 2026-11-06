@@ -15,11 +15,12 @@ namespace ShatteredSail.Core.Tests
             var session = new CoreVoyageSession();
             session.RestoreProfile(10000, session.CurrentPort);
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             int index = Find(id);
             Assert.That(session.GetCardMaximumUpgradeLevel(index), Is.EqualTo(2));
             Assert.That(session.GetCardUpgradeCost(index), Is.EqualTo(120));
             Assert.That(session.TryUpgradeBattleCard(index, out string firstReason), Is.True, firstReason);
-            Assert.That(session.GetBattleCard(index).Draw, Is.EqualTo(1));
+            Assert.That(session.GetBattleCard(index).Draw, Is.EqualTo(2));
             Assert.That(session.GetBattleCard(index).Block, Is.EqualTo(2));
             Assert.That(session.GetBattleCard(index).SchoolEffect.Power, Is.EqualTo(2));
             Assert.That(session.GetCardUpgradeCost(index), Is.EqualTo(240));
@@ -28,7 +29,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(maximum.UpgradeLevel, Is.EqualTo(2));
             Assert.That(maximum.Block, Is.EqualTo(3));
             Assert.That(maximum.SchoolEffect.Power, Is.EqualTo(3));
-            Assert.That(maximum.Draw, Is.EqualTo(1));
+            Assert.That(maximum.Draw, Is.EqualTo(2));
             Assert.That(session.ProfileGold, Is.EqualTo(9640));
             Assert.That(session.GetCardUpgradeCost(index), Is.Zero);
             Assert.That(session.TryUpgradeBattleCard(index, out _), Is.False);
@@ -51,20 +52,18 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetCardUpgradeCost(Find(id)), Is.Zero);
         }
 
-        [TestCase("card_navigator_course", 2, 3, 2)]
-        [TestCase("card_component_sail", 1, 2, 1)]
-        public void SourceCards_KeepEarnedExperienceAfterTheirLastUsefulCombatRank(string id, int maximum, int block, int draw)
+        [TestCase("card_navigator_course")]
+        [TestCase("card_component_sail")]
+        public void RetiredSourceCards_KeepEarnedExperienceWithoutCombatRanks(string id)
         {
             var session = new CoreVoyageSession();
             session.RestoreSpecialCardExperience(new Dictionary<string, int> { { id, 840 } });
-            Assert.That(session.GetCardMaximumUpgradeLevel(id), Is.EqualTo(maximum));
-            Assert.That(session.GetCardUpgradeLevel(id), Is.EqualTo(maximum));
+            Assert.That(session.GetCardMaximumUpgradeLevel(id), Is.Zero);
+            Assert.That(session.GetCardUpgradeLevel(id), Is.Zero);
             Assert.That(session.GetSpecialCardExperience(id), Is.EqualTo(840));
             Assert.That(session.GetSpecialCardNextThreshold(id), Is.Zero);
-            CoreBattleCard grown = session.GetBattleCard(Find(id));
-            Assert.That(grown.UpgradeLevel, Is.EqualTo(maximum));
-            Assert.That(grown.Block, Is.EqualTo(block));
-            Assert.That(grown.Draw, Is.EqualTo(draw));
+            Assert.That(session.GetBattleCard(Find(id)), Is.Null);
+            Assert.That(CoreVoyageSession.CardLibrary[Find(id)].AllowedStages, Is.EqualTo(NavalBattleStages.None));
             session.RestoreSpecialCardExperience(session.SpecialCardExperience);
             Assert.That(session.GetSpecialCardExperience(id), Is.EqualTo(840));
             Assert.That(session.GetCardUpgradeCost(Find(id)), Is.Zero);

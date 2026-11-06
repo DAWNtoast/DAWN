@@ -117,16 +117,18 @@ namespace ShatteredSail.Core.Tests
         [TestCase("arcane_04", "mana", "X")]
         [TestCase("arcane_06", "mana", "X")]
         [TestCase("arcane_11", "mana", "X")]
-        [TestCase("arcane_05", "mana", "2")]
+        [TestCase("arcane_05", "mana", "4")]
         [TestCase("curse_11", "curse", "X")]
-        [TestCase("curse_15", "curse", "2")]
+        [TestCase("curse_12", "", "")]
+        [TestCase("curse_14", "", "")]
+        [TestCase("curse_15", "", "")]
         [TestCase("tide_06", "tide", "X")]
         [TestCase("tide_07", "tide", "X")]
         [TestCase("tide_08", "tide", "X")]
         [TestCase("thunder_13", "chain", "X")]
         [TestCase("thunder_14", "chain", "X")]
         [TestCase("thunder_15", "chain", "X")]
-        [TestCase("blood_02", "health", "4")]
+        [TestCase("blood_02", "health", "8")]
         public void BoardingResourceBadges_ShowFixedPaymentOrAll(string key, string resource, string value)
         {
             CoreBattleCard card = CoreBoardingCardCatalog.FindByKey(key);
@@ -143,8 +145,8 @@ namespace ShatteredSail.Core.Tests
             int energy = session.Battle.Energy;
             CoreBattleCard flood = CoreBoardingCardCatalog.FindByKey("arcane_04");
             CoreBattleCard combo = CoreBoardingCardCatalog.FindByKey("thunder_11");
-            Assert.That(session.GetBattleCardDamage(flood, NavalBattleStage.Boarding), Is.EqualTo(42));
-            Assert.That(session.GetBattleCardEffects(combo, NavalBattleStage.Boarding).Damage, Is.EqualTo(14));
+            Assert.That(session.GetBattleCardDamage(flood, NavalBattleStage.Boarding), Is.EqualTo(48 + 6 * 3));
+            Assert.That(session.GetBattleCardEffects(combo, NavalBattleStage.Boarding).Damage, Is.EqualTo((6 + 3 * 4) * 2));
             Assert.That(session.Battle.Schools.Mana, Is.EqualTo(3));
             Assert.That(session.Battle.Schools.ThunderChain, Is.EqualTo(4));
             Assert.That(session.Battle.Energy, Is.EqualTo(energy));

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
 using UnityEngine;
@@ -36,6 +37,9 @@ namespace ShatteredSail.Presentation.Tests
             battle.PhaseTurn = 2;
             int originalTurn = battle.Turn;
             int originalEnemyHull = battle.EnemyHull;
+            int enemyGuardBeforeBurn = battle.Profile.Guard;
+            Assert.That(enemyGuardBeforeBurn, Is.GreaterThanOrEqualTo(3),
+                "The selected defensive turn supplies enough guard to absorb all three burn layers.");
             RenderResponsiveBattle(controller);
             yield return null;
 
@@ -78,7 +82,7 @@ namespace ShatteredSail.Presentation.Tests
             }, "The same-stage enemy turn must not reconstruct the tactical board, sea, grid, ships or defense HUDs.");
             Assert.That(originalSea.texture, Is.SameAs(originalSeaTexture));
             Assert.That(originalBoard.IsAnimating, Is.False);
-            Assert.That(RequiredResponsive<Text>("Battle Badge").text, Does.EndWith("回合 " + battle.Turn));
+            Assert.That(GameObject.Find("Battle Badge"), Is.Null, "Retained turns keep the removed battle heading absent.");
             Assert.That(GameObject.Find("Battle Status"), Is.Null, "Retained turns keep the removed hint absent.");
             Assert.That(GameObject.Find("Battle Card Cost Rule Panel"), Is.Null);
             Assert.That(GameObject.Find("Battle Collision Quality"), Is.Null, "Retained turns keep collision quality text removed.");
@@ -98,22 +102,25 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(RetainedVisibleStatusAmount(playerStatuses, "deck_buff"), Is.EqualTo("2"));
             Assert.That(RetainedVisibleStatusAmount(playerStatuses, "fire_rounds"), Is.EqualTo("2"));
             Assert.That(RetainedVisibleStatusAmount(enemyStatuses, "burn"), Is.EqualTo("2"));
-            // The badge shows remaining layers; hover explains damage timing and one-layer decay.
+            // The badge and the user's revised tooltip both show the remaining two burn layers.
             Transform burn = enemyStatuses.transform.Find("Status burn");
             var pointer = new PointerEventData(EventSystem.current);
             Assert.That(ExecuteEvents.Execute(burn.gameObject, pointer, ExecuteEvents.pointerEnterHandler), Is.True);
             yield return null;
             Text burnExplanation = RequiredResponsive<RectTransform>("Battle Status Tooltip").Find("Description").GetComponent<Text>();
-            Assert.That(burnExplanation.text, Does.Contain("敌方回合末").And.Contain("按当前层数造成无视格挡的伤害")
-                .And.Contain("层数减少 1").And.Contain("新增层数相加").And.Contain("降至 0 层时结束"));
-            ExecuteEvents.Execute(burn.gameObject, pointer, ExecuteEvents.pointerExitHandler);
+            Assert.That(burnExplanation.gameObject.activeInHierarchy, Is.True);
+            Assert.That(Regex.Replace(burnExplanation.text, "<[^>]+>", string.Empty),
+                Is.EqualTo("燃烧\n回合结束时，受到2点伤害。"));
+            Assert.That(ExecuteEvents.Execute(burn.gameObject, pointer, ExecuteEvents.pointerExitHandler), Is.True);
             yield return null;
+            Assert.That(burnExplanation.gameObject.activeInHierarchy, Is.False);
             Assert.That(originalPlayerHud.DisplayedHull, Is.EqualTo(session.Hull));
             Assert.That(originalPlayerHud.DisplayedGuard, Is.EqualTo(battle.PlayerBlock));
             Assert.That(battle.PlayerBlock, Is.Zero);
             Assert.That(originalEnemyHud.DisplayedHull, Is.EqualTo(battle.EnemyHull));
             Assert.That(originalEnemyHud.DisplayedGuard, Is.EqualTo(battle.EnemyBlock));
-            Assert.That(battle.EnemyHull, Is.EqualTo(originalEnemyHull - 3));
+            Assert.That(battle.EnemyHull, Is.EqualTo(originalEnemyHull), "Turn-end burn first consumes enemy guard.");
+            Assert.That(battle.EnemyBlock, Is.EqualTo(enemyGuardBeforeBurn - 3));
             Assert.That(battle.EnemyBurnTurns, Is.EqualTo(2));
             Assert.That(battle.EnemyBurnDamage, Is.EqualTo(2));
             Assert.That(RequiredResponsive<Button>("Battle Ram").interactable, Is.EqualTo(session.CanRam(out _)));

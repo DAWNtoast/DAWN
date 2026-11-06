@@ -11,7 +11,7 @@ namespace ShatteredSail.Presentation
         {
             bool boarding = battle.Stage == NavalBattleStage.Boarding;
             ConfigureBattleDefense("Player", stage, boarding ? battle.PlayerBoardingHealth : session.Hull,
-                boarding ? battle.PlayerMaxBoardingHealth : session.MaxHull, battle.PlayerBlock, boarding ? 0 : session.Armor, boarding);
+                boarding ? battle.PlayerMaxBoardingHealth : session.MaxHull, battle.PlayerBlock, boarding ? 0 : session.EffectiveArmor, boarding);
             ConfigureBattleDefense("Enemy", stage, boarding ? battle.EnemyBoardingHealth : battle.EnemyHull,
                 boarding ? battle.EnemyMaxBoardingHealth : battle.EnemyMaxHull, battle.EnemyBlock, 0, boarding);
         }
@@ -104,7 +104,7 @@ namespace ShatteredSail.Presentation
                 else
                 {
                     BattleFxGraphic shards = CreateBattleFx(hull.name + " Armor Break", stage, BattleFxKind.ArmorBreak,
-                        new Vector2(380f, 100f), BattleEffectPosition(stage, hull.rectTransform), Color.white);
+                        new Vector2(160f, 110f), BattleEffectPosition(stage, party != null ? party : hull.rectTransform), Color.white);
                     fracture = StartCoroutine(PlayBattleFx(shards, 0.42f));
                 }
             }
@@ -131,11 +131,11 @@ namespace ShatteredSail.Presentation
             if (guard != null) yield return guard;
         }
 
-        private IEnumerator ReleaseBattleCard(RectTransform card, RectTransform stage, RectTransform target, Color accent)
+        private IEnumerator ReleaseBattleCard(RectTransform card, RectTransform stage, RectTransform target, Color accent, Vector2? releasePoint = null)
         {
             if (card == null) yield break;
             Vector2 origin = BattleEffectPosition(stage, card);
-            Vector2 end = BattleEffectPosition(stage, target) + Vector2.down * 35f;
+            Vector2 end = releasePoint ?? (BattleEffectPosition(stage, target) + Vector2.down * 35f);
             Vector2 bend = (origin + end) * 0.5f + Vector2.up * 100f;
             CanvasGroup group = GetOrAddCanvasGroup(card.gameObject);
             BattleFxGraphic trail = CreateBattleFx("Battle Card Cast Trail", stage, BattleFxKind.Trail, new Vector2(180f, 65f), origin, accent);

@@ -18,6 +18,64 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest, Timeout(120000)]
+        public IEnumerator EscapeNavigation_WorkshopSubpagesReturnToHomeBeforeLeavingFacility()
+        {
+            using (var input = new EscapeNavigationKeyboard())
+            {
+                yield return EscapeNavigationLoadPort();
+                var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                decimal gold = controller.Session.ProfileGold;
+                var decks = Enum.GetValues(typeof(NavalBattleStage)).Cast<NavalBattleStage>()
+                    .ToDictionary(stage => stage, stage => controller.Session.GetBattleDeck(stage).ToArray());
+                var saves = DeckBuilderSavedProgress();
+                ClickDeckBuilderHeader("Port Hotspot CardWorkshop");
+                yield return null;
+                Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
+                Assert.That(GameObject.Find("Workshop Page Navigation"), Is.Null);
+                Assert.That(GameObject.Find("Workshop Preview Collection"), Is.Null);
+                string[] pages = { "Collection", "DeckBuilder", "Packs", "Upgrade" };
+                string[] panels = { "Workshop Collection Detail", "Deck Builder Panel", "Workshop Packs Panel", "Battle Card Upgrade Panel" };
+                for (int i = 0; i < pages.Length; i++)
+                {
+                    // Use the actual scene hit target, including the topmost UI raycast check.
+                    ClickDeckBuilderHeader("Workshop Entrance " + pages[i]);
+                    yield return null;
+                    Assert.That(GameObject.Find(panels[i]), Is.Not.Null, pages[i]);
+                    Assert.That(GameObject.Find("Workshop Home Panel"), Is.Null);
+                    ClickDeckBuilderHeader("Return To Port Hub");
+                    yield return null;
+                    Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null, pages[i]);
+                    Assert.That(GameObject.Find("Workshop Preview Collection"), Is.Null);
+                    ClickDeckBuilderHeader("Workshop Entrance " + pages[i]);
+                    yield return null;
+                    EventSystem.current.SetSelectedGameObject(null);
+                    yield return input.Press();
+                    Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null, pages[i]);
+                    Assert.That(GameObject.Find(panels[i]), Is.Null, pages[i]);
+                    Assert.That(GameObject.Find("Port Hub"), Is.Null, "The first Escape stays inside the workshop.");
+                    Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+                    foreach (NavalBattleStage stage in decks.Keys)
+                        CollectionAssert.AreEqual(decks[stage], controller.Session.GetBattleDeck(stage));
+                    CollectionAssert.AreEquivalent(saves, DeckBuilderSavedProgress(), "Browsing scene entrances must not write profile progress.");
+                }
+                yield return input.Press();
+                Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
+                ClickDeckBuilderHeader("Port Hotspot Voyage");
+                yield return null;
+                ClickDeckBuilderHeader("Configure Voyage Battle Decks");
+                yield return null;
+                Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
+                yield return input.Press();
+                Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
+                yield return input.Press();
+                Assert.That(GameObject.Find("Voyage Setup"), Is.Not.Null,
+                    "After the workshop home, Escape preserves the departure return context.");
+                Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        [UnityTest, Timeout(120000)]
         public IEnumerator EscapeNavigation_IncompleteDeckStaysUntilTenCardsThenReturnsOneLevel()
         {
             using (var input = new EscapeNavigationKeyboard())
@@ -57,8 +115,8 @@ namespace ShatteredSail.Presentation.Tests
                 AssertDeckBuilderMinimumLock(false);
                 yield return input.Press();
                 Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null);
-                Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null,
-                    "Leaving the editor returns to the workshop preview before leaving the facility.");
+                Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null,
+                    "Leaving the editor returns to the workshop home before leaving the facility.");
                 Assert.That(GameObject.Find("Port Hub"), Is.Null);
                 yield return input.Press();
                 Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
@@ -234,7 +292,7 @@ namespace ShatteredSail.Presentation.Tests
                 CollectionAssert.AreEquivalent(saved, DeckBuilderSavedProgress());
                 yield return input.Press();
                 Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null);
-                Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
+                Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
                 LogAssert.NoUnexpectedReceived();
             }
         }

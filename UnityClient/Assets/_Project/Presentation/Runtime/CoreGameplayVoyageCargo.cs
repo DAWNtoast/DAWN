@@ -73,13 +73,12 @@ namespace ShatteredSail.Presentation
             CargoRule("Voyage Cargo Header Rule", sheet, new Vector2(1160,1), new Vector2(0,304));
             Button close = CargoButton("Close Voyage Cargo", sheet, new Vector2(96,44), new Vector2(542,382), "关闭", current,
                 () => CloseVoyageCargo(true));
-            MarketShopSkin.ApplyTextButton(close);
             voyageCargoBasicTab = CargoButton("Voyage Cargo Basic Tab", sheet, new Vector2(220,44), new Vector2(-322,266), "普通物品", current,
                 () => SwitchVoyageCargoTab(false));
             voyageCargoSpecialTab = CargoButton("Voyage Cargo Special Tab", sheet, new Vector2(220,44), new Vector2(-78,266), "特殊物品", current,
                 () => SwitchVoyageCargoTab(true));
-            MarketShopSkin.SetMode(voyageCargoBasicTab, !voyageCargoSpecial);
-            MarketShopSkin.SetMode(voyageCargoSpecialTab, voyageCargoSpecial);
+            WoodButtonSkin.SetSelected(voyageCargoBasicTab, !voyageCargoSpecial);
+            WoodButtonSkin.SetSelected(voyageCargoSpecialTab, voyageCargoSpecial);
             voyageCargoList = CreateRect("Voyage Cargo List", sheet, new Vector2(790,584), new Vector2(-200,-62));
             BuildVoyageCargoGrid();
             CargoRule("Voyage Cargo Details Divider", sheet, new Vector2(1,642), new Vector2(217,-33));
@@ -103,8 +102,8 @@ namespace ShatteredSail.Presentation
         {
             if (voyageCargoCurrent == null || !voyageCargoCurrent() || voyageCargoSpecial == special) return;
             voyageCargoSpecial = special;
-            MarketShopSkin.SetMode(voyageCargoBasicTab, !special);
-            MarketShopSkin.SetMode(voyageCargoSpecialTab, special);
+            WoodButtonSkin.SetSelected(voyageCargoBasicTab, !special);
+            WoodButtonSkin.SetSelected(voyageCargoSpecialTab, special);
             BuildVoyageCargoGrid();
             SelectVoyageCargoItem(null, true);
             if (!Application.isPlaying) SetEditorPreviewFlags(voyageCargoOverlay);
@@ -198,7 +197,7 @@ namespace ShatteredSail.Presentation
 
         private void StyleVoyageCargoSlot(Button button, bool selected)
         {
-            MarketShopSkin.ApplyLightButton(button, selected);
+            MarketShopSkin.ApplyChoiceRow(button, selected);
             foreach (Text label in button.GetComponentsInChildren<Text>(true))
                 if (label.name.StartsWith("Voyage Cargo Metric Caption", StringComparison.Ordinal) ||
                     label.name.StartsWith("Voyage Cargo Item Volume", StringComparison.Ordinal))
@@ -263,7 +262,6 @@ namespace ShatteredSail.Presentation
             Text warning = CargoLabel("Voyage Cargo Discard Warning",details,new Vector2(310,44),new Vector2(0,-207),17,
                 "",Html("#87543A"));
             Button confirm = CargoButton("Confirm Voyage Cargo Discard",details,new Vector2(310,52),new Vector2(0,-262),"确认舍弃",viewCurrent, null);
-            MarketShopSkin.SetMode(confirm, true);
             voyageCargoBindSelection = (item, current) =>
             {
                 int available = session.GetWarehouseCargoAmount(item.Key);
@@ -349,7 +347,6 @@ namespace ShatteredSail.Presentation
         {
             Button button = CreateButton(name,parent,size,position,Html("#765133"),Ink,20);
             button.GetComponentInChildren<Text>().text = caption;
-            MarketShopSkin.ApplyLightButton(button);
             BindVoyageCargoButton(button, current, action);
             button.gameObject.AddComponent<PortSettingsCancelHandler>().OnCancelRequested =
                 () => { if (current()) CloseVoyageCargo(true); };

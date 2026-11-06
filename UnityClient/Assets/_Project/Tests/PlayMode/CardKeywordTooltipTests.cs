@@ -50,7 +50,7 @@ namespace ShatteredSail.Presentation.Tests
         [Test]
         public void EntriesShowOnlyKeywordAndMeaningInSeparateNonInteractivePanels()
         {
-            var entries = CoreBattleCardKeywordText.Build(null, "获得 6 点格挡；抽 1 张牌；额外装药：5；施加 3 层灼烧。");
+            var entries = CoreBattleCardKeywordText.Build(null, "获得 6 点格挡；抽 1 张牌；额外装药：5；施加 3 层燃烧。");
             RectTransform tooltip = CardKeywordTooltip.Create(card, "Test Keywords", entries, font);
             Assert.That(tooltip, Is.Not.Null);
             Assert.That(tooltip.gameObject.activeSelf, Is.False);
@@ -104,7 +104,7 @@ namespace ShatteredSail.Presentation.Tests
         [Test]
         public void TooltipStaysInsideViewportAtUpperAndLowerEdgesAndRefreshesEntries()
         {
-            RectTransform tooltip = MakeTooltip("额外装药：5；施加 3 层灼烧；获得 2 层连锁；法力：3。");
+            RectTransform tooltip = MakeTooltip("额外装药：5；施加 3 层燃烧；获得 2 层连锁；施加浸油。");
             tooltip.gameObject.SetActive(true);
             CardKeywordTooltip component = tooltip.GetComponent<CardKeywordTooltip>();
             foreach (Vector2 position in new[] { new Vector2(650f, 450f), new Vector2(-650f, -450f) })
@@ -146,6 +146,45 @@ namespace ShatteredSail.Presentation.Tests
             hover.enabled = false;
             Assert.That(tooltip.gameObject.activeSelf, Is.False);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [TestCase(2560f, 1080f)]
+        [TestCase(1920f, 1536f)]
+        public void FullWindowCardsUseExpandedCanvasAndReturnToFixedViewport(float width, float height)
+        {
+            viewport.sizeDelta = new Vector2(width, height);
+            var fixedViewport = new GameObject(FixedGameViewport.Name, typeof(RectTransform)).GetComponent<RectTransform>();
+            fixedViewport.SetParent(viewport, false);
+            fixedViewport.sizeDelta = FixedGameViewport.ReferenceSize;
+            card.localScale = Vector3.one * .5f;
+            card.anchoredPosition = new Vector2(viewport.rect.xMax - 120f, viewport.rect.yMax - 140f);
+            RectTransform tooltip = MakeTooltip();
+            tooltip.gameObject.SetActive(true);
+            CardKeywordTooltip component = tooltip.GetComponent<CardKeywordTooltip>();
+            component.RefreshPosition();
+
+            Rect expanded = BoundsIn(tooltip, viewport);
+            Assert.That(expanded.xMin, Is.GreaterThanOrEqualTo(viewport.rect.xMin + 7f));
+            Assert.That(expanded.xMax, Is.LessThanOrEqualTo(viewport.rect.xMax - 7f));
+            Assert.That(expanded.yMin, Is.GreaterThanOrEqualTo(viewport.rect.yMin + 7f));
+            Assert.That(expanded.yMax, Is.LessThanOrEqualTo(viewport.rect.yMax - 7f));
+            Assert.That(expanded.width, Is.EqualTo(CardKeywordTooltip.Width).Within(.1f));
+            if (width > FixedGameViewport.ReferenceSize.x)
+                Assert.That(expanded.xMax, Is.GreaterThan(fixedViewport.rect.xMax),
+                    "A full-window card's glossary can use the extra width instead of clamping to the old viewport.");
+            else
+                Assert.That(expanded.yMax, Is.GreaterThan(fixedViewport.rect.yMax),
+                    "A full-window card's glossary can use the extra height instead of clamping to the old viewport.");
+
+            card.SetParent(fixedViewport, false);
+            card.anchoredPosition = new Vector2(650f, 450f);
+            component.RefreshPosition();
+            Rect restored = BoundsIn(tooltip, fixedViewport);
+            Assert.That(restored.xMin, Is.GreaterThanOrEqualTo(fixedViewport.rect.xMin + 7f));
+            Assert.That(restored.xMax, Is.LessThanOrEqualTo(fixedViewport.rect.xMax - 7f));
+            Assert.That(restored.yMin, Is.GreaterThanOrEqualTo(fixedViewport.rect.yMin + 7f));
+            Assert.That(restored.yMax, Is.LessThanOrEqualTo(fixedViewport.rect.yMax - 7f),
+                "Returning the same card to a normal facility restores the fixed viewport bounds.");
         }
 
         [Test]

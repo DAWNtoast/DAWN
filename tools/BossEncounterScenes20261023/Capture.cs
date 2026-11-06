@@ -78,8 +78,8 @@ namespace ShatteredSail.BossSceneReview
                 }
                 else
                 {
-                    TreasureBattleStory story = CoreTreasureStoryCatalog.FindBattle(frame.encounterId);
-                    Invoke(controller, "BuildTreasureStoryOverlay", CoreTreasureStoryCatalog.Chapters[0], story, "boss-scene-review");
+                    LegendaryFleetComicStory story = LegendaryFleetComicCatalog.Find(frame.encounterId);
+                    Invoke(controller, "BuildTreasureStoryOverlay", story.Before.ImageResource, "boss-scene-review");
                 }
                 Field(controller, "editorPreviewBuilding", false);
                 Canvas canvas = host.GetComponentsInChildren<Canvas>(true).Single(c => c.name == CoreGameplayDemoController.EditorPreviewCanvasName);
@@ -104,9 +104,12 @@ namespace ShatteredSail.BossSceneReview
                     foreach (Text text in canvas.GetComponentsInChildren<Text>(true)) text.SetAllDirty();
                     Canvas.ForceUpdateCanvases(); camera.Render();
                 }
-                RawImage art = host.GetComponentsInChildren<RawImage>(false).Single(a => a.name == (prelude ? "Treasure Story Comic Page" : "Demo Event Art"));
+                RawImage art = host.GetComponentsInChildren<RawImage>(false).Single(a => a.name == (prelude ? "Legendary Fleet Comic Page" : "Demo Event Art"));
                 frame.texture = art.texture == null ? "MISSING" : art.texture.name;
-                frame.sourceIsScene = frame.texture == (prelude ? "scene_legendary_curse" : "scene_boss_arcane");
+                frame.sourceIsScene = prelude
+                    ? art.texture == Resources.Load<Texture2D>(LegendaryFleetComicCatalog.Find(frame.encounterId).Before.ImageResource) &&
+                        art.uvRect == ComicPanelCatalog.QuadPanel(0)
+                    : frame.texture == "scene_boss_arcane";
                 frame.visibleUv = art.uvRect; frame.canvasPixels = canvas.pixelRect;
                 frame.noSeparateShipLayer = !host.GetComponentsInChildren<Transform>(false).Any(t => t.name == "Treasure Legendary Ship");
                 if (!frame.sourceIsScene || !frame.noSeparateShipLayer || Mathf.Abs(canvas.pixelRect.width - 1920) > 1)

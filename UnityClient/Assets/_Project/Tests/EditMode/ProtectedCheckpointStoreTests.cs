@@ -44,6 +44,21 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
+        public void OversizedUtf8EnvelopeReturnsAnErrorAndPreservesTheCheckpoint()
+        {
+            Save("original");
+            byte[] primary = File.ReadAllBytes(store.PrimaryPath);
+            byte[] backup = File.ReadAllBytes(store.PrimaryPath + ".bak1");
+            // These characters occupy exactly 64 MiB in Base64, before the envelope header.
+            string oversized = new string('航', 16 * 1024 * 1024);
+            Assert.That(store.TrySave(oversized, out string error), Is.False);
+            Assert.That(error, Does.Contain("超出"));
+            Assert.That(File.ReadAllBytes(store.PrimaryPath), Is.EqualTo(primary));
+            Assert.That(File.ReadAllBytes(store.PrimaryPath + ".bak1"), Is.EqualTo(backup));
+            Assert.That(Load(), Is.EqualTo("original"));
+        }
+
+        [Test]
         public void FirstSaveAlreadyHasRecoverableSameGenerationBackup()
         {
             Save("first-voyage");

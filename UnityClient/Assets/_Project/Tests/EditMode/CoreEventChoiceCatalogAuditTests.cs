@@ -38,7 +38,7 @@ namespace ShatteredSail.Core.Tests
                 {
                     string key = entry.Context + "/" + entry.Event.Id + "/" + choice.Label;
                     Assert.That(choice.Label, Is.Not.Null.And.Not.Empty, key);
-                    Assert.That(choice.Detail, Is.Not.Null.And.Not.Empty, key);
+                    Assert.That(choice.Detail, Is.Not.Null, key);
                     Assert.That(double.IsNaN(choice.Hours) || double.IsInfinity(choice.Hours), Is.False, key);
                     Assert.That(choice.Hours, Is.GreaterThanOrEqualTo(0), key);
                     Assert.That(choice.Effect.SailingBoostHours, Is.InRange(0d, 24d), key);
@@ -51,6 +51,8 @@ namespace ShatteredSail.Core.Tests
                         .Select(p => p.Name + "=" + p.GetValue(choice)));
                     string effects = string.Join(";", typeof(VoyageEffect).GetProperties().Where(p => Meaningful(p.GetValue(choice.Effect)))
                         .Select(p => p.Name + "=" + Convert.ToString(p.GetValue(choice.Effect), CultureInfo.InvariantCulture)));
+                    if (choice.StartsBattle || effects.Length > 0)
+                        Assert.That(choice.Detail, Is.Not.Empty, key);
                     string quote = choice.StartsBattle ? CoreBattleRewardDescriptions.Victory(entry.Event.BossKind != CoreBossKind.None ||
                         entry.Event.Id == CoreGuidedTutorialContent.BossEventId, choice.Effect) : string.Empty;
                     csv.AppendLine(string.Join(",", new[] { entry.Group, entry.Context, entry.Event.Id, entry.Event.Name,
@@ -138,7 +140,7 @@ namespace ShatteredSail.Core.Tests
             Entry entry = Current().Single(e => e.Event.Id == id);
             CoreEncounterChoice choice = entry.Event.Choices[index];
             CoreVoyageSession session = Ready(entry, choice);
-            Assert.That(choice.Detail, Does.Contain("击沉：金币 +100").And.Contain("夺船×2：金币 +200"));
+            Assert.That(choice.Detail, Does.Contain("击沉：金币 +100").And.Contain("夺船×1.25：金币 +125"));
             Assert.That(choice.Detail, Does.Not.Contain("宝石 +1").And.Not.Contain("古代材料 +1").And.Not.Contain("另计基础"));
             if (id == "event_trade_merchant_distress")
                 Assert.That(choice.Detail, Does.Contain("商队互助凭证").And.Contain("香料沉船"));

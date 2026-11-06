@@ -59,15 +59,7 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(session.TryObserveGuidedBossBlockedCard(ExpectedHand(session), out reason), Is.True, reason); break;
                 case GuidedBossActionKind.EndTurn: Assert.That(session.EndBattleTurn(), Is.True); break;
                 case GuidedBossActionKind.Movement:
-                    var p = session.Battle.PlayerPositionMeters;
-                    if (session.GuidedBossStep == GuidedBossBattleStep.CourseManeuver)
-                    {
-                        Append(session, new VoyagePoint(p.X + 100, p.Y));
-                        Append(session, new VoyagePoint(p.X + 100, p.Y + 100));
-                    }
-                    else if (session.GuidedBossStep == GuidedBossBattleStep.CourseGunneryMove)
-                        for (int i = 1; i <= 3; i++) Append(session, new VoyagePoint(p.X + 100 * i, p.Y));
-                    else Append(session, session.GetNavalLegalNextSteps()[0]);
+                    Append(session, session.GetNavalLegalNextSteps()[0]);
                     GuidedBossBattleStep step = session.GuidedBossStep;
                     Assert.That(session.CommitNavalMovement(out reason), Is.True, reason);
                     Assert.That(session.GuidedBossStep, Is.EqualTo(step));
@@ -108,7 +100,7 @@ namespace ShatteredSail.Core.Tests
         private static void Append(CoreVoyageSession s, VoyagePoint target) => Assert.That(s.TryAppendNavalMovementStep(target, out string reason), Is.True, reason);
 
         [TestCase(0, 0)] [TestCase(1, 0)] [TestCase(5, 3)]
-        public void SevenLessonsUseRealActionsAndOnlyFinalVictoryGrantsOneReward(int supplies, int upgrade)
+        public void ThreeTopicsUseRealActionsAndOnlyFinalVictoryGrantsOneReward(int supplies, int upgrade)
         {
             CoreVoyageSession s = StartBoss(supplies, upgrade);
             int[] decks = s.GetBattleDeck(NavalBattleStage.Naval).ToArray();
@@ -138,85 +130,116 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void ResourceAndCardInspectionsAreIdempotentAndDoNotConsumeAnything()
+        public void ShortCourseVisitsOnlyThreeTopicsThenUnlocksOrdinaryBattle()
+        {
+            var s = StartBoss();
+            GuidedBossBattleStep[] expected =
+            {
+                GuidedBossBattleStep.CourseFreeMove, GuidedBossBattleStep.CourseApproach1,
+                GuidedBossBattleStep.CourseApproach2, GuidedBossBattleStep.CourseSecondMove, GuidedBossBattleStep.CourseBasicsDone,
+                GuidedBossBattleStep.CourseBoardContact, GuidedBossBattleStep.CourseBoardDone,
+                GuidedBossBattleStep.CourseRamMove, GuidedBossBattleStep.CourseRamAction,
+                GuidedBossBattleStep.CourseRamContact, GuidedBossBattleStep.CourseRamDone,
+            };
+            for (int action = 0; action < expected.Length; action++)
+            {
+                Assert.That(s.GuidedBossStep, Is.EqualTo(expected[action]), "Unexpected lesson before action " + action);
+                CollectionAssert.Contains(new[] { GuidedBossLesson.NavalBasics,
+                    GuidedBossLesson.BoardingContact, GuidedBossLesson.RamContact }, s.GuidedBossLesson);
+                Assert.That(s.GuidedBossInspectionTopic, Is.Empty);
+                CollectionAssert.DoesNotContain(new[] { GuidedBossActionKind.Inspect,
+                    GuidedBossActionKind.BlockedCard, GuidedBossActionKind.EndTurn }, s.GuidedBossExpectedAction);
+                Advance(s);
+            }
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseFinal));
+            Assert.That(s.GuidedBossLesson, Is.EqualTo(GuidedBossLesson.FinalBattle));
+            Assert.That(s.GuidedBossExpectedAction, Is.EqualTo(GuidedBossActionKind.FreePlay));
+            Assert.That(s.GuidedBossGoalText, Is.Empty);
+            Assert.That(s.GuidedBossInstruction, Is.Empty);
+            Assert.That(s.GuidedBossLessonTitle, Is.Empty);
+            Assert.That(s.GuidedBossCanContinue, Is.False);
+            Assert.That(s.GuidedBossAllowsMovement, Is.True);
+            Assert.That(s.GuidedBossAllowsEndTurn, Is.True);
+            Assert.That(s.GuidedBossAllowsBoard, Is.True);
+            Assert.That(s.GuidedBossAllowsRam, Is.True);
+            Assert.That(s.EndBattleTurn(), Is.True);
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseFinal));
+        }
+
+        [Test]
+        public void RemovedInspectionAndWrongActionInputsNeverAdvanceOrConsumeAnything()
         {
             CoreVoyageSession s = StartBoss();
-            Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(1));
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseFreeMove));
+            Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(3));
             Assert.That(s.Battle.Energy, Is.EqualTo(3));
             string snapshot = Snapshot(s);
             for (int i = 0; i < 10; i++)
             { s.GetEnemyIntent(); s.CanPlayCard(0); s.GetNavalLegalNextSteps(); s.GetBattleCardEffects(0, NavalBattleStage.Naval); }
-            Assert.That(s.TryInspectGuidedBoss("enemy", out _), Is.False);
+            foreach (string topic in new[] { "resources", "card", "enemy", "deck" })
+                Assert.That(s.TryInspectGuidedBoss(topic, out _), Is.False);
+            Assert.That(s.TryObserveGuidedBossBlockedCard(0, out _), Is.False);
+            Assert.That(s.TryContinueGuidedBossLesson(out _), Is.False);
             Assert.That(s.PlayCard(0), Is.False);
             Assert.That(s.EndBattleTurn(), Is.False);
+            Assert.That(s.TryBoard(), Is.False);
+            Assert.That(s.TryRam(), Is.False);
             Assert.That(Snapshot(s), Is.EqualTo(snapshot));
             Advance(s);
-            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseCardInspect));
-            Assert.That(s.TryInspectGuidedBoss("resources", out _), Is.False);
-            Advance(s);
-            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseFreeMove));
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseApproach1));
+            snapshot = Snapshot(s);
+            int wrong = s.Battle.Hand.FindIndex(i => s.GetBattleCard(i).Id == "card_brace");
+            Assert.That(s.PlayCard(wrong), Is.False);
+            Assert.That(s.TryAppendNavalMovementStep(new VoyagePoint(-400f, 0f), out _), Is.False);
+            Assert.That(s.EndBattleTurn(), Is.False);
+            Assert.That(Snapshot(s), Is.EqualTo(snapshot));
             Assert.That(s.Battle.Energy, Is.EqualTo(3));
-            Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(1));
+            Assert.That(s.Battle.NavalActionPoints, Is.Zero);
         }
 
-        [TestCase(0f)] [TestCase(90f)] [TestCase(270f)]
-        public void FirstFreeMoveAcceptsAllLegalHeadingsThenCardEnablesAnotherMove(float heading)
+        [TestCase(0f, 1)] [TestCase(90f, 1)] [TestCase(270f, 1)]
+        [TestCase(0f, 2)] [TestCase(90f, 2)] [TestCase(270f, 2)]
+        public void SameNameCardsRequireAnotherCompletedMoveBeforeTheLessonFinishes(float heading, int steps)
         {
-            var s = StartBoss(); Reach(s, GuidedBossBattleStep.CourseFreeMove);
+            var s = StartBoss();
+            Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(3));
             Append(s, new VoyagePoint(-500f, 0f));
             Assert.That(s.CommitNavalMovement(out string reason), Is.True, reason);
             Assert.That(s.Battle.Energy, Is.EqualTo(3)); Assert.That(s.Battle.NavalActionPoints, Is.Zero);
             Assert.That(s.PlayCard(0), Is.False); Assert.That(s.EndBattleTurn(), Is.False);
             Assert.That(s.ConfirmNavalArrivalHeading(180f, out _), Is.False);
             Assert.That(s.ConfirmNavalArrivalHeading(heading, out reason), Is.True, reason);
+            Assert.That(s.Battle.NavalActionPoints, Is.Zero);
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseApproach1));
+            Assert.That(s.GetBattleCardEnergyCost(s.Battle.Hand[ExpectedHand(s)]), Is.Zero);
             Advance(s);
             Assert.That(s.Battle.Energy, Is.EqualTo(3)); Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(1));
-            Advance(s);
-            Assert.That(s.GuidedBossCanContinue, Is.True); Assert.That(s.Battle.NavalActionPoints, Is.Zero);
-        }
-
-        [TestCase(90f)] [TestCase(0f)] [TestCase(180f)]
-        public void MultiCellTurnLessonUsesNormalPathAndArrivalRules(float arrival)
-        {
-            var s = StartBoss(); Reach(s, GuidedBossBattleStep.CourseManeuver);
-            Append(s, new VoyagePoint(-500, 0));
-            Assert.That(s.CommitNavalMovement(out _), Is.False);
-            Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(3));
-            Assert.That(s.TryAppendNavalMovementStep(new VoyagePoint(-600, 0), out _), Is.False);
-            Append(s, new VoyagePoint(-500, 100));
-            Assert.That(s.CommitNavalMovement(out string reason), Is.True, reason);
-            Assert.That(s.ConfirmNavalArrivalHeading(270f, out _), Is.False);
-            Assert.That(s.ConfirmNavalArrivalHeading(arrival, out reason), Is.True, reason);
-            Assert.That(s.GuidedBossCanContinue, Is.True);
-        }
-
-        [Test]
-        public void GunneryUsesRepeatCostsAmmoRealPilesAndReadOnlyRangeFailure()
-        {
-            var s = StartBoss(); Reach(s, GuidedBossBattleStep.CourseRangeAttempt);
-            Assert.That(s.Battle.PlayerLoadedShot, Is.EqualTo(5));
-            string before = Snapshot(s);
-            Assert.That(s.PlayCard(ExpectedHand(s)), Is.False);
-            Assert.That(Snapshot(s), Is.EqualTo(before));
-            Advance(s); Advance(s);
-            Assert.That(s.Battle.Energy, Is.EqualTo(3)); Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(2));
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseApproach2));
             Assert.That(s.GetBattleCardEnergyCost(s.Battle.Hand[ExpectedHand(s)]), Is.EqualTo(1));
             Advance(s);
-            Assert.That(s.Battle.Energy, Is.EqualTo(2)); Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(3));
-            Advance(s); Advance(s);
-            Assert.That(s.Battle.Energy, Is.EqualTo(3)); Assert.That(s.Battle.NavalActionPoints, Is.Zero);
-            int powder = s.Cargo.Powder, balls = s.Cargo.Cannonballs;
-            Advance(s);
-            Assert.That(s.Cargo.Powder, Is.EqualTo(powder - 1)); Assert.That(s.Cargo.Cannonballs, Is.EqualTo(balls - 1));
-            Assert.That(s.Battle.PlayerLoadedShot, Is.Zero);
-            Reach(s, GuidedBossBattleStep.CourseDraw);
-            Assert.That(s.Battle.DrawPile, Is.Empty);
-            Assert.That(s.Battle.DiscardPile.Count, Is.GreaterThan(0));
-            int deckSize = s.Battle.Hand.Count + s.Battle.DrawPile.Count + s.Battle.DiscardPile.Count;
-            Advance(s);
-            Assert.That(s.GuidedBossDeckShuffles, Is.EqualTo(1));
-            Assert.That(s.Battle.Hand.Count + s.Battle.DrawPile.Count + s.Battle.DiscardPile.Count, Is.EqualTo(deckSize));
-            Assert.That(s.Battle.Hand.Count, Is.LessThanOrEqualTo(8));
+            Assert.That(s.Battle.Energy, Is.EqualTo(2)); Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(2));
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseSecondMove));
+            Assert.That(s.GuidedBossExpectedAction, Is.EqualTo(GuidedBossActionKind.Movement));
+            Assert.That(s.GuidedBossAllowsMovement, Is.True);
+            Assert.That(s.GuidedBossCanContinue, Is.False);
+            Assert.That(s.TryContinueGuidedBossLesson(out _), Is.False);
+            Assert.That(s.EndBattleTurn(), Is.False);
+            Assert.That(s.CommitNavalMovement(out _), Is.False, "A second trip must have a real route.");
+            Assert.That(s.Battle.DiscardPile.Count(i => s.GetBattleCard(i).Id == "card_approach"), Is.EqualTo(2));
+            VoyagePoint before = s.Battle.PlayerPositionMeters;
+            for (int i = 0; i < steps; i++) Append(s, s.GetNavalLegalNextSteps()[0]);
+            Assert.That(s.Battle.PlayerPositionMeters.X, Is.EqualTo(before.X));
+            Assert.That(s.Battle.PlayerPositionMeters.Y, Is.EqualTo(before.Y));
+            Assert.That(s.GuidedBossCanContinue, Is.False, "Planning alone cannot finish the lesson.");
+            Assert.That(s.CommitNavalMovement(out reason), Is.True, reason);
+            Assert.That(CoreVoyageSession.NavalGridDistance(before, s.Battle.PlayerPositionMeters), Is.EqualTo(steps));
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseSecondMove));
+            Assert.That(s.TryContinueGuidedBossLesson(out _), Is.False, "Arrival still needs an explicit heading selection.");
+            Assert.That(s.ConfirmNavalArrivalHeading(s.GetNavalArrivalHeadings()[0], out reason), Is.True, reason);
+            Assert.That(s.Battle.NavalActionPoints, Is.Zero);
+            Assert.That(s.Battle.Energy, Is.EqualTo(2));
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseBasicsDone));
+            Assert.That(s.GuidedBossCanContinue, Is.True);
         }
 
         [TestCase(90f)] [TestCase(270f)]
@@ -247,80 +270,57 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.GuidedBossCanContinue, Is.True);
         }
 
-        [Test]
-        public void FormalBoardingGateAndDelayedEffectsRunAtTheirRealTurnBoundaries()
-        {
-            var s = StartBoss(); Reach(s, GuidedBossBattleStep.CourseBoardingAttack);
-            Assert.That(s.Battle.Boarding.Initialized, Is.True);
-            int wrong = s.Battle.Hand.FindIndex(i => s.GetBattleCard(i).Id == "card_crew_guard");
-            string before = Snapshot(s);
-            Assert.That(s.PlayCard(wrong, new CoreBoardingPlayOptions()), Is.False);
-            Assert.That(Snapshot(s), Is.EqualTo(before));
-            Reach(s, GuidedBossBattleStep.CourseBandage);
-            int medicine = s.Cargo.Medicine, health = s.Battle.PlayerBoardingHealth;
-            Advance(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(Math.Min(s.Battle.PlayerMaxBoardingHealth, health + 6)));
-            Assert.That(s.Cargo.Medicine, Is.EqualTo(medicine - 1));
-            Reach(s, GuidedBossBattleStep.CourseAid);
-            health = s.Battle.PlayerBoardingHealth; medicine = s.Cargo.Medicine;
-            Advance(s);
-            Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(health));
-            Assert.That(s.Battle.Boarding.HealingTicks.Count, Is.EqualTo(1));
-            Assert.That(s.Battle.Boarding.ContinuousRecovery, Is.EqualTo(5));
-            Assert.That(s.Cargo.Medicine, Is.EqualTo(medicine - 1));
-            int enemy = s.Battle.EnemyBoardingHealth;
-            Advance(s);
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(enemy));
-            Assert.That(s.Battle.Boarding.DelayedDamage.Count, Is.EqualTo(1));
-            Advance(s);
-            Assert.That(s.Battle.Boarding.DelayedDamage, Is.Empty);
-            Assert.That(s.Battle.Boarding.HealingTicks.Count, Is.EqualTo(1));
-            Assert.That(s.Battle.Boarding.ContinuousRecovery, Is.EqualTo(4));
-            Advance(s); Advance(s);
-            Assert.That(s.Battle.Boarding.HealingTicks.Count, Is.EqualTo(1));
-            Assert.That(s.Battle.Boarding.ContinuousRecovery, Is.EqualTo(3));
-            Assert.That(s.Cargo.Medicine, Is.EqualTo(medicine - 1));
-            Assert.That(s.GuidedBossCanContinue, Is.True);
-        }
-
-        [Test]
-        public void WrongRamArrivalHeadingCanBeRecoveredThroughLegalMovesAndRealTurns()
+        [TestCase(90f)] [TestCase(270f)]
+        public void RamLessonRequiresAnExplicitEastArrivalHeadingWithoutConsumingWrongAttempts(float wrongHeading)
         {
             var s = StartBoss(); Reach(s, GuidedBossBattleStep.CourseRamMove);
             Append(s, new VoyagePoint(-100, 0));
             Assert.That(s.CommitNavalMovement(out string reason), Is.True, reason);
-            Assert.That(s.ConfirmNavalArrivalHeading(90f, out reason), Is.True, reason);
+            Assert.That(s.Battle.PlayerHeadingDegrees, Is.Zero, "Arriving east does not count as choosing east.");
+            Assert.That(s.Battle.NavalAwaitingHeadingSelection, Is.True);
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseRamMove));
+            Assert.That(s.GuidedBossGoalText, Does.Contain("选择朝东"));
+            Assert.That(s.GuidedBossInstruction, Does.Contain("选择朝东"));
+            CollectionAssert.AreEquivalent(new[] { 0f, 90f, 270f }, s.GetNavalArrivalHeadings());
+            string snapshot = Snapshot(s);
+            Assert.That(s.NavalArrivalHeadingUnavailableReason(wrongHeading), Does.Contain("朝东"));
+            Assert.That(s.ConfirmNavalArrivalHeading(wrongHeading, out reason), Is.False);
+            Assert.That(reason, Does.Contain("朝东"));
+            Assert.That(s.PlayCard(0), Is.False);
+            Assert.That(s.EndBattleTurn(), Is.False);
+            Assert.That(Snapshot(s), Is.EqualTo(snapshot));
+            Assert.That(s.NavalArrivalHeadingUnavailableReason(360f), Is.Empty);
+            Assert.That(s.ConfirmNavalArrivalHeading(360f, out reason), Is.True, reason);
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseRamAction));
+            Assert.That(s.Battle.PlayerHeadingDegrees, Is.Zero);
+            Assert.That(s.Battle.NavalActionPoints, Is.Zero);
             Advance(s);
-            Assert.That(s.GuidedBossExpectedAction, Is.EqualTo(GuidedBossActionKind.FreePlay));
-            Assert.That(s.CanRam(out _), Is.False);
-            var targets = new[] { new VoyagePoint(-100, 100), new VoyagePoint(0, 100),
-                new VoyagePoint(100, 100), new VoyagePoint(100, 0) };
-            float[] headings = { 0f, 0f, 270f, 180f };
-            for (int i = 0; i < targets.Length; i++)
-            {
-                Append(s, targets[i]);
-                Assert.That(s.CommitNavalMovement(out reason), Is.True, reason);
-                Assert.That(s.ConfirmNavalArrivalHeading(headings[i], out reason), Is.True, reason);
-                Assert.That(s.EndBattleTurn(), Is.True);
-                Assert.That(s.Battle.NavalActionPoints, Is.EqualTo(1));
-            }
             Assert.That(s.CanRam(out reason), Is.True, reason);
             Assert.That(s.TryRam(), Is.True);
             Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseRamDone));
         }
 
         [Test]
-        public void CourseCannonAndArmorQuotesUseFormalEquipmentRules()
+        public void FinalBattleCannonAndArmorQuotesUseFormalEquipmentRules()
         {
-            var s = StartBoss(); Reach(s, GuidedBossBattleStep.CourseFire);
-            CoreBattleCard card = s.GetBattleCard(s.Battle.Hand[ExpectedHand(s)]);
-            int quoted = card.Damage + Math.Max(0, (s.EffectiveFirepower - 8) / 2) + s.PlayerLoadedShotDamageBonus;
+            var s = StartBoss(); Reach(s, GuidedBossBattleStep.CourseFinal);
+            int load = s.Battle.Hand.FindIndex(i => s.GetBattleCard(i).Id == "card_load_shot");
+            Assert.That(s.PlayCard(load), Is.True);
+            Assert.That(s.EndBattleTurn(), Is.True);
+            typeof(CoreBattleState).GetMethod("SetTacticalPose", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(s.Battle, new object[] { true, new VoyagePoint(-300f, 0f), 0f });
+            int cannon = s.Battle.Hand.FindIndex(i => s.GetBattleCard(i).Id == "card_chain_shot");
+            CoreBattleCard card = s.GetBattleCard(s.Battle.Hand[cannon]);
+            Assert.That(s.EffectiveFirepower, Is.EqualTo(36));
+            Assert.That(card.Damage, Is.EqualTo(10));
+            int quoted = 34 + s.PlayerLoadedShotDamageBonus; // 10 × 340%, loading remains flat.
             Assert.That(s.GetBattleCardDamage(card, NavalBattleStage.Naval), Is.EqualTo(quoted));
-            Reach(s, GuidedBossBattleStep.CourseEnemyTurn);
-            int rawAfterArmor = Math.Max(1, 12 - Math.Max(0, (s.EffectiveArmor - 4) / 2));
+            s.Battle.EnemyLoadedShot = 5; // The normal 7-damage cannon plus loading gives raw 12.
+            Assert.That(s.EffectiveArmor, Is.EqualTo(32));
+            const int rawAfterArmor = 6; // Armor retains at least 50% of raw 12, before guard.
             int block = s.Battle.PlayerBlock, hull = s.Hull;
             Assert.That(s.GetEnemyIntent(), Does.Contain("炮击：伤害 " + rawAfterArmor + "（装甲后、格挡前）"));
-            Advance(s);
+            Assert.That(s.EndBattleTurn(), Is.True);
             Assert.That(hull - s.Hull, Is.EqualTo(Math.Max(0, rawAfterArmor - block)));
         }
 
@@ -330,7 +330,7 @@ namespace ShatteredSail.Core.Tests
             var s = StartBoss();
             int entryMorale = s.Morale;
             Reach(s, GuidedBossBattleStep.CourseRamMove);
-            Assert.That(s.Morale, Is.EqualTo(entryMorale), "Earlier cannon practice must not carry morale into another chapter.");
+            Assert.That(s.Morale, Is.EqualTo(entryMorale), "Earlier exercises must not carry morale into another chapter.");
             for (int retry = 0; retry < 2; retry++)
             {
                 Reach(s, GuidedBossBattleStep.CourseRamDone);
@@ -346,19 +346,21 @@ namespace ShatteredSail.Core.Tests
         }
 
         [Test]
-        public void ExerciseEmergencyExitRestoresEntryMoraleAfterActualCannonGain()
+        public void ExerciseEmergencyExitRestoresEntrySuppliesAndMoraleWithoutReward()
         {
             var s = StartBoss();
             int entryMorale = s.Morale;
-            Reach(s, GuidedBossBattleStep.CourseFire);
-            Advance(s);
-            Assert.That(s.Morale, Is.EqualTo(entryMorale + 2));
+            Reach(s, GuidedBossBattleStep.CourseBasicsDone);
             s.Cargo.Water = s.Cargo.Food = 0;
             Assert.That(s.CanRequestEmergencyTow(), Is.True);
             Assert.That(s.RequestEmergencyTow(), Is.True);
             Assert.That(s.Phase, Is.EqualTo(CoreDemoPhase.Settlement));
             Assert.That(s.Settlement.Outcome, Is.EqualTo(VoyageOutcome.Failure));
             Assert.That(s.Morale, Is.EqualTo(entryMorale));
+            Assert.That(s.Cargo.Powder, Is.EqualTo(5));
+            Assert.That(s.Cargo.Cannonballs, Is.EqualTo(5));
+            Assert.That(s.Cargo.Medicine, Is.EqualTo(5));
+            Assert.That(s.Cargo.Wood, Is.EqualTo(5));
             Assert.That(s.GuidedTutorialBossDefeated, Is.False);
             Assert.That(s.VoyageTreasureFragments, Is.Zero);
             s.ReturnToPortAfterSettlement();
@@ -412,7 +414,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Phase, Is.EqualTo(CoreDemoPhase.Battle));
             Assert.That(s.GuidedBossExerciseFailed, Is.True);
             Assert.That(s.TryContinueGuidedBossLesson(out _), Is.True);
-            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseResources));
+            Assert.That(s.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseFreeMove));
             Assert.That(s.VoyageTreasureFragments, Is.Zero);
             Reach(s, GuidedBossBattleStep.CourseFinal);
             Assert.That(s.TryRestartGuidedBossLesson(out _), Is.False);

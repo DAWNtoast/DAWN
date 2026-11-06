@@ -27,9 +27,9 @@ namespace ShatteredSail.Presentation
             float firstX = Mathf.Floor((area.xMin - origin.x) / cellSize) * cellSize + origin.x;
             float firstY = Mathf.Floor((area.yMin - origin.y) / cellSize) * cellSize + origin.y;
             for (float x = firstX; x <= area.xMax; x += cellSize)
-                NavalTacticalTrackGraphic.AddLine(helper, new Vector2(x, area.yMin), new Vector2(x, area.yMax), 1.25f, color);
+                NavalTacticalTrackGraphic.AddLine(helper, new Vector2(x, area.yMin), new Vector2(x, area.yMax), 1f, color);
             for (float y = firstY; y <= area.yMax; y += cellSize)
-                NavalTacticalTrackGraphic.AddLine(helper, new Vector2(area.xMin, y), new Vector2(area.xMax, y), 1.25f, color);
+                NavalTacticalTrackGraphic.AddLine(helper, new Vector2(area.xMin, y), new Vector2(area.xMax, y), 1f, color);
         }
     }
 }

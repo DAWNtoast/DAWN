@@ -76,7 +76,7 @@ namespace ShatteredSail.Core.Tests
 
 
         [Test]
-        public void BoardingVictoryDoublesRoundedGoldAndFameWithoutLoadingPhysicalLoot()
+        public void BoardingVictoryAddsOneQuarterToNavalGoldAndFameWithoutLoadingPhysicalLoot()
         {
             CoreVoyageSession session = Battle(false);
             int gold = session.Cargo.Gold;
@@ -92,8 +92,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.EndBattleTurn(), Is.True);
 
             Assert.That(session.LastBattleWasCaptured, Is.True);
-            Assert.That(session.Cargo.Gold - gold, Is.EqualTo(800)); // round(429.064 / 100) * 100 * 2.
-            Assert.That(session.Cargo.Fame - fame, Is.EqualTo(20));
+            Assert.That(session.Cargo.Gold - gold, Is.EqualTo(500)); // round(429.064 / 100) * 100 * 1.25.
+            Assert.That(session.Cargo.Fame - fame, Is.EqualTo(12));
             Assert.That(session.Cargo.Water, Is.EqualTo(water));
             Assert.That(session.Cargo.Wood, Is.EqualTo(wood));
             Assert.That(session.Cargo.Iron, Is.EqualTo(iron));
@@ -101,7 +101,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Cargo.AncientMaterial, Is.Zero);
             Assert.That(session.Cargo.Relic, Is.Zero);
             Assert.That(session.Cargo.BlackPearl, Is.Zero);
-            Assert.That(session.LogEntries.Any(line => line.Contains("夺船胜利") && line.Contains("夺船奖励×2")), Is.True);
+            Assert.That(session.LogEntries.Any(line => line.Contains("夺船胜利") && line.Contains("夺船奖励×1.25")), Is.True);
         }
         private static PropertyInfo[] ResourceProperties() => typeof(VoyageCargo).GetProperties()
 

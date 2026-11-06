@@ -1,3 +1,4 @@
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -5,13 +6,14 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
-        // All three pages share one cabinet opening, summary strip and table grid.
+        // All three pages share one cabinet opening and summary strip.
         // Keep these measurements together so a tab cannot acquire a wider header.
         private const float WarehouseLedgerWidth = 596f;
+        private static readonly Vector2 WarehouseCargoTileSize = new Vector2(188f, 168f);
+        private const float WarehouseCargoGridTop = 210f;
+        private const float WarehouseCargoRowGap = 12f;
         private static readonly Vector2 WarehouseSummarySize = new Vector2(WarehouseLedgerWidth, 76f);
         private static readonly Vector2 WarehouseSummaryPosition = new Vector2(0f, 254f);
-        private static readonly float[] WarehouseCargoColumnX = { -195f, -30f, 98f, 231f };
-        private static readonly float[] WarehouseCargoColumnWidths = { 206f, 124f, 132f, 134f };
         private static readonly Color WarehousePaperRuleColor = new Color(.48f, .36f, .22f, .42f);
         private WarehouseRoomTheme WarehouseRoomTheme => WarehouseRoomArtCatalog.ForPort(CurrentWarehousePort);
 
@@ -27,34 +29,37 @@ namespace ShatteredSail.Presentation
             return summary;
         }
 
-        private void BuildWarehouseCargoSummary(RectTransform ledger, string name, string title)
+        private void BuildWarehouseCargoLocationSelector(RectTransform ledger)
         {
             RectTransform summary = BuildWarehouseSummary(ledger);
-            Text heading = WarehouseLabel(name, summary, new Vector2(264f, 52f),
-                new Vector2(-149f, 0f), 20, title, WarehouseRoomTheme.Brass);
-            heading.alignment = TextAnchor.MiddleLeft;
-            heading.resizeTextForBestFit = true;
-            heading.resizeTextMinSize = 16;
-            heading.resizeTextMaxSize = 20;
-            Text capacity = WarehouseLabel("Warehouse Cargo Capacity", summary, new Vector2(292f, 30f),
-                new Vector2(136f, 15f), 18, "随船货舱 " + WarehouseVolume(session.Cargo.UsedVolume) +
-                " / " + WarehouseVolume(session.CargoCapacityValue), WarehouseRoomTheme.Ink);
-            capacity.alignment = TextAnchor.MiddleRight;
-            capacity.resizeTextForBestFit = true;
-            capacity.resizeTextMinSize = 14;
-            capacity.resizeTextMaxSize = 18;
-            const float trackWidth = 286f;
-            Image track = WarehouseImage("Warehouse Cargo Capacity Track", summary,
-                new Vector2(trackWidth, 10f), new Vector2(136f, -15f), new Color(.76f, .64f, .43f));
-            ApplyWarehousePlain(track, new Color(.76f, .64f, .43f));
-            float ratio = session.CargoCapacityValue > 0f
-                ? Mathf.Clamp01(session.Cargo.UsedVolume / session.CargoCapacityValue) : 0f;
-            float fillWidth = trackWidth * ratio;
-            Image fill = WarehouseImage("Warehouse Cargo Capacity Fill", track.transform,
-                new Vector2(fillWidth, 10f), new Vector2(-(trackWidth - fillWidth) * .5f, 0f),
-                ratio >= .95f ? new Color(.59f, .30f, .13f) : new Color(.35f, .25f, .16f));
-            ApplyWarehousePlain(fill, fill.color);
-            fill.enabled = ratio > 0f;
+            Button stored = WarehouseAction("Warehouse Inventory Location Stored", summary,
+                new Vector2(278f, 52f), new Vector2(-151f, 0f), "本港仓库",
+                () => SelectWarehouseCargoLocation(false));
+            Button carried = WarehouseAction("Warehouse Inventory Location Carried", summary,
+                new Vector2(278f, 52f), new Vector2(151f, 0f), "船舱",
+                () => SelectWarehouseCargoLocation(true));
+            WoodButtonSkin.SetSelected(stored, !warehouseViewingCarriedCargo);
+            WoodButtonSkin.SetSelected(carried, warehouseViewingCarriedCargo);
+            stored.interactable = carried.interactable = Application.isPlaying && !editorPreviewBuilding;
+        }
+
+        private void BuildWarehouseStorageHint(string name, RectTransform ledger, string value)
+        {
+            const int fontSize = 18;
+            Text hint = WarehouseLabel(name, ledger, new Vector2(WarehouseLedgerWidth, 40f),
+                new Vector2(0f, -350f), fontSize, value, WarehouseRoomTheme.Muted);
+            hint.resizeTextForBestFit = true;
+            hint.resizeTextMinSize = 14;
+            hint.resizeTextMaxSize = fontSize;
+        }
+
+        private void SelectWarehouseCargoLocation(bool carried)
+        {
+            if (!Application.isPlaying || editorPreviewBuilding || !warehouseStorageOpen ||
+                activeWarehouseCargoQuote != null || portWarehouseInventoryView == null ||
+                !portWarehouseInventoryView.gameObject.activeInHierarchy || warehouseViewingCarriedCargo == carried) return;
+            warehouseViewingCarriedCargo = carried;
+            Render();
         }
 
         private RectTransform WarehouseLinedPanel(string name, Transform parent, Vector2 size, Vector2 position)
@@ -93,26 +98,44 @@ namespace ShatteredSail.Presentation
 
         private void StyleWarehouseInventoryButton(Button button, bool selected = false)
         {
-            MarketShopSkin.ApplyLightButton(button, selected);
+            MarketShopSkin.ApplyChoiceRow(button, selected);
             button.GetComponent<Image>().raycastTarget = true;
             // The light control already owns its fine outline. Avoid layering the
             // retired heavy wood rim over its item art and labels.
         }
 
-        private void BuildWarehouseCargoGrid(RectTransform ledger, bool rare)
+        private Button BuildWarehouseCargoTile(RectTransform ledger, bool rare, int index, string key,
+            string itemName, int stored, int carried)
         {
-            float height = rare ? 470f : 508f;
-            WarehouseLinedPanel("Warehouse Cargo Table", ledger, new Vector2(WarehouseLedgerWidth, height),
-                new Vector2(0f, 210f - height * .5f));
-            // Dividers share the exact column boundaries used by both inventories.
-            float[] boundaries = { -92f, 32f, 164f };
-            foreach (float boundary in boundaries)
-            {
-                Image divider = WarehouseImage("Warehouse Cargo Divider " + boundary, ledger,
-                    new Vector2(1f, height), new Vector2(boundary, 210f - height * .5f),
-                    WarehousePaperRuleColor);
-                ApplyWarehousePlain(divider, divider.color);
-            }
+            string prefix = rare ? "Warehouse Rare" : "Warehouse Storage";
+            float halfHeight = WarehouseCargoTileSize.y * .5f;
+            Button tile = WarehouseButton(prefix + " Row " + key, ledger, WarehouseCargoTileSize,
+                new Vector2(-204f + index % 3 * 204f,
+                    WarehouseCargoGridTop - halfHeight - index / 3 * (WarehouseCargoTileSize.y + WarehouseCargoRowGap)),
+                WarehouseRoomTheme.Lining, WarehouseRoomTheme.Ink, 19);
+            tile.GetComponentInChildren<Text>().text = string.Empty;
+            StyleWarehouseInventoryButton(tile);
+            WarehouseCargoTileLabel(prefix + " Name " + key, tile.transform, new Vector2(172f, 22f),
+                new Vector2(0f, halfHeight - 18f), 18, itemName, WarehouseRoomTheme.Ink);
+            WarehouseItemIcon(prefix + " Icon " + key, tile.transform, ItemIconCatalog.ForCargo(key),
+                new Vector2(0f, 4f), 96f);
+            int amount = warehouseViewingCarriedCargo ? carried : stored;
+            Text quantity = WarehouseCargoTileLabel(prefix + " Quantity " + key, tile.transform,
+                new Vector2(152f, 24f), new Vector2(10f, -halfHeight + 20f), 22,
+                amount.ToString(CultureInfo.InvariantCulture), WarehouseRoomTheme.Ink);
+            quantity.alignment = TextAnchor.MiddleRight;
+            return tile;
+        }
+
+        private Text WarehouseCargoTileLabel(string name, Transform parent, Vector2 size, Vector2 position,
+            int fontSize, string value, Color color)
+        {
+            Text label = WarehouseLabel(name, parent, size, position, fontSize, value, color);
+            label.raycastTarget = false;
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = 11;
+            label.resizeTextMaxSize = fontSize;
+            return label;
         }
     }
 }

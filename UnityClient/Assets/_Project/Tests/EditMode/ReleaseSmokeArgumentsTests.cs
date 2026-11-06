@@ -30,6 +30,72 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
+        public void PackagedAudio_RequiresAllSceneArrangementsAndReportsEveryImportedCue()
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "ShatteredSailSmokeAudio_" + Guid.NewGuid().ToString("N"));
+            GameObject host = new GameObject("Packaged Audio Smoke Regression");
+            host.SetActive(false);
+            ReleasePlayerSmokeCheck check = host.AddComponent<ReleasePlayerSmokeCheck>();
+            try
+            {
+                Directory.CreateDirectory(directory);
+                typeof(ReleasePlayerSmokeCheck).GetField("destination", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(check, directory);
+
+                // Exercise the packaged player's real resource checks and report,
+                // including frequency and stereo validation, without launching it.
+                Call(check, "CheckPackagedAudio");
+                string[][] rows = ReadCsv(directory, "packaged-audio.csv", "group,name,frequency,channels,samples,seconds");
+                string[] music = rows.Where(row => row[0] == "Music").Select(row => row[1]).ToArray();
+                Assert.That(music.Length, Is.EqualTo(32));
+                Assert.That(music.Count(key => key == "the_captains_vow"), Is.EqualTo(1));
+                Assert.That(MenuPortMusic.Key, Is.EqualTo("captains_vow_main_menu"));
+                Assert.That(music.Where(key => key.StartsWith("captains_vow_", StringComparison.Ordinal)), Is.EquivalentTo(new[]
+                {
+                    "captains_vow_main_menu", "captains_vow_broken_anchor", "captains_vow_white_shell",
+                    "captains_vow_bronze_bell", "captains_vow_salt_crown", "captains_vow_twilight_tide",
+                    "captains_vow_gray_gull", "captains_vow_sailing", "captains_vow_naval", "captains_vow_boarding",
+                }));
+                Assert.That(music, Does.Contain("port_broken_anchor"), "Legacy port recordings remain packaged.");
+                Assert.That(rows.Select(row => row[0] + "/" + row[1]), Is.Unique);
+                Assert.That(rows.Length, Is.EqualTo(music.Length + CoreGameplayDemoController.BattleSoundEffectKeys.Count +
+                    CoreGameplayDemoController.WorldSoundEffectKeys.Count + CoreGameplayDemoController.InterfaceSoundEffectKeys.Count +
+                    CoreGameplayDemoController.AmbienceSoundEffectKeys.Count));
+                Assert.That(typeof(ReleasePlayerSmokeCheck).GetField("packagedAudioClipCount", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(check), Is.EqualTo(rows.Length));
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                if (Directory.Exists(directory)) Directory.Delete(directory, true);
+            }
+        }
+
+        [TestCase("missing-theme", "count mismatch")]
+        [TestCase("wrong-theme-name", "names do not match")]
+        [TestCase("duplicate-replaces-theme", "names do not match")]
+        [TestCase("unexpected-track", "count mismatch")]
+        public void PackagedAudio_RejectsMissingRenamedDuplicateAndExtraMusic(string mutation, string expectedFailure)
+        {
+            var actual = Resources.LoadAll<AudioClip>("Audio/Music").Select(clip => clip.name).ToList();
+            Assert.That(actual.Count, Is.EqualTo(32));
+            int themeIndex = actual.IndexOf("captains_vow_boarding");
+            Assert.That(themeIndex, Is.GreaterThanOrEqualTo(0));
+            if (mutation == "missing-theme") actual.RemoveAt(themeIndex);
+            else if (mutation == "wrong-theme-name") actual[themeIndex] = "the_captains_vow_typo";
+            else if (mutation == "duplicate-replaces-theme") actual[themeIndex] = "port_broken_anchor";
+            else actual.Add("unexpected_track");
+
+            var expected = (IReadOnlyList<string>)typeof(ReleasePlayerSmokeCheck)
+                .GetField("packagedMusicKeys", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+            MethodInfo validate = typeof(ReleasePlayerSmokeCheck).GetMethod("RequirePackagedAudioKeys", BindingFlags.Static | BindingFlags.NonPublic);
+            TargetInvocationException error = Assert.Throws<TargetInvocationException>(() =>
+                validate.Invoke(null, new object[] { "Music", actual, expected }));
+            Assert.That(error.InnerException, Is.TypeOf<InvalidOperationException>());
+            Assert.That(error.InnerException.Message, Does.Contain(expectedFailure));
+        }
+
+        [Test]
         public void PackagedSchoolCards_ReportsBaselineAndEveryUsedVariantWithoutFixedUnionCount()
         {
             string directory = Path.Combine(Path.GetTempPath(), "ShatteredSailSmokeCards_" + Guid.NewGuid().ToString("N"));

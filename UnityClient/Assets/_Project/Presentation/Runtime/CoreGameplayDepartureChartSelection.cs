@@ -24,7 +24,7 @@ namespace ShatteredSail.Presentation
         private RectTransform departureChartWarning;
         private object departureChartWarningIdentity;
         private bool DepartureChartModeActive => departureUseChartSeed && session != null &&
-            session.CanDrawSeaChart && !tutorialActive && session.SelectedTreasureMap == null && !DepartureDockTreasureModeActive;
+            session.CanUseSeaCharts && !tutorialActive && session.SelectedTreasureMap == null && !DepartureDockTreasureModeActive;
 
         private void BeginDepartureChartSelectionView()
         {
@@ -49,7 +49,7 @@ namespace ShatteredSail.Presentation
             departureChartWarningIdentity = null;
             departureTreasureSeedPicker = null;
             departureTreasureSeedPickerIdentity = null;
-            if (!session.CanDrawSeaChart || tutorialActive || session.SelectedTreasureMap != null)
+            if (!session.CanUseSeaCharts || tutorialActive || session.SelectedTreasureMap != null)
                 departureUseChartSeed = false;
             if (!DepartureChartModeActive) session.ClearChartSeedSelection();
         }
@@ -90,7 +90,7 @@ namespace ShatteredSail.Presentation
             check.raycastTarget = false;
             Text caption = CreateText("Seed Label", toggleRoot, new Vector2(450f, 34f), new Vector2(25f, 0f),
                 20, FontStyle.Bold, TextAnchor.MiddleLeft, Ink);
-            caption.text = session.CanDrawSeaChart ? "使用普通海图 · 选择已绘海图" : "普通海图 · 航海士随船可复用";
+            caption.text = session.CanUseSeaCharts ? "使用普通海图 · 选择已绘海图" : "普通海图 · 航海士随船可复用";
             caption.raycastTarget = false;
             UiLabelBacking.Apply(caption, true);
             departureChartToggle.graphic = check;
@@ -98,10 +98,10 @@ namespace ShatteredSail.Presentation
             // Toggle.OnEnable runs before its graphic is assigned. An initial
             // false-to-false assignment otherwise leaves the new checkmark visible.
             check.canvasRenderer.SetAlpha(departureChartToggle.isOn ? 1f : 0f);
-            departureChartToggle.interactable = session.CanDrawSeaChart && !tutorialActive;
+            departureChartToggle.interactable = session.CanUseSeaCharts && !tutorialActive;
             departureChartToggle.onValueChanged.AddListener(value =>
             {
-                if (!DepartureChartViewCurrent(panel, owner, revision) || !session.CanDrawSeaChart || tutorialActive) return;
+                if (!DepartureChartViewCurrent(panel, owner, revision) || !session.CanUseSeaCharts || tutorialActive) return;
                 if (value && DepartureDockTreasureModeActive)
                 {
                     LeaveDepartureDockTreasureSelection(true);
@@ -120,7 +120,7 @@ namespace ShatteredSail.Presentation
                 RefreshDepartureChartControls();
             });
             departureChartSelection = CreateRect("Departure Chart Selection", routePanel, new Vector2(1060f, 650f), Vector2.zero);
-            if (session.CanDrawSeaChart)
+            if (session.CanUseSeaCharts)
             {
                 departureChartDropdown = CreateSeedDropdown("Seed Input", departureChartSelection, new Vector2(1000f, 48f),
                     new Vector2(0f, 236f), departureChartDraft, out departureChartInput);
@@ -283,7 +283,7 @@ namespace ShatteredSail.Presentation
             if (departureChartToggle != null)
             {
                 departureChartToggle.SetIsOnWithoutNotify(mode);
-                departureChartToggle.interactable = session.CanDrawSeaChart && !tutorialActive &&
+                departureChartToggle.interactable = session.CanUseSeaCharts && !tutorialActive &&
                     (UsesDepartureDockScene || session.SelectedTreasureMap == null);
             }
             if (departureChartValidation != null)
@@ -292,7 +292,7 @@ namespace ShatteredSail.Presentation
                 departureChartValidation.color = NauticalSurfaceSkin.ReadableTextColor(departureChartValidation.transform.parent,
                     mode && !departureChartValid && !empty ? Coral : MutedInk);
                 departureChartValidation.text = tutorialActive ? "教学使用指定航程；结束后可选海图。" : mode
-                    ? departureChartValid ? "海图已确认，备好补给后出航。"
+                    ? departureChartValid ? string.Empty
                         : empty ? string.Empty : "无法出航：" + departureChartFailure
                     : string.Empty;
             }
@@ -359,7 +359,7 @@ namespace ShatteredSail.Presentation
         private bool PrepareDepartureChartForVoyage(RectTransform panel)
         {
             if (tutorialActive || session.SelectedTreasureMap != null) return true;
-            if (departureUseChartSeed && !session.CanDrawSeaChart)
+            if (departureUseChartSeed && !session.CanUseSeaCharts)
             {
                 departureUseChartSeed = false;
                 session.ClearChartSeedSelection();

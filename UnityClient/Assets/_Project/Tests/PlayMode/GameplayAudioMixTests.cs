@@ -24,6 +24,9 @@ namespace ShatteredSail.Presentation.Tests
         private AudioClip shortTestClip;
         private float savedListenerVolume;
         private bool savedListenerPause;
+        private readonly List<AudioSource> pausedExternalMenuThemes = new List<AudioSource>();
+        private int savedMenuThemeSample, savedMenuThemeLength;
+        private bool isolatedMenuThemePlayback;
 
         [SetUp]
         public void CreateIsolatedAudio()
@@ -36,32 +39,63 @@ namespace ShatteredSail.Presentation.Tests
             }
             savedListenerVolume = AudioListener.volume;
             savedListenerPause = AudioListener.pause;
-            AudioListener.pause = false;
-            host = new GameObject("Inactive Audio Test Controller");
-            host.SetActive(false);
-            controller = host.AddComponent<CoreGameplayDemoController>();
-            Assert.That(controller.Session, Is.Null, "The fixture must never activate gameplay Awake or profile persistence.");
-            SetField("session", new CoreVoyageSession());
-            audioRoot = new GameObject("Isolated Runtime Audio Sources");
-            if (Object.FindFirstObjectByType<AudioListener>() == null)
-                listenerHost = new GameObject("Isolated Test Audio Listener", typeof(AudioListener));
-            Invoke("InitializeAudioSources", audioRoot.transform);
-            // A quiet, long cue makes voice occupancy independent of asset duration changes.
-            sustainedTestClip = AudioClip.Create("Audio test sustained cue", 48000 * 4, 1, 48000, false);
-            float[] samples = new float[sustainedTestClip.samples];
-            for (int i = 0; i < samples.Length; i++) samples[i] = 0.002f * Mathf.Sin(i * (2f * Mathf.PI * 220f / 48000f));
-            sustainedTestClip.SetData(samples, 0);
+            try
+            {
+                IsolateMenuThemePlayback();
+                AudioListener.pause = false;
+                host = new GameObject("Inactive Audio Test Controller");
+                host.SetActive(false);
+                controller = host.AddComponent<CoreGameplayDemoController>();
+                Assert.That(controller.Session, Is.Null, "The fixture must never activate gameplay Awake or profile persistence.");
+                SetField("session", new CoreVoyageSession());
+                audioRoot = new GameObject("Isolated Runtime Audio Sources");
+                if (Object.FindFirstObjectByType<AudioListener>() == null)
+                    listenerHost = new GameObject("Isolated Test Audio Listener", typeof(AudioListener));
+                Invoke("InitializeAudioSources", audioRoot.transform);
+                // A quiet, long cue makes voice occupancy independent of asset duration changes.
+                sustainedTestClip = AudioClip.Create("Audio test sustained cue", 48000 * 4, 1, 48000, false);
+                float[] samples = new float[sustainedTestClip.samples];
+                for (int i = 0; i < samples.Length; i++) samples[i] = 0.002f * Mathf.Sin(i * (2f * Mathf.PI * 220f / 48000f));
+                sustainedTestClip.SetData(samples, 0);
+            }
+            catch
+            {
+                try { DestroyIsolatedAudioObjects(); }
+                finally
+                {
+                    try { RestoreAudioSettings(); }
+                    finally { RestoreMenuThemePlayback(); }
+                }
+                throw;
+            }
         }
 
         [UnityTearDown]
         public IEnumerator RestoreAudioAndSettings()
+        {
+            try
+            {
+                DestroyIsolatedAudioObjects();
+                yield return null;
+            }
+            finally
+            {
+                try { RestoreAudioSettings(); }
+                finally { RestoreMenuThemePlayback(); }
+            }
+        }
+
+        private void DestroyIsolatedAudioObjects()
         {
             if (audioRoot != null) Object.Destroy(audioRoot);
             if (host != null) Object.Destroy(host);
             if (listenerHost != null) Object.Destroy(listenerHost);
             if (sustainedTestClip != null) Object.Destroy(sustainedTestClip);
             if (shortTestClip != null) Object.Destroy(shortTestClip);
-            yield return null;
+        }
+
+        private void RestoreAudioSettings()
+        {
             foreach (string key in volumeKeys)
             {
                 if (savedVolumes.TryGetValue(key, out float volume)) PlayerPrefs.SetFloat(key, volume);
@@ -69,6 +103,59 @@ namespace ShatteredSail.Presentation.Tests
             }
             AudioListener.volume = savedListenerVolume;
             AudioListener.pause = savedListenerPause;
+        }
+
+        private static FieldInfo MenuThemeCursorField(string name) => typeof(MenuPortMusic)
+            .GetField(name, BindingFlags.Static | BindingFlags.NonPublic);
+
+        private void IsolateMenuThemePlayback()
+        {
+            // Other fixtures leave their scene loaded. Its real controller still
+            // updates this shared cursor, unlike a production single-scene handoff.
+            // Pause only its live theme voices; do not deactivate a controller or
+            // hierarchy and trigger unrelated lifecycle/profile callbacks.
+            pausedExternalMenuThemes.Clear();
+            savedMenuThemeSample = (int)MenuThemeCursorField("rememberedSample").GetValue(null);
+            savedMenuThemeLength = (int)MenuThemeCursorField("rememberedLength").GetValue(null);
+            isolatedMenuThemePlayback = true;
+            foreach (AudioSource source in Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None))
+            {
+                if (!source.isPlaying || source.clip == null ||
+                    !source.clip.name.StartsWith("captains_vow_", System.StringComparison.Ordinal)) continue;
+                pausedExternalMenuThemes.Add(source);
+                Debug.Log("AUDIO_FIXTURE_PAUSED_EXTERNAL_THEME: owner=" + source.name +
+                    ", samples=" + source.timeSamples + ", clipSamples=" + source.clip.samples);
+                source.Pause();
+            }
+            AssertExternalMenuThemesPaused();
+            typeof(MenuPortMusic).GetMethod("ResetPlayback", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+        }
+
+        private void AssertExternalMenuThemesPaused()
+        {
+            foreach (AudioSource source in pausedExternalMenuThemes)
+                if (source != null)
+                    Assert.That(source.isPlaying, Is.False,
+                        "A previous scene's music owner must stay paused while this fixture tests its own real sources.");
+        }
+
+        private void RestoreMenuThemePlayback()
+        {
+            if (!isolatedMenuThemePlayback) return;
+            try
+            {
+                MenuThemeCursorField("rememberedSample").SetValue(null, savedMenuThemeSample);
+                MenuThemeCursorField("rememberedLength").SetValue(null, savedMenuThemeLength);
+            }
+            finally
+            {
+                // UnPause preserves each source's own retained cursor; Play would
+                // restart unrelated scene music and defeat fixture restoration.
+                foreach (AudioSource source in pausedExternalMenuThemes)
+                    if (source != null) source.UnPause();
+                pausedExternalMenuThemes.Clear();
+                isolatedMenuThemePlayback = false;
+            }
         }
 
         [UnityTest]
@@ -94,7 +181,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             yield return Pump(0.4f);
             AudioSource outgoing = Field<AudioSource>("activeMusicSource");
-            Invoke("SetMusic", "route_golden_tide_trade", false);
+            Invoke("SetMusic", "captains_vow_sailing", false);
             AudioSource incoming = Field<AudioSource>("incomingMusicSource");
             yield return WaitForPlaying(incoming);
             yield return Pump(0.25f);
@@ -118,7 +205,7 @@ namespace ShatteredSail.Presentation.Tests
         {
             yield return Pump(0.4f);
             AudioSource outgoing = Field<AudioSource>("activeMusicSource");
-            Invoke("SetMusic", "route_golden_tide_trade", false);
+            Invoke("SetMusic", "captains_vow_sailing", false);
             AudioSource incoming = Field<AudioSource>("incomingMusicSource");
             Assert.That(incoming.volume, Is.Zero);
             yield return WaitForPlaying(incoming);
@@ -359,16 +446,22 @@ namespace ShatteredSail.Presentation.Tests
             while (Time.realtimeSinceStartup < end)
             {
                 yield return null;
+                AssertExternalMenuThemesPaused();
                 Invoke("UpdateMusicCrossfade");
                 Invoke("UpdateAmbience");
                 Invoke("UpdateEffectVoices");
             }
         }
 
-        private static IEnumerator WaitForPlaying(AudioSource source)
+        private IEnumerator WaitForPlaying(AudioSource source)
         {
             float deadline = Time.realtimeSinceStartup + 3f;
-            while (!source.isPlaying && Time.realtimeSinceStartup < deadline) yield return null;
+            while (!source.isPlaying && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+                AssertExternalMenuThemesPaused();
+            }
+            AssertExternalMenuThemesPaused();
             Assert.That(source.isPlaying, Is.True, "AudioSource must be playing the actual assigned clip.");
         }
 

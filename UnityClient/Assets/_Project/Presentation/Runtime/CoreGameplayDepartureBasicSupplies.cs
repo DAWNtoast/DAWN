@@ -16,7 +16,6 @@ namespace ShatteredSail.Presentation
         private object departureBasicSupplyIdentity;
         private DateTime departureBasicSupplyDisplayedDate;
         private Button departureBasicSupplyPurchase;
-        private Text departureBasicSupplyHint;
         private readonly Dictionary<PortMarketItem, int> departureBasicSupplyQuantities = new Dictionary<PortMarketItem, int>();
         private readonly Dictionary<PortMarketItem, Text> departureBasicSupplyHeld = new Dictionary<PortMarketItem, Text>();
         private readonly Dictionary<PortMarketItem, Text> departureBasicSupplyQuantityLabels = new Dictionary<PortMarketItem, Text>();
@@ -71,12 +70,12 @@ namespace ShatteredSail.Presentation
                     new Vector2(316f, 192f), new Vector2(-336f + index % 3 * 336f, 210f - index / 3 * 200f));
                 CreateItemIcon("Departure Basic Supply Icon " + key, row,
                     ItemIconCatalog.ForCargo(key), new Vector2(-107f, 42f), 72f);
-                CreateText("Departure Basic Supply Name " + key, row, new Vector2(196f, 28f),
-                    new Vector2(28f, 64f), 22, FontStyle.Bold, TextAnchor.MiddleLeft, ink).text = PortMarketCatalog.Name(item);
+                CreateText("Departure Basic Supply Name " + key, row, new Vector2(140f, 28f),
+                    new Vector2(88f, 64f), 22, FontStyle.Bold, TextAnchor.MiddleLeft, ink).text = PortMarketCatalog.Name(item);
                 departureBasicSupplyHeld[item] = BasicSupplyText("Departure Basic Supply Held " + key, row,
-                    new Vector2(196f, 24f), new Vector2(28f, 35f), 18, muted);
+                    new Vector2(140f, 24f), new Vector2(88f, 35f), 18, muted);
                 departureBasicSupplyPrices[item] = BasicSupplyText("Departure Basic Supply Unit Price " + key, row,
-                    new Vector2(196f, 24f), new Vector2(28f, 9f), 17, muted);
+                    new Vector2(140f, 24f), new Vector2(88f, 9f), 17, muted);
                 BuildDepartureBasicSupplyQuantityInput(row, item, key, identity);
                 departureBasicSupplyDecreaseTen[item] = BuildDepartureBasicSupplyStep(row, item, key, identity, -10, -132f);
                 departureBasicSupplyDecrease[item] = BuildDepartureBasicSupplyStep(row, item, key, identity, -1, -78f);
@@ -91,28 +90,26 @@ namespace ShatteredSail.Presentation
                     BasicSupplyRule("Departure Basic Supply Row Rule " + key, row,
                         new Vector2(292f, 1f), new Vector2(0f, -100f));
             }
-            departureBasicSupplyHint = BasicSupplyText("Departure Basic Supplies Hint", card,
-                new Vector2(960f, 28f), new Vector2(0f, -303f), 17, muted, TextAnchor.MiddleCenter);
             BasicSupplyRule("Departure Basic Supplies Footer Rule", card, new Vector2(976f, 1f), new Vector2(0f, -328f));
             Button recommend = CreateButton("Departure Basic Supplies Recommend", card,
                 new Vector2(280f, 44f), new Vector2(-336f, -365f), Gold, DeepSea, 20);
             recommend.GetComponentInChildren<Text>().text = "设定为推荐数量";
-            MarketShopSkin.ApplyLightButton(recommend);
+            WoodButtonSkin.ApplyAction(recommend, WoodButtonRole.Secondary);
             GameTypography.Apply(recommend.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             recommend.interactable = Application.isPlaying && !editorPreviewBuilding;
             recommend.onClick.AddListener(() => RecommendDepartureBasicSupplies(identity));
             Button close = CreateButton("Departure Basic Supplies Close", card,
                 new Vector2(200f, 44f), new Vector2(0f, -365f), Gold, DeepSea, 20);
             close.GetComponentInChildren<Text>().text = "返回出航";
-            MarketShopSkin.ApplyTextButton(close);
+            WoodButtonSkin.ApplyAction(close, WoodButtonRole.Secondary);
             GameTypography.Apply(close.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             close.onClick.AddListener(() => { if (IsDepartureBasicSupplyViewLive(identity)) CloseDepartureBasicSupplies(); });
             departureBasicSupplyPurchase = CreateButton("Departure Basic Supplies Purchase", card,
                 new Vector2(280f, 44f), new Vector2(336f, -365f), Gold, DeepSea, 20);
-            MarketShopSkin.SetMode(departureBasicSupplyPurchase, true);
+            WoodButtonSkin.ApplyAction(departureBasicSupplyPurchase, WoodButtonRole.Primary);
             GameTypography.Apply(departureBasicSupplyPurchase.GetComponentInChildren<Text>(), 20, FontStyle.Normal);
             departureBasicSupplyPurchase.onClick.AddListener(() => PurchaseDepartureBasicSupplies(identity));
-            RefreshDepartureBasicSupplies(string.Empty);
+            RefreshDepartureBasicSupplies();
         }
 
         private void BasicSupplyRule(string name, Transform parent, Vector2 size, Vector2 position)
@@ -139,7 +136,7 @@ namespace ShatteredSail.Presentation
             string action = delta < 0 ? "Decrease" : "Increase";
             Button button = CreateButton("Departure Basic Supply " + action + (batch ? " Ten " : " ") + key,
                 parent, new Vector2(batch ? 48f : 38f, 38f), new Vector2(x, -30f), Gold, DeepSea, 20);
-            MarketShopSkin.ApplyLightButton(button);
+            WoodButtonSkin.ApplyAction(button, WoodButtonRole.Secondary);
             Text label = button.GetComponentInChildren<Text>();
             label.text = delta < 0 ? batch ? "−10" : "−" : batch ? "+10" : "+";
             label.rectTransform.sizeDelta = new Vector2(batch ? 42f : 32f, 30f);
@@ -183,14 +180,13 @@ namespace ShatteredSail.Presentation
             if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long requested) || requested < 0)
             {
                 departureBasicSupplyInvalidInputs.Add(item);
-                RefreshDepartureBasicSupplies(string.Empty);
+                RefreshDepartureBasicSupplies();
                 return;
             }
             departureBasicSupplyInvalidInputs.Remove(item);
             int maximum = DepartureBasicSupplyLimit(item, MarketNow);
             departureBasicSupplyQuantities[item] = (int)Math.Min(requested, maximum);
-            RefreshDepartureBasicSupplies(requested > maximum
-                ? "本月" + PortMarketCatalog.Name(item) + "最多可购 " + maximum + "，已调整数量。" : string.Empty);
+            RefreshDepartureBasicSupplies();
         }
 
         private bool IsDepartureBasicSupplyViewLive(object identity) => identity != null &&
@@ -215,7 +211,7 @@ namespace ShatteredSail.Presentation
                 Math.Min((long)current + delta, DepartureBasicSupplyLimit(item, MarketNow)));
             departureBasicSupplyInvalidInputs.Remove(item);
             departureBasicSupplyInputs[item].SetTextWithoutNotify(departureBasicSupplyQuantities[item].ToString(CultureInfo.InvariantCulture));
-            RefreshDepartureBasicSupplies(string.Empty);
+            RefreshDepartureBasicSupplies();
         }
 
         private void RecommendDepartureBasicSupplies(object identity)
@@ -225,7 +221,6 @@ namespace ShatteredSail.Presentation
             int crew = selectedDepartureOrdinaryCrew + selectedDepartureSpecialCrew.Count;
             bool cook = HasSelectedDepartureProfession(4);
             VoyageSupplyOrder recommended = session.CreateRecommendedSupplyOrder(crew, cook);
-            var available = new VoyageSupplyOrder();
             DateTime now = MarketNow;
             departureBasicSupplyInvalidInputs.Clear();
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
@@ -233,12 +228,9 @@ namespace ShatteredSail.Presentation
             foreach (VoyageSupplyType type in CoreVoyageSession.PurchasableSupplies)
             {
                 PortMarketItem item = MaintenanceMarketItem(type);
-                available[type] = Math.Min(recommended[type], DepartureBasicSupplyLimit(item, now));
-                departureBasicSupplyQuantities[item] = available[type];
+                departureBasicSupplyQuantities[item] = Math.Min(recommended[type], DepartureBasicSupplyLimit(item, now));
             }
-            RefreshDepartureBasicSupplies(HasRecommendedSupplyShortfall(available, crew, cook)
-                ? "舱容或本月库存不足，未达到完整推荐储备；请检查续航与弹药。"
-                : "已按航程与战斗储备设定推荐数量，可继续调整。");
+            RefreshDepartureBasicSupplies();
         }
 
         private bool HasRecommendedSupplyShortfall(VoyageSupplyOrder order, int crew, bool cook)
@@ -274,7 +266,7 @@ namespace ShatteredSail.Presentation
             return cost;
         }
 
-        private void RefreshDepartureBasicSupplies(string notice)
+        private void RefreshDepartureBasicSupplies()
         {
             if (!IsDepartureBasicSupplyViewLive(departureBasicSupplyIdentity)) return;
             EnsureDepartureCrewSelection();
@@ -305,15 +297,13 @@ namespace ShatteredSail.Presentation
             decimal cost = QuoteDepartureBasicSupplies(now, out string reason);
             departureBasicSupplyPurchase.GetComponentInChildren<Text>().text = "购买 · " + PortMarketCatalog.FormatPrice(cost) + " 金";
             departureBasicSupplyPurchase.interactable = editable && cost > 0m && reason.Length == 0;
-            departureBasicSupplyHint.text = reason.Length > 0 ? reason : notice;
-            departureBasicSupplyHint.color = reason.Length > 0 ? new Color(.55f, .23f, .16f, 1f) : MarketShopSkin.MutedInk;
         }
 
         private bool RefreshDepartureBasicSupplyMonth()
         {
             if (!IsDepartureBasicSupplyViewLive(departureBasicSupplyIdentity)) return false;
             departureBasicSupplyDisplayedDate = MarketMonth(MarketNow);
-            RefreshDepartureBasicSupplies("新月报价已刷新，请确认金额后购买。");
+            RefreshDepartureBasicSupplies();
             return true;
         }
 
@@ -330,14 +320,14 @@ namespace ShatteredSail.Presentation
             decimal cost = QuoteDepartureBasicSupplies(now, out string reason);
             if (cost <= 0m || reason.Length > 0)
             {
-                RefreshDepartureBasicSupplies(reason);
+                RefreshDepartureBasicSupplies();
                 return;
             }
             var order = new Dictionary<string, int>();
             foreach (PortMarketItem item in PortMarketCatalog.AllItems) order[PortMarketCatalog.Key(item)] = departureBasicSupplyQuantities[item];
             if (!session.TryPurchaseMarketBasicSupplies(order, cost))
             {
-                RefreshDepartureBasicSupplies("采购未完成，请检查金币和船舱；未扣款。");
+                RefreshDepartureBasicSupplies();
                 return;
             }
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
@@ -350,7 +340,7 @@ namespace ShatteredSail.Presentation
             SaveProgress();
             portNotice = "基础物资已装入船舱，花费 " + PortMarketCatalog.FormatPrice(cost) + " 金币。";
             UpdatePortHeaderReadouts();
-            RefreshDepartureBasicSupplies(portNotice);
+            RefreshDepartureBasicSupplies();
             RefreshDepartureChartControls();
         }
 
@@ -370,7 +360,6 @@ namespace ShatteredSail.Presentation
             departureBasicSupplyOverlay = departureBasicSupplySetup = null;
             departureBasicSupplySession = null;
             departureBasicSupplyPurchase = null;
-            departureBasicSupplyHint = null;
             departureBasicSupplyQuantities.Clear();
             departureBasicSupplyHeld.Clear();
             departureBasicSupplyQuantityLabels.Clear();

@@ -42,7 +42,7 @@ namespace ShatteredSail.Core.Gameplay
                 case CoreNavalFieldKind.Curse: return "禁域";
                 case CoreNavalFieldKind.Tide: return "定向水流";
                 case CoreNavalFieldKind.Thunder: return "雷栅";
-                case CoreNavalFieldKind.Blood: return "血誓阵";
+                case CoreNavalFieldKind.Blood: return "血池";
                 default: throw new ArgumentOutOfRangeException(nameof(kind));
             }
         }
@@ -53,20 +53,27 @@ namespace ShatteredSail.Core.Gameplay
                 (key[0] != 'e' && key[0] != 'l') || key[1] != '0' || key[2] < '1' || key[2] > '5') return card;
             bool legendary = key[0] == 'l';
             CoreNavalFieldKind kind = Kind(card);
+            bool fire = kind == CoreNavalFieldKind.Fire;
+            bool allFriendly = fire || kind == CoreNavalFieldKind.Arcane || kind == CoreNavalFieldKind.Curse ||
+                kind == CoreNavalFieldKind.Tide || kind == CoreNavalFieldKind.Thunder || kind == CoreNavalFieldKind.Blood;
             string field = FieldName(kind);
-            string expand = "将 4 格内的己方" + field + "向无场地且无船只的相邻格扩张，最多新增 {schoolPower} 格";
-            string extend = "使至少有一格位于 4 格内的己方" + field + "整处延长 {schoolPower} 回合";
+            string expand = allFriendly ? "将所有己方" + field + "向上下左右各延伸 1 格" :
+                "将 4 格内的己方" + field + "向无场地且无船只的相邻格扩张，最多新增 {schoolPower} 格";
+            string extend = allFriendly ? "使所有己方" + field + "延长 {schoolPower} 回合" :
+                "使至少有一格位于 4 格内的己方" + field + "整处延长 {schoolPower} 回合";
             switch (key[2])
             {
                 case '1':
                     return Create(card, M.ComponentFieldExpand, legendary ? 2 : 1,
                         "范围 1-2 格：造成 {damage} 点船体伤害；获得 {block} 点格挡；" + expand + "。",
                         damage: legendary ? 13 : 7, block: legendary ? 4 : 2,
-                        power: legendary ? 4 : 2, action: A.Sabotage);
+                        power: allFriendly ? 1 : legendary ? 4 : 2, action: A.Sabotage, upgrades: allFriendly ? U.None : U.Power);
                 case '2':
                     return Create(card, M.ComponentFieldExtend, 1,
                         "获得 {block} 点格挡；抽 {draw} 张牌；获得 {navalActionPoints} 点行动点；" + extend + "。",
-                        block: legendary ? 7 : 5, draw: 1, power: legendary ? 2 : 1, movement: 20);
+                        block: legendary ? 7 : 5, draw: 1,
+                        power: kind == CoreNavalFieldKind.Tide ? legendary ? 5 : 2 :
+                            fire || kind == CoreNavalFieldKind.Curse || kind == CoreNavalFieldKind.Thunder || kind == CoreNavalFieldKind.Blood ? legendary ? 5 : 2 : legendary ? 2 : 1, movement: 20);
                 case '3':
                     return Create(card, M.ComponentFieldStrike, legendary ? 3 : 2,
                         "范围 1-4 格：造成 {damage} 点炮击伤害；敌舰位于己方" + field + "时，伤害提高 {schoolPower} 点。",
@@ -82,14 +89,22 @@ namespace ShatteredSail.Core.Gameplay
                     else if (kind == CoreNavalFieldKind.Blood)
                     {
                         secondary = legendary ? 8 : 4;
-                        shelter += "并修复 {schoolSecondary} 点船体";
+                        shelter = "获得 {block} 点格挡；直到下个己方回合开始时，免疫血池负面效果影响；" +
+                            "位于己方血池时，额外获得 {schoolPower} 点格挡并修复 {schoolSecondary} 点船体";
                     }
-                    else shelter = "获得 {block} 点格挡；直到下个己方回合开始，免疫" + field +
-                        "影响；位于己方" + field + "时，额外获得 {schoolPower} 点格挡";
+                    else if (fire) shelter = "获得 {block} 点格挡；直到下个己方回合开始时，免疫火场负面效果影响；" +
+                        "位于己方火场时，额外获得 {schoolPower} 点格挡";
+                    else if (kind == CoreNavalFieldKind.Thunder) shelter = "获得 {block} 点格挡；直到下个己方回合开始时，免疫雷栅负面效果影响；" +
+                        "位于己方雷栅时，额外获得 {schoolPower} 点格挡";
+                    else shelter = "获得 {block} 点格挡；直到下个己方回合开始时，免疫" + field +
+                        "负面效果影响；位于己方" + field + "时，额外获得 {schoolPower} 点格挡";
                     return Create(card, M.ComponentFieldShelter, legendary ? 2 : 1, shelter + "。",
                         block: legendary ? 10 : 6, power: legendary ? 10 : 6, secondary: secondary,
                         upgrades: U.Power | U.Secondary);
                 default:
+                    if (legendary && allFriendly)
+                        return Create(card, M.ComponentFieldMastery, 2,
+                            "抽 {draw} 张牌；" + expand + "。", draw: 1, power: 1, upgrades: U.None);
                     if (legendary)
                         return Create(card, M.ComponentFieldMastery, 2,
                             "抽 {draw} 张牌；" + expand + "；" + extend.Replace("{schoolPower}", "{schoolSecondary}") + "。",
@@ -102,7 +117,7 @@ namespace ShatteredSail.Core.Gameplay
                         case CoreNavalFieldKind.Curse: power = 3; pulse = "敌舰位于己方禁域时，施加 {schoolPower} 层咒印"; break;
                         case CoreNavalFieldKind.Tide: power = 6; pulse = "位于己方定向水流时，获得 {schoolPower} 点潮势"; break;
                         case CoreNavalFieldKind.Thunder: power = 2; pulse = "敌舰位于己方雷栅时，获得 {schoolPower} 层连锁"; break;
-                        default: power = 6; pulse = "位于己方血誓阵时，修复 {schoolPower} 点船体"; break;
+                        default: power = 6; pulse = "位于己方血池时，修复 {schoolPower} 点船体"; break;
                     }
                     return Create(card, M.ComponentFieldPulse, 1, "抽 {draw} 张牌；" + pulse + "。", draw: 1, power: power);
             }

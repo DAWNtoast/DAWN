@@ -1,0 +1,6 @@
+{
+  "name": "ShatteredSail.RuntimeMemory20261104.Editor",
+  "references": [],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

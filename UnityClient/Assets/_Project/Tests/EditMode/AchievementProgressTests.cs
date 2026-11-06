@@ -131,6 +131,52 @@ namespace ShatteredSail.Presentation.Tests
         }
 
         [Test]
+        public void ReadVisitedPortsCombinesTrustedEvidenceWithoutWritingOrInferringEarlierPorts()
+        {
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "铜钟港");
+            PlayerPrefs.SetInt("ShatteredSail.Achievements.Visited.v1.白贝港", 1);
+            PlayerPrefs.SetInt(CoreGameplayDemoController.PortInvestmentKey("盐冠港"), 1);
+            PlayerPrefs.SetInt("ShatteredSail.Achievements.Unlocked.v1.port_gray_gull", 1);
+            string history = JsonUtility.ToJson(new CoreCollectionProgress { visitedPorts = new[] { "暮潮港" } });
+            PlayerPrefs.SetString(CoreGameplayDemoController.CollectionProgressKey, history);
+            string[] keysBefore = AchievementCatalog.PersistenceKeys.Where(PlayerPrefs.HasKey).ToArray();
+
+            CollectionAssert.AreEqual(new[] { "白贝港", "铜钟港", "盐冠港", "暮潮港" }, AchievementCatalog.ReadVisitedPorts());
+            CollectionAssert.AreEqual(keysBefore, AchievementCatalog.PersistenceKeys.Where(PlayerPrefs.HasKey));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CollectionProgressKey), Is.EqualTo(history));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CurrentPortKey), Is.EqualTo("铜钟港"));
+        }
+
+        [TestCase("malformed")]
+        [TestCase("unsupported-version")]
+        [TestCase("unknown-boss")]
+        [TestCase("duplicate-port")]
+        [TestCase("missing-chart-endpoint")]
+        public void ReadVisitedPortsRejectsEntireInvalidCollectionRecord(string corruption)
+        {
+            PlayerPrefs.SetString(CoreGameplayDemoController.CurrentPortKey, "断锚港");
+            PlayerPrefs.SetInt("ShatteredSail.Achievements.Visited.v1.白贝港", 1);
+            var progress = new CoreCollectionProgress { visitedPorts = new[] { "盐冠港" } };
+            switch (corruption)
+            {
+                case "unsupported-version": progress.version = 999; break;
+                case "unknown-boss": progress.defeatedBossIds = new[] { "unknown-boss" }; break;
+                case "duplicate-port": progress.visitedPorts = new[] { "盐冠港", "盐冠港" }; break;
+                case "missing-chart-endpoint":
+                    progress.completedChartSeeds = new[] { CoreVoyageSession.CreateChartSeed(0, "断锚港", "盐冠港") };
+                    progress.completedRouteIds = new[] { CoreVoyageSession.Routes[0].Id };
+                    break;
+            }
+            string history = corruption == "malformed" ? "{invalid-json" : JsonUtility.ToJson(progress);
+            PlayerPrefs.SetString(CoreGameplayDemoController.CollectionProgressKey, history);
+
+            CollectionAssert.AreEqual(new[] { "断锚港", "白贝港" }, AchievementCatalog.ReadVisitedPorts());
+            Assert.That(Unlocked("port_salt_crown"), Is.False);
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CollectionProgressKey), Is.EqualTo(history));
+            Assert.That(PlayerPrefs.HasKey("ShatteredSail.Achievements.Visited.v1.盐冠港"), Is.False);
+        }
+
+        [Test]
         public void ZeroOrNegativeInvestmentKeysDoNotProveVisitsOrInvestment()
         {
             foreach (string port in Ports) PlayerPrefs.SetInt(CoreGameplayDemoController.PortInvestmentKey(port), 0);

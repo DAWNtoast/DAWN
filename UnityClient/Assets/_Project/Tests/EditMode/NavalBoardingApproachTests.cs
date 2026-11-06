@@ -57,7 +57,7 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = StartNavalBattle();
             session.Battle.Alignment = initialAlignment;
             session.Battle.PlannedBoardingApproach = NavalBoardingApproach.Alongside;
-            Play(session, "card_navigator_course");
+            Play(session, "card_special_crew_bronze_bell_navigator_vick");
             Assert.That(session.Battle.Alignment, Is.EqualTo(initialAlignment));
             Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(2));
             Assert.That(session.Battle.PlannedBoardingApproach, Is.EqualTo(NavalBoardingApproach.Alongside));
@@ -102,6 +102,7 @@ namespace ShatteredSail.Core.Tests
         {
             CoreVoyageSession session = new CoreVoyageSession();
             session.ConfigureCrewCapabilities(true, false, false, false, false, false);
+            session.ConfigureSpecialCardSources(new[] { "crew_bronze_bell_navigator_vick" }, null);
             session.SetSeed("BOARDING-APPROACH-TEST");
             session.StartVoyage();
             CoreEncounter encounter = new CoreEncounter("boarding_approach", "测试敌舰", "海战", "接舷构图测试", true, false, 1, 70);

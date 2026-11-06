@@ -29,10 +29,16 @@ namespace ShatteredSail.Editor
             if (string.IsNullOrEmpty(output) || !Path.IsPathRooted(output)) throw new ArgumentException("Supply absolute -audioAuditPath.");
             Directory.CreateDirectory(output);
             var report = new Report();
+            var inputs = new SortedDictionary<string, string>(StringComparer.Ordinal);
             foreach (string group in new[] { "Music", "BattleSfx", "WorldSfx", "InterfaceSfx", "Ambience" })
                 foreach (string file in Directory.GetFiles("Assets/_Project/Resources/Audio/" + group,"*.wav"))
+                    inputs.Add(file.Replace('\\', '/'), group);
+            if (!inputs.ContainsKey("Assets/_Project/Resources/Audio/Music/the_captains_vow.wav"))
+                throw new InvalidOperationException("The shared main-menu and port theme is missing.");
+            foreach (KeyValuePair<string, string> input in inputs)
                 {
-                    string path = file.Replace('\\','/');
+                    string path = input.Key;
+                    string group = input.Value;
                     string guid = AssetDatabase.AssetPathToGUID(path);
                     var importer = AssetImporter.GetAtPath(path) as AudioImporter;
                     if (importer == null) throw new InvalidOperationException("Missing audio importer: " + path);
@@ -70,9 +76,10 @@ namespace ShatteredSail.Editor
                         quality = settings.quality, forceToMono = importer.forceToMono,
                         normalizationPropertyFound = found, normalize = normalized });
                 }
-            if (report.clips.Count != 63) throw new InvalidOperationException("Expected all 63 audio assets; got " + report.clips.Count);
+            if (report.clips.Count != inputs.Count)
+                throw new InvalidOperationException("Expected all " + inputs.Count + " enumerated audio assets; got " + report.clips.Count);
             File.WriteAllText(Path.Combine(output,"unity-import-report.json"),JsonUtility.ToJson(report,true));
-            Debug.Log("AUDIO_QUALITY_IMPORT_OK: 63 assets, 48kHz, preserved GUIDs, stereo music/ambience and PCM one-shots.");
+            Debug.Log("AUDIO_QUALITY_IMPORT_OK: " + report.clips.Count + " assets, 48kHz, preserved GUIDs, stereo music/ambience and PCM one-shots.");
         }
 
         private static string Argument(string name)

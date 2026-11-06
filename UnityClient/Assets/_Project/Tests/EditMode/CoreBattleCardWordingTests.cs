@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
@@ -44,7 +44,7 @@ namespace ShatteredSail.Core.Tests
         [TestCase("再造成6雷霆直伤；双方受23＋4X直伤。")]
         [TestCase("消耗全部潮势，允许0；造成30+向下取整的1.5X伤害，最多48。")]
         [TestCase("仅生命不高于最大生命40%时可用；支付3生命，至少留1；恢复2能量。同名所有副本共享每回合一次。")]
-        [TestCase("150米内；获得3发附火，上限4；命中后灼烧6×2回合；持续至第2次后续己方回合开始。")]
+        [TestCase("范围1-4格；获得3层附火；施加6层燃烧；铺设持续5回合的3×3火场。")]
         public void FormattingPreservesEveryNumberAndIsIdempotent(string source)
         {
             string formatted = CoreBattleCardText.FormatEffects(source);
@@ -90,11 +90,11 @@ namespace ShatteredSail.Core.Tests
         [Test]
         public void ConditionalBonusesAreNotRewordedAsSeparateDamageEvents()
         {
-            const string source = "出牌前每有1层自燃再+2，最多+6；" +
+            const string source = "每有1层燃烧伤害+2，最多+6；" +
                 "支付前己方船体不高于最大船体40%时额外+12；第二击+4；" +
                 "下次炮击额外伤害+5；消耗1法力，伤害额外+9。";
             string formatted = Compact(CoreBattleCardText.FormatEffects(source));
-            foreach (string phrase in new[] { "每有1层自燃伤害提高2点", "40%时伤害提高12点",
+            foreach (string phrase in new[] { "每有1层燃烧伤害提高2点", "40%时伤害提高12点",
                 "第二击伤害提高4点", "下次炮击伤害提高5点", "消耗1点法力，伤害提高9点" })
                 Assert.That(formatted, Does.Contain(phrase));
             Assert.That(formatted, Does.Not.Contain("额外造成"));
@@ -175,8 +175,8 @@ namespace ShatteredSail.Core.Tests
                     }
                 }
             }
-            Assert.That(identities, Is.EqualTo(315));
-            Assert.That(records, Is.EqualTo(1023));
+            Assert.That(identities, Is.EqualTo(313));
+            Assert.That(records, Is.EqualTo(1017));
         }
 
         private static void AssertUnifiedRenderedWording(string description, string context)
@@ -187,6 +187,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(Regex.IsMatch(description, @"获得\s*\d+\s*(?:普通|蓄潮|基础)?格挡"), Is.False, context);
             Assert.That(Regex.IsMatch(description, @"(?:恢复(?:当前阶段生命|船员(?:生命)?)|修复船体)\s*\d"), Is.False, context);
             Assert.That(description, Does.Not.Contain("张牌当前阶段"), context);
+            foreach (string retiredFireKeyword in new[] { "烈焰强化", "灼烧", "燃尽", "自燃", "火场免疫" })
+                Assert.That(description, Does.Not.Contain(retiredFireKeyword), context + " retired fire keyword");
             foreach (string commonRule in new[] { "后续费用", "每一格须合法", "曼哈顿范围", "放置本身不触发",
                 "单结算链最多一次场地推动", "用于海图移动或转向", "开炮另付弹药并清空增益" })
                 Assert.That(description, Does.Not.Contain(commonRule), context);

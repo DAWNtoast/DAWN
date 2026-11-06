@@ -73,9 +73,7 @@ namespace ShatteredSail.Presentation
             returnMenuMessage = view.Message;
             returnMenuCancelButton = view.Cancel;
             returnMenuConfirmButton = view.Confirm;
-            returnMenuMessage.text = session != null && session.Phase == CoreDemoPhase.Port
-                ? "保存港口进度，下次可继续。\n未应用的设置不保存。"
-                : "保存航程，下次可继续航行。\n未应用的设置不保存。";
+            returnMenuMessage.text = string.Empty;
             int revision = ++returnMenuBindingRevision;
             view.Cancel.onClick = new Button.ButtonClickedEvent();
             view.Confirm.onClick = new Button.ButtonClickedEvent();
@@ -118,9 +116,7 @@ namespace ShatteredSail.Presentation
             returnMenuMessage.resizeTextForBestFit = true;
             returnMenuMessage.resizeTextMinSize = 16;
             returnMenuMessage.resizeTextMaxSize = 21;
-            returnMenuMessage.text = session != null && session.Phase == CoreDemoPhase.Port
-                ? "保存港口进度，下次可继续。\n未应用的设置不保存。"
-                : "保存航程，下次可继续航行。\n未应用的设置不保存。";
+            returnMenuMessage.text = string.Empty;
             returnMenuCancelButton = CreatePortSettingsButton("Cancel Return To Main Menu", card,
                 new Vector2(-205f, -126f), "取消 · 继续游戏", Html("#705136"));
             returnMenuConfirmButton = CreatePortSettingsButton("Confirm Return To Main Menu", card,

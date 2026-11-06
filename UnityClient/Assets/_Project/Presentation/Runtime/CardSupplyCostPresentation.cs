@@ -19,14 +19,7 @@ namespace ShatteredSail.Presentation
             if (CoreNavalSchoolExpansionCatalog.FindSpec(card.Id)?.WoodCost > 0) return "wood";
             if (card.SchoolEffect?.Mechanic == CoreSchoolMechanic.TideWard && card.SchoolEffect.WoodCost > 0)
                 return "wood";
-            if (card.BoardingSpec != null) return card.Repair > 0 ? "medicine" : string.Empty;
-            CoreSchoolMechanic mechanic = card.SchoolEffect?.Mechanic ?? CoreSchoolMechanic.None;
-            if (mechanic == CoreSchoolMechanic.BloodMend || mechanic == CoreSchoolMechanic.BloodDrain) return string.Empty;
-            int repair = card.Repair;
-            if (mechanic == CoreSchoolMechanic.ArcaneMend || mechanic == CoreSchoolMechanic.CurseDrain ||
-                mechanic == CoreSchoolMechanic.TideRenew || mechanic == CoreSchoolMechanic.FireHeal)
-                repair = (int)Math.Min(int.MaxValue, (long)repair + card.SchoolEffect.Power);
-            return repair > CoreBattleCardEffects.UnprovisionedRepair
+            return CoreBattleCardUpgradeStructure.HasRepairSupply(card, context)
                 ? (context == NavalBattleStage.Boarding ? "medicine" : "wood") : string.Empty;
         }
 
@@ -53,6 +46,9 @@ namespace ShatteredSail.Presentation
             if (type == "medicine" && card.BoardingSpec != null)
             {
                 if (session.Cargo.Medicine <= 0) return "0";
+                if (card.BoardingSpec.Key == "tide_11" || card.BoardingSpec.Key == "tide_12")
+                    return session.GetBattleCardEffects(card, context).MedicineCost.ToString();
+                if (card.BoardingSpec.Key == "curse_12" && session.Battle.Boarding.CurseMarks < 2) return "0";
                 // Bandaging charges only above its fallback; the other authored
                 // treatments pay on cast, including delayed and fixed healing.
                 return card.BoardingSpec.Key == "basic_06" &&

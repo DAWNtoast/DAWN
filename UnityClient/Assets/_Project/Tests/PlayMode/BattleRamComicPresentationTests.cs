@@ -97,7 +97,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(session.Battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
                     Assert.That(session.Battle.BoardingConnection, Is.EqualTo(NavalBoardingConnection.RamBowToStern));
                     Assert.That(session.Battle.BoardingInitiatedByEnemy, Is.EqualTo(enemy));
-                    Assert.That(RequiredResponsive<Text>("Battle Alignment").text, Does.Contain("船尾").And.Not.Contain("侧舷"));
+                    Assert.That(GameObject.Find("Battle Alignment"), Is.Null);
                     BoardingCinematicAssertions.AssertScene(session);
                     LogAssert.NoUnexpectedReceived();
                 }
@@ -293,6 +293,12 @@ namespace ShatteredSail.Presentation.Tests
                         // collection drops the borrowed resource cache mid-comic.
                         AssertRamComicPresentation(controller, expected, panel);
                     }
+                    if (!oppositeSide && Array.IndexOf(Environment.GetCommandLineArgs(), "-navalVisualCapturePath") >= 0)
+                    {
+                        yield return CaptureRamComicPanel(controller, timer, RamComicCatalog.ImageResource(enemy, alignment, panel));
+                        AssertRamComicPresentation(controller, expected, panel);
+                        Assert.That(RamComicCoreState(session), Is.EqualTo(committed), "Capturing the live page must not advance or recommit the action.");
+                    }
                     if ((panel == 1 || panel == 3) && !enemy && !oppositeSide)
                     {
                         timer.RestoreRemainingSeconds(.06f);
@@ -382,6 +388,33 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(RequiredResponsive<Button>("End Battle Turn").IsInteractable(), Is.True);
                 AssertResponsiveHandMatchesCore(session);
                 LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        private static IEnumerator CaptureRamComicPanel(CoreGameplayDemoController controller, ComicAutoAdvance timer, string resource)
+        {
+            // File encoding can block a frame longer than the reading interval.
+            // Only the opt-in screenshot branch excludes that tooling cost;
+            // ordinary tests keep the original realtime click/timeout path.
+            float remaining = timer.RemainingSeconds;
+            bool wasEnabled = timer.enabled;
+            timer.enabled = false;
+            try
+            {
+                int scale = Environment.GetEnvironmentVariable("COMIC_CAPTURE_4K") == "1" ? 2 : 1;
+                NavalBattleVisualCapture.Capture(controller, System.IO.Path.GetFileName(resource) + ".png",
+                    "实际撞船漫画UI · " + resource, "Battle Ram Comic Overlay", scale);
+                // Let Unity account for the blocking capture frame while this
+                // timer is disabled, then restore the precise reading remainder.
+                yield return null;
+            }
+            finally
+            {
+                if (timer != null)
+                {
+                    timer.enabled = wasEnabled;
+                    timer.RestoreRemainingSeconds(remaining);
+                }
             }
         }
 
@@ -581,7 +614,9 @@ namespace ShatteredSail.Presentation.Tests
             AssertFullscreenComicRect(page.rectTransform);
             AssertFullscreenComicRect((RectTransform)advance.transform);
 
-            Rect source = new Rect(0f, 0f, 1f, 1f);
+            // Independent expectation: padding extends only the top two rows.
+            Rect source = expectedTexture.format == TextureFormat.BC7 && expectedTexture.width == 3344 && expectedTexture.height == 1884
+                ? new Rect(0f, 0f, 1f, 1882f / 1884f) : new Rect(0f, 0f, 1f, 1f);
             float targetAspect = page.rectTransform.rect.width / page.rectTransform.rect.height;
             float sourceAspect = expectedTexture.width * source.width / (expectedTexture.height * source.height);
             Vector2 uvSize = source.size;

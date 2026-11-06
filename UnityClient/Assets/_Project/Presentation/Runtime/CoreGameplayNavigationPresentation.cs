@@ -124,7 +124,15 @@ namespace ShatteredSail.Presentation
             distance.interactable = !tutorialActive && session.Phase == CoreDemoPhase.Sailing && !navigationMotionPlaying;
             Text distanceLimit = NavigationText("Distance Limit", panel, new Vector2(438f, 18f),
                 new Vector2(169f, 68f), 14, MutedInk);
-            Text forecastText = NavigationText("Forecast", panel, new Vector2(438f, 132f), new Vector2(169f, -3f), 20, Ink, TextAnchor.UpperLeft);
+            // Keep the whole readout as one tutorial reading region. Its four
+            // metrics have independent slots; additional route notes sit below.
+            Text forecastText = NavigationText("Forecast", panel, new Vector2(438f, 150f), new Vector2(169f, -3f), 14, MutedInk, TextAnchor.LowerLeft);
+            forecastText.lineSpacing = 1.1f;
+            Text forecastTime = CreateNavigationForecastMetric(forecastText.transform, "Time", "预计时间");
+            Text forecastSpeed = CreateNavigationForecastMetric(forecastText.transform, "Speed", "航速");
+            Text forecastWater = CreateNavigationForecastMetric(forecastText.transform, "Water", "淡水消耗");
+            Text forecastFood = CreateNavigationForecastMetric(forecastText.transform, "Food", "食物消耗");
+            Text speedCaption = forecastSpeed.transform.parent.Find("Forecast Speed Label").GetComponent<Text>();
             Button detailsButton = CreateButton("Forecast Details", panel, new Vector2(116,32), new Vector2(330,120), PanelRaised, Ink, 16);
             Text detailsCaption = detailsButton.GetComponentInChildren<Text>();
             detailsCaption.text = "风流详情";
@@ -160,13 +168,14 @@ namespace ShatteredSail.Presentation
                 distanceLabel.text = targetLocked ? "锁定：" + NavigationCourseTargetName() + "\n设定 " + requested +
                     " 海里 · 本段 " + forecast.ActualDistanceNm.ToString("0") + " 海里" :
                     (session.UsesDefaultDistance ? "半日航程　" : "计划航程　") + requested + " 海里";
+                forecastTime.text = forecast == null ? "—" : forecast.Hours.ToString("0.0") + " 小时";
+                forecastSpeed.text = forecast == null ? "—" : forecast.EffectiveSpeedKnots.ToString("0.0") + " 节";
+                forecastWater.text = forecast == null ? "—" : "−" + forecast.WaterCost;
+                forecastFood.text = forecast == null ? "—" : "−" + forecast.FoodCost;
+                speedCaption.text = "航速" + (forecast != null && forecast.Rerouted ? " · 已绕岛" : "");
                 forecastText.text = forecast == null ? "无法计算航程" :
-                    "预计 " + forecast.Hours.ToString("0.0") + " 小时\n" +
-                    "航速 " + forecast.EffectiveSpeedKnots.ToString("0.0") + " 节" + (forecast.Rerouted ? " · 已绕岛" : "") + "\n" +
-                    "淡水 −" + forecast.WaterCost + "　食物 −" + forecast.FoodCost +
-                    (targetLocked ? "\n手动改航向可取消锁定" : "") +
-                    (forecast.Blocked ? "\n当前航点无可通行航线" : "") +
-                    (forecast.Clipped ? "\n边界航迹可能擦碰暗礁" : "");
+                    ((forecast.Blocked ? "\n当前航点无可通行航线" : "") +
+                    (forecast.Clipped ? "\n边界航迹可能擦碰暗礁" : "")).TrimStart('\n');
                 detailsText.text = forecast == null ? "暂无风流资料" :
                     "洋流 " + session.DirectionLabel(forecast.CurrentDirection) + " " + forecast.CurrentStrength.ToString("0.0") + " 节　·　" +
                     forecast.CurrentRelation + " " + SignedSpeed(forecast.CurrentSpeedModifier) + "\n" +
@@ -219,6 +228,15 @@ namespace ShatteredSail.Presentation
                 session.SafeReturn();
                 Render();
             });
+        }
+
+        private Text CreateNavigationForecastMetric(Transform parent, string key, string caption)
+        {
+            RectTransform metric = CreateRect("Forecast " + key, parent, new Vector2(142f, 40f), Vector2.zero);
+            NavigationText("Forecast " + key + " Label", metric, new Vector2(142f, 16f),
+                new Vector2(0f, 12f), 14, MutedInk).text = caption;
+            return NavigationText("Forecast " + key + " Value", metric, new Vector2(142f, 24f),
+                new Vector2(0f, -8f), 22, Ink);
         }
 
         private string NavigationCourseTargetName()
@@ -378,25 +396,14 @@ namespace ShatteredSail.Presentation
 
         private void BuildVoyageHeaderTime(RectTransform header)
         {
-            // VoyageTimeRibbonGraphic draws the dawn/day/dusk/night track and
-            // moving marker directly on the header, without a backing panel. Do not create
-            // an Image on the same object: Unity allows only one Graphic component
-            // per GameObject, and the old CreateFixedPanel helper already adds one.
-            // Keep established object names for preview migration and diagnostics.
-            // Only the graphical track is scaled; its date and legend remain
-            // readable, unscaled text inside the header's central tutorial-free band.
+            // Keep the authored prefab's track/readout bindings; both creation
+            // paths use the same clock layout and the persistent game calendar.
             RectTransform ribbon = CreateRect("Lookout Time Ribbon", header, new Vector2(720f, 68f),
                 new Vector2(115f, 0f));
-            RectTransform track = CreateRect("Lookout Time Track", ribbon, new Vector2(1800f, 116f), new Vector2(0f, -3f));
-            track.localScale = Vector3.one * .4f;
+            RectTransform track = CreateRect("Lookout Time Track", ribbon, new Vector2(720f, 68f), Vector2.zero);
             VoyageTimeRibbonGraphic timeline = track.gameObject.AddComponent<VoyageTimeRibbonGraphic>();
-            timeline.SetVoyageHours(session.ElapsedGameHours);
             timeline.raycastTarget = false;
-            NavigationText("Lookout Time Readout", ribbon, new Vector2(700f, 24f), new Vector2(0f, 22f), 20, Ink,
-                TextAnchor.MiddleCenter).text = "游戏 " + CoreVoyageSession.FormatGameDate(session.GameDateTime, true) + "　·　" +
-                    NavigationTimeOfDayUtility.Label(NavigationTimeOfDayUtility.FromVoyageHours(session.ElapsedGameHours));
-            NavigationText("Lookout Time Legend", ribbon, new Vector2(700f, 16f), new Vector2(0f, -26f), 12, Ink,
-                TextAnchor.MiddleCenter).text = "夜航　·　黎明　·　白昼　·　黄昏　·　夜航";
+            VoyageTimeRibbonSkin.Update(ribbon, session.GameDateTime, session.ElapsedGameHours);
         }
 
         private void BuildNavigationSupplyEndurance(RectTransform chart)

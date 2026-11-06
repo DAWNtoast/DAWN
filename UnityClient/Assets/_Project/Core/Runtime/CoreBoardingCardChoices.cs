@@ -22,6 +22,9 @@ namespace ShatteredSail.Core.Gameplay
             return card?.PowderCost ?? 0;
         }
 
+        private bool BHasPowderDiscount(CoreBattleCard card) => card?.SchoolId == "fire" && BState.FreePowderUses > 0;
+        private int BPayablePowder(CoreBattleCard card) => Math.Max(0, BRequiredPowder(card) - (BHasPowderDiscount(card) ? 1 : 0));
+
         private int BFixedAmount(CoreBattleCard card, CoreBoardingPlayOptions options) => BFixedAmount(card?.BoardingSpec?.Key, options);
         private int BFixedAmount(string key, CoreBoardingPlayOptions options)
         {
@@ -29,27 +32,25 @@ namespace ShatteredSail.Core.Gameplay
             {
                 case "fire_06": case "fire_09": return 1;
                 case "fire_07": case "fire_08": return options?.SelectionIndexes?.Count ?? 0;
-                case "fire_15": return Math.Min(4, BStackTotal(BState.SelfBurn));
+                case "fire_15": return BStackTotal(BState.SelfBurn);
+                case "fire_14": return CoreBoardingCardBalance.Cost(key);
                 case "arcane_04": case "arcane_06": case "arcane_11": return Battle.Schools.AvailableMana;
-                case "arcane_05": return Cargo.Medicine > 0 ? 2 : 0;
-                case "arcane_07": case "arcane_08": case "arcane_09": case "arcane_12": case "arcane_13": case "arcane_14": return 1;
-                case "arcane_10": case "arcane_15": return 2;
+                case "arcane_05": return Cargo.Medicine > 0 ? CoreBoardingCardBalance.Cost(key) : 0;
+                case "arcane_07": case "arcane_08": case "arcane_09": case "arcane_12": case "arcane_13": case "arcane_14": return CoreBoardingCardBalance.Cost(key);
+                case "arcane_10": case "arcane_15": return CoreBoardingCardBalance.Cost(key);
                 case "curse_11": return BState.CurseMarks;
-                case "curse_12": return Cargo.Medicine > 0 ? 2 : 0;
-                case "curse_13": return 1;
-                case "curse_14": case "curse_15": return 2;
+                case "curse_13": return CoreBoardingCardBalance.Cost(key);
                 case "tide_05": return 0;
                 case "tide_06": case "tide_07": case "tide_08": return BState.TidePower;
-                case "tide_09": return 4;
-                case "tide_10": return 2;
-                case "tide_11": return Cargo.Medicine > 0 ? 6 : 0;
-                case "tide_12": return Cargo.Medicine > 0 ? 8 : 0;
-                case "tide_13": case "tide_14": return 8;
-                case "tide_15": return 6;
-                case "thunder_09": return 2;
+                case "tide_09": return CoreBoardingCardBalance.Cost(key);
+                case "tide_10": return CoreBoardingCardBalance.Cost(key);
+                case "tide_11": return Cargo.Medicine > 0 ? CoreBoardingCardBalance.Cost(key) : 0;
+                case "tide_12": return Cargo.Medicine > 0 ? CoreBoardingCardBalance.Cost(key) : 0;
+                case "tide_13": case "tide_14": return CoreBoardingCardBalance.Cost(key);
+                case "tide_15": return CoreBoardingCardBalance.Cost(key);
                 case "thunder_13": case "thunder_14": case "thunder_15": return Battle.Schools.ThunderChain;
-                case "blood_01": case "blood_03": case "blood_04": case "blood_05": return 3;
-                case "blood_02": return 4;
+                case "blood_01": case "blood_03": case "blood_04": case "blood_05": return CoreBoardingCardBalance.Cost(key);
+                case "blood_02": return CoreBoardingCardBalance.Cost(key);
                 default: return 0;
             }
         }
@@ -100,7 +101,8 @@ namespace ShatteredSail.Core.Gameplay
                         for (int at = 0; at < CardLibrary.Count; at++)
                             if (CardLibrary[at].Id == delayed.SourceCardId) { sourceIndex = at; break; }
                         choice.Candidates.Add(new CoreBoardingChoiceCandidate { Value = i, CardIndex = sourceIndex,
-                            Label = delayed.Label + "：造成 " + delayed.Amount + " 点伤害" });
+                            Label = delayed.Label + "：造成 " + (delayed.AppliesAttachedFire
+                                ? BBoardingFieldAttackDamage(delayed.Amount) : delayed.Amount) + " 点伤害" });
                     }
                     break;
             }
@@ -138,7 +140,7 @@ namespace ShatteredSail.Core.Gameplay
             if (!HasBattleCrew(card.RequiredCrew)) return "所需船员不在队伍中";
             if (!HasBattleComponent(card.RequiredComponent)) return "所需部件未装备";
             if (BHandEnergyCost(handIndex) > Battle.Energy) return "能量不足";
-            if (BState.FreePowderUses <= 0 && BRequiredPowder(card) > Cargo.Powder) return "火药不足";
+            if (BPayablePowder(card) > Cargo.Powder) return "火药不足";
             if (card.BoardingSpec.Key == "basic_06" && SchoolPlayerHealth >= SchoolPlayerMaximum) return "当前生命已满";
             int amount = BFixedAmount(card, options);
             reason = FATUnavailableReason(card, amount);
@@ -164,7 +166,8 @@ namespace ShatteredSail.Core.Gameplay
                 int hash = 17;
                 foreach (int value in new[] { BState.Revision, Battle.Turn, Battle.Energy, Battle.PlayerBoardingHealth,
                     Battle.EnemyBoardingHealth, Battle.PlayerBlock, Battle.EnemyBlock, Cargo.Powder, Cargo.Medicine,
-                    Battle.Schools.AvailableMana, BState.CurseMarks, BState.TidePower, Battle.Schools.ThunderChain }) hash = hash * 31 + value;
+                    Battle.Schools.AvailableMana, BState.CurseMarks, Battle.BoardingEnemy.CurseMarks,
+                    Battle.Schools.EnemyCurseExecutionThresholdPercent, BState.TidePower, Battle.Schools.ThunderChain }) hash = hash * 31 + value;
                 foreach (var pile in new[] { Battle.Hand, Battle.DrawPile, Battle.DiscardPile })
                 { hash = hash * 31 + pile.Count; foreach (int value in pile) hash = hash * 31 + value; }
                 hash = hash * 31 + (int)voyageRandom.State;

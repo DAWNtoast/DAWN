@@ -151,6 +151,41 @@ namespace ShatteredSail.Presentation.Tests
             profile.AssertUnchanged();
         }
 
+        [TestCase(GuidedTutorialNavigationInputStep.Heading)]
+        [TestCase(GuidedTutorialNavigationInputStep.Sail)]
+        public void TutorialEventTargetResumePreservesPendingClickOrLockedCourse(GuidedTutorialNavigationInputStep step)
+        {
+            CoreGameplayDemoController source = CreateInactiveController(CreateVoyage(true,
+                tutorialLeg: CoreGuidedTutorialContent.NavigatorVoyageLeg));
+            WriteField(source, "tutorialActive", true);
+            WriteField(source, "guidedTutorialCheckpoint", 2);
+            WriteField(source, "guidedTutorialNavigationInputStep", step);
+            CoreMapNode target = source.Session.Map.Nodes.Single(node =>
+                node.Encounter.Id == CoreGuidedTutorialContent.NavigatorEventId);
+            if (step == GuidedTutorialNavigationInputStep.Sail) source.Session.SetCourseTo(target.Position);
+            float distanceBefore = source.Session.TotalDistanceNm;
+            Assert.That(Save(source, out string reason), Is.True, reason);
+            Assert.That(TryRead(out object record, out string notice), Is.True, notice);
+            CoreGameplayDemoController restored = CreateInactiveController(new CoreVoyageSession());
+
+            Assert.That(Restore(restored, record, out reason), Is.True, reason);
+            ControllerMethod("UpdateGuidedTutorialProgress").Invoke(restored, null);
+
+            Assert.That(restored.CurrentGuidedTutorialStep, Is.EqualTo(GuidedTutorialStep.SecondSail));
+            Assert.That(restored.CurrentGuidedTutorialNavigationInputStep, Is.EqualTo(step));
+            Assert.That(restored.Session.HasDirectCourseTarget, Is.EqualTo(step == GuidedTutorialNavigationInputStep.Sail));
+            if (step == GuidedTutorialNavigationInputStep.Sail)
+                Assert.That(restored.Session.DirectCourseTarget, Is.EqualTo(target.Position));
+            string expectedControl = step == GuidedTutorialNavigationInputStep.Heading ? "Event Node " + target.Id : "Execute Sail";
+            Assert.That((bool)ControllerMethod("GuidedTutorialAllowsControl").Invoke(restored, new object[] { expectedControl }), Is.True);
+            Assert.That((bool)ControllerMethod("GuidedTutorialAllowsControl").Invoke(restored, new object[] { "Heading East" }), Is.False);
+            Assert.That(restored.Session.TotalDistanceNm, Is.EqualTo(distanceBefore), "Resuming must neither select nor sail for the player.");
+            Assert.That(restored.Session.Cargo.Water, Is.EqualTo(source.Session.Cargo.Water));
+            Assert.That(restored.Session.Cargo.Food, Is.EqualTo(source.Session.Cargo.Food));
+            Assert.That(HasCheckpoint(), Is.False);
+            profile.AssertUnchanged();
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void LegacyAppraisalSnapshotRestoresRarityStrengthFromPhysicalLoadout(bool emptyLoadout)
@@ -269,7 +304,7 @@ namespace ShatteredSail.Presentation.Tests
             return controller;
         }
 
-        private static CoreVoyageSession CreateVoyage(bool tutorial, float bowStrength = 1f, float platingStrength = 1f)
+        private static CoreVoyageSession CreateVoyage(bool tutorial, float bowStrength = 1f, float platingStrength = 1f, int tutorialLeg = 1)
         {
             var session = new CoreVoyageSession();
             session.ConfigureBattleEquipment(bowStrength, platingStrength);
@@ -282,7 +317,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 session.ConfigureCrewCapabilities(true, false, false, false, false, false);
                 session.ConfigureSpecialCardSources(new[] { "crew_broken_anchor_navigator_lorne" }, Array.Empty<string>());
-                Assert.That(session.ConfigureGuidedTutorialVoyage(1), Is.True);
+                Assert.That(session.ConfigureGuidedTutorialVoyage(tutorialLeg), Is.True);
             }
             session.StartVoyage();
             session.Cargo.Water -= 3;

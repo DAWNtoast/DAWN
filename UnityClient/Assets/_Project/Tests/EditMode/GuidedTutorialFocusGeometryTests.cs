@@ -109,20 +109,37 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(focus.TryGetProtectedRect(surface, out _), Is.True);
         }
 
-        [Test]
-        public void TallerCanvas_ProtectsVisibleCardBelowFixedDesignSurface()
+        [TestCase(1920f, 1440f, 0f, -650f)]
+        [TestCase(2560f, 1080f, 1200f, 0f)]
+        public void ExpandedCanvas_ProtectsControlsOutsideFixedViewportAndRestoresItsClipping(
+            float width, float height, float x, float y)
         {
-            surface.sizeDelta = new Vector2(1920f, 1200f);
-            surface.gameObject.AddComponent<Canvas>();
-            Button button = NewButton(surface, new Vector2(0f, -555f), new Vector2(100f, 60f));
+            Canvas canvas = surface.gameObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            surface.sizeDelta = new Vector2(width, height);
+            RectTransform viewport = FixedGameViewport.Create(canvas);
+            Vector2 position = new Vector2(x, y);
+            Button button = NewButton(viewport, position, new Vector2(100f, 60f));
             GuidedTutorialFocusGraphic focus = NewFocus(button);
-            focus.rectTransform.anchorMin = focus.rectTransform.anchorMax = new Vector2(.5f, .5f);
-            focus.rectTransform.sizeDelta = new Vector2(1920f, 1080f);
+
+            Assert.That(focus.HasVisibleTarget, Is.False, "Ordinary pages clip controls outside the fixed viewport.");
+
+            // Equipment moves its content from the fixed game surface directly
+            // to the canvas. The old viewport remains present as a sibling.
+            button.transform.SetParent(surface, false);
+            ((RectTransform)button.transform).anchoredPosition = position;
 
             Assert.That(focus.HasVisibleTarget, Is.True);
             Assert.That(focus.TryGetProtectedRect(surface, out Rect protectedBounds), Is.True);
             AssertContains(protectedBounds, Bounds(button.transform as RectTransform));
             AssertContains(surface.rect, protectedBounds);
+
+            button.transform.SetParent(viewport, false);
+            ((RectTransform)button.transform).anchoredPosition = position;
+            Assert.That(focus.HasVisibleTarget, Is.False, "Returning to an ordinary page restores viewport clipping.");
+            Assert.That(focus.TryGetProtectedRect(surface, out _), Is.False);
+            ((RectTransform)button.transform).anchoredPosition = Vector2.zero;
+            Assert.That(focus.HasVisibleTarget, Is.True, "A control moved back inside the viewport remains teachable.");
         }
 
         [Test]

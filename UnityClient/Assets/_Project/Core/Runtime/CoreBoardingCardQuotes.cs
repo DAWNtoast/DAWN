@@ -17,45 +17,47 @@ namespace ShatteredSail.Core.Gameplay
             string key = card.BoardingSpec.Key;
             int mana = Battle.Schools.AvailableMana;
             int marks = BState.CurseMarks, tide = BState.TidePower;
-            int chain = Math.Min(6, Math.Max(0, Battle.Schools.ThunderChain));
+            int chain = Math.Max(0, Battle.Schools.ThunderChain);
             int damage = card.Damage;
             int bonus = BQuotedAttackBonus(card);
             switch (key)
             {
-                case "fire_11": damage = BValue(card, 30 + BStackTotal(BState.SelfBurn) * 2); break;
-                case "arcane_04": damage = BValue(card, 24 + 6 * mana); break;
-                case "arcane_06": damage = SchoolProduct(BValue(card, 5), 2 + mana); break;
-                case "arcane_11": damage = BValue(card, 36 + 8 * mana); break;
-                case "curse_06": damage = BValue(card, 6 + marks); break;
-                case "curse_11": damage = BValue(card, 20 + 8 * marks); break;
-                case "tide_06": damage = BValue(card, 6 + tide); break;
-                case "tide_07": damage = BValue(card, 16 + tide); break;
-                case "tide_08": damage = BValue(card, 30 + tide * 3 / 2); break;
-                case "thunder_02": damage = BValue(card, 8 + chain); break;
-                case "thunder_05": damage = BValue(card, 14 + chain); break;
-                case "thunder_11": damage = SchoolProduct(BValue(card, 3 + chain), 2); break;
-                case "thunder_13": damage = BValue(card, 20 + 5 * chain); break;
-                case "thunder_14": damage = BValue(card, 16 + 4 * chain); break;
-                case "thunder_15": damage = BValue(card, 28 + 6 * chain); break;
+                case "fire_11": damage = CoreBoardingCardBalance.SelfBurnDamage(SchoolSum(BStackTotal(BState.SelfBurn), PrepareFireBurnApplication(true, 3, false)), card.UpgradeLevel); break;
+                case "arcane_04": damage = BFormula(card, 48, 6, mana); break;
+                case "arcane_06": return BQuotedFieldMultiHit(BValue(card, 5), SchoolSum(4, mana), bonus);
+                case "arcane_11": damage = BFormula(card, 72, 8, mana); break;
+                case "curse_06": damage = BFormula(card, 12, 1, marks); break;
+                case "curse_11": damage = BFormula(card, 40, 8, marks); break;
+                case "tide_06": damage = BFormula(card, 12, 1, tide); break;
+                case "tide_07": damage = BFormula(card, 32, 1, tide); break;
+                case "tide_08": damage = BFormula(card, 60, 1.5m, tide); break;
+                case "thunder_02": damage = BFormula(card, 16, 2, chain); break;
+                case "thunder_05": damage = BFormula(card, 28, 2, chain); break;
+                case "thunder_11": return BQuotedFieldMultiHit(BFormula(card, 6, 3, chain), 2, bonus);
+                case "thunder_13": damage = BFormula(card, 40, 7, chain); break;
+                case "thunder_14": damage = BFormula(card, 32, 6, chain); break;
+                case "thunder_15": damage = BThunderFinaleDamage(card, chain); break;
                 case "blood_07":
-                    damage = SchoolSum(BValue(card, 12), BValue(card,
-                        SchoolSum(BValue(card, 12), bonus) > Battle.EnemyBlock ? 16 : 12));
-                    break;
-                case "blood_11": damage = BValue(card, CTBDesperate ? 14 : 10); break;
-                case "blood_13": damage = BValue(card, CTBDesperate ? 18 : 12); break;
+                    int first = BBoardingFieldAttackDamage(SchoolSum(BLinear(card, 12), bonus));
+                    return SchoolSum(first, BBoardingFieldAttackDamage(BLinear(card,
+                        first > Battle.EnemyBlock ? 16 : 12)));
+                case "blood_11": damage = BLinear(card, CTBDesperate ? 17 : 7); break;
+                case "blood_13": damage = BLinear(card, CTBDesperate ? 22 : 12); break;
             }
-            return SchoolSum(damage, bonus);
+            damage = SchoolSum(damage, bonus);
+            return card.BoardingSpec.IsAttack || key == "curse_11" ? BBoardingFieldAttackDamage(damage) : damage;
         }
+
+        private int BQuotedFieldMultiHit(int perHit, int hits, int bonus)
+            => hits <= 0 ? 0 : SchoolSum(BBoardingFieldAttackDamage(SchoolSum(perHit, bonus)),
+                SchoolProduct(BBoardingFieldAttackDamage(perHit), hits - 1));
 
         private int BQuotedAttackBonus(CoreBattleCard card)
         {
             if (!BActive || card?.BoardingSpec?.IsAttack != true) return 0;
             int bonus = card.SchoolId == "thunder" ? BState.ThunderReady : 0;
-            if (card.BoardingSpec.IsDelayed || BState.BloodOathPlayerEnds <= 0 || BState.BloodOathTriggered) return bonus;
-            int payment = card.BoardingSpec.Key == "blood_01" ? 3 : card.BoardingSpec.Key == "blood_02" ? 4 : 0;
-            int remainingHealth = Battle.PlayerBoardingHealth - payment;
-            if ((long)remainingHealth * 100 <= (long)Battle.PlayerMaxBoardingHealth * 40)
-                bonus = SchoolSum(bonus, BValue(BState.BloodOathCard, 8));
+            if (BState.BloodOathPlayerEnds > 0)
+                bonus = SchoolSum(bonus, BLinear(BState.BloodOathCard, 8));
             return bonus;
         }
     }

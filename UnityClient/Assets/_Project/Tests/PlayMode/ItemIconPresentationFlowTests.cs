@@ -28,12 +28,12 @@ namespace ShatteredSail.Presentation.Tests
             foreach (PortMarketItem item in PortMarketCatalog.AllItems)
             {
                 string key = PortMarketCatalog.Key(item);
-                RawImage icon = AssertItemIcon("Warehouse Storage Icon " + key, ItemIconCatalog.ForCargo(key), 42f);
+                RawImage icon = AssertItemIcon("Warehouse Storage Icon " + key, ItemIconCatalog.ForCargo(key), 96f);
                 AssertIconDoesNotCoverRowText(icon);
                 AssertIconPointerReachesButton(icon, "Warehouse Storage Row " + key, false);
             }
             NavalBattleVisualCapture.Capture(controller, "ItemIcons_01_Basic_Warehouse.png",
-                "基础九种物资小图标；库存由隔离测试夹具准备，非游玩所得", "Warehouse Panel");
+                "基础九种物资采用三行三列；库存由隔离测试夹具准备，非游玩所得", "Warehouse Panel");
 
             int wood = session.Cargo.Wood;
             int storedWood = session.PortWarehouse.GetAmount(port, "wood");
@@ -57,12 +57,12 @@ namespace ShatteredSail.Presentation.Tests
             yield return WaitForItemIconView(controller);
             foreach (CoreWarehouseItemDefinition item in CoreWarehouseItemCatalog.RareItems)
             {
-                RawImage icon = AssertItemIcon("Warehouse Rare Icon " + item.Key, ItemIconCatalog.ForCargo(item.Key), 56f);
+                RawImage icon = AssertItemIcon("Warehouse Rare Icon " + item.Key, ItemIconCatalog.ForCargo(item.Key), 96f);
                 AssertIconDoesNotCoverRowText(icon);
                 AssertIconPointerReachesButton(icon, "Warehouse Rare Row " + item.Key, false);
             }
             NavalBattleVisualCapture.Capture(controller, "ItemIcons_03_Rare_Warehouse.png",
-                "六类珍稀物品使用统一小图标，名称和库存保持独立列", "Warehouse Panel");
+                "六类珍稀物品采用两行三列，各格仅保留图标、名称和右下角所选位置的数量", "Warehouse Panel");
             int storedGem = session.PortWarehouse.GetAmount(port, "gem");
             AssertIconPointerReachesButton(GameObject.Find("Warehouse Rare Icon gem").GetComponent<RawImage>(),
                 "Warehouse Rare Row gem", true);
@@ -178,6 +178,11 @@ namespace ShatteredSail.Presentation.Tests
 
         private static RawImage AssertItemIcon(string name, ItemIconArt expected, float size)
         {
+            return AssertItemIcon(name, expected, new Vector2(size, size));
+        }
+
+        private static RawImage AssertItemIcon(string name, ItemIconArt expected, Vector2 bounds)
+        {
             GameObject item = GameObject.Find(name);
             Assert.That(item, Is.Not.Null, name);
             RawImage icon = item.GetComponent<RawImage>();
@@ -187,8 +192,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(icon.uvRect, Is.EqualTo(expected.Uv), name);
             Assert.That(icon.raycastTarget, Is.EqualTo(icon.GetComponent<Button>() != null),
                 name + " only interactive item icons consume pointer hits");
-            Assert.That(icon.rectTransform.rect.width, Is.GreaterThan(0f).And.LessThanOrEqualTo(size + .01f), name);
-            Assert.That(icon.rectTransform.rect.height, Is.GreaterThan(0f).And.LessThanOrEqualTo(size + .01f), name);
+            Assert.That(icon.rectTransform.rect.width, Is.GreaterThan(0f).And.LessThanOrEqualTo(bounds.x + .01f), name);
+            Assert.That(icon.rectTransform.rect.height, Is.GreaterThan(0f).And.LessThanOrEqualTo(bounds.y + .01f), name);
             float aspect = icon.texture.width * icon.uvRect.width / (icon.texture.height * icon.uvRect.height);
             Assert.That(icon.rectTransform.rect.width / icon.rectTransform.rect.height, Is.EqualTo(aspect).Within(.001f), name);
             return icon;

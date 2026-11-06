@@ -83,7 +83,7 @@ namespace ShatteredSail.Presentation
             panel = Mathf.Clamp(panel, 0, activeRamComicPages.Length - 1);
             ramComicPanelIndex = panel;
             ramComicPage.texture = activeRamComicPages[panel];
-            ramComicPage.SetPanel(new Rect(0f, 0f, 1f, 1f));
+            ramComicPage.SetPanel(RamComicCatalog.ImageUvRect(activeRamComicPages[panel]));
             if (ramComicAutoAdvance != null) ramComicAutoAdvance.ResetTimer();
         }
 
@@ -143,12 +143,8 @@ namespace ShatteredSail.Presentation
             ramComicPanelIndex = -1;
             ramComicAdvanceRequested = false;
             CloseComicOverlay(overlay);
-            // Page textures are shared Resources assets, never owned here.
-            // Naval combat and boarding share the same resource scope. Closing
-            // the comic must retire its four large pages even when Render does
-            // not change phase. A newly opened sequence retains its own pages
-            // while the existing deferred collector coalesces close/reopen.
-            if (overlay != null) QueueUnusedArtCollection(true);
+            // CloseComicOverlay queues the shared collector, which waits for
+            // the boarding transition to retire any iterator-held page art.
         }
 
     }

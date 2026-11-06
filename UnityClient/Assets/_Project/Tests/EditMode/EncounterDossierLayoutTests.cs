@@ -304,13 +304,31 @@ namespace ShatteredSail.Core.Tests
             Assert.That(BoundsIn(paper, secondary), Is.EqualTo(footer));
             AssertJournalLayout(3, true);
 
-            // Also exercise actions with no description: an absent field must
-            // not leave the old blank second line in a single-line button.
-            Find<Text>(Find<Button>(card, "Skip Encounter").transform, "Detail").text = string.Empty;
+            // Ordinary skip actions already omit their redundant description.
+            // Add a fixture description before checking that removing it reclaims
+            // the extra line without changing the label or fixed bottom edge.
+            Button skip = Find<Button>(card, "Skip Encounter");
+            Text skipDetail = Find<Text>(skip.transform, "Detail");
+            Text skipLabel = Find<Text>(skip.transform, "Label");
+            Assert.That(skipDetail.text, Is.Empty);
+            int labelFontSize = skipLabel.fontSize;
+            float labelHeight = skipLabel.rectTransform.rect.height;
+            skipDetail.text = "测试用操作说明";
             EncounterJournalLayout.Apply(card);
             Canvas.ForceUpdateCanvases();
-            Assert.That(secondary.rect.height, Is.LessThan(footer.height - 10f),
+            float describedHeight = secondary.rect.height;
+            Assert.That(describedHeight, Is.GreaterThan(footer.height + 10f));
+            Assert.That(BoundsIn(paper, secondary).yMin, Is.EqualTo(footer.yMin).Within(.01f));
+
+            skipDetail.text = string.Empty;
+            EncounterJournalLayout.Apply(card);
+            Canvas.ForceUpdateCanvases();
+            Assert.That(secondary.rect.height, Is.LessThan(describedHeight - 10f),
                 "Removing the description reclaims its line without shrinking the action label.");
+            Assert.That(BoundsIn(paper, secondary), Is.EqualTo(footer));
+            Assert.That(skipDetail.rectTransform.rect.height, Is.Zero.Within(.01f));
+            Assert.That(skipLabel.fontSize, Is.EqualTo(labelFontSize));
+            Assert.That(skipLabel.rectTransform.rect.height, Is.EqualTo(labelHeight).Within(.01f));
             AssertJournalLayout(3, true);
         }
 

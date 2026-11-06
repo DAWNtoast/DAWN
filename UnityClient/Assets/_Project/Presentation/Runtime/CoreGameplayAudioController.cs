@@ -8,7 +8,7 @@ namespace ShatteredSail.Presentation
 {
     public sealed partial class CoreGameplayDemoController
     {
-        private const float MusicCrossfadeSeconds = 1.8f;
+        private const float MusicCrossfadeSeconds = MenuPortMusic.CrossfadeSeconds;
         private const float MusicFadeInSeconds = 0.3f;
         private const float AmbienceCrossfadeSeconds = 0.7f;
         private const string MusicResourcesPrefix = "Audio/Music/";
@@ -57,6 +57,7 @@ namespace ShatteredSail.Presentation
         private float musicCrossfade;
         private float musicFadeIn;
         private float musicOutgoingWeight = 1f;
+        private float musicIncomingStartWeight;
         private float ambienceCrossfade;
         private float ambienceOutgoingWeight;
         private float activeAmbienceWeight;
@@ -100,58 +101,23 @@ namespace ShatteredSail.Presentation
         {
             switch (portName)
             {
-                case "白贝港": return "port_white_shell";
-                case "铜钟港": return "port_bronze_bell";
-                case "盐冠港": return "port_salt_crown";
-                case "暮潮港": return "port_twilight_tide";
-                case "灰鸥港": return "port_gray_gull";
-                default: return "port_broken_anchor";
+                case "白贝港": return "captains_vow_white_shell";
+                case "铜钟港": return "captains_vow_bronze_bell";
+                case "盐冠港": return "captains_vow_salt_crown";
+                case "暮潮港": return "captains_vow_twilight_tide";
+                case "灰鸥港": return "captains_vow_gray_gull";
+                default: return "captains_vow_broken_anchor";
             }
         }
 
-        public static string RouteMusicKey(int routeIndex)
-        {
-            switch (Mathf.Clamp(routeIndex, 0, 2))
-            {
-                case 1: return "route_golden_tide_trade";
-                case 2: return "route_moon_tide_ruins";
-                default: return "route_shattered_sail_reef";
-            }
-        }
+        private const string SailingThemeKey = "captains_vow_sailing";
+        private const string NavalThemeKey = "captains_vow_naval";
+        private const string BoardingThemeKey = "captains_vow_boarding";
 
-        public static string TreasureMusicKey(string rankId)
-        {
-            switch (rankId)
-            {
-                case "gilded": return "treasure_gilded";
-                case "moonlit": return "treasure_moonlit";
-                default: return "treasure_weathered";
-            }
-        }
-
-        public static string RouteBossMusicKey(int routeIndex)
-        {
-            switch (Mathf.Clamp(routeIndex, 0, 2))
-            {
-                case 1: return "boss_route_golden_tide_trade";
-                case 2: return "boss_route_moon_tide_ruins";
-                default: return "boss_route_shattered_sail_reef";
-            }
-        }
-
-        public static string LegendaryBattleMusicKey(string encounterId)
-        {
-            switch (encounterId)
-            {
-                case "legendary_pirate_thunder_crown": return "battle_legendary_thunder_crown";
-                case "legendary_pirate_red_widow": return "battle_legendary_red_widow";
-                case "legendary_pirate_ember_ark": return "battle_legendary_ember_ark";
-                case "legendary_pirate_tide_requiem": return "battle_legendary_tide_requiem";
-                case "legendary_pirate_last_horizon": return "battle_legendary_tide_requiem";
-                case "legendary_pirate_iron_oath": return "battle_legendary_iron_oath";
-                default: return "battle_nonboss";
-            }
-        }
+        public static string RouteMusicKey(int routeIndex) => SailingThemeKey;
+        public static string TreasureMusicKey(string rankId) => SailingThemeKey;
+        public static string RouteBossMusicKey(int routeIndex) => NavalThemeKey;
+        public static string LegendaryBattleMusicKey(string encounterId) => NavalThemeKey;
 
         private void InitializeAudio()
         {
@@ -168,7 +134,10 @@ namespace ShatteredSail.Presentation
 
         private void InitializeAudioSources(Transform audioRoot)
         {
-            activeMusicSource = EnsureMusicSource(audioRoot, "Active Music Source");
+            AudioSource handoff = MenuPortMusic.TakeOutgoing(audioRoot);
+            activeMusicSource = handoff != null ? handoff : EnsureMusicSource(audioRoot, "Active Music Source");
+            activeMusicSource.name = "Active Music Source";
+            if (handoff != null && handoff.clip != null) activeMusicKey = handoff.clip.name;
             incomingMusicSource = EnsureMusicSource(audioRoot, "Incoming Music Source");
             battleSfxSource = EnsureEffectsSource(audioRoot, "Battle Sound Effects Source");
             worldSfxSource = EnsureEffectsSource(audioRoot, "World Sound Effects Source");
@@ -178,7 +147,7 @@ namespace ShatteredSail.Presentation
             ambienceSource.priority = incomingAmbienceSource.priority = 128;
             ambienceSource.volume = 0f;
             incomingAmbienceSource.volume = 0f;
-            activeMusicSource.volume = 0f;
+            if (handoff == null) activeMusicSource.volume = 0f;
             incomingMusicSource.volume = 0f;
             effectVoices.Clear();
             lastEffectStart.Clear();
@@ -191,8 +160,8 @@ namespace ShatteredSail.Presentation
             for (int index = effectVoices.Count; index < GameplayAudioMix.EffectVoiceCount; index++)
                 AddEffectVoice(EnsureEffectsSource(audioRoot, "Sound Effects Voice " + (index + 1)));
             EnsureAudioListener();
+            SetMusic(ResolveDesiredMusicKey(), handoff == null || !handoff.isPlaying);
             ApplyMusicVolume();
-            SetMusic(ResolveDesiredMusicKey(), true);
         }
 
         private void AddEffectVoice(AudioSource source)
@@ -208,15 +177,19 @@ namespace ShatteredSail.Presentation
             // Deactivating the hierarchy stops AudioSources, while their clip
             // and our crossfade keys survive. Resume both sides of a fade so a
             // retained music key cannot leave the reactivated scene silent.
-            ResumeLoopingSource(activeMusicSource);
-            ResumeLoopingSource(incomingMusicSource);
+            ResumeLoopingSource(activeMusicSource, true);
+            ResumeLoopingSource(incomingMusicSource, true);
             ResumeLoopingSource(ambienceSource);
             ResumeLoopingSource(incomingAmbienceSource);
         }
 
-        private static void ResumeLoopingSource(AudioSource source)
+        private static void ResumeLoopingSource(AudioSource source, bool restoreMusic = false)
         {
-            if (source != null && source.isActiveAndEnabled && source.clip != null && !source.isPlaying) source.Play();
+            if (source != null && source.isActiveAndEnabled && source.clip != null && !source.isPlaying)
+            {
+                source.Play();
+                if (restoreMusic) MenuPortMusic.RestorePlayback(source);
+            }
         }
 
         private static AudioSource EnsureMusicSource(Transform parent, string name)
@@ -272,27 +245,9 @@ namespace ShatteredSail.Presentation
         {
             if (session == null) return string.Empty;
             if (session.Phase == CoreDemoPhase.Port) return PortMusicKey(session.CurrentPort);
-            if (session.Phase == CoreDemoPhase.Battle) return ResolveBattleMusicKey();
-            if (session.IsTreasureVoyage)
-                return TreasureMusicKey(session.ActiveTreasureMap == null ? string.Empty : session.ActiveTreasureMap.RankId);
-            return RouteMusicKey(session.SelectedRouteIndex);
-        }
-
-        private string ResolveBattleMusicKey()
-        {
-            string encounterId = session.ActiveEncounter == null ? string.Empty : session.ActiveEncounter.Id;
-            if (CoreBattleBalance.Classify(encounterId) == CoreBossKind.Legendary)
-                return LegendaryBattleMusicKey(encounterId);
-            if (session.Battle != null && session.Battle.Profile != null)
-            {
-                if (session.Battle.Profile.BossKind == CoreBossKind.Route)
-                    return RouteBossMusicKey(session.SelectedRouteIndex);
-                if (session.Battle.Profile.BossKind == CoreBossKind.Treasure)
-                    return TreasureMusicKey(session.ActiveTreasureMap == null ? "moonlit" : session.ActiveTreasureMap.RankId);
-            }
-            if (session.IsTreasureVoyage)
-                return TreasureMusicKey(session.ActiveTreasureMap == null ? string.Empty : session.ActiveTreasureMap.RankId);
-            return "battle_nonboss";
+            if (session.Phase == CoreDemoPhase.Battle)
+                return session.Battle?.Stage == NavalBattleStage.Boarding ? BoardingThemeKey : NavalThemeKey;
+            return SailingThemeKey;
         }
 
         private void SetMusic(string key, bool immediate)
@@ -300,6 +255,7 @@ namespace ShatteredSail.Presentation
             if (string.IsNullOrEmpty(key) || activeMusicSource == null || incomingMusicSource == null) return;
             AudioClip clip = LoadMusic(key);
             if (clip == null) return;
+            if (!immediate && musicCrossfade > 0f && incomingMusicSource.clip == clip && activeMusicKey == key) return;
             if (activeMusicKey == key && activeMusicSource.clip == clip)
             {
                 if (!activeMusicSource.isPlaying)
@@ -307,15 +263,18 @@ namespace ShatteredSail.Presentation
                     activeMusicSource.volume = 0f;
                     musicFadeIn = MusicFadeInSeconds;
                     activeMusicSource.Play();
+                    MenuPortMusic.RestorePlayback(activeMusicSource);
                 }
                 return;
             }
             if (immediate)
             {
+                RememberMenuPortMusic();
                 activeMusicSource.Stop();
                 activeMusicSource.clip = clip;
                 activeMusicSource.volume = 0f;
                 activeMusicSource.Play();
+                MenuPortMusic.RestorePlayback(activeMusicSource);
                 incomingMusicSource.Stop();
                 incomingMusicSource.clip = null;
                 incomingMusicSource.volume = 0f;
@@ -326,37 +285,87 @@ namespace ShatteredSail.Presentation
                 return;
             }
 
-            incomingMusicSource.volume = 0f;
-            incomingMusicSource.clip = clip;
-            incomingMusicSource.time = 0f;
-            incomingMusicSource.Play();
+            float outgoingWeight = MusicVolume > 0f ? Mathf.Clamp01(activeMusicSource.volume / MusicVolume) : 1f;
+            float incomingWeight = 0f;
+            if (musicCrossfade > 0f)
+                GetMusicWeights(out outgoingWeight, out incomingWeight);
+
+            if (musicCrossfade > 0f && activeMusicSource.clip == clip)
+            {
+                // Reverse the two live voices at their current gains and sample positions.
+                SwapMusicSources();
+                musicOutgoingWeight = incomingWeight;
+                musicIncomingStartWeight = outgoingWeight;
+            }
+            else
+            {
+                // With two voices, replace the quieter one and keep the current total gain.
+                if (incomingWeight > outgoingWeight) SwapMusicSources();
+                musicOutgoingWeight = Mathf.Clamp01(outgoingWeight + incomingWeight);
+                musicIncomingStartWeight = 0f;
+                MenuPortMusic.RememberPlayback(activeMusicSource);
+                incomingMusicSource.volume = 0f;
+                incomingMusicSource.clip = clip;
+                incomingMusicSource.Play();
+                MenuPortMusic.RestorePlayback(incomingMusicSource);
+            }
             musicCrossfade = MusicCrossfadeSeconds;
-            musicOutgoingWeight = MusicVolume > 0f ? Mathf.Clamp01(activeMusicSource.volume / MusicVolume) : 1f;
             musicFadeIn = 0f;
             activeMusicKey = key;
+            ApplyMusicSourceVolumes();
         }
 
         private void UpdateMusicCrossfade()
         {
             if (activeMusicSource == null || incomingMusicSource == null) return;
+            RememberMenuPortMusic();
             if (musicCrossfade <= 0f)
             {
                 musicFadeIn = Mathf.Max(0f, musicFadeIn - Time.unscaledDeltaTime);
                 ApplyMusicSourceVolumes();
                 return;
             }
-            musicCrossfade -= Time.unscaledDeltaTime;
-            ApplyMusicSourceVolumes();
-            if (musicCrossfade > 0f) return;
+            musicCrossfade = Mathf.Max(0f, musicCrossfade - Time.unscaledDeltaTime);
+            if (musicCrossfade > 0f)
+            {
+                ApplyMusicSourceVolumes();
+                return;
+            }
 
             activeMusicSource.Stop();
-            AudioSource swap = activeMusicSource;
-            activeMusicSource = incomingMusicSource;
-            incomingMusicSource = swap;
+            SwapMusicSources();
             incomingMusicSource.volume = 0f;
             incomingMusicSource.clip = null;
             musicOutgoingWeight = 1f;
             activeMusicSource.volume = MusicVolume;
+        }
+
+        private void SwapMusicSources()
+        {
+            AudioSource previous = activeMusicSource;
+            activeMusicSource = incomingMusicSource;
+            incomingMusicSource = previous;
+        }
+
+        private void RememberMenuPortMusic()
+        {
+            MenuPortMusic.RememberPlayback(MenuPortMusic.LouderPlayingSource(activeMusicSource, incomingMusicSource));
+        }
+
+        private void CarryMusicToMenu()
+        {
+            AudioSource outgoing = MenuPortMusic.LouderPlayingSource(activeMusicSource, incomingMusicSource);
+            if (outgoing == null) return;
+            MenuPortMusic.CarryAcrossScene(outgoing);
+            if (outgoing == activeMusicSource) activeMusicSource = null;
+            else incomingMusicSource = null;
+        }
+
+        private void LoadMainMenuWithMusic()
+        {
+            // LoadScene completes next frame. Transfer only after the request succeeds.
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            CarryMusicToMenu();
         }
 
         private AudioClip LoadMusic(string key)
@@ -386,13 +395,20 @@ namespace ShatteredSail.Presentation
 
         private float EffectsVolume => Mathf.Clamp01(PlayerPrefs.GetFloat(MainMenuController.EffectsVolumeKey, 0.8f));
 
-        private void ApplyMusicSourceVolumes()
+        private void GetMusicWeights(out float outgoing, out float incoming)
         {
-            float incomingWeight = musicCrossfade > 0f
+            float progress = musicCrossfade > 0f
                 ? Mathf.SmoothStep(0f, 1f, 1f - musicCrossfade / MusicCrossfadeSeconds) : 0f;
             float startupWeight = Mathf.SmoothStep(0f, 1f, 1f - musicFadeIn / MusicFadeInSeconds);
-            if (activeMusicSource != null) activeMusicSource.volume = MusicVolume * (1f - incomingWeight) * startupWeight * musicOutgoingWeight;
-            if (incomingMusicSource != null) incomingMusicSource.volume = MusicVolume * incomingWeight;
+            outgoing = (1f - progress) * startupWeight * musicOutgoingWeight;
+            incoming = musicCrossfade > 0f ? Mathf.Lerp(musicIncomingStartWeight, 1f, progress) : 0f;
+        }
+
+        private void ApplyMusicSourceVolumes()
+        {
+            GetMusicWeights(out float outgoing, out float incoming);
+            if (activeMusicSource != null) activeMusicSource.volume = MusicVolume * outgoing;
+            if (incomingMusicSource != null) incomingMusicSource.volume = MusicVolume * incoming;
         }
 
         private void ApplyMusicVolume()

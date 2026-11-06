@@ -39,6 +39,8 @@ namespace ShatteredSail.Core.Gameplay
 
         public static int EnergyRecovery(CoreBattleCard card)
         {
+            if (card?.Id == CoreNavalThunderPower.CircuitId)
+                return CoreNavalThunderPower.CircuitEnergy(card.UpgradeLevel);
             int baseline = BaseEnergyRecovery(card);
             return baseline == 0 ? 0 : baseline + CoreCardUpgradeDesign.EnergyBonus(card, card.UpgradeLevel);
         }

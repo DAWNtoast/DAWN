@@ -31,8 +31,8 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(unchanged.Block, Is.EqualTo(9));
                 Assert.That(unchanged.Repair, Is.EqualTo(11));
             }
-            Assert.That(session.GetBattleCard(14).Damage, Is.EqualTo(12), "Rank two scales the authored eight damage times 1.5 once.");
-            Assert.That(session.GetBattleCardEffects(14, NavalBattleStage.Boarding).Damage, Is.EqualTo(12), "Boarding uses the upgraded value without another multiplier.");
+            Assert.That(session.GetBattleCard(14).Damage, Is.EqualTo(24), "Rank two scales the authored sixteen damage times 1.5 once.");
+            Assert.That(session.GetBattleCardEffects(14, NavalBattleStage.Boarding).Damage, Is.EqualTo(24), "Boarding uses the upgraded value without another multiplier.");
             Assert.That(session.GetBattleCard(14).Energy, Is.EqualTo(1), "The original fee is preserved.");
         }
 
@@ -58,9 +58,9 @@ namespace ShatteredSail.Core.Tests
             session.Battle.EnemyBoardingHealth = 200;
             session.Battle.PlayerBoardingHealth = 10;
             session.Battle.Energy = 10;
-            int damage = 12; // Thrust: base 8 × its authored rank-two 1.5, irrespective of 14 sailors.
-            int guard = 7; // Guard: base 4 × its authored rank-two 1.75.
-            int repair = 11; // Bandage: round(base 6 × its authored rank-two 1.83); medicine restores the full value.
+            int damage = 24; // Thrust: base 16 × its authored rank-two 1.5, irrespective of 14 sailors.
+            int guard = 18; // Guard: base 10 × its authored rank-two 1.75.
+            int repair = 22; // Bandage: round(base 12 × its authored rank-two 1.83); medicine restores the full value.
             session.Battle.Hand.Clear(); session.Battle.Hand.AddRange(new[] { 14, 15, 17 });
             Assert.That(session.PlayCard(0), Is.True);
             Assert.That(session.Battle.EnemyBoardingHealth, Is.EqualTo(200 - damage));
@@ -98,9 +98,9 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = Port(14, 0);
             StartBattle(ref session);
             Assert.That(session.Battle.EnemyMaxHull, Is.EqualTo(345));
-            Assert.That(session.Battle.EnemyMaxBoardingHealth, Is.EqualTo(162));
+            Assert.That(session.Battle.EnemyMaxBoardingHealth, Is.EqualTo(378));
             Assert.That(session.Battle.EnemyOrdinaryCrew, Is.EqualTo(22));
-            Assert.That(session.Battle.PlayerMaxBoardingHealth, Is.EqualTo(76));
+            Assert.That(session.Battle.PlayerMaxBoardingHealth, Is.EqualTo(152));
             Assert.That(session.Battle.EnemyMaxHull, Is.EqualTo(session.Battle.Profile.EnemyHull));
             Assert.That(session.Battle.EnemyMaxBoardingHealth, Is.EqualTo(session.Battle.Profile.BoardingHealth));
         }
@@ -120,9 +120,9 @@ namespace ShatteredSail.Core.Tests
             session.Battle.EnemyBlock = 5;
             session.Battle.Hand.Clear(); session.Battle.Hand.Add(0);
             session.Cargo.Powder = session.Cargo.Cannonballs = 1;
-            Assert.That(session.BattleCardDescription(session.GetBattleCard(0)), Does.Contain("当前炮击 18"));
+            Assert.That(session.BattleCardDescription(session.GetBattleCard(0)), Does.Contain("当前炮击 22"));
             Assert.That(session.PlayCard(0), Is.True);
-            Assert.That(session.Battle.EnemyHull, Is.EqualTo(187), "10 card + 4 firepower + 4 loading - 5 guard.");
+            Assert.That(session.Battle.EnemyHull, Is.EqualTo(183), "10 card × 180% firepower + 4 loading - 5 guard.");
             Assert.That(session.Battle.PlayerLoadedShot, Is.Zero);
             Assert.That(session.Cargo.Powder, Is.Zero);
             Assert.That(session.Cargo.Cannonballs, Is.Zero);
@@ -141,7 +141,7 @@ namespace ShatteredSail.Core.Tests
                     "普通重访", "海战", "非教学", true, false, 1, 70), true });
             Assert.That(session.IsGuidedBossBattle, Is.False);
             Assert.That(session.Battle.EnemyMaxHull, Is.EqualTo(78));
-            Assert.That(session.Battle.EnemyMaxBoardingHealth, Is.EqualTo(42));
+            Assert.That(session.Battle.EnemyMaxBoardingHealth, Is.EqualTo(84));
             Assert.That(session.GetBattleCardEffects(session.GetBattleCard(0), NavalBattleStage.Naval).Damage,
                 Is.EqualTo(session.GetBattleCard(0).Damage));
         }

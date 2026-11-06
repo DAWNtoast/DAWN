@@ -39,16 +39,14 @@ namespace ShatteredSail.Core.Gameplay
         public GuidedBossActionKind GuidedBossExpectedAction => IsGuidedBossBattle
             ? CurrentGuidedLessonStep?.Action ?? GuidedBossActionKind.None : GuidedBossActionKind.None;
         public string GuidedBossExpectedCardId => IsGuidedBossBattle ? CurrentGuidedLessonStep?.Card ?? string.Empty : string.Empty;
-        // Compatibility guidance only; the normal three arrival choices remain available.
-        public float GuidedBossMovementHeadingDegrees => Battle == null ? 0f : Battle.NavalAwaitingHeadingSelection
+        public float GuidedBossMovementHeadingDegrees => Battle == null || GuidedBossRequiresEastArrivalHeading ? 0f : Battle.NavalAwaitingHeadingSelection
             ? navalArrivalHeading : Battle.PlayerHeadingDegrees;
         public VoyagePoint GuidedBossMovementTargetMeters
         {
             get
             {
                 if (Battle == null) return new VoyagePoint(0f, 0f);
-                if (GuidedBossStep == GuidedBossBattleStep.CourseGunneryMove) return new VoyagePoint(-300f, 0f);
-                if (GuidedBossStep == GuidedBossBattleStep.CourseBoardMove || GuidedBossStep == GuidedBossBattleStep.CourseRamMove)
+                if (GuidedBossStep == GuidedBossBattleStep.CourseRamMove)
                     return new VoyagePoint(-100f, 0f);
                 float radians = Battle.PlayerHeadingDegrees * NavalDegreesToRadians;
                 return new VoyagePoint(Battle.PlayerPositionMeters.X + (float)Math.Round(Math.Cos(radians)) * NavalGridCellMeters,
@@ -56,25 +54,23 @@ namespace ShatteredSail.Core.Gameplay
             }
         }
 
-        private string GuidedBossMovementRestriction(VoyagePoint targetMeters, int precedingSteps) =>
-            IsGuidedBossBattle && !GuidedBossAllowsMovement ? "请先完成当前教学动作" : string.Empty;
+        private string GuidedBossMovementRestriction(VoyagePoint targetMeters, int precedingSteps)
+        {
+            if (!IsGuidedBossBattle) return string.Empty;
+            if (!GuidedBossAllowsMovement) return "请先完成当前教学动作";
+            if (GuidedBossStep == GuidedBossBattleStep.CourseFreeMove && precedingSteps >= 1)
+                return "本段只航行1格，观察停船后剩余行动点清空";
+            return string.Empty;
+        }
 
         private string GuidedBossMovementCommitRestriction()
         {
-            if (!IsGuidedBossBattle) return string.Empty;
-            if (GuidedBossStep == GuidedBossBattleStep.CourseManeuver)
-            {
-                bool turned = false;
-                for (int index = 2; index < navalMovementPath.Count; index++)
-                    turned |= Math.Abs(NavalAngleDelta(navalMovementPath[index - 1].HeadingDegrees,
-                        navalMovementPath[index].HeadingDegrees)) > .01f;
-                if (navalMovementPath.Count < 3 || !turned) return "本段请规划至少2格、包含一次转弯的路线";
-            }
-            if (GuidedBossStep == GuidedBossBattleStep.CourseGunneryMove &&
-                !NavalCannonInRange(navalMovementPath[navalMovementPath.Count - 1].PositionMeters, Battle.EnemyPositionMeters))
-                return "本段请先规划进入4格炮击范围的路线（横纵格数相加）";
             return string.Empty;
         }
+
+        private string GuidedBossArrivalHeadingRestriction(float heading) =>
+            GuidedBossRequiresEastArrivalHeading && Math.Abs(NavalAngleDelta(heading, 0f)) > .01f
+                ? "本段请选择朝东，让船头指向相邻敌舰" : string.Empty;
 
         public bool TryObserveGuidedBossBlockedCard(int handIndex, out string reason)
         {
@@ -121,8 +117,7 @@ namespace ShatteredSail.Core.Gameplay
             // or grant an advantage when the final, ordinary battle begins.
             Morale = guidedBossEntryMorale;
             bool final = lesson == GuidedBossLesson.FinalBattle;
-            NavalBattleStage stage = lesson == GuidedBossLesson.Gunnery || final ? NavalBattleStage.Preparation :
-                lesson == GuidedBossLesson.BoardingCards ? NavalBattleStage.Boarding : NavalBattleStage.Naval;
+            NavalBattleStage stage = final ? NavalBattleStage.Preparation : NavalBattleStage.Naval;
             int crewHealth = CoreBattleBalance.BoardingHealthForOrdinaryCrew(SelectedOrdinaryCrew);
             Battle = new CoreBattleState
             {
@@ -153,16 +148,8 @@ namespace ShatteredSail.Core.Gameplay
             switch (lesson)
             {
                 case GuidedBossLesson.NavalBasics:
-                    GuidedBossStep = GuidedBossBattleStep.CourseResources; break;
-                case GuidedBossLesson.Maneuver:
-                    GuidedBossStep = GuidedBossBattleStep.CourseManeuver;
+                    GuidedBossStep = GuidedBossBattleStep.CourseFreeMove;
                     Battle.NavalActionPoints = 3; break;
-                case GuidedBossLesson.Gunnery:
-                    GuidedBossStep = GuidedBossBattleStep.CourseLoad;
-                    Hull = Math.Max(1, MaxHull - 8); Battle.NavalStartPlayerHull = Hull;
-                    SetGuidedLessonDeck(NavalBattleStage.Naval, "card_chain_shot", "card_approach", "card_approach", "card_energy_order", "card_brace",
-                        "card_emergency_repair", "card_tactical_draw", "card_energy_order", "card_brace", "card_chain_shot");
-                    break;
                 case GuidedBossLesson.BoardingContact:
                 case GuidedBossLesson.RamContact:
                     GuidedBossStep = lesson == GuidedBossLesson.BoardingContact ? GuidedBossBattleStep.CourseBoardContact : GuidedBossBattleStep.CourseRamMove;
@@ -170,21 +157,12 @@ namespace ShatteredSail.Core.Gameplay
                         lesson == GuidedBossLesson.BoardingContact ? 90f : 0f);
                     Battle.SetTacticalPose(false, new VoyagePoint(0f, 0f), 90f);
                     break;
-                case GuidedBossLesson.BoardingCards:
-                    GuidedBossStep = GuidedBossBattleStep.CourseBoardingAttack;
-                    Battle.PlayerBoardingHealth = Math.Max(1, crewHealth - 15);
-                    SetGuidedLessonDeck(NavalBattleStage.Boarding,
-                        "card_crew_thrust", "card_crew_guard", "card_crew_rally", "card_cutlass_raid", "card_crew_pistol",
-                        "card_crew_bandage", "card_tactical_draw", "card_crew_guard", "card_crew_thrust", "card_crew_rally",
-                        "card_crew_guard", "card_crew_thrust", "card_crew_rally",
-                        "card_boarding_basic_07", "card_boarding_basic_13", "card_crew_thrust", "card_crew_guard", "card_energy_order");
-                    break;
                 default: GuidedBossStep = GuidedBossBattleStep.CourseFinal; break;
             }
             Battle.CommitTacticalMovement(new List<CoreNavalTacticalFrame> { Battle.TacticalFrame });
             DrawCards(5);
             if (stage == NavalBattleStage.Boarding) BInitialize();
-            Battle.LastAction = "开始本段演习：" + GuidedBossLessonTitle + "。重新布置船位、牌序、士气与训练配给；本课程结束后恢复入场个人补给。";
+            Battle.LastAction = final ? "战斗开始。" : "开始演习：" + GuidedBossLessonTitle + "。";
             AddLog(Battle.LastAction);
         }
 

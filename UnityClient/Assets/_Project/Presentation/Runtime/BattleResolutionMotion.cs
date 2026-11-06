@@ -12,9 +12,9 @@ namespace ShatteredSail.Presentation
             public Vector2 Position;
             public Vector3 Scale;
             public Quaternion Rotation;
-            public CanvasGroup Group;
-            public float Alpha;
-            public bool AddedGroup, Move;
+            public CanvasGroup Group, ShadowGroup;
+            public float Alpha, ShadowAlpha;
+            public bool AddedGroup, AddedShadowGroup, Move;
         }
 
         private Pose[] poses;
@@ -22,6 +22,9 @@ namespace ShatteredSail.Presentation
         private bool hadOwner, restored, focusLost;
         private BattleShipIdleMotion idle;
         private bool idleWasEnabled;
+        private BoardingPartyPresentation boardingParty;
+        private bool boardingWasSuspended;
+        private bool playsDeath;
         private BattleResolutionGraphic graphic;
         private Text banner;
         private Vector3 bannerScale;
@@ -40,7 +43,7 @@ namespace ShatteredSail.Presentation
                 ? BattleResolutionKind.BoardingDefeat : BattleResolutionKind.NavalSinking;
 
         public void Configure(RectTransform stage, RectTransform target, Behaviour presentationOwner,
-            BattleResolutionKind kind, RectTransform waterContact = null)
+            BattleResolutionKind kind, RectTransform waterContact = null, bool playBoardingDeath = true)
         {
             RestorePose();
             owner = presentationOwner; hadOwner = owner != null;
@@ -53,12 +56,18 @@ namespace ShatteredSail.Presentation
             idle = target.GetComponent<BattleShipIdleMotion>();
             idleWasEnabled = idle != null && idle.enabled;
             if (idle != null) idle.enabled = false;
+            boardingParty = kind == BattleResolutionKind.BoardingDefeat ? target.GetComponent<BoardingPartyPresentation>() : null;
+            boardingWasSuspended = boardingParty != null && boardingParty.MotionSuspended;
+            playsDeath = boardingParty != null && boardingParty.HasActors && playBoardingDeath && !boardingWasSuspended;
+            if (playsDeath) boardingParty.PlayAction(BoardingActorAction.Death, Duration);
+            else if (boardingParty != null) boardingParty.SetMotionSuspended(true);
             RawImage[] figures = kind == BattleResolutionKind.BoardingDefeat ? target.GetComponentsInChildren<RawImage>(true) : null;
-            int count = figures != null && figures.Length > 0 ? figures.Length : 1;
+            bool hasBoardingFigures = figures != null && figures.Length > 0;
+            int count = hasBoardingFigures ? figures.Length : 1;
             bool includeWater = kind == BattleResolutionKind.NavalSinking && waterContact != null && waterContact != target;
             poses = new Pose[count + (includeWater ? 1 : 0)];
             for (int i = 0; i < count; i++)
-                poses[i] = Capture(figures != null && figures.Length > 0 ? figures[i].rectTransform : target, true);
+                poses[i] = Capture(hasBoardingFigures ? figures[i].rectTransform : target, true, hasBoardingFigures);
             if (includeWater) poses[count] = Capture(waterContact, false);
             Vector3[] corners = new Vector3[4];
             target.GetWorldCorners(corners);
@@ -87,13 +96,24 @@ namespace ShatteredSail.Presentation
             bannerScale = banner == null ? Vector3.one : banner.rectTransform.localScale;
         }
 
-        private static Pose Capture(RectTransform rect, bool move)
+        private static Pose Capture(RectTransform rect, bool move, bool includeBoardingShadow = false)
         {
             CanvasGroup group = rect.GetComponent<CanvasGroup>();
             bool added = group == null;
             if (added) group = rect.gameObject.AddComponent<CanvasGroup>();
+            CanvasGroup shadowGroup = null;
+            bool addedShadow = false;
+            Transform shadow = includeBoardingShadow && rect.parent != null
+                ? rect.parent.Find(rect.name + " Deck Contact Shadow") : null;
+            if (shadow != null)
+            {
+                shadowGroup = shadow.GetComponent<CanvasGroup>();
+                addedShadow = shadowGroup == null;
+                if (addedShadow) shadowGroup = shadow.gameObject.AddComponent<CanvasGroup>();
+            }
             return new Pose { Rect = rect, Position = rect.anchoredPosition, Scale = rect.localScale,
-                Rotation = rect.localRotation, Group = group, Alpha = group.alpha, AddedGroup = added, Move = move };
+                Rotation = rect.localRotation, Group = group, Alpha = group.alpha, AddedGroup = added, Move = move,
+                ShadowGroup = shadowGroup, ShadowAlpha = shadowGroup != null ? shadowGroup.alpha : 1f, AddedShadowGroup = addedShadow };
         }
 
         public void AdvancePresentation(float seconds)
@@ -110,6 +130,7 @@ namespace ShatteredSail.Presentation
         private void Apply(float progress)
         {
             if (poses == null) return;
+            if (playsDeath) boardingParty.SetDeathProgress(progress, Duration);
             for (int i = 0; i < poses.Length; i++)
             {
                 Pose pose = poses[i];
@@ -138,11 +159,10 @@ namespace ShatteredSail.Presentation
                 else
                 {
                     float t = Mathf.Clamp01(progress / Mathf.Max(.7f, 1f - i * .045f));
-                    float fall = t * t;
-                    pose.Rect.anchoredPosition = pose.Position + new Vector2(direction * 16f * fall,
-                        -Mathf.Clamp(pose.Rect.rect.height * .16f, 28f, 70f) * fall);
-                    pose.Rect.localRotation = pose.Rotation * Quaternion.Euler(0f, 0f, -direction * (11f + i * 2f) * fall);
-                    pose.Group.alpha = pose.Alpha * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.25f, .96f, t)));
+                    // Let the defeat silhouette land before the actors and their ground shadows disappear.
+                    float fade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(playsDeath ? .72f : .25f, 1f, t));
+                    pose.Group.alpha = pose.Alpha * fade;
+                    if (pose.ShadowGroup != null) pose.ShadowGroup.alpha = pose.ShadowAlpha * fade;
                 }
             }
             if (graphic != null) graphic.SetProgress(progress);
@@ -181,8 +201,24 @@ namespace ShatteredSail.Presentation
                             else DestroyImmediate(pose.Group);
                         }
                     }
+                    if (pose.ShadowGroup != null)
+                    {
+                        pose.ShadowGroup.alpha = pose.ShadowAlpha;
+                        if (pose.AddedShadowGroup)
+                        {
+                            if (Application.isPlaying) Destroy(pose.ShadowGroup);
+                            else DestroyImmediate(pose.ShadowGroup);
+                        }
+                    }
                 }
             if (idle != null) idle.enabled = idleWasEnabled;
+            if (boardingParty != null)
+            {
+                boardingParty.ClearActions();
+                boardingParty.SetMotionSuspended(boardingWasSuspended);
+            }
+            playsDeath = false;
+            boardingParty = null;
             if (banner != null) banner.rectTransform.localScale = bannerScale;
         }
 

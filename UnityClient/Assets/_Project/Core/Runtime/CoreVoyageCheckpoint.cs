@@ -87,6 +87,8 @@ namespace ShatteredSail.Core.Gameplay
         public float nextChartRandomDistance;
         public CoreSeaChartProgress seaChartProgress;
         public CoreTreasureProgress treasureProgress;
+        // Optional: older checkpoints retain the historic level-unlocked card collection.
+        public CoreCardPackProgress cardPackProgress;
         // Unity's inline serializer may materialize null nested classes as empty objects.
         public bool isTreasureVoyage;
         public CoreTreasureMapSave activeTreasureMap;
@@ -101,6 +103,8 @@ namespace ShatteredSail.Core.Gameplay
         public bool explicitSpecialCardSources;
         public double specialCardDistanceRemainder;
         public CoreVoyageValueCheckpoint[] specialCardExperience, cardUpgradeLevels;
+        // Missing in old saves: the two support cards shared their ship/boarding upgrade.
+        public int splitSupportCardVersion;
         public CoreVoyageDeckCheckpoint[] battleDecks;
         // Older checkpoints cannot prove uninterrupted supplies or victories with authored decks.
         public int achievementProgressVersion, achievementEditedDeckStages, achievementVoyageBattleWins, achievementWonEditedDeckStages;
@@ -171,7 +175,7 @@ namespace ShatteredSail.Core.Gameplay
                 pendingBoardingComponents = boardingDrops,
                 chartRandomOrder = (string[])chartRandomOrder.Clone(), chartRandomEncounterIds = chartRandomEncounters.Select(e => e.Id).ToArray(),
                 chartRandomIndex = chartRandomIndex, chartRandomVersion = chartRandomVersion, chartCompletedRemovedNodes = seaChartCompletedRemovedNodes,
-                nextChartRandomDistance = nextChartRandomDistance, seaChartProgress = CaptureSeaChartProgress(), treasureProgress = CaptureTreasureProgress(),
+                nextChartRandomDistance = nextChartRandomDistance, seaChartProgress = CaptureSeaChartProgress(), treasureProgress = CaptureTreasureProgress(), cardPackProgress = CaptureCardPackProgress(),
                 isTreasureVoyage = IsTreasureVoyage,
                 activeTreasureMap = ActiveTreasureMap == null ? null : new CoreTreasureMapSave { id = ActiveTreasureMap.Id,
                     seed = ActiveTreasureMap.Seed, rankId = ActiveTreasureMap.RankId,
@@ -186,6 +190,7 @@ namespace ShatteredSail.Core.Gameplay
                 componentBattleTypes = componentBattleTypes.OrderBy(x => x).ToArray(), explicitSpecialCardSources = explicitSpecialCardSources,
                 specialCardDistanceRemainder = specialCardDistanceRemainder,
                 specialCardExperience = CaptureCheckpointValues(specialCardExperience), cardUpgradeLevels = CaptureCheckpointValues(cardUpgradeLevels),
+                splitSupportCardVersion = CurrentSplitSupportCardVersion,
                 battleDecks = battleDecks.Select(deck => new CoreVoyageDeckCheckpoint { cards = deck.ToArray() }).ToArray(), logs = logEntries.ToArray(),
                 achievementProgressVersion = 1, achievementEditedDeckStages = achievementEditedDeckStages,
                 achievementVoyageBattleWins = AchievementVoyageBattleWins,
@@ -269,6 +274,7 @@ namespace ShatteredSail.Core.Gameplay
             candidate.guidedTutorialLayoutVersion = c.guidedTutorialLayoutVersion;
             if (!candidate.RestoreSeaChartProgress(c.seaChartProgress) || !ValidateCheckpointTreasure(c.treasureProgress)) return false;
             candidate.RestoreTreasureProgress(c.treasureProgress);
+            if (!candidate.RestoreCardPackProgress(c.cardPackProgress, candidate.PirateLevel)) return false;
             if (!string.IsNullOrEmpty(c.selectedChartSeed) && !TryParseChartSeed(c.selectedChartSeed, out candidate.selectedSeaChart)) return false;
             if (!string.IsNullOrEmpty(c.activeChartSeed) && !TryParseChartSeed(c.activeChartSeed, out candidate.activeSeaChart)) return false;
             if (candidate.activeSeaChart != null && (!candidate.activeSeaChart.ContainsPort(c.departurePort) ||
@@ -485,7 +491,9 @@ namespace ShatteredSail.Core.Gameplay
             CopyCheckpointSet(componentBattleTypes, s.componentBattleTypes); explicitSpecialCardSources = s.explicitSpecialCardSources;
             specialCardDistanceRemainder = s.specialCardDistanceRemainder;
             specialCardExperience.Clear(); foreach (var pair in s.specialCardExperience) specialCardExperience.Add(pair.Key, pair.Value);
+            RestoreCardPackProgress(s.CaptureCardPackProgress());
             cardUpgradeLevels.Clear(); foreach (var pair in s.cardUpgradeLevels) cardUpgradeLevels.Add(pair.Key, pair.Value);
+            splitSupportCardUpgradesRestored = s.splitSupportCardUpgradesRestored;
             for (int i = 0; i < battleDecks.Length; i++) { battleDecks[i].Clear(); battleDecks[i].AddRange(s.battleDecks[i]); }
             logEntries.Clear(); logEntries.AddRange(s.logEntries);
             Phase = s.Phase;
@@ -493,9 +501,11 @@ namespace ShatteredSail.Core.Gameplay
 
         private static bool RestoreCheckpointCards(CoreVoyageSession s, CoreVoyageCheckpoint c)
         {
+            bool HistoricalSpecial(string id) => IsSpecialBattleCard(id) || CoreRetiredSourceCards.IsRetired(id);
             bool ValidSet(string[] values, Func<string, bool> valid) => values != null && values.Length <= cardLibrary.Count &&
                 values.Distinct(StringComparer.Ordinal).Count() == values.Length && values.All(value => value != null && valid(value));
-            if (!ValidSet(c.voyageSpecialCards, IsSpecialBattleCard) || !ValidSet(c.acquiredSpecialCards, IsSpecialBattleCard) ||
+            if (c.splitSupportCardVersion < 0 || c.splitSupportCardVersion > CurrentSplitSupportCardVersion ||
+                !ValidSet(c.voyageSpecialCards, HistoricalSpecial) || !ValidSet(c.acquiredSpecialCards, HistoricalSpecial) ||
                 !ValidSet(c.activeSpecialCrewIds, id => CoreSpecialCardCatalog.ForCrew(id) != null) ||
                 !ValidSet(c.activeSpecialComponentIds, id => CoreSpecialCardCatalog.ForComponent(id) != null) ||
                 !ValidSet(c.componentBattleTypes, id => new[] { "bow", "sail", "cannon", "plating", "instrument" }.Contains(id)) ||
@@ -516,22 +526,31 @@ namespace ShatteredSail.Core.Gameplay
             }
             foreach (CoreVoyageValueCheckpoint item in c.specialCardExperience)
             {
-                if (item == null || !IsSpecialBattleCard(item.id) || item.value < 0 || s.specialCardExperience.ContainsKey(item.id)) return false;
+                if (item == null || !HistoricalSpecial(item.id) || item.value < 0 || s.specialCardExperience.ContainsKey(item.id)) return false;
                 s.specialCardExperience.Add(item.id, item.value);
             }
             var savedUpgradeIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (CoreVoyageValueCheckpoint item in c.cardUpgradeLevels)
             {
                 string id = CoreBattleCardAliases.CanonicalId(item?.id);
-                if (item == null || id == null || !cardLibrary.Any(card => card.Id == id && card.AllowedStages != NavalBattleStages.None) ||
+                bool retired = CoreRetiredSourceCards.IsRetired(id);
+                if (item == null || id == null || !cardLibrary.Any(card => card.Id == id && (card.AllowedStages != NavalBattleStages.None || retired)) ||
                     IsSpecialBattleCard(id) || item.value < 0 || item.value > CoreBattleUpgradeBalance.MaximumLevel || !savedUpgradeIds.Add(item.id)) return false;
+                if (retired)
+                {
+                    s.RestoreSpecialCardMinimumExperience(id, SpecialCardExperienceForLevel(item.value));
+                    continue;
+                }
                 s.cardUpgradeLevels.TryGetValue(id, out int previous);
                 s.cardUpgradeLevels[id] = Math.Max(previous, item.value);
             }
-            s.voyageSpecialCards.UnionWith(c.voyageSpecialCards); s.acquiredSpecialCards.UnionWith(c.acquiredSpecialCards);
+            s.RestoreSplitSupportCardUpgrades(c.splitSupportCardVersion);
+            s.voyageSpecialCards.UnionWith(c.voyageSpecialCards.Where(IsSpecialBattleCard));
+            s.acquiredSpecialCards.UnionWith(c.acquiredSpecialCards.Where(IsSpecialBattleCard));
             s.activeSpecialCrewIds.UnionWith(c.activeSpecialCrewIds); s.activeSpecialComponentIds.UnionWith(c.activeSpecialComponentIds);
             s.componentBattleTypes.UnionWith(c.componentBattleTypes); s.explicitSpecialCardSources = c.explicitSpecialCardSources;
             s.specialCardDistanceRemainder = c.specialCardDistanceRemainder;
+            s.MigrateAcquiredSpecialCardExperience();
             return true;
         }
 

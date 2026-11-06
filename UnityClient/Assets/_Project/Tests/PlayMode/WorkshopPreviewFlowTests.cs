@@ -14,8 +14,23 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest]
-        public IEnumerator WorkshopPreview_DefaultEightCardsNavigationAndInsufficientGoldStayReadOnly()
+        public IEnumerator WorkshopPreview_DefaultSixCardsNavigationAndInsufficientGoldStayReadOnly()
         {
+            using var storage = new VoyageCargoStorageScope();
+            // Seed a legal owned collection before the production controller loads it.
+            // Read-only UI must never be tested by mutating its live save-backed inventory.
+            var fixture = new CoreVoyageSession();
+            fixture.RestoreTreasureProgress(new CoreTreasureProgress
+                { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            CoreCardPackProgress fixtureCards = fixture.CaptureCardPackProgress();
+            fixtureCards.randomState = 1234567u;
+            fixtureCards.cards = fixture.GetCardPackPool("fire")
+                .Where(index => CoreVoyageSession.CardLibrary[index].SchoolId == "fire")
+                .Select(index => new CoreCardCopySave { id = CoreVoyageSession.CardLibrary[index].Id, count = 1 }).ToArray();
+            Assert.That(fixture.RestoreCardPackProgress(fixtureCards), Is.True, "The fixture must own legal authored fire cards.");
+            PlayerPrefs.SetString(CoreGameplayDemoController.TreasureProgressKey, JsonUtility.ToJson(fixture.CaptureTreasureProgress()));
+            PlayerPrefs.SetString(CoreGameplayDemoController.CardPackProgressKey, JsonUtility.ToJson(fixture.CaptureCardPackProgress()));
+            PlayerPrefs.Save();
             PlayerPrefs.SetInt(CoreGameplayDemoController.TutorialCompletedKey, 1);
             CrewVariantDefinition navigator = CrewNarrativeCatalog.ForPortAndProfession("灰鸥港", 0);
             PlayerPrefs.SetInt(CoreGameplayDemoController.CrewVariantRecruitmentKey(navigator.Id), 1);
@@ -30,38 +45,73 @@ namespace ShatteredSail.Presentation.Tests
                 stage => PlayerPrefs.GetString(CoreGameplayDemoController.StageBattleDeckKey(stage), string.Empty));
             decimal gold = controller.Session.ProfileGold;
             string upgrades = PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey, string.Empty);
+            bool hadCardPackSave = PlayerPrefs.HasKey(CoreGameplayDemoController.CardPackProgressKey);
+            string cardPackSave = PlayerPrefs.GetString(CoreGameplayDemoController.CardPackProgressKey, string.Empty);
+            CoreCardPackProgress originalCardPacks = controller.Session.CaptureCardPackProgress();
+            string originalCardPacksJson = JsonUtility.ToJson(originalCardPacks);
+            string treasureSave = PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey, string.Empty);
+            string originalTreasureJson = JsonUtility.ToJson(controller.Session.CaptureTreasureProgress());
+            Assert.That(controller.Session.PirateLevel, Is.EqualTo(10));
+            Assert.That(hadCardPackSave, Is.True);
+            Assert.That(originalCardPacks.randomState, Is.EqualTo(1234567u));
 
             ActiveButton("Port Hotspot CardWorkshop").onClick.Invoke();
             yield return null;
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Workshop Preview Collection"), Is.Null);
+            ActiveButton("Workshop Entrance Collection").onClick.Invoke();
+            yield return null;
             Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
             Assert.That(GameObject.Find("Card Workshop Chest Stage"), Is.Null);
-            Assert.That(GameObject.Find("CardWorkshop Background").GetComponent<RawImage>().texture, Is.Null);
+            RawImage workshopBackground = GameObject.Find("CardWorkshop Background").GetComponent<RawImage>();
+            Assert.That(workshopBackground.texture, Is.SameAs(Resources.Load<Texture2D>("CardWorkshopV2/workshop_home_v1")));
+            Assert.That(workshopBackground.color.r, Is.LessThan(.5f), "The room stays dim behind the reading surfaces.");
             Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Null);
             Assert.That(GameObject.Find("Deck Builder Panel"), Is.Null);
             Assert.That(GameObject.Find("Workshop Preview Deck Name"), Is.Null);
             Assert.That(GameObject.Find("Workshop Preview Deck Count"), Is.Null);
-            foreach (NavalBattleStage stage in stages)
-                Assert.That(ActiveButton("Edit Stage Deck " + stage), Is.Not.Null);
+            foreach (string page in new[] { "Collection", "DeckBuilder", "Packs", "Upgrade" })
+                Assert.That(ActiveButton("Workshop Page " + page), Is.Not.Null);
             ActiveButton("Workshop Preview Stage Naval").onClick.Invoke();
             yield return null;
             Button[] firstPage = GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>()
                 .Where(button => button.name.StartsWith("Select Upgrade Card ")).ToArray();
-            Assert.That(firstPage, Has.Length.EqualTo(8));
+            Assert.That(firstPage, Has.Length.EqualTo(6));
             Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.False);
             Assert.That(ActiveButton("Next Upgrade Cards").interactable, Is.True);
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "WorkshopPreview_01_Overview.png",
-                "默认进入真实卡牌两行四列预览，右侧强化入口与三个阶段编辑入口", "Card Workshop Preview Panel");
+                "四个子页导航下默认显示已有卡牌与选中卡牌详情", "Card Workshop Preview Panel");
 
-            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
+            ActiveButton("Workshop School Filter fire").onClick.Invoke();
+            yield return null;
+            Button[] fireCards = GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>()
+                .Where(button => button.name.StartsWith("Select Upgrade Card ")).ToArray();
+            Assert.That(fireCards, Is.Not.Empty);
+            Assert.That(fireCards.All(card => controller.Session.GetBattleCard(ForgeCardIndex(card), NavalBattleStage.Naval).SchoolId == "fire"), Is.True);
+            Assert.That(fireCards.All(card => controller.Session.GetBaseBattleCardOwnedCopies(ForgeCardIndex(card)) > 0), Is.True);
+            yield return new WaitForSecondsRealtime(.7f);
+            NavalBattleVisualCapture.Capture(controller, "WorkshopPreview_01b_FireFilter.png",
+                "左侧排列无体系与六体系筛选，火焰筛选只展示火焰牌，底部显示页数与卡牌统计", "Card Workshop Preview Panel");
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CardPackProgressKey), Is.EqualTo(hadCardPackSave));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CardPackProgressKey, string.Empty), Is.EqualTo(cardPackSave),
+                "Filtering the owned collection must never write card or pack progress.");
+            Assert.That(JsonUtility.ToJson(controller.Session.CaptureCardPackProgress()), Is.EqualTo(originalCardPacksJson),
+                "Filtering preserves every owned copy, unopened pack and future random draw.");
+            Assert.That(JsonUtility.ToJson(controller.Session.CaptureTreasureProgress()), Is.EqualTo(originalTreasureJson));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey, string.Empty), Is.EqualTo(treasureSave));
+            ActiveButton("Workshop School Filter neutral").onClick.Invoke();
+            yield return null;
+
+            ActiveButton("Workshop Page Upgrade").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Workshop Actions"), Is.Null);
-            Assert.That(GameObject.Find("Card Upgrade Heading").GetComponent<Text>().text, Is.EqualTo("卡牌强化"));
+            Assert.That(GameObject.Find("Card Upgrade Heading"), Is.Null);
             Button[] numberedFirstPage = AssertForgePage(controller, 0);
             AssertForgeComparison(controller, ForgeCardIndex(numberedFirstPage[0]));
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "WorkshopPreview_02_Upgrade.png",
-                "右侧整块羊皮纸显示卡名、等比例强化前后卡面与底部强化按钮", "Card Workshop Preview Panel");
+                "独立卡牌列表旁展示放大的强化前后卡面与金币操作", "Card Workshop Upgrade Workspace");
             ActiveButton("Next Upgrade Cards").onClick.Invoke();
             yield return null;
             Button[] secondPage = AssertForgePage(controller, 1);
@@ -73,7 +123,7 @@ namespace ShatteredSail.Presentation.Tests
             ActiveButton("Previous Upgrade Cards").onClick.Invoke();
             yield return null;
             AssertForgePage(controller, 0);
-            ActiveButton("Back From Card Upgrades").onClick.Invoke();
+            ActiveButton("Workshop Page Collection").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Null);
 
@@ -96,7 +146,7 @@ namespace ShatteredSail.Presentation.Tests
                     NavalBattleVisualCapture.Capture(controller, "WorkshopPreview_03a_OverviewBeforeEditor.png",
                         "点击同阶段编辑前的左侧卡牌、费用图标、页签及翻页按钮位置", "Card Workshop Preview Panel");
                 }
-                ActiveButton("Edit Stage Deck " + stage).onClick.Invoke();
+                ActiveButton("Workshop Page DeckBuilder").onClick.Invoke();
                 yield return null;
                 Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
                 AssertWorkshopLeftLayoutUnchanged(previewLayout, true, stage + " entering editor");
@@ -127,21 +177,20 @@ namespace ShatteredSail.Presentation.Tests
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "WorkshopPreview_05_SecondPageBeforeEditor.png",
                 "总览第二页进入编辑前，切换应保留当前页和全部卡面位置", "Card Workshop Preview Panel");
-            ActiveButton("Edit Stage Deck Naval").onClick.Invoke();
+            ActiveButton("Workshop Page DeckBuilder").onClick.Invoke();
             yield return null;
             AssertWorkshopLeftLayoutUnchanged(navalSecondPageLayout, true, "second page entering editor");
             Assert.That(ActiveButton("Previous Battle Card Collection Page").interactable, Is.True);
-            Assert.That(GameObject.Find("Battle Card Collection Page").GetComponent<Text>().text.Replace(" ", string.Empty),
-                Does.Contain("第2/"));
+            Assert.That(GameObject.Find("Battle Card Collection Page"), Is.Null);
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "WorkshopPreview_06_SecondPageEditor.png",
                 "编辑页保留总览第二页的相同卡牌和图标位置", "Deck Builder Panel");
             ActiveButton("Back To Card Workshop Chests").onClick.Invoke();
             yield return null;
             AssertWorkshopLeftLayoutUnchanged(navalSecondPageLayout, false, "second page returning from editor");
-            Assert.That(GameObject.Find("Upgrade Collection Page").GetComponent<Text>().text.Replace(" ", string.Empty),
-                Does.Contain("第2/"));
-            ActiveButton("Edit Stage Deck Naval").onClick.Invoke();
+            Assert.That(GameObject.Find("Upgrade Collection Page"), Is.Null);
+            Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.True);
+            ActiveButton("Workshop Page DeckBuilder").onClick.Invoke();
             yield return null;
             ActiveButton("Previous Battle Card Collection Page").onClick.Invoke();
             yield return null;
@@ -151,18 +200,16 @@ namespace ShatteredSail.Presentation.Tests
             AssertWorkshopLeftLayoutUnchanged(navalFirstPageLayout, false, "return preserves editor's changed page");
             Assert.That(ActiveButton("Previous Upgrade Cards").interactable, Is.False);
             controller.Session.AcquireSpecialCards(CoreSpecialCardCatalog.All.Take(12).Select(item => item.Card.Id).ToArray());
-            string[] acquired = controller.Session.AcquiredSpecialCardIds.ToArray();
+            string[] acquired = controller.Session.AcquiredSpecialCardIds.Where(id =>
+                CardSchoolArtCatalog.NormalizeSchool(CoreVoyageSession.CardLibrary.First(card => card.Id == id).SchoolId) == "neutral").ToArray();
             Dictionary<string, Vector3[]> shell = CaptureWorkshopLeftLayout(false)
                 .Where(item => item.Key.StartsWith("tab/") || item.Key.StartsWith("page/")).ToDictionary(item => item.Key, item => item.Value);
             ActiveButton("Open Special Card Collection").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Special Card Collection Panel"), Is.Null);
             Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
-            Assert.That(GameObject.Find("Workshop Actions"), Is.Not.Null);
-            Assert.That(GameObject.Find("Workshop Upgrade Disabled Mark").GetComponent<ProhibitionMarkGraphic>().raycastTarget, Is.False);
-            Assert.That(ActiveButton("Open Battle Card Upgrades").interactable, Is.False);
-            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
-            yield return null;
+            Assert.That(GameObject.Find("Workshop Collection Detail"), Is.Not.Null);
+            Assert.That(ActiveButton("Confirm Battle Card Upgrade"), Is.Null);
             Assert.That(GameObject.Find("Battle Card Upgrade Panel"), Is.Null, "Even a stale callback cannot enter paid upgrades for special cards.");
             Assert.That(GameObject.Find("Confirm Battle Card Upgrade"), Is.Null);
             foreach (NavalBattleStage stage in stages)
@@ -172,13 +219,15 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(Vector3.Distance(corners[corner], shell["tab/" + stage][corner]), Is.LessThan(.01f));
             }
             HashSet<int> visibleSpecials = new HashSet<int>();
-            int specialPages = Mathf.CeilToInt(acquired.Length / 8f);
+            int specialPages = Mathf.CeilToInt(acquired.Length / 6f);
             for (int page = 0; page < specialPages; page++)
             {
                 Button[] specials = GameObject.Find("Workshop Preview Collection").GetComponentsInChildren<Button>()
                     .Where(button => button.name.StartsWith("Select Special Card ")).ToArray();
-                Assert.That(specials.Length, Is.InRange(1, 8));
+                Assert.That(specials.Length, Is.InRange(1, 6));
                 RectTransform paper = GameObject.Find("Workshop Preview Parchment").GetComponent<RectTransform>();
+                Rect collectionBounds = ForgeBoundsIn(paper, GameObject.Find("Workshop Preview Collection").GetComponent<RectTransform>());
+                Assert.That(paper.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Workshop Collection Page Count"), Is.False);
                 string[] pagerNames = { "Previous Upgrade Cards", "Next Upgrade Cards" };
                 Rect[] pagers = new Rect[pagerNames.Length];
                 for (int side = 0; side < pagerNames.Length; side++)
@@ -189,7 +238,7 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(bounds.xMax, Is.LessThanOrEqualTo(paper.rect.xMax + .5f));
                     Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(paper.rect.yMin - .5f));
                     Assert.That(bounds.yMax, Is.LessThanOrEqualTo(paper.rect.yMax + .5f));
-                    Assert.That(bounds.center.y, Is.EqualTo(0f).Within(.1f), "Paging arrows stay vertically centered on the parchment.");
+                    Assert.That(bounds.center.y, Is.EqualTo(collectionBounds.center.y).Within(.1f), "Paging arrows are vertically centered on the card display.");
                     WoodenPageArrowGraphic wood = arrow.GetComponent<WoodenPageArrowGraphic>();
                     Assert.That(wood, Is.Not.Null, "Paging controls are solid wooden arrow silhouettes.");
                     Assert.That(wood.Forward, Is.EqualTo(side == 1));
@@ -211,10 +260,16 @@ namespace ShatteredSail.Presentation.Tests
                     foreach (RectTransform status in paper.GetComponentsInChildren<RectTransform>().Where(item =>
                         item.name.StartsWith("Special Card Deck Status ") || item.name.StartsWith("Configure Special Card Source ")))
                         Assert.That(bounds.Overlaps(ForgeBoundsIn(paper, status)), Is.False,
-                            "Paging arrows leave special card membership and source actions clear.");
+                            "Paging arrows leave special card membership and source actions clear: " + arrow.name + " / " + status.name);
                 }
+                Rect[] specialCardBounds = specials.Select(card => ForgeBoundsIn(paper,
+                    card.GetComponentInChildren<CardSchoolFrameGraphic>().rectTransform)).ToArray();
+                Assert.That(pagers[0].xMax, Is.LessThan(specialCardBounds.Min(bounds => bounds.xMin)),
+                    "Previous page stays outside the left card column.");
+                Assert.That(pagers[1].xMin, Is.GreaterThan(specialCardBounds.Max(bounds => bounds.xMax)),
+                    "Next page stays outside the visible card columns.");
                 Assert.That(pagers[0].center.x, Is.LessThan(0f));
-                Assert.That(pagers[1].center.x, Is.EqualTo(-pagers[0].center.x).Within(.1f), "Paging arrows flank the card collection symmetrically.");
+                Assert.That((pagers[0].center.x + pagers[1].center.x) * .5f, Is.EqualTo(collectionBounds.center.x).Within(.1f), "Paging arrows flank the card display symmetrically.");
                 Assert.That(pagers[1].width, Is.EqualTo(pagers[0].width).Within(.1f));
                 Assert.That(pagers[1].height, Is.EqualTo(pagers[0].height).Within(.1f));
                 foreach (int index in specials.Select(card => int.Parse(card.name.Substring("Select Special Card ".Length))).ToArray())
@@ -224,7 +279,7 @@ namespace ShatteredSail.Presentation.Tests
                     ActiveButton("Select Special Card " + index).onClick.Invoke();
                     yield return null;
                     Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
-                    Assert.That(ActiveButton("Open Battle Card Upgrades").interactable, Is.False);
+                    Assert.That(ActiveButton("Confirm Battle Card Upgrade"), Is.Null);
                 }
                 if (page + 1 < specialPages) { ActiveButton("Next Upgrade Cards").onClick.Invoke(); yield return null; }
             }
@@ -233,20 +288,22 @@ namespace ShatteredSail.Presentation.Tests
             yield return null;
             yield return new WaitForSecondsRealtime(.7f);
             NavalBattleVisualCapture.Capture(controller, "WorkshopPreview_04_Special.png",
-                "特殊牌保留同一工坊两行四列布局，锤子覆盖红色禁用圈，强化按钮不可用", "Card Workshop Preview Panel");
-            ActiveButton("Edit Stage Deck Naval").onClick.Invoke();
+                "已有卡牌页显示特殊牌与完整详情，不提供特殊牌金币强化动作", "Card Workshop Preview Panel");
+            ActiveButton("Workshop Page DeckBuilder").onClick.Invoke();
+            yield return null;
+            ActiveButton("Workshop Preview Stage Naval").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Deck Builder Panel"), Is.Not.Null);
             ActiveButton("Back To Card Workshop Chests").onClick.Invoke();
             yield return null;
             Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
             Assert.That(GameObject.Find("Workshop Upgrade Disabled Mark"), Is.Null);
-            Assert.That(ActiveButton("Open Battle Card Upgrades").interactable, Is.True);
+            Assert.That(ActiveButton("Workshop Page Upgrade").interactable, Is.True);
             ActiveButton("Open Special Card Collection").onClick.Invoke();
             yield return null;
             ActiveButton("Workshop Preview Stage Naval").onClick.Invoke();
             yield return null;
-            Assert.That(ActiveButton("Open Battle Card Upgrades").interactable, Is.True);
+            Assert.That(ActiveButton("Workshop Page Upgrade").interactable, Is.True);
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(gold));
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey, string.Empty), Is.EqualTo(upgrades));
             foreach (NavalBattleStage stage in stages)
@@ -258,7 +315,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.TrySpendProfileGold(gold - 119m, "强化不足金币测试"), Is.True);
             ActiveButton("Workshop Preview Stage Naval").onClick.Invoke();
             yield return null;
-            ActiveButton("Open Battle Card Upgrades").onClick.Invoke();
+            ActiveButton("Workshop Page Upgrade").onClick.Invoke();
             yield return null;
             while (ActiveButton("Select Upgrade Card 0") == null)
             {
@@ -274,6 +331,13 @@ namespace ShatteredSail.Presentation.Tests
             upgrade.onClick.Invoke();
             yield return null;
             Assert.That(controller.Session.ProfileGold, Is.EqualTo(119m));
+            Assert.That(JsonUtility.ToJson(controller.Session.CaptureCardPackProgress()), Is.EqualTo(originalCardPacksJson),
+                "Read-only navigation and the rejected upgrade preserve ownership and future pack draws.");
+            Assert.That(PlayerPrefs.HasKey(CoreGameplayDemoController.CardPackProgressKey), Is.EqualTo(hadCardPackSave));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.CardPackProgressKey, string.Empty), Is.EqualTo(cardPackSave));
+            Assert.That(JsonUtility.ToJson(controller.Session.CaptureTreasureProgress()), Is.EqualTo(originalTreasureJson),
+                "Read-only navigation and rejected upgrades cannot change XP or treasure progress.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey, string.Empty), Is.EqualTo(treasureSave));
             Assert.That(controller.Session.GetCardUpgradeLevel("card_chain_shot"), Is.Zero);
             Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.BattleCardUpgradeKey, string.Empty), Is.EqualTo(upgrades));
             LogAssert.NoUnexpectedReceived();
@@ -288,6 +352,8 @@ namespace ShatteredSail.Presentation.Tests
                 layout.Add("tab/" + stage, WorkshopWorldCorners(ActiveButton(stagePrefix + stage).GetComponent<RectTransform>()));
             layout.Add("tab/fourth", WorkshopWorldCorners(ActiveButton("Open Special Card Collection")
                 .GetComponent<RectTransform>()));
+            foreach (string school in new[] { "neutral" }.Concat(CardSchoolArtCatalog.SchoolIds))
+                layout.Add("school/" + school, WorkshopWorldCorners(ActiveButton("Workshop School Filter " + school).GetComponent<RectTransform>()));
             layout.Add("page/previous", WorkshopWorldCorners(ActiveButton(editing ? "Previous Battle Card Collection Page" : "Previous Upgrade Cards")
                 .GetComponent<RectTransform>()));
             layout.Add("page/next", WorkshopWorldCorners(ActiveButton(editing ? "Next Battle Card Collection Page" : "Next Upgrade Cards")

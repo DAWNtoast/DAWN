@@ -5,11 +5,9 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
-    /// <summary>Shipyard-only naval brass header; the existing controls retain their navigation events.</summary>
+    /// <summary>Shipyard typography over the common header surface; navigation events remain intact.</summary>
     public static class RoyalShipyardHeaderSkin
     {
-        private static readonly Color Navy = new Color(.035f, .09f, .13f, 1f);
-        private static readonly Color Brass = new Color(.82f, .65f, .39f, 1f);
         private static readonly Color Ivory = new Color(.96f, .92f, .81f, 1f);
         private static Sprite frameSprite, compassSprite;
 
@@ -37,46 +35,34 @@ namespace ShatteredSail.Presentation
             var state = header.GetComponent<RoyalShipyardHeaderState>() ?? header.gameObject.AddComponent<RoyalShipyardHeaderState>();
             state.Begin(title);
 
-            Image backing = header.GetComponent<Image>();
-            if (backing != null) state.Color(backing, Navy);
             Image regional = header.Find("Port Facility Frame")?.GetComponent<Image>();
             if (regional != null) state.Enabled(regional, false);
-            foreach (string name in new[] { "Header Brass Rules", "Date Inset", "Gold Inset", "Port Header Section" })
+            Graphic surface = header.Find("Header Brass Rules")?.GetComponent<NauticalHeaderGraphic>();
+            if (surface != null) surface.enabled = true;
+            foreach (string name in new[] { "Date Inset", "Gold Inset", "Port Header Section" })
             {
                 Graphic old = header.Find(name)?.GetComponent<Graphic>();
                 if (old != null) state.Enabled(old, false);
             }
 
             RectTransform art = state.Decorations(header);
-            Image cloth = Image(art, "Royal Shipyard Naval Cloth", NauticalSurfaceSkin.Canvas);
-            Stretch(cloth.rectTransform, 4f);
-            cloth.type = UnityEngine.UI.Image.Type.Tiled;
-            cloth.pixelsPerUnitMultiplier = cloth.sprite == null ? 1f : cloth.sprite.rect.width / 420f;
-            cloth.color = new Color(.055f, .16f, .22f, 1f);
-            Image frame = Image(art, "Royal Shipyard Brass Frame", Frame);
-            Stretch(frame.rectTransform, 1f);
-            frame.type = UnityEngine.UI.Image.Type.Sliced;
-            frame.fillCenter = false;
-            frame.pixelsPerUnitMultiplier = 7f;
-            frame.color = new Color(.88f, .84f, .73f, 1f);
-
-            // A medallion and quiet hairlines establish the title without hiding the dock scene.
-            Image compass = Image(art, "Royal Shipyard Header Compass", Compass);
-            Box(compass.rectTransform, -431f, 0f, 68f, 68f);
-            compass.preserveAspect = true;
-            Rule(art, "Royal Shipyard Title Upper Rule", -293f, 31f, 164f, 1f, Brass);
-            Rule(art, "Royal Shipyard Title Lower Rule", -293f, -31f, 164f, 1f, Brass);
-            Rule(art, "Royal Shipyard Navigation Divider", -20f, 0f, 1f, 54f, new Color(Brass.r, Brass.g, Brass.b, .4f));
-            Rule(art, "Royal Shipyard Treasury Divider", 550f, 0f, 1f, 44f, new Color(Brass.r, Brass.g, Brass.b, .35f));
-
-            StyleButton(header, state, "Return To Port Hub", -822f, 166f);
-            StyleButton(header, state, "Previous Port Facility", -615f, 212f);
-            StyleButton(header, state, "Next Port Facility", -118f, 154f);
-            StyleButton(header, state, "Port Facility Settings", 844f, 132f);
-            StyleText(state, title, -293f, 0f, 184f, 54f, 31, Brass, true);
+            // Only noninteractive labels remain above the shared opaque surface.
+            art.SetAsLastSibling();
+            // The common heading now supplies the shipyard's own facility icon.
+            foreach (string name in new[] { "Royal Shipyard Brass Frame", "Royal Shipyard Title Upper Rule",
+                "Royal Shipyard Title Lower Rule", "Royal Shipyard Navigation Divider", "Royal Shipyard Treasury Divider",
+                "Royal Shipyard Header Compass", "Royal Shipyard Naval Cloth" })
+            {
+                Transform old = art.Find(name);
+                if (old != null) old.gameObject.SetActive(false);
+            }
+            // Navigation keeps the shared icon size and its original callbacks.
+            NauticalHeaderSkin.ApplySettingsButton(header.Find("Port Facility Settings")?.GetComponent<Button>());
+            state.Color(title, NauticalHeaderSkin.Ivory);
+            state.Type(title, 31, FontStyle.Bold);
             StyleText(state, header.Find("Port Facility Time")?.GetComponent<Text>(), 169f, 0f, 316f, 64f, 20, Ivory, false);
             StyleText(state, header.Find("Port Facility Port")?.GetComponent<Text>(), 444f, -5f, 186f, 44f, 24, Ivory, true);
-            StyleText(state, header.Find("Port Facility Gold")?.GetComponent<Text>(), 659f, 0f, 196f, 64f, 25, Brass, false);
+            NauticalHeaderSkin.ApplyGoldReadout(header, "Port Facility ");
             Text harbour = Text(art, "Royal Shipyard Harbour Legend", title.font);
             Box(harbour.rectTransform, 444f, 26f, 186f, 18f);
             harbour.text = "停 泊 港";
@@ -85,17 +71,6 @@ namespace ShatteredSail.Presentation
             state.GuardNavigation(header.Find("Return To Port Hub")?.GetComponent<Button>());
             state.GuardNavigation(header.Find("Previous Port Facility")?.GetComponent<Button>());
             state.GuardNavigation(header.Find("Next Port Facility")?.GetComponent<Button>());
-        }
-
-        private static void StyleButton(RectTransform root, RoyalShipyardHeaderState state, string name, float x, float width)
-        {
-            Button button = root.Find(name)?.GetComponent<Button>();
-            if (button == null) return;
-            state.Box((RectTransform)button.transform, x, 0f, width, 52f);
-            Image face = button.GetComponent<Image>();
-            if (face != null) state.Pixels(face, 12f);
-            Text label = button.GetComponentInChildren<Text>(true);
-            if (label != null) StyleText(state, label, 0f, 0f, width - 24f, 42f, 20, Ivory, false);
         }
 
         private static void StyleText(RoyalShipyardHeaderState state, Text label, float x, float y,

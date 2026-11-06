@@ -57,6 +57,7 @@ namespace ShatteredSail.Presentation
         private static bool IsDeckBuilderEditingButton(string name) =>
             name.StartsWith("Add Deck Card ", System.StringComparison.Ordinal) ||
             name.StartsWith("Remove Deck Card ", System.StringComparison.Ordinal) ||
+            name.StartsWith("Workshop School Filter ", System.StringComparison.Ordinal) ||
             name == "Previous Battle Card Collection Page" || name == "Next Battle Card Collection Page";
     }
 }

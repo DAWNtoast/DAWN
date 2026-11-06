@@ -207,7 +207,7 @@ namespace ShatteredSail.Presentation
             if (routeTitle != null) routeTitle.text = displayLeg == 1 ? "断锚港首航训练" : "领航员进阶训练";
             if (routeSubtitle != null) routeSubtitle.text = session.HasNavigator
                 ? "碎帆礁海 · 种子 " + session.Seed + " · " + SeedHash.Compute("route_shattered_sail_reef::" + session.Seed).ToString("X8")
-                : "碎帆礁海 · 海图尚未绘制，随船航海士可揭示种子";
+                : "碎帆礁海 · 随船航海士可解读航道信息";
             statsText.text =
                 "船体  " + session.Hull + "/" + TutorialVoyageSession.MaxHull +
                 "     淡水  " + session.Water +
@@ -366,7 +366,7 @@ namespace ShatteredSail.Presentation
 
             if (encounter.Optional)
             {
-                Button skip = CreateModalButton("Skip", "略过事件\n不推进事件时间，不获得奖励", Panel);
+                Button skip = CreateModalButton("Skip", "略过事件", Panel);
                 skip.onClick.AddListener(SkipEncounter);
             }
         }

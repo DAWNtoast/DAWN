@@ -93,19 +93,29 @@ namespace ShatteredSail.Presentation.Tests
                 }
             }
             Assert.That(BoundsIn(rail, Column(false)).xMax, Is.LessThan(BoundsIn(rail, Column(true)).xMin));
-            Assert.That(basic.verticalNormalizedPosition, Is.EqualTo(1f).Within(.001f));
-            Assert.That(special.verticalNormalizedPosition, Is.EqualTo(1f).Within(.001f));
+            foreach (ScrollRect scroll in new[] { basic, special })
+            {
+                // For an exactly fitting/non-overflowing list ScrollRect may
+                // report either normalized endpoint after canvas scaling.
+                // The visible first row and content must still start at the top.
+                Assert.That(scroll.content.anchoredPosition.y, Is.Zero.Within(.01f));
+                Assert.That(BoundsIn(scroll.viewport, scroll.content).yMax,
+                    Is.EqualTo(scroll.viewport.rect.yMax).Within(.01f));
+                if (scroll.content.rect.height > scroll.viewport.rect.height + .01f)
+                    Assert.That(scroll.verticalNormalizedPosition, Is.EqualTo(1f).Within(.001f));
+            }
             foreach (string obsolete in new[] { "Deck Builder Base Filter", "Deck Builder Special Filter",
                 "Deck Builder Deck Scroll Viewport", "Previous Stage Deck Page", "Next Stage Deck Page" })
                 Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == obsolete), Is.False, obsolete);
         }
 
-        [TestCase(10, false)]
-        [TestCase(11, false)]
-        [TestCase(12, false)]
-        [TestCase(10, true)]
-        [TestCase(11, true)]
-        public void TenDifferentCardsFillTheViewportAndOnlyAdditionalKindsScroll(int differentCards, bool special)
+        [TestCase(10, false, false)]
+        [TestCase(11, false, false)]
+        [TestCase(12, false, true)]
+        [TestCase(10, true, false)]
+        [TestCase(11, true, false)]
+        [TestCase(12, true, true)]
+        public void CompactRowsKeepTheirHeightAndScrollOnlyBeyondTheViewport(int differentCards, bool special, bool expectedOverflow)
         {
             CreatePreview(CoreGameplayPreviewPort.GrayGull);
             if (special)
@@ -130,21 +140,32 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(scrollbar, Is.Not.Null);
             Assert.That(scrollbar.Scroll, Is.SameAs(scroll));
             scrollbar.Refresh();
-            Assert.That(scrollbar.HasOverflow, Is.EqualTo(differentCards > 10));
-            Assert.That(scrollbar.Handle.gameObject.activeSelf, Is.EqualTo(differentCards > 10));
+            Assert.That(rows, Has.Length.EqualTo(differentCards));
+            // The November 4 accepted tall rail keeps 56-unit compact rows in
+            // a 622-unit viewport. Eleven fit; the twelfth requires scrolling.
+            const float rowHeight = 56f;
+            Assert.That(scroll.viewport.rect.height, Is.EqualTo(622f).Within(.01f));
+            Assert.That(scrollbar.HasOverflow, Is.EqualTo(expectedOverflow));
+            Assert.That(scrollbar.Handle.gameObject.activeSelf, Is.EqualTo(expectedOverflow));
+            Assert.That(scrollbar.GetComponent<Graphic>().raycastTarget, Is.EqualTo(expectedOverflow),
+                "A hidden scrollbar cannot intercept clicks in a fitting list.");
             Assert.That(scrollbar.Handle.rect.size, Is.EqualTo(new Vector2(18f, 30f)), "The border diamond never stretches into a conventional scrollbar.");
-            Assert.That(scroll.content.rect.height, Is.EqualTo(scroll.viewport.rect.height * differentCards / 10f).Within(.01f));
+            Assert.That(scroll.content.rect.height,
+                Is.EqualTo(Mathf.Max(scroll.viewport.rect.height, rowHeight * differentCards)).Within(.01f));
             Rect[] bounds = rows.Select(row => BoundsIn(scroll.content, row.GetComponent<RectTransform>())).ToArray();
             Assert.That(bounds[0].yMax, Is.EqualTo(scroll.content.rect.yMax).Within(.01f), "No unused space above the first row.");
-            Assert.That(bounds.Last().yMin, Is.EqualTo(scroll.content.rect.yMin).Within(.01f), "No unused space below the last row.");
+            if (expectedOverflow)
+                Assert.That(bounds.Last().yMin, Is.EqualTo(scroll.content.rect.yMin).Within(.01f), "An overflowing list ends at its final row.");
+            else
+                Assert.That(bounds.Last().yMin, Is.GreaterThanOrEqualTo(scroll.content.rect.yMin - .01f), "A fitting list keeps its rows inside the viewport.");
             for (int row = 0; row < bounds.Length; row++)
             {
                 Assert.That(bounds[row].xMin, Is.EqualTo(scroll.content.rect.xMin).Within(.01f), "Rows meet the left list edge.");
                 Assert.That(bounds[row].xMax, Is.EqualTo(scroll.content.rect.xMax).Within(.01f), "Rows meet the right list edge.");
-                Assert.That(bounds[row].height, Is.EqualTo(scroll.viewport.rect.height / 10f).Within(.01f));
+                Assert.That(bounds[row].height, Is.EqualTo(rowHeight).Within(.01f));
                 if (row > 0) Assert.That(bounds[row].yMax, Is.EqualTo(bounds[row - 1].yMin).Within(.01f), "Rows meet without gaps or overlap.");
             }
-            if (differentCards == 10)
+            if (!expectedOverflow)
                 foreach (Button row in rows) AssertContained(scroll.viewport.rect, BoundsIn(scroll.viewport, row.GetComponent<RectTransform>()), row.name);
             else
             {
@@ -170,7 +191,7 @@ namespace ShatteredSail.Presentation.Tests
             RebuildColumns();
             int[] sources = controller.Session.GetBonusBattleCards(NavalBattleStage.Naval).ToArray();
             decimal gold = controller.Session.ProfileGold;
-            Assert.That(sources.Distinct().Count(), Is.GreaterThan(10), "Use real source cards to exercise a second overflowing column.");
+            Assert.That(sources.Distinct().Count(), Is.GreaterThan(11), "Use real source cards to exercise a second overflowing column.");
             DeckScroll(false).verticalNormalizedPosition = .31f;
             DeckScroll(true).verticalNormalizedPosition = .64f;
             Canvas.ForceUpdateCanvases();

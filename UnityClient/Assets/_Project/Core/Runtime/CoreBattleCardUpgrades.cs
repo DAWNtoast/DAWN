@@ -80,7 +80,9 @@ namespace ShatteredSail.Core.Gameplay
             return new CoreBattleCard(original.Id, original.Name, original.Type,
                 original.Energy, CoreCardUpgradeDesign.Scale(original, original.Damage, level),
                 CoreCardUpgradeDesign.ScaleBlock(original, original.Block, level),
-                CoreCardUpgradeDesign.ScaleRepair(original, original.Repair, level),
+                original.BoardingSpec?.Key == "basic_07" || original.BoardingSpec?.Key == "tide_12"
+                    ? CoreBoardingCardBalance.Sustain(original.BoardingSpec.Key, level)
+                    : CoreCardUpgradeDesign.ScaleRepair(original, original.Repair, level),
                 CoreBattleUpgradeBalance.UpgradeDraw(original, level),
                 original.PowderCost, CoreBoardingCardDescriptions.AtLevel(original, level), original.AllowedStages, original.Action, original.RequiredCrew,
                 original.ArtId, original.CannonballCost, original.RequiredComponent, level,
@@ -105,14 +107,15 @@ namespace ShatteredSail.Core.Gameplay
             Dictionary<string, int> copy = new Dictionary<string, int>(StringComparer.Ordinal);
             if (levels != null)
                 foreach (CoreBattleCard card in cardLibrary)
-                    if ((card.AllowedStages != NavalBattleStages.None || CoreBattleCardAliases.IsAlias(card.Id)) &&
+                    if ((card.AllowedStages != NavalBattleStages.None || CoreBattleCardAliases.IsAlias(card.Id) || CoreRetiredSourceCards.IsRetired(card.Id)) &&
                         levels.TryGetValue(card.Id, out int level) && level > 0)
                     {
                         // Keep historic purchased ranks; effective definitions clamp to
                         // today's per-card limit without destroying saved investment.
                         int clamped = Math.Min(CoreBattleUpgradeBalance.MaximumLevel, level);
                         string id = CoreBattleCardAliases.CanonicalId(card.Id);
-                        if (IsSpecialBattleCard(id)) RestoreSpecialCardMinimumExperience(id, SpecialCardExperienceForLevel(clamped));
+                        if (IsSpecialBattleCard(id) || CoreRetiredSourceCards.IsRetired(id))
+                            RestoreSpecialCardMinimumExperience(id, SpecialCardExperienceForLevel(clamped));
                         else
                         {
                             copy.TryGetValue(id, out int previous);
@@ -210,7 +213,7 @@ namespace ShatteredSail.Core.Gameplay
                 case NavalBattleCardAction.Circle: text.Append("舰艏对准敌舰侧舷，须推进后才能冲撞；"); break;
                 case NavalBattleCardAction.Parallel:
                 case NavalBattleCardAction.Navigator: text.Append("转为平行，60 米内可接舷；"); break;
-                case NavalBattleCardAction.FireRounds: text.Append("烈焰强化 +").Append(card.StrategyAmount).Append(" 发，最高 ").Append(card.StrategyLimit).Append(" 发；命中后灼烧 ").Append(card.BurnDuration).Append(" 回合，每回合 ").Append(burnDamage ?? card.BurnDamage).Append(" 伤害；"); break;
+                case NavalBattleCardAction.FireRounds: text.Append("获得 ").Append(card.StrategyAmount).Append(" 层附火；"); break;
             }
             if (card.Draw > 0) text.Append("抽 ").Append(card.Draw).Append(" 张当前阶段牌；");
             if (card.PowderCost > 0 || card.CannonballCost > 0)

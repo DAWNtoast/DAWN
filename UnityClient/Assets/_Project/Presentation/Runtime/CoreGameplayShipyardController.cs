@@ -70,14 +70,6 @@ namespace ShatteredSail.Presentation
             return port >= 0 && port < CoreVoyageSession.DestinationPorts.Count ? CoreVoyageSession.DestinationPorts[port] : "未知港口";
         }
 
-        private string ShipyardOwnershipLabel(int index)
-        {
-            bool local = CoreShipMarketCatalog.IsSoldAtPort(ShipyardPortIndex(), index);
-            if (index == session.SelectedShipIndex) return local ? "当前旗舰" : "当前旗舰 · 随航抵港";
-            if (OwnsShipyardVessel(index)) return "已拥有 · 停泊本港";
-            return local ? "售价 " + CoreShipMarketCatalog.PurchaseCost(index) + " 金币" : "本港不售 · 所属港 " + ShipyardVesselHomePort(index);
-        }
-
         private bool IsCurrentShipyardControl(Component control, CoreVoyageSession owner, string port, int revision)
         {
             return control != null && control.gameObject.activeInHierarchy && ReferenceEquals(session, owner) &&
@@ -130,7 +122,7 @@ namespace ShatteredSail.Presentation
 
             // The ship can be inspected regardless of price or ownership. The
             // gallery never invokes payment or silently switches the flagship.
-            Text title = BuildRoyalShipyardConsole(panel, index, visibleShips, out Button inspectAction);
+            Text title = BuildRoyalShipyardConsole(panel, index, out Button inspectAction);
             ConfigureGroundedObjectHover(inspect, glow, shipArt, title, Gold);
             ConfigureShipyardSilhouetteHover(inspect, waterClip, glow);
             inspect.onClick.AddListener(() => InspectShipyardVessel(inspect, owner, port, revision));
@@ -163,13 +155,7 @@ namespace ShatteredSail.Presentation
         {
             string name = forward ? "Shipyard Next Vessel" : "Shipyard Previous Vessel";
             Button button = CreateButton(name, parent, new Vector2(100f, 108f), new Vector2(forward ? 814f : -814f, -351f), Color.white, Gold, 30);
-            button.GetComponentInChildren<Text>().text = string.Empty;
-            button.GetComponent<Image>().pixelsPerUnitMultiplier = 12f;
-            float direction = forward ? 1f : -1f;
-            CreateLine(button.transform, new Vector2(-9f * direction, 31f), new Vector2(10f * direction, 14f), Gold, 3f);
-            CreateLine(button.transform, new Vector2(10f * direction, 14f), new Vector2(-9f * direction, -3f), Gold, 3f);
-            ShipyardText(forward ? "Shipyard Next Caption" : "Shipyard Previous Caption", button.transform,
-                new Vector2(88f, 28f), new Vector2(0f, -27f), 18, Ink).text = forward ? "下一艘" : "上一艘";
+            DepartureVesselButtonGraphic.Apply(button, forward);
             return button;
         }
 

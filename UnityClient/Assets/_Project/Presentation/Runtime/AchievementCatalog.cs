@@ -46,6 +46,16 @@ namespace ShatteredSail.Presentation
 
         public static int CountUnlocked() => EvaluateUnlockStates(null);
 
+        /// <summary>Reads proven port visits without capturing achievements or changing the profile.</summary>
+        public static IReadOnlyList<string> ReadVisitedPorts()
+        {
+            var snapshot = new ProgressSnapshot();
+            var visited = new List<string>();
+            foreach (string port in Ports)
+                if (snapshot.Visited(port)) visited.Add(port);
+            return visited.AsReadOnly();
+        }
+
         /// <summary>
         /// Fills the caller's reusable buffer in catalogue order and returns the
         /// unlocked count. A fresh shared snapshot keeps each refresh read-only.
@@ -336,9 +346,11 @@ namespace ShatteredSail.Presentation
                     {
                         string json = PlayerPrefs.GetString(CoreGameplayDemoController.CollectionProgressKey, string.Empty);
                         CoreCollectionProgress history = string.IsNullOrWhiteSpace(json) ? null : JsonUtility.FromJson<CoreCollectionProgress>(json);
-                        if (history != null && history.version == 1 && history.visitedPorts != null)
+                        // Reject the whole malformed record, just as the Core loader does.
+                        // A plausible visitedPorts field alone cannot unlock destinations.
+                        if (history != null && new CoreVoyageSession().RestoreCollectionProgress(history))
                             foreach (string known in Ports)
-                                if (Array.IndexOf(history.visitedPorts, known) >= 0) visited.Add(known);
+                                if (Array.IndexOf(history.visitedPorts ?? Array.Empty<string>(), known) >= 0) visited.Add(known);
                     }
                     catch (ArgumentException) { }
                 }

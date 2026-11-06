@@ -31,27 +31,16 @@ namespace ShatteredSail.Presentation
             if (box != null)
             {
                 SetMenuRect(box.rectTransform, new Vector2(32f, 32f), new Vector2(-362f, 0f));
-                box.overrideSprite = null;
-                box.sprite = null;
-                box.color = new Color(.97f, .94f, .85f, 1f);
-                Outline edge = box.GetComponent<Outline>() ?? box.gameObject.AddComponent<Outline>();
-                edge.effectColor = new Color(.46f, .34f, .20f, 1f);
-                edge.effectDistance = new Vector2(1f, -1f);
                 Image check = fullScreenToggle.graphic as Image;
                 if (check != null)
-                {
-                    SetMenuRect(check.rectTransform, new Vector2(22f, 22f), Vector2.zero);
-                    check.overrideSprite = null;
-                    check.sprite = masterSlider.handleRect.GetComponent<Image>().sprite;
-                    check.color = Color.white;
-                }
-                fullScreenToggle.colors = ColorBlock.defaultColorBlock;
+                    SetMenuRect(check.rectTransform, new Vector2(26f, 26f), Vector2.zero);
             }
+            MarketShopSkin.ApplyToggle(fullScreenToggle);
             Text fullScreenLabel = fullScreenToggle.GetComponentInChildren<Text>(true);
             StyleMenuText(fullScreenLabel, new Vector2(670f, 42f), new Vector2(32f, 0f), 23, FontStyle.Normal, TextAnchor.MiddleLeft);
             MenuRule(card, "Settings Footer Divider", new Vector2(784f, 1f), new Vector2(0f, -235f));
-            StyleMenuAction(card.Find("Back From Settings")?.GetComponent<Button>(), new Vector2(330f, 56f), new Vector2(-211f, -298f), false);
-            StyleMenuAction(card.Find("Apply Settings")?.GetComponent<Button>(), new Vector2(330f, 56f), new Vector2(211f, -298f), true);
+            StyleMenuAction(card.Find("Back From Settings")?.GetComponent<Button>(), new Vector2(330f, 56f), new Vector2(-211f, -298f));
+            StyleMenuAction(card.Find("Apply Settings")?.GetComponent<Button>(), new Vector2(330f, 56f), new Vector2(211f, -298f), WoodButtonRole.Primary);
         }
 
         private void StyleMenuAchievements()
@@ -67,8 +56,7 @@ namespace ShatteredSail.Presentation
             for (int i = 0; i < achievementStateButtons.Count; i++)
             {
                 Button filter = achievementStateButtons[i];
-                StyleMenuAction(filter, new Vector2(200f, 44f), new Vector2(-5f + i * 210f, 284f), false);
-                MarketShopSkin.SetMode(filter, i == achievementStateFilter);
+                StyleMenuAction(filter, new Vector2(200f, 44f), new Vector2(-5f + i * 210f, 284f), selected: i == achievementStateFilter);
             }
             for (int i = 0; i < achievementRows.Count; i++)
             {
@@ -85,10 +73,10 @@ namespace ShatteredSail.Presentation
                 row.Progress.color = SecondaryPanelMutedInk;
                 MenuRule(row.Root, "Achievement Ledger Rule", new Vector2(1020f, 1f), new Vector2(0f, -37f));
             }
-            StyleMenuAction(achievementPreviousPage, new Vector2(190f, 40f), new Vector2(-290f, -382f), false);
-            StyleMenuAction(achievementNextPage, new Vector2(190f, 40f), new Vector2(290f, -382f), false);
+            StyleMenuAction(achievementPreviousPage, new Vector2(190f, 40f), new Vector2(-290f, -382f));
+            StyleMenuAction(achievementNextPage, new Vector2(190f, 40f), new Vector2(290f, -382f));
             StyleMenuText(achievementPageLabel, new Vector2(220f, 36f), new Vector2(0f, -382f), 21, FontStyle.Normal, TextAnchor.MiddleCenter);
-            StyleMenuAction(card.Find("Back From Achievements")?.GetComponent<Button>(), new Vector2(320f, 40f), new Vector2(0f, -429f), true);
+            StyleMenuAction(card.Find("Back From Achievements")?.GetComponent<Button>(), new Vector2(320f, 40f), new Vector2(0f, -429f));
             if (achievementEmpty != null) achievementEmpty.color = SecondaryPanelMutedInk;
         }
 
@@ -111,8 +99,8 @@ namespace ShatteredSail.Presentation
                 body.lineSpacing = 1.35f;
             }
             MenuRule(card, "Confirmation Footer Divider", new Vector2(716f, 1f), new Vector2(0f, -84f));
-            StyleMenuAction(card.Find("Cancel New Game")?.GetComponent<Button>(), new Vector2(330f, 56f), new Vector2(-193f, -144f), false);
-            StyleMenuAction(card.Find("Confirm New Game")?.GetComponent<Button>(), new Vector2(330f, 56f), new Vector2(193f, -144f), true);
+            StyleMenuAction(card.Find("Cancel New Game")?.GetComponent<Button>(), new Vector2(330f, 56f), new Vector2(-193f, -144f));
+            StyleMenuAction(card.Find("Confirm New Game")?.GetComponent<Button>(), new Vector2(330f, 56f), new Vector2(193f, -144f), WoodButtonRole.Danger);
         }
 
         private static void StyleSecondaryPaper(RectTransform backdrop, RectTransform card, Vector2 size)
@@ -156,32 +144,20 @@ namespace ShatteredSail.Presentation
 
         private static void StyleMenuDropdown(Dropdown dropdown)
         {
-            Image face = dropdown.GetComponent<Image>();
-            face.sprite = face.overrideSprite = null;
-            face.color = new Color(.96f, .93f, .85f, 1f);
-            Outline edge = face.GetComponent<Outline>() ?? face.gameObject.AddComponent<Outline>();
-            edge.effectColor = new Color(.46f, .34f, .20f, .75f);
-            edge.effectDistance = new Vector2(1f, -1f);
-            dropdown.colors = ColorBlock.defaultColorBlock;
+            MarketShopSkin.ApplyDropdown(dropdown);
             StyleMenuText(dropdown.captionText, new Vector2(314f, 40f), new Vector2(-12f, 0f), 20, FontStyle.Normal, TextAnchor.MiddleLeft);
             Text arrow = dropdown.transform.Find("Category Arrow")?.GetComponent<Text>();
             StyleMenuText(arrow, new Vector2(28f, 40f), new Vector2(164f, 0f), 18, FontStyle.Normal, TextAnchor.MiddleCenter);
-            foreach (Image image in dropdown.template.GetComponentsInChildren<Image>(true))
-            {
-                image.sprite = image.overrideSprite = null;
-                image.color = image.name == "Selected" ? new Color(.60f, .43f, .21f, 1f) : new Color(.96f, .93f, .85f, 1f);
-            }
-            foreach (Text text in dropdown.template.GetComponentsInChildren<Text>(true)) text.color = MarketShopSkin.Ink;
         }
 
-        private static void StyleMenuAction(Button button, Vector2 size, Vector2 position, bool primary)
+        private static void StyleMenuAction(Button button, Vector2 size, Vector2 position,
+            WoodButtonRole role = WoodButtonRole.Secondary, bool selected = false)
         {
             if (button == null) return;
             SetMenuRect((RectTransform)button.transform, size, position);
             Text label = button.GetComponentInChildren<Text>(true);
             StyleMenuText(label, size - new Vector2(24f, 6f), Vector2.zero, 23, FontStyle.Bold, TextAnchor.MiddleCenter);
-            if (primary) MarketShopSkin.SetMode(button, true);
-            else MarketShopSkin.ApplyLightButton(button);
+            WoodButtonSkin.ApplyAction(button, role, selected);
         }
 
         private static void StyleMenuText(Text text, Vector2 size, Vector2 position, int fontSize, FontStyle style, TextAnchor alignment)

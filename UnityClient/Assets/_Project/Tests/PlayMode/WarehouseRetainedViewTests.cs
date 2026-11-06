@@ -12,7 +12,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest, Timeout(120000)]
-        public IEnumerator WarehouseRetainedView_SortingTabsAndTransfersKeepInventoryObjects()
+        public IEnumerator WarehouseRetainedView_TabsAndTransfersKeepInventoryObjects()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -22,13 +22,18 @@ namespace ShatteredSail.Presentation.Tests
             GameObject panel = GameObject.Find("Warehouse Panel");
             GameObject cabinet = GameObject.Find("Warehouse Cabinet Art");
             Button wood = ActiveButton("Warehouse Storage Row wood");
-            Button sort = ActiveButton("Warehouse Storage Header Stored");
+            Text quantity = GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>();
+            Assert.That(quantity.text, Is.EqualTo("0"));
             Button.ButtonClickedEvent oldWoodAction = wood.onClick;
-            ClickAcceptanceButton("Warehouse Storage Header Stored"); yield return null;
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>(), Is.SameAs(quantity));
+            Assert.That(quantity.text, Is.EqualTo("3"));
+            ClickAcceptanceButton("Warehouse Tab Rare"); yield return null;
+            ClickAcceptanceButton("Warehouse Tab Storage"); yield return null;
             Assert.That(GameObject.Find("Warehouse Panel"), Is.SameAs(panel));
             Assert.That(GameObject.Find("Warehouse Cabinet Art"), Is.SameAs(cabinet));
             Assert.That(ActiveButton("Warehouse Storage Row wood"), Is.SameAs(wood));
-            Assert.That(ActiveButton("Warehouse Storage Header Stored"), Is.SameAs(sort));
+            Assert.That(ActiveButton("Warehouse Storage Header Stored"), Is.Null);
             oldWoodAction.Invoke(); yield return null;
             Assert.That(GameObject.Find("Warehouse Item Actions"), Is.Null,
                 "Reusing a row must not revive its superseded callback.");
@@ -54,8 +59,13 @@ namespace ShatteredSail.Presentation.Tests
             yield return StoreAllVisibleCargo(controller, "wood");
             Assert.That(GameObject.Find("Warehouse Panel"), Is.SameAs(panel));
             Assert.That(ActiveButton("Warehouse Storage Row wood"), Is.SameAs(wood));
-            Assert.That(GameObject.Find("Warehouse Storage Carried wood").GetComponent<Text>().text, Is.EqualTo("0"));
-            Assert.That(GameObject.Find("Warehouse Storage Stored wood").GetComponent<Text>().text, Is.EqualTo("3"));
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>(), Is.SameAs(quantity));
+            Assert.That(quantity.text, Is.EqualTo("0"));
+            ClickAcceptanceButton("Warehouse Inventory Location Stored"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>(), Is.SameAs(quantity));
+            Assert.That(quantity.text, Is.EqualTo("3"));
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            Assert.That(quantity.text, Is.EqualTo("0"));
             Assert.That(GameObject.Find("Warehouse Storage Modal"), Is.Null);
             Assert.That(panel.GetComponent<CanvasGroup>().interactable, Is.True);
             Assert.That(panel.GetComponent<CanvasGroup>().blocksRaycasts, Is.True);

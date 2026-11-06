@@ -3,11 +3,16 @@ param(
     [Parameter(Mandatory=$true)][string]$ProjectPath,
     [Parameter(Mandatory=$true)][string]$Output,
     [string]$TestFilter = '',
+    [ValidatePattern('^[A-Za-z0-9.]*$')][string]$TradeAcceptanceSeed = '',
+    [switch]$CaptureVisuals,
     [string]$SourceManifest = '',
     [ValidateRange(1,240)][int]$TimeoutMinutes = 60,
     [string]$UnityEditor = 'D:/Unity/Hub/Editor/6000.3.23f1/Editor/Unity.exe'
 )
 $ErrorActionPreference = 'Stop'
+if ($TradeAcceptanceSeed -and ($Platform -ne 'PlayMode' -or -not $TestFilter)) {
+    throw 'A fixed trade acceptance seed is only allowed for explicitly filtered PlayMode diagnostics.'
+}
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..')).TrimEnd('\','/')
 $project = [IO.Path]::GetFullPath($ProjectPath).TrimEnd('\','/')
 $destination = [IO.Path]::GetFullPath($Output).TrimEnd('\','/')
@@ -63,7 +68,9 @@ if ($SourceManifest) {
 $arguments = @('-batchmode','-force-d3d11','-projectPath',$project,'-runTests','-testPlatform',$Platform,
     '-testResults',(Join-Path $destination 'results.xml'),'-logFile',(Join-Path $destination 'unity.log'))
 if ($TestFilter) { $arguments += @('-testFilter',$TestFilter) }
+if ($TradeAcceptanceSeed) { $arguments += @('-tradeAcceptanceSeed',$TradeAcceptanceSeed) }
 if ($Platform -eq 'PlayMode') { $arguments += @('-audioCapturePath',(Join-Path $destination 'AudioCapture'),'-auditActionLogPath',(Join-Path $destination 'Actions')) }
+if ($CaptureVisuals -and $Platform -eq 'PlayMode') { $arguments += @('-navalVisualCapturePath',(Join-Path $destination 'Visuals')) }
 $quoted = foreach ($value in $arguments) { $escaped = [regex]::Replace($value,'(\\*)"','$1$1\"'); '"' + [regex]::Replace($escaped,'(\\+)$','$1$1') + '"' }
 $started = [DateTime]::UtcNow
 $process = Start-Process -FilePath $UnityEditor -ArgumentList ($quoted -join ' ') -WorkingDirectory $project -WindowStyle Hidden -PassThru

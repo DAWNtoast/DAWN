@@ -59,7 +59,7 @@ namespace ShatteredSail.Presentation.Tests
             AssertShipyardTactic(controller, variants[0], true);
             AssertShipyardTactic(controller, variants[1], false);
             Assert.That(controller.Session.MaxHull, Is.EqualTo(controller.Session.SelectedShip.MaxHull + variants[0].HullBonus - catalog.Get(0).HullBonus));
-            yield return ClickShipyardControl("Close Shipyard Equipment");
+            yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
             Assert.That(GameObject.Find("Shipyard Dossier Stat 0").GetComponent<Text>().text, Is.EqualTo("船体上限  " + controller.Session.MaxHull));
             Assert.That(GameObject.Find("Shipyard Dossier Stat 2").GetComponent<Text>().text, Is.EqualTo("火力  " + controller.Session.Firepower));
@@ -87,7 +87,7 @@ namespace ShatteredSail.Presentation.Tests
             // Leave an inventory item highlighted without installing it, then inspect a different ship.
             yield return ClickShipyardControl("Shipyard Equipment Owned " + replacement.InstanceId);
             Assert.That(ActiveButton("Shipyard Equip Component").interactable, Is.True);
-            yield return ClickShipyardControl("Close Shipyard Equipment");
+            yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Return To Port Hub");
             yield return BrowseShipMarketTo(1);
             yield return ClickShipyardControl("Shipyard Ship 1");
@@ -102,7 +102,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller.Session.SelectedShipIndex, Is.Zero, "Editing a moored vessel must not change the flagship.");
             Assert.That(controller.Session.MaxHull, Is.EqualTo(hullWithoutBow));
             AssertShipyardTactic(controller, variants[1], false);
-            yield return ClickShipyardControl("Close Shipyard Equipment");
+            yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
             Assert.That(FindRenderedShipLayer("Shipyard Detail", variants[1].ShipLayer), Is.Null,
                 "Non-starter vessels retain their complete hull illustration after refitting.");
@@ -114,7 +114,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return ClickShipyardControl("Shipyard Dossier Tab Equipment");
 
             NavalBattleVisualCapture.Capture(controller, "84_Shipyard_Equipment_NonFlagship.png", "船坞配件页：分别维护每艘船，卸下或替换不收费", "Shipyard Detail");
-            yield return ClickShipyardControl("Close Shipyard Equipment");
+            yield return ClickShipyardControl("Return To Port Hub");
             yield return ClickShipyardControl("Shipyard Dossier Tab Performance");
             yield return ClickShipyardControl("Confirm Shipyard Vessel");
             Assert.That(controller.Session.SelectedShipIndex, Is.EqualTo(1));
@@ -161,8 +161,10 @@ namespace ShatteredSail.Presentation.Tests
             Button equip = ActiveButton("Shipyard Equip Component");
             Assert.That(equip.interactable, Is.False);
             equip.onClick.Invoke(); // Bypass Button's normal interactability check to exercise the state guard.
-            foreach (Button unload in Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Where(button => button.name.StartsWith("Shipyard Unequip Component ")))
+            foreach (ComponentSlot slot in Enum.GetValues(typeof(ComponentSlot)))
             {
+                yield return ClickShipyardControl("Shipyard Equipment Slot " + slot);
+                Button unload = ActiveButton("Shipyard Unequip Component " + slot);
                 Assert.That(unload.interactable, Is.False);
                 unload.onClick.Invoke();
             }

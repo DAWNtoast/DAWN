@@ -53,7 +53,7 @@ namespace ShatteredSail.Presentation
                 SetBattleDecisionPanel(buffs, true, infoBottomY, BattleDecisionInfoHeight);
                 SetBattleDecisionText(buffs, "Battle Active Buffs", new Vector2(212f, 104f), Vector2.zero, BattleDecisionFontSize);
             }
-            RectTransform retreat = root.Find("Retreat Battle") as RectTransform ?? root.Find("Emergency Battle Return") as RectTransform;
+            RectTransform retreat = root.Find("Emergency Battle Return") as RectTransform;
             if (retreat != null) SetBattleDecisionPanel(retreat, true, buttonY, BattleDecisionButtonHeight);
             foreach (RectTransform panel in new[] { resources, buffs, retreat })
                 SetBattleDecisionTypography(panel);

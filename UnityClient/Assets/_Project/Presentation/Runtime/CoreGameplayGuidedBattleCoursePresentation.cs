@@ -24,7 +24,7 @@ namespace ShatteredSail.Presentation
                 guidedCourseLesson = session.GuidedBossLesson;
                 guidedCourseRenderedStep = session.GuidedBossStep;
                 guidedCoursePreviousGoal = session.GuidedBossGoalText;
-                guidedCourseFeedback = "随时悬停读卡，或查看资源、敌舰和牌堆。";
+                guidedCourseFeedback = "当前目标 · " + session.GuidedBossGoalText;
             }
             else if (guidedCourseRenderedStep != session.GuidedBossStep)
             {
@@ -56,24 +56,13 @@ namespace ShatteredSail.Presentation
             feedback.color = new Color(.22f, .39f, .28f);
             PositionGuidedReadingText(feedback, padding, top, Mathf.Max(34f, feedback.preferredHeight));
             float rowY = -top - 17f;
-            CourseButton("Guided Battle Inspect Resources", "查看资源", banner, 96f, new Vector2(-6f, rowY),
-                () => OpenGuidedBattleInformation("resources"));
-            CourseButton("Guided Battle Inspect Enemy", "查看敌舰", banner, 96f, new Vector2(98f, rowY),
-                () => OpenGuidedBattleInformation("enemy"));
-            CourseButton("Guided Battle Inspect Deck", "牌堆", banner, 72f, new Vector2(190f, rowY), OpenBattleDeckOverview);
             if (session.GuidedBossCanRestart)
-                CourseButton("Guided Battle Retry", "重试本段", banner, 120f, new Vector2(294f, rowY), () => ContinueGuidedBattleCourse(true));
+                CourseButton("Guided Battle Retry", "重试本段", banner, 120f, new Vector2(294f, rowY),
+                    WoodButtonRole.Secondary, () => ContinueGuidedBattleCourse(true));
             if (session.GuidedBossCanContinue && !session.GuidedBossExerciseFailed)
-                CourseButton("Guided Battle Continue", "继续课程", banner, 144f, new Vector2(434f, rowY), () => ContinueGuidedBattleCourse(false));
+                CourseButton("Guided Battle Continue", session.GuidedBossLesson == GuidedBossLesson.RamContact ? "开始战斗" : "下一项",
+                    banner, 144f, new Vector2(434f, rowY), WoodButtonRole.Primary, () => ContinueGuidedBattleCourse(false));
             banner.sizeDelta = new Vector2(width, top + Mathf.Max(34f, feedback.preferredHeight) + 10f);
-            if (session.GuidedBossCanContinue || session.GuidedBossCanRestart)
-            {
-                Text reset = CourseText("Guided Battle Exercise Reset Notice", banner, width - padding * 2f, 14,
-                    "继续课程或重试本段会重新布置演习场地、牌序与临时补给；章节内按实际回合结算。", FontStyle.Normal);
-                float noteTop = banner.sizeDelta.y - 2f;
-                PositionGuidedReadingText(reset, padding, noteTop, Mathf.Max(20f, reset.preferredHeight));
-                banner.sizeDelta += new Vector2(0f, reset.rectTransform.sizeDelta.y + 6f);
-            }
             ApplyGuidedBattleCourseViewport(banner);
         }
 
@@ -89,13 +78,14 @@ namespace ShatteredSail.Presentation
             return text;
         }
 
-        private void CourseButton(string name, string caption, RectTransform parent, float width, Vector2 position, Action action)
+        private void CourseButton(string name, string caption, RectTransform parent, float width, Vector2 position,
+            WoodButtonRole role, Action action)
         {
             Button button = CreateButton(name, parent, new Vector2(width, 34f), position, PanelRaised, MarketShopSkin.Ink, 16);
             RectTransform rect = (RectTransform)button.transform;
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1f);
             button.GetComponentInChildren<Text>().text = caption;
-            MarketShopSkin.ApplyTextButton(button);
+            WoodButtonSkin.ApplyAction(button, role);
             CoreBattleState battle = session.Battle;
             GuidedBossBattleStep step = session.GuidedBossStep;
             button.onClick.AddListener(() =>
@@ -111,11 +101,9 @@ namespace ShatteredSail.Presentation
         {
             NavalTacticalBoardView board = retainedBattleRoot.GetComponentInChildren<NavalTacticalBoardView>();
             if (board == null) return;
-            // The chart no longer covers the entire battle surface during a
-            // lesson. Fill the reading strip with the surrounding naval backdrop
-            // instead of exposing the unsprited panel's default white tint.
-            Image surface = retainedBattleRoot.GetComponent<Image>();
-            if (surface != null) surface.color = new Color(.015f, .035f, .045f, 1f);
+            // Only reserve space in the interactive chart. The same moving sea
+            // painting continues behind the reading strip without a dark band.
+            board.ExtendSeaToBattleSurface();
             RectTransform rect = (RectTransform)board.transform;
             float top = banner.anchoredPosition.y - banner.sizeDelta.y - 12f;
             const float bottom = -450f;
@@ -170,7 +158,8 @@ namespace ShatteredSail.Presentation
             if (session.GuidedBossExpectedAction == GuidedBossActionKind.Movement && session.Battle.NavalAwaitingHeadingSelection)
             {
                 foreach (GuidedControlSnapshot snapshot in guidedControlSnapshots)
-                    if (snapshot.Control != null && snapshot.Control.name.StartsWith("Naval Arrival Heading ", StringComparison.Ordinal))
+                    if (snapshot.Control != null && snapshot.Control.IsInteractable() &&
+                        snapshot.Control.name.StartsWith("Naval Arrival Heading ", StringComparison.Ordinal))
                         FocusGuidedControl(targets, snapshot.Control.name);
             }
             else if (session.GuidedBossExpectedAction == GuidedBossActionKind.Inspect && session.GuidedBossInspectionTopic == "card")

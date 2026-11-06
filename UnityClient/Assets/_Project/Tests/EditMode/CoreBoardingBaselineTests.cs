@@ -8,9 +8,9 @@ namespace ShatteredSail.Core.Tests
 {
     public sealed class CoreBoardingBaselineTests
     {
-        [TestCase("basic_01", 1, 8)]
-        [TestCase("basic_02", 2, 20)]
-        [TestCase("basic_03", 3, 35)]
+        [TestCase("basic_01", 1, 16)]
+        [TestCase("basic_02", 2, 40)]
+        [TestCase("basic_03", 3, 70)]
         public void BasicAttack_PaysPrintedEnergyAndDealsAuthoredDamage(string key, int cost, int damage)
         {
             CoreVoyageSession s = Battle();
@@ -22,8 +22,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.DiscardPile.Last(), Is.EqualTo(Index(key)));
         }
 
-        [TestCase("basic_04", 1, 4)]
-        [TestCase("basic_05", 2, 10)]
+        [TestCase("basic_04", 1, 10)]
+        [TestCase("basic_05", 2, 24)]
         public void BasicGuard_ExpiresAtTheNextPlayerTurn(string key, int cost, int block)
         {
             CoreVoyageSession s = Battle();
@@ -36,9 +36,9 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.Boarding.TidePower, Is.Zero, "Baseline guard cannot generate tide power.");
         }
 
-        [TestCase(2, 6, 1)]
+        [TestCase(2, 12, 1)]
         [TestCase(0, 2, 0)]
-        public void BasicHeal_UsesMedicineForSixOtherwiseTwo(int medicine, int healing, int medicineSpent)
+        public void BasicHeal_UsesMedicineForTwelveOtherwiseTwo(int medicine, int healing, int medicineSpent)
         {
             CoreVoyageSession s = Battle();
             s.Cargo.Medicine = medicine;
@@ -51,7 +51,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.PlayerBoardingHealth, Is.EqualTo(500 + healing), "Immediate healing must not create delayed ticks.");
         }
 
-        [TestCase(2, 5, 1)]
+        [TestCase(2, 7, 1)]
         [TestCase(0, 2, 0)]
         public void BasicSustainedHeal_PaysOnceAndDecaysByOneAtEachPlayerEnd(int medicine, int layers, int medicineSpent)
         {
@@ -120,8 +120,8 @@ namespace ShatteredSail.Core.Tests
             Assert.That(s.Battle.Energy, Is.EqualTo(1));
         }
 
-        [TestCase("basic_11", 4, 0)]
-        [TestCase("basic_12", 0, 2)]
+        [TestCase("basic_11", 8, 0)]
+        [TestCase("basic_12", 0, 4)]
         public void BasicMixedCards_PayOneApplyHalfEffectAndDrawOne(string key, int damage, int guard)
         {
             CoreVoyageSession s = Battle();
@@ -148,11 +148,11 @@ namespace ShatteredSail.Core.Tests
                 1000, 0, 0, 5, 0, 28, 1, 1, healthMultiplier: 1);
             s.Battle.PhaseTurn = 2; // Enemy grants five guard before the next player start.
             Assert.That(s.EndBattleTurn(), Is.True);
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(993), "Twelve delayed damage minus the enemy's current five guard.");
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(981), "Twenty-four delayed damage minus the enemy's current five guard.");
             Assert.That(s.Battle.EnemyBlock, Is.Zero);
             Assert.That(s.Battle.Boarding.DelayedDamage, Is.Empty);
             End(s);
-            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(993));
+            Assert.That(s.Battle.EnemyBoardingHealth, Is.EqualTo(981));
         }
 
         private static CoreVoyageSession Battle()

@@ -82,7 +82,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(session.CanStartTreasureVoyage(out string reason), Is.True, reason);
             Assert.That(ActiveButton("Start Voyage").IsInteractable(), Is.True,
                 "Purchasing the required rations must refresh the retained departure button.");
-            Assert.That(GameObject.Find("Departure Dock Treasure Status").GetComponent<Text>().text, Does.Contain("整备完成"));
+            Assert.That(GameObject.Find("Departure Dock Treasure Status").GetComponent<Text>().text, Is.Empty);
             NavalBattleVisualCapture.Capture(controller, "Treasure_06_DepartureReady.png", "已选择藏宝种子，从当前港口出发并返回原港", "Voyage Setup");
             ClickAcceptanceButton("Start Voyage");
             yield return null;

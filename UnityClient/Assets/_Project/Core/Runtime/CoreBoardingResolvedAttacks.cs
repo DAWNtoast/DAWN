@@ -14,17 +14,18 @@ namespace ShatteredSail.Core.Gameplay
         public int HealthAfter { get; }
         public int GuardBefore { get; }
         public int GuardAfter { get; }
-        public int HealthLost => Math.Max(0, HealthBefore - HealthAfter);
+        public int HealthLost { get; }
         public int GuardAbsorbed => Math.Max(0, GuardBefore - GuardAfter);
 
         internal CoreBoardingResolvedAttack(long sequence, CoreBoardingDelayedDamage source,
-            int healthBefore, int healthAfter, int guardBefore, int guardAfter)
+            int healthBefore, int healthAfter, int guardBefore, int guardAfter, int? actualDamage = null)
         {
             Sequence = sequence;
             SourceSchoolId = source.SourceSchoolId ?? string.Empty;
             SourceCardId = source.SourceCardId ?? string.Empty;
             Label = source.Label ?? string.Empty;
             HealthBefore = healthBefore; HealthAfter = healthAfter;
+            HealthLost = Math.Min(Math.Max(0, healthBefore), Math.Max(0, actualDamage ?? healthBefore - healthAfter));
             GuardBefore = guardBefore; GuardAfter = guardAfter;
         }
     }
@@ -41,11 +42,11 @@ namespace ShatteredSail.Core.Gameplay
         public long ResolvedAttackSequence => resolvedAttackSequence;
 
         internal void RecordResolvedAttack(CoreBoardingDelayedDamage source,
-            int healthBefore, int healthAfter, int guardBefore, int guardAfter)
+            int healthBefore, int healthAfter, int guardBefore, int guardAfter, int? actualDamage = null)
         {
             if (resolvedAttacks.Count >= ResolvedAttackHistoryLimit) resolvedAttacks.RemoveAt(0);
             resolvedAttacks.Add(new CoreBoardingResolvedAttack(++resolvedAttackSequence, source,
-                healthBefore, healthAfter, guardBefore, guardAfter));
+                healthBefore, healthAfter, guardBefore, guardAfter, actualDamage));
         }
     }
 }

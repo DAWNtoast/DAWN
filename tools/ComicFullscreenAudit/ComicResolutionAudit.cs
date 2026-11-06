@@ -42,17 +42,14 @@ namespace ShatteredSail.Editor
                 capturedUtc = DateTime.UtcNow.ToString("O"), buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString(),
                 quality = QualitySettings.names[QualitySettings.GetQualityLevel()], mipmapLimit = QualitySettings.globalTextureMipmapLimit
             };
-            // Inspect the pages actually used by runtime catalogs. Retired four-
-            // panel atlases must never masquerade as playable full-HD artwork.
+            // Inspect only current runtime comic catalogs and the UV area displayed at once.
             for (int sequence = 0; sequence < RamComicCatalog.SequenceCount; sequence++)
                 for (int page = 0; page < RamComicCatalog.PagesPerSequence; page++)
                     report.assets.Add(Inspect(RamComicCatalog.ImageResource(sequence, page), "ram"));
-            foreach (TreasureStoryChapter chapter in CoreTreasureStoryCatalog.Chapters)
-                foreach (string resource in chapter.ImageResources)
-                    report.assets.Add(Inspect(resource, "treasure"));
             foreach (OpeningComicPage page in OpeningComicCatalog.Pages)
                 report.assets.Add(Inspect(page.ImageResource, "opening"));
-            report.verifiedFullHd = report.assets.Count == 26 && report.assets.All(record => record.verifiedFullHd);
+            int expectedAssets = RamComicCatalog.SequenceCount * RamComicCatalog.PagesPerSequence + OpeningComicCatalog.Pages.Count;
+            report.verifiedFullHd = report.assets.Count == expectedAssets && report.assets.All(record => record.verifiedFullHd);
             Directory.CreateDirectory(Path.GetDirectoryName(output));
             File.WriteAllText(output, JsonUtility.ToJson(report, true));
             if (!report.verifiedFullHd)
@@ -80,7 +77,7 @@ namespace ShatteredSail.Editor
                 standaloneOverride = settings.overridden, resized = width != texture.width || height != texture.height,
                 uncompressed = active.textureCompression == TextureImporterCompression.Uncompressed &&
                     !GraphicsFormatUtility.IsCompressedFormat(texture.graphicsFormat),
-                panelCount = 1
+                panelCount = family == "opening" ? ComicPanelCatalog.QuadPanelCount : 1
             };
             using (var stream = File.OpenRead(path))
             using (var sha = SHA256.Create()) record.sourceSha256 = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
@@ -90,7 +87,7 @@ namespace ShatteredSail.Editor
                 ComicPageGraphic page = host.AddComponent<ComicPageGraphic>();
                 page.rectTransform.sizeDelta = new Vector2(1920f, 1080f);
                 page.texture = texture;
-                page.SetPanel(new Rect(0f, 0f, 1f, 1f), family == "ram");
+                page.SetPanel(family == "opening" ? ComicPanelCatalog.QuadPanel(0) : new Rect(0f, 0f, 1f, 1f), family == "ram");
                 record.displayedUv = page.uvRect;
                 record.effectiveWidth = texture.width * page.uvRect.width;
                 record.effectiveHeight = texture.height * page.uvRect.height;

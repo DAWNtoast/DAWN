@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
+    public enum BoardingSchoolCastRole { Attack, Affliction, Empower, Guard, Heal, Charge, Field }
+
     /// <summary>Presentation classification only. Call after a successful, authoritative action commit.</summary>
     public static class BattleSchoolAttackPresentation
     {
@@ -26,6 +28,80 @@ namespace ShatteredSail.Presentation
         public static BattleSchoolAttackOutcome Outcome(int healthLost, int guardAbsorbed) => healthLost > 0
             ? BattleSchoolAttackOutcome.Hit : guardAbsorbed > 0 ? BattleSchoolAttackOutcome.Guarded : BattleSchoolAttackOutcome.Missed;
 
+        /// <summary>Authored cast intent, independent of passive damage and localized card text.</summary>
+        public static bool TryBoardingCast(CoreBattleCard card, out BattleSchoolAttackKind school, out BoardingSchoolCastRole role)
+        {
+            role = BoardingSchoolCastRole.Empower;
+            school = default;
+            if (card == null || !card.IsAllowedInStage(NavalBattleStage.Boarding)) return false;
+            card = CoreBoardingCardCatalog.ForBoarding(card);
+            if (!TrySchool(card.SchoolId, out school)) return false;
+            if (card.BoardingSpec?.IsDelayed == true)
+                role = BoardingSchoolCastRole.Charge;
+            else if (CoreComponentFieldCards.IsFieldCard(card))
+                role = BoardingSchoolCastRole.Field;
+            else if (card.BoardingSpec != null)
+            {
+                if (card.BoardingSpec.IsAttack || card.BoardingSpec.Key == "curse_11")
+                    role = BoardingSchoolCastRole.Attack;
+                else
+                {
+                    switch (card.BoardingSpec.Key)
+                    {
+                        case "fire_03": case "fire_04": case "fire_07": case "fire_15":
+                        case "curse_02": case "curse_03": case "curse_07": case "curse_08":
+                        case "curse_09": case "curse_10": case "tide_09":
+                            role = BoardingSchoolCastRole.Affliction;
+                            break;
+                        default:
+                            role = card.Repair > 0 ? BoardingSchoolCastRole.Heal :
+                                (card.BoardingBlock ?? card.Block) > 0 ? BoardingSchoolCastRole.Guard : BoardingSchoolCastRole.Empower;
+                            break;
+                    }
+                }
+            }
+            else if (card.Damage > 0)
+                role = BoardingSchoolCastRole.Attack;
+            else
+            {
+                switch (card.SchoolEffect?.Mechanic)
+                {
+                    case CoreSchoolMechanic.FireExploit: case CoreSchoolMechanic.ArcaneRelease:
+                    case CoreSchoolMechanic.CurseDetonate: case CoreSchoolMechanic.CurseExploit:
+                    case CoreSchoolMechanic.TideRiposte: case CoreSchoolMechanic.ThunderPrime:
+                    case CoreSchoolMechanic.ThunderChain: case CoreSchoolMechanic.ThunderFinish:
+                    case CoreSchoolMechanic.BloodRisk: case CoreSchoolMechanic.BloodExecute:
+                        role = BoardingSchoolCastRole.Attack;
+                        break;
+                    case CoreSchoolMechanic.FireIgnite: case CoreSchoolMechanic.FireIgniteOrExtend:
+                    case CoreSchoolMechanic.FireExtend: case CoreSchoolMechanic.FireExtraTick:
+                    case CoreSchoolMechanic.CurseMark:
+                        role = BoardingSchoolCastRole.Affliction;
+                        break;
+                    case CoreSchoolMechanic.FireHeal: case CoreSchoolMechanic.ArcaneMend:
+                    case CoreSchoolMechanic.CurseDrain: case CoreSchoolMechanic.TideRenew:
+                    case CoreSchoolMechanic.BloodMend:
+                        role = BoardingSchoolCastRole.Heal;
+                        break;
+                    case CoreSchoolMechanic.FireGuard: case CoreSchoolMechanic.FirePrepareGuard:
+                    case CoreSchoolMechanic.FireNaturalGuard: case CoreSchoolMechanic.FireBoardingCover:
+                    case CoreSchoolMechanic.ArcaneWard: case CoreSchoolMechanic.CurseWard:
+                    case CoreSchoolMechanic.TideWard: case CoreSchoolMechanic.TideCleanse:
+                    case CoreSchoolMechanic.ThunderWard: case CoreSchoolMechanic.BloodWard:
+                        role = BoardingSchoolCastRole.Guard;
+                        break;
+                    default:
+                        role = card.Repair > 0 ? BoardingSchoolCastRole.Heal :
+                            (card.BoardingBlock ?? card.Block) > 0 ? BoardingSchoolCastRole.Guard : BoardingSchoolCastRole.Empower;
+                        break;
+                }
+            }
+            return true;
+        }
+
+        public static bool TargetsEnemy(BoardingSchoolCastRole role) =>
+            role == BoardingSchoolCastRole.Attack || role == BoardingSchoolCastRole.Affliction;
+
         public static bool TryPlayer(CoreBattleCard card, bool boarding, int healthLost, int guardLost,
             out BattleSchoolAttackKind school, out BattleSchoolAttackOutcome outcome)
         {
@@ -35,7 +111,8 @@ namespace ShatteredSail.Presentation
             {
                 // Queued attacks do not land on play. Explicit resolution has its own
                 // committed event, whose school belongs to the queued source card.
-                return card.BoardingSpec.IsAttack && !card.BoardingSpec.IsDelayed;
+                return !card.BoardingSpec.IsDelayed && (card.BoardingSpec.IsAttack ||
+                    card.BoardingSpec.Key == "curse_11" && (healthLost > 0 || guardLost > 0));
             }
             if (card.Damage > 0) return true;
             if (healthLost <= 0 && guardLost <= 0) return false;
@@ -46,6 +123,7 @@ namespace ShatteredSail.Presentation
                 case CoreSchoolMechanic.FireExploit:
                 case CoreSchoolMechanic.ArcaneRelease:
                 case CoreSchoolMechanic.CurseExploit:
+                case CoreSchoolMechanic.CurseDetonate:
                 case CoreSchoolMechanic.TideRiposte:
                 case CoreSchoolMechanic.ThunderPrime:
                 case CoreSchoolMechanic.ThunderChain:
@@ -103,14 +181,20 @@ namespace ShatteredSail.Presentation
             {
                 if (!isActiveAndEnabled || stage == null || !stage.gameObject.activeInHierarchy || source == null || target == null) yield break;
                 string result = attack.HealthLost > 0 ? "-" + attack.HealthLost : attack.GuardAbsorbed > 0 ? "格挡" : "未命中";
+                if (attack.HealthBefore - attack.HealthAfter > attack.HealthLost)
+                    result = attack.HealthLost > 0 ? "-" + attack.HealthLost + " · 咒印消灭" : "咒印消灭";
                 bool schoolAttack = BattleSchoolAttackPresentation.TryResolved(attack, out var school, out var outcome);
+                source.GetComponent<BoardingPartyPresentation>()?.PlaySource(attack.SourceCardId, null,
+                    BoardingCardActorPresentation.ForResolved(attack.SourceCardId, attack.SourceSchoolId));
                 Coroutine bars = StartCoroutine(schoolAttack
-                    ? AnimateSchoolContactDamage(targetHealth, attack.HealthBefore, attack.HealthAfter, maximumHealth, attack.GuardBefore, attack.GuardAfter, stage)
+                    ? AnimateSchoolContactDamage(targetHealth, attack.HealthBefore, attack.HealthAfter, maximumHealth, attack.GuardBefore, attack.GuardAfter, stage, true)
                     : AnimateBattleDamage(targetHealth, attack.HealthBefore, attack.HealthAfter, maximumHealth, attack.GuardBefore, attack.GuardAfter, stage));
                 if (schoolAttack)
                     yield return AnimateSchoolAttack(stage, source, target, school, outcome, true, result);
                 else
+                {
                     yield return AnimateImpact(stage, target, Coral, result, "Delayed Attack Hit");
+                }
                 yield return bars;
             }
         }
@@ -125,7 +209,9 @@ namespace ShatteredSail.Presentation
             RectTransform root = CreateRect("Battle School Attack " + school, stage, stage.rect.size, Vector2.zero);
             var graphic = root.gameObject.AddComponent<BattleSchoolAttackGraphic>();
             activeBattleSchoolAttack = graphic;
-            graphic.Configure(school, outcome, BattleEffectPosition(stage, source), BattleEffectPosition(stage, target), boarding);
+            graphic.Configure(school, outcome, boarding ? BoardingActionOrigin(stage, source) : BattleEffectPosition(stage, source),
+                BattleEffectPosition(stage, target), boarding);
+            if (boarding) graphic.ConfigureBoardingEnvironment(BoardingSchoolGround(stage, source), BoardingSchoolGround(stage, target), stage.rect.yMax - 12f);
             Text result = CreateText("School Attack Result", root, new Vector2(320f, 56f), Vector2.zero,
                 30, FontStyle.Bold, TextAnchor.MiddleCenter, Color.Lerp(BattleSchoolAttackGraphic.Tint(school), Color.white, .3f));
             result.text = resultLabel ?? string.Empty;
@@ -137,11 +223,14 @@ namespace ShatteredSail.Presentation
             {
                 while (graphic != null && graphic.IsPlaying)
                 {
-                    if (!sounded && graphic.Progress >= BattleSchoolAttackGraphic.ContactProgress)
+                    if (!sounded && graphic.Progress >= graphic.ContactAt)
                     {
                         sounded = true;
+                        if (boarding) target.GetComponent<BoardingPartyPresentation>()?.React(outcome);
                         if (outcome != BattleSchoolAttackOutcome.Missed)
+                        {
                             PlaySfx(outcome == BattleSchoolAttackOutcome.Guarded ? "battle_guard" : boarding ? "battle_melee_impact" : "battle_impact", .78f);
+                        }
                     }
                     yield return null;
                 }

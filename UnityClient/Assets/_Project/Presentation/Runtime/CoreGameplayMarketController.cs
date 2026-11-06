@@ -127,6 +127,9 @@ namespace ShatteredSail.Presentation
                 Render();
                 return;
             }
+            decimal visualGoldBefore = session.ProfileGold;
+            Vector2 visualOrigin = CapturePortActionOrigin("Market Holdings " + PortMarketCatalog.Key(item),
+                marketInventoryToggle == null ? null : (RectTransform)marketInventoryToggle.transform);
             if (!session.TrySellMarketCargo(PortMarketCatalog.Key(item), quantity, revenue))
             {
                 portNotice = "市场出售失败：账户金币已达上限。";
@@ -135,7 +138,10 @@ namespace ShatteredSail.Presentation
             }
             SaveProgress();
             portNotice = "已在" + session.CurrentPort + "出售" + PortMarketCatalog.Name(item) + " ×" + quantity + "。";
+            decimal visualGoldDelta = session.ProfileGold - visualGoldBefore;
+            int visualItemDelta = session.GetMarketCargoAmount(PortMarketCatalog.Key(item)) - available;
             Render();
+            PlayMarketTradeFeedback(item, visualGoldDelta, visualItemDelta, false, visualOrigin);
         }
 
         private void SellQuotedMarketItem(MarketPurchaseQuote quote, int quantity, decimal revenue, int cargo)

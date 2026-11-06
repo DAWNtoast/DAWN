@@ -23,7 +23,7 @@ namespace ShatteredSail.Editor
 
         [Serializable] public sealed class CaptureReport
         {
-            public string scope = "Real ram, treasure and opening comic builders in disposable Editor PreviewScenes. Enabled production CanvasScaler driven by the camera render target. Verifies full viewport coverage, undistorted ram panels, complete lettered treasure/opening pages, and artistic text only inside authored dialogue or narration boxes. No saved scenes, gameplay actions or manual canvas scaling.";
+            public string scope = "Real ram and opening comic builders in disposable Editor PreviewScenes. Enabled production CanvasScaler driven by the camera render target. Verifies game-viewport input coverage, undistorted ram panels, and complete proportional wordless opening panels. Opening reading state is isolated in memory. No saved scenes, player-profile writes or manual canvas scaling.";
             public string capturedAtUtc;
             public List<CaptureFrame> frames = new List<CaptureFrame>();
         }
@@ -34,8 +34,7 @@ namespace ShatteredSail.Editor
             public int panel, width, height, comicTextCount, advanceCount;
             public bool verifiedScaler, verifiedCoverage, verifiedInputTarget, verifiedSourceUv, verifiedDialogue;
             public Vector2 renderingDisplaySize, logicalCanvasSize;
-            public Rect canvasPixelRect, cameraPixelRect, overlayPixels, pagePixels, advancePixels, sourceUv, visibleUv;
-            public Rect narrativeBounds, narrationPixels;
+            public Rect canvasPixelRect, cameraPixelRect, viewportPixels, overlayPixels, pagePixels, advancePixels, sourceUv, visibleUv;
             public float scaleFactor, expectedScaleFactor, visibleAspect, targetAspect;
             public string screenMatchMode;
         }
@@ -59,15 +58,15 @@ namespace ShatteredSail.Editor
                         string resource = RamComicCatalog.ImageResource(sequence, panel);
                         AddFrame(report, output, "ram", resource, Path.GetFileName(resource), panel, size);
                     }
-            foreach (TreasureStoryChapter chapter in CoreTreasureStoryCatalog.Chapters)
-                for (int page = 0; page < chapter.ImageResources.Count; page++)
-                    foreach (Vector2Int size in sizes)
-                        AddFrame(report, output, "treasure", chapter.ImageResources[page], chapter.RankId + "_page" + (page + 1), page, size);
             for (int page = 0; page < OpeningComicCatalog.Pages.Count; page++)
-                foreach (Vector2Int size in sizes)
-                    AddFrame(report, output, "opening", OpeningComicCatalog.Pages[page].ImageResource, "opening_page" + (page + 1), page, size);
+                for (int panel = 0; panel < ComicPanelCatalog.QuadPanelCount; panel++)
+                    foreach (Vector2Int size in sizes)
+                        AddFrame(report, output, "opening", OpeningComicCatalog.Pages[page].ImageResource,
+                            "opening_page" + (page + 1) + "_panel" + (panel + 1), page * ComicPanelCatalog.QuadPanelCount + panel, size);
             File.WriteAllText(Path.Combine(output, "report.json"), JsonUtility.ToJson(report, true));
-            if (report.frames.Count != 52 || report.frames.Any(frame => !string.IsNullOrEmpty(frame.error) ||
+            int expectedFrames = (RamComicCatalog.SequenceCount * RamComicCatalog.PagesPerSequence +
+                OpeningComicCatalog.Pages.Count * ComicPanelCatalog.QuadPanelCount) * sizes.Length;
+            if (report.frames.Count != expectedFrames || report.frames.Any(frame => !string.IsNullOrEmpty(frame.error) ||
                 !frame.verifiedScaler || !frame.verifiedCoverage || !frame.verifiedInputTarget || !frame.verifiedSourceUv || !frame.verifiedDialogue))
                 throw new InvalidOperationException("Fullscreen comic capture failed. See report.json.");
             Debug.Log("COMIC_FULLSCREEN_CAPTURE_OK frames=" + report.frames.Count + " output=" + output);
@@ -97,7 +96,8 @@ namespace ShatteredSail.Editor
                 host.SetActive(false);
                 SceneManager.MoveGameObjectToScene(host, scene);
                 CoreGameplayDemoController controller = host.AddComponent<CoreGameplayDemoController>();
-                controller.ConfigureEditorPreview(CoreGameplayPreviewScreen.Battle, CoreGameplayPreviewPort.GrayGull, 0);
+                controller.ConfigureEditorPreview(frame.family == "opening" ? CoreGameplayPreviewScreen.PortHub :
+                    CoreGameplayPreviewScreen.Battle, CoreGameplayPreviewPort.GrayGull, 0);
                 host.SetActive(true);
                 Texture2D art = Resources.Load<Texture2D>(frame.resource);
                 if (art == null) throw new InvalidOperationException("Missing comic resource: " + frame.resource);
@@ -113,24 +113,19 @@ namespace ShatteredSail.Editor
                     advanceName = "Battle Ram Comic Advance";
                     frame.sourceUv = new Rect(0f, 0f, 1f, 1f);
                 }
-                else if (frame.family == "treasure")
-                {
-                    TreasureStoryChapter chapter = CoreTreasureStoryCatalog.Chapters.Single(item => item.ImageResources.Contains(frame.resource));
-                    Field("treasureStoryPage").SetValue(controller, frame.panel);
-                    Method("BuildTreasureStoryOverlay").Invoke(controller, new object[] { chapter, null, "audit:" + frame.state + ":" + frame.width });
-                    overlayName = "Treasure Story Overlay";
-                    pageName = "Treasure Story Comic Page";
-                    advanceName = "Treasure Story Advance";
-                    frame.sourceUv = new Rect(0f, 0f, 1f, 1f);
-                }
                 else if (frame.family == "opening")
                 {
+                    string readState = string.Empty;
+                    var progress = new OpeningPortComicProgress("isolated-fullscreen-audit", () => readState, json => readState = json);
+                    progress.TryQueue(OpeningPortComicProgress.OpeningKey);
+                    for (int panelIndex = 0; panelIndex < frame.panel; panelIndex++)
+                        progress.AdvancePanel(OpeningPortComicProgress.OpeningKey, progress.PendingPage, progress.PendingPanel);
+                    Field("openingPortComicProgress").SetValue(controller, progress);
                     Method("BuildOpeningComicOverlay").Invoke(controller, null);
-                    Method("SetOpeningComicPage").Invoke(controller, new object[] { frame.panel });
                     overlayName = "Opening Comic Overlay";
                     pageName = "Opening Comic Page";
                     advanceName = "Opening Comic Advance";
-                    frame.sourceUv = new Rect(0f, 0f, 1f, 1f);
+                    frame.sourceUv = ComicPanelCatalog.QuadPanel(frame.panel % ComicPanelCatalog.QuadPanelCount);
                 }
                 else throw new InvalidOperationException("Unknown comic family: " + frame.family);
                 Canvas canvas = host.GetComponentsInChildren<Canvas>(true).Single(item => item.name == CoreGameplayDemoController.EditorPreviewCanvasName);
@@ -221,49 +216,19 @@ namespace ShatteredSail.Editor
             frame.overlayPixels = Pixels(overlay, camera);
             frame.pagePixels = Pixels(page.rectTransform, camera);
             frame.advancePixels = Pixels((RectTransform)advance.transform, camera);
-            frame.verifiedCoverage = Covers(frame.overlayPixels, frame) && Covers(frame.pagePixels, frame) && Covers(frame.advancePixels, frame);
+            frame.viewportPixels = Pixels(FixedGameViewport.Bounds(canvas), camera);
+            bool pageFits = frame.family == "opening"
+                ? frame.pagePixels.width > 0f && frame.pagePixels.height > 0f &&
+                    frame.pagePixels.xMin >= frame.viewportPixels.xMin - 1f && frame.pagePixels.xMax <= frame.viewportPixels.xMax + 1f &&
+                    frame.pagePixels.yMin >= frame.viewportPixels.yMin - 1f && frame.pagePixels.yMax <= frame.viewportPixels.yMax + 1f &&
+                    Near(frame.pagePixels.width / frame.pagePixels.height, art.width / (float)art.height, .002f) &&
+                    (Near(frame.pagePixels.width, frame.viewportPixels.width, 1f) || Near(frame.pagePixels.height, frame.viewportPixels.height, 1f)) &&
+                    page.GetComponent<AspectRatioFitter>()?.aspectMode == AspectRatioFitter.AspectMode.FitInParent
+                : Matches(frame.pagePixels, frame.viewportPixels);
+            frame.verifiedCoverage = Matches(frame.overlayPixels, frame.viewportPixels) && pageFits && Matches(frame.advancePixels, frame.viewportPixels);
             Text[] lettering = overlay.GetComponentsInChildren<Text>(true);
             frame.comicTextCount = lettering.Length;
             frame.verifiedDialogue = lettering.Length == 0;
-            if (frame.family == "treasure")
-            {
-                TreasureStoryChapter chapter = CoreTreasureStoryCatalog.Chapters.Single(item => item.ImageResources.Contains(frame.resource));
-                var expected = TreasureComicDialogueCatalog.GetPage(chapter.RankId, frame.panel);
-                frame.verifiedDialogue = lettering.Length == expected.Count && lettering.Select((label, index) =>
-                    label.name == "Treasure Comic Dialogue " + (index + 1) && label.text == expected[index].Text &&
-                    label.font == GameTypography.InterfaceFont && !label.raycastTarget && label.transform.IsChildOf(page.transform)).All(value => value);
-            }
-            else if (frame.family == "opening")
-            {
-                OpeningComicPage expected = OpeningComicCatalog.Pages[frame.panel];
-                frame.narrativeBounds = expected.NarrativeBounds;
-                frame.verifiedDialogue = lettering.Length == 1;
-                if (frame.verifiedDialogue)
-                {
-                    Text narration = lettering[0];
-                    RectTransform rect = narration.rectTransform;
-                    frame.narrationPixels = Pixels(rect, camera);
-                    Rect safePixels = new Rect(
-                        frame.pagePixels.xMin + expected.NarrativeBounds.xMin * frame.pagePixels.width,
-                        frame.pagePixels.yMin + expected.NarrativeBounds.yMin * frame.pagePixels.height,
-                        expected.NarrativeBounds.width * frame.pagePixels.width,
-                        expected.NarrativeBounds.height * frame.pagePixels.height);
-                    // The only text belongs to the painted inset. A title/footer,
-                    // page counter or visible skip control would fail these checks.
-                    frame.verifiedDialogue = narration.name == "Opening Comic Narration" &&
-                        narration.text == expected.Narration && narration.transform.parent == page.transform &&
-                        narration.font == GameTypography.InterfaceFont && narration.fontStyle == FontStyle.Normal &&
-                        narration.color == (Color)new Color32(49, 30, 19, 255) && !narration.raycastTarget &&
-                        narration.alignment == TextAnchor.MiddleCenter && narration.resizeTextForBestFit &&
-                        narration.resizeTextMinSize == 18 && narration.resizeTextMaxSize == 36 &&
-                        narration.cachedTextGenerator.lineCount == 2 &&
-                        Vector2.Distance(rect.anchorMin, expected.NarrativeBounds.min) < .0001f &&
-                        Vector2.Distance(rect.anchorMax, expected.NarrativeBounds.max) < .0001f &&
-                        frame.narrationPixels.width > 0f && frame.narrationPixels.height > 0f &&
-                        frame.narrationPixels.xMin >= safePixels.xMin - .5f && frame.narrationPixels.xMax <= safePixels.xMax + .5f &&
-                        frame.narrationPixels.yMin >= safePixels.yMin - .5f && frame.narrationPixels.yMax <= safePixels.yMax + .5f;
-                }
-            }
             frame.advanceCount = overlay.GetComponentsInChildren<Button>(true).Length;
             Graphic surface = advance.targetGraphic;
             frame.verifiedInputTarget = frame.advanceCount == 1 && advance.IsInteractable() &&
@@ -272,7 +237,7 @@ namespace ShatteredSail.Editor
                 overlay.GetComponent<Image>().raycastTarget && overlay.GetComponent<GraphicRaycaster>() != null;
             frame.visibleUv = page.uvRect;
             frame.visibleAspect = art.width * page.uvRect.width / (art.height * page.uvRect.height);
-            frame.targetAspect = frame.width / (float)frame.height;
+            frame.targetAspect = frame.overlayPixels.width / frame.overlayPixels.height;
             frame.verifiedSourceUv = page.texture == art && page.uvRect.xMin >= frame.sourceUv.xMin - .0001f &&
                 page.uvRect.xMax <= frame.sourceUv.xMax + .0001f && page.uvRect.yMin >= frame.sourceUv.yMin - .0001f &&
                 page.uvRect.yMax <= frame.sourceUv.yMax + .0001f &&
@@ -287,6 +252,8 @@ namespace ShatteredSail.Editor
         private static bool Near(float first, float second, float tolerance) => Mathf.Abs(first - second) < tolerance;
         private static bool Covers(Rect rect, CaptureFrame frame) => Near(rect.xMin, 0f, 1f) && Near(rect.yMin, 0f, 1f) &&
             Near(rect.xMax, frame.width, 1f) && Near(rect.yMax, frame.height, 1f);
+        private static bool Matches(Rect rect, Rect expected) => Near(rect.xMin, expected.xMin, 1f) && Near(rect.yMin, expected.yMin, 1f) &&
+            Near(rect.xMax, expected.xMax, 1f) && Near(rect.yMax, expected.yMax, 1f);
         private static Rect Pixels(RectTransform rect, Camera camera)
         {
             var corners = new Vector3[4];

@@ -63,7 +63,6 @@ namespace ShatteredSail.Presentation
             marketCloseShop = CreateButton("Close Market Shop", ledger, new Vector2(40f, 44f),
                 new Vector2(160f, 342f), PanelRaised, Ink, 30);
             marketCloseShop.GetComponentInChildren<Text>().text = "×";
-            MarketShopSkin.ApplyTextButton(marketCloseShop);
             marketDetailBack = marketCloseShop;
             marketCatalogGrid = CreateRect("Market Catalog Grid", ledger,
                 new Vector2(360f, 112f), new Vector2(0f, 246f));
@@ -76,7 +75,7 @@ namespace ShatteredSail.Presentation
                 tabFace.raycastTarget = true;
                 Button tabButton = row.gameObject.AddComponent<Button>();
                 tabButton.targetGraphic = tabFace;
-                MarketShopSkin.ApplyLightButton(tabButton);
+                MarketShopSkin.ApplyChoiceRow(tabButton);
                 RawImage icon = CreateItemIcon("Market Item Icon " + key, row, ItemIconCatalog.ForCargo(key), new Vector2(0f, 16f), 66f);
                 icon.raycastTarget = true;
                 Button select = icon.gameObject.AddComponent<Button>();
@@ -138,8 +137,6 @@ namespace ShatteredSail.Presentation
             sliderTarget.color = Color.clear;
             sliderTarget.raycastTarget = true;
             MarketShopSkin.ApplyInput(marketQuantityInput);
-            foreach (Button quantityButton in new[] { marketQuantityMinus, marketQuantityPlus, marketQuantityMax })
-                MarketShopSkin.ApplyLightButton(quantityButton);
             MarketShopSkin.ApplySlider(marketQuantitySlider);
             marketTradeTotal = CreateText("Market Trade Total", marketTradeSelectionRoot, new Vector2(344f, 38f),
                 new Vector2(0f, -155f), 26, FontStyle.Bold, TextAnchor.MiddleLeft, ink);
@@ -149,17 +146,14 @@ namespace ShatteredSail.Presentation
             marketTradeFooter = CreateRect("Market Trade Footer", marketTradeSelectionRoot, new Vector2(360f, 160f), new Vector2(0f, -310f));
             marketDetailStorageMode = CreateButton("Market Detail Storage Mode", marketTradeFooter, new Vector2(360f, 42f),
                 new Vector2(0f, 59f), PanelRaised, ink, 20);
-            MarketShopSkin.ApplyLightButton(marketDetailStorageMode);
             marketTradeConfirm = CreateButton("Confirm Market Trade", marketTradeFooter, new Vector2(360f, 52f),
                 new Vector2(0f, -5f), Gold, DeepSea, 25);
             marketTradeCancel = CreateButton("Cancel Market Trade", marketTradeFooter, new Vector2(360f, 30f),
                 new Vector2(0f, -54f), PanelRaised, Ink, 20);
             marketTradeCancel.GetComponentInChildren<Text>().text = "取消";
-            MarketShopSkin.ApplyTextButton(marketTradeCancel);
 
             marketInventoryToggle = CreateButton("Market Inventory Toggle", ledger,
                 new Vector2(360f, 38f), new Vector2(0f, -199f), PanelRaised, Ink, 19);
-            MarketShopSkin.ApplyLightButton(marketInventoryToggle);
             marketDetailStock = CreateText("Market Detail Stock", ledger, new Vector2(344f, 48f),
                 new Vector2(0f, -244f), 17, FontStyle.Normal, TextAnchor.MiddleLeft, ink);
             marketDetailCargo = CreateText("Market Detail Cargo", ledger, new Vector2(344f, 26f),
@@ -245,7 +239,7 @@ namespace ShatteredSail.Presentation
                 if (tab < 0) continue;
                 row.Root.anchoredPosition = new Vector2((tab - (shopItems.Count - 1) * .5f) * 120f, 0f);
                 bool selected = catalogItem == marketSelectedItem;
-                MarketShopSkin.ApplyLightButton(row.Root.GetComponent<Button>(), selected);
+                MarketShopSkin.ApplyChoiceRow(row.Root.GetComponent<Button>(), selected);
                 row.Name.fontStyle = selected ? FontStyle.Bold : FontStyle.Normal;
                 row.Name.color = selected ? Html("#382410") : Html("#70583D");
             }
@@ -290,8 +284,8 @@ namespace ShatteredSail.Presentation
             marketDetailSell.name = "Market Sell " + key;
             marketDetailBuy.GetComponentInChildren<Text>().text = "买入";
             marketDetailSell.GetComponentInChildren<Text>().text = "卖出";
-            MarketShopSkin.SetMode(marketDetailBuy, buying);
-            MarketShopSkin.SetMode(marketDetailSell, !buying);
+            WoodButtonSkin.SetSelected(marketDetailBuy, buying);
+            WoodButtonSkin.SetSelected(marketDetailSell, !buying);
             marketDetailStorageMode.GetComponentInChildren<Text>().text = buying
                 ? "收货：" + (EffectiveMarketStorageMode == MarketPurchaseStorageMode.Ship ? "船只仓库" :
                     EffectiveMarketStorageMode == MarketPurchaseStorageMode.Warehouse ? "本港仓库" : "每次询问") + "　›"

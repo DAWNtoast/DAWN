@@ -2,6 +2,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation.Tests
@@ -105,7 +106,12 @@ namespace ShatteredSail.Presentation.Tests
             statusObject.transform.SetParent(host.transform, false);
             var status = statusObject.GetComponent<Text>();
             status.color = Color.red;
-            WoodButtonSkin.SetSelected(button, true);
+            // Retained route rows reserve the left of the button for a thumbnail.
+            label.rectTransform.sizeDelta = new Vector2(180, 40);
+            label.rectTransform.anchoredPosition = new Vector2(54, 0);
+            WoodButtonSkin.ApplyAction(button, WoodButtonRole.Secondary, true);
+            Assert.That(label.rectTransform.sizeDelta, Is.EqualTo(new Vector2(180, 40)));
+            Assert.That(label.rectTransform.anchoredPosition, Is.EqualTo(new Vector2(54, 0)));
             Assert.That(state.enabled && state.IsSelected, Is.True);
             WoodButtonSkin.SetRole(button, WoodButtonRole.Primary);
             Assert.That(state.IsSelected && state.HasExplicitRole, Is.True);
@@ -150,54 +156,99 @@ namespace ShatteredSail.Presentation.Tests
         [TestCase(CoreGameplayPreviewScreen.Navigation, "Execute Sail")]
         [TestCase(CoreGameplayPreviewScreen.TavernCrewDetail, "DossierPageStory")]
         [TestCase(CoreGameplayPreviewScreen.DeckBuilder, "Back To Card Workshop Chests")]
-        [TestCase(CoreGameplayPreviewScreen.Shipyard, "Shipyard Next Vessel")]
-        public void RuntimeFactoryAndEditorPreviewsUseTheSameSkin(CoreGameplayPreviewScreen screen, string name)
+        [TestCase(CoreGameplayPreviewScreen.ShipyardDetail, "Confirm Shipyard Vessel")]
+        public void RuntimeFactoryAndEditorPreviewsUseTheApplicableActionSkin(CoreGameplayPreviewScreen screen, string name)
         {
             host = new GameObject("Wood Controls Preview Test");
             var controller = host.AddComponent<CoreGameplayDemoController>();
             controller.ConfigureEditorPreview(screen, CoreGameplayPreviewPort.GrayGull, 0);
             Button button = host.GetComponentsInChildren<Button>(true).Single(item => item.name == name);
-            Assert.That(button.targetGraphic, Is.TypeOf<Image>());
-            Assert.That(((Image)button.targetGraphic).sprite, Is.SameAs(WoodButtonSkin.Face));
+            if (screen == CoreGameplayPreviewScreen.Battle)
+            {
+                Assert.That(button.GetComponent<NavalCommandButtonSkin>(), Is.Not.Null);
+                foreach (NavalCommandButtonSkin command in host.GetComponentsInChildren<NavalCommandButtonSkin>(true))
+                {
+                    Button action = command.GetComponent<Button>();
+                    Image face = action.transform.Find("Naval Command Face").GetComponent<Image>();
+                    Assert.That(action.targetGraphic, Is.SameAs(face));
+                    Assert.That(face.sprite, Is.SameAs(WoodButtonSkin.Face));
+                    Assert.That(face.type, Is.EqualTo(Image.Type.Sliced));
+                    Assert.That(face.raycastTarget, Is.False);
+                    Assert.That(action.transition, Is.EqualTo(Selectable.Transition.ColorTint));
+                    Assert.That(face.GetComponent<WoodButtonRoleState>().Role, Is.EqualTo(
+                        action.name == "End Battle Turn" ? WoodButtonRole.Primary : WoodButtonRole.Secondary));
+                    if (action.name != "Clear Naval Movement")
+                        Assert.That(action.transform.Find("Naval Command Icon").GetComponent<NavalCommandIconGraphic>().raycastTarget, Is.False);
+                    Image hitArea = action.GetComponent<Image>();
+                    Assert.That(hitArea.enabled && hitArea.raycastTarget, Is.True);
+                    Assert.That(hitArea.sprite, Is.Null);
+                    Assert.That(hitArea.color.a, Is.Zero);
+                }
+            }
+            else
+            {
+                Assert.That(button.targetGraphic, Is.TypeOf<Image>());
+                Assert.That(((Image)button.targetGraphic).sprite, Is.SameAs(WoodButtonSkin.Face));
+            }
             foreach (Button other in host.GetComponentsInChildren<Button>(true).Where(item =>
                 item.name.StartsWith("Battle Card ") || item.name.StartsWith("Tavern Crew ")))
                 Assert.That(other.GetComponent<Image>().sprite, Is.Not.SameAs(WoodButtonSkin.Face), other.name);
         }
 
         [Test]
-        public void MainMenuTextActionsKeepTransparentHitAreasWhileDialogsUsePrimaryAndLightActions()
+        public void MainMenuUsesTextActionsAndDialogsKeepTheirWoodFaces()
         {
             host = new GameObject("Wood Main Menu Test");
             host.AddComponent<MainMenuController>();
+            Button settings = host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Settings");
+            Assert.That(settings.IsActive() && settings.IsInteractable(), Is.True,
+                "The menu text settings entry must remain an enabled action.");
+            Assert.That(settings.GetComponent<RectTransform>().rect.size, Is.EqualTo(new Vector2(580f, 62f)),
+                "Main-menu settings shares the other text actions' full transparent hit area.");
+            Image settingsHitArea = settings.GetComponent<Image>();
+            Assert.That(settingsHitArea.enabled && settingsHitArea.raycastTarget, Is.True);
+            Assert.That(settingsHitArea.color.a, Is.Zero);
+            Assert.That(settingsHitArea.sprite, Is.Null);
+            Text settingsTitle = settings.transform.Find("Title").GetComponent<Text>();
+            Assert.That(settingsTitle.text, Is.EqualTo("设置"));
+            Assert.That(settingsTitle.isActiveAndEnabled && settingsTitle.color.a > .01f, Is.True);
+            Assert.That(settings.GetComponentsInChildren<BattleHeaderIconGraphic>(true).Any(icon => icon.isActiveAndEnabled), Is.False);
+            Assert.That(settings.transform.parent.name, Is.EqualTo("Main Menu Content"));
+            Button continueGame = host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Continue Game");
+            Button achievements = host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Achievements");
+            Assert.That(settings.GetComponent<RectTransform>().anchoredPosition.y,
+                Is.LessThan(continueGame.GetComponent<RectTransform>().anchoredPosition.y));
+            Assert.That(settings.GetComponent<RectTransform>().anchoredPosition.y,
+                Is.GreaterThan(achievements.GetComponent<RectTransform>().anchoredPosition.y));
+            settings.OnPointerClick(new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left });
+            RectTransform settingsPanel = host.GetComponentsInChildren<RectTransform>(true)
+                .Single(rect => rect.name == "Settings Panel");
+            Assert.That(settingsPanel.gameObject.activeInHierarchy, Is.True,
+                "Clicking the visible settings text must still open the settings dialog.");
+            host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Back From Settings")
+                .OnPointerClick(new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left });
+            Assert.That(settingsPanel.gameObject.activeInHierarchy, Is.False);
             host.GetComponentsInChildren<Button>(true).Single(button => button.name == "Achievements").onClick.Invoke();
             Button[] buttons = host.GetComponentsInChildren<Button>(true);
             Assert.That(buttons.Length, Is.GreaterThan(8));
             string[] actionNames = { "New Game", "Continue Game", "Settings", "Achievements", "Exit Game" };
-            string[] lightActions = { "Back From Settings", "Cancel New Game", "Achievements Previous Page",
-                "Achievements Next Page", "Achievements Filter Locked", "Achievements Filter Unlocked" };
             Button[] menuActions = buttons.Where(button => button.transform.parent.name == "Main Menu Content").ToArray();
             Assert.That(menuActions.Select(button => button.name), Is.EquivalentTo(actionNames));
             foreach (Button button in buttons)
             {
                 Image background = button.GetComponent<Image>();
-                if (!menuActions.Contains(button))
+                Assert.That(background.raycastTarget, Is.True, button.name);
+                if (menuActions.Contains(button))
                 {
-                    if (lightActions.Contains(button.name))
-                    {
-                        Assert.That(background.sprite, Is.Not.Null, button.name);
-                        Assert.That(background.sprite.name, Is.EqualTo("Market Light Control"), button.name);
-                    }
-                    else Assert.That(background.sprite, Is.SameAs(WoodButtonSkin.Face), button.name);
-                    Assert.That(background.type, Is.EqualTo(Image.Type.Sliced), button.name);
-                    Assert.That(background.raycastTarget, Is.True, button.name);
-                    Assert.That(button.targetGraphic, Is.SameAs(background), button.name);
+                    Assert.That(background.sprite, Is.Null, button.name);
+                    Assert.That(background.color.a, Is.Zero, button.name);
+                    Assert.That(button.targetGraphic, Is.SameAs(button.transform.Find("Title").GetComponent<Text>()), button.name);
+                    Assert.That(button.GetComponentsInChildren<Image>(true), Is.EquivalentTo(new[] { background }), button.name);
                     continue;
                 }
-                Assert.That(background.sprite, Is.Not.SameAs(WoodButtonSkin.Face), button.name);
-                Assert.That(background.color.a, Is.Zero, button.name + " must leave the sunset visible.");
-                Assert.That(background.raycastTarget, Is.True, button.name + " needs its full transparent hit area.");
-                Text title = button.transform.Find("Title").GetComponent<Text>();
-                Assert.That(button.targetGraphic, Is.SameAs(title), button.name + " must show selection feedback on its title.");
+                Assert.That(button.targetGraphic, Is.SameAs(background), button.name);
+                Assert.That(background.sprite, Is.SameAs(WoodButtonSkin.Face), button.name);
+                Assert.That(background.type, Is.EqualTo(Image.Type.Sliced), button.name);
             }
         }
 

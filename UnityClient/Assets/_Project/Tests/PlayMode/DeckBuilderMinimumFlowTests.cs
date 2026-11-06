@@ -17,6 +17,7 @@ namespace ShatteredSail.Presentation.Tests
             "Return To Port Hub", "Previous Port Facility", "Next Port Facility", "Port Facility Settings",
             "Battle Deck Stage Tab Preparation", "Battle Deck Stage Tab Naval", "Battle Deck Stage Tab Boarding",
             "Open Special Card Collection", "Back To Card Workshop Chests",
+            "Workshop Page Collection", "Workshop Page DeckBuilder", "Workshop Page Packs", "Workshop Page Upgrade",
         };
 
         [UnityTest, Timeout(120000)]
@@ -82,10 +83,12 @@ namespace ShatteredSail.Presentation.Tests
             NavalBattleVisualCapture.Capture(controller, "DeckBuilderMinimum_01_EmptyLocked.png",
                 "基础卡可清空为0张；阶段、特殊牌、设施切换、返回和设置均禁用，只能继续构筑", "Deck Builder Panel");
 
-            string firstPage = GameObject.Find("Battle Card Collection Page").GetComponent<Text>().text;
+            int[] firstPage = DeckBuilderLibraryChoices().ToArray();
             ClickDeckBuilderHeader("Next Battle Card Collection Page");
             yield return null;
-            Assert.That(GameObject.Find("Battle Card Collection Page").GetComponent<Text>().text, Is.Not.EqualTo(firstPage));
+            CollectionAssert.AreNotEqual(firstPage, DeckBuilderLibraryChoices().ToArray());
+            Assert.That(ActiveButton("Previous Battle Card Collection Page").interactable, Is.True);
+            Assert.That(GameObject.Find("Battle Card Collection Page"), Is.Null);
             AssertDeckBuilderDraftCount(0);
             AssertDeckBuilderMinimumLock(true);
             int secondPageCard = DeckBuilderLibraryChoices().First();
@@ -97,7 +100,8 @@ namespace ShatteredSail.Presentation.Tests
             CollectionAssert.AreEquivalent(saved, DeckBuilderSavedProgress());
             ClickDeckBuilderHeader("Previous Battle Card Collection Page");
             yield return null;
-            Assert.That(GameObject.Find("Battle Card Collection Page").GetComponent<Text>().text, Is.EqualTo(firstPage));
+            CollectionAssert.AreEqual(firstPage, DeckBuilderLibraryChoices().ToArray());
+            Assert.That(ActiveButton("Previous Battle Card Collection Page").interactable, Is.False);
             AssertDeckBuilderDraftCount(2);
 
             int[] fill = DeckBuilderLibraryChoices().Take(4).SelectMany(index => new[] { index, index }).ToArray();
@@ -163,7 +167,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(ActiveButton("Port Facility Settings"), Is.SameAs(cachedSettings));
             ClickDeckBuilderHeader("Next Port Facility");
             yield return null;
-            Assert.That(GameObject.Find("Card Workshop Preview Panel"), Is.Not.Null);
+            Assert.That(GameObject.Find("Workshop Home Panel"), Is.Not.Null);
             ClickDeckBuilderHeader("Return To Port Hub");
             yield return null;
             Assert.That(GameObject.Find("Port Hub"), Is.Not.Null);
@@ -207,7 +211,10 @@ namespace ShatteredSail.Presentation.Tests
                 "An interrupted incomplete edit must never replace the last valid persisted deck with zero cards.");
             ClickDeckBuilderHeader("Port Hotspot CardWorkshop");
             yield return null;
-            ClickDeckBuilderHeader("Edit Stage Deck Naval");
+            ClickDeckBuilderHeader("Workshop Entrance DeckBuilder");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            ClickDeckBuilderHeader("Battle Deck Stage Tab Naval");
             yield return null;
             AssertDeckBuilderSaved(controller, 10);
             AssertDeckBuilderMinimumLock(false);
@@ -232,6 +239,9 @@ namespace ShatteredSail.Presentation.Tests
 
         private static void AssertDeckBuilderMinimumHint(int count)
         {
+            Assert.That(GameObject.Find("Deck Builder Capacity Count").GetComponent<Text>().text,
+                Is.EqualTo(count + " / " + CoreVoyageSession.MaximumBaseBattleDeckSize));
+            Assert.That(GameObject.Find("Deck Builder Capacity State"), Is.Null);
             string hint = GameObject.Find("Deck Builder Status").GetComponent<Text>().text;
             Assert.That(hint, Does.Not.Contain("已自动保存"));
             if (count < 10)
@@ -251,8 +261,9 @@ namespace ShatteredSail.Presentation.Tests
             foreach (Button button in GameObject.Find("Phase Content").GetComponentsInChildren<Button>())
             {
                 bool deckEdit = button.name.StartsWith("Add Deck Card ") || button.name.StartsWith("Remove Deck Card ");
+                bool schoolFilter = button.name.StartsWith("Workshop School Filter ");
                 bool pager = button.name == "Previous Battle Card Collection Page" || button.name == "Next Battle Card Collection Page";
-                if (deckEdit) Assert.That(button.interactable, Is.True, button.name + " must remain available to finish the draft.");
+                if (deckEdit || schoolFilter) Assert.That(button.interactable, Is.True, button.name + " must remain available to finish the draft.");
                 else if (!pager) Assert.That(button.interactable, Is.False, button.name + " must be locked while the draft is incomplete.");
             }
         }

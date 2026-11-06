@@ -89,11 +89,11 @@ namespace ShatteredSail.Core.Gameplay
         }
 
         private static IReadOnlyList<CoreEncounter> CreateTradeExpandedFixed() => Array.AsReadOnly(new[] {
-            F("event_trade_v2_notary_barge", "公证驳船", "公证 · 商队线索", "公证人用铁链拴着印章，正在为失事船只的货主登记负责保全货物的受托人。侧舱也在招人帮忙整理潮位账册。", false, false,
-                C("缴付登记费，接下货物保全委托", 2, new VoyageEffect { Gold = -10, GrantDiscovery = "trade_rescue_seal", RevealEncounterId = "gold_wreck" }),
-                C("凭互助印章校对旧档，领取酬劳", 1, new VoyageEffect { Gold = 35, Fame = 3 }, discovery: "trade_rescue_seal"),
-                C("航海士整理潮位账册，抄下观测记录", 1.5, new VoyageEffect { SurveyBoostHours = 18, Reveal = 1 }, "navigator"),
-                C("帮书记员誊写船籍，赚取工钱", 3, new VoyageEffect { Gold = 20 })),
+            F("event_trade_v2_notary_barge", "公证驳船", "余帆 · 传言与旧账", "公证驳船上有人传言，老船长卷走救济金，丢下众人逃了。一名老水手拍着救援名单，说自己亲眼见他拆下船板搭救生筏。商人反问，救过人就不会变心吗？书记员摊开残缺账页：支出、潮位和姓名还有几处对不上，谁也不肯服谁。失事药箱的保全委托仍得办理，誊写船籍的工钱也照付。", false, false,
+                C("缴费接下保全，仍按互助规矩办", 2, new VoyageEffect { Gold = -10, GrantDiscovery = "trade_rescue_seal", RevealEncounterId = "gold_wreck" }),
+                C("凭互助印章核档，不凭流言定论", 1, new VoyageEffect { Gold = 35, Fame = 3 }, discovery: "trade_rescue_seal"),
+                C("航海士只整理可用的潮位记录", 1.5, new VoyageEffect { SurveyBoostHours = 18, Reveal = 1 }, "navigator"),
+                C("不替谁辩护，只誊写船籍赚工钱", 3, new VoyageEffect { Gold = 20 })),
             F("event_trade_v2_abandoned_countinghouse", "潮退账房", "旧档 · 商队线索", "退潮露出旧商栈的低矮账房。保险箱已经破开，但浸湿的货主名册与一套互助印记仍压在书桌下。", true, false,
                 C("晒干名册，查明失事船只货主的委托", 3, new VoyageEffect { GrantDiscovery = "trade_rescue_seal", RevealEncounterId = "gold_wreck" }),
                 C("先拿走尚未认领的现金", 1, new VoyageEffect { Gold = 55, Fame = -5 }),
@@ -110,20 +110,20 @@ namespace ShatteredSail.Core.Gameplay
                 C("听领航员讲述沿岸航路，记录隐藏支路", 4, new VoyageEffect { SurveyBoostHours = 16, Reveal = 1 }),
                 C("转让一盏船灯，领取维修会的补贴", 1, new VoyageEffect { Lantern = -1, Gold = 30, Fame = 5 }),
                 C("航海士复原速写中的潮线", 2, new VoyageEffect { SailingBoostHours = 14, SurveyBoostHours = 10 }, "navigator")),
-            F("event_trade_v2_weighing_raft", "浮秤仲裁场", "商事仲裁", "两家货行的人围着浮筏上的大秤争执：一方说秤轴失准，另一方想用钱买通仲裁者。秤架旁还堆着待分配的抵押布料。", false, false,
-                C("补换秤轴，公开重新称重", 2, new VoyageEffect { Iron = -2, Fame = 10 }),
-                C("收钱替出价最高的货行说话", .5, new VoyageEffect { Gold = 45, Fame = -8 }),
-                C("木匠撑平秤架，收取修理费", 1.5, new VoyageEffect { Wood = -2, Gold = 32, Fame = 4 }, "carpenter"),
-                C("凭互助印章监督分货，收取布料作为酬劳", 2, new VoyageEffect { Cloth = 6 }, discovery: "trade_rescue_seal")),
+            F("event_trade_v2_weighing_raft", "浮秤仲裁场", "余帆 · 旗帜下的秤", "浮筏管事不许搬工查看秤簿，声称老船长教坏了穷人：人人都说平等，便没人肯听号令。他故意把搬过的重货记轻，扣下搬工工钱，还要他们谢货行赏饭。老搬工拿出父亲当年的救援名单，被他扔回湿地。另一家货行要求重称，管事却向你递出钱袋，盼你替他的规矩说话；抵押布料就堆在弯曲的秤轴旁。", false, false,
+                C("替搬工换轴，要求当众重称", 2, new VoyageEffect { Iron = -2, Fame = 10 }),
+                C("收管事的钱，替货行压低工钱", .5, new VoyageEffect { Gold = 45, Fame = -8 }),
+                C("木匠只修秤架，照价收工钱", 1.5, new VoyageEffect { Wood = -2, Gold = 32, Fame = 4 }, "carpenter"),
+                C("凭互助印章监督分货，领取布料酬劳", 2, new VoyageEffect { Cloth = 6 }, discovery: "trade_rescue_seal")),
             F("event_trade_v2_dyers_anchorage", "漂染锚地", "工料交换", "染布船挂着尚未干透的蓝帆。染工缺净水和热食，愿拿钱或现成布匹与过路船只交换。", false, false,
                 C("提供白布，领取货款", 1, new VoyageEffect { Cloth = -4, Gold = 36 }),
                 C("用淡水换取晒好的布匹", 2, new VoyageEffect { Water = -12, Cloth = 6 }),
                 C("厨师为染工送热餐，换取余布", 1, new VoyageEffect { Food = -4, Cloth = 3, Morale = 1 }, "cook")),
-            F("event_trade_v2_floating_school", "跨海学堂", "传习", "退役商船上的孩子正在学着画第一张海图。教员留着前辈的航图片段，希望过路的船员来讲讲见闻，或帮忙修缮这间船上学堂。", false, false,
-                C("讲述航行见闻，换取旧航图片段", 4, new VoyageEffect { Fame = 8, MapFragments = 1 }),
-                C("航海士带学生测绘，留下一份观测副本", 1.5, new VoyageEffect { Cloth = -1, SurveyBoostHours = 20 }, "navigator"),
-                C("木匠修补课室，领取资助会的工钱", 3, new VoyageEffect { Wood = -4, Gold = 24, Fame = 6 }, "carpenter"),
-                C("赠送午餐，与孩子们分享海上的故事", 1, new VoyageEffect { Food = -8, Morale = 2 }))
+            F("event_trade_v2_floating_school", "跨海学堂", "余帆 · 不许修改的旧图", "教员把礁海母亲寄来的记潮册挂在船壁，每堂课都讲老船长救过祖母。学生指出旧图把新生的暗礁画成水道，她却收走了修改的笔，说恩人的遗物不能乱涂。有人仍想学他远航，也有人拿离去的传言反问她。几名毕业生已去月潮实测，留下的孩子围着旧图争执；教员攥着笔，始终没有落下一画。", false, false,
+                C("讲述实见换取旧图，让学生自行判断", 4, new VoyageEffect { Fame = 8, MapFragments = 1 }),
+                C("航海士实测新礁，在副本上修正旧图", 1.5, new VoyageEffect { Cloth = -1, SurveyBoostHours = 20 }, "navigator"),
+                C("木匠只修课室，领取资助工钱", 3, new VoyageEffect { Wood = -4, Gold = 24, Fame = 6 }, "carpenter"),
+                C("分送午餐，听他们争论老船长", 1, new VoyageEffect { Food = -8, Morale = 2 }))
         });
 
         private static string TradeExpandedCategory(string id)

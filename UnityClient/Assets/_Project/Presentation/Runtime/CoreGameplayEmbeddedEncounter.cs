@@ -67,27 +67,47 @@ namespace ShatteredSail.Presentation
             Button button = CreateButton(choice.ObjectName, parent, new Vector2(560, 112), Vector2.zero,
                 Color.white, MarketShopSkin.Ink, 24);
             RectTransform row = button.GetComponent<RectTransform>();
-            MarketShopSkin.ApplyLightButton(button);
+            MarketShopSkin.ApplyChoiceRow(button);
             button.interactable = choice.Available;
             Color rowAccent = choice.Available
                 ? choice.StartsBattle || choice.ObjectName == "Emergency Encounter Return" ? Html("#95523B") : Html("#8F6C3E")
                 : Html("#988C77");
             Color ink = choice.Available ? MarketShopSkin.Ink : Html("#786D5B");
             JournalSurface("Choice Accent", row, new Vector2(4, 112), rowAccent);
-            JournalSurface("Time Rule", row, new Vector2(1, 64), new Color(.49f, .37f, .21f, .25f));
+            JournalSurface("Time Rule", row, new Vector2(1, 64), new Color(.49f, .37f, .21f, .25f)).gameObject
+                .SetActive(!choice.IsSkip || choice.ObjectName == "Emergency Encounter Return");
             JournalText("Decision Number", row, choice.IsSkip ? "→" : number.ToString("00"), 24, rowAccent);
             Text label = button.GetComponentInChildren<Text>();
             label.text = choice.Label; label.alignment = TextAnchor.MiddleLeft; label.color = ink;
             JournalText("Detail", row, choice.Detail, 20, MarketShopSkin.MutedInk, FontStyle.Normal);
             Text hours = JournalText("Hours", row, choice.IsSkip ?
-                choice.ObjectName == "Emergency Encounter Return" ? "返回港口" : "继续航行" :
+                choice.ObjectName == "Emergency Encounter Return" ? "返回港口" : string.Empty :
                 (choice.StartsBattle ? "进入海战\n" : "耗时\n") + choice.Hours.ToString("0.#") + " 小时", 20, rowAccent);
             hours.alignment = TextAnchor.MiddleCenter;
             if (!choice.IsSkip)
-                JournalText("Requirement", row, !choice.Available ? "暂不可选 · " + choice.LockedReason :
+                JournalText("Requirement", row, !choice.Available ? EncounterChoiceUnavailableText(choice.LockedReason) :
                     string.IsNullOrEmpty(choice.Requirement) ? "" : "条件 · " + choice.Requirement, 20,
                     choice.Available ? MarketShopSkin.MutedInk : Html("#95523B"), FontStyle.Normal);
             button.onClick.AddListener(() => choice.Resolve?.Invoke());
+        }
+
+        private static string EncounterChoiceUnavailableText(string reason)
+        {
+            // Keep the core reasons for availability checks; omit repeated-benefit explanations in the UI.
+            switch (reason)
+            {
+                case null:
+                case "":
+                case "相关线索和地点情报均已掌握，已有增益的持续时间也不会延长。":
+                case "此处已无探索收益，不必再次支付物资。":
+                case "此处奖励已耗尽，本次没有可获得的收益。":
+                case "当前条件下无法选择此项。":
+                case string acquiredReason when acquiredReason.StartsWith("已经取得", System.StringComparison.Ordinal) &&
+                    acquiredReason.EndsWith("，无法重复领取。", System.StringComparison.Ordinal):
+                    return "暂不可选";
+                default:
+                    return "暂不可选，" + reason;
+            }
         }
 
         private Text JournalText(string name, Transform parent, string value, int size, Color color, FontStyle style = FontStyle.Bold)

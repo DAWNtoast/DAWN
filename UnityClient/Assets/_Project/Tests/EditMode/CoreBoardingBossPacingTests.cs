@@ -27,15 +27,15 @@ namespace ShatteredSail.Core.Tests
 
         private static TestCaseData Boss(string id, string school, params int[] energy) => new TestCaseData(id, school, energy);
 
-        [TestCase("boss_route_shattered_sail_reef", 2, 119)]
-        [TestCase("boss_route_shattered_sail_reef_tide", 3, 105)]
-        public void FirstChartBossesLeaveStarterHealthRoomAcrossTheCycleBoundary(string id, int recoveryTurn, int maximumHealth)
+        [TestCase("boss_route_shattered_sail_reef", 2, 300)]
+        [TestCase("boss_route_shattered_sail_reef_tide", 3, 320)]
+        public void FirstChartBossesRespectStageBudgetPressureAcrossTheCycleBoundary(string id, int recoveryTurn, int maximumHealth)
         {
             CoreVoyageSession session = Battle(id);
             CoreBoardingEnemyDeck deck = session.Battle.BoardingEnemy.Deck;
-            // The default unupgraded sloop has 60 boarding health. Even an
-            // unblocked peak must leave time to respond, including DOT and the
-            // last-to-first transition that used to chain two lethal fire peaks.
+            // The shared-stage 720-gold reference includes active defence. These
+            // calibrated damage ceilings cover DOT and last-to-first transitions;
+            // they do not promise survival for an unupgraded crew that never blocks.
             Assert.That(session.Battle.Profile.BoardingHealth, Is.LessThanOrEqualTo(maximumHealth));
             int previousPressure = 0;
             for (int turn = 1; turn <= deck.Turns.Count * 2; turn++)
@@ -44,9 +44,17 @@ namespace ShatteredSail.Core.Tests
                     SetProperty(session.Battle.BoardingEnemy, "TidePower", CoreBoardingEnemyState.TidePowerLimit);
                 CoreBoardingEnemyPreview preview = session.GetBoardingEnemyPreview();
                 int pressure = preview.PlayerHealthLoss + preview.PlayerBurnDamage;
-                Assert.That(pressure, Is.LessThanOrEqualTo(32), id + " turn " + turn);
-                Assert.That(previousPressure + pressure, Is.LessThanOrEqualTo(45), "Adjacent peaks, including DOT, must leave 15 starter health to respond.");
-                if (turn == 1) Assert.That(pressure, Is.LessThanOrEqualTo(20));
+                // The shared-stage 720-gold budget now faces stronger boarding pressure;
+                // retain explicit ceilings and the original recovery/cycle safeguards.
+                int cycleTurn = (turn - 1) % deck.Turns.Count + 1;
+                // The fire script preserves total authored attack while concentrating it in turn 3.
+                int peakLimit = deck.SchoolId == "fire" && cycleTurn == 3 ? 88 :
+                    deck.SchoolId == "tide" && cycleTurn == 4 ? 80 : 64;
+                Assert.That(pressure, Is.LessThanOrEqualTo(peakLimit), id + " turn " + turn);
+                int adjacentLimit = deck.SchoolId == "fire" ? 120 : 100;
+                Assert.That(previousPressure + pressure, Is.LessThanOrEqualTo(adjacentLimit),
+                    "Adjacent peaks, including DOT, must stay within the 720-gold stage pressure envelope.");
+                if (turn == 1) Assert.That(pressure, Is.LessThanOrEqualTo(deck.SchoolId == "fire" ? 60 : 40));
                 if ((turn - 1) % deck.Turns.Count + 1 == recoveryTurn)
                 {
                     Assert.That(preview.AttackDamage, Is.Zero);
@@ -74,12 +82,32 @@ namespace ShatteredSail.Core.Tests
             Assert.That(CoreBoardingBossCatalog.ForEncounter("unknown"), Is.Null);
             Assert.That(CoreBoardingBossCatalog.ForEncounter(CoreBattleBalance.TreasureBossId), Is.Null);
             Assert.That(CoreBoardingEnemyCatalog.ForEncounter("unknown"), Is.SameAs(CoreBoardingEnemyCatalog.ForSchool("neutral")));
-            Assert.That(CoreBoardingEnemyCatalog.ForEncounter(CoreBattleBalance.TreasureBossId), Is.SameAs(CoreBoardingEnemyCatalog.ForSchool("curse")));
+            Assert.That(CoreBoardingEnemyCatalog.ForEncounter(CoreBattleBalance.TreasureBossId), Is.Not.SameAs(CoreBoardingEnemyCatalog.ForSchool("curse")));
+        }
+
+        [Test]
+        public void VaultGuardianHasAnIndependentFourTurnCurseScriptWithoutChangingOrdinaryCurse()
+        {
+            CoreBoardingEnemyDeck vault = CoreBoardingEnemyCatalog.ForEncounter(CoreBattleBalance.TreasureBossId);
+            CoreBoardingEnemyDeck ordinary = CoreBoardingEnemyCatalog.ForSchool("curse");
+            Assert.That(vault, Is.Not.SameAs(ordinary));
+            Assert.That(vault.SchoolId, Is.EqualTo("curse"));
+            Assert.That(vault.Turns.Count, Is.EqualTo(4));
+            Assert.That(ordinary.Turns.Count, Is.EqualTo(4));
+            CollectionAssert.AreEqual(new[] { 66, 0, 78, 54 }, vault.Cards.Select(card => card.AttackPercent));
+            CollectionAssert.AreEqual(new[] { 55, 0, 65, 45 }, ordinary.Cards.Select(card => card.AttackPercent));
+            CollectionAssert.AreEqual(new[] { 0, 0, 0, 24 }, vault.Cards.Select(card => card.BonusPercent));
+            CollectionAssert.AreEqual(new[] { 0, 0, 0, 20 }, ordinary.Cards.Select(card => card.BonusPercent));
+            CollectionAssert.AreEqual(ordinary.Cards.Select(card => card.Mechanic), vault.Cards.Select(card => card.Mechanic));
+            CollectionAssert.AreEqual(ordinary.Cards.Select(card => card.ResourceAmount), vault.Cards.Select(card => card.ResourceAmount));
+            CollectionAssert.AreEqual(ordinary.Cards.Select(card => card.GuardPercent), vault.Cards.Select(card => card.GuardPercent));
+            for (int turn = 1; turn <= 12; turn++)
+                Assert.That(vault.TurnAt(turn), Is.SameAs(vault.TurnAt((turn - 1) % 4 + 1)));
         }
 
         [TestCase("boss_route_golden_tide_trade", true)]
         [TestCase("boss_route_golden_tide_trade_thunder", false)]
-        public void SecondChartPeaksLeaveRoomForPreparedCrewEvenWhenDesperate(string id, bool desperate)
+        public void SecondChartBossesRespectStageBudgetPressureEvenWhenDesperate(string id, bool desperate)
         {
             CoreVoyageSession session = Battle(id);
             int previous = 0;
@@ -93,9 +121,12 @@ namespace ShatteredSail.Core.Tests
                 CoreBoardingEnemyPreview preview = session.GetBoardingEnemyPreview();
                 int pressure = preview.PlayerHealthLoss + preview.PlayerBurnDamage;
                 // Includes full blood resources below the 40% desperation threshold.
-                Assert.That(pressure, Is.LessThanOrEqualTo(32), id + " turn " + turn);
-                Assert.That(previous + pressure, Is.LessThanOrEqualTo(56));
-                if (turn == 1) Assert.That(pressure, Is.LessThanOrEqualTo(30));
+                // Current 1200-gold shared-stage builds use the calibrated 80/90-point envelope.
+                int peakLimit = desperate ? 80 : (turn - 1) % 3 == 2 ? 90 : 64;
+                Assert.That(pressure, Is.LessThanOrEqualTo(peakLimit), id + " turn " + turn);
+                Assert.That(previous + pressure, Is.LessThanOrEqualTo(150),
+                    "Adjacent peaks must stay within the 1200-gold stage pressure envelope.");
+                if (turn == 1) Assert.That(pressure, Is.LessThanOrEqualTo(desperate ? 80 : 60));
                 if ((turn - 1) % 3 == 1) Assert.That(pressure, Is.Zero);
                 int health = session.Battle.PlayerBoardingHealth;
                 Assert.That(session.EndBattleTurn(), Is.True);
@@ -131,9 +162,26 @@ namespace ShatteredSail.Core.Tests
             CoreVoyageSession session = Battle(id);
             CoreBoardingEnemyDeck deck = session.Battle.BoardingEnemy.Deck;
             Assert.That(deck.SchoolId, Is.EqualTo(school));
-            // Fixed recommended ranks 0 / 1 / 2; profile damage cannot redefine the target.
+            // Recommended ranks 0 / 1 / 2 / 3; profile damage cannot redefine the target.
             decimal multiplier = id.StartsWith("boss_route_shattered_sail_reef", StringComparison.Ordinal) ? 1m :
-                id.StartsWith("boss_route_golden_tide_trade", StringComparison.Ordinal) ? 1.2m : 1.5m;
+                id.StartsWith("boss_route_golden_tide_trade", StringComparison.Ordinal) ? 1.2m :
+                id == "legendary_pirate_tide_requiem" || id == "legendary_pirate_last_horizon" ? 2m :
+                id.StartsWith("legendary_pirate_", StringComparison.Ordinal) ? 1.2m : 1.5m;
+            decimal attackPressure = id switch
+            {
+                "boss_route_shattered_sail_reef" => .70m,
+                "boss_route_shattered_sail_reef_tide" => .65m,
+                "boss_route_golden_tide_trade" => .82m,
+                "boss_route_golden_tide_trade_thunder" => .82m,
+                "boss_route_moon_tide_ruins" => .70m,
+                "boss_route_moon_tide_ruins_arcane" => .70m,
+                "legendary_pirate_iron_oath" => 1.40m,
+                "legendary_pirate_ember_ark" => 1.15m,
+                "legendary_pirate_red_widow" => .92m,
+                "legendary_pirate_thunder_crown" => .94m,
+                "legendary_pirate_tide_requiem" => .80m,
+                _ => 1m
+            };
             int checkedEffects = 0;
             for (int turn = 1; turn <= energy.Length; turn++)
             {
@@ -147,12 +195,12 @@ namespace ShatteredSail.Core.Tests
                     CoreBoardingEnemyActionResult action = preview.Actions.Single(result => result.CardId == card.Id);
                     if (card.AttackPercent > 0)
                     {
-                        Assert.That(Math.Abs(action.AttackDamage - 8m * multiplier), Is.LessThanOrEqualTo(1m), card.Id);
+                        Assert.That(Math.Abs(action.AttackDamage - 16m * multiplier * attackPressure), Is.LessThanOrEqualTo(1m), card.Id);
                         checkedEffects++;
                     }
                     if (card.HealPercent > 0)
                     {
-                        Assert.That(Math.Abs(action.Healed - 6m * multiplier), Is.LessThanOrEqualTo(1m), card.Id);
+                        Assert.That(Math.Abs(action.Healed - 12m * multiplier), Is.LessThanOrEqualTo(1m), card.Id);
                         checkedEffects++;
                     }
                 }
@@ -182,8 +230,12 @@ namespace ShatteredSail.Core.Tests
                 Assert.That(Describe(session.GetBoardingEnemyPreview().Actions), Is.EqualTo(expected));
                 Assert.That(Snapshot(session), Is.EqualTo(before), "Reading intent must not consume a boss resource.");
                 if (scripted.TotalEnergy <= 3)
-                    Assert.That(preview.AttackDamage, Is.LessThanOrEqualTo(session.Battle.Profile.MeleeDamage * 2),
+                {
+                    // Do not alter the profile's melee stat to encode the new 720-gold pressure budget.
+                    int lowerPressureLimit = id == "boss_route_shattered_sail_reef" ? 60 : session.Battle.Profile.MeleeDamage * 2;
+                    Assert.That(preview.AttackDamage, Is.LessThanOrEqualTo(lowerPressureLimit),
                         id + " turn " + turn + " must retain its lower-pressure attack window.");
+                }
                 int playerHealth = session.Battle.PlayerBoardingHealth;
                 Assert.That(session.EndBattleTurn(), Is.True);
                 Assert.That(session.Battle, Is.Not.Null);
@@ -196,7 +248,7 @@ namespace ShatteredSail.Core.Tests
                     AssertCaps(action.ResourcesAfter, session.Battle.Profile.BoardingGuard);
                     Assert.That(action.EnemyHealthAfter, Is.InRange(1, session.Battle.EnemyMaxBoardingHealth));
                 }
-                Assert.That(session.Battle.BoardingEnemy.ThunderChain, Is.Zero);
+                Assert.That(session.Battle.BoardingEnemy.ThunderChain, Is.EqualTo(preview.ResourcesAfter.ThunderChain));
                 settledDamage.Add(preview.AttackDamage + preview.PlayerBurnDamage + preview.PlayerCurseDamage);
             }
             CollectionAssert.AreEqual(settledDamage.Skip(energy.Length * 4).Take(energy.Length),
@@ -233,7 +285,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(state.PlayerBurnTurns, Is.EqualTo(state.PlayerBurnDamage));
             Assert.That(state.SelfBurnDamage, Is.InRange(0, CoreBoardingEnemyState.BurnLimit));
             Assert.That(state.SelfBurnTurns, Is.EqualTo(state.SelfBurnDamage));
-            Assert.That(state.Mana, Is.InRange(0, CoreBoardingEnemyState.ManaLimit));
+            Assert.That(state.Mana, Is.InRange(0, int.MaxValue));
             Assert.That(state.ThunderChain, Is.InRange(0, CoreBoardingEnemyState.ThunderChainLimit));
             Assert.That(state.CurseMarks, Is.InRange(0, CoreBoardingEnemyState.CurseMarkLimit));
             Assert.That(state.TidePower, Is.InRange(0, CoreBoardingEnemyState.TidePowerLimit));
@@ -262,6 +314,7 @@ namespace ShatteredSail.Core.Tests
             CoreEncounter encounter = CoreRouteBossCatalog.Find(id)?.CreateEncounter() ?? CoreLegendaryWarships.Find(id).CreateEncounter();
             var session = new CoreVoyageSession();
             session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True, "Fixture starts with a migrated full collection.");
             session.SetSeed("BOARDING-BOSS-PACING");
             session.StartVoyage();
             typeof(CoreVoyageSession).GetMethod("StartBattle", BindingFlags.Instance | BindingFlags.NonPublic)

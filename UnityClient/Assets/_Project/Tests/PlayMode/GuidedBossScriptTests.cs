@@ -22,10 +22,10 @@ namespace ShatteredSail.Presentation.Tests
             {
                 yield return EnterGuidedCardCourse();
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseLoad);
+                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseApproach2);
                 yield return WaitGuidedBossAnimation(controller);
                 CoreVoyageSession session = controller.Session;
-                int hand = session.Battle.Hand.FindIndex(index => session.GetBattleCard(index).Id == "card_load_shot");
+                int hand = session.Battle.Hand.FindIndex(index => session.GetBattleCard(index).Id == "card_approach");
                 Assert.That(hand, Is.GreaterThanOrEqualTo(0));
                 string targetName = "Battle Card " + hand;
                 int energy = session.Battle.Energy;
@@ -64,7 +64,7 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(RequireGuidedButton(targetName), Is.SameAs(target));
                 Assert.That(controller.GetComponentsInChildren<GuidedTutorialFocusGraphic>().Single(), Is.SameAs(focus));
                 Assert.That(target.IsInteractable(), Is.True);
-                AssertGuidedFocusTarget(targetName, "CourseLoad after the original deal completes");
+                AssertGuidedFocusTarget(targetName, "CourseApproach2 after the original deal completes");
                 LogAssert.NoUnexpectedReceived();
             }
         }
@@ -182,49 +182,79 @@ namespace ShatteredSail.Presentation.Tests
                 string committed = GuidedBossFingerprint(controller.Session);
                 retry.Invoke();
                 Assert.That(GuidedBossFingerprint(controller.Session), Is.EqualTo(committed), "A retired retry cannot reset again.");
-                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseBoardingAttack);
-                Assert.That(controller.Session.GuidedBossLesson, Is.EqualTo(GuidedBossLesson.BoardingCards));
+                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseFinal);
+                Assert.That(controller.Session.GuidedBossLesson, Is.EqualTo(GuidedBossLesson.FinalBattle));
+                AssertUnguidedFinalBattlePresentation(controller);
                 Assert.That(controller.Session.GuidedTutorialBossDefeated, Is.False);
                 LogAssert.NoUnexpectedReceived();
             }
         }
 
         [UnityTest, Timeout(360000)]
-        public IEnumerator GuidedBossScript_ContinuousRecoveryDecaysAndInspectionExplainsRemainingLayers()
+        public IEnumerator GuidedBossScript_OnlyRequiredLessonsPrecedeOrdinaryFinalBattle()
         {
             using (var storage = new VoyageCargoStorageScope())
             {
                 yield return EnterGuidedCardCourse();
                 var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
-                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseAid);
-                Assert.That(controller.Session.Battle.Boarding.ContinuousRecovery, Is.Zero);
-                int medicine = controller.Session.Cargo.Medicine;
-                yield return PlayGuidedScriptAction(controller, false, null);
-                Assert.That(controller.Session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(5));
-                yield return DriveGuidedCardCourseTo(controller, GuidedBossBattleStep.CourseEffectsInspect);
-                Assert.That(controller.Session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(4));
-                yield return PlayGuidedScriptAction(controller, false, null);
-                yield return PlayGuidedScriptAction(controller, false, null);
-                Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseBoardingDone));
-                Assert.That(controller.Session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(3));
-                Assert.That(controller.Session.Cargo.Medicine, Is.EqualTo(medicine - 1));
+                var seen = new HashSet<string>();
+                foreach (GuidedBossBattleStep expected in SimplifiedGuidedCourseSteps())
+                {
+                    Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(expected),
+                        "Removed lessons must not reappear between the retained objectives.");
+                    seen.Add("BattleStep:" + expected);
+                    seen.Add("BattleLesson:" + controller.Session.GuidedBossLesson);
+                    foreach (string name in new[] { "Guided Battle Inspect Resources", "Guided Battle Inspect Enemy",
+                        "Guided Battle Inspect Deck", "Guided Battle Exercise Reset Notice" })
+                        Assert.That(GameObject.Find(name), Is.Null, "Removed course UI: " + name);
+                    if (expected != GuidedBossBattleStep.CourseFinal)
+                        yield return PlayGuidedScriptAction(controller, false, null);
+                }
+                AssertGuidedCourseCoverage(seen);
+                AssertUnguidedFinalBattlePresentation(controller);
                 LogAssert.NoUnexpectedReceived();
             }
         }
 
         private static void AssertGuidedCourseCoverage(ISet<string> seen)
         {
-            foreach (GuidedBossLesson lesson in Enum.GetValues(typeof(GuidedBossLesson)))
-                if (lesson != GuidedBossLesson.None)
-                    Assert.That(seen, Does.Contain("BattleLesson:" + lesson), "The real UI route must visit " + lesson);
-            foreach (GuidedBossBattleStep step in new[] { GuidedBossBattleStep.CourseCardInspect,
-                GuidedBossBattleStep.CourseFreeMove, GuidedBossBattleStep.CourseManeuver,
-                GuidedBossBattleStep.CoursePrepareEnd, GuidedBossBattleStep.CourseRangeAttempt,
-                GuidedBossBattleStep.CourseApproach2, GuidedBossBattleStep.CourseDraw,
-                GuidedBossBattleStep.CourseBoardContact, GuidedBossBattleStep.CourseRamContact,
-                GuidedBossBattleStep.CourseAid, GuidedBossBattleStep.CourseAmbush,
-                GuidedBossBattleStep.CourseBoardingEnd4, GuidedBossBattleStep.CourseFinal })
+            string[] expectedLessons = { "BattleLesson:" + GuidedBossLesson.NavalBasics,
+                "BattleLesson:" + GuidedBossLesson.BoardingContact, "BattleLesson:" + GuidedBossLesson.RamContact,
+                "BattleLesson:" + GuidedBossLesson.FinalBattle };
+            CollectionAssert.AreEquivalent(expectedLessons, seen.Where(value => value.StartsWith("BattleLesson:")),
+                "Only AP, same-name costs and the two contact exercises precede ordinary combat.");
+            foreach (GuidedBossBattleStep step in SimplifiedGuidedCourseSteps())
                 Assert.That(seen, Does.Contain("BattleStep:" + step), "The real UI route must execute " + step);
+            CollectionAssert.AreEquivalent(SimplifiedGuidedCourseSteps().Select(step => "BattleStep:" + step),
+                seen.Where(value => value.StartsWith("BattleStep:")), "Removed battle guides must remain unreachable.");
+        }
+
+        private static GuidedBossBattleStep[] SimplifiedGuidedCourseSteps() => new[]
+        {
+            GuidedBossBattleStep.CourseFreeMove, GuidedBossBattleStep.CourseApproach1,
+            GuidedBossBattleStep.CourseApproach2, GuidedBossBattleStep.CourseSecondMove, GuidedBossBattleStep.CourseBasicsDone,
+            GuidedBossBattleStep.CourseBoardContact, GuidedBossBattleStep.CourseBoardDone,
+            GuidedBossBattleStep.CourseRamMove, GuidedBossBattleStep.CourseRamAction,
+            GuidedBossBattleStep.CourseRamContact, GuidedBossBattleStep.CourseRamDone,
+            GuidedBossBattleStep.CourseFinal,
+        };
+
+        private static void AssertUnguidedFinalBattlePresentation(CoreGameplayDemoController controller)
+        {
+            Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseFinal));
+            Assert.That(controller.Session.GuidedBossLessonTitle, Is.Empty);
+            Assert.That(controller.Session.GuidedBossGoalText, Is.Empty);
+            Assert.That(controller.Session.GuidedBossInstruction, Is.Empty);
+            foreach (string name in new[] { "Guided Tutorial Banner", "Guided Tutorial Objective",
+                "Guided Tutorial Instruction", "Guided Battle Feedback", "Guided Battle Continue",
+                "Guided Battle Retry", "Guided Battle Inspect Resources", "Guided Battle Inspect Enemy",
+                "Guided Battle Inspect Deck", "Guided Battle Exercise Reset Notice", "Guide Input Guard" })
+                Assert.That(GameObject.Find(name), Is.Null, "Ordinary combat must not retain teaching UI: " + name);
+            Assert.That(controller.GetComponentsInChildren<GuidedTutorialFocusGraphic>(), Is.Empty);
+            Assert.That(RequireGuidedButton("End Battle Turn").IsInteractable(), Is.True);
+            for (int hand = 0; hand < controller.Session.Battle.Hand.Count; hand++)
+                Assert.That(RequireGuidedButton("Battle Card " + hand).interactable,
+                    Is.EqualTo(controller.Session.CanPlayCard(hand)), "Only ordinary card rules restrict final combat.");
         }
 
         private static IEnumerator EnterGuidedCardCourse()
@@ -234,7 +264,7 @@ namespace ShatteredSail.Presentation.Tests
             yield return DriveGuidedTutorial(controller, "TutorialBoss", new HashSet<string>(), false);
             ClickAcceptanceButton("Encounter Choice 0"); yield return null;
             yield return WaitForGuidedCaptureScreenReveal(controller);
-            Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseResources));
+            Assert.That(controller.Session.GuidedBossStep, Is.EqualTo(GuidedBossBattleStep.CourseFreeMove));
         }
 
         private static IEnumerator DriveGuidedCardCourseTo(CoreGameplayDemoController controller,
@@ -253,30 +283,13 @@ namespace ShatteredSail.Presentation.Tests
         {
             switch (step)
             {
-                case GuidedBossBattleStep.CourseResources:
-                case GuidedBossBattleStep.CourseCardInspect:
-                case GuidedBossBattleStep.CourseEnemyInspect:
-                case GuidedBossBattleStep.CourseDeckInspect:
-                case GuidedBossBattleStep.CourseEffectsInspect: return GuidedBossActionKind.Inspect;
                 case GuidedBossBattleStep.CourseFreeMove:
                 case GuidedBossBattleStep.CourseSecondMove:
-                case GuidedBossBattleStep.CourseManeuver:
-                case GuidedBossBattleStep.CourseGunneryMove:
                 case GuidedBossBattleStep.CourseRamMove: return GuidedBossActionKind.Movement;
                 case GuidedBossBattleStep.CourseBasicsDone:
-                case GuidedBossBattleStep.CourseManeuverDone:
-                case GuidedBossBattleStep.CourseGunneryDone:
                 case GuidedBossBattleStep.CourseBoardDone:
                 case GuidedBossBattleStep.CourseRamDone:
-                case GuidedBossBattleStep.CourseBoardingDone:
                 case GuidedBossBattleStep.CourseRetry: return GuidedBossActionKind.Continue;
-                case GuidedBossBattleStep.CoursePrepareEnd:
-                case GuidedBossBattleStep.CourseEnemyTurn:
-                case GuidedBossBattleStep.CourseBoardingEnd1:
-                case GuidedBossBattleStep.CourseBoardingEnd2:
-                case GuidedBossBattleStep.CourseBoardingEnd3:
-                case GuidedBossBattleStep.CourseBoardingEnd4: return GuidedBossActionKind.EndTurn;
-                case GuidedBossBattleStep.CourseRangeAttempt: return GuidedBossActionKind.BlockedCard;
                 case GuidedBossBattleStep.CourseBoardContact:
                 case GuidedBossBattleStep.CourseRamContact:
                 case GuidedBossBattleStep.CourseFinal: return GuidedBossActionKind.FreePlay;
@@ -290,39 +303,26 @@ namespace ShatteredSail.Presentation.Tests
         {
             switch (step)
             {
-                case GuidedBossBattleStep.CourseCardInspect:
-                case GuidedBossBattleStep.CourseActionCard:
                 case GuidedBossBattleStep.CourseApproach1:
                 case GuidedBossBattleStep.CourseApproach2:
                 case GuidedBossBattleStep.CourseRamAction: return "card_approach";
-                case GuidedBossBattleStep.CourseLoad: return "card_load_shot";
-                case GuidedBossBattleStep.CoursePrepareGuard:
-                case GuidedBossBattleStep.CourseNavalGuard: return "card_brace";
-                case GuidedBossBattleStep.CourseRangeAttempt:
-                case GuidedBossBattleStep.CourseFire: return "card_chain_shot";
-                case GuidedBossBattleStep.CourseEnergy: return "card_energy_order";
-                case GuidedBossBattleStep.CourseRepair: return "card_emergency_repair";
-                case GuidedBossBattleStep.CourseDraw:
-                case GuidedBossBattleStep.CourseBoardingDraw: return "card_tactical_draw";
-                case GuidedBossBattleStep.CourseBoardingAttack: return "card_crew_thrust";
-                case GuidedBossBattleStep.CourseBoardingGuard: return "card_crew_guard";
-                case GuidedBossBattleStep.CourseBandage: return "card_crew_bandage";
-                case GuidedBossBattleStep.CourseAid: return "card_boarding_basic_07";
-                case GuidedBossBattleStep.CourseAmbush: return "card_boarding_basic_13";
                 default: return string.Empty;
             }
         }
 
-        private static GuidedBossBattleStep GuidedCourseNext(GuidedBossBattleStep step) =>
-            step == GuidedBossBattleStep.CourseResources ? GuidedBossBattleStep.CourseCardInspect :
-            step == GuidedBossBattleStep.CourseCardInspect ? GuidedBossBattleStep.CourseFreeMove :
-            step == GuidedBossBattleStep.CourseGunneryDone ? GuidedBossBattleStep.CourseBoardContact : step + 1;
+        private static GuidedBossBattleStep GuidedCourseNext(GuidedBossBattleStep step)
+        {
+            GuidedBossBattleStep[] steps = SimplifiedGuidedCourseSteps();
+            int index = Array.IndexOf(steps, step);
+            Assert.That(index, Is.InRange(0, steps.Length - 2), "No course transition is defined for " + step);
+            return steps[index + 1];
+        }
 
         private static bool CaptureGuidedCourseStep(GuidedBossBattleStep step) =>
-            step == GuidedBossBattleStep.CourseResources || step == GuidedBossBattleStep.CourseActionCard ||
-            step == GuidedBossBattleStep.CourseManeuver || step == GuidedBossBattleStep.CourseBoardContact ||
-            step == GuidedBossBattleStep.CourseRamContact || step == GuidedBossBattleStep.CourseAid ||
-            step == GuidedBossBattleStep.CourseAmbush || step == GuidedBossBattleStep.CourseFinal;
+            step == GuidedBossBattleStep.CourseFreeMove || step == GuidedBossBattleStep.CourseApproach1 ||
+            step == GuidedBossBattleStep.CourseApproach2 || step == GuidedBossBattleStep.CourseSecondMove ||
+            step == GuidedBossBattleStep.CourseBoardContact ||
+            step == GuidedBossBattleStep.CourseRamContact || step == GuidedBossBattleStep.CourseFinal;
 
         private static IEnumerator PlayGuidedScriptAction(CoreGameplayDemoController controller,
             bool capture, HashSet<string> captured, bool alternateHeadings = false)
@@ -335,8 +335,11 @@ namespace ShatteredSail.Presentation.Tests
             string cardId = GuidedBossCardForStep(step);
             Assert.That(session.GuidedBossExpectedAction, Is.EqualTo(kind), step.ToString());
             Assert.That(session.GuidedBossExpectedCardId, Is.EqualTo(cardId), step.ToString());
-            Assert.That(session.GuidedBossLessonTitle, Is.Not.Empty);
-            Assert.That(session.GuidedBossGoalText, Is.Not.Empty);
+            if (step != GuidedBossBattleStep.CourseFinal)
+            {
+                Assert.That(session.GuidedBossLessonTitle, Is.Not.Empty);
+                Assert.That(session.GuidedBossGoalText, Is.Not.Empty);
+            }
             Assert.That(session.GuidedTutorialBossDefeated, Is.False);
             Assert.That(session.VoyageTreasureFragments, Is.Zero);
             Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.GuidedTutorialComponentRewardKey, 0), Is.Zero);
@@ -345,7 +348,7 @@ namespace ShatteredSail.Presentation.Tests
                 yield return WaitForGuidedCaptureScreenReveal(controller);
                 Button hover = null;
                 PointerEventData pointer = null;
-                if (step == GuidedBossBattleStep.CourseActionCard)
+                if (step == GuidedBossBattleStep.CourseApproach1)
                 {
                     int slot = session.Battle.Hand.FindIndex(index => session.GetBattleCard(index).Id == cardId);
                     hover = RequireGuidedButton("Battle Card " + slot);
@@ -357,7 +360,7 @@ namespace ShatteredSail.Presentation.Tests
                     yield return new WaitForSecondsRealtime(.4f);
                 }
                 NavalBattleVisualCapture.Capture(controller, "GuidedBoss_" + step + ".png",
-                    "完整卡牌课程真实操作：" + step, "Battle Card");
+                    "精简海战教学真实操作：" + step, "Battle Card");
                 if (hover != null)
                 {
                     ExecuteEvents.Execute(hover.gameObject, pointer, ExecuteEvents.pointerExitHandler);
@@ -367,8 +370,6 @@ namespace ShatteredSail.Presentation.Tests
             }
             if (kind == GuidedBossActionKind.Movement)
             { yield return PlayGuidedNavalMovement(controller, alternateHeadings, capture); yield break; }
-            if (kind == GuidedBossActionKind.Inspect)
-            { yield return InspectGuidedBattle(controller, step); yield break; }
             if (step == GuidedBossBattleStep.CourseFinal)
             { yield return PlayGuidedFinalBattleAction(controller); yield break; }
             Assert.That(step, Is.Not.EqualTo(GuidedBossBattleStep.CourseRetry),
@@ -385,23 +386,9 @@ namespace ShatteredSail.Presentation.Tests
             if (kind != GuidedBossActionKind.FreePlay) AssertGuidedCourseLocks(controller, button, cardId);
             var before = new GuidedCourseState(session, hand);
             var oldClick = button.onClick;
-            if (kind == GuidedBossActionKind.BlockedCard)
-            {
-                Assert.That(session.CanPlayCard(hand), Is.False);
-                Assert.That(CoreVoyageSession.NavalGridDistance(battle.PlayerPositionMeters, battle.EnemyPositionMeters),
-                    Is.GreaterThan(4), "The blocked exercise is outside the four-cell Manhattan cannon range.");
-                Assert.That(session.CardUnavailableReason(hand), Is.EqualTo(CoreVoyageSession.NavalCannonOutOfRangeReason));
-                string inventory = GuidedBossFingerprint(session, false);
-                ClickAcceptanceButton(target);
-                Assert.That(controller.IsBattleAnimationPlaying, Is.False);
-                Assert.That(GuidedBossFingerprint(session, false), Is.EqualTo(inventory));
-            }
-            else
-            {
-                ClickAcceptanceButton(target);
-                if (kind != GuidedBossActionKind.Continue)
-                    Assert.That(controller.IsBattleAnimationPlaying, Is.True, "Normal presentation for " + step);
-            }
+            ClickAcceptanceButton(target);
+            if (kind != GuidedBossActionKind.Continue)
+                Assert.That(controller.IsBattleAnimationPlaying, Is.True, "Normal presentation for " + step);
             string committed = GuidedBossFingerprint(session);
             oldClick.Invoke();
             Assert.That(GuidedBossFingerprint(session), Is.EqualTo(committed), "Immediate callback cannot commit twice.");
@@ -429,81 +416,6 @@ namespace ShatteredSail.Presentation.Tests
             }
         }
 
-        private static IEnumerator InspectGuidedBattle(CoreGameplayDemoController controller, GuidedBossBattleStep step)
-        {
-            var session = controller.Session;
-            string topic = step == GuidedBossBattleStep.CourseEnemyInspect ? "enemy" :
-                step == GuidedBossBattleStep.CourseDeckInspect ? "deck" :
-                step == GuidedBossBattleStep.CourseCardInspect ? "card" : "resources";
-            Assert.That(session.GuidedBossInspectionTopic, Is.EqualTo(topic));
-            string inventory = GuidedBossFingerprint(session, false);
-            GameObject retainedRoot = GameObject.Find("Battle Card"), retainedHand = GameObject.Find("Battle Hand");
-            int[] cardInstances = retainedHand.GetComponentsInChildren<Button>().Select(button => button.GetInstanceID()).ToArray();
-            if (topic == "card")
-            {
-                int hand = session.Battle.Hand.FindIndex(i => session.GetBattleCard(i).Id == "card_approach");
-                Button card = RequireGuidedButton("Battle Card " + hand);
-                Canvas canvas = card.GetComponentInParent<Canvas>().rootCanvas;
-                var pointer = new PointerEventData(EventSystem.current) { position = RectTransformUtility.WorldToScreenPoint(
-                    canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera,
-                    ((RectTransform)card.transform).TransformPoint(((RectTransform)card.transform).rect.center)) };
-                AssertGuidedBattleTopRaycastButton(pointer.position, card, "Read-card lesson pointer");
-                ExecuteEvents.Execute(card.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
-                yield return new WaitForSecondsRealtime(.8f);
-                ExecuteEvents.Execute(card.gameObject, pointer, ExecuteEvents.pointerExitHandler);
-                yield return new WaitForSecondsRealtime(.35f);
-            }
-            else
-            {
-                string target = topic == "deck" ? "Battle Deck" : topic == "enemy"
-                    ? "Guided Battle Inspect Enemy" : "Guided Battle Inspect Resources";
-                Assert.That(RequireGuidedButton(target).IsInteractable(), Is.True);
-                AssertGuidedFocusTarget(target);
-                var oldClick = RequireGuidedButton(target).onClick;
-                ClickAcceptanceButton(target); yield return null;
-                Assert.That(GameObject.Find("Battle Deck Overlay"), Is.Not.Null);
-                if (topic != "deck")
-                {
-                    Text detail = GameObject.Find("Guided Battle Inspection Details").GetComponent<Text>();
-                    Assert.That(detail.text, Does.Contain(topic == "enemy" ? session.Battle.EnemyName : "能量 " + session.Battle.Energy));
-                    Assert.That(detail.text, Does.Contain(topic == "enemy"
-                        ? "船体 " + session.Battle.EnemyHull : "行动点 " + session.Battle.NavalActionPoints));
-                    if (topic == "resources")
-                    {
-                        Assert.That(detail.text, Does.Contain("火药 " + session.Cargo.Powder));
-                        Assert.That(detail.text, Does.Contain("药品 " + session.Cargo.Medicine));
-                        Assert.That(detail.text, Does.Contain("抽牌堆 " + session.Battle.DrawPile.Count));
-                        if (step == GuidedBossBattleStep.CourseEffectsInspect)
-                        {
-                            Assert.That(session.Battle.Boarding.ContinuousRecovery, Is.EqualTo(4));
-                            Assert.That(detail.text, Does.Contain("持续恢复：4 层")
-                                .And.Contain("下次己方回合结束恢复 4 点船员生命")
-                                .And.Contain("然后减少 1 层")
-                                .And.Contain("之后按剩余层数继续恢复"));
-                            Assert.That(detail.text, Does.Not.Contain("次，每次恢复"));
-                            Canvas.ForceUpdateCanvases();
-                            Assert.That(detail.fontSize, Is.GreaterThanOrEqualTo(24));
-                            Assert.That(detail.preferredHeight, Is.LessThanOrEqualTo(detail.rectTransform.rect.height + .5f),
-                                "The recovery layers and decay explanation must fit the reading surface.");
-                        }
-                    }
-                }
-                ClickAcceptanceButton("Close Battle Deck"); yield return null;
-                Assert.That(GameObject.Find("Battle Deck Overlay"), Is.Null);
-                string committed = GuidedBossFingerprint(session);
-                oldClick.Invoke();
-                Assert.That(GuidedBossFingerprint(session), Is.EqualTo(committed));
-                if (ActiveButton("Close Battle Deck") != null) ClickAcceptanceButton("Close Battle Deck");
-            }
-            Assert.That(GuidedBossFingerprint(session, false), Is.EqualTo(inventory), "Inspection cannot spend or play.");
-            Assert.That(GameObject.Find("Battle Card"), Is.SameAs(retainedRoot));
-            Assert.That(GameObject.Find("Battle Hand"), Is.SameAs(retainedHand));
-            CollectionAssert.AreEqual(cardInstances, retainedHand.GetComponentsInChildren<Button>()
-                .Select(button => button.GetInstanceID()).ToArray(), "Inspection retains the real hand instances.");
-            Assert.That(session.GuidedBossStep, Is.EqualTo(GuidedCourseNext(step)));
-            yield return null;
-        }
-
         private static IEnumerator PlayGuidedNavalMovement(CoreGameplayDemoController controller,
             bool alternateHeadings, bool capture = false)
         {
@@ -511,27 +423,30 @@ namespace ShatteredSail.Presentation.Tests
             GuidedBossBattleStep step = session.GuidedBossStep;
             VoyagePoint start = session.Battle.PlayerPositionMeters;
             int ap = session.Battle.NavalActionPoints;
-            var route = new List<VoyagePoint> { CourseForward(start, session.Battle.PlayerHeadingDegrees) };
-            if (step == GuidedBossBattleStep.CourseManeuver)
-                route.Add(new VoyagePoint(route[0].X, route[0].Y + (alternateHeadings ? -100f : 100f)));
-            if (step == GuidedBossBattleStep.CourseGunneryMove)
+            if (step == GuidedBossBattleStep.CourseSecondMove)
             {
-                route.Add(new VoyagePoint(start.X + 200f, start.Y));
-                route.Add(new VoyagePoint(start.X + 300f, start.Y));
+                Assert.That(ap, Is.EqualTo(2));
+                Assert.That(session.GuidedBossCanContinue, Is.False);
+                Assert.That(GameObject.Find("Guided Battle Continue"), Is.Null,
+                    "The second AP card must lead to movement before the next lesson becomes available.");
             }
-            float arrival = step == GuidedBossBattleStep.CourseManeuver ? (alternateHeadings ? 180f : 0f) :
-                alternateHeadings && step == GuidedBossBattleStep.CourseFreeMove ? 90f :
-                alternateHeadings && step == GuidedBossBattleStep.CourseSecondMove ? 180f :
-                alternateHeadings && step == GuidedBossBattleStep.CourseGunneryMove ? 270f : 0f;
-            yield return ClickGuidedCourseRoute(controller, route, arrival, capture && step == GuidedBossBattleStep.CourseManeuver);
+            var route = new List<VoyagePoint> { CourseForward(start, session.Battle.PlayerHeadingDegrees) };
+            float arrival = alternateHeadings && step == GuidedBossBattleStep.CourseFreeMove ? 90f : 0f;
+            yield return ClickGuidedCourseRoute(controller, route, arrival, capture);
             Assert.That(session.GuidedBossStep, Is.EqualTo(GuidedCourseNext(step)));
-            if (step == GuidedBossBattleStep.CourseManeuver)
-                Assert.That(ap, Is.GreaterThan(route.Count), "Short route still spends the complete prepared AP pool.");
-            if (step == GuidedBossBattleStep.CourseGunneryMove)
-                Assert.That(CoreVoyageSession.NavalGridDistance(session.Battle.PlayerPositionMeters,
-                    session.Battle.EnemyPositionMeters), Is.LessThanOrEqualTo(4));
+            if (step == GuidedBossBattleStep.CourseFreeMove)
+            {
+                Assert.That(ap, Is.EqualTo(3), "The AP lesson begins with more AP than the one-cell route uses.");
+                Assert.That(session.Battle.NavalActionPoints, Is.Zero, "A short move clears the complete AP pool.");
+            }
             if (step == GuidedBossBattleStep.CourseRamMove)
                 Assert.That(session.Battle.DistanceMeters, Is.EqualTo(100f).Within(.01f));
+            if (step == GuidedBossBattleStep.CourseSecondMove)
+            {
+                Assert.That(session.Battle.NavalActionPoints, Is.Zero);
+                Assert.That(session.GuidedBossCanContinue, Is.True);
+                Assert.That(RequireGuidedButton("Guided Battle Continue").IsInteractable(), Is.True);
+            }
         }
 
         private static VoyagePoint CourseForward(VoyagePoint start, float heading) =>
@@ -551,8 +466,8 @@ namespace ShatteredSail.Presentation.Tests
             yield return DragTacticalRoute(controller, route);
             AssertTacticalPoint(session.Battle.PlayerPositionMeters, start);
             Assert.That(session.Battle.NavalActionPoints, Is.EqualTo(ap));
-            if (capture) NavalBattleVisualCapture.Capture(controller, "GuidedBoss_Maneuver_SelectedRoute.png",
-                "从己船连续拖出两格转弯路线，松开预览后确认航行并自主选择终向", "Naval Tactical Board");
+            if (capture && step == GuidedBossBattleStep.CourseFreeMove) NavalBattleVisualCapture.Capture(controller, "GuidedBoss_AP_SelectedRoute.png",
+                "预置3行动点，仅移动1格，确认后清空全部行动点", "Naval Tactical Board");
             var oldCommit = RequireGuidedButton("Commit Naval Movement").onClick;
             ClickAcceptanceButton("Commit Naval Movement");
             Assert.That(controller.IsBattleAnimationPlaying, Is.True);
@@ -566,12 +481,30 @@ namespace ShatteredSail.Presentation.Tests
             AssertTacticalPoint(session.Battle.PlayerPositionMeters, route[route.Count - 1]);
             Assert.That(RequireGuidedButton("End Battle Turn").IsInteractable(), Is.False);
             var headings = session.GetNavalArrivalHeadings();
-            Assert.That(headings.Count, Is.EqualTo(3), "All three legal arrival headings remain available.");
+            Assert.That(headings.Count, Is.EqualTo(3), "The ordinary arrival directions remain visible.");
             CollectionAssert.Contains(headings, arrival);
             for (int index = 0; index < headings.Count; index++)
-                Assert.That(RequireGuidedButton("Naval Arrival Heading " + index).IsInteractable(), Is.True);
+            {
+                bool permitted = step != GuidedBossBattleStep.CourseRamMove || Mathf.Abs(Mathf.DeltaAngle(headings[index], 0f)) < .01f;
+                Button headingButton = RequireGuidedButton("Naval Arrival Heading " + index);
+                Assert.That(headingButton.IsInteractable(), Is.EqualTo(permitted));
+                if (permitted) continue;
+                string unchanged = GuidedBossFingerprint(session);
+                headingButton.onClick.Invoke();
+                input.ChooseHeading(headings[index]);
+                Assert.That(GuidedBossFingerprint(session), Is.EqualTo(unchanged), "Other headings cannot satisfy the ram lesson.");
+            }
             string headingTarget = "Naval Arrival Heading " + headings.ToList().IndexOf(arrival);
             yield return WaitTacticalHeadingPointerReady(headingTarget);
+            if (step == GuidedBossBattleStep.CourseRamMove)
+            {
+                Text instruction = GameObject.Find("Guided Tutorial Instruction").GetComponent<Text>();
+                Assert.That(instruction.text, Does.Contain("朝东"));
+                AssertGuidedFocusTarget(headingTarget, "The ram lesson requires the east heading selection.");
+                Assert.That(controller.GetComponentsInChildren<GuidedTutorialFocusGraphic>(), Has.Length.EqualTo(1));
+                if (capture) NavalBattleVisualCapture.Capture(controller, "GuidedBoss_Ram_EastHeading.png",
+                    "冲撞教程到达后必须手动选择朝东", headingTarget);
+            }
             ClickAcceptanceButton(headingTarget);
             yield return WaitGuidedBossAnimation(controller);
             Assert.That(session.Battle.NavalAwaitingHeadingSelection, Is.False);
@@ -611,115 +544,22 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Assert.That(battle.Energy, Is.EqualTo(before.Energy - before.Cost + before.Recovery));
                 Assert.That(battle.CardsPlayedThisTurn, Is.EqualTo(before.Played + 1));
+                Assert.That(battle.Hand.Count, Is.EqualTo(before.Hand - 1));
+                Assert.That(battle.NavalActionPoints, Is.EqualTo(before.Ap + 1));
+                Assert.That(before.Cost, Is.EqualTo(step == GuidedBossBattleStep.CourseApproach2 ? 1 : 0));
+                return;
             }
-            switch (step)
+            Assert.That(step, Is.EqualTo(GuidedBossBattleStep.CourseBoardContact).Or.EqualTo(GuidedBossBattleStep.CourseRamContact));
+            Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
+            Assert.That(before.Ap, Is.GreaterThanOrEqualTo(1));
+            Assert.That(battle.NavalActionPoints, Is.Zero, "The new boarding phase clears naval AP.");
+            Assert.That(battle.Energy, Is.EqualTo(3), "Entering the boarding phase restores energy after contact.");
+            if (step == GuidedBossBattleStep.CourseRamContact)
             {
-                case GuidedBossBattleStep.CourseActionCard:
-                case GuidedBossBattleStep.CourseApproach1:
-                case GuidedBossBattleStep.CourseApproach2:
-                case GuidedBossBattleStep.CourseRamAction:
-                    Assert.That(battle.NavalActionPoints, Is.EqualTo(before.Ap + 1));
-                    Assert.That(before.Cost, Is.EqualTo(step == GuidedBossBattleStep.CourseApproach2 ? 1 : 0)); break;
-                case GuidedBossBattleStep.CourseLoad:
-                    Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Preparation));
-                    Assert.That(battle.PlayerLoadedShot, Is.EqualTo(5));
-                    Assert.That(session.Cargo.Powder, Is.EqualTo(before.Powder - 1));
-                    Assert.That(battle.Hand.Count, Is.EqualTo(before.Hand)); break;
-                case GuidedBossBattleStep.CoursePrepareGuard:
-                case GuidedBossBattleStep.CourseNavalGuard:
-                    Assert.That(before.Cost, Is.Zero);
-                    Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard + 2)); break;
-                case GuidedBossBattleStep.CoursePrepareEnd:
-                    Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Naval));
-                    Assert.That(session.Hull, Is.EqualTo(before.Hull));
-                    Assert.That(battle.PlayerLoadedShot, Is.EqualTo(5));
-                    Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard)); break;
-                case GuidedBossBattleStep.CourseEnergy:
-                    Assert.That(before.Cost, Is.Zero);
-                    Assert.That(battle.Energy, Is.EqualTo(before.Energy + 1));
-                    Assert.That(battle.NavalActionPoints, Is.EqualTo(before.Ap)); break;
-                case GuidedBossBattleStep.CourseFire:
-                    Assert.That(battle.EnemyHull, Is.LessThan(before.EnemyHull));
-                    Assert.That(battle.PlayerLoadedShot, Is.Zero);
-                    Assert.That(session.Cargo.Powder, Is.EqualTo(before.Powder - 1));
-                    Assert.That(session.Cargo.Cannonballs, Is.EqualTo(before.Balls - 1)); break;
-                case GuidedBossBattleStep.CourseRepair:
-                    Assert.That(session.Hull, Is.EqualTo(Math.Min(session.MaxHull, before.Hull + 5)));
-                    Assert.That(session.Cargo.Wood, Is.EqualTo(before.Wood - 1)); break;
-                case GuidedBossBattleStep.CourseDraw:
-                    Assert.That(session.GuidedBossDeckShuffles, Is.GreaterThan(before.Shuffles));
-                    Assert.That(battle.Hand.Count, Is.EqualTo(before.Hand + 1)); break;
-                case GuidedBossBattleStep.CourseBoardContact:
-                case GuidedBossBattleStep.CourseRamContact:
-                    Assert.That(battle.Stage, Is.EqualTo(NavalBattleStage.Boarding));
-                    Assert.That(before.Ap, Is.GreaterThanOrEqualTo(1));
-                    Assert.That(battle.NavalActionPoints, Is.Zero, "The new boarding phase clears naval AP.");
-                    Assert.That(battle.Energy, Is.EqualTo(3), "Entering the boarding phase restores energy after contact.");
-                    if (step == GuidedBossBattleStep.CourseRamContact)
-                    { Assert.That(session.Hull, Is.LessThan(before.Hull)); Assert.That(battle.EnemyHull, Is.LessThan(before.EnemyHull)); }
-                    else Assert.That(session.Hull, Is.EqualTo(before.Hull)); break;
-                case GuidedBossBattleStep.CourseBoardingAttack:
-                    Assert.That(battle.Boarding.Initialized, Is.True);
-                    // This is a formal attack: current morale may double the one
-                    // quoted hit. Never force a non-critical tutorial-only result.
-                    Assert.That(before.AttackQuote, Is.GreaterThan(0));
-                    var legalHits = new List<int>();
-                    if (before.CriticalChance < 100) legalHits.Add(before.AttackQuote);
-                    if (before.CriticalChance > 0) legalHits.Add(before.AttackQuote * 2);
-                    Assert.That(legalHits.Any(hit =>
-                        battle.EnemyBoardingHealth == before.EnemyHp - Math.Min(before.EnemyHp, Math.Max(0, hit - before.EnemyGuard)) &&
-                        battle.EnemyBlock == Math.Max(0, before.EnemyGuard - hit)), Is.True,
-                        "One quoted attack must resolve with the actual guard and morale critical chance (" + before.CriticalChance + "%).");
-                    Assert.That(battle.Hand.Count, Is.EqualTo(before.Hand - 1));
-                    Assert.That(battle.DiscardPile.Count, Is.EqualTo(before.Discard + 1));
-                    Assert.That(session.Cargo.Powder, Is.EqualTo(before.Powder));
-                    Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine));
-                    Assert.That(battle.LastAction, Does.Contain("伤害 " + (before.EnemyHp - battle.EnemyBoardingHealth)));
-                    break;
-                case GuidedBossBattleStep.CourseBoardingGuard:
-                    Assert.That(battle.PlayerBlock, Is.EqualTo(before.Guard + 4)); break;
-                case GuidedBossBattleStep.CourseBandage:
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(Math.Min(battle.PlayerMaxBoardingHealth, before.PlayerHp + 6)));
-                    Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine - 1)); break;
-                case GuidedBossBattleStep.CourseBoardingDraw:
-                    Assert.That(before.Cost, Is.EqualTo(2));
-                    Assert.That(battle.Hand.Count, Is.EqualTo(before.Hand + 2)); break;
-                case GuidedBossBattleStep.CourseAid:
-                    Assert.That(battle.PlayerBoardingHealth, Is.EqualTo(before.PlayerHp));
-                    Assert.That(battle.Boarding.ContinuousRecovery, Is.EqualTo(before.ContinuousRecovery + 5));
-                    Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine - 1)); break;
-                case GuidedBossBattleStep.CourseAmbush:
-                    Assert.That(battle.EnemyBoardingHealth, Is.EqualTo(before.EnemyHp));
-                    Assert.That(battle.Boarding.DelayedDamage.Count, Is.EqualTo(before.Delays + 1)); break;
-                case GuidedBossBattleStep.CourseBoardingEnd3:
-                    Assert.That(battle.Boarding.DelayedDamage, Is.Empty);
-                    Assert.That(battle.EnemyBoardingHealth, Is.LessThan(before.EnemyHp));
-                    Assert.That(before.ContinuousRecovery, Is.EqualTo(5));
-                    AssertGuidedRecoveryEnd(battle, before);
-                    Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine)); break;
-                case GuidedBossBattleStep.CourseBoardingEnd4:
-                    Assert.That(before.ContinuousRecovery, Is.EqualTo(4));
-                    AssertGuidedRecoveryEnd(battle, before);
-                    Assert.That(session.Cargo.Medicine, Is.EqualTo(before.Medicine)); break;
+                Assert.That(session.Hull, Is.LessThan(before.Hull));
+                Assert.That(battle.EnemyHull, Is.LessThan(before.EnemyHull));
             }
-            if (kind == GuidedBossActionKind.EndTurn)
-            {
-                Assert.That(battle.Turn, Is.EqualTo(before.Turn + 1));
-                Assert.That(battle.Energy, Is.EqualTo(3));
-                Assert.That(battle.CardsPlayedThisTurn, Is.Zero);
-            }
-        }
-
-        private static void AssertGuidedRecoveryEnd(CoreBattleState battle, GuidedCourseState before)
-        {
-            Assert.That(battle.Boarding.ContinuousRecovery, Is.EqualTo(before.ContinuousRecovery - 1));
-            int healedHealth = Math.Min(battle.PlayerMaxBoardingHealth, before.PlayerHp + before.ContinuousRecovery);
-            if (battle.BoardingEnemy.LastAttackExecuted)
-                Assert.That(battle.BoardingEnemy.LastAttackPlayerHealth, Is.EqualTo(healedHealth),
-                    "The current recovery layers heal before the enemy acts.");
-            Assert.That(battle.PlayerBoardingHealth,
-                Is.EqualTo(Math.Max(0, healedHealth - battle.BoardingEnemy.LastAttackHealthLost)),
-                "Each tick heals its current layer count, capped at maximum health, before real enemy damage.");
+            else Assert.That(session.Hull, Is.EqualTo(before.Hull));
         }
 
         private static IEnumerator PlayGuidedFinalBattleAction(CoreGameplayDemoController controller)
@@ -727,6 +567,7 @@ namespace ShatteredSail.Presentation.Tests
             var session = controller.Session;
             var battle = session.Battle;
             Assert.That(session.GuidedBossLesson, Is.EqualTo(GuidedBossLesson.FinalBattle));
+            AssertUnguidedFinalBattlePresentation(controller);
             Assert.That(battle.Turn, Is.LessThan(30), "Free combat must win without injected progress.");
             Assert.That(RequireGuidedButton("End Battle Turn").IsInteractable(), Is.True);
             if (session.CanBoard(out _)) ClickAcceptanceButton("Battle Board");

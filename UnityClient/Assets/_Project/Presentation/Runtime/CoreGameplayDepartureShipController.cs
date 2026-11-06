@@ -93,7 +93,7 @@ namespace ShatteredSail.Presentation
             ApplyDepartureCrewConfiguration();
             // Acquiring or losing the navigator changes which chart controls
             // exist. Let the normal builder handle that uncommon structural case.
-            if (session.CanDrawSeaChart != (departureChartInput != null)) return false;
+            if (session.CanUseSeaCharts != (departureChartInput != null)) return false;
             selectedShipPreview = session.SelectedShipIndex;
             shipyardDetailOpen = false;
             shipyardReturnToDeparture = false;

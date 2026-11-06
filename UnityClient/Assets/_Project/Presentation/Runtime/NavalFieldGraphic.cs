@@ -27,9 +27,10 @@ namespace ShatteredSail.Presentation
     {
         private NavalTacticalBoardView board;
         private readonly List<NavalFieldVisualCell> cells = new List<NavalFieldVisualCell>();
+        private readonly NavalFieldPatternGraphic[] paintings = new NavalFieldPatternGraphic[6];
         private IReadOnlyList<NavalFieldMotionCue> cues;
         private float motionTime;
-        private bool hadMotionGeometry;
+        private bool hadMotionGeometry, cyclePatterns;
         public IReadOnlyList<NavalFieldVisualCell> Cells => cells;
 
         public void SetMotion(float seconds, IReadOnlyList<NavalFieldMotionCue> effects)
@@ -38,50 +39,106 @@ namespace ShatteredSail.Presentation
             bool hasGeometry = cells.Count > 0 || (effects != null && effects.Count > 0);
             if (!hasGeometry && !hadMotionGeometry) return;
             hadMotionGeometry = hasGeometry;
+            UpdatePaintingMotion();
             SetVerticesDirty();
         }
 
-        public void Configure(NavalTacticalBoardView view, IEnumerable<NavalFieldVisualCell> source)
+        public void Configure(NavalTacticalBoardView view, IEnumerable<NavalFieldVisualCell> source, bool cyclePatterns = false)
         {
             board = view; cells.Clear();
             if (source != null) cells.AddRange(source);
+            this.cyclePatterns = cyclePatterns;
             raycastTarget = false;
+            ConfigurePaintings();
             SetVerticesDirty();
+        }
+
+        private void ConfigurePaintings()
+        {
+            for (int i = 0; i < paintings.Length; i++)
+            {
+                CoreNavalFieldKind kind = (CoreNavalFieldKind)i;
+                bool used = false;
+                for (int c = 0; c < cells.Count; c++)
+                    if (cells[c].Pattern && cells[c].Kind == kind) { used = true; break; }
+                Texture2D texture = used ? NavalFieldArtCatalog.ForField(kind) : null;
+                if (texture != null && paintings[i] == null)
+                {
+                    var root = new GameObject("Naval field painting " + kind, typeof(RectTransform));
+                    var rect = (RectTransform)root.transform;
+                    rect.SetParent(transform, false);
+                    rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+                    rect.offsetMin = rect.offsetMax = Vector2.zero;
+                    // Duration labels stay above the transparent paintings.
+                    rect.SetAsFirstSibling();
+                    paintings[i] = root.AddComponent<NavalFieldPatternGraphic>();
+                }
+                if (paintings[i] != null) paintings[i].Configure(board, cells, kind, texture);
+            }
+            UpdatePaintingMotion();
+        }
+
+        private void UpdatePaintingMotion()
+        {
+            float opacity = PatternOpacity();
+            for (int i = 0; i < paintings.Length; i++)
+                if (paintings[i] != null) paintings[i].SetMotion(motionTime, opacity);
+        }
+
+        private float PatternOpacity()
+        {
+            if (!cyclePatterns) return 1f;
+            // Every tile shows its own field pattern. A shared sea interval keeps
+            // the board calm without suppressing one school while another is shown.
+            const float slotSeconds = 2.4f, patternSeconds = 1.5f, fadeSeconds = .2f;
+            float elapsed = Mathf.Repeat(motionTime, slotSeconds);
+            return Mathf.SmoothStep(0f, 1f, Mathf.Min(elapsed / fadeSeconds, (patternSeconds - elapsed) / fadeSeconds));
         }
 
         protected override void OnPopulateMesh(VertexHelper helper)
         {
             helper.Clear();
             if (board == null) return;
+            float patternOpacity = PatternOpacity();
             foreach (NavalFieldVisualCell cell in cells)
             {
+                float opacity = cell.Pattern ? patternOpacity : 1f;
+                Color fill = cell.Fill, border = cell.Border;
+                if (cyclePatterns && cell.Pattern)
+                {
+                    fill.a *= opacity;
+                    if (paintings[(int)cell.Kind] != null) fill.a *= .18f;
+                    // The quiet outline still locates a field while its pattern rests.
+                    border.a *= .22f + .48f * opacity;
+                }
                 Vector2 a = Project(cell.Position, -.46f, -.46f), b = Project(cell.Position, -.46f, .46f);
                 Vector2 c = Project(cell.Position, .46f, .46f), d = Project(cell.Position, .46f, -.46f);
                 int start = helper.currentVertCount;
-                helper.AddVert(a, cell.Fill, Vector2.zero); helper.AddVert(b, cell.Fill, Vector2.zero);
-                helper.AddVert(c, cell.Fill, Vector2.zero); helper.AddVert(d, cell.Fill, Vector2.zero);
+                helper.AddVert(a, fill, Vector2.zero); helper.AddVert(b, fill, Vector2.zero);
+                helper.AddVert(c, fill, Vector2.zero); helper.AddVert(d, fill, Vector2.zero);
                 helper.AddTriangle(start, start + 1, start + 2); helper.AddTriangle(start, start + 2, start + 3);
-                Line(helper, a, b, cell.Border); Line(helper, b, c, cell.Border);
-                Line(helper, c, d, cell.Border); Line(helper, d, a, cell.Border);
+                Line(helper, a, b, border); Line(helper, b, c, border);
+                Line(helper, c, d, border); Line(helper, d, a, border);
                 if (cell.Invalid) { Line(helper, a, c, cell.Border); Line(helper, b, d, cell.Border); }
-                if (cell.Pattern) DrawPattern(helper, cell);
-                if (cell.DirectionX != 0 || cell.DirectionY != 0)
+                if (cell.Pattern && opacity > 0f && paintings[(int)cell.Kind] == null) DrawPattern(helper, cell, opacity);
+                if ((cell.DirectionX != 0 || cell.DirectionY != 0) && opacity > 0f)
                 {
+                    Color arrow = cell.Border; arrow.a *= opacity;
                     Vector2 from = Project(cell.Position, -cell.DirectionX * .22f, -cell.DirectionY * .22f);
                     Vector2 to = Project(cell.Position, cell.DirectionX * .28f, cell.DirectionY * .28f);
                     Vector2 direction = (to - from).normalized, side = new Vector2(-direction.y, direction.x);
-                    Line(helper, from, to, cell.Border, 3f);
-                    Line(helper, to, to - direction * 12f + side * 7f, cell.Border, 3f);
-                    Line(helper, to, to - direction * 12f - side * 7f, cell.Border, 3f);
+                    Line(helper, from, to, arrow, 3f);
+                    Line(helper, to, to - direction * 12f + side * 7f, arrow, 3f);
+                    Line(helper, to, to - direction * 12f - side * 7f, arrow, 3f);
                 }
             }
             if (cues != null)
                 for (int i = 0; i < cues.Count; i++) DrawCue(helper, cues[i]);
         }
 
-        private void DrawPattern(VertexHelper helper, NavalFieldVisualCell cell)
+        private void DrawPattern(VertexHelper helper, NavalFieldVisualCell cell, float opacity)
         {
-            Color tint = cell.Border; tint.a *= .52f;
+            Color tint = cell.Border; tint.a *= .52f * opacity;
             float phase = cell.Position.X * .013f + cell.Position.Y * .019f;
             float time = motionTime;
             switch (cell.Kind)
@@ -184,6 +241,14 @@ namespace ShatteredSail.Presentation
                     Line(helper, Project(position, Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius),
                         Project(position, Mathf.Cos(angle) * (radius + .055f), Mathf.Sin(angle) * (radius + .055f)), tint, 2.8f);
                 }
+            }
+            else if (fact.Change == CoreNavalFieldChangeKind.Extended)
+            {
+                // Reinforcement gathers into an existing field; it is not a retirement cue.
+                tint = Color.Lerp(tint, Color.white, .24f);
+                tint.a = Mathf.Sin(Mathf.PI * t) * .85f;
+                Ring(helper, position, .38f - .14f * t, Mathf.PI * .25f, 4, tint, 3f);
+                Ring(helper, position, .12f + .10f * t, 0f, 8, tint, 2f);
             }
             else if (fact.Change == CoreNavalFieldChangeKind.Placed)
             {

@@ -62,7 +62,7 @@ namespace ShatteredSail.Core.Tests
                     entry + " / " + data.Id + " must exercise the requested rank up to its authored cap");
                 RectTransform face = CreateFace(entry, index);
                 AssertResourceBadges(face, data, entry + " / " + data.Id + " / rank " + level,
-                    entry == "Battle" ? session.Battle : null);
+                    entry == "Battle" ? session.Battle : null, entry == "Battle" ? session : null);
                 checkedCards++;
                 if (data.CannonballCost > 0) cannonballCards++;
                 if (data.CannonballCost > 0 && data.PowderCost > 0) dualResourceCards++;
@@ -218,8 +218,6 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Battle.Energy, Is.EqualTo(after), "The three-energy effect cannot fund its own two-energy cost.");
         }
 
-        [TestCase(CoreSchoolMechanic.ArcaneAttackReserve)]
-        [TestCase(CoreSchoolMechanic.ArcaneGuardReserve)]
         [TestCase(CoreSchoolMechanic.BloodRisk)]
         [TestCase(CoreSchoolMechanic.BloodWard)]
         [TestCase(CoreSchoolMechanic.TideWard)]
@@ -228,6 +226,16 @@ namespace ShatteredSail.Core.Tests
         public void SpecialResourceNumber_MatchesTheResourceActuallyPaidBySuccessfulPlay(CoreSchoolMechanic mechanic)
         {
             AssertSuccessfulSpecialPayment(mechanic);
+        }
+
+        [TestCase("card_school_arcane_b05", 2)]
+        [TestCase("card_school_arcane_n07", 8)]
+        public void SpecialResourceNumber_MatchesTheResourceActuallyPaidBySuccessfulPlay(string id, int manaCost)
+        {
+            CoreBattleCard card = CoreVoyageSession.CardLibrary[FindCard(id)];
+            Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.EqualTo("mana"));
+            Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo(manaCost.ToString()));
+            AssertSuccessfulSpecialPayment(card, NavalBattleStage.Naval);
         }
 
         [TestCase(CoreSchoolMechanic.BloodRisk, NavalBattleStage.Naval)]
@@ -244,18 +252,18 @@ namespace ShatteredSail.Core.Tests
             AssertSuccessfulSpecialPayment(card, requestedStage);
         }
 
-        [TestCase("arcane_05", "mana", 2)]
-        [TestCase("curse_12", "curse", 2)]
-        [TestCase("tide_11", "tide", 6)]
-        [TestCase("blood_01", "health", 3)]
-        [TestCase("blood_03", "health", 3)]
+        [TestCase("arcane_05", "mana", 4)]
+        [TestCase("curse_12", "", 0)]
+        [TestCase("tide_11", "tide", 12)]
+        [TestCase("blood_01", "health", 6)]
+        [TestCase("blood_03", "health", 6)]
         public void BoardingResourceNumber_MatchesTheResourceActuallyPaidBySuccessfulPlay(string key, string resource, int cost)
         {
             CoreBattleCard card = CoreBoardingCardCatalog.FindByKey(key);
             Assert.That(card, Is.Not.Null);
             Assert.That(card.BoardingSpec.Key, Is.EqualTo(key));
             Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.EqualTo(resource));
-            Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo(cost.ToString()));
+            Assert.That(CardSpecialCostPresentation.CostText(card), Is.EqualTo(cost == 0 ? string.Empty : cost.ToString()));
             AssertSuccessfulSpecialPayment(card, NavalBattleStage.Boarding);
         }
 
@@ -277,9 +285,9 @@ namespace ShatteredSail.Core.Tests
             if (stage == NavalBattleStage.Boarding)
                 session.Battle.PlayerBoardingHealth = Math.Max((card.SchoolEffect?.Threshold ?? 3) + 1,
                     session.Battle.PlayerMaxBoardingHealth - 10);
-            // The first boarding play initializes a three-point mana cap. Seed a
-            // legal balance so that initialization is not miscounted as payment.
-            SetSchoolResource(session, "Mana", card.BoardingSpec != null ? 3 : 12);
+            // Mid-turn gains may exceed the three-point cap. Fund the current
+            // four-mana heal and verify that the remaining mana is not consumed.
+            SetSchoolResource(session, "Mana", card.BoardingSpec != null ? 6 : 12);
             if (card.BoardingSpec != null) SetSchoolResource(session, "TemporaryMana", 0);
             SetSchoolResource(session, "CurseMarks", 6);
             SetSchoolResource(session, "ThunderChain", 6);
@@ -298,11 +306,12 @@ namespace ShatteredSail.Core.Tests
             RectTransform face = CreateFace("Battle", FindCard(card.Id));
             string resource = CardSpecialCostPresentation.ResourceType(card);
             Text amount;
-            if (resource.Length == 0 && CardSupplyCostPresentation.ResourceType(card, stage) == "wood")
+            string supplyResource = CardSupplyCostPresentation.ResourceType(card, stage);
+            if (resource.Length == 0 && supplyResource.Length > 0)
             {
                 CardSupplyCostView supply = face.GetComponentInChildren<CardSupplyCostView>(true);
                 Assert.That(supply, Is.Not.Null, card.Id);
-                resource = "wood";
+                resource = supplyResource;
                 amount = supply.Amount;
             }
             else
@@ -312,23 +321,29 @@ namespace ShatteredSail.Core.Tests
                 amount = marker.GetComponentInChildren<Text>();
             }
             int before = PaidResource(session, card, resource);
-            int shown = amount.text == "X"
-                ? (card.BoardingSpec != null && resource == "mana" ? Math.Min(3, before) : before)
-                : int.Parse(amount.text);
+            int shown = amount.text == "X" ? before : int.Parse(amount.text);
+            int marksBefore = session.Battle.Boarding.CurseMarks;
             if (card.BoardingSpec?.Key == "arcane_05")
             {
                 Assert.That(session.Battle.Schools.ManaLimit, Is.EqualTo(3));
-                Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(3));
-                Assert.That(shown, Is.EqualTo(2), "This heal pays two mana, not all available mana.");
+                Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(6));
+                Assert.That(shown, Is.EqualTo(4), "This heal pays four mana, not all available mana.");
             }
             Assert.That(shown, Is.GreaterThan(0));
             Assert.That(session.PlayCard(0), Is.True, session.CardUnavailableReason(0));
             Assert.That(session.Battle, Is.Not.Null, "The fixture enemy survives so payment remains observable.");
-            int refundedChain = card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ThunderFinish ? 1 : 0;
+            int refundedChain = stage == NavalBattleStage.Boarding && card.SchoolEffect?.Mechanic == CoreSchoolMechanic.ThunderFinish ? 1 : 0;
             Assert.That(before - PaidResource(session, card, resource) + refundedChain, Is.EqualTo(shown),
-                card.Id + " / " + resource + ": a thunder finisher pays existing chain, then its attack generates one new chain.");
+                card.Id + " / " + resource + ": naval finishers clear after attack rewards; the existing boarding sequence spends before its attack reward.");
             if (card.BoardingSpec?.Key == "arcane_05")
-                Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(1), "The unspent third mana remains available.");
+                Assert.That(session.Battle.Schools.AvailableMana, Is.EqualTo(2), "The unspent extra mana remains available.");
+            if (card.BoardingSpec?.Key == "curse_12")
+            {
+                Assert.That(resource, Is.EqualTo("medicine"));
+                Assert.That(shown, Is.EqualTo(1));
+                Assert.That(session.Battle.Boarding.CurseMarks, Is.EqualTo(marksBefore),
+                    "Curse marks are a threshold for this heal; only its medicine is consumed.");
+            }
         }
 
         [TestCase(CoreSchoolMechanic.TideRiposte, "TidePower")]
@@ -380,7 +395,9 @@ namespace ShatteredSail.Core.Tests
         [TestCase("card_boarding_curse_11")]
         [TestCase("card_boarding_tide_06")]
         [TestCase("card_boarding_thunder_13")]
+        [TestCase("card_school_thunder_b06")]
         [TestCase("card_school_thunder_n06")]
+        [TestCase("card_school_thunder_n09")]
         public void ConsumeAllResourceFacesKeepXWithEmptyAndFundedResources(string id)
         {
             CoreBattleCard card = CoreVoyageSession.CardLibrary[FindCard(id)];
@@ -416,6 +433,41 @@ namespace ShatteredSail.Core.Tests
                     Assert.That(PaidResource(session, card, resource), Is.EqualTo(quantity), "Displaying X never spends resources.");
                     ClearFixture();
                 }
+            }
+        }
+
+        [TestCase(false)] [TestCase(true)]
+        public void NavalCircuitThresholdControlsAvailabilityWithoutInventingAChainCostBadge(bool inField)
+        {
+            CoreBattleCard card = CoreVoyageSession.CardLibrary[FindCard("card_school_thunder_n08")];
+            CoreVoyageSession session = CreateBattleSession(0, card);
+            session.Battle.Stage = NavalBattleStage.Naval;
+            session.Battle.Energy = 3;
+            if (inField)
+            {
+                VoyagePoint point = session.Battle.PlayerPositionMeters;
+                session.Battle.NavalFields.Cells.Add(new CoreNavalFieldCell {
+                    X = (int)Math.Round(point.X / CoreVoyageSession.NavalGridCellMeters),
+                    Y = (int)Math.Round(point.Y / CoreVoyageSession.NavalGridCellMeters),
+                    Kind = CoreNavalFieldKind.Thunder, PlayerOwned = true, InstanceId = 999,
+                    ExpiresAtOwnerTurn = 100
+                });
+            }
+            UseSession(session);
+            typeof(CoreGameplayDemoController).GetField("selectedBattleDeckStage", PrivateInstance)
+                .SetValue(controller, NavalBattleStage.Naval);
+            foreach (int quantity in new[] { 0, 2, 3, 10 })
+            {
+                SetSchoolResource(session, "ThunderChain", quantity);
+                RectTransform face = CreateFace("Battle", FindCard(card.Id));
+                Assert.That(FindBadge(face, CardOrnamentKind.Chain), Is.Null);
+                Assert.That(CardSpecialCostPresentation.ResourceType(card), Is.Empty);
+                Assert.That(CardSpecialCostPresentation.CostText(card, session.Battle), Is.Empty);
+                Assert.That(face.GetComponent<Button>().interactable, Is.EqualTo(quantity >= 3));
+                Assert.That(session.CanPlayCard(0), Is.EqualTo(quantity >= 3));
+                Assert.That(session.Battle.Schools.ThunderChain, Is.EqualTo(quantity), "Preview cannot consume or grant chain.");
+                Assert.That(session.Battle.Energy, Is.EqualTo(3));
+                ClearFixture();
             }
         }
 
@@ -558,6 +610,7 @@ namespace ShatteredSail.Core.Tests
                 case "chain": return session.Battle.Schools.ThunderChain;
                 case "tide": return card.BoardingSpec != null ? session.Battle.Boarding.TidePower : session.Battle.Schools.TidePower;
                 case "wood": return session.Cargo.Wood;
+                case "medicine": return session.Cargo.Medicine;
                 case "health": return session.Battle.Stage == NavalBattleStage.Boarding ? session.Battle.PlayerBoardingHealth : session.Hull;
                 default: throw new ArgumentException(resource);
             }
@@ -740,6 +793,8 @@ namespace ShatteredSail.Core.Tests
             if (requiredCard != null)
             {
                 session.RestoreTreasureProgress(new CoreTreasureProgress { pirateExperience = CoreVoyageSession.PirateExperienceForLevel(10) });
+                Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True,
+                    "The resource/field fixture starts with a migrated owned school-card collection before departure.");
                 session.ConfigureSpecialCardSources(requiredCard.RequiredCrew.Length > 0 ? new[] { requiredCard.RequiredCrew } : Array.Empty<string>(),
                     requiredCard.RequiredComponent.Length > 0 ? new[] { requiredCard.RequiredComponent } : Array.Empty<string>());
             }
@@ -783,7 +838,8 @@ namespace ShatteredSail.Core.Tests
             }
         }
 
-        private static void AssertResourceBadges(RectTransform face, CoreBattleCard data, string context, CoreBattleState battle = null)
+        private static void AssertResourceBadges(RectTransform face, CoreBattleCard data, string context,
+            CoreBattleState battle = null, CoreVoyageSession session = null)
         {
             CardOrnamentGraphic energy = FindBadge(face, CardOrnamentKind.Energy);
             Assert.That(energy, Is.Not.Null, context);
@@ -800,7 +856,8 @@ namespace ShatteredSail.Core.Tests
             {
                 Assert.That(special.Kind, Is.EqualTo(CardSpecialCostPresentation.OrnamentKind(data)), context);
                 Assert.That(special.GetComponentInChildren<Text>().text,
-                    Is.EqualTo(CardSpecialCostPresentation.CostText(data, battle)), context);
+                    Is.EqualTo(CardSpecialCostPresentation.CostText(data, battle,
+                        session?.Cargo.Wood, session?.Cargo.Medicine, session)), context);
             }
             CardOrnamentGraphic[] costs = { energy, powder, cannonballs, special };
             CardSchoolFrameGraphic frame = face.GetComponentInChildren<CardSchoolFrameGraphic>();

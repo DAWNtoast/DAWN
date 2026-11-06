@@ -32,14 +32,12 @@ namespace ShatteredSail.Presentation
             // Settlement owns the screen; the prototype navigation header breaks the reveal's focus.
             if (headerTitle != null && headerTitle.transform.parent != null)
                 headerTitle.transform.parent.gameObject.SetActive(false);
-            RectTransform card = CreateRect("Settlement Card", contentRoot, new Vector2(1860, 940), new Vector2(0, 45));
+            RectTransform card = CreateRect("Settlement Card", contentRoot, new Vector2(1860, 940), Vector2.zero);
             // Borrow the painted destination the player will enter; keep the backdrop centered.
             var backdrop = CreateRawImage("Settlement Hold", card, new Vector2(1920, 1080), -card.anchoredPosition,
                 harbor, new Rect(0, 0, 1, 1));
             backdrop.color = failure ? new Color(.56f, .60f, .60f) : new Color(.72f, .72f, .68f);
             backdrop.raycastTarget = false;
-            CreateImage("Settlement Paper Shadow", card, new Vector2(1832, 952), new Vector2(0, -7),
-                new Color(.05f, .04f, .025f, .42f)).raycastTarget = false;
             SettlementFrame(card, "Settlement Outer Frame", new Vector2(1810, 940), Vector2.zero, Color.white);
             SettlementRule(card, "Settlement Header Rule", new Vector2(1630, 1), new Vector2(0, 252));
             SettlementRule(card, "Settlement Ledger Fold", new Vector2(1, 423), new Vector2(-120, 21));
@@ -72,12 +70,6 @@ namespace ShatteredSail.Presentation
                 harbor, SettlementPortraitUv(harbor, portraitSize));
             harborImage.raycastTarget = false;
             harborImage.color = failure ? new Color(.72f, .75f, .74f) : Color.white;
-            RectTransform caption = CreateRect("Settlement Harbor Caption", portrait, new Vector2(660, 48),
-                new Vector2(0, -portraitHeight * .5f + 24));
-            CreateImage("Settlement Harbor Caption Shade", caption, new Vector2(660, 48), Vector2.zero,
-                new Color(.07f, .13f, .13f, .84f)).raycastTarget = false;
-            SettlementText("Settlement Port Caption", caption, new Vector2(612, 36), Vector2.zero, 22,
-                Html("#F8EBD0")).text = returnPort + "  ·  " + (failure ? "修整待发" : "落帆归港");
             var sparkClip = CreateRect("Settlement Celebration Clip", portrait, portraitSize, Vector2.zero);
             sparkClip.gameObject.AddComponent<RectMask2D>();
             var sparkRoot = CreateRect("Settlement Gold Burst", sparkClip, portraitSize, Vector2.zero);
@@ -117,7 +109,7 @@ namespace ShatteredSail.Presentation
                     treasures += (treasures.Length > 0 ? "　·　" : string.Empty) + "海盗经验 +" + result.BankedPirateExperience;
                 if (result.TreasureCompleted || hasRareRewards)
                     treasures = "宝石 +" + result.BankedGem + "　古代材料 +" + result.BankedAncientMaterial +
-                        "　稀有遗物 +" + result.BankedRelic + "\n黑珍珠 +" + result.BankedBlackPearl + "　·　" + treasures;
+                        "　稀有遗物 +" + result.BankedRelic + "\n黑珍珠 +" + result.BankedBlackPearl + (treasures.Length > 0 ? "　·　" + treasures : string.Empty);
                 SettlementText("Settlement Treasure Rewards", manifest, new Vector2(iconColumn ? 620 - iconColumns * 44 : 620, 100),
                     new Vector2(iconColumn ? iconColumns * 22 : 0, iconStrip ? -22 : 0),
                     20, ink).text = treasures;
@@ -172,7 +164,6 @@ namespace ShatteredSail.Presentation
             if (canDrawChart)
             {
                 Button draw = CreateButton("Draw Sea Chart", card, new Vector2(330, 64), new Vector2(-8, -410), PanelRaised, ink, 22);
-                MarketShopSkin.ApplyLightButton(draw);
                 draw.GetComponentInChildren<Text>().text = pendingDrawnChart == null ? "航海士 · 绘制海图" : "海图已绘制";
                 CenterSettlementText(draw.GetComponentInChildren<Text>());
                 draw.interactable = pendingDrawnChart == null;
@@ -192,16 +183,11 @@ namespace ShatteredSail.Presentation
                 if (previewSample || HasActiveSettlementChest || session.Phase != CoreDemoPhase.Settlement || !ReferenceEquals(session.Settlement, result)) return;
                 ConfirmVoyageSettlement();
             });
-            Button skip = CreateButton("Skip Settlement Reveal", card, new Vector2(162, 40), new Vector2(768, 419), PanelRaised, ink, 17);
-            MarketShopSkin.ApplyTextButton(skip);
-            skip.GetComponentInChildren<Text>().text = "跳过演出";
-            CenterSettlementText(skip.GetComponentInChildren<Text>());
             var reveal = card.gameObject.AddComponent<SettlementRevealController>();
-            reveal.Configure(tracks.ToArray(), delays.ToArray(), values.ToArray(), targets.ToArray(), countDelays.ToArray(), sparks, skip,
+            reveal.Configure(tracks.ToArray(), delays.ToArray(), values.ToArray(), targets.ToArray(), countDelays.ToArray(), sparks, null,
                 celebrate, PlaySfx, false,
                 SettlementRevealAudio.OutcomeCue(result), result.TreasureCompleted);
-            skip.onClick.AddListener(reveal.CompleteImmediately);
-            BuildSettlementChestIntro(result, chestPlan, card, harbor, skip, playChest);
+            BuildSettlementChestIntro(result, chestPlan, card, harbor, playChest);
         }
 
         private string SettlementProtectionText(VoyageSettlement result) =>
@@ -209,7 +195,9 @@ namespace ShatteredSail.Presentation
             (result.TreasureCompleted ? "秘藏已开启 · 完成种子已记录" : result.Outcome == VoyageOutcome.ArrivedAtPort ? "首领航道已打通" :
                 result.Outcome == VoyageOutcome.Failure ? "已计入抢救所得，不再重复扣损" : "主动返航 · 收获留存") +
             "　 /　" + (session.IsTreasureVoyage ? "藏宝图已消耗 · 不可绘图" : pendingDrawnChart != null ? "海图已绘制 · 确认后收录" :
-                result.ChartSaved ? "航海士可绘制本程海图" : "海图未绘制");
+                result.Outcome != VoyageOutcome.Failure && session.CanDrawSeaChart ? "航海士可绘制本程海图" :
+                result.Outcome != VoyageOutcome.Failure && session.CanUseSeaCharts ?
+                    "探索度达到 " + CoreVoyageSession.SeaChartDrawingExplorationThreshold.ToString("0") + "% 后可绘制海图" : "海图未绘制");
 
         private static ItemIconArt SettlementItemIcon(string id) => id == "Gold"
             ? ItemIconCatalog.ForSpecial("gold") : ItemIconCatalog.ForCargo(id);

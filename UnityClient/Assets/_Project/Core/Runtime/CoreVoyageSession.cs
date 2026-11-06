@@ -909,14 +909,15 @@ namespace ShatteredSail.Core.Gameplay
         public int SelectedOrdinaryCrew => Math.Max(0, Math.Min(CrewCountValue, selectedOrdinaryCrew));
         /// <summary>当前出航编组中的特殊船员数量。</summary>
         public int SelectedSpecialCrewCount => Math.Max(0, selectedSpecialCrewCount);
+        /// <summary>避免航速减益所需的普通水手数量；出航门槛另由 MinimumDepartureOrdinaryCrew 决定。</summary>
         public int MinimumOrdinaryCrew => (CrewCountValue + 1) / 2;
+        /// <summary>普通水手是否低于航速基准，不影响舰炮火力或船体装甲。</summary>
         public bool IsShortStaffed => SelectedOrdinaryCrew < MinimumOrdinaryCrew;
         public float CrewSpeedPenalty => GetCrewSpeedPenalty(SelectedOrdinaryCrew);
         public float CrewSpeedBonus => GetCrewSpeedBonus(SelectedOrdinaryCrew);
-        public int CrewCombatPenalty => IsShortStaffed ? (MinimumOrdinaryCrew - SelectedOrdinaryCrew) * 2 : 0;
         public float EffectiveSpeedKnots => GetEffectiveSpeedKnots(SelectedOrdinaryCrew);
-        public int EffectiveFirepower => Math.Max(0, Firepower - CrewCombatPenalty);
-        public int EffectiveArmor => Math.Max(0, Armor - (CrewCombatPenalty / 2));
+        public int EffectiveFirepower => Firepower;
+        public int EffectiveArmor => Armor;
         public int EffectiveCrewCount => Math.Min(CrewCountValue, SelectedOrdinaryCrew + SelectedSpecialCrewCount);
 
         /// <summary>Departure preview in knots; only ordinary sailors operate the sails.</summary>
@@ -982,7 +983,10 @@ namespace ShatteredSail.Core.Gameplay
         public bool HasNavigator => hasNavigator;
         /// <summary>Only the departure intelligence bonus stacks per navigator; profession abilities remain boolean.</summary>
         public int NavigatorCount => Math.Max(0, Math.Min(CrewCountValue, navigatorCount));
-        public bool CanDrawSeaChart => HasNavigator && !IsTreasureVoyage;
+        public const float SeaChartDrawingExplorationThreshold = 50f;
+        public bool CanUseSeaCharts => HasNavigator && !IsTreasureVoyage;
+        public bool CanDrawSeaChart => CanUseSeaCharts && Map != null &&
+            ExplorationCoverage() >= SeaChartDrawingExplorationThreshold;
         public bool HasCarpenter => hasCarpenter;
         public bool HasDoctor => hasDoctor;
         public bool HasGunner => hasGunner;
@@ -995,10 +999,11 @@ namespace ShatteredSail.Core.Gameplay
         public const double BoardingComponentDropChance = 0.50d;
         public bool LastBattleWasCaptured { get; private set; }
 
-        public void RecordBoardingComponentDrop(string componentName)
+        public void RecordBoardingComponentDrop(string componentName, string sourceEncounterId = null)
         {
             if (!string.IsNullOrWhiteSpace(componentName))
-                AddLog("夺船额外战利品：获得「" + componentName.Trim() + "」。");
+                AddLog((CoreLegendaryWarships.IsSparringEncounter(sourceEncounterId)
+                    ? "接舷切磋额外奖励：获得「" : "夺船额外战利品：获得「") + componentName.Trim() + "」。");
         }
 
         public void RestoreProfile(decimal profileGold, string currentPort)
@@ -1046,19 +1051,8 @@ namespace ShatteredSail.Core.Gameplay
 
         public bool SelectDestinationPort(string portName)
         {
-            if (Phase != CoreDemoPhase.Port || string.IsNullOrWhiteSpace(portName))
-            {
-                return false;
-            }
-
-            string candidate = portName.Trim();
-            if (string.Equals(candidate, CurrentPort, StringComparison.Ordinal) ||
-                Array.IndexOf(portNames, candidate) < 0)
-            {
-                return false;
-            }
-
-            SelectedDestinationPort = candidate;
+            if (!CanSelectDestinationPort(portName, out _)) return false;
+            SelectedDestinationPort = portName.Trim();
             return true;
         }
 
@@ -1571,6 +1565,10 @@ namespace ShatteredSail.Core.Gameplay
             if (treasure != null && !CanStartTreasureVoyage(out string treasureFailure))
                 throw new InvalidOperationException(treasureFailure);
 
+            if (treasure == null && !CanSelectDestinationPort(
+                string.IsNullOrWhiteSpace(destinationPort) ? SelectedDestinationPort : destinationPort,
+                out string destinationFailure)) throw new InvalidOperationException(destinationFailure);
+
             // Structured seeds cannot fall back to the legacy raw-seed path
             // after a route change or an API caller clearing selection state.
             if (treasure == null && GuidedTutorialLeg == 0 && selectedSeaChart == null &&
@@ -1581,8 +1579,6 @@ namespace ShatteredSail.Core.Gameplay
                     SelectedSeed.StartsWith("SS6.", StringComparison.OrdinalIgnoreCase)) &&
                 !TrySelectChartSeed(SelectedSeed, out string selectionFailure))
                 throw new InvalidOperationException(selectionFailure);
-            if (!CanStartOrdinaryVoyage(out string routeFailure)) throw new InvalidOperationException(routeFailure);
-            if (!CanStartSelectedChart(out string chartFailure)) throw new InvalidOperationException(chartFailure);
             if (selectedSeaChart != null && treasure == null && GuidedTutorialLeg == 0 && !string.IsNullOrWhiteSpace(destinationPort) &&
                 destinationPort.Trim() != selectedSeaChart.OtherPort(CurrentPort))
                 throw new InvalidOperationException("载入海图只能驶往其另一端港口。");
@@ -1592,6 +1588,8 @@ namespace ShatteredSail.Core.Gameplay
             {
                 SelectDestinationPort(destinationPort);
             }
+            if (!CanStartOrdinaryVoyage(out string routeFailure)) throw new InvalidOperationException(routeFailure);
+            if (!CanStartSelectedChart(out string chartFailure)) throw new InvalidOperationException(chartFailure);
             CoreRouteDefinition route = treasure == null ? routes[SelectedRouteIndex] : TreasureRoute(treasure.Rank);
             treasure = PromoteTreasureMapForNewVoyage(treasure);
             shipRosterVersion = 1;
@@ -2035,6 +2033,7 @@ namespace ShatteredSail.Core.Gameplay
             List<string> requirements = new List<string>();
             AppendTreasureExpeditionRequirements(requirements, choice);
             if (!string.IsNullOrWhiteSpace(choice.RequiredDiscovery)) requirements.Add("线索：" + DiscoveryLabel(choice.RequiredDiscovery));
+            if (choice.RequiredTreasureClues > 0) requirements.Add("藏宝线索≥" + choice.RequiredTreasureClues);
             if (!string.IsNullOrWhiteSpace(choice.RequiredCrew)) requirements.Add("需要" + CrewRequirementLabel(choice.RequiredCrew));
             if (!string.IsNullOrWhiteSpace(choice.RequiredShip))
                 requirements.Add("船型：" + ShipRequirementLabel(choice.RequiredShip));
@@ -2463,6 +2462,8 @@ namespace ShatteredSail.Core.Gameplay
                 return;
             }
             SelectedDestinationPort = NormalizeDestination(CurrentPort, SelectedDestinationPort);
+            if (PortUnlockReason(SelectedDestinationPort).Length > 0)
+                SelectedDestinationPort = portNames.First(port => port != CurrentPort && PortUnlockReason(port).Length == 0);
         }
 
         private CoreVoyageMap GenerateMap(CoreRouteDefinition route, string seed, string departureName)
@@ -2735,7 +2736,7 @@ namespace ShatteredSail.Core.Gameplay
                 new CoreEncounter("event_reef_saltwater_leak", "舱底进水", "强制事件", "舱底潮湿的木板发出开裂声，积水正慢慢上涨。", true, true, 2, 0,
                     new CoreEncounterChoice("立即修补", "木材 -4、船体 +8", 3, new VoyageEffect { Wood = -4, Hull = 8 }, renewable: true),
                     new CoreEncounterChoice("木匠修补", "木材 -2、船体 +10", 2, new VoyageEffect { Wood = -2, Hull = 10 }, "carpenter", renewable: true),
-                    new CoreEncounterChoice("弃舱封堵", "船体 -6，不消耗物资", 0, new VoyageEffect { Hull = -6 }))
+                    new CoreEncounterChoice("弃舱封堵", "船体 -6", 0, new VoyageEffect { Hull = -6 }))
                     { RepeatPolicy = CoreEncounterRepeatPolicy.Renewable },
                 new CoreEncounter("event_reef_fisher_cache", "海民储藏箱", "补给", "礁石背面绑着一只海民留下的防水交易箱。", false, false, 1, 0,
                     new CoreEncounterChoice("购买补给", "海上应急补给：金币 -2、食物 +6", 1, new VoyageEffect { Gold = -2, Food = 6 }, renewable: true),
@@ -2982,8 +2983,11 @@ namespace ShatteredSail.Core.Gameplay
             CoreBossKind defeatedKind = Battle.Profile != null ? Battle.Profile.BossKind :
                 (ActiveEncounter != null ? ActiveEncounter.BossKind : (wasBoss ? CoreBossKind.Route : CoreBossKind.None));
             bool captured = Battle.Stage == NavalBattleStage.Boarding;
+            bool sparring = CoreLegendaryWarships.IsSparringEncounter(ActiveEncounter?.Id);
             LastBattleWasCaptured = captured;
-            Battle.LastAction = captured ? "敌方船员投降，成功夺船。" : "敌舰沉没。";
+            Battle.LastAction = sparring
+                ? (captured ? "接舷切磋获胜，双方收械致意。" : "海战切磋获胜，双方收炮致意。")
+                : captured ? "敌方船员投降，成功夺船。" : "敌舰沉没。";
             if (HasCarpenter)
             {
                 Hull = Math.Min(MaxHull, Hull + 2);
@@ -3030,9 +3034,9 @@ namespace ShatteredSail.Core.Gameplay
             // Optional treasure and legendary victories never unlock the route's port.
             bossDefeated |= defeatedKind == CoreBossKind.Route;
             currentRouteBossDefeated |= defeatedKind == CoreBossKind.Route;
-            AddLog((captured ? "夺船胜利" : "击沉敌舰") + "：金币 +" + gold + "、声望 +" + fame +
-                (captured ? "（夺船奖励×2）" : string.Empty) +
-                (soldMaterials > 0m ? "；物资战利品已折为整百金币，不占货舱" : string.Empty) + "。");
+            AddLog((sparring ? (captured ? "接舷切磋获胜" : "海战切磋获胜") : (captured ? "夺船胜利" : "击沉敌舰")) + "：金币 +" + gold + "、声望 +" + fame +
+                (captured ? (sparring ? "（接舷切磋奖励×1.25）" : "（夺船奖励×1.25）") : string.Empty) +
+                (soldMaterials > 0m ? "；物资战利品已折为金币，不占货舱" : string.Empty) + "。");
             if (wasBoss && (guidedBoss || bossTreasureRandom.NextDouble() < CoreBattleBalance.BossTreasureFragmentDropChance * pendingSeaChartRewardMultiplier))
             {
                 // This additional drop is exactly one fragment for either
@@ -3046,6 +3050,7 @@ namespace ShatteredSail.Core.Gameplay
                         ActiveSeaChartState.pendingTutorialFragments = 1;
                 }
             }
+            GrantVictoryCardPack();
             RecordCollectionBattleVictory();
             RecordSeaChartBattleVictory(wasBoss || defeatedKind != CoreBossKind.None);
             Battle = null;
@@ -3061,7 +3066,8 @@ namespace ShatteredSail.Core.Gameplay
             ClearNavalArrivalContactState();
             RestoreGuidedBossSupplies();
             HasDirectCourseTarget = false;
-            float protection = outcome == VoyageOutcome.ArrivedAtPort || outcome == VoyageOutcome.TreasureRecovered ? 0.95f : outcome == VoyageOutcome.SafeReturn ? 0.85f : 0.35f;
+            int protectionPercent = outcome == VoyageOutcome.ArrivedAtPort || outcome == VoyageOutcome.TreasureRecovered ? 95 : outcome == VoyageOutcome.SafeReturn ? 85 : 35;
+            float protection = protectionPercent / 100f;
             string title = outcome == VoyageOutcome.TreasureRecovered ? "秘藏探索完成" : outcome == VoyageOutcome.ArrivedAtPort ? "抵达新港" : outcome == VoyageOutcome.SafeReturn ? "安全返航" : "航行失败";
             int completed = CompletedEventCount();
             lastVoyageExplorationCoverage = ClampExplorationCoverage(ExplorationCoverage());
@@ -3069,9 +3075,9 @@ namespace ShatteredSail.Core.Gameplay
             UpdateActiveUsedTreasureMapCoverage();
             VoyageCargo starting = departureCargo ?? SnapshotCargo(Cargo);
             int earnedGold = Math.Max(0, Cargo.Gold - starting.Gold);
-            int wood = ProtectedGain(Cargo.Wood, starting.Wood, protection);
-            int iron = ProtectedGain(Cargo.Iron, starting.Iron, protection);
-            int fame = ProtectedGain(Cargo.Fame, starting.Fame, protection);
+            int wood = ProtectedGain(Cargo.Wood, starting.Wood, protectionPercent);
+            int iron = ProtectedGain(Cargo.Iron, starting.Iron, protectionPercent);
+            int fame = ProtectedGain(Cargo.Fame, starting.Fame, protectionPercent);
             Settlement = new VoyageSettlement
             {
                 Outcome = outcome,
@@ -3084,7 +3090,7 @@ namespace ShatteredSail.Core.Gameplay
                 VoyageCoverage = VoyageExplorationCoverage(),
                 CompletedEvents = completed,
                 TotalEvents = TotalEventCount(),
-                BankedGold = (int)Math.Floor(earnedGold * protection),
+                BankedGold = ProtectedGain(Cargo.Gold, starting.Gold, protectionPercent),
                 BankedWood = wood,
                 BankedIron = iron,
                 BankedFame = fame,
@@ -3095,17 +3101,17 @@ namespace ShatteredSail.Core.Gameplay
             };
             // Transfer net cash to the settlement once; it must not remain spendable aboard.
             Cargo.Gold -= earnedGold;
-            Cargo.Wood = RetainedResource(Cargo.Wood, starting.Wood, protection);
-            Cargo.Iron = RetainedResource(Cargo.Iron, starting.Iron, protection);
-            Cargo.Fame = RetainedResource(Cargo.Fame, starting.Fame, protection);
-            Cargo.Cloth = RetainedResource(Cargo.Cloth, starting.Cloth, protection);
-            Cargo.Water = RetainedResource(Cargo.Water, starting.Water, protection);
-            Cargo.Food = RetainedResource(Cargo.Food, starting.Food, protection);
-            Cargo.Beer = RetainedResource(Cargo.Beer, starting.Beer, protection);
-            Cargo.Medicine = RetainedResource(Cargo.Medicine, starting.Medicine, protection);
-            Cargo.Powder = RetainedResource(Cargo.Powder, starting.Powder, protection);
-            Cargo.Cannonballs = RetainedResource(Cargo.Cannonballs, starting.Cannonballs, protection);
-            RetainTreasureCargo(starting, protection);
+            Cargo.Wood = RetainedResource(Cargo.Wood, starting.Wood, protectionPercent);
+            Cargo.Iron = RetainedResource(Cargo.Iron, starting.Iron, protectionPercent);
+            Cargo.Fame = RetainedResource(Cargo.Fame, starting.Fame, protectionPercent);
+            Cargo.Cloth = RetainedResource(Cargo.Cloth, starting.Cloth, protectionPercent);
+            Cargo.Water = RetainedResource(Cargo.Water, starting.Water, protectionPercent);
+            Cargo.Food = RetainedResource(Cargo.Food, starting.Food, protectionPercent);
+            Cargo.Beer = RetainedResource(Cargo.Beer, starting.Beer, protectionPercent);
+            Cargo.Medicine = RetainedResource(Cargo.Medicine, starting.Medicine, protectionPercent);
+            Cargo.Powder = RetainedResource(Cargo.Powder, starting.Powder, protectionPercent);
+            Cargo.Cannonballs = RetainedResource(Cargo.Cannonballs, starting.Cannonballs, protectionPercent);
+            RetainTreasureCargo(starting, protectionPercent);
             pendingBattleReward = null;
             Phase = CoreDemoPhase.Settlement;
             ActiveEncounter = null;
@@ -3114,11 +3120,13 @@ namespace ShatteredSail.Core.Gameplay
             AddLog(title + "：货物保护率 " + (protection * 100f).ToString("0") + "% 。");
         }
 
-        private static int ProtectedGain(int current, int departure, float protection) =>
-            (int)Math.Floor(Math.Max(0, current - departure) * protection);
+        // Exact integer percentages keep Mono floating-point intermediates from
+        // losing a whole item at boundaries such as 20 gold at 35% or 95%.
+        private static int ProtectedGain(int current, int departure, int protectionPercent) =>
+            (int)(Math.Max(0L, (long)current - departure) * protectionPercent / 100L);
 
-        private static int RetainedResource(int current, int departure, float protection) =>
-            Math.Min(current, departure) + ProtectedGain(current, departure, protection);
+        private static int RetainedResource(int current, int departure, int protectionPercent) =>
+            Math.Min(current, departure) + ProtectedGain(current, departure, protectionPercent);
 
         private static VoyageCargo SnapshotCargo(VoyageCargo source) => new VoyageCargo
         {

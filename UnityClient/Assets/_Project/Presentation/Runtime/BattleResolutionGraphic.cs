@@ -11,6 +11,7 @@ namespace ShatteredSail.Presentation
     {
         private Vector2 span = new Vector2(260f, 170f);
         private float direction = 1f;
+        private RawImage defeatDust;
         public BattleResolutionKind Kind { get; private set; }
         public float Progress { get; private set; }
         public bool IsTopDown { get; private set; }
@@ -22,12 +23,22 @@ namespace ShatteredSail.Presentation
             span = new Vector2(Mathf.Clamp(extent.x, 160f, 620f), Mathf.Clamp(extent.y, 100f, 360f));
             direction = facing < 0f ? -1f : 1f;
             raycastTarget = false;
+            if (kind == BattleResolutionKind.BoardingDefeat && defeatDust == null)
+                defeatDust = BoardingRemasterFxArt.CreateLayer(rectTransform, "Boarding Defeat Dust");
             SetProgress(0f);
         }
 
         public void SetProgress(float progress)
         {
             Progress = Mathf.Clamp01(progress);
+            if (defeatDust != null)
+            {
+                float settle = Mathf.InverseLerp(.23f, .97f, Progress);
+                float alpha = Kind == BattleResolutionKind.BoardingDefeat ? Mathf.Sin(settle * Mathf.PI) * .82f : 0f;
+                BoardingRemasterFxArt.Pose(defeatDust, BoardingRemasterFxArt.Dust, settle,
+                    new Vector2(direction * settle * 12f, 12f), new Vector2(span.x * .90f, span.y * .33f),
+                    alpha, direction < 0f);
+            }
             SetVerticesDirty();
         }
 
@@ -88,6 +99,7 @@ namespace ShatteredSail.Presentation
             Vector2 d = a + Vector2.down * span.y * .18f;
             Quad(helper, a, b, c, d, new Color(.96f, .92f, .80f, fade * .94f));
             Line(helper, a, b, new Color(.64f, .56f, .39f, fade * .55f), 1.5f);
+            if (defeatDust != null) return;
             for (int i = 0; i < 6; i++)
             {
                 float u = Mathf.Clamp01((t - .18f) / .75f);

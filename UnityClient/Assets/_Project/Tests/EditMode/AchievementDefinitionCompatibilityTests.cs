@@ -362,24 +362,30 @@ namespace ShatteredSail.Presentation.Tests
         public void PendingJournalCompatibility_PreservesAllCurrentSortedKeysAndNativeTypes()
         {
             Assert.That(JournalKeysBefore.Length, Is.EqualTo(106));
-            string[] expectedKeys = JournalKeysBefore.Select(row => row[0]).ToArray();
-            Assert.That(expectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(106));
+            string[][] expectedCurrent = JournalKeysBefore.Concat(new[] {
+                new[] { "ShatteredSail.CardPacks.v1", "string" },
+                new[] { "ShatteredSail.SplitSupportCards.Version", "int" }
+            }).OrderBy(row => row[0], StringComparer.Ordinal).ToArray();
+            string[] expectedKeys = expectedCurrent.Select(row => row[0]).ToArray();
+            Assert.That(expectedKeys.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(108));
             Assert.That(expectedKeys, Is.EqualTo(expectedKeys.OrderBy(key => key, StringComparer.Ordinal)));
             Assert.That(JournalKeysBefore.Count(row => row[1] == "string"), Is.EqualTo(32));
             Assert.That(JournalKeysBefore.Count(row => row[1] == "int"), Is.EqualTo(74));
+            Assert.That(expectedCurrent.Count(row => row[1] == "string"), Is.EqualTo(33));
+            Assert.That(expectedCurrent.Count(row => row[1] == "int"), Is.EqualTo(75));
             Assert.That(ProfileSaveJournal.ProtectedKeys, Is.EqualTo(expectedKeys));
 
             FieldInfo specsField = typeof(ProfileSaveJournal).GetField("Specs", BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(specsField, Is.Not.Null, "The actual journal schema must be compared, not just its exported key names.");
             Array specs = (Array)specsField.GetValue(null);
-            Assert.That(specs.Length, Is.EqualTo(106));
+            Assert.That(specs.Length, Is.EqualTo(108));
             for (int index = 0; index < specs.Length; index++)
             {
                 object spec = specs.GetValue(index);
                 Type specType = spec.GetType();
                 string key = (string)specType.GetField("Key", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).GetValue(spec);
                 string type = (string)specType.GetField("Type", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).GetValue(spec);
-                Assert.That(new[] { key, type }, Is.EqualTo(JournalKeysBefore[index]), "Journal schema index " + index);
+                Assert.That(new[] { key, type }, Is.EqualTo(expectedCurrent[index]), "Journal schema index " + index);
             }
         }
     }

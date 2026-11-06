@@ -33,7 +33,8 @@ namespace ShatteredSail.Presentation.Tests
             if (stage == NavalBattleStage.Naval && distance == 100f && alignment == NavalBattleAlignment.EnemyBroadside)
             {
                 Assert.That(controller.Session.EnemyWillRam, Is.True, "The near fixture must include the complete ram warning.");
-                Assert.That(Find<Text>("Enemy Intent Text").text, Does.Contain("灼烧").And.Contain("先手"));
+                Assert.That(Find<Text>("Enemy Intent Text").text,
+                    Does.Contain("冲撞→接舷").And.Contain("穿透格挡").And.Contain("先手").And.Contain("避让"));
             }
             if (stage == NavalBattleStage.Naval && alignment == NavalBattleAlignment.Parallel)
             {
@@ -96,14 +97,14 @@ namespace ShatteredSail.Presentation.Tests
             CreatePreview(stage, 600f);
             CoreBattleState battle = controller.Session.Battle;
             string[] retainedNames = { "Battle Card", "Battle Hand", "Player Resource HUD", "Enemy Resource HUD",
-                "Battle Buff Panel", "Retreat Battle", "End Battle Turn", "Enemy Intent HUD",
+                "Battle Buff Panel", "End Battle Turn", "Enemy Intent HUD",
                 "Battle Ram", "Battle Board", "Battle Ram Condition", "Battle Board Condition",
                 "Player Battle Hull Bar Track", "Enemy Battle Hull Bar Track", "Battle Compact Resources",
                 "Battle Draw Pile", "Battle Discard Pile", "Enemy Intent Icons" };
             RectTransform[] retained = retainedNames.Select(Find<RectTransform>).ToArray();
             BattleHealthSegmentsGraphic[] grids = host.GetComponentsInChildren<BattleHealthSegmentsGraphic>(true);
             int childCount = host.GetComponentsInChildren<Transform>(true).Length;
-            foreach (string name in new[] { "Player Resource HUD", "Battle Buff Panel", "Retreat Battle", "Enemy Intent HUD", "Enemy Resource HUD", "End Battle Turn",
+            foreach (string name in new[] { "Player Resource HUD", "Battle Buff Panel", "Enemy Intent HUD", "Enemy Resource HUD", "End Battle Turn",
                 "Battle Ram", "Battle Board", "Battle Ram Condition", "Battle Board Condition" })
                 Find<RectTransform>(name).anchoredPosition = Vector2.zero;
             battle.Energy = 1;
@@ -216,14 +217,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(In(root, endTurn).yMin, Is.GreaterThan(In(root, discard).yMax),
                 "Ending the turn must not obscure the discard-pile button.");
 
-            RectTransform retreat = Find<RectTransform>("Retreat Battle");
-            Assert.That(retreat.gameObject.activeInHierarchy, Is.EqualTo(!boarding),
-                "Retreat is hidden during boarding.");
-            if (!boarding)
-            {
-                controls.Add(retreat);
-                Assert.That(In(root, retreat).yMin, Is.GreaterThan(0f), "Retreat occupies the upper-left corner.");
-            }
+            Assert.That(host.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Retreat Battle"), Is.False,
+                "Ordinary battle retreat stays absent from every combat stage and retained refresh.");
 
             if (stage == NavalBattleStage.Naval)
             {
@@ -262,8 +257,16 @@ namespace ShatteredSail.Presentation.Tests
             }
             AssertRestingFanCardBounds(hand, In(root, Find<RectTransform>("Battle Card 0")));
 
+            BattleCommandIconKind[][] expectedResources =
+            {
+                new[] { BattleCommandIconKind.Energy, BattleCommandIconKind.ActionPoint, BattleCommandIconKind.Mana },
+                new[] { BattleCommandIconKind.Powder, BattleCommandIconKind.Cannonball, BattleCommandIconKind.Planks, BattleCommandIconKind.Medicine }
+            };
+            Assert.That(resources.childCount, Is.EqualTo(2), "Only the two current resource rows belong in the compact HUD.");
+            Assert.That(resources.GetComponentsInChildren<BattleStatusHover>(true), Is.Empty,
+                "The seven resource readouts do not display hover tooltips.");
             Rect? previousRow = null;
-            for (int line = 1; line <= 3; line++)
+            for (int line = 1; line <= expectedResources.Length; line++)
             {
                 RectTransform row = Find<RectTransform>("Battle Resource Line " + line);
                 Assert.That(row.parent, Is.SameAs(resources));
@@ -271,7 +274,10 @@ namespace ShatteredSail.Presentation.Tests
                 AssertContains(resources.rect, rowBounds, row.name + " stays in the resource area.");
                 if (previousRow.HasValue) AssertSeparate(previousRow.Value, rowBounds, "Resource rows remain distinct.");
                 previousRow = rowBounds;
-                Assert.That(row.childCount, Is.EqualTo(line == 1 ? 2 : 4));
+                Assert.That(row.childCount, Is.EqualTo(expectedResources[line - 1].Length));
+                CollectionAssert.AreEqual(expectedResources[line - 1],
+                    row.GetComponentsInChildren<BattleCommandIconGraphic>(false).Select(icon => icon.Kind),
+                    "Resources have their specified row and order; school counters belong to their holder's status row.");
                 for (int slot = 0; slot < row.childCount; slot++)
                 {
                     RectTransform badge = (RectTransform)row.GetChild(slot);

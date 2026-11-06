@@ -7,9 +7,9 @@ namespace ShatteredSail.Presentation
     /// <summary>Deck actors share a floor line above the retained hand and defense HUD.</summary>
     public static class BoardingBattleLayout
     {
-        public static Vector2 PartySize => new Vector2(600f, 280f);
-        public static Vector2 PartyPosition(bool enemy) => new Vector2(enemy ? 480f : -480f, 205f);
-        public static Vector2 HealthPosition(bool enemy) => new Vector2(enemy ? 480f : -480f, 34f);
+        public static Vector2 PartySize => new Vector2(640f, 336f);
+        public static Vector2 PartyPosition(bool enemy) => new Vector2(enemy ? 350f : -350f, 123f);
+        public static Vector2 HealthPosition(bool enemy) => new Vector2(enemy ? 350f : -350f, -81f);
 
         // Visible boot contacts measured in the original PNGs, before atlas
         // inset. Keep these normalized so import resizing does not move feet.
@@ -24,6 +24,7 @@ namespace ShatteredSail.Presentation
             { "boarding_crew_twilight_tide_v2", new[] { 17.5f/627f, 18.5f/627f, 17.5f/627f, 56.5f/627f, 54.5f/627f, 55.5f/627f } },
             { "boarding_crew_white_shell_v2", new[] { 24.5f/627f, 22.5f/627f, 24.5f/627f, 52.5f/627f, 56.5f/627f, 54.5f/627f } },
             { "boarding_player_party_v1", new[] { 38.5f/1024f } },
+            { "boarding_player_fixed_party_v2", new[] { 33.5f/1024f } },
             { "boarding_enemy_party_v1", new[] { 33.5f/1024f } },
             { "boarding_enemy_ember_ark_v1", new[] { 18f/1024f } },
             { "boarding_enemy_ghost_v1", new[] { 13f/1024f } },
@@ -36,6 +37,8 @@ namespace ShatteredSail.Presentation
             { "boarding_enemy_thunder_crown_v1", new[] { 14f/1024f } },
             { "boarding_enemy_tide_requiem_v1", new[] { 47f/1024f } },
             { "boarding_enemy_treasure_v1", new[] { 28f/1024f } },
+            { "boarding_enemy_last_horizon_v1", new[] { 15.5f/1024f } },
+            { "boarding_enemy_moon_weave_v1", new[] { 14.5f/1024f } },
             { "crew_navigator_evelyn_fullbody", new[] { 6f/1536f } },
             { "crew_carpenter_barlow_fullbody", new[] { 15f/1536f } },
             { "crew_doctor_moer_fullbody", new[] { 6f/1536f } },
@@ -44,12 +47,12 @@ namespace ShatteredSail.Presentation
             { "crew_diver_noya_fullbody", new[] { 10f/1536f } },
         };
 
-        public static void GroundFigure(RawImage figure)
+        public static void GroundFigure(RawImage figure, float? soleHeight = null)
         {
             if (figure == null) return;
             RectTransform rect = figure.rectTransform;
             Vector2 position = rect.anchoredPosition;
-            position.y = -PartySize.y * .5f - rect.rect.yMin - rect.rect.height * FootContact(figure.texture, figure.uvRect);
+            position.y = -PartySize.y * .5f - rect.rect.yMin - rect.rect.height * (soleHeight ?? FootContact(figure.texture, figure.uvRect));
             rect.anchoredPosition = position;
         }
 
@@ -68,15 +71,16 @@ namespace ShatteredSail.Presentation
         }
 
         // The new deck has a clear, continuous floor below source y=.56.
-        // A modest bottom-anchored crop keeps the combat lane under the boots.
+        // Bring the railing closer to the lowered combat lane while preserving aspect.
         public static Rect JoinedDeckUv(Texture texture, Vector2 target)
         {
             if (texture == null || target.x <= 0f || target.y <= 0f) return new Rect(0f, 0f, 1f, 1f);
             float sourceAspect = (float)texture.width / texture.height;
             float targetAspect = target.x / target.y;
-            float height = Mathf.Min(.9f, sourceAspect / targetAspect);
+            float height = Mathf.Min(.9f, sourceAspect / targetAspect) / 1.15f;
             float width = height * targetAspect / sourceAspect;
-            return new Rect((1f - width) * .5f, 0f, width, height);
+            float bottom = Mathf.Clamp(.17f, 0f, 1f - height);
+            return new Rect((1f - width) * .5f, bottom, width, height);
         }
 
         // Borrow only the distant sky/water from each of the 18 location paintings.

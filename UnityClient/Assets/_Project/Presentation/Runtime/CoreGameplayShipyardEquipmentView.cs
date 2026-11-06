@@ -33,9 +33,6 @@ namespace ShatteredSail.Presentation
         private void BuildShipyardEquipmentPage(Transform detail, int index, Color ink, Color muted)
         {
             RectTransform page = CreateRect("Shipyard Equipment Page", detail, PhaseSurfaceLayout.ContentSize, Vector2.zero);
-            float pageScale = tutorialActive ? .86f : .9f;
-            page.localScale = new Vector3(pageScale, pageScale, 1f);
-            page.anchoredPosition = new Vector2(0f, tutorialActive ? -58f : -38f);
             bool owned = OwnsShipyardVessel(index);
             bool editable = Application.isPlaying && !editorPreviewBuilding && IsShipyardVesselAtCurrentPort(index);
             BuildShipyardEquipmentVessel(page, index);
@@ -45,20 +42,16 @@ namespace ShatteredSail.Presentation
             for (int slotIndex = 0; slotIndex < ComponentArtCatalog.SlotCount; slotIndex++)
             {
                 ComponentSlot slot = (ComponentSlot)slotIndex;
-                OwnedShipComponent installed = owned ? InstalledShipComponent(index, slot) : null;
                 ComponentArtEntry entry = owned ? ShipComponent(index, slot) : componentArt.Get(slotIndex * ComponentArtCatalog.EntriesPerSlot);
                 bool active = !shipyardInventoryShowAll && selectedShipyardComponentSlot == slot;
-                Button row = CreateShipyardEquipmentButton("Shipyard Equipment Slot " + slot, page, new Vector2(300f, 108f),
-                    slotPositions[slotIndex], 21, active);
-                row.GetComponentInChildren<Text>().text = string.Empty;
-                DrawShipyardComponentIcon("Shipyard Installed Art " + slot, row.transform, entry, new Vector2(-108f, 4f), 64f);
-                ShipyardText("Shipyard Installed Slot " + slot, row.transform, new Vector2(206f, 28f),
-                    new Vector2(37f, 31f), 23, active ? ShipyardWorkbenchLight : ink, TextAnchor.MiddleLeft).text = ComponentArtCatalog.SlotName(slot);
-                ShipyardText("Shipyard Installed Name " + slot, row.transform, new Vector2(206f, 28f),
-                    new Vector2(37f, 0f), 21, active ? ShipyardWorkbenchLight : ink, TextAnchor.MiddleLeft).text = entry?.Name ?? "未装配";
-                ShipyardText("Shipyard Installed Meta " + slot, row.transform, new Vector2(130f, 24f),
-                    new Vector2(-1f, -32f), 18, active ? ShipyardWorkbenchLightMuted : muted, TextAnchor.MiddleLeft).text = entry == null ? "空槽 · 待装配" :
-                    ComponentArtCatalog.RarityName(entry.Rarity);
+                Button row = CreateShipyardComponentCard("Shipyard Equipment Slot " + slot, page, new Vector2(360f, 128f),
+                    slotPositions[slotIndex], entry, active);
+                DrawShipyardComponentIcon("Shipyard Installed Art " + slot, row.transform,
+                    entry ?? componentArt.Get(slotIndex * ComponentArtCatalog.EntriesPerSlot), new Vector2(-114f, 0f), 108f);
+                Text installedName = ShipyardText("Shipyard Installed Name " + slot, row.transform, new Vector2(200f, 72f),
+                    new Vector2(52f, 0f), 22, WoodButtonSkin.Ink, TextAnchor.MiddleLeft);
+                installedName.text = entry?.Name ?? "未装配";
+                installedName.color = WoodButtonSkin.Ink;
                 row.onClick.AddListener(() =>
                 {
                     if (row == null || !row.gameObject.activeInHierarchy || !IsCurrentShipyardEquipmentView(index)) return;
@@ -68,23 +61,6 @@ namespace ShatteredSail.Presentation
                     shipyardInventoryPage = 0;
                     RefreshShipyardDossierView();
                 });
-                // Keep the action beside the slot in the hierarchy so the
-                // tutorial can lock slot selection without covering Unequip.
-                Button remove = CreateShipyardEquipmentButton("Shipyard Unequip Component " + slot, page, new Vector2(64f, 28f),
-                    slotPositions[slotIndex] + new Vector2(108f, -33f), 18, enabled: editable && installed != null);
-                remove.GetComponentInChildren<Text>().text = "卸下";
-                string installedId = installed?.InstanceId;
-                remove.onClick.AddListener(() =>
-                {
-                    if (remove == null || !remove.gameObject.activeInHierarchy || !IsCurrentShipyardEquipmentView(index) ||
-                        InstalledShipComponent(index, slot)?.InstanceId != installedId || !TryUnequipShipComponent(index, slot)) return;
-                    selectedShipyardComponentInstanceId = null;
-                    shipyardInventoryShowAll = false;
-                    selectedShipyardComponentSlot = slot;
-                    shipyardInventoryPage = 0;
-                    RefreshShipyardDossierView();
-                });
-
                 Button category = CreateShipyardEquipmentButton("Shipyard Equipment Category " + slot, page,
                     new Vector2(200f, 68f), new Vector2(-20f + slotIndex * 210f, 366f), 23, active);
                 Text categoryLabel = category.GetComponentInChildren<Text>();
@@ -122,7 +98,7 @@ namespace ShatteredSail.Presentation
             RectTransform inventory = CreateShipyardWorkbenchPanel("Shipyard Equipment Inventory", page,
                 new Vector2(300f, 730f), new Vector2(30f, -68f), ShipyardWorkbenchSurface, ShipyardWorkbenchBorder);
             ShipyardText("Shipyard Equipment Inventory Heading", inventory, new Vector2(192f, 32f),
-                new Vector2(-40f, 331f), 21, ShipyardWorkbenchLight, TextAnchor.MiddleLeft).text =
+                new Vector2(-40f, 331f), 21, ink, TextAnchor.MiddleLeft).text =
                 (shipyardInventoryShowAll ? "库存配件" : "可选" + ComponentArtCatalog.SlotName(selectedShipyardComponentSlot)) + " · " + stored.Length;
             Button all = CreateShipyardEquipmentButton("Shipyard Equipment All Components", inventory,
                 new Vector2(72f, 32f), new Vector2(98f, 331f), 18, shipyardInventoryShowAll);
@@ -138,7 +114,7 @@ namespace ShatteredSail.Presentation
             BuildShipyardInventoryPageButton(inventory, index, false, pages, new Vector2(-94f, -325f));
             BuildShipyardInventoryPageButton(inventory, index, true, pages, new Vector2(94f, -325f));
             ShipyardText("Shipyard Equipment Page Number", inventory, new Vector2(100f, 32f),
-                new Vector2(0f, -325f), 20, ShipyardWorkbenchLightMuted).text = (shipyardInventoryPage + 1) + " / " + pages;
+                new Vector2(0f, -325f), 20, muted).text = (shipyardInventoryPage + 1) + " / " + pages;
 
             for (int local = 0; local < ShipyardInventoryPageSize; local++)
             {
@@ -147,18 +123,13 @@ namespace ShatteredSail.Presentation
                 OwnedShipComponent item = stored[inventoryIndex];
                 ComponentArtEntry entry = componentArt.GetById(item.ComponentId);
                 bool selectedCard = selectedShipyardComponentInstanceId == item.InstanceId;
-                Button card = CreateShipyardEquipmentButton("Shipyard Equipment Owned " + item.InstanceId, inventory, new Vector2(272f, 130f),
-                    new Vector2(0f, 235f - local * 142f), 21, selectedCard, enabled: owned);
-                card.GetComponentInChildren<Text>().text = string.Empty;
-                if (selectedCard)
-                    WorkbenchRule("Shipyard Inventory Selection Mark", card.transform,
-                        new Vector2(4f, 112f), new Vector2(-131f, 0f), Html("#A3CEAE"));
+                Button card = CreateShipyardComponentCard("Shipyard Equipment Owned " + item.InstanceId, inventory, new Vector2(272f, 130f),
+                    new Vector2(0f, 235f - local * 142f), entry, selectedCard, enabled: owned);
                 DrawShipyardComponentIcon("Shipyard Inventory Art " + item.InstanceId, card.transform, entry, new Vector2(-91f, 0f), 68f);
-                ShipyardText("Shipyard Inventory Name " + item.InstanceId, card.transform, new Vector2(174f, 60f),
-                    new Vector2(43f, 23f), 22, selectedCard ? ShipyardWorkbenchLight : ink, TextAnchor.MiddleLeft).text = entry.Name;
-                ShipyardText("Shipyard Inventory Meta " + item.InstanceId, card.transform, new Vector2(174f, 48f),
-                    new Vector2(43f, -31f), 19, selectedCard ? ShipyardWorkbenchLightMuted : muted, TextAnchor.MiddleLeft).text =
-                    ComponentArtCatalog.SlotName(entry.Slot) + " · " + ComponentArtCatalog.RarityName(entry.Rarity);
+                Text inventoryName = ShipyardText("Shipyard Inventory Name " + item.InstanceId, card.transform, new Vector2(174f, 60f),
+                    new Vector2(43f, 0f), 22, WoodButtonSkin.Ink, TextAnchor.MiddleLeft);
+                inventoryName.text = entry.Name;
+                inventoryName.color = WoodButtonSkin.Ink;
                 card.onClick.AddListener(() =>
                 {
                     if (card == null || !card.gameObject.activeInHierarchy || !IsCurrentShipyardEquipmentView(index) || !OwnsShipyardVessel(index)) return;
@@ -167,9 +138,6 @@ namespace ShatteredSail.Presentation
                     RefreshShipyardDossierView();
                 });
             }
-            if (stored.Length == 0)
-                ShipyardText("Shipyard Equipment Empty Inventory", inventory, new Vector2(252f, 180f), new Vector2(0f, 40f), 23, ShipyardWorkbenchLightMuted).text =
-                    "暂无" + (shipyardInventoryShowAll ? "闲置" : ComponentArtCatalog.SlotName(selectedShipyardComponentSlot)) + "配件\n\n到部件商店购买，\n或卸下现有部件。";
             OwnedShipComponent selected = stored.FirstOrDefault(item => item.InstanceId == selectedShipyardComponentInstanceId);
             ComponentArtEntry selectedEntry = selected == null ? null : componentArt.GetById(selected.ComponentId);
             ComponentSlot comparisonSlot = selectedEntry?.Slot ?? selectedShipyardComponentSlot;
@@ -180,22 +148,53 @@ namespace ShatteredSail.Presentation
                 currentEntry?.Name ?? "未装配", comparison.CurrentText, new Vector2(377f, -28f), ink);
             BuildShipyardComparisonCard(page, "Selected", "待替换配件", selectedEntry,
                 selectedEntry?.Name ?? "未选择配件", ShipyardColoredComparison(comparison), new Vector2(747f, -28f), ink);
-            Button equip = CreateShipyardEquipmentButton("Shipyard Equip Component", page, new Vector2(716f, 60f),
-                new Vector2(562f, -403f), 27, primary: true, enabled: editable && selectedEntry != null);
+            OwnedShipComponent installed = owned ? InstalledShipComponent(index, comparisonSlot) : null;
+            Button remove = CreateShipyardEquipmentButton("Shipyard Unequip Component " + comparisonSlot, page, new Vector2(346f, 60f),
+                new Vector2(377f, -403f), 27, primary: true, enabled: editable && installed != null);
+            remove.GetComponentInChildren<Text>().text = "卸下" + ComponentArtCatalog.SlotName(comparisonSlot);
+            string installedId = installed?.InstanceId;
+            remove.onClick.AddListener(() =>
+            {
+                Vector2 visualOrigin = CapturePortActionOrigin("Shipyard Installed Art " + comparisonSlot);
+                if (remove == null || !remove.gameObject.activeInHierarchy || !IsCurrentShipyardEquipmentView(index) ||
+                    InstalledShipComponent(index, comparisonSlot)?.InstanceId != installedId || !TryUnequipShipComponent(index, comparisonSlot)) return;
+                selectedShipyardComponentInstanceId = null;
+                shipyardInventoryShowAll = false;
+                selectedShipyardComponentSlot = comparisonSlot;
+                shipyardInventoryPage = 0;
+                RefreshShipyardDossierView();
+                PlayShipyardRefitFeedback(index, comparisonSlot, currentEntry, null, installedId, visualOrigin);
+            });
+            Button equip = CreateShipyardEquipmentButton("Shipyard Equip Component", page, new Vector2(346f, 60f),
+                new Vector2(747f, -403f), 27, primary: true, enabled: editable && selectedEntry != null);
             equip.GetComponentInChildren<Text>().text = selectedEntry == null ? "选择配件后装配" :
                 (InstalledShipComponent(index, selectedEntry.Slot) == null ? "装配至" : "替换") + ComponentArtCatalog.SlotName(selectedEntry.Slot);
             string selectedId = selected?.InstanceId;
             equip.onClick.AddListener(() =>
             {
+                Vector2 visualOrigin = CapturePortActionOrigin("Shipyard Equipment Selected Comparison Art");
                 if (equip == null || !equip.gameObject.activeInHierarchy || !IsCurrentShipyardEquipmentView(index) ||
                     selectedId != selectedShipyardComponentInstanceId || !TryEquipOwnedComponent(index, selectedId)) return;
                 OnGuidedTutorialComponentEquipped();
                 selectedShipyardComponentInstanceId = null;
                 RefreshShipyardDossierView();
+                PlayShipyardRefitFeedback(index, comparisonSlot, currentEntry, ShipComponent(index, comparisonSlot), selectedId, visualOrigin);
             });
             if (!owned || !IsShipyardVesselAtCurrentPort(index))
                 ShipyardText("Shipyard Equipment Help", page, new Vector2(1040f, 54f), new Vector2(400f, -481f), 20, muted).text =
                     !owned ? "购买此船后可装配，当前为原装预览" : "此船未停泊本港，暂时无法装配";
+        }
+
+        private Button CreateShipyardComponentCard(string name, Transform parent, Vector2 size, Vector2 position,
+            ComponentArtEntry entry, bool selected, bool enabled = true)
+        {
+            Button button = CreateButton(name, parent, size, position, Color.white, WoodButtonSkin.Ink, 22);
+            button.interactable = enabled;
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
+            button.GetComponentInChildren<Text>().text = string.Empty;
+            ComponentRarityWoodSkin.Apply(button, entry?.Rarity ?? ComponentRarity.Common);
+            ComponentRarityWoodSkin.SetSelected(button, selected);
+            return button;
         }
 
         private static string ShipyardColoredComparison(ShipyardComponentComparison comparison)
@@ -218,23 +217,54 @@ namespace ShatteredSail.Presentation
             string prefix = "Shipyard Equipment " + side + " Comparison";
             bool candidate = side == "Selected";
             RectTransform card = CreateShipyardWorkbenchPanel(prefix, parent, new Vector2(346f, 650f), position,
-                candidate ? Html("#243E35") : ShipyardWorkbenchSurface,
-                candidate ? Html("#70A58A") : ShipyardWorkbenchBorder);
+                candidate ? Html("#FFF4D8") : ShipyardWorkbenchSurface,
+                candidate ? Html("#A06D28") : ShipyardWorkbenchBorder);
             WorkbenchRule(prefix + " Heading Surface", card, new Vector2(344f, 66f),
-                new Vector2(0f, 291f), candidate ? ShipyardWorkbenchAccent : Html("#3C4B43"));
+                new Vector2(0f, 291f), candidate ? Html("#EED39D") : Html("#F6E6C2"));
             WorkbenchRule(prefix + " Reading Surface", card, new Vector2(344f, 264f),
-                new Vector2(0f, -192f), candidate ? Html("#D8E2D7") : Html("#D9DCD2"));
-            ShipyardText(prefix + " Heading", card, new Vector2(302f, 38f), new Vector2(0f, 287f), 25, ShipyardWorkbenchLight).text = heading;
-            DrawShipyardComponentIcon(prefix + " Art", card, entry, new Vector2(0f, 158f), 190f);
+                new Vector2(0f, -192f), Color.white);
+            ShipyardText(prefix + " Heading", card, new Vector2(302f, 38f), new Vector2(0f, 287f), 25, ink).text = heading;
+            Image board = CreateImage(prefix + " Component Board", card, new Vector2(314f, 124f), Vector2.zero,
+                Color.white, ComponentRarityWoodSkin.FaceFor(entry?.Rarity ?? ComponentRarity.Common) ?? WoodButtonSkin.Face);
+            board.type = Image.Type.Sliced;
+            if (board.sprite != null) board.pixelsPerUnitMultiplier = board.sprite.border.x / 14f;
+            board.raycastTarget = false;
+            DrawShipyardComponentIcon(prefix + " Art", board.transform, entry, Vector2.zero, 106f);
             if (entry == null)
-                ShipyardText(prefix + " Empty Art", card, new Vector2(190f, 160f), new Vector2(0f, 158f), 68, ShipyardWorkbenchLightMuted).text = "—";
-            Text name = ShipyardText(prefix + " Name", card, new Vector2(302f, 64f), new Vector2(0f, 27f), 27, ShipyardWorkbenchLight);
-            name.text = componentName;
-            ShipyardText(prefix + " Slot", card, new Vector2(302f, 30f), new Vector2(0f, -25f), 21, ShipyardWorkbenchLightMuted).text =
-                entry == null ? string.Empty : ComponentArtCatalog.SlotName(entry.Slot);
+                ShipyardText(prefix + " Empty Art", board.transform, new Vector2(290f, 80f), Vector2.zero,
+                    24, WoodButtonSkin.Ink).text = componentName;
             WorkbenchRule(prefix + " Divider", card, new Vector2(344f, 2f), new Vector2(0f, -59f), ShipyardWorkbenchBorder);
             CreateTavernReadingText(prefix + " Stats", card, new Vector2(22f, 408f),
                 new Vector2(302f, 204f), 24, 1.3f, ink, stats);
+            BuildShipyardAttachedCard(card, prefix, entry, ink);
+        }
+
+        private void BuildShipyardAttachedCard(RectTransform parent, string prefix, ComponentArtEntry entry, Color ink)
+        {
+            WorkbenchRule(prefix + " Attached Card Divider", parent, new Vector2(302f, 1f), Vector2.zero, ShipyardWorkbenchBorder);
+            ShipyardText(prefix + " Attached Card Heading", parent, new Vector2(302f, 30f), Vector2.zero,
+                20, ShipyardWorkbenchMuted, TextAnchor.MiddleLeft).text = "附带卡牌";
+            CoreSpecialCardDefinition definition = entry == null ? null : CoreSpecialCardCatalog.ForComponent(entry.Id);
+            if (definition == null)
+            {
+                ShipyardText(prefix + " Attached Card Name", parent, new Vector2(302f, 72f), Vector2.zero,
+                    22, ShipyardWorkbenchMuted).text = entry == null ? "—" : "无附带卡牌";
+                return;
+            }
+
+            int index = SpecialCardIndex(definition.Card.Id);
+            CoreBattleCard data = index < 0 || session == null ? definition.Card : session.GetBattleCard(index);
+            Rect bounds = CardSchoolArtCatalog.FrameBounds(data);
+            RectTransform preview = CreateRect(prefix + " Attached Card Preview", parent, bounds.size, Vector2.zero);
+            string description = SpecialCardPreviewEffectDescription(data);
+            RectTransform face = CreateCollectionCardFace(preview, data, prefix + " Attached Card",
+                prefix + " Attached Card Art", prefix + " Attached Card Face Name", 1f,
+                effectDescription: description);
+            face.anchoredPosition = -bounds.center;
+            foreach (Graphic graphic in preview.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;
+            Image hit = preview.gameObject.AddComponent<Image>();
+            hit.color = Color.clear;
+            CollectionCardKeywordHover.Bind(preview.gameObject, face, data, FormatBattleCardDescription(description));
         }
 
         private void BuildShipyardInventoryPageButton(Transform parent, int shipIndex, bool next, int pages, Vector2 position)

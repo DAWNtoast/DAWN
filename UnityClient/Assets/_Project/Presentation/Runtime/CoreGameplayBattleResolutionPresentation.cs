@@ -9,7 +9,7 @@ namespace ShatteredSail.Presentation
         private BattleResolutionMotion battleResolutionMotion;
         private bool HasBattleResolutionPresentation => battleResolutionMotion != null;
 
-        private IEnumerator AnimateBattleResolutionVisual(RectTransform stage, RectTransform target, string message)
+        private IEnumerator AnimateBattleResolutionVisual(RectTransform stage, RectTransform target, string message, bool playBoardingDeath = true)
         {
             CancelBattleResolutionPresentation();
             if (stage == null || target == null || !isActiveAndEnabled) yield break;
@@ -21,7 +21,7 @@ namespace ShatteredSail.Presentation
             battleResolutionMotion = motion;
             string side = target.name.Contains("Enemy") ? "Enemy" : "Player";
             RectTransform water = stage.Find(side + " Ship Water Contact") as RectTransform;
-            motion.Configure(stage, target, this, kind, water);
+            motion.Configure(stage, target, this, kind, water, playBoardingDeath);
             float bannerY = kind == BattleResolutionKind.NavalSinking ? -130f : 70f;
             Text banner = CreateText("Battle Resolution Banner", host,
                 new Vector2(760f, message.Contains("\n") ? 96f : 72f), new Vector2(0f, bannerY) - host.anchoredPosition,

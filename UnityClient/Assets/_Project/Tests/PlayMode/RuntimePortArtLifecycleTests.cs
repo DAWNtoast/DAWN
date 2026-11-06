@@ -50,6 +50,9 @@ namespace ShatteredSail.Presentation.Tests
 
             int secondFrame = hub.Frame.sprite.GetInstanceID();
             controller.Session.Cargo.Water = controller.Session.Cargo.Food = 200;
+            // The isolated regional rebind above changes CurrentPort directly;
+            // choose a real different endpoint instead of retaining White Shell.
+            Assert.That(controller.Session.SelectDestinationPort("断锚港"), Is.True);
             controller.Session.StartVoyage();
             Assert.That(controller.Session.Phase, Is.EqualTo(CoreDemoPhase.Sailing));
             RenderPortArtTest(controller);

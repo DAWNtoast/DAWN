@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
@@ -52,11 +52,10 @@ namespace ShatteredSail.Core.Tests
                 foreach (CoreBattleCard card in levels)
                 {
                     Assert.That(card.SchoolEffect.Mechanic, Is.EqualTo(CoreSchoolMechanic.FireLoad));
-                    string expected = "获得 " + card.SchoolEffect.Secondary + " 发附火";
-                    if (card.SchoolEffect.Power != 4)
-                        expected += "（燃烧 " + card.SchoolEffect.Power + " 层）";
-                    Assert.That(card.Description, Is.EqualTo(expected + "。"),
-                        card.Id + " rank " + card.UpgradeLevel + " shows the enhanced payload instead of repeating the shared four-stack rule.");
+                    int expectedStacks = 2 + card.UpgradeLevel;
+                    Assert.That(card.SchoolEffect.Secondary, Is.EqualTo(expectedStacks));
+                    Assert.That(card.Description, Is.EqualTo("获得 " + expectedStacks + " 层附火。"),
+                        card.Id + " rank " + card.UpgradeLevel + " grants one growing stack reserve for the next attack.");
                 }
                 return;
             }
@@ -140,14 +139,17 @@ namespace ShatteredSail.Core.Tests
             Assert.That(parallel.NavalActionPointGain, Is.EqualTo(maneuverActionPoints));
             Assert.That(parallel.Description, Is.EqualTo("获得 " + maneuverActionPoints + " 点行动点。"));
 
-            CoreBattleCard sabotage = Card(session, "card_diver_sabotage", level);
-            Assert.That(sabotage.Description, Does.Contain("范围 1-2 格：造成 " + sabotage.Damage + " 点船体伤害。"));
+            CoreBattleCard sabotage = Card(session, "card_special_crew_broken_anchor_diver_udo", level);
+            Assert.That(sabotage.Description, Does.Contain("范围 1-2 格：造成 " + sabotage.Damage + " 点船体伤害"));
             Assert.That(sabotage.PowderCost + sabotage.CannonballCost, Is.Zero);
 
             CoreBattleCard fire = Card(session, "card_special_crew_salt_crown_gunner_rokan", level);
-            Assert.That(fire.Description, Does.Contain("获得 " + fire.StrategyAmount + " 发烈焰强化，最多储备 " + fire.StrategyLimit + " 发；"));
-            Assert.That(fire.Description, Does.Contain("炮击造成有效直伤后，施加 " + fire.BurnDamage + " 层燃烧"),
-                "Upgrades scale burning stacks while preserving reserve quantity and the requirement to damage through block.");
+            int attachedStacks = level == 0 ? 2 : 3;
+            Assert.That(fire.StrategyAmount, Is.EqualTo(attachedStacks));
+            Assert.That(fire.Description, Does.Contain("获得 " + attachedStacks + " 层附火。"));
+            Assert.That(fire.Description, Does.Not.Contain("发").And.Not.Contain("最多").And.Not.Contain("有效直伤")
+                .And.Not.Contain("烈焰强化").And.Not.Contain("灼烧"),
+                "Attached fire has one stack count, without an ammunition reserve, a separate per-shot payload or a damage-through-block condition.");
         }
 
         [TestCase(0)] [TestCase(1)] [TestCase(2)] [TestCase(3)]
@@ -158,7 +160,7 @@ namespace ShatteredSail.Core.Tests
             int polishLimit = Card(session, "card_deck_polish", level).StrategyLimit;
             int load = Card(session, "card_load_shot", level).StrategyAmount;
             int loadLimit = Card(session, "card_load_shot", level).StrategyLimit;
-            int precision = Card(session, "card_gunner_precision", level).StrategyAmount;
+            int precision = Card(session, "card_special_crew_gray_gull_gunner_leisa", level).StrategyAmount;
             int circleGuard = Card(session, "card_circle_enemy", level).Block;
             Assert.That(Card(session, "card_deck_polish", level).Description,
                 Does.Contain("额外格挡：" + polish + "。"));
@@ -167,10 +169,10 @@ namespace ShatteredSail.Core.Tests
             Assert.That(Card(session, "card_load_shot", level).Description, Does.Not.Contain("消耗"));
             Assert.That(Card(session, "card_load_shot", level).PowderCost, Is.EqualTo(1));
             Assert.That(Card(session, "card_load_shot", level).Description, Does.Not.Contain("开炮另付弹药并清空增益。"));
-            Assert.That(Card(session, "card_gunner_precision", level).Description,
-                Does.Contain("额外装药：" + precision + "；"));
-            Assert.That(Card(session, "card_gunner_precision", level).Description, Does.Not.Contain("消耗"));
-            Assert.That(Card(session, "card_gunner_precision", level).PowderCost, Is.EqualTo(1));
+            Assert.That(Card(session, "card_special_crew_gray_gull_gunner_leisa", level).Description,
+                Does.Contain("额外装药：" + precision + "。"));
+            Assert.That(Card(session, "card_special_crew_gray_gull_gunner_leisa", level).Description, Does.Not.Contain("消耗"));
+            Assert.That(Card(session, "card_special_crew_gray_gull_gunner_leisa", level).PowderCost, Is.EqualTo(1));
             Assert.That(Card(session, "card_circle_enemy", level).Description, Does.Contain("获得 " + circleGuard + " 点格挡"),
                 "Circle already grants guard at level zero; its description must not imply that upgrading adds a new effect.");
         }
@@ -181,10 +183,10 @@ namespace ShatteredSail.Core.Tests
         [TestCase("card_load_shot", "额外装药：")]
         [TestCase("card_crew_guard", "格挡") ]
         [TestCase("card_crew_rally", "张牌。") ]
-        [TestCase("card_cook_rations", "海战：修复")]
-        [TestCase("card_cook_rations", "接舷战：恢复")]
-        [TestCase("card_diver_sabotage", "范围 1-2 格：")]
-        [TestCase("card_component_bow", "范围 1-2 格：")]
+        [TestCase("card_special_crew_gray_gull_cook_pepe", "海战：修复")]
+        [TestCase("card_special_crew_gray_gull_cook_pepe", "接舷战：恢复")]
+        [TestCase("card_special_crew_broken_anchor_diver_udo", "范围 1-2 格：")]
+        [TestCase("card_special_bow_abyssal_fang", "范围 1-2 格：")]
         public void EveryLevel_RetainsCardSpecificRules(string id, string rule)
         {
             var session = new CoreVoyageSession();
@@ -257,11 +259,11 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.Cargo.Medicine, Is.EqualTo(1), "Rendering a preview must not consume its quoted resource.");
         }
 
-        [TestCase("arcane_04", "(24+6X)×1.25（结果四舍五入）", 53)]
-        [TestCase("arcane_06", "造成 6 点伤害 2+X 次", 30)]
-        [TestCase("blood_07", "第二击伤害提高 5 点", 35)]
-        [TestCase("thunder_11", "(3+出牌前连锁层数)×1.33（结果四舍五入）", 18)]
-        public void BoardingSavedUpgradeRank_DescriptionsMatchWholeFormulaAndPerHitRounding(string key, string expected, int damage)
+        [TestCase("arcane_04", "60+8X", 84)]
+        [TestCase("arcane_06", "造成 6 点伤害 4+X 次", 42)]
+        [TestCase("blood_07", "第二击伤害提高 10 点", 70)]
+        [TestCase("thunder_11", "8+4×出牌前连锁层数", 48)]
+        public void BoardingSavedUpgradeRank_DescriptionsMatchDirectFormulaAndPerHitAmounts(string key, string expected, int damage)
         {
             var session = new CoreVoyageSession();
             Assert.That(session.StartTrainingBattle(CoreTrainingTargets.All[0]), Is.True);
@@ -276,7 +278,7 @@ namespace ShatteredSail.Core.Tests
             Assert.That(session.GetBoardingCardDamageQuote(card), Is.EqualTo(damage));
         }
 
-        [TestCase("basic_08", 2, 3, 4, 5, 5)]
+        [TestCase("basic_08", 3, 3, 4, 6, 7)]
         [TestCase("fire_09", 1, 3, 4, 4, 4)]
         [TestCase("thunder_03", 3, 1, 1, 1, 2)]
         [TestCase("arcane_09", 2, 3, 4, 5, 5)]
@@ -303,7 +305,7 @@ namespace ShatteredSail.Core.Tests
         }
 
         [TestCase("card_load_shot", 3, 1, 1, 1, 2)]
-        [TestCase("card_navigator_course", 2, 1, 1, 2, 2)]
+        [TestCase("card_special_crew_twilight_tide_cook_lume", 3, 1, 1, 2, 2)]
         [TestCase("card_special_crew_gray_gull_carpenter_barlow", 3, 1, 1, 1, 2)]
         [TestCase("card_special_crew_twilight_tide_cook_lume", 3, 1, 1, 2, 2)]
         [TestCase("card_special_crew_salt_crown_cook_maz", 2, 2, 3, 4, 4)]
@@ -334,12 +336,8 @@ namespace ShatteredSail.Core.Tests
 
         private static string WithoutNumbers(string description)
         {
-            // An upgrade that raises repair above the free two-point base gains
-            // a paid-supply clause. Its arithmetic is verified separately; every
-            // other word, clause and hard break must still remain unchanged.
-            string withoutSupplyBonus = Regex.Replace(description,
-                @"；\s*消耗\s*1\s*(?:药物|木板)额外(?:恢复|修复)\s*\d+\s*点(?:生命值|船体)", string.Empty);
-            return Regex.Replace(withoutSupplyBonus, @"\d+", "#");
+            // Every effect and payment clause must exist at rank zero already.
+            return Regex.Replace(description, @"\d+", "#");
         }
 
         private static CoreVoyageSession BoardingPreviewSession(int medicine)

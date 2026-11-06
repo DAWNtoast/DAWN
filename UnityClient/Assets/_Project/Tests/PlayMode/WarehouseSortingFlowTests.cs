@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Globalization;
 using System.Linq;
 using NUnit.Framework;
 using ShatteredSail.Core.Gameplay;
@@ -13,7 +14,7 @@ namespace ShatteredSail.Presentation.Tests
     public sealed partial class CoreGameplayDemoSceneTests
     {
         [UnityTest, Timeout(120000)]
-        public IEnumerator WarehouseSorting_BasicStableOrderAndCorrectItemTransfer()
+        public IEnumerator WarehouseGrid_BasicCatalogOrderAndCorrectItemTransfer()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -26,51 +27,55 @@ namespace ShatteredSail.Presentation.Tests
             InvestmentResourceSnapshot cargoBefore = SnapshotInvestmentResources(session);
             yield return OpenPortStorage();
             string savedStorageBefore = PlayerPrefs.GetString(CoreGameplayDemoController.PortWarehouseCargoKey);
+            string savedGoldBefore = PlayerPrefs.GetString(CoreGameplayDemoController.ProfileGoldKey);
             string[] canonical = { "water", "food", "beer", "medicine", "wood", "iron", "cloth", "powder", "cannonballs" };
             CollectionAssert.AreEqual(canonical, WarehouseSortedKeys("Warehouse Storage Row "));
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>().text, Is.EqualTo("99"));
             Button.ButtonClickedEvent staleRow = ActiveButton("Warehouse Storage Row wood").onClick;
-            ClickAcceptanceButton("Warehouse Storage Header Stored"); yield return null;
-            CollectionAssert.AreEqual(new[] { "wood", "iron", "water", "food", "beer", "medicine", "cloth", "powder", "cannonballs" },
-                WarehouseSortedKeys("Warehouse Storage Row "));
+            Button.ButtonClickedEvent staleLocation = ActiveButton("Warehouse Inventory Location Stored").onClick;
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>().text, Is.EqualTo("5"));
+            staleLocation.Invoke(); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>().text, Is.EqualTo("5"),
+                "A location callback from the previous view must not change the selected inventory.");
+            ClickAcceptanceButton("Warehouse Tab Rare"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text,
+                Is.EqualTo(session.Cargo.Gem.ToString(CultureInfo.InvariantCulture)), "Item-category changes preserve the selected location.");
+            ClickAcceptanceButton("Warehouse Tab Storage"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>().text, Is.EqualTo("5"));
+            ClickAcceptanceButton("Warehouse Inventory Location Stored"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>().text, Is.EqualTo("99"));
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            CollectionAssert.AreEqual(canonical, WarehouseSortedKeys("Warehouse Storage Row "),
+                "Switching tabs must retain catalog order regardless of stock or carried quantities.");
             staleRow.Invoke(); yield return null;
             Assert.That(GameObject.Find("Warehouse Item Actions"), Is.Null, "A row from the previous render must not open a new quote.");
-            Button.ButtonClickedEvent staleHeader = ActiveButton("Warehouse Storage Header Stored").onClick;
-            ClickAcceptanceButton("Warehouse Storage Header Stored"); yield return null;
-            string[] ascending = WarehouseSortedKeys("Warehouse Storage Row ");
-            Assert.That(ascending[7], Is.EqualTo("wood"));
-            Assert.That(ascending[8], Is.EqualTo("iron"));
-            staleHeader.Invoke(); yield return null;
-            CollectionAssert.AreEqual(ascending, WarehouseSortedKeys("Warehouse Storage Row "), "A previous render's header must not toggle the new view.");
-            string[] occupiedVolume = { "iron", "cannonballs", "cloth", "wood", "powder", "beer", "food", "medicine", "water" };
-            ClickAcceptanceButton("Warehouse Storage Header Volume"); yield return null;
-            CollectionAssert.AreEqual(occupiedVolume, WarehouseSortedKeys("Warehouse Storage Row "));
-            ClickAcceptanceButton("Warehouse Storage Header Volume"); yield return null;
-            CollectionAssert.AreEqual(occupiedVolume.Reverse(), WarehouseSortedKeys("Warehouse Storage Row "));
-            ClickAcceptanceButton("Warehouse Storage Header Carried"); yield return null;
-            CollectionAssert.AreEqual(canonical.Reverse(), WarehouseSortedKeys("Warehouse Storage Row "));
+            foreach (string header in new[] { "Name", "Stored", "Carried", "Volume" })
+                Assert.That(ActiveButton("Warehouse Storage Header " + header), Is.Null);
             Assert.That(session.PortWarehouse.Serialize(), Is.EqualTo(storedBefore));
             Assert.That(session.ProfileGold, Is.EqualTo(goldBefore));
             AssertInvestmentResourcesEqual(session, cargoBefore);
-            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.PortWarehouseCargoKey), Is.EqualTo(savedStorageBefore), "Sorting alone must not save cargo.");
-            // A currently visible header cannot dismiss or invalidate an open quote.
-            Button.ButtonClickedEvent headerDuringQuote = ActiveButton("Warehouse Storage Header Name").onClick;
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.PortWarehouseCargoKey), Is.EqualTo(savedStorageBefore), "Tab browsing alone must not save cargo.");
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.ProfileGoldKey), Is.EqualTo(savedGoldBefore), "Location selection must not save the player profile.");
             ClickAcceptanceButton("Warehouse Storage Row wood"); yield return null;
-            headerDuringQuote.Invoke(); yield return null;
             Assert.That(GameObject.Find("Warehouse Item Actions"), Is.Not.Null);
             ClickAcceptanceButton("Cancel Warehouse Item Actions"); yield return null;
-            // Row position changed, but the visible wood button must still transfer wood.
+            // After tab reuse the visible wood cell must still transfer only wood.
             yield return StoreAllVisibleCargo(controller, "wood");
             Assert.That(session.Cargo.Wood, Is.Zero);
             Assert.That(session.PortWarehouse.GetAmount(session.CurrentPort, "wood"), Is.EqualTo(104));
             Assert.That(session.Cargo.Iron, Is.EqualTo(6));
             Assert.That(session.PortWarehouse.GetAmount(session.CurrentPort, "iron"), Is.EqualTo(99));
-            ClickAcceptanceButton("Warehouse Storage Header Name"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>().text, Is.EqualTo("0"),
+                "The current ship view must refresh after a confirmed deposit.");
+            ClickAcceptanceButton("Warehouse Inventory Location Stored"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>().text, Is.EqualTo("104"));
             CollectionAssert.AreEqual(canonical, WarehouseSortedKeys("Warehouse Storage Row "));
             LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest, Timeout(120000)]
-        public IEnumerator WarehouseSorting_RareUsesOccupiedVolumeAndPreservesStoreAll()
+        public IEnumerator WarehouseGrid_RareCatalogOrderAndSingleItemTransfers()
         {
             yield return LoadProvisioningFixture();
             var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
@@ -81,40 +86,67 @@ namespace ShatteredSail.Presentation.Tests
             string otherPort = port == "白贝港" ? "断锚港" : "白贝港";
             Assert.That(session.PortWarehouse.Restore("v2;" + port + ",gem,3;" + port + ",blackpearl,8;" + port +
                 ",lantern,8;" + otherPort + ",gem,100"), Is.True);
-            int[] storedBefore = RareWarehouseTestKeys.Select(key => session.PortWarehouse.GetAmount(port, key)).ToArray();
             string storageBefore = session.PortWarehouse.Serialize();
             decimal goldBefore = session.ProfileGold;
             yield return OpenRareWarehouse();
-            Button.ButtonClickedEvent staleAll = ActiveButton("Warehouse Store All Rare").onClick;
-            ClickAcceptanceButton("Warehouse Rare Header Stored"); yield return null;
-            CollectionAssert.AreEqual(new[] { "blackpearl", "lantern", "gem", "ancientmaterial", "relic", "ancientcompass" },
-                WarehouseSortedKeys("Warehouse Rare Row "));
-            ClickAcceptanceButton("Warehouse Rare Header Carried"); yield return null;
-            CollectionAssert.AreEqual(new[] { "lantern", "ancientmaterial", "ancientcompass", "blackpearl", "gem", "relic" },
-                WarehouseSortedKeys("Warehouse Rare Row "));
-            ClickAcceptanceButton("Warehouse Rare Header Volume"); yield return null;
-            CollectionAssert.AreEqual(new[] { "lantern", "ancientcompass", "blackpearl", "ancientmaterial", "gem", "relic" },
-                WarehouseSortedKeys("Warehouse Rare Row "), "Sort actual total volume, not item quantity or unit size; keep ties in catalog order.");
-            ClickAcceptanceButton("Warehouse Rare Header Volume"); yield return null;
-            CollectionAssert.AreEqual(new[] { "gem", "relic", "ancientmaterial", "blackpearl", "ancientcompass", "lantern" },
-                WarehouseSortedKeys("Warehouse Rare Row "), "Ascending volume still preserves catalog order for ties.");
-            staleAll.Invoke(); yield return null;
+            string savedStorageBefore = PlayerPrefs.GetString(CoreGameplayDemoController.PortWarehouseCargoKey);
+            string savedTreasureBefore = PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey);
+            CollectionAssert.AreEqual(RareWarehouseTestKeys, WarehouseSortedKeys("Warehouse Rare Row "));
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text, Is.EqualTo("3"));
+            Button.ButtonClickedEvent staleCell = ActiveButton("Warehouse Rare Row ancientmaterial").onClick;
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text, Is.EqualTo("1"));
+            ClickAcceptanceButton("Warehouse Tab Storage"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Storage Quantity wood").GetComponent<Text>().text,
+                Is.EqualTo(session.Cargo.Wood.ToString(CultureInfo.InvariantCulture)));
+            ClickAcceptanceButton("Warehouse Tab Rare"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Rare Quantity ancientmaterial").GetComponent<Text>().text, Is.EqualTo("4"));
+            ClickAcceptanceButton("Warehouse Inventory Location Stored"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text, Is.EqualTo("3"));
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            CollectionAssert.AreEqual(RareWarehouseTestKeys, WarehouseSortedKeys("Warehouse Rare Row "),
+                "Rare items remain in catalog order after revisiting the page.");
+            foreach (string header in new[] { "Name", "Stored", "Carried", "Volume" })
+                Assert.That(ActiveButton("Warehouse Rare Header " + header), Is.Null);
+            Assert.That(ActiveButton("Warehouse Store All Rare"), Is.Null);
+            staleCell.Invoke(); yield return null;
+            Assert.That(GameObject.Find("Warehouse Item Actions"), Is.Null);
             CollectionAssert.AreEqual(before, RareWarehouseCargo(session));
             Assert.That(session.PortWarehouse.Serialize(), Is.EqualTo(storageBefore));
             Assert.That(session.ProfileGold, Is.EqualTo(goldBefore));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.PortWarehouseCargoKey), Is.EqualTo(savedStorageBefore));
+            Assert.That(PlayerPrefs.GetString(CoreGameplayDemoController.TreasureProgressKey), Is.EqualTo(savedTreasureBefore),
+                "Viewing rare cargo in either location must not write progression or cargo saves.");
             yield return OpenRareWarehouseAdjustment("ancientmaterial");
             yield return DragWarehouseSlider(RareWarehouseSlider(), -2);
             ClickAcceptanceButton("Confirm Warehouse Cargo Adjustment"); yield return null;
             Assert.That(session.Cargo.AncientMaterial, Is.EqualTo(2));
             Assert.That(session.PortWarehouse.GetAmount(port, "ancientmaterial"), Is.EqualTo(2));
-            Assert.That(session.Cargo.Gem, Is.EqualTo(1), "The reordered row must not operate on another item.");
-            ClickAcceptanceButton("Warehouse Store All Rare"); yield return null;
-            CollectionAssert.AreEqual(new int[6], RareWarehouseCargo(session));
-            for (int index = 0; index < RareWarehouseTestKeys.Length; index++)
-                Assert.That(session.PortWarehouse.GetAmount(port, RareWarehouseTestKeys[index]), Is.EqualTo(storedBefore[index] + before[index]));
+            Assert.That(session.Cargo.Gem, Is.EqualTo(1), "A grid cell must not operate on another item.");
+            yield return OpenRareWarehouseAdjustment("gem");
+            yield return DragWarehouseSlider(RareWarehouseSlider(), RareWarehouseSlider().minValue);
+            ClickAcceptanceButton("Confirm Warehouse Cargo Adjustment"); yield return null;
+            Assert.That(session.Cargo.Gem, Is.Zero);
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text, Is.EqualTo("0"));
+            Assert.That(session.PortWarehouse.GetAmount(port, "gem"), Is.EqualTo(4));
+            CollectionAssert.AreEqual(new[] { 0, 2, before[2], before[3], before[4], before[5] }, RareWarehouseCargo(session));
+            Assert.That(session.PortWarehouse.GetAmount(port, "blackpearl"), Is.EqualTo(8));
+            Assert.That(session.PortWarehouse.GetAmount(port, "lantern"), Is.EqualTo(8));
             Assert.That(session.PortWarehouse.GetAmount(otherPort, "gem"), Is.EqualTo(100));
-            ClickAcceptanceButton("Warehouse Rare Header Name"); yield return null;
             CollectionAssert.AreEqual(RareWarehouseTestKeys, WarehouseSortedKeys("Warehouse Rare Row "));
+            ClickAcceptanceButton("Warehouse Inventory Location Stored"); yield return null;
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text, Is.EqualTo("4"));
+            Assert.That(GameObject.Find("Warehouse Rare Quantity ancientmaterial").GetComponent<Text>().text, Is.EqualTo("2"));
+            ClickAcceptanceButton("Warehouse Inventory Location Carried"); yield return null;
+            Button.ButtonClickedEvent oldPortLocation = ActiveButton("Warehouse Inventory Location Carried").onClick;
+            ClickAcceptanceButton("Return To Port Hub"); yield return null;
+            session.RestoreProfile(session.ProfileGold, otherPort);
+            yield return OpenRareWarehouse();
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text, Is.EqualTo("100"),
+                "Entering a different port resets the location selection to that port's warehouse.");
+            oldPortLocation.Invoke(); yield return null;
+            Assert.That(GameObject.Find("Warehouse Rare Quantity gem").GetComponent<Text>().text, Is.EqualTo("100"),
+                "A location callback from the previous port must not change the new port's view.");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -122,6 +154,7 @@ namespace ShatteredSail.Presentation.Tests
             Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
                 .Where(button => button.isActiveAndEnabled && button.name.StartsWith(prefix, StringComparison.Ordinal))
                 .OrderByDescending(button => ((RectTransform)button.transform).anchoredPosition.y)
+                .ThenBy(button => ((RectTransform)button.transform).anchoredPosition.x)
                 .Select(button => button.name.Substring(prefix.Length)).ToArray();
     }
 }

@@ -4,7 +4,7 @@ namespace ShatteredSail.Presentation
 {
     /// <summary>
     /// Shared reference geometry for the full-screen phase surface. The header
-    /// owns the top 108 pixels; guided lessons keep their separate 148px band.
+    /// owns the top 108 design units in both ordinary play and guided lessons.
     /// The background reveals additional sky above the established room layout
     /// without stretching the source art or moving its authored hotspots.
     /// </summary>
@@ -12,7 +12,7 @@ namespace ShatteredSail.Presentation
     {
         public static readonly Vector2 ContentSize = new Vector2(1920f, 1080f);
         public const float HeaderHeight = 108f;
-        public const float TutorialHeaderHeight = 148f;
+        public const float TutorialHeaderHeight = HeaderHeight;
         private const float AuthoredBackgroundHeight = 932f;
         public static readonly Vector2 BackgroundSize = new Vector2(1920f, 1080f - HeaderHeight);
         public static readonly Vector2 BackgroundPosition = new Vector2(0f, -HeaderHeight * .5f);

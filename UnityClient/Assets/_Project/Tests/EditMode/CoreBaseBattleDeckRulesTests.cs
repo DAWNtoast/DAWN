@@ -8,9 +8,9 @@ namespace ShatteredSail.Core.Tests
     public sealed class CoreBaseBattleDeckRulesTests
     {
         [Test]
-        public void BaseInventory_HoldsTwoOfEveryBaseCardAndNoSourceOrRetiredCards()
+        public void MigratedLegacyInventory_HoldsTwoOfEveryBaseCardAndNoSourceOrRetiredCards()
         {
-            var session = new CoreVoyageSession();
+            CoreVoyageSession session = UnlockedSession();
             Assert.That(CoreVoyageSession.BaseBattleCardCopies, Is.EqualTo(2));
             Assert.That(CoreVoyageSession.MinimumBaseBattleDeckSize, Is.EqualTo(10));
             Assert.That(CoreVoyageSession.MaximumBaseBattleDeckSize, Is.EqualTo(20));
@@ -78,8 +78,11 @@ namespace ShatteredSail.Core.Tests
                 .Where(index =>
                 {
                     CoreBattleCard card = CoreVoyageSession.CardLibrary[index];
-                    // Hidden save-compatible aliases are still usable when restoring an old deck.
+                    // Hidden aliases and the former shared support-card identities
+                    // remain usable through migration, so they are not corrupt entries.
                     if (CoreBattleCardAliases.IsAlias(card.Id)) return false;
+                    if (stage == NavalBattleStage.Boarding &&
+                        (card.Id == "card_energy_order" || card.Id == "card_tactical_draw")) return false;
                     return !card.IsAllowedInStage(stage) || card.RequiredCrew.Length > 0 || card.RequiredComponent.Length > 0 ||
                         !session.IsBattleCardUnlocked(card);
                 }).ToArray();
@@ -227,6 +230,7 @@ namespace ShatteredSail.Core.Tests
             CoreTreasureProgress progress = session.CaptureTreasureProgress();
             progress.pirateExperience = 5400;
             session.RestoreTreasureProgress(progress);
+            Assert.That(session.RestoreCardPackProgress(null, session.PirateLevel), Is.True);
             return session;
         }
     }

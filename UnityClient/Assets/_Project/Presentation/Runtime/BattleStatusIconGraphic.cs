@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace ShatteredSail.Presentation
 {
-    /// <summary>Small, outlined combat symbols drawn without font or atlas dependencies.</summary>
+    /// <summary>Authored combat symbols with distinct source/trigger marks and a geometric fallback.</summary>
     [RequireComponent(typeof(CanvasRenderer)), DisallowMultipleComponent]
     public sealed class BattleStatusIconGraphic : MaskableGraphic
     {
@@ -26,6 +26,7 @@ namespace ShatteredSail.Presentation
         public CoreBattleStatusKind Kind => kind;
         public string StatusId => statusId;
         public bool IsDebuff => isDebuff;
+        public override Texture mainTexture => BattleIconArtCatalog.Texture != null ? BattleIconArtCatalog.Texture : base.mainTexture;
 
         private Color Ink => isDebuff ? Rgb(55, 20, 29) : Rgb(16, 28, 35);
         private static Color Ivory => Rgb(255, 241, 198);
@@ -58,8 +59,19 @@ namespace ShatteredSail.Presentation
             scale = Mathf.Min(bounds.width, bounds.height) * .47f;
             if (scale <= 0f) return;
             VariantMark mark = MarkForStatus(statusId);
-            glyphScale = mark == VariantMark.None ? 1f : .81f;
-            glyphOrigin = mark == VariantMark.None ? Vector2.zero : new Vector2(-.12f, -.12f);
+            glyphScale = mark == VariantMark.None ? 1f : .90f;
+            glyphOrigin = mark == VariantMark.None ? Vector2.zero : new Vector2(-.05f, -.05f);
+
+            float artSize = Mathf.Min(bounds.width, bounds.height) * glyphScale;
+            Vector2 artCenter = bounds.center + glyphOrigin * scale;
+            var artBounds = new Rect(artCenter - Vector2.one * (artSize * .5f), Vector2.one * artSize);
+            string asset = statusId == "thunder_chain" ? "thunder_chain" :
+                statusId == "curse_marks" ? "curse_mark" : BattleIconArtCatalog.StatusAssetId(kind);
+            if (BattleIconArtCatalog.Draw(mesh, artBounds, asset, color))
+            {
+                if (mark != VariantMark.None) DrawVariantMark(mesh, mark);
+                return;
+            }
 
             switch (kind)
             {
@@ -173,21 +185,24 @@ namespace ShatteredSail.Presentation
             // Upper-right leaves the lower-right amount legible in the row.
             glyphScale = 1f;
             glyphOrigin = Vector2.zero;
-            Circle(mesh, new Vector2(.54f, .54f), .38f, Ink, false);
-            glyphScale = .34f;
-            glyphOrigin = new Vector2(.54f, .54f);
+            Circle(mesh, new Vector2(.66f, .66f), .32f, Ink, false);
+            glyphScale = .30f;
+            glyphOrigin = new Vector2(.66f, .66f);
             switch (mark)
             {
                 case VariantMark.Plus:
                     Line(mesh, new Vector2(-.7f, 0f), new Vector2(.7f, 0f), .29f, Ivory);
                     Line(mesh, new Vector2(0f, -.7f), new Vector2(0f, .7f), .29f, Ivory);
                     break;
-                case VariantMark.Flame: Fire(mesh); break;
+                case VariantMark.Flame:
+                    Fill(mesh, Gold, new Vector2(0f, .9f), new Vector2(.24f, .25f), new Vector2(.56f, .55f),
+                        new Vector2(.7f, -.32f), new Vector2(.3f, -.75f), new Vector2(-.37f, -.75f),
+                        new Vector2(-.7f, -.24f), new Vector2(-.35f, .37f));
+                    break;
                 case VariantMark.Clock:
-                    Circle(mesh, Vector2.zero, .79f, Gold, false);
-                    Circle(mesh, Vector2.zero, .58f, Ink, false);
-                    Line(mesh, Vector2.zero, new Vector2(0f, .42f), .17f, Ivory);
-                    Line(mesh, Vector2.zero, new Vector2(.38f, -.16f), .17f, Ivory);
+                    Circle(mesh, Vector2.zero, .8f, Ivory, false);
+                    Line(mesh, Vector2.zero, new Vector2(0f, .53f), .25f, Ink);
+                    Line(mesh, Vector2.zero, new Vector2(.48f, -.18f), .25f, Ink);
                     break;
                 case VariantMark.Boarding:
                     Line(mesh, new Vector2(-.75f, -.5f), new Vector2(.75f, .5f), .2f, Gold);
@@ -201,7 +216,11 @@ namespace ShatteredSail.Presentation
                     Circle(mesh, new Vector2(-.24f, .12f), .18f, Ivory, false);
                     Line(mesh, new Vector2(.33f, .29f), new Vector2(.69f, .67f), .19f, Gold);
                     break;
-                case VariantMark.Sword: Sword(mesh, false, false); break;
+                case VariantMark.Sword:
+                    Line(mesh, new Vector2(-.6f, -.65f), new Vector2(.48f, .52f), .29f, Ivory);
+                    Fill(mesh, Ivory, new Vector2(.29f, .52f), new Vector2(.75f, .83f), new Vector2(.53f, .29f));
+                    Line(mesh, new Vector2(-.64f, -.12f), new Vector2(-.13f, -.64f), .24f, Gold);
+                    break;
                 case VariantMark.UpArrow:
                     Line(mesh, new Vector2(0f, -.73f), new Vector2(0f, .33f), .3f, Gold);
                     Fill(mesh, Gold, new Vector2(-.7f, .16f), new Vector2(0f, .85f), new Vector2(.7f, .16f));
@@ -235,8 +254,16 @@ namespace ShatteredSail.Presentation
                     Line(mesh, new Vector2(-.56f, -.28f), new Vector2(.56f, -.28f), .16f, Ink);
                     Line(mesh, new Vector2(-.74f, -.78f), new Vector2(.74f, .78f), .24f, Ivory);
                     break;
-                case VariantMark.Skull: Skull(mesh); break;
-                case VariantMark.Wave: Waves(mesh); break;
+                case VariantMark.Skull:
+                    Circle(mesh, new Vector2(0f, .16f), .68f, Ivory, false);
+                    Fill(mesh, Ivory, new Vector2(-.38f, -.12f), new Vector2(.38f, -.12f), new Vector2(.38f, -.72f), new Vector2(-.38f, -.72f));
+                    Circle(mesh, new Vector2(-.27f, .14f), .20f, Ink, false);
+                    Circle(mesh, new Vector2(.27f, .14f), .20f, Ink, false);
+                    break;
+                case VariantMark.Wave:
+                    Stroke(mesh, Aqua, .28f, new Vector2(-.8f, -.3f), new Vector2(-.38f, -.3f),
+                        new Vector2(0f, .36f), new Vector2(.35f, -.3f), new Vector2(.8f, -.3f));
+                    break;
                 case VariantMark.Chain:
                     Ring(mesh, new Vector2(-.31f, -.26f), .46f, Gold);
                     Ring(mesh, new Vector2(.31f, .26f), .46f, Gold);
@@ -275,9 +302,21 @@ namespace ShatteredSail.Presentation
                     Circle(mesh, Vector2.zero, .54f, Ink, false);
                     Line(mesh, new Vector2(-.53f, -.53f), new Vector2(.53f, .53f), .24f, Rose);
                     break;
-                case VariantMark.Lock: Lock(mesh); break;
-                case VariantMark.Star: Star(mesh); break;
-                case VariantMark.Shield: Shield(mesh, Aqua); break;
+                case VariantMark.Lock:
+                    Stroke(mesh, Ivory, .27f, new Vector2(-.4f, .05f), new Vector2(-.4f, .55f),
+                        new Vector2(0f, .8f), new Vector2(.4f, .55f), new Vector2(.4f, .05f));
+                    Fill(mesh, Ivory, new Vector2(-.65f, .12f), new Vector2(.65f, .12f),
+                        new Vector2(.65f, -.72f), new Vector2(-.65f, -.72f));
+                    break;
+                case VariantMark.Star:
+                    Fill(mesh, Gold, new Vector2(0f, .85f), new Vector2(.23f, .23f), new Vector2(.85f, 0f),
+                        new Vector2(.23f, -.23f), new Vector2(0f, -.85f), new Vector2(-.23f, -.23f),
+                        new Vector2(-.85f, 0f), new Vector2(-.23f, .23f));
+                    break;
+                case VariantMark.Shield:
+                    Fill(mesh, Aqua, new Vector2(-.67f, .62f), new Vector2(0f, .8f), new Vector2(.67f, .62f),
+                        new Vector2(.57f, -.25f), new Vector2(0f, -.82f), new Vector2(-.57f, -.25f));
+                    break;
                 case VariantMark.Bolt:
                     Fill(mesh, Gold, new Vector2(.04f, .87f), new Vector2(-.62f, -.08f),
                         new Vector2(-.07f, -.08f), new Vector2(-.24f, -.88f),
@@ -491,7 +530,7 @@ namespace ShatteredSail.Presentation
             // and lightning without filling across the notches in their outline.
             int first = mesh.currentVertCount;
             for (int i = 0; i < points.Length; i++)
-                mesh.AddVert((Vector3)(bounds.center + (points[i] * glyphScale + glyphOrigin) * scale), tint * color, Vector2.zero);
+                mesh.AddVert((Vector3)(bounds.center + (points[i] * glyphScale + glyphOrigin) * scale), tint * color, BattleIconArtCatalog.SolidUv);
             int[] remaining = new int[points.Length];
             float signedArea = 0f;
             for (int i = 0; i < points.Length; i++)

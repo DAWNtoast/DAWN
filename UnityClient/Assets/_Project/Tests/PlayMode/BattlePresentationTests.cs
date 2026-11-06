@@ -256,12 +256,26 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(controller, Is.Not.Null);
             string[] cardIds =
             {
-                "card_full_sail_turn", "card_navigator_course", "card_cannon_barrage",
+                "card_full_sail_turn", "card_special_crew_broken_anchor_navigator_lorne", "card_cannon_barrage",
                 "card_special_cannon_dragonbreath_battery", "card_boarding_curse_08"
             };
             CoreVoyageSession session = new CoreVoyageSession();
-            session.ConfigureCrewCapabilities(true, false, false, false, false, false);
-            session.ConfigureCardUpgrades(cardIds.ToDictionary(id => id, id => 3));
+            CoreSpecialCardDefinition navigatorSource = CoreSpecialCardCatalog.FindByCardId(cardIds[1]);
+            CoreSpecialCardDefinition cannonSource = CoreSpecialCardCatalog.FindByCardId(cardIds[3]);
+            Assert.That(navigatorSource, Is.Not.Null);
+            Assert.That(cannonSource, Is.Not.Null);
+            session.ConfigureSpecialCardSources(new[] { navigatorSource.SourceId }, new[] { cannonSource.SourceId });
+            session.RestoreSpecialCardExperience(new Dictionary<string, int>
+            {
+                { navigatorSource.Card.Id, 840 }, { cannonSource.Card.Id, 840 }
+            });
+            session.ConfigureCardUpgrades(cardIds.Where(id => !CoreVoyageSession.IsSpecialBattleCard(id))
+                .ToDictionary(id => id, id => 3));
+            Assert.That(session.GetSpecialCardExperience(navigatorSource.Card.Id), Is.EqualTo(840));
+            Assert.That(session.GetSpecialCardExperience(cannonSource.Card.Id), Is.EqualTo(840));
+            CollectionAssert.IsSubsetOf(new[] { navigatorSource.Card.Id, cannonSource.Card.Id },
+                session.GetBonusBattleCards(NavalBattleStage.Naval).Select(index => CoreVoyageSession.CardLibrary[index].Id).ToArray(),
+                "Both special layout cards have their actual crew or equipped component source.");
             session.SetSeed("REFERENCE-CARD-LAYOUTS");
             session.StartVoyage();
             typeof(CoreGameplayDemoController).GetField("session", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(controller, session);
@@ -271,7 +285,9 @@ namespace ShatteredSail.Presentation.Tests
             {
                 int index = Enumerable.Range(0, CoreVoyageSession.CardLibrary.Count)
                     .Single(candidate => CoreVoyageSession.CardLibrary[candidate].Id == id);
-                Assert.That(session.GetBattleCard(index).UpgradeLevel, Is.EqualTo(session.GetCardMaximumUpgradeLevel(index)),
+                CoreBattleCard card = session.GetBattleCard(index);
+                Assert.That(card, Is.Not.Null, id + " is a current playable card definition");
+                Assert.That(card.UpgradeLevel, Is.EqualTo(session.GetCardMaximumUpgradeLevel(index)),
                     id + " applies its authored upgrade cap to the requested rank");
                 session.Battle.Hand.Add(index);
             }
@@ -296,9 +312,9 @@ namespace ShatteredSail.Presentation.Tests
                 AssertCompleteEffectFitsFixedWindow(effect);
             Assert.That(GameObject.Find("Card Powder Cost 2").GetComponent<Text>().text, Is.EqualTo("1"));
             Assert.That(GameObject.Find("Battle Card 2").transform.Find("Label").GetComponent<Text>().text,
-                Does.Contain("<b>范围1-4格</b>"), "The actual cannon card emphasizes its complete range condition.");
+                Does.Contain("范围1-4格").And.Not.Contain("<b>范围1-4格</b>"), "The actual cannon card leaves its range in regular text.");
             NavalBattleVisualCapture.Capture(controller, "reference-card-layouts.png",
-                "Actual capped upgrades with corner-aligned blue/red square crystals, matching resource HUD crystals, bold cannon range and a long strategy effect in fixed windows.");
+                "Actual capped upgrades with corner-aligned blue/red square crystals, matching resource HUD crystals, regular cannon range and a long strategy effect in fixed windows.");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -429,7 +445,7 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Battle Ram"), Is.Null);
             Assert.That(GameObject.Find("Battle Board"), Is.Null,
                 "The ram itself must connect the ships; the player must not need a second boarding action.");
-            Assert.That(GameObject.Find("Battle Alignment").GetComponent<Text>().text, Does.Contain("角对侧舷"));
+            Assert.That(GameObject.Find("Battle Alignment"), Is.Null);
             AssertBoardingView(session);
             Assert.That(GameObject.Find("Player Battle Hull Bar").GetComponent<Image>().fillAmount,
                 Is.GreaterThan(session.Hull / (float)session.MaxHull), "The fresh crew health bar must not continue displaying the ram-damaged hull.");
@@ -468,8 +484,11 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(GameObject.Find("Battle Stage Progress"), Is.Null);
             Assert.That(GameObject.Find("Battle Stage Instructions"), Is.Null);
             BoardingCinematicAssertions.AssertScene(session);
-            Assert.That(GameObject.Find("Player Battle Name").GetComponent<Text>().text, Does.Contain("登船队"));
-            Assert.That(GameObject.Find("Enemy Battle Name").GetComponent<Text>().text, Does.Contain("守备队"));
+            Assert.That(GameObject.Find("Battle Alignment"), Is.Null);
+            Assert.That(GameObject.Find("Player Battle Name"), Is.Null);
+            Assert.That(GameObject.Find("Enemy Battle Name"), Is.Null);
+            Assert.That(GameObject.Find("Player Battle Name Board"), Is.Null);
+            Assert.That(GameObject.Find("Enemy Battle Name Board"), Is.Null);
             Assert.That(GameObject.Find("Player Battle Hull Bar").GetComponent<Image>().fillAmount,
                 Is.EqualTo(session.Battle.PlayerBoardingHealth / (float)session.Battle.PlayerMaxBoardingHealth).Within(0.001f));
             Assert.That(GameObject.Find("Enemy Battle Hull Bar").GetComponent<Image>().fillAmount,
@@ -983,8 +1002,8 @@ namespace ShatteredSail.Presentation.Tests
             Assert.That(energy, Is.Not.Null);
             Assert.That(energy.Kind, Is.EqualTo(BattleCommandIconKind.Energy));
             AssertHudCrystal(energy);
-            BattleCommandIconGraphic powder = resources.Find("Battle Resource Line 3/Resource Powder/Icon").GetComponent<BattleCommandIconGraphic>();
-            BattleCommandIconGraphic medicine = resources.Find("Battle Resource Line 3/Resource Medicine/Icon").GetComponent<BattleCommandIconGraphic>();
+            BattleCommandIconGraphic powder = resources.Find("Battle Resource Line 2/Resource Powder/Icon").GetComponent<BattleCommandIconGraphic>();
+            BattleCommandIconGraphic medicine = resources.Find("Battle Resource Line 2/Resource Medicine/Icon").GetComponent<BattleCommandIconGraphic>();
             Assert.That(powder.Kind, Is.EqualTo(BattleCommandIconKind.Powder));
             Assert.That(medicine.Kind, Is.EqualTo(BattleCommandIconKind.Medicine),
                 "Boarding medicine retains its own symbol and must not be mislabelled as gunpowder.");

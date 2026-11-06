@@ -53,6 +53,12 @@ namespace ShatteredSail.Presentation.Tests
             OpeningTimer().RestoreRemainingSeconds(.06f);
             yield return WaitForOpeningPage(game, 3);
             AssertOpeningComicPage(game, 3);
+            for (int index = 4; index < OpeningComicCatalog.Pages.Count * ComicPanelCatalog.QuadPanelCount; index++)
+            {
+                OpeningTimer().RestoreRemainingSeconds(.06f);
+                yield return WaitForOpeningPage(game, index);
+                AssertOpeningComicPage(game, index);
+            }
             OpeningTimer().RestoreRemainingSeconds(.06f);
             float deadline = Time.realtimeSinceStartup + 2f;
             while (game.IsOpeningComicPlaying && Time.realtimeSinceStartup < deadline) yield return null;
@@ -88,11 +94,11 @@ namespace ShatteredSail.Presentation.Tests
                 "The new-game request is consumed as the scene opens.");
             Vector2[] corners = { new Vector2(.01f, .01f), new Vector2(.99f, .01f),
                 new Vector2(.01f, .99f), new Vector2(.99f, .99f) };
-            for (int page = 0; page < 4; page++)
+            for (int page = 0; page < OpeningComicCatalog.Pages.Count * ComicPanelCatalog.QuadPanelCount; page++)
             {
                 AssertOpeningComicPage(game, page);
-                Assert.That(OpeningTimer().RemainingSeconds, Is.InRange(4f, 6f));
-                ClickOpeningComic(corners[page]);
+                Assert.That(OpeningTimer().RemainingSeconds, Is.InRange(OpeningComicCatalog.SecondsPerPage - 2f, OpeningComicCatalog.SecondsPerPage));
+                ClickOpeningComic(corners[page % corners.Length]);
                 yield return null;
             }
             AssertOpeningFinished(game);
@@ -106,19 +112,23 @@ namespace ShatteredSail.Presentation.Tests
             GameObject overlay = GameObject.Find("Opening Comic Overlay");
             Assert.That(overlay, Is.Not.Null);
             RawImage page = GameObject.Find("Opening Comic Page").GetComponent<RawImage>();
-            Text narration = GameObject.Find("Opening Comic Narration").GetComponent<Text>();
-            Assert.That(page.texture, Is.SameAs(Resources.Load<Texture2D>("OpeningComics/opening_page0" + (index + 1))));
+            int sheetIndex = index / ComicPanelCatalog.QuadPanelCount;
+            int panel = index % ComicPanelCatalog.QuadPanelCount;
+            string resource = "OpeningComics/opening_page0" + (sheetIndex + 1);
+            Texture2D independent = Resources.Load<Texture2D>(ComicPanelCatalog.HighResolutionPanelResource(resource, panel));
+            Texture2D expected = independent != null ? independent : Resources.Load<Texture2D>(resource);
+            Rect source = independent != null ? new Rect(0f, 0f, 1f, 1f) : ComicPanelCatalog.QuadPanel(panel);
+            Assert.That(page.texture, Is.SameAs(expected));
             Assert.That(page.texture, Is.Not.Null, "Every opening page must ship as a real Resources asset.");
-            Assert.That(page.uvRect, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
-            Assert.That(narration.text, Is.EqualTo(OpeningComicCatalog.Pages[index].Narration));
-            Assert.That(string.IsNullOrWhiteSpace(narration.text), Is.False);
-            Assert.That(narration.font, Is.SameAs(GameTypography.InterfaceFont));
-            Assert.That(narration.raycastTarget, Is.False);
-            Assert.That(overlay.GetComponentsInChildren<Text>(true), Has.Length.EqualTo(1),
-                "The only text is narration within the artwork's authored box.");
+            Assert.That(page.uvRect, Is.EqualTo(source));
+            Assert.That(GameObject.Find("Opening Comic Narration"), Is.Null);
+            Assert.That(overlay.GetComponentsInChildren<Text>(true), Is.Empty,
+                "Opening pages contain no captions, titles or other lettering.");
             Assert.That(overlay.GetComponentsInChildren<Button>(true), Has.Length.EqualTo(1));
             Canvas.ForceUpdateCanvases();
-            foreach (RectTransform rect in new[] { overlay.GetComponent<RectTransform>(), page.rectTransform,
+            Assert.That(page.rectTransform.rect.width / page.rectTransform.rect.height,
+                Is.EqualTo(page.texture.width * source.width / (page.texture.height * source.height)).Within(.01f));
+            foreach (RectTransform rect in new[] { overlay.GetComponent<RectTransform>(),
                 ActiveButton("Opening Comic Advance").GetComponent<RectTransform>() })
             {
                 Canvas canvas = rect.GetComponentInParent<Canvas>().rootCanvas;
@@ -157,9 +167,14 @@ namespace ShatteredSail.Presentation.Tests
         private static ComicAutoAdvance OpeningTimer() =>
             GameObject.Find("Opening Comic Overlay").GetComponent<ComicAutoAdvance>();
 
-        private static int OpeningPageIndex(CoreGameplayDemoController game) => (int)
-            typeof(CoreGameplayDemoController).GetField("openingComicPageIndex", BindingFlags.Instance | BindingFlags.NonPublic)
-                .GetValue(game);
+        private static int OpeningPageIndex(CoreGameplayDemoController game)
+        {
+            int page = (int)typeof(CoreGameplayDemoController)
+                .GetField("openingComicPageIndex", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(game);
+            int panel = (int)typeof(CoreGameplayDemoController)
+                .GetField("openingComicPanelIndex", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(game);
+            return page * ComicPanelCatalog.QuadPanelCount + panel;
+        }
 
         private static IEnumerator WaitForOpeningPage(CoreGameplayDemoController game, int expected)
         {

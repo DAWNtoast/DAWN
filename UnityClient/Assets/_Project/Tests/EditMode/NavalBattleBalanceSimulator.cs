@@ -100,7 +100,7 @@ namespace ShatteredSail.Core.Tests
             session.ConfigureSpecialCardSources(specialists ? FixtureCrewIds : Array.Empty<string>(),
                 specialists ? FixtureComponentIds : Array.Empty<string>());
             session.ConfigureCardUpgrades(CoreVoyageSession.CardLibrary
-                .Where(card => !CoreVoyageSession.IsSpecialBattleCard(card.Id))
+                .Where(card => card.AllowedStages != NavalBattleStages.None && !CoreVoyageSession.IsSpecialBattleCard(card.Id))
                 .ToDictionary(card => card.Id, card => upgrade));
             int specialExperience = upgrade == 0 ? 0 : upgrade == 1 ? 120 : upgrade == 2 ? 360 : 840;
             session.RestoreSpecialCardExperience(session.AcquiredSpecialCardIds.ToDictionary(id => id, id => specialExperience));

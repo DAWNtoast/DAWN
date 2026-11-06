@@ -18,6 +18,7 @@ namespace ShatteredSail.Editor
         private const string Root = "Assets/_Project/Resources/";
         private static readonly string[] paths = CreatePaths();
         private static readonly HashSet<string> pathSet = new HashSet<string>(paths, StringComparer.Ordinal);
+        private static readonly HashSet<string> paddedPathSet = CreatePaddedPaths();
         public static IReadOnlyList<string> AssetPaths { get; } = Array.AsReadOnly(paths);
 
         private static string[] CreatePaths()
@@ -64,10 +65,56 @@ namespace ShatteredSail.Editor
             // finalization. Keep its authored sampling and original import policy.
             result.Add(Root + "UISurfaces/journal_parchment_v1.png");
             result.Add(Root + "UISurfaces/nautical_canvas_v1.png");
+            // Sixteen opaque ram pages validated at original display size against source PNGs.
+            foreach (string sequence in new[] { "ram_player_head_on", "ram_player_broadside", "ram_boss_head_on", "ram_boss_broadside" })
+                for (int page = 1; page <= 4; page++)
+                    result.Add(Root + "BattleComics/HD/" + sequence + "_page" + page.ToString("00") + ".png");
             return result.ToArray();
         }
 
         public static bool IsListed(string assetPath) => assetPath != null && pathSet.Contains(assetPath);
+
+        private static HashSet<string> CreatePaddedPaths()
+        {
+            var result = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string sequence in new[] { "ram_player_head_on", "ram_player_broadside", "ram_boss_head_on", "ram_boss_broadside" })
+                for (int page = 1; page <= 4; page++)
+                    result.Add(Root + "BattleComics/HD/" + sequence + "_page" + page.ToString("00") + ".png");
+            return result;
+        }
+
+        public static bool UsesPixelPadding(string assetPath) => assetPath != null && paddedPathSet.Contains(assetPath);
+
+        /// <summary>Preserve every authored pixel and repeat only the outside edge into block padding.</summary>
+        public static Color32[] PadPixels(Color32[] source, int width, int height, int targetWidth, int targetHeight)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (width < 1 || height < 1 || targetWidth < width || targetHeight < height ||
+                (long)width * height != source.Length || (long)targetWidth * targetHeight > int.MaxValue)
+                throw new ArgumentException("Invalid source-preserving padding dimensions.");
+            var destination = new Color32[targetWidth * targetHeight];
+            for (int y = 0; y < targetHeight; y++)
+                for (int x = 0; x < targetWidth; x++)
+                    destination[y * targetWidth + x] = source[Math.Min(y, height - 1) * width + Math.Min(x, width - 1)];
+            return destination;
+        }
+
+        public static void CompressImportedTextureWithPadding(Texture2D texture, bool mipmapsEnabled)
+        {
+            if (texture == null) throw new ArgumentNullException(nameof(texture));
+            if (mipmapsEnabled) throw new InvalidOperationException("Pixel padding is restricted to non-mipmapped ram pages.");
+            if (texture.width != 3344 || texture.height != 1882)
+                throw new InvalidOperationException("Ram-page padding requires the validated 3344x1882 source size and matching display UV.");
+            int width = (texture.width + 3) / 4 * 4, height = (texture.height + 3) / 4 * 4;
+            if (width != texture.width || height != texture.height)
+            {
+                Color32[] pixels = PadPixels(texture.GetPixels32(), texture.width, texture.height, width, height);
+                if (!texture.Reinitialize(width, height)) throw new InvalidOperationException("Cannot pad ram page texture.");
+                texture.SetPixels32(pixels);
+                texture.Apply(false, false);
+            }
+            CompressImportedTexture(texture, false);
+        }
 
         public static bool SupportsTarget(BuildTarget target) => target == BuildTarget.StandaloneWindows ||
             target == BuildTarget.StandaloneWindows64 || target == BuildTarget.StandaloneOSX || target == BuildTarget.StandaloneLinux64;
@@ -188,7 +235,7 @@ namespace ShatteredSail.Editor
         [Serializable] private sealed class Audit
         {
             public string generatedUtc, target;
-            public string scope = "Explicit whitelist reimport. Source PNG bytes unchanged; desktop BC7 with nearest-four whole-image resampling, or original-resolution RGBA32 for NPOT mip chains. Build/package size and visual quality require separate validation.";
+            public string scope = "Explicit whitelist reimport. Source PNG bytes unchanged; desktop BC7 with nearest-four whole-image resampling or marked ram-page edge padding, or original-resolution RGBA32 for NPOT mip chains. Build/package size and visual quality require separate validation.";
             public int listed, imported, missing, excluded, failed;
             public List<Record> assets = new List<Record>();
         }
@@ -197,7 +244,7 @@ namespace ShatteredSail.Editor
         {
             public string path, status, error, sourceSha256, format, graphicsFormat;
             public int sourceWidth, sourceHeight, width, height, mipmapCount, maxTextureSize, spriteCount;
-            public bool readable, sourceUnchanged;
+            public bool readable, sourceUnchanged, pixelPadding;
         }
 
         /// <summary>
@@ -228,7 +275,7 @@ namespace ShatteredSail.Editor
                 {
                     foreach (string path in paths)
                     {
-                        var record = new Record { path = path };
+                        var record = new Record { path = path, pixelPadding = UsesPixelPadding(path) };
                         audit.assets.Add(record);
                         if (!File.Exists(path)) { record.status = "missing-skipped"; audit.missing++; continue; }
                         var importer = AssetImporter.GetAtPath(path) as TextureImporter;

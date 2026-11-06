@@ -10,6 +10,24 @@ namespace ShatteredSail.Core.Gameplay
     /// <summary>Current source-card rules. Identity, illustrations and historical slots stay stable.</summary>
     public static class CoreSpecialCardRedesign
     {
+        // These reviewed support cards restore health directly at every rank.
+        // Keep this authored payment policy beside their base rules, independent of amount.
+        public static bool UsesFreeRepair(string cardId)
+        {
+            switch (cardId)
+            {
+                case "card_special_crew_broken_anchor_carpenter_kia":
+                case "card_special_crew_salt_crown_carpenter_saf":
+                case "card_special_crew_gray_gull_cook_pepe":
+                case "card_special_crew_bronze_bell_cook_basin":
+                case "card_special_plating_merchants_oath":
+                case "card_special_plating_gilded_bulwark":
+                case "card_special_plating_suncoin_rampart":
+                case "card_special_plating_redbanner_wall": return true;
+                default: return false;
+            }
+        }
+
         public static IReadOnlyList<CoreBattleCard> ApplyAll(CoreBattleCard[] cards)
         {
             for (int i = 0; i < cards.Length; i++) cards[i] = Apply(cards[i]);
@@ -42,7 +60,7 @@ namespace ShatteredSail.Core.Gameplay
                             damage: legendary ? 29 : 19, power: legendary ? 6 : 5, duration: 2, powder: legendary ? 3 : 2, action: A.Cannon);
                         case 4: return School(card, legendary ? M.FireScorch : M.FireNaturalGuard, legendary ? 2 : 1,
                             block: legendary ? 10 : 7, power: legendary ? 5 : 4, secondary: 3, duration: 2, powder: 1);
-                        case 5: return School(card, M.FireLoad, 1, block: 3, draw: 1, power: 5, secondary: 2, duration: 2, limit: 4, powder: 1);
+                        case 5: return School(card, M.FireLoad, 1, block: 3, draw: 1, secondary: 2, powder: 1, upgrades: U.Secondary);
                     }
                     break;
                 case "arcane":
@@ -126,12 +144,12 @@ namespace ShatteredSail.Core.Gameplay
         {
             switch (c.SchoolId)
             {
-                case "fire": return School(c, M.FireLoad, 1, block: 4, draw: 1, power: 6, secondary: 3, duration: 2, limit: 4, powder: 1, stages: S.Ship);
+                case "fire": return School(c, M.FireLoad, 1, block: 4, draw: 1, secondary: 3, powder: 1, stages: S.Ship, upgrades: U.Secondary);
                 case "arcane": return School(c, M.ArcaneCharge, 1, block: 5, draw: 1, power: 3, stages: S.Ship, upgrades: U.None);
                 case "curse": return School(c, M.CurseMark, 1, damage: 7, draw: 1, power: 2, secondary: 2, duration: 3, action: A.Sabotage);
                 case "tide": return School(c, M.TideWard, 1, block: 8, draw: 1, movement: 20, wood: 1, fallbackBlock: 2, upgrades: U.None);
                 case "thunder": return key == "c01"
-                    ? School(c, M.ThunderChain, 2, damage: 22, draw: 1, power: 4, powder: 1, action: A.Cannon)
+                    ? School(c, M.ThunderChain, 2, damage: 22, draw: 1, power: 2, powder: 1, action: A.Cannon)
                     : School(c, M.ThunderReady, 1, block: 5, draw: 1, power: 14, stages: S.Ship);
                 default: throw new InvalidOperationException("Missing crew design: " + c.Id);
             }
@@ -143,8 +161,11 @@ namespace ShatteredSail.Core.Gameplay
                 c.SchoolId == "curse" ? "curse_04" : c.SchoolId == "tide" ? "tide_12" :
                 c.RequiredCrew.Contains("_doctor_") ? "blood_09" : "blood_07";
             CoreBattleCard b = CoreBoardingCardCatalog.FindByKey(key);
-            return new CoreBattleCard(c.Id, c.Name, b.Type, Math.Max(0, b.Energy - 1), b.Damage, b.Block, b.Repair,
-                b.Draw, b.PowderCost, b.DescriptionTemplate, S.Boarding, b.Action, c.RequiredCrew, c.ArtId,
+            string description = c.SchoolId == "blood"
+                ? CoreBoardingManuscriptDescriptions.ForKey(key, c, 0) : b.DescriptionTemplate;
+            int repair = c.Id == "card_special_crew_broken_anchor_doctor_hector" ? CoreBoardingCardBalance.Linear(7) : b.Repair;
+            return new CoreBattleCard(c.Id, c.Name, b.Type, Math.Max(0, b.Energy - 1), b.Damage, b.Block, repair,
+                b.Draw, b.PowderCost, description, S.Boarding, b.Action, c.RequiredCrew, c.ArtId,
                 b.CannonballCost, c.RequiredComponent, schoolId: c.SchoolId, boardingSpec: b.BoardingSpec);
         }
 
@@ -154,9 +175,9 @@ namespace ShatteredSail.Core.Gameplay
             switch (c.SchoolId)
             {
                 case "fire": m = M.SpecialFireDoctrine; text = "每回合首张其他火焰牌成功后，施加 3 层燃烧"; break;
-                case "arcane": m = M.SpecialArcaneDoctrine; text = "每回合首张其他秘术牌成功后，恢复 1 法力，不超过上限"; break;
+                case "arcane": m = M.SpecialArcaneDoctrine; text = "每回合首张其他秘术牌成功后，获得 1 点法力"; break;
                 case "curse": m = M.SpecialCurseDoctrine; text = "每回合首张其他诅咒牌成功后，施加 1 层咒印，最多增至 6 层"; break;
-                case "tide": m = M.SpecialTideDoctrine; text = "每回合首张其他潮汐牌成功后，获得 3 潮势，上限 20"; break;
+                case "tide": m = M.SpecialTideDoctrine; text = "每回合首张其他潮汐牌成功后，获得 3 潮势，保留至战斗结束"; break;
                 case "thunder": m = M.SpecialThunderDoctrine; text = "每回合首张其他雷霆攻击成功后，额外获得 1 连锁，不超过上限"; break;
                 default: m = M.SpecialBloodDoctrine; text = "每回合首张其他血契牌免除生命费用，保留完整效果"; break;
             }
@@ -175,28 +196,28 @@ namespace ShatteredSail.Core.Gameplay
             string rule;
             switch (mechanic)
             {
-                case M.FireLoad: rule = "获得 {schoolSecondary} 发附火，上限 {schoolLimit}；命中后施加 {schoolPower} 层燃烧"; break;
+                case M.FireLoad: rule = "获得 {schoolSecondary} 层附火"; break;
                 case M.FireIgnite: rule = "实际造成直伤后，施加 {schoolPower} 层燃烧"; break;
                 case M.FireIgniteOrExtend: rule = "实际造成直伤后，若目标未燃烧，施加 {schoolPower} 层燃烧；否则增加 {schoolSecondary} 层燃烧"; break;
                 case M.FireExtend: rule = "目标已燃烧时，增加 {schoolPower} 层燃烧"; break;
                 case M.FireExtraTick: rule = "实际造成直伤后，施加 {schoolPower} 层燃烧；目标出牌前已燃烧时，额外结算一次燃烧，每回合一次"; break;
                 case M.FireNaturalGuard: rule = "接下来 {schoolDuration} 回合，敌方自然燃烧结算时获得 {schoolPower} 格挡"; break;
                 case M.FireScorch: rule = "接下来 {schoolSecondary} 次对燃烧敌舰造成有效直伤时，额外造成 {schoolPower} 伤害"; break;
-                case M.ArcaneCharge: rule = "恢复 {schoolPower} 法力，不超过上限"; break;
-                case M.ArcaneTemporary: rule = "获得 {schoolPower} 临时法力，本回合结束清除"; break;
+                case M.ArcaneCharge: rule = "获得 {schoolPower} 点法力"; break;
+                case M.ArcaneTemporary: rule = "获得 {schoolPower} 点法力"; break;
                 case M.ArcaneRelease: rule = "消耗 {schoolThreshold} 法力，额外伤害 +{schoolPower}"; break;
                 case M.ArcaneWard: rule = "消耗 {schoolThreshold} 法力，额外格挡 +{schoolPower}"; break;
                 case M.ArcaneMend: rule = "消耗 {schoolThreshold} 法力，额外恢复 {schoolPower} 船体"; break;
                 case M.ArcaneEcho: rule = "消耗 {schoolThreshold} 法力，抽 {schoolPower} 张"; break;
                 case M.CurseMark: rule = "施加 {schoolPower} 层咒印"; break;
-                case M.CurseDetonate: rule = "需要已有咒印；下次结算咒印伤害时，额外扣除 {schoolPower} 点生命值，不消耗咒印"; break;
+                case M.CurseDetonate: rule = "对敌方造成 {schoolPower}×咒印层数 点伤害"; break;
                 case M.CurseWard: rule = "消耗 {schoolThreshold} 咒印；按消耗前每层咒印获得 {schoolPower} 额外格挡"; break;
-                case M.TideWard: rule = "消耗 {wood} 木板；本牌格挡实际吸收敌方攻击时等量获得潮势，上限 20；无木板时仅获得 2 普通格挡"; break;
+                case M.TideWard: rule = "消耗 {wood} 木板；当前全部格挡变为蓄潮格挡；无木板时仅获得 2 普通格挡"; break;
                 case M.TideRiposte: rule = "需至少 {schoolThreshold} 潮势；消耗全部潮势，按 {schoolPower}% 追加伤害"; break;
                 case M.TideCleanse: rule = "消耗 {schoolThreshold} 潮势；清除敌舰装填，获得 {schoolPower} 格挡，不蓄积潮势"; break;
-                case M.ThunderChain: rule = "每层已有连锁追加 {schoolPower} 伤害；本次攻击后连锁 +1，上限 6，回合结束清空"; break;
-                case M.ThunderFinish: rule = "消耗全部已有连锁，每层追加 {schoolPower} 伤害；本次攻击后连锁 +1，上限 6"; break;
-                case M.ThunderReady: rule = "下一次雷霆攻击伤害 +{schoolPower}，同类取最高，不增加连锁"; break;
+                case M.ThunderChain: rule = "出牌前每有一层连锁，本次伤害提高 {schoolPower} 点"; break;
+                case M.ThunderFinish: rule = "消耗全部已有连锁，每层追加 {schoolPower} 伤害"; break;
+                case M.ThunderReady: rule = "下一次雷霆攻击伤害提高 {schoolPower} 点"; break;
                 case M.ThunderEcho: rule = "已有至少 {schoolThreshold} 连锁时抽 {schoolPower} 张，每回合一次，不增加连锁"; break;
                 case M.BloodRisk: rule = "支付 {schoolThreshold} 船体，额外伤害 +{schoolPower}，支付后至少留 1 点"; break;
                 case M.BloodWard: rule = "支付 {schoolThreshold} 船体，额外格挡 +{schoolPower}，支付后至少留 1 点"; break;
@@ -238,10 +259,11 @@ namespace ShatteredSail.Core.Gameplay
             // identities distinct through their actual card payoffs, not retired travel distances.
             if (source == "crew_bronze_bell_navigator_vick") { block = 3; draw = 2; }
             if (source == "crew_salt_crown_navigator_ashir") { block = 9; draw = 0; }
-            if (source == "crew_salt_crown_carpenter_saf") { block = 10; repair = 3; draw = 0; }
+            if (source == "crew_broken_anchor_carpenter_kia") repair = 4;
+            if (source == "crew_salt_crown_carpenter_saf") { block = 10; repair = 4; draw = 0; }
             if (source == "crew_gray_gull_carpenter_barlow") { block = 5; repair = 7; draw = 1; energy = 2; }
             if (source == "crew_salt_crown_cook_maz") { block = 6; repair = 0; draw = 2; energy = 2; }
-            if (source == "crew_gray_gull_cook_pepe") { block = 6; repair = 3; draw = 1; }
+            if (source == "crew_gray_gull_cook_pepe") { block = 6; repair = 4; draw = 1; }
             if (source == "crew_twilight_tide_cook_lume") { block = 4; repair = 8; draw = 1; energy = 2; }
             int powder = action == A.Cannon || action == A.Load || action == A.PrecisionLoad ? 1 : c.PowderCost;
             string text = BasicText(stage, action, damage, block, repair, draw, powder);
@@ -249,7 +271,7 @@ namespace ShatteredSail.Core.Gameplay
             {
                 case A.Load: case A.PrecisionLoad: text += "下次炮击额外伤害 +{strategyAmount}，最多 +{strategyLimit}；开炮后清空。"; break;
                 case A.Polish: text += "本场船体防御牌额外格挡 +{strategyAmount}，最多 +{strategyLimit}。"; break;
-                case A.FireRounds: text += "获得 {strategyAmount} 发烈焰强化，上限 {strategyLimit}；炮击造成有效直伤后，施加 {burnDamage} 层燃烧。"; break;
+                case A.FireRounds: text += "获得 {strategyAmount} 层附火。"; break;
                 case A.Turn: case A.Circle: case A.Approach: case A.Retreat: case A.Parallel: case A.Navigator:
                     text += "获得 {navalActionPoints} 点行动点，用于海图移动或转向。"; break;
             }
