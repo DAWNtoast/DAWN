@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory=$true)][string]$Output,
     [string]$TestFilter = '',
     [ValidatePattern('^[A-Za-z0-9.]*$')][string]$TradeAcceptanceSeed = '',
+    [string]$NoGmFirstTreasureAuditPath = '',
     [switch]$CaptureVisuals,
     [string]$SourceManifest = '',
     [ValidateRange(1,240)][int]$TimeoutMinutes = 60,
@@ -16,6 +17,28 @@ if ($TradeAcceptanceSeed -and ($Platform -ne 'PlayMode' -or -not $TestFilter)) {
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..')).TrimEnd('\','/')
 $project = [IO.Path]::GetFullPath($ProjectPath).TrimEnd('\','/')
 $destination = [IO.Path]::GetFullPath($Output).TrimEnd('\','/')
+if ($NoGmFirstTreasureAuditPath) {
+    if ($Platform -ne 'PlayMode' -or [string]::IsNullOrWhiteSpace($TestFilter)) {
+        throw 'The no-GM audit is only allowed for explicitly filtered PlayMode diagnostics.'
+    }
+    if (-not [IO.Path]::IsPathRooted($NoGmFirstTreasureAuditPath) -or
+        [IO.Path]::GetPathRoot($NoGmFirstTreasureAuditPath).Length -lt 3) {
+        throw 'Use an absolute no-GM audit path inside the new test output directory.'
+    }
+    $NoGmFirstTreasureAuditPath = [IO.Path]::GetFullPath($NoGmFirstTreasureAuditPath).TrimEnd('\','/')
+    if (-not $NoGmFirstTreasureAuditPath.StartsWith($destination + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Use a dedicated no-GM audit subdirectory inside the new test output directory.'
+    }
+    for ($ancestor = $NoGmFirstTreasureAuditPath; $ancestor; $ancestor = [IO.Path]::GetDirectoryName($ancestor)) {
+        $item = Get-Item -LiteralPath $ancestor -Force -ErrorAction SilentlyContinue
+        if ($item -and ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw 'The no-GM audit output must not traverse a directory link.'
+        }
+    }
+    if (Test-Path -LiteralPath $NoGmFirstTreasureAuditPath) {
+        throw 'Use a new no-GM audit directory to preserve existing progression evidence.'
+    }
+}
 $sourceManifestHash = $null
 $projectManifestHash = $null
 $projectManifestPath = $null
@@ -69,6 +92,7 @@ $arguments = @('-batchmode','-force-d3d11','-projectPath',$project,'-runTests','
     '-testResults',(Join-Path $destination 'results.xml'),'-logFile',(Join-Path $destination 'unity.log'))
 if ($TestFilter) { $arguments += @('-testFilter',$TestFilter) }
 if ($TradeAcceptanceSeed) { $arguments += @('-tradeAcceptanceSeed',$TradeAcceptanceSeed) }
+if ($NoGmFirstTreasureAuditPath) { $arguments += @('-noGmFirstTreasureAuditPath',$NoGmFirstTreasureAuditPath) }
 if ($Platform -eq 'PlayMode') { $arguments += @('-audioCapturePath',(Join-Path $destination 'AudioCapture'),'-auditActionLogPath',(Join-Path $destination 'Actions')) }
 if ($CaptureVisuals -and $Platform -eq 'PlayMode') { $arguments += @('-navalVisualCapturePath',(Join-Path $destination 'Visuals')) }
 $quoted = foreach ($value in $arguments) { $escaped = [regex]::Replace($value,'(\\*)"','$1$1\"'); '"' + [regex]::Replace($escaped,'(\\+)$','$1$1') + '"' }

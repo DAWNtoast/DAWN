@@ -59,29 +59,19 @@ namespace ShatteredSail.Presentation.Tests
 
             private static PortMarketItem PortItem(string key) => PortMarketCatalog.AllItems.Single(item => PortMarketCatalog.Key(item) == key);
 
+            private IEnumerator ObserveStrictMarketStock(string key)
+            {
+                // Closing the previous drawer makes the opposite shop reachable.
+                // Every selection yields after Render, so a pending old graphic
+                // cannot intercept the next item click in the same frame.
+                yield return ReturnMarketCatalog();
+                yield return OpenMarketItem(key);
+                yield return SetMarketInventoryExpanded(true);
+                Assert.That(PortText("Market Quota " + key), Is.Not.Null);
+            }
+
             private static int VisibleMarketRemaining(string key)
             {
-                if (PortText("Market Quota " + key) == null)
-                {
-                    if (PortButton("Market Item Icon " + key) == null)
-                    {
-                        Button shop = PortButton("Market Shop " + MarketSceneLayout.ShopForItem(PortItem(key)));
-                        Assert.That(shop, Is.Not.Null, "Read stock through the visible shop entrance: " + key);
-                        Assert.That(shop.IsInteractable(), Is.True);
-                        shop.onClick.Invoke();
-                    }
-                    Button item = PortButton("Market Item Icon " + key);
-                    Assert.That(item, Is.Not.Null, "Read stock through the selected shop's visible item: " + key);
-                    Assert.That(item.IsInteractable(), Is.True);
-                    item.onClick.Invoke();
-                }
-                if (PortText("Market Quota " + key) == null)
-                {
-                    Button inventory = PortButton("Market Inventory Toggle");
-                    Assert.That(inventory, Is.Not.Null, "Open the selected item's inventory through its visible control: " + key);
-                    Assert.That(inventory.IsInteractable(), Is.True);
-                    inventory.onClick.Invoke();
-                }
                 string caption = PortText("Market Quota " + key)?.text ?? string.Empty;
                 Match match = Regex.Match(caption, @"可购\s+(\d+)");
                 Assert.That(match.Success, Is.True, "No visible market allowance: " + caption);
@@ -109,10 +99,11 @@ namespace ShatteredSail.Presentation.Tests
                 PortMarketItem item = PortItem(key);
                 int missing = Math.Max(0, target - Session.GetMarketCargoAmount(key));
                 if (missing == 0) yield break;
+                yield return ObserveStrictMarketStock(key);
                 int fits = Math.Max(0, (int)Math.Floor((Session.CargoCapacityValue - Session.Cargo.UsedVolume + .001f) / PortMarketCatalog.CargoVolume(item)));
                 int quantity = Math.Min(missing, Math.Min(VisibleMarketRemaining(key), fits));
                 DateTime day = PricingDate;
-                decimal unit = PortMarketCatalog.BuyUnitPrice(Session.CurrentPort, item, day);
+                decimal unit = PortMarketCatalog.BuyUnitPrice(Session.CurrentPort, item, day, Session.Cargo.Fame);
                 if (unit > 0m) quantity = (int)Math.Min(quantity, decimal.Floor(Session.ProfileGold / unit));
                 if (quantity <= 0)
                 {
@@ -134,12 +125,12 @@ namespace ShatteredSail.Presentation.Tests
                 }
                 int before = Session.GetMarketCargoAmount(key);
                 decimal gold = Session.ProfileGold;
-                decimal quotedCost = NoGmFirstTreasure ? PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, item, PricingDate, quantity) : 0m;
+                decimal quotedCost = PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, item, PricingDate, quantity, Session.Cargo.Fame);
                 yield return Click("Confirm Market Buy " + key);
                 int received = Session.GetMarketCargoAmount(key) - before;
                 Assert.That(received, Is.EqualTo(quantity), "A real market purchase must deliver its displayed quantity.");
                 Assert.That(Session.ProfileGold, Is.LessThan(gold));
-                if (NoGmFirstTreasure) Assert.That(Session.ProfileGold, Is.EqualTo(gold - quotedCost), "The game-date quote must exactly match the real deduction.");
+                Assert.That(Session.ProfileGold, Is.EqualTo(gold - quotedCost), "The game-date and fame-discounted quote must exactly match the real deduction.");
                 if (trade)
                 {
                     tradeManifest[key] = received;
@@ -155,11 +146,13 @@ namespace ShatteredSail.Presentation.Tests
                 // Plan both sources together, then buy through the normal two UI
                 // actions. Every last unit is useful; the default lot is not a minimum.
                 int water = 0, food = 0;
+                yield return ObserveStrictMarketStock("water");
                 int waterLimit = Math.Min(Math.Max(0, target - Session.Cargo.Water), VisibleMarketRemaining("water"));
+                yield return ObserveStrictMarketStock("food");
                 int foodLimit = Math.Min(Math.Max(0, target - Session.Cargo.Food), VisibleMarketRemaining("food"));
                 DateTime day = PricingDate;
-                decimal waterPrice = PortMarketCatalog.BuyUnitPrice(Session.CurrentPort, PortMarketItem.Water, day);
-                decimal foodPrice = PortMarketCatalog.BuyUnitPrice(Session.CurrentPort, PortMarketItem.Food, day);
+                decimal waterPrice = PortMarketCatalog.BuyUnitPrice(Session.CurrentPort, PortMarketItem.Water, day, Session.Cargo.Fame);
+                decimal foodPrice = PortMarketCatalog.BuyUnitPrice(Session.CurrentPort, PortMarketItem.Food, day, Session.Cargo.Fame);
                 decimal cost = 0m;
                 double volume = Session.Cargo.UsedVolume;
                 while (water < waterLimit || food < foodLimit)
@@ -194,22 +187,30 @@ namespace ShatteredSail.Presentation.Tests
                     .Any(index => Session.GetBattleCard(index).Action == NavalBattleCardAction.Cannon);
                 yield return BuyResource("wood", 10);
                 yield return BuyResource("medicine", 3);
-                yield return BuyResource("powder", usesCannon ? (route == 2 ? 10 : 6) : 3);
-                yield return BuyResource("cannonballs", usesCannon ? (NoGmFirstTreasure ? RealTradeAudit.CannonballTarget : route == 2 ? 16 : 10) : 2);
+                int cannonballTarget = usesCannon ? (NoGmFirstTreasure ? RealTradeAudit.CannonballTarget : route == 2 ? 16 : 10) : 2;
+                int powderTarget = NoGmFirstTreasure && usesCannon ? NoGmPowderTarget(cannonballTarget) : usesCannon ? (route == 2 ? 10 : 6) : 3;
+                yield return BuyResource("powder", powderTarget);
+                yield return BuyResource("cannonballs", cannonballTarget);
                 if (NoGmFirstTreasure && usesCannon)
+                {
+                    Assert.That(Session.Cargo.Powder, Is.GreaterThanOrEqualTo(powderTarget),
+                        "The real hold must fund every planned shot plus the limited loading reserve before buying merchandise.");
                     Assert.That(Session.Cargo.Cannonballs, Is.GreaterThanOrEqualTo(RealTradeAudit.CannonballTarget),
                         "Do not repeat under-provisioned cannon battles: retain the actual stock/funds shortage.");
+                }
 
                 // A paired purchase keeps neither water nor food crowding out
-                // its counterpart. Use the full complement and currently available
+                // its counterpart. Use the selected crew and currently available
                 // cook; the displayed departure quote is recorded again before sailing.
                 int days = route == 2 ? 20 : route == 0 ? 18 : 8;
-                double daily = Session.EstimateDailyRationConsumption(Session.CrewCountValue, Session.HasCook);
+                double daily = Session.EstimateDailyRationConsumption(Session.EffectiveCrewCount, Session.HasCook);
                 int target = (int)Math.Ceiling(daily * days);
                 yield return BuyPairedRations(target);
                 double rationDays = daily > 0 ? Math.Min(Session.Cargo.Water, Session.Cargo.Food) / daily : 0;
-                Record("Departure reserve: requested=" + days + " days; full-crew/current-cook available=" + rationDays.ToString("0.00") +
+                Record("Departure reserve: requested=" + days + " days; selected-crew/current-cook available=" + rationDays.ToString("0.00") +
                     "; actual water=" + Session.Cargo.Water + ", food=" + Session.Cargo.Food);
+                if (NoGmFirstTreasure) Assert.That(rationDays, Is.GreaterThanOrEqualTo(days),
+                    "Do not depart or buy merchandise while the actual planned ration reserve is incomplete.");
                 // A limited hold is evidence of a provisioning problem, never
                 // permission to create free cargo. Avoid buying trade goods if
                 // the requested voyage reserve could not be assembled.
@@ -218,7 +219,7 @@ namespace ShatteredSail.Presentation.Tests
                     DateTime day = PricingDate;
                     var candidates = PortMarketCatalog.AllItems.Where(item => item != PortMarketItem.Water && item != PortMarketItem.Food)
                         .Select(item => new { Item = item, Margin = PortMarketCatalog.SellUnitPrice(targetPort, item, day) -
-                            PortMarketCatalog.BuyUnitPrice(Session.CurrentPort, item, day) })
+                            PortMarketCatalog.BuyUnitPrice(Session.CurrentPort, item, day, Session.Cargo.Fame) })
                         .Where(candidate => candidate.Margin > 0m)
                         .OrderByDescending(candidate => candidate.Margin / (decimal)PortMarketCatalog.CargoVolume(candidate.Item)).ToArray();
                     foreach (var candidate in candidates)
@@ -226,13 +227,14 @@ namespace ShatteredSail.Presentation.Tests
                         string key = PortMarketCatalog.Key(candidate.Item);
                         int fits = Math.Max(0, (int)Math.Floor((Session.CargoCapacityValue - Session.Cargo.UsedVolume - 5f) /
                             PortMarketCatalog.CargoVolume(candidate.Item)));
+                        yield return ObserveStrictMarketStock(key);
                         int quantity = Math.Min(VisibleMarketRemaining(key), fits);
                         decimal budget = Math.Max(0, Session.ProfileGold - 80);
-                        while (quantity > 0 && PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, candidate.Item, day, quantity) > budget) quantity--;
+                        while (quantity > 0 && PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, candidate.Item, day, quantity, Session.Cargo.Fame) > budget) quantity--;
                         decimal sale = 0m;
                         for (int remaining = quantity; remaining > 0; remaining -= 10)
                             sale += PortMarketCatalog.CalculateSellRevenue(targetPort, candidate.Item, day, Math.Min(10, remaining));
-                        decimal purchase = PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, candidate.Item, day, quantity);
+                        decimal purchase = PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, candidate.Item, day, quantity, Session.Cargo.Fame);
                         if (quantity <= 0 || sale <= purchase) continue;
                         Record("Trade plan: " + Session.CurrentPort + " -> " + targetPort + "; " + key + " x" + quantity +
                             "; quoted purchase=" + purchase + "; sale in actual market lots=" + sale + "; excludes voyage costs and losses.");
@@ -270,6 +272,8 @@ namespace ShatteredSail.Presentation.Tests
                         .Any(index => Session.GetBattleCard(index).Action == NavalBattleCardAction.Cannon);
                     int reserve = key == "wood" ? 10 : key == "medicine" ? 3 : key == "beer" ? 4 :
                         key == "powder" ? (usesCannon ? 10 : 3) : key == "cannonballs" ? (usesCannon ? 16 : 2) : 0;
+                    if (NoGmFirstTreasure && usesCannon && key == "powder")
+                        reserve = NoGmPowderTarget(RealTradeAudit.CannonballTarget);
                     int available = Math.Max(0, Session.GetMarketCargoAmount(key) - reserve);
                     if (tradeManifest.TryGetValue(key, out int manifested))
                         Record("Manifest arrival " + key + ": purchased=" + manifested + "; remaining above starting inventory=" +

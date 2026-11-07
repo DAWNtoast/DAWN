@@ -19,6 +19,8 @@ namespace ShatteredSail.Presentation.Tests
             private bool strictChartClickAccepted;
             private readonly HashSet<string> strictObservedFragmentNames = new HashSet<string>();
             private readonly HashSet<string> strictObservedClueNames = new HashSet<string>();
+            private CoreVoyageMap strictKnownTreasureMap;
+            private CoreEncounter strictKnownTreasureCore;
 
             // All state changes go through visible UI. In particular, surveying a
             // chart never reads an undisclosed node's position, identity or choices.
@@ -42,9 +44,11 @@ namespace ShatteredSail.Presentation.Tests
                         string key = Session.ActiveEncounter.Id + ":" + Session.Position.X.ToString("F1") + ":" + Session.Position.Y.ToString("F1");
                         encounterVisits.TryGetValue(key, out int visits);
                         encounterVisits[key] = visits + 1;
-                        if (visits >= 6)
+                        int visitLimit = Session.IsTreasureExpedition && StrictIsMoonlitAltar(Session.ActiveEncounter) ? 10 : 6;
+                        if (visits >= visitLimit)
                         {
-                            Record("Unresolved encounter reopened six times: " + key);
+                            Record("Unresolved encounter reached " + visitLimit + " visits: " + key +
+                                " / " + Session.TreasureExpeditionStatusSummary);
                             Shot("Strict_Encounter_Stuck");
                             if (StrictEnabled("Emergency Encounter Return")) yield return Click("Emergency Encounter Return");
                             break;
@@ -95,9 +99,11 @@ namespace ShatteredSail.Presentation.Tests
                         " nm / " + forecast.Hours.ToString("F1") + " h / water " + forecast.WaterCost + " / food " + forecast.FoodCost);
                     int openingRations = approachingReadyCore ? (int)Math.Ceiling(
                         Session.EstimateDailyRationConsumption(Session.EffectiveCrewCount, Session.HasCook) * StrictCoreOpeningHours() / 24d) : 0;
-                    if (forecast.WaterCost + openingRations > Session.Cargo.Water || forecast.FoodCost + openingRations > Session.Cargo.Food)
+                    if (!StrictCanFundRouteAndReturn(Session.Cargo.Water, Session.Cargo.Food,
+                        forecast.WaterCost, forecast.FoodCost, openingRations))
                     {
-                        Record("Cannot fund displayed route; normal return without supply injection.");
+                        Record("Cannot fund displayed route plus opening rations=" + openingRations +
+                            " and the normal return reserve (water 2 / food 1); return before spending the reserve.");
                         yield return Click("Safe Return");
                         continue;
                     }
@@ -125,6 +131,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 CoreVoyageMap map = Session.Map;
                 var visible = new List<StrictNavigationTarget>();
+                bool fullCoreReady = goal == "treasure" && StrictCoreReady();
                 foreach (CoreMapNode node in map.Nodes)
                 {
                     Button marker = StrictButton("Event Node " + node.Id);
@@ -135,9 +142,14 @@ namespace ShatteredSail.Presentation.Tests
                     Text labelText = GameObject.Find("Event Label " + node.Id)?.GetComponent<Text>();
                     string glyph = glyphText == null ? "" : glyphText.text;
                     string label = labelText == null ? "" : labelText.text;
-                    bool readyCore = goal == "treasure" && glyph == "X" && StrictCoreReady();
-                    if (node.Visited || node.Skipped && !readyCore || rejected.Contains("node:" + node.Id)) continue;
-                    int priority;
+                    bool readyCore = goal == "treasure" && glyph == "X" && fullCoreReady;
+                    // Discovered named landmarks are public; an intel-only signal
+                    // must never disclose its encounter or choices to this policy.
+                    double progress = goal == "treasure" && Session.IsTreasureExpedition && node.Discovered && glyph != "X"
+                        ? node.Encounter.Choices.Max(choice => StrictExpeditionProgressScore(choice.Effect)) : 0;
+                    if (node.Visited || rejected.Contains("node:" + node.Id)) continue;
+                    if (node.Skipped && !readyCore && !(goal == "treasure" && Session.IsTreasureExpedition)) continue;
+                    double priority;
                     if (goal == "trade")
                     { if (glyph != "首" || Session.BossDefeated) continue; priority = 100; }
                     else if (goal == "legendary")
@@ -145,7 +157,22 @@ namespace ShatteredSail.Presentation.Tests
                     else if (goal == "treasure")
                     {
                         if (glyph == "X" && !readyCore) continue;
-                        priority = readyCore ? 1000 : strictObservedClueNames.Contains(label) ? 100 : 10;
+                        if (Session.IsTreasureExpedition)
+                        {
+                            if (fullCoreReady && !readyCore) continue;
+                            // Optional legendary fights are not required for the
+                            // first full vault. Needed public supplies outrank a
+                            // detour only while the vault remains locked.
+                            if (glyph == "传" || glyph == "藏" || glyph == "首") continue;
+                            bool needsRations = Math.Min(Session.WaterSupplyHours, Session.FoodSupplyHours) < 48d;
+                            bool supply = !fullCoreReady && needsRations && node.Discovered &&
+                                node.Encounter.Choices.Any(choice => !choice.StartsBattle && choice.Effect.TreasureHeat <= 0 &&
+                                    choice.Effect.Curse <= 0 && (choice.Effect.Water > 0 || choice.Effect.Food > 0) &&
+                                    Session.EncounterChoiceConditionReason(choice).Length == 0);
+                            if (node.Discovered && !readyCore && progress <= 0 && !supply) continue;
+                            priority = readyCore ? 1000000 : supply ? 500000 : progress > 0 ? progress : 10;
+                        }
+                        else priority = readyCore ? 1000 : strictObservedClueNames.Contains(label) ? 100 : 10;
                     }
                     else
                     {
@@ -195,12 +222,50 @@ namespace ShatteredSail.Presentation.Tests
                     .FirstOrDefault();
             }
 
-            private bool StrictCoreReady() => Session.TreasureClues >= Session.TreasureRequiredClues ||
-                Session.TreasureClues >= Session.TreasureRequiredClues - 1 &&
-                (Session.HasDiver || Session.Cargo.Powder >= 3 && Session.Hull > 12);
+            private CoreEncounter StrictVisibleTreasureCore()
+            {
+                if (strictKnownTreasureMap != Session.Map)
+                { strictKnownTreasureMap = Session.Map; strictKnownTreasureCore = null; }
+                if (!Session.IsTreasureVoyage || Session.Map == null) return null;
+                if (Session.ActiveEncounter?.Id == CoreTreasureHuntCatalog.CoreEncounterId)
+                    strictKnownTreasureCore = Session.ActiveEncounter;
+                if (strictKnownTreasureCore != null) return strictKnownTreasureCore;
+                foreach (CoreMapNode node in Session.Map.Nodes)
+                {
+                    if (!node.Discovered) continue;
+                    Button marker = StrictButton("Event Node " + node.Id);
+                    if (marker == null || marker.GetComponentInChildren<Text>()?.text != "X") continue;
+                    strictKnownTreasureCore = node.Encounter;
+                    break;
+                }
+                return strictKnownTreasureCore;
+            }
 
-            private double StrictCoreOpeningHours() => Session.HasDiver ? 6d :
-                Session.Cargo.Powder >= 3 && Session.Hull > 12 ? 5d : 8d;
+            private CoreEncounterChoice StrictCoreOpeningChoice()
+            {
+                CoreEncounter core = StrictVisibleTreasureCore();
+                if (core == null) return null;
+                // Current expeditions expose the complete vault first. Partial
+                // salvage is a legal escape, but does not satisfy this acceptance.
+                IEnumerable<CoreEncounterChoice> candidates = Session.IsTreasureExpedition ? core.Choices.Take(1) :
+                    core.Choices.Where(choice => choice.Effect.TreasureComplete)
+                        .OrderByDescending(choice => choice.RequiredCrew == "diver")
+                        .ThenByDescending(choice => choice.Effect.Powder >= 0);
+                return candidates.FirstOrDefault(choice => choice.Effect.TreasureComplete &&
+                    Session.EncounterChoiceConditionReason(choice).Length == 0 &&
+                    Session.TreasureClues >= choice.RequiredTreasureClues && Session.Hull + choice.Effect.Hull > 0 &&
+                    Session.Cargo.Powder + choice.Effect.Powder >= 0);
+            }
+
+            private bool StrictCoreReady() => StrictCoreOpeningChoice() != null;
+            private double StrictCoreOpeningHours() => StrictCoreOpeningChoice()?.Hours ?? 0d;
+
+            private static bool StrictIsMoonlitAltar(CoreEncounter encounter) => encounter != null &&
+                (encounter.Id == "moonlit_dawn" || encounter.Id == "moonlit_dusk" || encounter.Id == "moonlit_midnight");
+
+            private double StrictExpeditionProgressScore(VoyageEffect effect) => StrictTreasureProgressScore(
+                StrictVisibleTreasureCore()?.Choices.FirstOrDefault(), effect, Session.HasTreasureMark,
+                Session.TreasureExpeditionCredit, Session.TreasureExpeditionHeat, Session.TreasureExpeditionResonance, Session.Cargo.Curse);
 
             private bool StrictRouteCrossesVisibleCore(SailingForecast forecast)
             {
@@ -254,12 +319,20 @@ namespace ShatteredSail.Presentation.Tests
 
             private IEnumerator StrictResolveEncounter(string goal)
             {
+                yield return WaitForEncounterDossierPresentationCompletion();
                 CoreEncounter encounter = Session.ActiveEncounter;
                 Shot("Strict_Encounter_" + strictEncounterSequence++ + "_" + encounter.Id, "Encounter Card");
                 int selected = -1;
                 double best = double.NegativeInfinity;
                 bool challenge = goal == "trade" && encounter.BossKind == CoreBossKind.Route ||
                     goal == "legendary" && encounter.BossKind == CoreBossKind.Legendary;
+                bool expedition = goal == "treasure" && Session.IsTreasureExpedition;
+                bool core = encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId;
+                bool ritual = expedition && StrictIsMoonlitAltar(encounter);
+                bool fullCoreBlockedByCost = expedition && core && StrictCoreReady() && !Session.IsChoiceAvailable(0);
+                if (expedition) Record("Public expedition state: " + Session.TreasureExpeditionStatusSummary);
+                if (expedition && core && !Session.IsChoiceAvailable(0))
+                    Record("Complete vault is unavailable: " + Session.ChoiceUnavailableReason(0));
                 for (int index = 0; index < encounter.Choices.Count; index++)
                 {
                     // The encounter is open; its reward/cost choices are now public.
@@ -272,8 +345,27 @@ namespace ShatteredSail.Presentation.Tests
                     double score = effect.MapFragments * 10000 + effect.TreasureClues * 5000 + effect.Reveal * 150 +
                         effect.Gold * .15 + effect.Hull * 4 + effect.Water + effect.Food - choice.Hours * 3 -
                         (effect.ForceReturn ? 100000 : 0) + (choice.StartsBattle ? challenge ? 1000000 : -2000 : 0);
-                    if (encounter.Id == CoreTreasureHuntCatalog.CoreEncounterId)
-                        score = index == 2 ? 1000000 : index == 0 ? 900000 : index == 1 ? 800000 : -1000000;
+                    if (expedition)
+                    {
+                        score += StrictExpeditionProgressScore(effect) - Math.Max(0, effect.TreasureHeat) * 200000 -
+                            Math.Max(0, effect.Curse) * 200000 - Math.Max(0, -effect.TreasureCredit) * 200000;
+                        if (core)
+                        {
+                            // Never accept a partial completion to make a failed
+                            // full-vault attempt appear successful.
+                            if (index == 0) score = 1000000;
+                            else if (effect.PostponeTreasureCore) score = 900000;
+                            else continue;
+                        }
+                        else if (ritual)
+                        {
+                            if (index == 0) score = 1000000;
+                            else if (effect.PostponeTreasureCore) score = 900000;
+                            else continue;
+                        }
+                    }
+                    else if (core)
+                        score = choice == StrictCoreOpeningChoice() ? 1000000 : effect.PostponeTreasureCore ? 900000 : -1000000;
                     if (score > best) { best = score; selected = index; }
                 }
                 if (!challenge && StrictEnabled("Skip Encounter") && (selected < 0 || best <= 0))
@@ -284,6 +376,12 @@ namespace ShatteredSail.Presentation.Tests
                     Record("Public choice: " + encounter.Name + " / " + encounter.Choices[selected].Label + " / reward multiplier " + Session.ActiveEncounterRewardMultiplier);
                     yield return Click("Encounter Choice " + selected);
                     Record("Observed encounter gain: fragments " + (Session.VoyageTreasureFragments - fragments) + ", clues " + (Session.TreasureClues - clues));
+                    if (expedition) Record("Observed expedition result: " + Session.TreasureExpeditionStatusSummary);
+                    if (fullCoreBlockedByCost && Session.Phase == CoreDemoPhase.Sailing)
+                    {
+                        Record("Full vault prerequisites earned but the real opening cost/capacity is unavailable; return without fallback completion.");
+                        if (StrictEnabled("Safe Return")) yield return Click("Safe Return");
+                    }
                     yield break;
                 }
                 if (StrictEnabled("Emergency Encounter Return")) yield return Click("Emergency Encounter Return");
@@ -424,7 +522,7 @@ namespace ShatteredSail.Presentation.Tests
             {
                 public string key, button;
                 public VoyagePoint point;
-                public int priority;
+                public double priority;
                 public bool core;
             }
         }

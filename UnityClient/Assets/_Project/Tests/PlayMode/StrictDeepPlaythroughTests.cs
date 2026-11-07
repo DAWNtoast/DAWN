@@ -315,8 +315,23 @@ namespace ShatteredSail.Presentation.Tests
             {
                 yield return EnsureHub();
                 int port = Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count).First(i => CoreVoyageSession.DestinationPorts[i] == Session.CurrentPort);
-                int target = CoreShipMarketCatalog.ShipsForPort(port).Where(i => CoreVoyageSession.Ships[i].CargoCapacity > Session.CargoCapacityValue && Session.ProfileGold >= CoreShipMarketCatalog.PurchaseCost(i) + 700)
-                    .OrderByDescending(i => CoreVoyageSession.Ships[i].CargoCapacity).DefaultIfEmpty(-1).First();
+                var candidates = CoreShipMarketCatalog.ShipsForPort(port).Where(i =>
+                    CoreVoyageSession.Ships[i].CargoCapacity > Session.CargoCapacityValue &&
+                    Session.ProfileGold >= CoreShipMarketCatalog.PurchaseCost(i) + 700);
+                if (NoGmFirstTreasure)
+                {
+                    CoreTreasureMapRank rank = FirstCraftedMap?.Rank ?? CoreTreasureHuntCatalog.FindRank("weathered");
+                    double perCrew = Session.EstimateDailyRationConsumption(1, Session.HasCook);
+                    candidates = candidates.Where(i =>
+                    {
+                        CoreShipDefinition candidate = CoreVoyageSession.Ships[i];
+                        var targets = StrictTreasureSupplyTargets(rank.RecommendedVoyageDays,
+                            perCrew * candidate.CrewCount, Session.HasDiver);
+                        return StrictTreasurePlanVolume(Session.Cargo.UsedVolume, Session.GetMarketCargoAmount, targets) <=
+                            candidate.CargoCapacity + .001d;
+                    });
+                }
+                int target = candidates.OrderByDescending(i => CoreVoyageSession.Ships[i].CargoCapacity).DefaultIfEmpty(-1).First();
                 if (IsShipAudit)
                 {
                     if (shipsPurchased >= shipPurchasePlan.Length) yield break;

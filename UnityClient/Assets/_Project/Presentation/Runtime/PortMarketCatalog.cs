@@ -209,7 +209,14 @@ namespace ShatteredSail.Presentation
         {
             PortMarketDayState day = DayState(portName, item, date);
             decimal raw = BaseSellPrice(item) * CorePortEconomy.LocalPriceMultiplier(portName, Key(item)) * day.SellMultiplier;
-            return decimal.Round(raw, 4);
+            // A same-month cap can still reward buying cheaply, waiting for a new
+            // month and reselling locally. Bound every sale by this port's lowest
+            // possible purchase quote, including the maximum fame discount.
+            // Use the purchase precision so small supply prices cannot round up
+            // past that floor. Regional producer/importer differences remain.
+            decimal minimumPurchase = BaseBuyPrice(item) * CorePortEconomy.LocalPriceMultiplier(portName, Key(item)) *
+                CorePortEconomy.DailyMinimum * FamePurchaseDiscountMultiplier(int.MaxValue);
+            return Math.Min(decimal.Round(raw, 4), decimal.Round(minimumPurchase, 4));
         }
 
         public static decimal CalculateBuyCost(string portName, PortMarketItem item, DateTime date, int quantity)

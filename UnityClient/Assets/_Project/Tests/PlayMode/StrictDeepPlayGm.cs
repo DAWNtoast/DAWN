@@ -22,8 +22,17 @@ namespace ShatteredSail.Presentation.Tests
             {
                 Assert.That(NoGmFirstTreasure, Is.False, "The no-GM acceptance cannot refresh stock through F10.");
                 yield return OpenStrictMarket();
-                bool depleted = VisibleMarketRemaining("water") < 100 || VisibleMarketRemaining("food") < 100 ||
-                    new[] { "wood", "medicine", "beer", "iron", "cloth" }.Any(key => VisibleMarketRemaining(key) == 0);
+                yield return ObserveStrictMarketStock("water");
+                int waterQuota = VisibleMarketRemaining("water");
+                yield return ObserveStrictMarketStock("food");
+                int foodQuota = VisibleMarketRemaining("food");
+                bool depleted = waterQuota < 100 || foodQuota < 100;
+                foreach (string key in new[] { "wood", "medicine", "beer", "iron", "cloth" })
+                {
+                    if (depleted) break;
+                    yield return ObserveStrictMarketStock(key);
+                    depleted = VisibleMarketRemaining(key) == 0;
+                }
                 if (!force && !depleted) { yield return EnsureHub(); yield break; }
                 decimal gold = Session.ProfileGold;
                 string cargo = StrictGmCargoSnapshot(), warehouse = Session.PortWarehouse.Serialize();
@@ -57,8 +66,14 @@ namespace ShatteredSail.Presentation.Tests
                     Assert.That(StrictGmCargoSnapshot(), Is.EqualTo(cargo));
                     Assert.That(Session.PortWarehouse.Serialize(), Is.EqualTo(warehouse));
                     Assert.That(JsonUtility.ToJson(Session.CaptureTreasureProgress()), Is.EqualTo(treasure));
-                    Assert.That(VisibleMarketRemaining("water"), Is.GreaterThanOrEqualTo(100));
-                    Assert.That(VisibleMarketRemaining("food"), Is.GreaterThanOrEqualTo(100));
+                    yield return ObserveStrictMarketStock("water");
+                    int updatedWaterQuota = VisibleMarketRemaining("water");
+                    yield return ObserveStrictMarketStock("food");
+                    int updatedFoodQuota = VisibleMarketRemaining("food");
+                    Record("Allowed GM actual market allowance: water " + waterQuota + " -> " + updatedWaterQuota +
+                        "; food " + foodQuota + " -> " + updatedFoodQuota);
+                    Assert.That(updatedWaterQuota, Is.GreaterThanOrEqualTo(100));
+                    Assert.That(updatedFoodQuota, Is.GreaterThanOrEqualTo(100));
                 }
                 finally
                 {

@@ -145,9 +145,24 @@ namespace ShatteredSail.Presentation.Tests
                 {
                     int port = Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count).Single(i => CoreVoyageSession.DestinationPorts[i] == origin);
                     int destination = new[] { 2, 0, 3, 4, 5, 1 }[port];
+                    int[] availablePorts = Enumerable.Range(0, CoreVoyageSession.DestinationPorts.Count)
+                        .Where(index => session.CanSelectDestinationPort(CoreVoyageSession.DestinationPorts[index], out _)).ToArray();
+                    Assert.That(availablePorts, Is.Not.Empty, "Ordinary progression needs a currently unlocked destination.");
+                    int nextUnvisited = availablePorts.Where(index => !session.HasVisitedPort(CoreVoyageSession.DestinationPorts[index]))
+                        .DefaultIfEmpty(-1).First();
+                    if (nextUnvisited >= 0) destination = nextUnvisited;
+                    else if (!availablePorts.Contains(destination)) destination = availablePorts[0];
                     bool explore = driver.FirstCraftedMap == null && !driver.MustTradeAfterSupplyInvestment &&
                         driver.CrossPortTradeUnitsSold > 0 && session.ProfileGold > 1200 && driver.cycles % 3 != 0;
-                    int route = explore ? 0 : 1;
+                    // This audit funds the first treasure with the starter's
+                    // coastal cannon build. A level unlock alone is not a combat
+                    // upgrade: do not send its 54-hull ship against escort bosses.
+                    int route = 0;
+                    if (!session.CanSelectRoute(route, out _))
+                        route = Enumerable.Range(0, CoreVoyageSession.Routes.Count)
+                            .First(index => session.CanSelectRoute(index, out _));
+                    driver.Record("NO-GM currently selectable route=" + route + "; destination=" + destination +
+                        "; ration target follows the selected route in PrepareAndDepart.");
                     string seed = explore ? null : driver.FindEarnedChart(port, destination, route);
                     yield return driver.PrepareAndDepart(route, destination, seed);
                     yield return driver.Navigate(explore ? "explore" : "trade");
@@ -156,6 +171,9 @@ namespace ShatteredSail.Presentation.Tests
                 bool arrived = session.Settlement.Outcome == VoyageOutcome.ArrivedAtPort;
                 bool failed = session.Settlement.Outcome == VoyageOutcome.Failure;
                 yield return driver.Settle();
+                driver.Record("NO-GM arrival comic pending=" + controller.IsArrivalComicPlaying);
+                yield return ClickThroughAcceptanceArrivalComic(controller);
+                driver.Record("NO-GM arrival comic completed through actual advance clicks.");
                 Assert.That(session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                 if (arrived && session.CurrentPort != origin) audit.crossPortArrivals++;
                 driver.cycles++;
@@ -218,7 +236,10 @@ namespace ShatteredSail.Presentation.Tests
         private sealed partial class StrictDeepDriver
         {
             public bool NoGmFirstTreasure { get; }
-            private DateTime PricingDate => NoGmFirstTreasure ? Session.GameDateTime : DateTime.Now.Date;
+            private DateTime PricingDate => Session.GameDateTime;
+            // One powder for every reserved cannonball, plus four optional loads.
+            // The same target governs both selling and paid re-provisioning.
+            private static int NoGmPowderTarget(int cannonballs) => cannonballs + 4;
             private string tradeOriginPort;
             public int PaidTradeUnitsBought { get; private set; }
             public int CrossPortTradeUnitsSold { get; private set; }
@@ -229,8 +250,9 @@ namespace ShatteredSail.Presentation.Tests
             public IEnumerator PrepareNoGmCannonBuild()
             {
                 Assert.That(NoGmFirstTreasure, Is.True);
-                int[] preparation = { 8, 8, 8, 9, 9, 9, 7, 7 };
-                int[] naval = { 0, 0, 0, 11, 11, 11, 5, 5 };
+                int approach = ResponsiveCardIndex("card_approach");
+                int[] preparation = { 8, 8, 9, 9, 7, 7, 1, 1, approach, approach };
+                int[] naval = { 0, 0, approach, approach, 5, 5, 6, 6, 9, 9 };
                 bool prepared = Session.GetBattleCard(0).UpgradeLevel >= 2 &&
                     preparation.OrderBy(i => i).SequenceEqual(Session.GetBattleDeck(NavalBattleStage.Preparation).OrderBy(i => i)) &&
                     naval.OrderBy(i => i).SequenceEqual(Session.GetBattleDeck(NavalBattleStage.Naval).OrderBy(i => i));
@@ -238,32 +260,35 @@ namespace ShatteredSail.Presentation.Tests
                 yield return EnsureHub();
                 decimal upgrades = RealTradeAudit.RequiredCannonUpgradeCost(Session);
                 decimal ammunition = PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, PortMarketItem.Cannonballs,
-                    PricingDate, Math.Max(0, RealTradeAudit.CannonballTarget - Session.Cargo.Cannonballs));
+                    PricingDate, Math.Max(0, RealTradeAudit.CannonballTarget - Session.Cargo.Cannonballs), Session.Cargo.Fame) +
+                    PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, PortMarketItem.Powder,
+                        PricingDate, Math.Max(0, NoGmPowderTarget(RealTradeAudit.CannonballTarget) - Session.Cargo.Powder), Session.Cargo.Fame);
                 decimal repairSupplies = PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, PortMarketItem.Wood,
-                    PricingDate, Math.Max(0, 10 - Session.Cargo.Wood)) +
+                    PricingDate, Math.Max(0, 10 - Session.Cargo.Wood), Session.Cargo.Fame) +
                     PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, PortMarketItem.Medicine,
-                        PricingDate, Math.Max(0, 3 - Session.Cargo.Medicine));
-                Record("NO-GM paid ranged preparation quote: card0 to level2=" + upgrades + "; ammunition to16=" + ammunition +
+                        PricingDate, Math.Max(0, 3 - Session.Cargo.Medicine), Session.Cargo.Fame);
+                Record("NO-GM paid ranged preparation quote: chain shot to level2=" + upgrades + "; powder20/cannonballs16=" + ammunition +
                     "; repair supplies=" + repairSupplies + "; departure cash reserve=60; actual gold=" + Session.ProfileGold);
                 Assert.That(Session.ProfileGold, Is.GreaterThanOrEqualTo(upgrades + ammunition + repairSupplies + 60m),
                     "Earned funds cannot cover the starter's legal ranged build and ordinary departure reserve.");
-                yield return Click("Port Hotspot CardWorkshop"); yield return Click("Workshop Preview Stage Naval"); yield return Click("Workshop Page Upgrade");
-                yield return Click("Select Upgrade Card 0");
-                while (Session.GetBattleCard(0).UpgradeLevel < 2)
+                var preparationAudit = new RealTradeAudit
                 {
-                    int level = Session.GetBattleCard(0).UpgradeLevel;
-                    int cost = Session.GetCardUpgradeCost(0);
-                    decimal before = Session.ProfileGold;
-                    yield return Click("Confirm Battle Card Upgrade");
-                    Assert.That(Session.GetBattleCard(0).UpgradeLevel, Is.EqualTo(level + 1));
-                    Assert.That(Session.ProfileGold, Is.EqualTo(before - cost));
+                    controller = controller,
+                    scope = "Paid cannon preparation within the strict no-GM progression audit.",
+                    initialProfileGold = (double)Session.ProfileGold
+                };
+                try
+                {
+                    yield return preparationAudit.PrepareCannonDefense();
                 }
-                yield return Click("Workshop Page Collection"); yield return Click("Workshop Page DeckBuilder"); yield return Click("Battle Deck Stage Tab Naval");
-                yield return SetDeck(NavalBattleStage.Preparation, preparation);
-                yield return SetDeck(NavalBattleStage.Naval, naval);
+                finally
+                {
+                    preparationAudit.Save();
+                    File.WriteAllText(Path.Combine(output, "paid-preparation-cycle-" + cycles + ".json"),
+                        JsonUtility.ToJson(preparationAudit, true));
+                }
                 CollectionAssert.AreEquivalent(preparation, Session.GetBattleDeck(NavalBattleStage.Preparation));
                 CollectionAssert.AreEquivalent(naval, Session.GetBattleDeck(NavalBattleStage.Naval));
-                yield return Click("Back To Card Workshop Chests"); yield return EnsureHub();
                 Record("NO-GM legal ranged build ready: card0 level=" + Session.GetBattleCard(0).UpgradeLevel +
                     "; paid=" + upgrades + "; actual gold=" + Session.ProfileGold + "; no boarding rush.");
             }
@@ -276,7 +301,7 @@ namespace ShatteredSail.Presentation.Tests
                 if (noGmCombatReference == null) noGmCombatReference = new RealTradeAudit { controller = controller };
                 CoreBattleState fought = Session.Battle;
                 string lastTurn = string.Empty;
-                int playedInTurn = 0, actions = 0;
+                int playedInTurn = 0, actions = 0, dryTurnsWithoutProgress = 0, lastEnemyHull = fought.EnemyHull;
                 for (; actions < 350 && Session.Phase == CoreDemoPhase.Battle; actions++)
                 {
                     CoreBattleState battle = Session.Battle;
@@ -286,16 +311,34 @@ namespace ShatteredSail.Presentation.Tests
                         lastTurn = turn; playedInTurn = 0;
                         Record("NO-GM ranged battle intent: " + Session.GetEnemyIntent() + "; distance=" + battle.DistanceMeters +
                             "; cannonballs=" + Session.Cargo.Cannonballs + "; powder=" + Session.Cargo.Powder);
+                        bool dry = battle.Stage == NavalBattleStage.Naval &&
+                            (Session.Cargo.Powder <= 0 || Session.Cargo.Cannonballs <= 0);
+                        dryTurnsWithoutProgress = dry && battle.EnemyHull >= lastEnemyHull ? dryTurnsWithoutProgress + 1 : 0;
+                        lastEnemyHull = battle.EnemyHull;
+                        Assert.That(dryTurnsWithoutProgress, Is.LessThan(4),
+                            "Ammunition is exhausted and three complete rounds made no enemy-hull progress. Retain the actual supplies and legal-action evidence instead of repeating empty turns.");
                     }
+                    if (battle.Stage == NavalBattleStage.Naval &&
+                        (Session.Cargo.Powder <= 0 || Session.Cargo.Cannonballs <= 0) && StrictEnabled("Battle Board"))
+                    { yield return Click("Battle Board"); continue; }
+                    if (TradeCanEvadeVisibleRam(Session))
+                    { yield return EvadeTradeRam(controller, Click); continue; }
                     if (AcceptanceNavalMovementNeeded(Session))
-                    { yield return AdvanceAcceptanceNavalRange(controller, Click); continue; }
+                    { yield return AdvanceAcceptanceNavalRange(controller, Click, () => TradeArrivalHeading(Session)); continue; }
                     int selected = -1;
                     double best = 0;
                     if (playedInTurn++ < 24)
                         for (int hand = 0; hand < battle.Hand.Count; hand++)
                         {
                             if (!Session.CanPlayCard(hand) || !StrictEnabled("Battle Card " + hand)) continue;
-                            double score = noGmCombatReference.TradeBattleCardScore(battle.Hand[hand]);
+                            int cardIndex = battle.Hand[hand];
+                            CoreBattleCard card = Session.GetBattleCard(cardIndex);
+                            bool optionalLoading = card.Action == NavalBattleCardAction.Load ||
+                                card.Action == NavalBattleCardAction.PrecisionLoad || card.Action == NavalBattleCardAction.FireRounds;
+                            int coreReserve = Session.IsTreasureVoyage && !Session.HasDiver ? 3 : 0;
+                            if (optionalLoading && (Session.Cargo.Powder - card.PowderCost < Session.Cargo.Cannonballs + coreReserve ||
+                                (card.Action != NavalBattleCardAction.FireRounds && battle.PlayerLoadedShot >= card.StrategyLimit))) continue;
+                            double score = noGmCombatReference.TradeBattleCardScore(cardIndex);
                             if (score > best) { best = score; selected = hand; }
                         }
                     yield return Click(selected >= 0 ? "Battle Card " + selected : "End Battle Turn");
@@ -339,27 +382,28 @@ namespace ShatteredSail.Presentation.Tests
                 Assert.That(Session.TreasureMaps.Count, Is.EqualTo(1));
                 Assert.That(Session.TreasureMaps[0].Id, Is.EqualTo(FirstCraftedMap.Id));
                 int days = FirstCraftedMap.Rank.RecommendedVoyageDays * 2 + 2;
-                int target = Session.CrewCountValue * days;
+                var targets = StrictTreasureSupplyTargets(FirstCraftedMap.Rank.RecommendedVoyageDays,
+                    Session.EstimateDailyRationConsumption(Session.EffectiveCrewCount, Session.HasCook), Session.HasDiver);
+                int target = targets["water"];
                 Record("FIRST TREASURE preparation: rank=" + FirstCraftedMap.RankId + "; suggestedDays=" +
                     FirstCraftedMap.Rank.RecommendedVoyageDays + "; plannedDays=" + days + "; targetEach=" + target +
                     "; water=" + Session.Cargo.Water + "; food=" + Session.Cargo.Food +
                     "; capacity=" + Session.CargoCapacityValue + "; gameDate=" + Session.GameDateTime.ToString("O"));
                 yield return InvestForSuppliesIfNeeded(target);
                 yield return OpenStrictMarket();
-                var targets = new Dictionary<string, int> { { "water", target }, { "food", target }, { "powder", 12 }, { "cannonballs", 20 } };
                 decimal cost = 0m;
-                double volume = Session.Cargo.UsedVolume;
+                double volume = StrictTreasurePlanVolume(Session.Cargo.UsedVolume, Session.GetMarketCargoAmount, targets);
                 foreach (var item in targets)
                 {
                     int missing = Math.Max(0, item.Value - Session.GetMarketCargoAmount(item.Key));
+                    yield return ObserveStrictMarketStock(item.Key);
                     int available = VisibleMarketRemaining(item.Key);
                     if (missing > available)
                     {
                         Record("FIRST TREASURE pending normal stock: " + item.Key + "; missing=" + missing + "; quota=" + available + "; keep the same map and trade/cross month normally.");
                         yield return EnsureHub(); yield break;
                     }
-                    cost += PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, PortItem(item.Key), PricingDate, missing);
-                    volume += missing * (double)PortMarketCatalog.CargoVolume(PortItem(item.Key));
+                    cost += PortMarketCatalog.CalculateBuyCost(Session.CurrentPort, PortItem(item.Key), PricingDate, missing, Session.Cargo.Fame);
                 }
                 if (cost > Session.ProfileGold || volume > Session.CargoCapacityValue + .001d)
                 {

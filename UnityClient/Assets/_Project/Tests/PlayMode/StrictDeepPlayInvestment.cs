@@ -22,7 +22,10 @@ namespace ShatteredSail.Presentation.Tests
                 MustTradeAfterSupplyInvestment = false;
                 Assert.That(Session.Phase, Is.EqualTo(CoreDemoPhase.Port));
                 yield return OpenStrictMarket();
-                int waterQuota = VisibleMarketRemaining("water"), foodQuota = VisibleMarketRemaining("food");
+                yield return ObserveStrictMarketStock("water");
+                int waterQuota = VisibleMarketRemaining("water");
+                yield return ObserveStrictMarketStock("food");
+                int foodQuota = VisibleMarketRemaining("food");
                 int emergencyReserve = Math.Max(1, Session.CrewCountValue) * 2;
                 bool sufficient = requiredRations > 0
                     ? waterQuota >= Math.Max(0, requiredRations - Session.Cargo.Water) && foodQuota >= Math.Max(0, requiredRations - Session.Cargo.Food)
@@ -77,20 +80,22 @@ namespace ShatteredSail.Presentation.Tests
                     int missing = (int)Math.Max(0L, requirement.Value - Session.GetPortInvestmentMaterialAmount(requirement.Key));
                     PortMarketItem item = PortItem(requirement.Key);
                     carriedTargets[requirement.Key] = Session.GetMarketCargoAmount(requirement.Key) + missing;
-                    if (missing > VisibleMarketRemaining(requirement.Key))
+                    yield return ObserveStrictMarketStock(requirement.Key);
+                    int remaining = VisibleMarketRemaining(requirement.Key);
+                    if (missing > remaining)
                     {
                         Record("Supply investment blocked by actual material quota: " + requirement.Key + " missing=" + missing +
-                            "; remaining=" + VisibleMarketRemaining(requirement.Key) + "; no stock reset.");
+                            "; remaining=" + remaining + "; no stock reset.");
                         yield return EnsureHub();
                         yield break;
                     }
-                    if (missing > 0) procurementCost += PortMarketCatalog.CalculateBuyCost(port, item, Session.GameDateTime, missing);
+                    if (missing > 0) procurementCost += PortMarketCatalog.CalculateBuyCost(port, item, Session.GameDateTime, missing, Session.Cargo.Fame);
                     addedVolume += missing * (double)PortMarketCatalog.CargoVolume(item);
                 }
                 decimal rationBudget = PortMarketCatalog.CalculateBuyCost(port, PortMarketItem.Water, Session.GameDateTime,
-                    requiredRations > 0 ? Math.Max(0, requiredRations - Session.Cargo.Water) : 100) +
+                    requiredRations > 0 ? Math.Max(0, requiredRations - Session.Cargo.Water) : 100, Session.Cargo.Fame) +
                     PortMarketCatalog.CalculateBuyCost(port, PortMarketItem.Food, Session.GameDateTime,
-                    requiredRations > 0 ? Math.Max(0, requiredRations - Session.Cargo.Food) : 100);
+                    requiredRations > 0 ? Math.Max(0, requiredRations - Session.Cargo.Food) : 100, Session.Cargo.Fame);
                 if (procurementCost + cost.Gold + rationBudget > Session.ProfileGold ||
                     Session.Cargo.UsedVolume + addedVolume > Session.CargoCapacityValue + .001d)
                 {
@@ -129,8 +134,12 @@ namespace ShatteredSail.Presentation.Tests
                     "; material procurement=" + (goldBeforeProcurement - beforeGold) + "; no GM or inventory reset.");
                 Shot("Supply_Investment_After_Lv" + (level + 1), "Port Investment Panel");
                 yield return Click("Open Port Market");
-                Record("Post-investment actual market allowance: water " + waterQuota + " -> " + VisibleMarketRemaining("water") +
-                    "; food " + foodQuota + " -> " + VisibleMarketRemaining("food"));
+                yield return ObserveStrictMarketStock("water");
+                int updatedWaterQuota = VisibleMarketRemaining("water");
+                yield return ObserveStrictMarketStock("food");
+                int updatedFoodQuota = VisibleMarketRemaining("food");
+                Record("Post-investment actual market allowance: water " + waterQuota + " -> " + updatedWaterQuota +
+                    "; food " + foodQuota + " -> " + updatedFoodQuota);
                 yield return BuyResource("water", Math.Max(100, emergencyReserve));
                 yield return BuyResource("food", Math.Max(100, emergencyReserve));
                 Shot("Supply_Investment_Normal_Resupply", "Market Panel");

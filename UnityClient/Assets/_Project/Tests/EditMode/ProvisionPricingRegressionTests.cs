@@ -41,10 +41,14 @@ namespace ShatteredSail.Core.Tests
                 foreach (int quantity in new[] { 1, batchSize, batchSize * 10 })
                 {
                     decimal lowestBuy = decimal.MaxValue, highestSale = 0m, highestBatchSale = 0m;
-                    for (int days = 0; days < 365; days++)
+                    // Include the storage epoch, the current front-end campaign
+                    // century and the end of the supported calendar. Max fame
+                    // is the cheapest market, departure and maintenance quote.
+                    foreach (DateTime firstMonth in new[] { new DateTime(1, 1, 1), new DateTime(77, 11, 7), new DateTime(9990, 1, 1) })
+                    for (int month = 0; month < 120; month++)
                     {
-                        DateTime date = new DateTime(2026, 1, 1).AddDays(days);
-                        lowestBuy = Math.Min(lowestBuy, PortMarketCatalog.CalculateBuyCost(port, item, date, quantity));
+                        DateTime date = firstMonth.AddMonths(month);
+                        lowestBuy = Math.Min(lowestBuy, PortMarketCatalog.CalculateBuyCost(port, item, date, quantity, int.MaxValue));
                         highestSale = Math.Max(highestSale, PortMarketCatalog.CalculateSellRevenue(port, item, date, quantity));
                         decimal batchSale = quantity / batchSize * PortMarketCatalog.CalculateSellRevenue(port, item, date, batchSize) +
                             PortMarketCatalog.CalculateSellRevenue(port, item, date, quantity % batchSize);
@@ -54,13 +58,72 @@ namespace ShatteredSail.Core.Tests
                         Assert.That(offer.SellMultiplier, Is.InRange(.95m, 1.05m));
                     }
                     string context = port + " / " + item + " x" + quantity;
-                    Assert.That(highestSale, Is.LessThanOrEqualTo(lowestBuy), context + " / cross-day market quotes");
-                    Assert.That(highestBatchSale, Is.LessThanOrEqualTo(lowestBuy), context + " / cross-day batch resale");
+                    Assert.That(highestSale, Is.LessThanOrEqualTo(lowestBuy), context + " / cross-month maximum-fame quotes");
+                    Assert.That(highestBatchSale, Is.LessThanOrEqualTo(lowestBuy), context + " / cross-month maximum-fame batch resale");
                     if (!hasMaintenanceSupply) continue;
                     decimal maintenanceCost = session.CalculateSupplyPurchaseCost(supply, quantity);
                     Assert.That(highestSale, Is.LessThanOrEqualTo(maintenanceCost), context + " / maintenance");
                     Assert.That(highestBatchSale, Is.LessThanOrEqualTo(maintenanceCost), context + " / maintenance batch resale");
                 }
+            }
+        }
+
+        [TestCase("灰鸥港", PortMarketItem.Medicine, 77, 11, 650)]
+        [TestCase("灰鸥港", PortMarketItem.Cannonballs, 80, 2, 600)]
+        [TestCase("盐冠港", PortMarketItem.Wood, 1, 1, 750)]
+        [TestCase("暮潮港", PortMarketItem.Iron, 6, 5, 750)]
+        public void DiscountedPurchaseAndImmediateResaleDoNotIncreaseTheAccount(
+            string port, PortMarketItem item, int year, int month, int fame)
+        {
+            var session = new CoreVoyageSession();
+            session.RestoreProfile(500, port);
+            session.Cargo.Fame = fame;
+            var date = new DateTime(year, month, 7, 8, 0, 0);
+            Assert.That(session.RestoreGameClock((date - CoreVoyageSession.GameClockOrigin).TotalHours), Is.True);
+            string key = PortMarketCatalog.Key(item);
+            int held = session.GetMarketCargoAmount(key);
+            decimal initialGold = session.ProfileGold;
+            decimal purchase = PortMarketCatalog.CalculateBuyCost(port, item, date, 1, fame);
+            decimal sale = PortMarketCatalog.CalculateSellRevenue(port, item, date, 1);
+            Assert.That(session.TryPurchaseMarketCargo(key, 1, purchase, PortMarketCatalog.CargoVolume(item)), Is.True);
+            Assert.That(session.TrySellMarketCargo(key, 1, sale), Is.True);
+            Assert.That(session.GetMarketCargoAmount(key), Is.EqualTo(held));
+            Assert.That(session.ProfileGold, Is.EqualTo(initialGold - purchase + sale));
+            Assert.That(session.ProfileGold, Is.LessThanOrEqualTo(initialGold));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void MaintenanceAndBaseSupplyPurchasesRemainSafeToResellWithOrWithoutDoctor(bool doctor)
+        {
+            foreach (string port in Ports)
+            foreach (VoyageSupplyType type in CoreVoyageSession.PurchasableSupplies)
+            {
+                var session = new CoreVoyageSession();
+                session.RestoreProfile(500, port);
+                session.ConfigureCrewCapabilities(false, false, doctor, false, false, false);
+                session.Cargo.Fame = int.MaxValue;
+                PortMarketItem item = (PortMarketItem)Enum.Parse(typeof(PortMarketItem), type.ToString());
+                string key = PortMarketCatalog.Key(item);
+                int held = session.GetSupplyAmount(type);
+                decimal initialGold = session.ProfileGold;
+                var order = new VoyageSupplyOrder(); order[type] = 1;
+                // The real maintenance UI submits its fame-discounted market
+                // quote through this transaction, not the legacy base quote.
+                var date = new DateTime(77, 11, 7);
+                decimal purchase = PortMarketCatalog.CalculateBuyCost(port, item, date, 1, session.Cargo.Fame);
+                Assert.That(session.TryPurchaseMarketSupplyOrder(order, purchase), Is.True);
+                Assert.That(session.GetSupplyAmount(type), Is.EqualTo(held + 1));
+                decimal highestSale = Enumerable.Range(0, 120).Max(month =>
+                    PortMarketCatalog.SellUnitPrice(port, item, date.AddMonths(month)));
+                Assert.That(session.TrySellMarketCargo(key, 1, highestSale), Is.True);
+                Assert.That(session.ProfileGold, Is.LessThanOrEqualTo(initialGold), port + " / " + type);
+                Assert.That(session.GetSupplyAmount(type), Is.EqualTo(held));
+                decimal beforeBasePurchase = session.ProfileGold;
+                Assert.That(session.TryPurchaseSupplies(order), Is.True);
+                Assert.That(session.TrySellMarketCargo(key, 1, highestSale), Is.True);
+                Assert.That(session.ProfileGold, Is.LessThanOrEqualTo(beforeBasePurchase), port + " / " + type + " / base supply");
+                Assert.That(session.GetSupplyAmount(type), Is.EqualTo(held));
             }
         }
 

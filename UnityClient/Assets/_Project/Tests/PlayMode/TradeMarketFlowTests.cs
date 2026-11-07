@@ -13,6 +13,69 @@ namespace ShatteredSail.Presentation.Tests
 {
     public sealed partial class CoreGameplayDemoSceneTests
     {
+        [UnityTest, Timeout(120000)]
+        public IEnumerator TradeMarket_FameDiscountCannotFundSamePortResaleNowOrNextMonth()
+        {
+            const string port = "灰鸥港";
+            DateTime now = new DateTime(77, 11, 7, 12, 0, 0);
+            var preserved = new Dictionary<string, int?>();
+            foreach (string key in new[]
+            {
+                CoreGameplayDemoController.PortInvestmentKey(port),
+                CoreGameplayDemoController.MarketPurchaseKey(port, now, PortMarketItem.Medicine),
+                CoreGameplayDemoController.MarketPurchaseKey(port, now.AddMonths(1), PortMarketItem.Medicine),
+            })
+            {
+                preserved[key] = PlayerPrefs.HasKey(key) ? (int?)PlayerPrefs.GetInt(key) : null;
+                PlayerPrefs.DeleteKey(key);
+            }
+            try
+            {
+                yield return LoadProvisioningFixture();
+                var controller = Object.FindFirstObjectByType<CoreGameplayDemoController>();
+                // Explicit quotation fixture, not naturally attained fame/port.
+                controller.Session.RestoreProfile(2000, port);
+                controller.Session.Cargo.Fame = 650;
+                PlayerPrefs.SetInt(CoreGameplayDemoController.PortInvestmentKey(port), PortInvestmentCatalog.MaxLevel);
+                SetProvisionClock(controller, () => now);
+                decimal initial = controller.Session.ProfileGold;
+                decimal purchase = PortMarketCatalog.CalculateBuyCost(port, PortMarketItem.Medicine, now, 2, 650);
+                ClickAcceptanceButton("Port Hotspot Market"); yield return null;
+                yield return OpenMarketTrade("medicine");
+                yield return EnterMarketQuantity("medicine", "2");
+                Assert.That(GameObject.Find("Market Trade Total").GetComponent<Text>().text,
+                    Does.Contain(PortMarketCatalog.FormatPrice(purchase)));
+                ClickAcceptanceButton("Confirm Market Buy medicine"); yield return null;
+                Assert.That(controller.Session.ProfileGold, Is.EqualTo(initial - purchase));
+                Assert.That(controller.Session.Cargo.Medicine, Is.EqualTo(2));
+                decimal totalSales = 0m;
+                for (int month = 0; month < 2; month++)
+                {
+                    if (month > 0)
+                    {
+                        ClickAcceptanceButton("Return To Port Hub"); yield return null;
+                        now = now.AddMonths(1);
+                        ClickAcceptanceButton("Port Hotspot Market"); yield return null;
+                    }
+                    decimal revenue = PortMarketCatalog.CalculateSellRevenue(port, PortMarketItem.Medicine, now, 1);
+                    Assert.That(revenue, Is.LessThanOrEqualTo(purchase / 2), "A later monthly quote cannot exceed the original discounted purchase.");
+                    yield return EnterMarketQuantity("medicine", "1", purchase: false);
+                    Assert.That(GameObject.Find("Market Trade Total").GetComponent<Text>().text,
+                        Does.Contain(PortMarketCatalog.FormatPrice(revenue)));
+                    ClickAcceptanceButton("Confirm Market Sell medicine"); yield return null;
+                    totalSales += revenue;
+                    Assert.That(controller.Session.ProfileGold, Is.EqualTo(initial - purchase + totalSales));
+                }
+                Assert.That(controller.Session.Cargo.Medicine, Is.Zero);
+                Assert.That(controller.Session.ProfileGold, Is.LessThanOrEqualTo(initial));
+                Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.MarketPurchaseKey(port, now.AddMonths(-1), PortMarketItem.Medicine)), Is.EqualTo(2));
+                Assert.That(PlayerPrefs.GetInt(CoreGameplayDemoController.MarketPurchaseKey(port, now, PortMarketItem.Medicine)), Is.Zero);
+                Assert.That(ProfileGoldPersistence.Load(), Is.EqualTo(controller.Session.ProfileGold));
+                LogAssert.NoUnexpectedReceived();
+            }
+            finally { RestoreProvisionLedger(preserved); }
+        }
+
         // This is an isolated market UI quotation/transaction test. The port
         // switch is a fixture arrangement, not an assertion of sailing a route.
         [UnityTest, Timeout(120000)]
